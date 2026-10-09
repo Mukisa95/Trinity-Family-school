@@ -179,8 +179,8 @@ const EnhancedInput = React.forwardRef<HTMLInputElement, EnhancedInputProps>(
     const getStateColor = () => {
       if (hasError) return "border-red-300 focus:border-red-500 focus:ring-red-200 dark:border-red-800/60 dark:focus:ring-red-800/60"
       if (isValid) return "border-green-300 focus:border-green-500 focus:ring-green-200 dark:border-green-800/60 dark:focus:ring-green-800/60"
-      if (isFocused) return "border-blue-500 focus:border-blue-600 focus:ring-blue-200 dark:focus:ring-blue-800/60"
-      return "border-gray-300 focus:border-blue-500 focus:ring-blue-200 dark:border-slate-700 dark:focus:ring-blue-800/60"
+      if (isFocused) return "border-brand-500 focus:border-brand-600 focus:ring-brand-200 dark:focus:ring-brand-800/60"
+      return "border-gray-300 focus:border-brand-500 focus:ring-brand-200 dark:border-slate-700 dark:focus:ring-brand-800/60"
     }
 
     // Icon components
@@ -197,7 +197,7 @@ const EnhancedInput = React.forwardRef<HTMLInputElement, EnhancedInputProps>(
 
     const ValidationIcon = () => {
       if (isValidating) {
-        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin dark:text-blue-400" />
+        return <Loader2 className="h-4 w-4 text-brand-ink-500 animate-spin dark:text-brand-ink-400" />
       }
       if (hasError) {
         return <AlertCircle className="h-4 w-4 text-red-500 dark:text-red-400" />
@@ -258,7 +258,7 @@ const EnhancedInput = React.forwardRef<HTMLInputElement, EnhancedInputProps>(
               className={cn(
                 "absolute left-3 transition-all duration-200 ease-out pointer-events-none",
                 isFloatingActive
-                  ? "top-2 text-xs font-medium text-blue-600 dark:text-blue-400"
+                  ? "top-2 text-xs font-medium text-brand-ink-600 dark:text-brand-ink-400"
                   : "top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-slate-400"
               )}
               animate={{
@@ -310,7 +310,7 @@ const EnhancedInput = React.forwardRef<HTMLInputElement, EnhancedInputProps>(
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="absolute inset-0 rounded-md border-2 border-blue-400 pointer-events-none"
+                className="absolute inset-0 rounded-md border-2 border-brand-400 pointer-events-none"
                 style={{
                   background: "transparent",
                   zIndex: -1

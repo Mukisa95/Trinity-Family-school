@@ -875,7 +875,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          className="h-[34px] min-w-[95px] rounded-full border border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
+          className="h-[34px] min-w-[95px] rounded-full border border-brand-200/60 bg-white/90 px-2.5 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
         >
           {(academicYears.find(y => y.id === selectedYearId)?.name) || "Year"}
         </Button>
@@ -913,7 +913,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          className="h-[34px] min-w-[95px] rounded-full border border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
+          className="h-[34px] min-w-[95px] rounded-full border border-brand-200/60 bg-white/90 px-2.5 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
           disabled={!selectedYearId}
         >
           {(selectedYearId && academicYears.find(y => y.id === selectedYearId)?.terms.find(t => t.id === selectedTermId)?.name) || "Term"}
@@ -1075,7 +1075,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
         </Card>
       </div>
 
-      <Card className="border-blue-100 dark:border-blue-800/60">
+      <Card className="border-brand-100 dark:border-brand-800/60">
         <CardHeader className="py-2">
           <CardTitle>Assignment Overview</CardTitle>
         </CardHeader>
@@ -1107,10 +1107,10 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                   </Button>
                 </div>
               )}
-              <div className="rounded-xl border border-blue-50 shadow-inner shadow-blue-100/40 dark:border-blue-800/60">
+              <div className="rounded-xl border border-brand-50 shadow-inner shadow-brand-100/40 dark:border-brand-800/60">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-blue-50/70 dark:bg-blue-950/70">
+                  <TableRow className="bg-brand-surface-50/70 dark:bg-brand-surface-950/70">
                     {!isSelectedPast && (
                       <TableHead className="w-10 align-middle">
                         <Checkbox
@@ -1153,7 +1153,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                           <div>
                             <Link
                               href={`/fees/collect/${record.pupil.id}`}
-                              className="text-blue-600 hover:underline dark:text-blue-400"
+                              className="text-brand-ink-600 hover:underline dark:text-brand-ink-400"
                             >
                               {formatPupilDisplayName(record.pupil)}
                             </Link>
@@ -1278,7 +1278,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                         )}
                       </TableRow>
                       {expandedRows.has(record.pupil.id) && (
-                        <TableRow className="bg-blue-50/40 dark:bg-blue-950/40">
+                        <TableRow className="bg-brand-surface-50/40 dark:bg-brand-surface-950/40">
                           <TableCell colSpan={!isSelectedPast ? 7 : 5} className="p-4">
                             {record.payments.length === 0 ? (
                               <Alert>

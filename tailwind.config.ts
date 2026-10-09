@@ -1,5 +1,13 @@
 import type { Config } from "tailwindcss";
 
+const brandShades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+const brandPalette = (name: string) => ({
+  DEFAULT: `rgb(var(--${name}-600) / <alpha-value>)`,
+  ...Object.fromEntries(brandShades.map(shade => [shade, `rgb(var(--${name}-${shade}) / <alpha-value>)`])),
+  ink: Object.fromEntries(brandShades.map(shade => [shade, `rgb(var(--${name}-ink-${shade}) / <alpha-value>)`])),
+  surface: Object.fromEntries(brandShades.map(shade => [shade, `rgb(var(--${name}-surface-${shade}) / <alpha-value>)`])),
+});
+
 export default {
 	darkMode: ["class"],
 	content: [
@@ -10,6 +18,11 @@ export default {
 	theme: {
 		extend: {
 			colors: {
+                brand: brandPalette('brand'),
+                'brand-alt': brandPalette('brand-alt'),
+                'brand-secondary': brandPalette('brand-secondary'),
+                'brand-secondary-alt': brandPalette('brand-secondary-alt'),
+                link: { DEFAULT: 'rgb(var(--link) / <alpha-value>)', hover: 'rgb(var(--link-hover) / <alpha-value>)' },
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				card: {

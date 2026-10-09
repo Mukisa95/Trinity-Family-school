@@ -488,7 +488,7 @@ export default function CollectionAnalyticsPage() {
           setManualYearId(e.target.value);
           setManualTermId(undefined);
         }}
-        className="appearance-none h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-3 text-[10px] font-semibold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer text-center dark:border-indigo-800/60 dark:bg-slate-900/90 dark:text-indigo-300"
+        className="appearance-none h-[30px] rounded-full border border-brand-alt-200/60 bg-white/90 px-3 text-[10px] font-semibold text-brand-alt-ink-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-alt-400/50 cursor-pointer text-center dark:border-brand-alt-800/60 dark:bg-slate-900/90 dark:text-brand-alt-ink-300"
       >
         {allYears.map(year => (
           <option key={year.id} value={year.id} className="text-gray-900 bg-white dark:text-slate-100 dark:bg-slate-900">
@@ -501,7 +501,7 @@ export default function CollectionAnalyticsPage() {
       <select
         value={effectiveTermId}
         onChange={(e) => setManualTermId(e.target.value)}
-        className="appearance-none h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-3 text-[10px] font-semibold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer text-center dark:border-indigo-800/60 dark:bg-slate-900/90 dark:text-indigo-300"
+        className="appearance-none h-[30px] rounded-full border border-brand-alt-200/60 bg-white/90 px-3 text-[10px] font-semibold text-brand-alt-ink-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-alt-400/50 cursor-pointer text-center dark:border-brand-alt-800/60 dark:bg-slate-900/90 dark:text-brand-alt-ink-300"
       >
         {activeYear?.terms?.map(term => (
           <option key={term.id} value={term.id} className="text-gray-900 bg-white dark:text-slate-100 dark:bg-slate-900">
@@ -511,7 +511,7 @@ export default function CollectionAnalyticsPage() {
       </select>
 
       {/* Separator / Divider */}
-      <div className="w-px h-5 bg-indigo-200/40 mx-0.5 dark:bg-indigo-900/40" />
+      <div className="w-px h-5 bg-brand-alt-surface-200/40 mx-0.5 dark:bg-brand-alt-surface-900/40" />
 
       {/* Analysis View Selector */}
       <select
@@ -519,7 +519,7 @@ export default function CollectionAnalyticsPage() {
         onChange={(e) => {
           setAnalysisView(e.target.value as 'daily' | 'weekly' | 'term');
         }}
-        className="appearance-none h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-3 text-[10px] font-semibold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer text-center dark:border-indigo-800/60 dark:bg-slate-900/90 dark:text-indigo-300"
+        className="appearance-none h-[30px] rounded-full border border-brand-alt-200/60 bg-white/90 px-3 text-[10px] font-semibold text-brand-alt-ink-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-alt-400/50 cursor-pointer text-center dark:border-brand-alt-800/60 dark:bg-slate-900/90 dark:text-brand-alt-ink-300"
       >
         <option value="daily" className="text-gray-900 bg-white dark:text-slate-100 dark:bg-slate-900">Daily</option>
         <option value="weekly" className="text-gray-900 bg-white dark:text-slate-100 dark:bg-slate-900">Weekly</option>
@@ -534,12 +534,12 @@ export default function CollectionAnalyticsPage() {
           onChange={(e) => setSelectedDate(e.target.value)}
           min={termDates?.startDate.toISOString().split('T')[0]}
           max={termDates?.endDate.toISOString().split('T')[0]}
-          className="h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-2 text-[10px] font-semibold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer dark:border-indigo-800/60 dark:bg-slate-900/90 dark:text-indigo-300"
+          className="h-[30px] rounded-full border border-brand-alt-200/60 bg-white/90 px-2 text-[10px] font-semibold text-brand-alt-ink-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-alt-400/50 cursor-pointer dark:border-brand-alt-800/60 dark:bg-slate-900/90 dark:text-brand-alt-ink-300"
         />
       )}
 
       {analysisView === 'weekly' && (
-        <div className="flex items-center gap-1 bg-white/90 rounded-full border border-indigo-200/60 shadow-sm px-2.5 h-[30px] text-[10px] font-semibold text-indigo-700 dark:bg-slate-900/90 dark:border-indigo-800/60 dark:text-indigo-300">
+        <div className="flex items-center gap-1 bg-white/90 rounded-full border border-brand-alt-200/60 shadow-sm px-2.5 h-[30px] text-[10px] font-semibold text-brand-alt-ink-700 dark:bg-slate-900/90 dark:border-brand-alt-800/60 dark:text-brand-alt-ink-300">
           <span className="text-gray-400 font-medium dark:text-slate-400">Week:</span>
           <input
             type="date"
@@ -554,10 +554,10 @@ export default function CollectionAnalyticsPage() {
             }}
             min={termDates?.startDate.toISOString().split('T')[0]}
             max={termDates?.endDate.toISOString().split('T')[0]}
-            className="border-0 focus:ring-0 focus:outline-none text-[10px] font-semibold text-indigo-700 bg-transparent w-[95px] cursor-pointer dark:text-indigo-300"
+            className="border-0 focus:ring-0 focus:outline-none text-[10px] font-semibold text-brand-alt-ink-700 bg-transparent w-[95px] cursor-pointer dark:text-brand-alt-ink-300"
             title="Click to select week"
           />
-          <span className="text-indigo-600 font-extrabold ml-1 dark:text-indigo-400">
+          <span className="text-brand-alt-ink-600 font-extrabold ml-1 dark:text-brand-alt-ink-400">
             {selectedWeekStart && (() => {
               const monday = new Date(selectedWeekStart);
               const sunday = new Date(monday);
@@ -569,7 +569,7 @@ export default function CollectionAnalyticsPage() {
       )}
 
       {analysisView === 'term' && termDates && (
-        <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-50/80 border border-indigo-200/60 text-[10px] font-semibold text-indigo-700 shadow-sm h-[30px] dark:bg-indigo-950/80 dark:border-indigo-800/60 dark:text-indigo-300">
+        <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-brand-alt-surface-50/80 border border-brand-alt-200/60 text-[10px] font-semibold text-brand-alt-ink-700 shadow-sm h-[30px] dark:bg-brand-alt-surface-950/80 dark:border-brand-alt-800/60 dark:text-brand-alt-ink-300">
           <Calendar className="w-3 h-3" />
           <span>
             {termDates.startDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })} - {termDates.endDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
@@ -584,7 +584,7 @@ export default function CollectionAnalyticsPage() {
       {/* Non-blocking Loading Indicator */}
       {(isLoading || isProcessing) && (
         <div className="fixed top-0 left-0 right-0 z-50">
-          <div className="bg-indigo-600 text-white py-2 px-4 shadow-lg">
+          <div className="bg-brand-alt-surface-600 text-white py-2 px-4 shadow-lg">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent dark:border-slate-700"></div>
@@ -593,7 +593,7 @@ export default function CollectionAnalyticsPage() {
                 </span>
               </div>
               {progressPercentage > 0 && (
-                <div className="w-48 bg-indigo-700 rounded-full h-2">
+                <div className="w-48 bg-brand-alt-surface-700 rounded-full h-2">
                   <div
                     className="bg-white h-2 rounded-full transition-all duration-300 dark:bg-slate-900"
                     style={{ width: `${progressPercentage}%` }}
@@ -629,9 +629,9 @@ export default function CollectionAnalyticsPage() {
         right={
           isDataReady && stats ? (
             <>
-              <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="text-blue-700/85 dark:text-blue-300 font-medium">Expected:</span>
-                <span className="font-bold text-blue-700 dark:text-blue-400">
+              <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="text-brand-ink-700/85 dark:text-brand-ink-300 font-medium">Expected:</span>
+                <span className="font-bold text-brand-ink-700 dark:text-brand-ink-400">
                   {formatCurrency(stats.totalExpected)} ({stats.totalPupils} pupils)
                 </span>
               </div>
@@ -649,7 +649,7 @@ export default function CollectionAnalyticsPage() {
               </div>
             </>
           ) : (
-            <div className="flex items-center gap-1 bg-indigo-50 border border-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-md text-[10px] sm:text-xs animate-pulse dark:bg-indigo-950/40 dark:border-indigo-800/60 dark:text-indigo-300">
+            <div className="flex items-center gap-1 bg-brand-alt-surface-50 border border-brand-alt-100 text-brand-alt-ink-700 px-2.5 py-0.5 rounded-md text-[10px] sm:text-xs animate-pulse dark:bg-brand-alt-surface-950/40 dark:border-brand-alt-800/60 dark:text-brand-alt-ink-300">
               <span>Calculating statistics...</span>
             </div>
           )
@@ -664,21 +664,21 @@ export default function CollectionAnalyticsPage() {
           {/* Integrated Header */}
           <div
             onClick={() => !loadingDatePayments && dateFilteredStats && setExpandedDatePayments(!expandedDatePayments)}
-            className={`bg-gradient-to-br from-green-50 via-blue-50 to-cyan-50 p-4 md:p-6 cursor-pointer hover:shadow-inner transition-all  dark:from-green-950/40 dark:via-blue-950/40 dark:to-cyan-950/40 ${!loadingDatePayments && dateFilteredStats ? 'cursor-pointer' : ''
+            className={`bg-gradient-to-br from-green-50 via-brand-surface-50 to-cyan-50 p-4 md:p-6 cursor-pointer hover:shadow-inner transition-all  dark:from-green-950/40 dark:via-brand-surface-950/40 dark:to-cyan-950/40 ${!loadingDatePayments && dateFilteredStats ? 'cursor-pointer' : ''
               }`}
           >
             {/* Top Row: Title */}
             <div className="flex items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
-                <h3 className="text-base md:text-lg font-bold text-blue-900 dark:text-blue-200">Collection by Date</h3>
+                <Calendar className="w-5 h-5 md:w-6 md:h-6 text-brand-ink-600 dark:text-brand-ink-400" />
+                <h3 className="text-base md:text-lg font-bold text-brand-ink-900 dark:text-brand-ink-200">Collection by Date</h3>
               </div>
             </div>
 
             {/* Stats Display - Compact */}
             {loadingDatePayments ? (
               <div className="text-center py-6 text-gray-500 dark:text-slate-400">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-600 mx-auto mb-2"></div>
                 <p className="text-xs">Loading...</p>
               </div>
             ) : dateFilteredStats && (
@@ -699,7 +699,7 @@ export default function CollectionAnalyticsPage() {
                       <AnimatedCurrency amount={dateFilteredStats.totalCollected} duration={1500} />
                     </p>
                     <div className="flex flex-wrap items-center gap-2 text-[10px] md:text-xs mt-1">
-                      <span className="text-blue-600 dark:text-blue-400">📅 {dateFilteredStats.dateRange}</span>
+                      <span className="text-brand-ink-600 dark:text-brand-ink-400">📅 {dateFilteredStats.dateRange}</span>
                       <span className="text-gray-400 dark:text-slate-400">•</span>
                       <span className="text-green-600 dark:text-green-400">
                         <AnimatedNumber value={dateFilteredStats.paymentsCount} duration={1500} /> pmts
@@ -709,7 +709,7 @@ export default function CollectionAnalyticsPage() {
 
                   {/* Right: Percentage */}
                   <div className="text-right">
-                    <p className="text-xl md:text-2xl font-bold text-purple-900 dark:text-purple-200">
+                    <p className="text-xl md:text-2xl font-bold text-brand-secondary-ink-900 dark:text-brand-secondary-ink-200">
                       {isDataReady && stats ? (
                         <AnimatedPercentage
                           value={(dateFilteredStats.totalCollected / stats.totalCollected) * 100}
@@ -720,7 +720,7 @@ export default function CollectionAnalyticsPage() {
                         '0.0%'
                       )}
                     </p>
-                    <p className="text-[10px] md:text-xs text-purple-600 mt-1 dark:text-purple-400">of term</p>
+                    <p className="text-[10px] md:text-xs text-brand-secondary-ink-600 mt-1 dark:text-brand-secondary-ink-400">of term</p>
                   </div>
                 </div>
               </div>
@@ -729,23 +729,23 @@ export default function CollectionAnalyticsPage() {
             {/* Expandable Payment Details */}
             {!loadingDatePayments && dateFilteredStats && expandedDatePayments && (
               <div
-                className="mt-4 md:mt-6 pt-4 md:pt-6 border-t-2 border-dashed border-blue-300 dark:border-blue-800/60"
+                className="mt-4 md:mt-6 pt-4 md:pt-6 border-t-2 border-dashed border-brand-300 dark:border-brand-800/60"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center gap-2 mb-3 md:mb-4">
-                  <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                  <div className="w-6 h-6 bg-brand-surface-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
                     {dateFilteredStats.pupilsWithPayments.length}
                   </div>
-                  <h4 className="text-sm md:text-base font-bold text-blue-900 dark:text-blue-200">Payment Details</h4>
+                  <h4 className="text-sm md:text-base font-bold text-brand-ink-900 dark:text-brand-ink-200">Payment Details</h4>
                 </div>
                 {/* Mobile scroll hint */}
-                <div className="md:hidden px-3 py-2 bg-blue-50 border-b border-blue-100 rounded-t-lg dark:bg-blue-950/40 dark:border-blue-800/60">
-                  <p className="text-[10px] text-blue-600 text-center dark:text-blue-400">← Scroll to view all columns →</p>
+                <div className="md:hidden px-3 py-2 bg-brand-surface-50 border-b border-brand-100 rounded-t-lg dark:bg-brand-surface-950/40 dark:border-brand-800/60">
+                  <p className="text-[10px] text-brand-ink-600 text-center dark:text-brand-ink-400">← Scroll to view all columns →</p>
                 </div>
 
                 <div className="overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm dark:bg-slate-900 dark:border-slate-700">
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
-                    <thead className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-slate-900 dark:to-blue-950/40">
+                    <thead className="bg-gradient-to-r from-gray-50 to-brand-surface-50 dark:from-slate-900 dark:to-brand-surface-950/40">
                       <tr>
                         <th className="px-2 md:px-4 py-2 md:py-3 text-left text-[10px] md:text-xs font-semibold text-gray-700 uppercase dark:text-slate-200">Pupil</th>
                         <th className="px-2 md:px-4 py-2 md:py-3 text-right text-[10px] md:text-xs font-semibold text-gray-700 uppercase dark:text-slate-200">Term Total</th>
@@ -771,7 +771,7 @@ export default function CollectionAnalyticsPage() {
                                   className="text-left hover:underline"
                                 >
                                   <div className="text-[9px] md:text-[10px] font-bold text-gray-700 uppercase mb-0.5 dark:text-slate-200">{pupilPayment.classCode}</div>
-                                  <div className="text-xs md:text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">{pupilPayment.pupilName}</div>
+                                  <div className="text-xs md:text-sm font-medium text-brand-ink-600 hover:text-brand-ink-800 dark:text-brand-ink-400 dark:hover:text-brand-ink-200">{pupilPayment.pupilName}</div>
                                   <div className="text-[10px] md:text-xs text-gray-500 dark:text-slate-400">{pupilPayment.section}</div>
                                 </button>
                               </td>
@@ -780,17 +780,17 @@ export default function CollectionAnalyticsPage() {
                                 <div className="text-red-600 text-[10px] md:text-xs dark:text-red-400">{formatCurrency(pupilFeesData?.balance || 0)}</div>
                               </td>
                               <td
-                                className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm font-medium text-blue-600 text-right cursor-pointer hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40"
+                                className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm font-medium text-brand-ink-600 text-right cursor-pointer hover:bg-brand-surface-50 dark:text-brand-ink-400 dark:hover:bg-brand-surface-950/40"
                                 onClick={() => setExpandedPupilPayments(prev => ({ ...prev, [pupilPayment.pupilId]: !prev[pupilPayment.pupilId] }))}
                               >
-                                <div className="text-blue-600 font-bold dark:text-blue-400">{formatCurrency(pupilPayment.totalPaid)}</div>
+                                <div className="text-brand-ink-600 font-bold dark:text-brand-ink-400">{formatCurrency(pupilPayment.totalPaid)}</div>
                                 <div className="text-[10px] md:text-xs text-gray-500 mt-0.5 dark:text-slate-400">{pupilPayment.payments.length} {pupilPayment.payments.length !== 1 ? 'pmts' : 'pmt'}</div>
                               </td>
                             </tr>
 
                             {/* Expanded payment details - Compact */}
                             {isPaymentExpanded && (
-                              <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40" onClick={(e) => e.stopPropagation()}>
+                              <tr className="bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40" onClick={(e) => e.stopPropagation()}>
                                 <td colSpan={3} className="px-2 md:px-4 py-2 md:py-3" onClick={(e) => e.stopPropagation()}>
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 md:gap-2" onClick={(e) => e.stopPropagation()}>
                                     {pupilPayment.payments.map((payment: any) => {
@@ -800,7 +800,7 @@ export default function CollectionAnalyticsPage() {
                                       const currentBalance = feeInfo?.balance || 0;
 
                                       return (
-                                        <div key={payment.id} className="bg-white rounded-md p-2 border border-indigo-200 shadow-sm dark:bg-slate-900 dark:border-indigo-800/60">
+                                        <div key={payment.id} className="bg-white rounded-md p-2 border border-brand-alt-200 shadow-sm dark:bg-slate-900 dark:border-brand-alt-800/60">
                                           <div className="flex justify-between items-start gap-2 mb-1">
                                             <span className="font-semibold text-gray-900 text-[10px] leading-tight dark:text-slate-100">{payment.feeName}</span>
                                             <span className="font-bold text-green-600 text-xs whitespace-nowrap dark:text-green-400">{formatCurrency(payment.amount)}</span>
@@ -830,14 +830,14 @@ export default function CollectionAnalyticsPage() {
         {/* Class Breakdown Table */}
         {isDataReady && stats?.byClass && stats.byClass.length > 0 && (
           <Card className="border-0 shadow-lg">
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-4 md:px-6 py-3 md:py-4 border-b border-indigo-100 dark:from-indigo-950/40 dark:to-purple-950/40 dark:border-indigo-800/60">
-              <h3 className="text-base md:text-lg font-bold text-indigo-900 dark:text-indigo-200">Collection by Class</h3>
-              <p className="text-xs md:text-sm text-indigo-600 dark:text-indigo-400">Breakdown for {activeYear?.name} - Term {effectiveTermId.replace('t', '').replace('-2025', '').replace('-2024', '')}</p>
+            <div className="bg-gradient-to-r from-brand-alt-surface-50 to-brand-secondary-surface-50 px-4 md:px-6 py-3 md:py-4 border-b border-brand-alt-100 dark:from-brand-alt-surface-950/40 dark:to-brand-secondary-surface-950/40 dark:border-brand-alt-800/60">
+              <h3 className="text-base md:text-lg font-bold text-brand-alt-ink-900 dark:text-brand-alt-ink-200">Collection by Class</h3>
+              <p className="text-xs md:text-sm text-brand-alt-ink-600 dark:text-brand-alt-ink-400">Breakdown for {activeYear?.name} - Term {effectiveTermId.replace('t', '').replace('-2025', '').replace('-2024', '')}</p>
             </div>
 
             {/* Mobile scroll hint */}
-            <div className="md:hidden px-4 py-2 bg-blue-50 border-b border-blue-100 dark:bg-blue-950/40 dark:border-blue-800/60">
-              <p className="text-xs text-blue-600 text-center dark:text-blue-400">← Scroll horizontally to view all columns →</p>
+            <div className="md:hidden px-4 py-2 bg-brand-surface-50 border-b border-brand-100 dark:bg-brand-surface-950/40 dark:border-brand-800/60">
+              <p className="text-xs text-brand-ink-600 text-center dark:text-brand-ink-400">← Scroll horizontally to view all columns →</p>
             </div>
 
             <div className="overflow-x-auto">
@@ -925,26 +925,26 @@ export default function CollectionAnalyticsPage() {
 
                         {/* Expanded pupil details */}
                         {isExpanded && (
-                          <tr className="bg-blue-50 dark:bg-blue-950/40" onClick={(e) => e.stopPropagation()}>
+                          <tr className="bg-brand-surface-50 dark:bg-brand-surface-950/40" onClick={(e) => e.stopPropagation()}>
                             <td colSpan={4} className="px-2 md:px-6 py-3 md:py-4" onClick={(e) => e.stopPropagation()}>
                               <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
                                 {/* Heading with search bar - Beautiful & Dynamic */}
-                                <div className="flex items-center justify-between gap-3 mb-3 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-3 border border-indigo-100 shadow-sm dark:from-indigo-950/40 dark:to-blue-950/40 dark:border-indigo-800/60">
+                                <div className="flex items-center justify-between gap-3 mb-3 bg-gradient-to-r from-brand-alt-surface-50 to-brand-surface-50 rounded-lg p-3 border border-brand-alt-100 shadow-sm dark:from-brand-alt-surface-950/40 dark:to-brand-surface-950/40 dark:border-brand-alt-800/60">
                                   <div className="flex items-center gap-2">
                                     <motion.div
                                       key={filteredPupils.length}
                                       initial={{ scale: 0.8 }}
                                       animate={{ scale: 1 }}
-                                      className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-md"
+                                      className="w-8 h-8 bg-gradient-to-br from-brand-alt-surface-600 to-brand-alt-surface-700 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-md"
                                     >
                                       {filteredPupils.length}
                                     </motion.div>
                                     <div>
-                                      <h5 className="text-xs md:text-sm font-bold text-indigo-900 whitespace-nowrap dark:text-indigo-200">
+                                      <h5 className="text-xs md:text-sm font-bold text-brand-alt-ink-900 whitespace-nowrap dark:text-brand-alt-ink-200">
                                         {classData.className}
                                       </h5>
                                       {pupilSearchTerm[classData.classId] && filteredPupils.length !== classPupils.length && (
-                                        <p className="text-[10px] text-indigo-600 dark:text-indigo-400">
+                                        <p className="text-[10px] text-brand-alt-ink-600 dark:text-brand-alt-ink-400">
                                           {filteredPupils.length} of {classPupils.length} pupils
                                         </p>
                                       )}
@@ -956,9 +956,9 @@ export default function CollectionAnalyticsPage() {
                                       placeholder="Search pupils..."
                                       value={pupilSearchTerm[classData.classId] || ''}
                                       onChange={(e) => setPupilSearchTerm(prev => ({ ...prev, [classData.classId]: e.target.value }))}
-                                      className="px-3 py-1.5 pr-8 border-2 border-indigo-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 w-full bg-white shadow-sm transition-all duration-200 hover:shadow-md dark:border-indigo-800/60 dark:bg-slate-900"
+                                      className="px-3 py-1.5 pr-8 border-2 border-brand-alt-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-alt-500 focus:border-brand-alt-400 w-full bg-white shadow-sm transition-all duration-200 hover:shadow-md dark:border-brand-alt-800/60 dark:bg-slate-900"
                                     />
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute right-2.5 top-1/2 transform -translate-y-1/2 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute right-2.5 top-1/2 transform -translate-y-1/2 text-brand-alt-ink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
                                     {pupilSearchTerm[classData.classId] && (
@@ -987,7 +987,7 @@ export default function CollectionAnalyticsPage() {
                                           <div className="flex items-center gap-1">
                                             <span>Name</span>
                                             {sortField === 'name' && (
-                                              <span className="text-indigo-600 dark:text-indigo-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                                              <span className="text-brand-alt-ink-600 dark:text-brand-alt-ink-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                                             )}
                                           </div>
                                         </th>
@@ -1001,7 +1001,7 @@ export default function CollectionAnalyticsPage() {
                                           <div className="flex items-center justify-end gap-1">
                                             <span>Expected</span>
                                             {sortField === 'expected' && (
-                                              <span className="text-indigo-600 dark:text-indigo-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                                              <span className="text-brand-alt-ink-600 dark:text-brand-alt-ink-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                                             )}
                                           </div>
                                         </th>
@@ -1015,7 +1015,7 @@ export default function CollectionAnalyticsPage() {
                                           <div className="flex items-center justify-end gap-1">
                                             <span>Paid</span>
                                             {sortField === 'paid' && (
-                                              <span className="text-indigo-600 dark:text-indigo-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                                              <span className="text-brand-alt-ink-600 dark:text-brand-alt-ink-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                                             )}
                                           </div>
                                         </th>
@@ -1029,7 +1029,7 @@ export default function CollectionAnalyticsPage() {
                                           <div className="flex items-center justify-end gap-1">
                                             <span>Balance</span>
                                             {sortField === 'balance' && (
-                                              <span className="text-indigo-600 font-bold dark:text-indigo-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                                              <span className="text-brand-alt-ink-600 font-bold dark:text-brand-alt-ink-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                                             )}
                                           </div>
                                         </th>
@@ -1173,7 +1173,7 @@ export default function CollectionAnalyticsPage() {
                                     <motion.div
                                       initial={{ opacity: 0, y: -10 }}
                                       animate={{ opacity: 1, y: 0 }}
-                                      className="text-center py-12 bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg border-2 border-dashed border-gray-300 dark:from-slate-900 dark:to-blue-950/40 dark:border-slate-700"
+                                      className="text-center py-12 bg-gradient-to-br from-gray-50 to-brand-surface-50 rounded-lg border-2 border-dashed border-gray-300 dark:from-slate-900 dark:to-brand-surface-950/40 dark:border-slate-700"
                                     >
                                       <svg className="mx-auto h-12 w-12 text-gray-400 mb-3 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

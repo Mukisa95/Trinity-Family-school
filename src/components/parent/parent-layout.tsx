@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useParentPupilScopeStatus, usePupil, usePupils, usePupilsByFamily } from '@/lib/hooks/use-pupils';
 import { useParentOfflineFamily } from '@/lib/hooks/use-parent-offline-family';
@@ -19,6 +19,7 @@ interface ParentLayoutProps {
 export function ParentLayout({ children }: ParentLayoutProps) {
   const { user } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [currentView, setCurrentView] = useState<'dashboard' | 'home' | 'notifications'>('dashboard');
   const [currentPupilId, setCurrentPupilId] = useState<string | undefined>(user?.pupilId);
@@ -63,22 +64,24 @@ export function ParentLayout({ children }: ParentLayoutProps) {
 
   const handleViewChange = (view: 'dashboard' | 'home' | 'notifications') => {
     setCurrentView(view);
+    if (pathname === '/parent/settings/look-and-feel') router.push(view === 'home' ? '/parent?view=home' : '/parent');
   };
 
   const handlePupilChange = (pupilId: string) => {
     setCurrentPupilId(pupilId);
     // When switching pupils, always go back to dashboard view
     setCurrentView('dashboard');
+    if (pathname === '/parent/settings/look-and-feel') router.push('/parent');
   };
 
   // Update view when route changes
   useEffect(() => {
     if (pathname === '/parent' || pathname === '/parent/dashboard') {
-      setCurrentView('dashboard');
+      setCurrentView(searchParams.get('view') === 'home' ? 'home' : 'dashboard');
     } else if (pathname === '/parent/home') {
       setCurrentView('home');
     }
-  }, [pathname]);
+  }, [pathname, searchParams]);
 
   // Family-membership pushes deep-link directly to the newly accessible pupil.
   useEffect(() => {

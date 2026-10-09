@@ -186,7 +186,7 @@ export default function StaffPage() {
         backLabel="Back to dashboard"
         className="mb-1.5"
         meta={
-          <span className="whitespace-nowrap rounded-full border border-indigo-100/80 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:border-indigo-800/80 dark:bg-indigo-950/40 dark:text-indigo-300">
+          <span className="whitespace-nowrap rounded-full border border-brand-alt-100/80 bg-brand-alt-surface-50 px-2 py-0.5 text-[10px] font-bold text-brand-alt-ink-700 dark:border-brand-alt-800/80 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300">
             {filteredStaff.length} {filteredStaff.length === 1 ? 'Staff Member' : 'Staff Members'}
           </span>
         }
@@ -245,16 +245,16 @@ export default function StaffPage() {
       <GlassSummaryBar
         left={
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+            <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
               Staff Summary
             </span>
           </div>
         }
         right={
           <>
-            <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="font-bold text-blue-600 dark:text-blue-400">{stats.total}</span>
-              <span className="text-blue-700/85 dark:text-blue-300 font-medium">Total Staff</span>
+            <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-brand-ink-600 dark:text-brand-ink-400">{stats.total}</span>
+              <span className="text-brand-ink-700/85 dark:text-brand-ink-300 font-medium">Total Staff</span>
             </div>
             <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="font-bold text-green-600 dark:text-green-400">{stats.teaching}</span>
@@ -264,14 +264,14 @@ export default function StaffPage() {
               <span className="font-bold text-orange-600 dark:text-orange-400">{stats.administration}</span>
               <span className="text-orange-700/85 dark:text-orange-300 font-medium">Administration</span>
             </div>
-            <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="font-bold text-purple-600 dark:text-purple-400">{stats.support}</span>
-              <span className="text-purple-700/85 dark:text-purple-300 font-medium">Support</span>
+            <div className="flex items-center gap-1 bg-brand-secondary-surface-50/80 dark:bg-brand-secondary-surface-950/20 border border-brand-secondary-100/50 dark:border-brand-secondary-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">{stats.support}</span>
+              <span className="text-brand-secondary-ink-700/85 dark:text-brand-secondary-ink-300 font-medium">Support</span>
             </div>
             {stats.management > 0 && (
-              <div className="flex items-center gap-1 bg-indigo-50/80 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="font-bold text-indigo-600 dark:text-indigo-400">{stats.management}</span>
-                <span className="text-indigo-700/85 dark:text-indigo-300 font-medium">Management</span>
+              <div className="flex items-center gap-1 bg-brand-alt-surface-50/80 dark:bg-brand-alt-surface-950/20 border border-brand-alt-100/50 dark:border-brand-alt-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-brand-alt-ink-600 dark:text-brand-alt-ink-400">{stats.management}</span>
+                <span className="text-brand-alt-ink-700/85 dark:text-brand-alt-ink-300 font-medium">Management</span>
               </div>
             )}
           </>
@@ -292,7 +292,7 @@ export default function StaffPage() {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <Card className="bg-white/80 backdrop-blur-sm border-blue-100/50 dark:bg-slate-900/80 dark:border-blue-800/50">
+              <Card className="bg-white/80 backdrop-blur-sm border-brand-100/50 dark:bg-slate-900/80 dark:border-brand-800/50">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center justify-between border-b pb-2">
                     <h4 className="text-xs font-semibold text-gray-700 dark:text-slate-200">Filter Staff</h4>
@@ -434,7 +434,7 @@ export default function StaffPage() {
                         <TableCell>
                           <div className="flex items-center space-x-3">
                             <Avatar className="h-8 w-8">
-                              <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-medium dark:bg-blue-950/40 dark:text-blue-300">
+                              <AvatarFallback className="bg-brand-surface-100 text-brand-ink-700 text-sm font-medium dark:bg-brand-surface-950/40 dark:text-brand-ink-300">
                                 {staff.firstName[0]}{staff.lastName[0]}
                               </AvatarFallback>
                             </Avatar>
@@ -475,7 +475,7 @@ export default function StaffPage() {
                               {staff.contactNumber ? (
                                 <a 
                                   href={`tel:${staff.contactNumber}`}
-                                  className="text-primary hover:underline font-medium cursor-pointer"
+                                  className="text-link hover:underline font-medium cursor-pointer"
                                 >
                                   {staff.contactNumber}
                                 </a>
@@ -549,20 +549,20 @@ function StaffCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
     >
-      <Card className="group hover:shadow-lg transition-all duration-300 hover:border-blue-200 overflow-hidden dark:hover:border-blue-800/60">
+      <Card className="group hover:shadow-lg transition-all duration-300 hover:border-brand-200 overflow-hidden dark:hover:border-brand-800/60">
         <CardContent className="p-4">
           {/* Header */}
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center space-x-3">
               <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-medium">
+                <AvatarFallback className="bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 text-white font-medium">
                   {staff.firstName[0]}{staff.lastName[0]}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <Button
                   variant="link"
-                  className="p-0 h-auto font-semibold text-left text-gray-900 hover:text-blue-600 dark:text-slate-100 dark:hover:text-blue-400"
+                  className="p-0 h-auto font-semibold text-left text-gray-900 hover:text-brand-ink-600 dark:text-slate-100 dark:hover:text-brand-ink-400"
                   onClick={onView}
                 >
                   {staff.firstName} {staff.lastName}
@@ -631,7 +631,7 @@ function StaffCard({
               {staff.contactNumber ? (
                 <a 
                   href={`tel:${staff.contactNumber}`}
-                  className="text-primary hover:underline font-medium cursor-pointer"
+                  className="text-link hover:underline font-medium cursor-pointer"
                 >
                   {staff.contactNumber}
                 </a>

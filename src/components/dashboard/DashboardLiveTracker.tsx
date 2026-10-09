@@ -152,7 +152,7 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                 </div>
                 {profileName && <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider dark:text-slate-400">{profileName}:</span>}
                 <span className="text-xs text-gray-500 dark:text-slate-400">No active lessons.</span>
-                <button onClick={() => router.push("/timetable")} className="ml-auto text-[10px] font-semibold text-indigo-500 hover:text-indigo-700 transition dark:text-indigo-400 dark:hover:text-indigo-300">
+                <button onClick={() => router.push("/timetable")} className="ml-auto text-[10px] font-semibold text-brand-alt-ink-500 hover:text-brand-alt-ink-700 transition dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-300">
                     Timetable →
                 </button>
             </div>
@@ -261,9 +261,9 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                 <div className="flex-1" />
                 
                 {showClock && (
-                    <div className="hidden sm:flex items-center px-2 py-0.5 bg-indigo-50/50 border border-indigo-100/60 rounded-full mr-1 flex-shrink-0 dark:bg-indigo-950/50 dark:border-indigo-800/60">
-                        <Clock className="w-2.5 h-2.5 text-indigo-400 mr-1" />
-                        <span className="font-mono text-[10px] font-bold bg-gradient-to-br from-indigo-700 to-indigo-900 bg-clip-text text-transparent tabular-nums tracking-tight dark:from-indigo-400 dark:to-indigo-400">
+                    <div className="hidden sm:flex items-center px-2 py-0.5 bg-brand-alt-surface-50/50 border border-brand-alt-100/60 rounded-full mr-1 flex-shrink-0 dark:bg-brand-alt-surface-950/50 dark:border-brand-alt-800/60">
+                        <Clock className="w-2.5 h-2.5 text-brand-alt-ink-400 mr-1" />
+                        <span className="font-mono text-[10px] font-bold bg-gradient-to-br from-brand-alt-ink-700 to-brand-alt-ink-900 bg-clip-text text-transparent tabular-nums tracking-tight dark:from-brand-alt-ink-400 dark:to-brand-alt-ink-400">
                             {format(currentTime, "h:mm a")}
                         </span>
                     </div>
@@ -343,8 +343,8 @@ export function DashboardLiveTracker() {
     if (isLoading || profilesLoading || profiles.length === 0) {
         if (!isLoading && !profilesLoading && profiles.length === 0) return null;
         return (
-            <div className="bg-white rounded-xl px-3 py-2.5 flex items-center gap-2 border-2 border-indigo-100 shadow-sm dark:bg-slate-900 dark:border-indigo-800/60">
-                <div className="w-3 h-3 border-2 border-indigo-100 border-t-indigo-400 rounded-full animate-spin flex-shrink-0 dark:border-indigo-800/60" />
+            <div className="bg-white rounded-xl px-3 py-2.5 flex items-center gap-2 border-2 border-brand-alt-100 shadow-sm dark:bg-slate-900 dark:border-brand-alt-800/60">
+                <div className="w-3 h-3 border-2 border-brand-alt-100 border-t-indigo-400 rounded-full animate-spin flex-shrink-0 dark:border-brand-alt-800/60" />
                 <span className="text-xs text-gray-400 font-medium dark:text-slate-400">Loading timetables…</span>
             </div>
         );
@@ -358,7 +358,7 @@ export function DashboardLiveTracker() {
                 boxShadow: "0 0 0 4px rgba(99,102,241,0.08), 0 2px 8px rgba(99,102,241,0.10)"
             }}
         >
-            <div className="flex flex-col gap-2 divide-y divide-indigo-50/60 dark:divide-indigo-800/60">
+            <div className="flex flex-col gap-2 divide-y divide-brand-alt-50/60 dark:divide-brand-alt-800/60">
                 {profiles.map((profile, idx) => (
                     <TrackerCore
                         key={profile.id}

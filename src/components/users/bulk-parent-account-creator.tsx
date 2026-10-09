@@ -195,7 +195,7 @@ export function BulkParentAccountCreator({ parentUsers, onSuccess, onCancel }: B
           onClick={() => setSelectionMode('individual')}
           className={`px-4 py-2 text-sm font-medium transition-colors ${
             selectionMode === 'individual'
-              ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+              ? 'border-b-2 border-brand-500 text-brand-ink-600 dark:text-brand-ink-400'
               : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
           }`}
         >
@@ -206,7 +206,7 @@ export function BulkParentAccountCreator({ parentUsers, onSuccess, onCancel }: B
           onClick={() => setSelectionMode('class')}
           className={`px-4 py-2 text-sm font-medium transition-colors ${
             selectionMode === 'class'
-              ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+              ? 'border-b-2 border-brand-500 text-brand-ink-600 dark:text-brand-ink-400'
               : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
           }`}
         >
@@ -331,9 +331,9 @@ export function BulkParentAccountCreator({ parentUsers, onSuccess, onCancel }: B
                     pupilsInSelectedClass.map(pupil => (
                       <div
                         key={pupil.id}
-                        className="flex items-center space-x-3 p-3 border rounded-lg bg-blue-50 dark:bg-blue-950/40"
+                        className="flex items-center space-x-3 p-3 border rounded-lg bg-brand-surface-50 dark:bg-brand-surface-950/40"
                       >
-                        <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <CheckCircle className="w-5 h-5 text-brand-ink-600 dark:text-brand-ink-400" />
                         <div className="flex-1">
                           <div className="font-medium">
                             {formatPupilDisplayName(pupil)}
@@ -357,14 +357,14 @@ export function BulkParentAccountCreator({ parentUsers, onSuccess, onCancel }: B
 
       {/* Summary and Actions */}
       {finalSelectedPupils.length > 0 && (
-        <Card className="bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60">
+        <Card className="bg-brand-surface-50 border-brand-200 dark:bg-brand-surface-950/40 dark:border-brand-800/60">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
-                <h3 className="font-medium text-blue-900 dark:text-blue-200">
+                <h3 className="font-medium text-brand-ink-900 dark:text-brand-ink-200">
                     Ready to Create {finalSelectedPupils.length} Family Account(s)
                 </h3>
-                                 <p className="text-sm text-blue-700 dark:text-blue-300">
+                                 <p className="text-sm text-brand-ink-700 dark:text-brand-ink-300">
                    {selectionMode === 'class' && selectedClassId && selectedClassId !== "none"
                      ? `All pupils in ${classes.find(c => c.id === selectedClassId)?.name}`
                       : `${finalSelectedPupils.length} family account(s) selected`
@@ -372,10 +372,10 @@ export function BulkParentAccountCreator({ parentUsers, onSuccess, onCancel }: B
                  </p>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-blue-900 dark:text-blue-200">
+                <div className="text-2xl font-bold text-brand-ink-900 dark:text-brand-ink-200">
                   {finalSelectedPupils.length}
                 </div>
-                <div className="text-sm text-blue-700 dark:text-blue-300">families</div>
+                <div className="text-sm text-brand-ink-700 dark:text-brand-ink-300">families</div>
               </div>
             </div>
           </CardContent>
@@ -417,7 +417,7 @@ export function BulkParentAccountCreator({ parentUsers, onSuccess, onCancel }: B
       {/* Progress Indicator */}
       {createBulkParentAccountsMutation.isPending && (
         <div className="text-center py-4">
-          <div className="inline-flex items-center space-x-2 text-blue-600 dark:text-blue-400">
+          <div className="inline-flex items-center space-x-2 text-brand-ink-600 dark:text-brand-ink-400">
             <Loader2 className="w-4 h-4 animate-spin" />
             <span>Creating parent accounts...</span>
           </div>

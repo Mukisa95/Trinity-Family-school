@@ -27,16 +27,16 @@ async function build() {
   await esbuild.build({ absWorkingDir: root, stdin: { resolveDir: root, loader: 'tsx', contents: `
 import React,{useEffect} from 'react';import {createRoot} from 'react-dom/client';
 import * as pdfjs from 'pdfjs-dist';pdfjs.GlobalWorkerOptions.workerSrc='/worker.mjs';
-import {ThemeProvider} from './src/components/providers/theme-provider';
+import {ThemeProvider,useAppearance} from './src/components/providers/theme-provider';
 import {ThemeToggle} from './src/components/ui/theme-toggle';
 import {PDFWorkspaceProvider,usePDFWorkspace} from './src/lib/pdf/pdf-workspace-context';
 import {PDFWorkspace} from './src/components/pdf/pdf-workspace';
-function Fixture(){const api=usePDFWorkspace();useEffect(()=>{window.pdfAPI=api},[api]);return <div style={{'--theme-primary':'37 99 235'}}><div className="fixed bottom-4 left-4 z-[110]"><ThemeToggle/></div><PDFWorkspace/></div>}
+function Fixture(){const api=usePDFWorkspace(),appearance=useAppearance();useEffect(()=>{window.pdfAPI=api;window.appearance=appearance},[api,appearance]);return <div style={{'--theme-primary':'37 99 235'}}><div className="fixed bottom-4 left-4 z-[110]"><ThemeToggle/></div><PDFWorkspace/></div>}
 createRoot(document.getElementById('app')).render(<ThemeProvider><PDFWorkspaceProvider><Fixture/></PDFWorkspaceProvider></ThemeProvider>);
 ` }, bundle: true, format: 'esm', jsx: 'automatic', platform: 'browser', alias: { '@': path.join(root, 'src') }, outfile: path.join(output, 'fixture.js'), define: { 'process.env.NODE_ENV': '"production"' } });
   const config = require('typescript').transpileModule(fs.readFileSync(path.join(root, 'tailwind.config.ts'), 'utf8'), { compilerOptions: { module: 1 } }).outputText;
   const mod = { exports: {} }; new Function('require', 'module', 'exports', config)(require, mod, mod.exports);
-  const css = fs.readFileSync(path.join(root, 'src/app/globals.css'), 'utf8').replace(/^@import[^;]+;/, '') + '\n' + fs.readFileSync(path.join(root, 'src/app/theme.css'), 'utf8');
+  const css = fs.readFileSync(path.join(root, 'src/app/globals.css'), 'utf8').replace(/^@import[^;]+;/, '') + '\n' + fs.readFileSync(path.join(root, 'src/app/theme.css'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'src/app/brand-theme.css'), 'utf8');
   const built = await require('postcss')([require('tailwindcss')({ ...mod.exports.default, content: [path.join(root, 'src/**/*.{ts,tsx}'), { raw: fs.readFileSync(__filename, 'utf8'), extension: 'tsx' }] })]).process(css, { from: path.join(root, 'src/app/globals.css') });
   fs.writeFileSync(path.join(output, 'fixture.css'), built.css);
 }
@@ -92,6 +92,12 @@ async function run() {
     }, printSource);
     assert.equal(printHash, hash(fs.readFileSync(path.join(output, 'source.pdf'))), 'Printing must use the unchanged original PDF');
     await page.screenshot({ path: path.join(output, 'desktop-dark.png') });
+    await page.evaluate(async () => window.appearance.changeLookAndFeel({ preset: 'soft-indigo', background: 'plain', dimming: 60 }, document.querySelector('[role="switch"]')));
+    assert.deepEqual(await inspect(), light, 'Soft Indigo must preserve page and thumbnail pixels');
+    assert.equal(hash(await canvas.screenshot()), pageLight, 'Soft Indigo must preserve paper appearance');
+    assert.equal(hash(await pngDownload('Download current page as PNG')), hash(pngLight), 'Soft Indigo must preserve PNG exports');
+    assert.equal(hash(await pngDownload('Download PDF')), hash(fs.readFileSync(path.join(output, 'source.pdf'))), 'Soft Indigo must preserve PDF bytes');
+    await page.screenshot({ path: path.join(output, 'soft-indigo-dark.png') });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole('button', { name: 'Hide page thumbnails' }).click();
     await page.screenshot({ path: path.join(output, 'mobile-dark.png') });

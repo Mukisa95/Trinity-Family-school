@@ -507,7 +507,7 @@ export function FamilyPaymentModal({
                                 <div className="font-medium text-gray-900 text-sm dark:text-slate-100">
                                   {fee.name}
                                   {fee.feeStructureId.startsWith('uniform') && (
-                                    <span className="ml-1 text-purple-600 text-xs dark:text-purple-400">👕</span>
+                                    <span className="ml-1 text-brand-secondary-ink-600 text-xs dark:text-brand-secondary-ink-400">👕</span>
                                   )}
                                 </div>
                                 <div className="text-xs text-gray-500 dark:text-slate-400">

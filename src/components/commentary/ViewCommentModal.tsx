@@ -17,8 +17,8 @@ const statusColors = {
   good: 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200',
   fair: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200',
   weak: 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200',
-  young: 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200',
-  irregular: 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-200',
+  young: 'bg-brand-surface-100 text-brand-ink-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-200',
+  irregular: 'bg-brand-secondary-surface-100 text-brand-secondary-ink-800 dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-200',
 };
 
 const statusLabels = {
@@ -47,7 +47,7 @@ export function ViewCommentModal({ isOpen, onClose, comment }: ViewCommentModalP
       <ModernDialogContent open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
         <ModernDialogHeader>
           <ModernDialogTitle className="flex items-center gap-2">
-            <Eye className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <Eye className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
             View Comment Template
           </ModernDialogTitle>
         </ModernDialogHeader>
@@ -67,9 +67,9 @@ export function ViewCommentModal({ isOpen, onClose, comment }: ViewCommentModalP
                 <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Comment Type:</span>
                 <div className="flex items-center gap-1">
                   {comment.type === 'class_teacher' ? (
-                    <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <Users className="h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                   ) : (
-                    <GraduationCap className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <GraduationCap className="h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                   )}
                   <Badge variant="outline">
                     {typeLabel}
@@ -84,12 +84,12 @@ export function ViewCommentModal({ isOpen, onClose, comment }: ViewCommentModalP
                 <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Applicable Terms:</span>
                 <div className="flex flex-wrap gap-1">
                   {(!comment.applicableTerms || comment.applicableTerms.includes('all') || comment.applicableTerms.length === 0) ? (
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">
+                    <Badge variant="outline" className="bg-brand-surface-50 text-brand-ink-700 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60">
                       All Terms
                     </Badge>
                   ) : (
                     comment.applicableTerms.map(term => (
-                      <Badge key={term} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">
+                      <Badge key={term} variant="outline" className="bg-brand-surface-50 text-brand-ink-700 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60">
                         {term.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </Badge>
                     ))

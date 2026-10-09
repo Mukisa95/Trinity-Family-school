@@ -183,7 +183,7 @@ export function LinkedUserAccountDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 pr-7">
-            <ShieldCheck className="h-5 w-5 text-primary" />
+            <ShieldCheck className="h-5 w-5 text-link" />
             {copy.title}
           </DialogTitle>
           <DialogDescription>
@@ -209,7 +209,7 @@ export function LinkedUserAccountDialog({
           <div className="space-y-4">
             {!account && (
               <Alert className="border-primary/20 bg-primary/5">
-                <UserRoundPlus className="h-4 w-4 text-primary" />
+                <UserRoundPlus className="h-4 w-4 text-link" />
                 <AlertTitle>{copy.inactive}</AlertTitle>
                 <AlertDescription>Create it here with a username and an initial password.</AlertDescription>
               </Alert>

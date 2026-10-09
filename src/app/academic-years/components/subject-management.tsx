@@ -159,7 +159,7 @@ export function SubjectManagement({ addTrigger }: SubjectManagementProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand-alt-ink-600 dark:text-brand-alt-ink-400" />
         <span className="ml-2">Loading subjects data...</span>
       </div>
     );

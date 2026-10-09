@@ -134,7 +134,7 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment, termScope }
       <ModernDialogContent open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
         <ModernDialogHeader>
           <ModernDialogTitle className="flex items-center gap-2">
-            <Edit className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <Edit className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
             Edit Comment Template
           </ModernDialogTitle>
         </ModernDialogHeader>
@@ -201,9 +201,9 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment, termScope }
                   <SelectItem key={value} value={value}>
                     <div className="flex items-center gap-2">
                       {value === 'class_teacher' ? (
-                        <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <Users className="h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                       ) : value === 'head_teacher' ? (
-                        <GraduationCap className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                        <GraduationCap className="h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                       ) : null}
                       {label}
                     </div>
@@ -259,7 +259,7 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment, termScope }
                 {targetClassIds.length === 0 ? (
                   <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">→ Applies to All Nursery Classes</p>
                 ) : targetClassIds.length > 1 ? (
-                  <p className="text-xs text-blue-600 mt-1 dark:text-blue-400">→ Will create copies for {targetClassIds.length} classes</p>
+                  <p className="text-xs text-brand-ink-600 mt-1 dark:text-brand-ink-400">→ Will create copies for {targetClassIds.length} classes</p>
                 ) : (
                   <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">→ {nurseryClasses.find(c => c.id === targetClassIds[0])?.name}</p>
                 )}
@@ -267,7 +267,7 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment, termScope }
 
               {/* Applicable Terms */}
               {termScope ? (
-                <div className="rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-800 dark:border-violet-800/60 dark:bg-violet-950/40 dark:text-violet-200">
+                <div className="rounded-md border border-brand-secondary-alt-200 bg-brand-secondary-alt-surface-50 px-3 py-2 text-sm text-brand-secondary-alt-ink-800 dark:border-brand-secondary-alt-800/60 dark:bg-brand-secondary-alt-surface-950/40 dark:text-brand-secondary-alt-ink-200">
                   This edit applies only to {TERM_OPTIONS.find((term) => term.value === termScope)?.label || termScope}. Other terms will keep their current comment.
                 </div>
               ) : (

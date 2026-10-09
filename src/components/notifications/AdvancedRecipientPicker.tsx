@@ -138,8 +138,8 @@ export function AdvancedRecipientPicker({
         <div className="space-y-4">
             {/* Selected Recipients Summary */}
             {selectedRecipients.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                <div className="flex flex-wrap gap-2 p-3 bg-brand-surface-50 dark:bg-brand-surface-950 rounded-lg">
+                    <span className="text-sm font-medium text-brand-ink-700 dark:text-brand-ink-300">
                         Selected ({selectedRecipients.length}):
                     </span>
                     {selectedRecipients.slice(0, 5).map(r => (
@@ -181,7 +181,7 @@ export function AdvancedRecipientPicker({
                     className={cn(
                         "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
                         activeGroup === 'quick'
-                            ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                            ? "border-brand-500 text-brand-ink-600 dark:text-brand-ink-400"
                             : "border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
                     )}
                 >
@@ -193,7 +193,7 @@ export function AdvancedRecipientPicker({
                     className={cn(
                         "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
                         activeGroup === 'parents'
-                            ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                            ? "border-brand-500 text-brand-ink-600 dark:text-brand-ink-400"
                             : "border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
                     )}
                 >
@@ -205,7 +205,7 @@ export function AdvancedRecipientPicker({
                     className={cn(
                         "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
                         activeGroup === 'staff'
-                            ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                            ? "border-brand-500 text-brand-ink-600 dark:text-brand-ink-400"
                             : "border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
                     )}
                 >
@@ -218,7 +218,7 @@ export function AdvancedRecipientPicker({
             <div className="min-h-[300px]">
                 {isLoadingUsers ? (
                     <div className="flex flex-col justify-center items-center py-12">
-                        <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-2 dark:text-blue-400" />
+                        <Loader2 className="w-8 h-8 animate-spin text-brand-ink-500 mb-2 dark:text-brand-ink-400" />
                         <p className="text-gray-500 dark:text-slate-400">Loading users...</p>
                     </div>
                 ) : (
@@ -233,7 +233,7 @@ export function AdvancedRecipientPicker({
                                         className={cn(
                                             "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
                                             isSelected(option.id, option.type)
-                                                ? "border-blue-500 bg-blue-50 dark:bg-blue-950"
+                                                ? "border-brand-500 bg-brand-surface-50 dark:bg-brand-surface-950"
                                                 : "border-gray-200 hover:border-gray-300 dark:border-slate-700 dark:hover:border-slate-700"
                                         )}
                                     >
@@ -304,7 +304,7 @@ export function AdvancedRecipientPicker({
                                                 className={cn(
                                                     "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
                                                     isSelected(user.id, 'user')
-                                                        ? "border-blue-500 bg-blue-50 dark:bg-blue-950"
+                                                        ? "border-brand-500 bg-brand-surface-50 dark:bg-brand-surface-950"
                                                         : "border-gray-200 hover:border-gray-300 dark:border-slate-700 dark:hover:border-slate-700"
                                                 )}
                                             >
@@ -374,7 +374,7 @@ export function AdvancedRecipientPicker({
                                                 className={cn(
                                                     "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
                                                     isSelected(user.id, 'user')
-                                                        ? "border-blue-500 bg-blue-50 dark:bg-blue-950"
+                                                        ? "border-brand-500 bg-brand-surface-50 dark:bg-brand-surface-950"
                                                         : "border-gray-200 hover:border-gray-300 dark:border-slate-700 dark:hover:border-slate-700"
                                                 )}
                                             >

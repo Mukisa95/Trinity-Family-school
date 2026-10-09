@@ -124,7 +124,7 @@ export function AssignmentPushFetchModal({
       <ModernDialogContent size="md">
         <ModernDialogHeader>
           <ModernDialogTitle className="flex items-center gap-2">
-            <ArrowRightLeft className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <ArrowRightLeft className="h-5 w-5 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" />
             Push / Fetch Assignment
           </ModernDialogTitle>
           <ModernDialogDescription>
@@ -162,11 +162,11 @@ export function AssignmentPushFetchModal({
                       }}
                       className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
                         mode === 'push'
-                          ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500 dark:bg-indigo-950/40'
-                          : 'border-slate-200 hover:border-indigo-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:border-indigo-800/60 dark:hover:bg-slate-900'
+                          ? 'border-brand-alt-500 bg-brand-alt-surface-50 ring-1 ring-brand-alt-500 dark:bg-brand-alt-surface-950/40'
+                          : 'border-slate-200 hover:border-brand-alt-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:border-brand-alt-800/60 dark:hover:bg-slate-900'
                       }`}
                     >
-                      <div className="font-medium text-indigo-900 dark:text-indigo-200">
+                      <div className="font-medium text-brand-alt-ink-900 dark:text-brand-alt-ink-200">
                         Push to {options.push.target.label}
                       </div>
                       <div className="mt-0.5 text-xs text-muted-foreground">
@@ -184,11 +184,11 @@ export function AssignmentPushFetchModal({
                       }}
                       className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
                         mode === 'fetch'
-                          ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500 dark:bg-indigo-950/40'
-                          : 'border-slate-200 hover:border-indigo-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:border-indigo-800/60 dark:hover:bg-slate-900'
+                          ? 'border-brand-alt-500 bg-brand-alt-surface-50 ring-1 ring-brand-alt-500 dark:bg-brand-alt-surface-950/40'
+                          : 'border-slate-200 hover:border-brand-alt-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:border-brand-alt-800/60 dark:hover:bg-slate-900'
                       }`}
                     >
-                      <div className="font-medium text-indigo-900 dark:text-indigo-200">
+                      <div className="font-medium text-brand-alt-ink-900 dark:text-brand-alt-ink-200">
                         Fetch to {options.fetch.target.label}
                       </div>
                       <div className="mt-0.5 text-xs text-muted-foreground">
@@ -207,8 +207,8 @@ export function AssignmentPushFetchModal({
                 onClick={() => setMode('custom')}
                 className={`mb-2 w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
                   mode === 'custom'
-                    ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500 dark:bg-indigo-950/40'
-                    : 'border-slate-200 hover:border-indigo-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:border-indigo-800/60 dark:hover:bg-slate-900'
+                    ? 'border-brand-alt-500 bg-brand-alt-surface-50 ring-1 ring-brand-alt-500 dark:bg-brand-alt-surface-950/40'
+                    : 'border-slate-200 hover:border-brand-alt-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:border-brand-alt-800/60 dark:hover:bg-slate-900'
                 }`}
               >
                 <span className="font-medium">Choose academic year and term</span>
@@ -266,7 +266,7 @@ export function AssignmentPushFetchModal({
                               return (
                                 <div
                                   key={term.id}
-                                  className={`flex items-center space-x-2 rounded-md py-1 pl-1 pr-0.5 ${isChecked ? 'bg-indigo-50 dark:bg-indigo-950/40' : ''}`}
+                                  className={`flex items-center space-x-2 rounded-md py-1 pl-1 pr-0.5 ${isChecked ? 'bg-brand-alt-surface-50 dark:bg-brand-alt-surface-950/40' : ''}`}
                                 >
                                   <Checkbox
                                     id={checkboxId}
@@ -309,7 +309,7 @@ export function AssignmentPushFetchModal({
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={!canConfirm} className="bg-indigo-600 hover:bg-indigo-700">
+          <Button onClick={handleConfirm} disabled={!canConfirm} className="bg-brand-alt-surface-600 hover:bg-brand-alt-surface-700">
             <ArrowRightLeft className="mr-2 h-4 w-4" />
             Apply
           </Button>

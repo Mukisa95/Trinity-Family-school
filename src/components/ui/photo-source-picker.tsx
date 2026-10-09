@@ -45,7 +45,7 @@ export function PhotoSourcePicker({ onFile }: { onFile: (file?: File) => Promise
   return <div className="space-y-3">
     <div className="grid grid-cols-2 gap-3">
       <Button type="button" variant="outline" disabled={busy} onClick={takePhoto} className="h-auto min-h-28 flex-col gap-2 whitespace-normal p-4 text-foreground">
-        <Camera className="h-9 w-9 text-blue-600" /><span>{busy ? "Waiting for camera…" : "Take Photo"}</span>
+        <Camera className="h-9 w-9 text-brand-ink-600" /><span>{busy ? "Waiting for camera…" : "Take Photo"}</span>
         <span className="text-xs text-muted-foreground">{preferred ? apps.find(app => app.id === preferred)?.label : "Device camera"}</span>
       </Button>
       <Button type="button" variant="outline" disabled={busy} onClick={() => upload.current?.click()} className="h-auto min-h-28 flex-col gap-2 whitespace-normal p-4 text-foreground">

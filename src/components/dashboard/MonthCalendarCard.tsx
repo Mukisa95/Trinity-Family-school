@@ -130,7 +130,7 @@ export function MonthCalendarCard() {
                 <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
                 {/* Decorative gradient accent */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-green-500 rounded-t-xl opacity-60" />
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-surface-500 via-cyan-500 to-green-500 rounded-t-xl opacity-60" />
 
                 <CardContent className="px-2 pb-2 pt-3 flex-1 relative z-20">
                     <div className="h-[290px] w-full mini-calendar-wrapper">
@@ -213,7 +213,7 @@ export function MonthCalendarCard() {
                         })}
                     </div>
                     <div className="p-2 border-t border-slate-100 bg-slate-50 dark:border-slate-700 dark:bg-slate-900">
-                        <Button variant="ghost" className="w-full text-xs h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-100/50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/50" onClick={() => router.push('/events')}>
+                        <Button variant="ghost" className="w-full text-xs h-7 text-brand-ink-600 hover:text-brand-ink-700 hover:bg-brand-surface-100/50 dark:text-brand-ink-400 dark:hover:text-brand-ink-300 dark:hover:bg-brand-surface-950/50" onClick={() => router.push('/events')}>
                             View in Calendar →
                         </Button>
                     </div>
@@ -280,7 +280,7 @@ export function MonthCalendarCard() {
                     border-radius: 50%;
                 }
                 .mini-calendar-wrapper .fc-day-today .fc-daygrid-day-number {
-                    background-color: var(--calendar-today, #3b82f6); /* Solid blue circle for today */
+                    background-color: var(--calendar-today, rgb(var(--brand-surface-500))); /* Solid blue circle for today */
                     color: white !important;
                 }
                 .mini-calendar-wrapper .fc-day-sunday-red .fc-daygrid-day-number,

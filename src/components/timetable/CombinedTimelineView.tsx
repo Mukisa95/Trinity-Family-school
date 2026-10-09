@@ -117,7 +117,7 @@ function ProfileLane({
                 <td className="text-xs text-gray-400 px-3 py-2 dark:text-slate-400" style={{ width: LEFT_LABEL_WIDTH }}>
                     Loading {profile.name}…
                 </td>
-                <td><Loader2 className="w-4 h-4 animate-spin text-blue-300 m-2" /></td>
+                <td><Loader2 className="w-4 h-4 animate-spin text-brand-ink-300 m-2" /></td>
             </tr>
         );
     }
@@ -147,10 +147,10 @@ function ProfileLane({
     return (
         <>
             {/* Profile header row */}
-            <tr className="bg-gradient-to-r from-indigo-50 to-blue-50 border-t-2 border-indigo-200 dark:from-indigo-950/40 dark:to-blue-950/40 dark:border-indigo-800/60">
+            <tr className="bg-gradient-to-r from-brand-alt-surface-50 to-brand-surface-50 border-t-2 border-brand-alt-200 dark:from-brand-alt-surface-950/40 dark:to-brand-surface-950/40 dark:border-brand-alt-800/60">
                 <td
                     colSpan={2}
-                    className="px-3 py-1.5 text-xs font-bold text-indigo-700 uppercase tracking-wide dark:text-indigo-300"
+                    className="px-3 py-1.5 text-xs font-bold text-brand-alt-ink-700 uppercase tracking-wide dark:text-brand-alt-ink-300"
                 >
                     {profile.name || "Main Timetable"}
                 </td>
@@ -276,7 +276,7 @@ export function CombinedTimelineView({ yearId, termId }: CombinedTimelineViewPro
     if (profilesLoading) {
         return (
             <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+                <Loader2 className="w-6 h-6 animate-spin text-brand-ink-400" />
                 <span className="ml-2 text-gray-500 text-sm dark:text-slate-400">Loading profiles…</span>
             </div>
         );
@@ -315,8 +315,8 @@ export function CombinedTimelineView({ yearId, termId }: CombinedTimelineViewPro
                             key={dayId}
                             onClick={() => setSelectedDay(dayId)}
                             className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all whitespace-nowrap ${selectedDay === dayId
-                                ? "bg-blue-600 text-white border-blue-600 shadow-md"
-                                : "bg-white text-gray-600 border-gray-200 hover:bg-blue-50 hover:border-blue-300 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-blue-950/40 dark:hover:border-blue-800/60"
+                                ? "bg-brand-surface-600 text-white border-brand-600 shadow-md"
+                                : "bg-white text-gray-600 border-gray-200 hover:bg-brand-surface-50 hover:border-brand-300 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-brand-surface-950/40 dark:hover:border-brand-800/60"
                                 }`}
                         >
                             {day}

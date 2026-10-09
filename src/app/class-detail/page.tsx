@@ -302,14 +302,14 @@ function SearchableSubjectTeacherSelector({
           type="button"
           variant="ghost"
           size="sm"
-          className={cn("h-7 w-7 p-0 rounded-lg border border-purple-200 bg-white hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 flex-shrink-0 dark:border-purple-800/60 dark:bg-slate-900 dark:hover:border-purple-800/60 dark:hover:bg-purple-950/40", buttonClassName)}
+          className={cn("h-7 w-7 p-0 rounded-lg border border-brand-secondary-200 bg-white hover:border-brand-secondary-300 hover:bg-brand-secondary-surface-50 transition-all duration-200 flex-shrink-0 dark:border-brand-secondary-800/60 dark:bg-slate-900 dark:hover:border-brand-secondary-800/60 dark:hover:bg-brand-secondary-surface-950/40", buttonClassName)}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
             setOpen(!open);
           }}
         >
-          <User className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+          <User className="h-3.5 w-3.5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -417,14 +417,14 @@ function PupilCard({
                     }}
                   />
                   {isLoadingPhoto && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-200/50 via-indigo-200/50 to-purple-200/50 animate-pulse dark:from-blue-900/50 dark:via-indigo-900/50 dark:to-purple-900/50">
-                      <div className="h-2 w-2 rounded-full bg-blue-400 animate-ping" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand-surface-200/50 via-brand-alt-surface-200/50 to-brand-secondary-surface-200/50 animate-pulse dark:from-brand-surface-900/50 dark:via-brand-alt-surface-900/50 dark:to-brand-secondary-surface-900/50">
+                      <div className="h-2 w-2 rounded-full bg-brand-surface-400 animate-ping" />
                     </div>
                   )}
                 </>
               ) : null}
               <AvatarFallback className={`transition-all duration-300 ${isLoadingPhoto
-                ? 'bg-gradient-to-br from-blue-200 via-indigo-200 to-purple-200 text-gray-400 animate-pulse dark:from-blue-900/40 dark:via-indigo-900/40 dark:to-purple-900/40 dark:text-slate-400'
+                ? 'bg-gradient-to-br from-brand-surface-200 via-brand-alt-surface-200 to-brand-secondary-surface-200 text-gray-400 animate-pulse dark:from-brand-surface-900/40 dark:via-brand-alt-surface-900/40 dark:to-brand-secondary-surface-900/40 dark:text-slate-400'
                 : 'bg-gradient-to-br from-primary via-primary/90 to-primary/80 text-primary-foreground'
                 } font-medium text-sm`}>
                 {getInitials()}
@@ -432,7 +432,7 @@ function PupilCard({
             </Avatar>
             {isLoadingPhoto && (
               <div
-                className="absolute -inset-1 rounded-full border-2 border-blue-400 border-dashed animate-spin opacity-50"
+                className="absolute -inset-1 rounded-full border-2 border-brand-400 border-dashed animate-spin opacity-50"
                 style={{ animationDuration: '2s' }}
               />
             )}
@@ -441,7 +441,7 @@ function PupilCard({
             <div className="flex items-center gap-1.5">
               <Link
                 href={`/pupil-detail?id=${pupil.id}`}
-                className="font-semibold text-sm hover:text-primary hover:underline cursor-pointer transition-colors truncate"
+                className="font-semibold text-sm hover:text-link hover:underline cursor-pointer transition-colors truncate"
                 title={`${formatPupilDisplayName(pupil)}`}
               >
                 {formatPupilDisplayName(pupil)}
@@ -512,14 +512,14 @@ function PupilListRow({
                     }}
                   />
                   {isLoadingPhoto && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-200/50 via-indigo-200/50 to-purple-200/50 animate-pulse dark:from-blue-900/50 dark:via-indigo-900/50 dark:to-purple-900/50">
-                      <div className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-ping" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand-surface-200/50 via-brand-alt-surface-200/50 to-brand-secondary-surface-200/50 animate-pulse dark:from-brand-surface-900/50 dark:via-brand-alt-surface-900/50 dark:to-brand-secondary-surface-900/50">
+                      <div className="h-1.5 w-1.5 rounded-full bg-brand-surface-400 animate-ping" />
                     </div>
                   )}
                 </>
               ) : null}
               <AvatarFallback className={`transition-all duration-300 ${isLoadingPhoto
-                ? 'bg-gradient-to-br from-blue-200 via-indigo-200 to-purple-200 text-gray-400 animate-pulse dark:from-blue-900/40 dark:via-indigo-900/40 dark:to-purple-900/40 dark:text-slate-400'
+                ? 'bg-gradient-to-br from-brand-surface-200 via-brand-alt-surface-200 to-brand-secondary-surface-200 text-gray-400 animate-pulse dark:from-brand-surface-900/40 dark:via-brand-alt-surface-900/40 dark:to-brand-secondary-surface-900/40 dark:text-slate-400'
                 : 'bg-gradient-to-br from-primary via-primary/90 to-primary/80 text-primary-foreground'
                 } font-medium text-xs`}>
                 {pupil.firstName.charAt(0)}{pupil.lastName.charAt(0)}
@@ -527,7 +527,7 @@ function PupilListRow({
             </Avatar>
             {isLoadingPhoto && (
               <div
-                className="absolute -inset-0.5 rounded-full border border-blue-400 border-dashed animate-spin opacity-50"
+                className="absolute -inset-0.5 rounded-full border border-brand-400 border-dashed animate-spin opacity-50"
                 style={{ animationDuration: '2s' }}
               />
             )}
@@ -536,7 +536,7 @@ function PupilListRow({
             <div className="flex items-center gap-1.5">
               <Link
                 href={`/pupil-detail?id=${pupil.id}`}
-                className="font-medium text-sm truncate hover:text-primary hover:underline cursor-pointer transition-colors"
+                className="font-medium text-sm truncate hover:text-link hover:underline cursor-pointer transition-colors"
               >
                 {formatPupilDisplayName(pupil)}
               </Link>
@@ -598,10 +598,10 @@ function PupilRosterTable({
     <button
       type="button"
       onClick={() => onSort(field)}
-      className="flex items-center gap-1 rounded-lg px-2 py-1 transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="flex items-center gap-1 rounded-lg px-2 py-1 transition-colors hover:bg-primary/10 hover:text-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       <span>{label}</span>
-      {sortBy === field ? <span className="font-bold text-primary">{sortOrder === 'asc' ? '↑' : '↓'}</span> : null}
+      {sortBy === field ? <span className="font-bold text-link">{sortOrder === 'asc' ? '↑' : '↓'}</span> : null}
     </button>
   );
 
@@ -1163,7 +1163,7 @@ function ClassDetailContent() {
         />
         <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
           <div className="text-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto dark:text-indigo-400" />
+            <Loader2 className="h-8 w-8 animate-spin text-brand-alt-ink-600 mx-auto dark:text-brand-alt-ink-400" />
             <p className="text-muted-foreground font-medium">Loading class details...</p>
           </div>
         </div>
@@ -1207,7 +1207,7 @@ function ClassDetailContent() {
         />
         <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
           <div className="text-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto dark:text-indigo-400" />
+            <Loader2 className="h-8 w-8 animate-spin text-brand-alt-ink-600 mx-auto dark:text-brand-alt-ink-400" />
             <p className="text-muted-foreground font-medium">Loading class details...</p>
           </div>
         </div>
@@ -1237,7 +1237,7 @@ function ClassDetailContent() {
         className="mb-1.5"
         meta={
           <div className="flex items-center gap-1.5">
-            <span className="whitespace-nowrap rounded-full border border-indigo-100/80 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:border-indigo-800/80 dark:bg-indigo-950/40 dark:text-indigo-300">
+            <span className="whitespace-nowrap rounded-full border border-brand-alt-100/80 bg-brand-alt-surface-50 px-2 py-0.5 text-[10px] font-bold text-brand-alt-ink-700 dark:border-brand-alt-800/80 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300">
               {classDetail.level}
             </span>
             <span className="whitespace-nowrap rounded-full border border-emerald-100/80 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:border-emerald-800/80 dark:bg-emerald-950/40 dark:text-emerald-300">
@@ -1340,16 +1340,16 @@ function ClassDetailContent() {
       <GlassSummaryBar
         left={
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+            <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
               Class Leaders & Teacher
             </span>
           </div>
         }
         right={
           <>
-            <div className="flex items-center gap-1 bg-indigo-50/80 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-indigo-700/85 dark:text-indigo-300 font-medium">Class Teacher:</span>
-              <span className="font-bold text-indigo-600 dark:text-indigo-400">{teacherName}</span>
+            <div className="flex items-center gap-1 bg-brand-alt-surface-50/80 dark:bg-brand-alt-surface-950/20 border border-brand-alt-100/50 dark:border-brand-alt-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-brand-alt-ink-700/85 dark:text-brand-alt-ink-300 font-medium">Class Teacher:</span>
+              <span className="font-bold text-brand-alt-ink-600 dark:text-brand-alt-ink-400">{teacherName}</span>
             </div>
             <div className="flex items-center gap-1 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-100/50 dark:border-amber-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="text-amber-700/85 dark:text-amber-300 font-medium">Class Captain:</span>
@@ -1382,7 +1382,7 @@ function ClassDetailContent() {
         <div className="animate-in slide-in-from-top-2 fade-in duration-200 rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-primary/3 to-muted/10 backdrop-blur-sm shadow-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <Filter className="h-4 w-4 text-primary" />
+              <Filter className="h-4 w-4 text-link" />
               Filter Pupils
             </span>
             <Button
@@ -1472,7 +1472,7 @@ function ClassDetailContent() {
               {filters.section !== 'all' && <Badge variant="secondary" className="text-xs">{filters.section}</Badge>}
               {filters.status !== 'all' && <Badge variant="secondary" className="text-xs">{filters.status}</Badge>}
               {(filters.ageMin || filters.ageMax) && <Badge variant="secondary" className="text-xs">Age {filters.ageMin || '0'}–{filters.ageMax || '∞'}</Badge>}
-              <span className="text-xs font-medium text-primary">{filteredPupils.length} result{filteredPupils.length !== 1 ? 's' : ''}</span>
+              <span className="text-xs font-medium text-link">{filteredPupils.length} result{filteredPupils.length !== 1 ? 's' : ''}</span>
             </div>
           )}
         </div>
@@ -1488,12 +1488,12 @@ function ClassDetailContent() {
                 {shouldLoadExams && (
                   <div>
                     <div className="text-xs font-semibold text-muted-foreground mb-3 flex items-center gap-1.5 uppercase tracking-wider">
-                      <Calendar className="h-3.5 w-3.5 text-primary" />
+                      <Calendar className="h-3.5 w-3.5 text-link" />
                       Class Exams
                     </div>
                     {examsLoading ? (
                       <div className="text-center py-4">
-                        <Loader2 className="h-4 w-4 animate-spin text-primary mx-auto" />
+                        <Loader2 className="h-4 w-4 animate-spin text-link mx-auto" />
                         <div className="text-xs text-muted-foreground mt-2">Loading exams...</div>
                       </div>
                     ) : (
@@ -1553,7 +1553,7 @@ function ClassDetailContent() {
                                 href={`/exams/${exam.id}`}
                                 className="block p-3 border-2 border-primary/10 rounded-xl hover:border-primary/30 hover:shadow-md transition-all duration-200 bg-gradient-to-br from-card to-muted/5 group/exam"
                               >
-                                <div className="font-semibold text-foreground text-xs group-hover/exam:text-primary transition-colors">{exam.name}</div>
+                                <div className="font-semibold text-foreground text-xs group-hover/exam:text-link transition-colors">{exam.name}</div>
                                 <div className="text-[10px] text-muted-foreground mt-1">
                                   {exam.startDate ? new Date(exam.startDate).toLocaleDateString() : 'No date set'}
                                 </div>
@@ -1579,12 +1579,12 @@ function ClassDetailContent() {
                 {shouldLoadSubjects && (
                   <div>
                     <div className="text-xs font-semibold text-muted-foreground mb-3 flex items-center gap-1.5 uppercase tracking-wider">
-                      <BookOpen className="h-3.5 w-3.5 text-primary" />
+                      <BookOpen className="h-3.5 w-3.5 text-link" />
                       Subjects & Teachers
                     </div>
                     {subjectsLoading ? (
                       <div className="text-center py-4">
-                        <Loader2 className="h-4 w-4 animate-spin text-primary mx-auto" />
+                        <Loader2 className="h-4 w-4 animate-spin text-link mx-auto" />
                         <div className="text-xs text-muted-foreground mt-2">Loading subjects...</div>
                       </div>
                     ) : subjectsWithTeacherNames.length > 0 ? (
@@ -1676,7 +1676,7 @@ function ClassDetailContent() {
                           </div>
                           <div className="flex items-center space-x-2 text-xs">
                             <span className="flex items-center space-x-1">
-                              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                              <div className="w-1.5 h-1.5 bg-brand-surface-500 rounded-full"></div>
                               <span>{pupilsInClass.filter((p: Pupil) => p.gender === 'Male').length} male</span>
                             </span>
                             <span className="flex items-center space-x-1">
@@ -1745,11 +1745,11 @@ function ClassDetailContent() {
           </Button>
           <ModernDialogHeader className="p-3 pb-2">
             <div className="flex items-center gap-2">
-              <div className="p-1 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+              <div className="p-1 bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 rounded-lg">
                 <School className="h-4 w-4 text-white" />
               </div>
               <div>
-                <ModernDialogTitle className="text-base font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400">
+                <ModernDialogTitle className="text-base font-bold bg-gradient-to-r from-brand-ink-600 to-brand-secondary-ink-600 bg-clip-text text-transparent dark:from-brand-ink-400 dark:to-brand-secondary-ink-400">
                   Edit Class
                 </ModernDialogTitle>
                 <ModernDialogDescription className="text-xs text-gray-600 hidden dark:text-slate-300">
@@ -1764,8 +1764,8 @@ function ClassDetailContent() {
               {/* Basic Information Section */}
               <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-3 border border-gray-200 dark:from-slate-900 dark:to-slate-900 dark:border-slate-700">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="p-1 bg-blue-100 rounded-md dark:bg-blue-950/40">
-                    <Book className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                  <div className="p-1 bg-brand-surface-100 rounded-md dark:bg-brand-surface-950/40">
+                    <Book className="h-3 w-3 text-brand-ink-600 dark:text-brand-ink-400" />
                   </div>
                   <h3 className="text-base font-semibold text-gray-800 dark:text-slate-100">Basic Information</h3>
                 </div>
@@ -1780,7 +1780,7 @@ function ClassDetailContent() {
                       value={className}
                       onChange={(e) => setClassName(e.target.value.toUpperCase())}
                       placeholder="e.g., PRIMARY ONE"
-                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90"
+                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-brand-500/70 focus:ring-2 focus:ring-brand-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -1792,7 +1792,7 @@ function ClassDetailContent() {
                       value={classCode}
                       onChange={(e) => setClassCode(e.target.value.toUpperCase())}
                       placeholder="e.g., P.1"
-                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90"
+                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-brand-500/70 focus:ring-2 focus:ring-brand-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -1805,7 +1805,7 @@ function ClassDetailContent() {
                       value={classOrder}
                       onChange={(e) => setClassOrder(e.target.value)}
                       placeholder="1"
-                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90"
+                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-brand-500/70 focus:ring-2 focus:ring-brand-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -1813,7 +1813,7 @@ function ClassDetailContent() {
                       Level <span className="text-red-500 dark:text-red-400">*</span>
                     </Label>
                     <Select value={level} onValueChange={(value) => setLevel(value as ClassLevel)}>
-                      <SelectTrigger className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90">
+                      <SelectTrigger className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-brand-500/70 focus:ring-2 focus:ring-brand-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90">
                         <SelectValue placeholder="Select level" />
                       </SelectTrigger>
                       <SelectContent
@@ -1994,11 +1994,11 @@ function ClassDetailContent() {
               </div>
 
               {/* Subjects Assignment Section */}
-              <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-3 border border-purple-200 dark:from-purple-950/40 dark:to-indigo-950/40 dark:border-purple-800/60">
+              <div className="bg-gradient-to-br from-brand-secondary-surface-50 to-brand-alt-surface-50 rounded-xl p-3 border border-brand-secondary-200 dark:from-brand-secondary-surface-950/40 dark:to-brand-alt-surface-950/40 dark:border-brand-secondary-800/60">
                 {/* Header with expand/collapse trigger */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex-shrink-0">
+                    <div className="p-1.5 bg-gradient-to-br from-brand-secondary-surface-500 to-brand-alt-surface-600 rounded-lg flex-shrink-0">
                       <GraduationCap className="h-3.5 w-3.5 text-white" />
                     </div>
                     <h3 className="text-base font-semibold text-gray-800 dark:text-slate-100">Subject Assignments</h3>
@@ -2007,7 +2007,7 @@ function ClassDetailContent() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 text-purple-600 hover:bg-purple-100/50 rounded-lg dark:text-purple-400 dark:hover:bg-purple-950/50"
+                    className="h-8 w-8 p-0 text-brand-secondary-ink-600 hover:bg-brand-secondary-surface-100/50 rounded-lg dark:text-brand-secondary-ink-400 dark:hover:bg-brand-secondary-surface-950/50"
                     onClick={() => setIsSubjectAssignmentsOpen(!isSubjectAssignmentsOpen)}
                   >
                     <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isSubjectAssignmentsOpen ? 'rotate-180' : ''}`} />
@@ -2031,9 +2031,9 @@ function ClassDetailContent() {
                             .filter(Boolean)
                             .join(', ');
                           return (
-                            <div key={subjectId} className="flex items-center justify-between gap-2 p-2 bg-white/80 hover:bg-white border border-purple-100 rounded-lg shadow-sm transition-all dark:bg-slate-900/80 dark:hover:bg-slate-900 dark:border-purple-800/60">
+                            <div key={subjectId} className="flex items-center justify-between gap-2 p-2 bg-white/80 hover:bg-white border border-brand-secondary-100 rounded-lg shadow-sm transition-all dark:bg-slate-900/80 dark:hover:bg-slate-900 dark:border-brand-secondary-800/60">
                               <div className="flex-1 min-w-0">
-                                <span className="font-semibold text-xs text-purple-900 block truncate dark:text-purple-200">{subject.name}</span>
+                                <span className="font-semibold text-xs text-brand-secondary-ink-900 block truncate dark:text-brand-secondary-ink-200">{subject.name}</span>
                                 <span className="text-[10px] text-gray-500 block truncate dark:text-slate-400">
                                   {teacherNames || 'No teacher assigned'}
                                 </span>
@@ -2074,14 +2074,14 @@ function ClassDetailContent() {
                                   key={subject.id}
                                   className={`rounded-lg p-2.5 border transition-all duration-200 flex items-center justify-between gap-2 cursor-pointer ${
                                     isSelected
-                                      ? 'border-purple-300 bg-purple-50/60 shadow-sm dark:border-purple-800/60 dark:bg-purple-950/60'
+                                      ? 'border-brand-secondary-300 bg-brand-secondary-surface-50/60 shadow-sm dark:border-brand-secondary-800/60 dark:bg-brand-secondary-surface-950/60'
                                       : 'border-gray-200 hover:bg-gray-50/80 bg-white dark:border-slate-700 dark:hover:bg-slate-900/80 dark:bg-slate-900'
                                   }`}
                                   onClick={() => handleSubjectToggle(subject.id)}
                                 >
                                   <div className="flex items-center gap-2 min-w-0">
                                     <div className={`p-1 rounded-md flex-shrink-0 ${
-                                      isSelected ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300' : 'bg-gray-100 text-gray-500 dark:bg-slate-900 dark:text-slate-400'
+                                      isSelected ? 'bg-brand-secondary-surface-100 text-brand-secondary-ink-700 dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-300' : 'bg-gray-100 text-gray-500 dark:bg-slate-900 dark:text-slate-400'
                                     }`}>
                                       <Book className="h-3.5 w-3.5" />
                                     </div>
@@ -2255,7 +2255,7 @@ export default function ClassDetailPage() {
         />
         <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
           <div className="text-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto dark:text-indigo-400" />
+            <Loader2 className="h-8 w-8 animate-spin text-brand-alt-ink-600 mx-auto dark:text-brand-alt-ink-400" />
             <p className="text-muted-foreground font-medium">Loading class details...</p>
           </div>
         </div>

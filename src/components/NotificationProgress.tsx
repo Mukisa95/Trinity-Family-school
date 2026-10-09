@@ -89,7 +89,7 @@ export function NotificationProgress({
       case 'failed':
         return <AlertCircle className="h-5 w-5 text-red-500 dark:text-red-400" />;
       default:
-        return <Clock className="h-5 w-5 text-blue-500 animate-spin dark:text-blue-400" />;
+        return <Clock className="h-5 w-5 text-brand-ink-500 animate-spin dark:text-brand-ink-400" />;
     }
   };
 
@@ -100,7 +100,7 @@ export function NotificationProgress({
       case 'failed':
         return 'bg-red-50 border-red-200 dark:bg-red-950/40 dark:border-red-800/60';
       default:
-        return 'bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60';
+        return 'bg-brand-surface-50 border-brand-200 dark:bg-brand-surface-950/40 dark:border-brand-800/60';
     }
   };
 
@@ -155,7 +155,7 @@ export function NotificationProgress({
             )}
             {status.stats.remaining > 0 && status.status === 'processing' && (
               <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                <Clock className="h-4 w-4 text-brand-ink-500 dark:text-brand-ink-400" />
                 <span>Remaining: {status.stats.remaining}</span>
               </div>
             )}

@@ -142,10 +142,10 @@ export function EnhancedBankingDashboard({
 
   // Data source indicator
   const getDataSourceInfo = (snapshotData?: any) => {
-    if (!snapshotData) return { source: 'live', icon: Database, color: 'bg-blue-500' };
+    if (!snapshotData) return { source: 'live', icon: Database, color: 'bg-brand-surface-500' };
     return snapshotData.dataSource === 'snapshot' 
       ? { source: 'snapshot', icon: Camera, color: 'bg-amber-500' }
-      : { source: 'live', icon: Database, color: 'bg-blue-500' };
+      : { source: 'live', icon: Database, color: 'bg-brand-surface-500' };
   };
 
   if (accountError) {
@@ -300,12 +300,12 @@ export function EnhancedBankingDashboard({
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      <div className="text-2xl font-bold text-brand-ink-600 dark:text-brand-ink-400">
                         UGX {summaryStats.availableBalance.toLocaleString()}
                       </div>
                       <div className="text-sm text-muted-foreground">Available Balance</div>
                     </div>
-                    <CheckCircle className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                    <CheckCircle className="h-8 w-8 text-brand-ink-600 dark:text-brand-ink-400" />
                   </div>
                 </CardContent>
               </Card>

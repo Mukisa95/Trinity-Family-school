@@ -105,7 +105,7 @@ export function EventsList({ events, isCompact = false, onEventClick }: EventsLi
                         onClick={() => onEventClick(event)}
                       >
                         <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-semibold text-sm text-slate-800 line-clamp-1 flex-1 group-hover:text-blue-600 transition-colors dark:text-slate-100 dark:group-hover:text-blue-400">{event.title}</h4>
+                          <h4 className="font-semibold text-sm text-slate-800 line-clamp-1 flex-1 group-hover:text-brand-ink-600 transition-colors dark:text-slate-100 dark:group-hover:text-brand-ink-400">{event.title}</h4>
                           <div className="flex items-center gap-1.5 ml-3 shrink-0">
                             {event.type === 'Holiday' && (
                               <Badge variant="secondary" className="text-xs bg-red-50 text-red-700 border-red-100 font-medium dark:bg-red-950/40 dark:text-red-300 dark:border-red-800/60">
@@ -124,7 +124,7 @@ export function EventsList({ events, isCompact = false, onEventClick }: EventsLi
                         </div>
                         <div className="flex items-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
                           <span className="flex items-center gap-1.5 bg-slate-100/50 px-2 py-1 rounded-md dark:bg-slate-900/50">
-                            <Calendar className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
+                            <Calendar className="h-3.5 w-3.5 text-brand-ink-500 dark:text-brand-ink-400" />
                             {format(new Date(event.startDate), 'MMM dd')}
                           </span>
                           {event.location && (
@@ -182,7 +182,7 @@ export function EventsList({ events, isCompact = false, onEventClick }: EventsLi
                         }}
                       />
                     </div>
-                    <h4 className="font-bold text-slate-800 text-lg group-hover:text-blue-600 transition-colors dark:text-slate-100 dark:group-hover:text-blue-400">{event.title}</h4>
+                    <h4 className="font-bold text-slate-800 text-lg group-hover:text-brand-ink-600 transition-colors dark:text-slate-100 dark:group-hover:text-brand-ink-400">{event.title}</h4>
                     {event.type === 'Holiday' && (
                       <Badge variant="secondary" className="text-xs bg-red-50 text-red-700 border-red-100 font-medium dark:bg-red-950/40 dark:text-red-300 dark:border-red-800/60">
                         🇺🇬 Holiday
@@ -206,7 +206,7 @@ export function EventsList({ events, isCompact = false, onEventClick }: EventsLi
 
                   <div className="flex flex-wrap gap-3 text-sm font-medium text-slate-600 mb-3 dark:text-slate-300">
                     <span className="flex items-center gap-1.5 bg-white border border-slate-100 shadow-sm px-2.5 py-1.5 rounded-lg dark:bg-slate-900 dark:border-slate-700">
-                      <Calendar className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                      <Calendar className="h-4 w-4 text-brand-ink-500 dark:text-brand-ink-400" />
                       {format(new Date(event.startDate), 'PPP')}
                       {event.startDate !== event.endDate && ` - ${format(new Date(event.endDate), 'PPP')}`}
                     </span>
@@ -232,7 +232,7 @@ export function EventsList({ events, isCompact = false, onEventClick }: EventsLi
                   {(event.targetAudience?.length || event.tags?.length) && (
                     <div className="flex flex-wrap gap-2 mt-3">
                       {event.targetAudience?.slice(0, 3).map((audience, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-0 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-950/40">
+                        <Badge key={index} variant="secondary" className="text-xs bg-brand-alt-surface-50 text-brand-alt-ink-700 hover:bg-brand-alt-surface-100 border-0 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300 dark:hover:bg-brand-alt-surface-950/40">
                           <Users className="h-3 w-3 mr-1.5" />
                           {audience}
                         </Badge>
@@ -285,7 +285,7 @@ export function EventsList({ events, isCompact = false, onEventClick }: EventsLi
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between dark:bg-slate-900 dark:border-slate-700">
                         <strong className="text-slate-700 dark:text-slate-200">Status</strong>
-                        <Badge variant="outline" className={`ml-2 font-medium px-2.5 py-0.5 border-0 shadow-sm ${getComputedEventStatus(event) === 'Scheduled' ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300' :
+                        <Badge variant="outline" className={`ml-2 font-medium px-2.5 py-0.5 border-0 shadow-sm ${getComputedEventStatus(event) === 'Scheduled' ? 'bg-brand-surface-50 text-brand-ink-700 dark:bg-brand-surface-950/40 dark:text-brand-ink-300' :
                           getComputedEventStatus(event) === 'Ongoing' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' :
                             getComputedEventStatus(event) === 'Completed' ? 'bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-200' :
                               getComputedEventStatus(event) === 'Cancelled' ? 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
@@ -308,7 +308,7 @@ export function EventsList({ events, isCompact = false, onEventClick }: EventsLi
                         <strong className="text-slate-700 block mb-2 dark:text-slate-200">Target Audience</strong>
                         <div className="flex flex-wrap gap-2">
                           {event.targetAudience.map((audience, index) => (
-                            <Badge key={index} variant="secondary" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-0 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-950/40">
+                            <Badge key={index} variant="secondary" className="bg-brand-alt-surface-50 text-brand-alt-ink-700 hover:bg-brand-alt-surface-100 border-0 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300 dark:hover:bg-brand-alt-surface-950/40">
                               <Users className="h-3 w-3 mr-1.5" />
                               {audience}
                             </Badge>

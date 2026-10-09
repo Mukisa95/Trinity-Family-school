@@ -395,7 +395,7 @@ export default function ProcurementPage() {
             placeholder="Search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-7 pr-2 h-[28px] w-28 focus:w-40 transition-all duration-200 rounded-full border border-blue-200/60 bg-white/90 text-[10px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 placeholder:text-gray-400 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-slate-200 dark:placeholder:text-slate-400"
+            className="pl-7 pr-2 h-[28px] w-28 focus:w-40 transition-all duration-200 rounded-full border border-brand-200/60 bg-white/90 text-[10px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-400/50 placeholder:text-gray-400 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-slate-200 dark:placeholder:text-slate-400"
           />
         </div>
       )}
@@ -408,7 +408,7 @@ export default function ProcurementPage() {
           else if (newPeriod === 'Month' && currentMonth === 0) setCurrentMonth(getCurrentMonthNumber());
           else if (newPeriod === 'Term' && !currentTerm && availableTerms.length > 0) setCurrentTerm(availableTerms[0].id);
         }}
-        className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
+        className="h-[30px] rounded-full border border-brand-200/60 bg-white/90 px-2 text-[10px] font-semibold text-brand-ink-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
       >
         <option value="Week">Week</option>
         <option value="Month">Month</option>
@@ -419,7 +419,7 @@ export default function ProcurementPage() {
         <select
           value={currentAcademicYear}
           onChange={(e) => setCurrentAcademicYear(e.target.value)}
-          className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
+          className="h-[30px] rounded-full border border-brand-200/60 bg-white/90 px-2 text-[10px] font-semibold text-brand-ink-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
           style={{ maxWidth: '110px' }}
         >
           {academicYears.map(year => {
@@ -436,7 +436,7 @@ export default function ProcurementPage() {
         <select
           value={currentTerm}
           onChange={(e) => setCurrentTerm(e.target.value)}
-          className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
+          className="h-[30px] rounded-full border border-brand-200/60 bg-white/90 px-2 text-[10px] font-semibold text-brand-ink-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
           style={{ maxWidth: '130px' }}
         >
           {availableTerms.map(term => {
@@ -449,7 +449,7 @@ export default function ProcurementPage() {
         <select
           value={currentMonth}
           onChange={(e) => setCurrentMonth(parseInt(e.target.value))}
-          className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
+          className="h-[30px] rounded-full border border-brand-200/60 bg-white/90 px-2 text-[10px] font-semibold text-brand-ink-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
           style={{ maxWidth: '130px' }}
         >
           {getMonthsInYear(currentAcademicYear).map(month => (
@@ -461,7 +461,7 @@ export default function ProcurementPage() {
         <select
           value={currentWeek}
           onChange={(e) => setCurrentWeek(parseInt(e.target.value))}
-          className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
+          className="h-[30px] rounded-full border border-brand-200/60 bg-white/90 px-2 text-[10px] font-semibold text-brand-ink-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
           style={{ maxWidth: '150px' }}
         >
           {(() => {
@@ -486,7 +486,7 @@ export default function ProcurementPage() {
       <select
         value={activeTab}
         onChange={(e) => setActiveTab(e.target.value)}
-        className="h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-2 text-[10px] font-bold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 uppercase tracking-wider dark:border-indigo-800/60 dark:bg-slate-900/90 dark:text-indigo-300"
+        className="h-[30px] rounded-full border border-brand-alt-200/60 bg-white/90 px-2 text-[10px] font-bold text-brand-alt-ink-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-alt-400/50 uppercase tracking-wider dark:border-brand-alt-800/60 dark:bg-slate-900/90 dark:text-brand-alt-ink-300"
       >
         <option value="overview">OVERVIEW</option>
         <option value="purchases">PURCHASES</option>
@@ -506,17 +506,17 @@ export default function ProcurementPage() {
             onClick={() => setFiltersExpanded(!filtersExpanded)}
             className={`h-[30px] flex items-center gap-1 px-2.5 rounded-full border text-[10px] font-bold shadow-sm transition-all duration-200 ${
               hasActiveFilters
-                ? 'bg-blue-100 border-blue-400 text-blue-700 ring-2 ring-blue-300/40 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-800/40'
+                ? 'bg-brand-surface-100 border-brand-400 text-brand-ink-700 ring-2 ring-brand-300/40 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:ring-brand-800/40'
                 : filtersExpanded
-                ? 'bg-white/90 border-blue-300 text-blue-600 dark:bg-slate-900/90 dark:border-blue-800/60 dark:text-blue-400'
-                : 'bg-white/80 border-white/60 text-gray-600 hover:bg-white hover:text-blue-600 dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-blue-400'
+                ? 'bg-white/90 border-brand-300 text-brand-ink-600 dark:bg-slate-900/90 dark:border-brand-800/60 dark:text-brand-ink-400'
+                : 'bg-white/80 border-white/60 text-gray-600 hover:bg-white hover:text-brand-ink-600 dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-brand-ink-400'
             }`}
             title={filtersExpanded ? 'Collapse filters' : 'Expand filters'}
           >
             <Filter className="w-3 h-3" />
             <span>Filters</span>
             {(categoryFilter !== 'all' || statusFilter !== 'all') && (
-              <span className="ml-0.5 bg-blue-500 text-white rounded-full w-3.5 h-3.5 text-[8px] flex items-center justify-center font-extrabold">
+              <span className="ml-0.5 bg-brand-surface-500 text-white rounded-full w-3.5 h-3.5 text-[8px] flex items-center justify-center font-extrabold">
                 {(categoryFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0)}
               </span>
             )}
@@ -528,7 +528,7 @@ export default function ProcurementPage() {
               <button
                 onClick={() => setViewMode('cards')}
                 className={`w-6 h-full rounded-full flex items-center justify-center transition-all duration-150 ${
-                  viewMode === 'cards' ? 'bg-white shadow text-blue-600 dark:bg-slate-900 dark:text-blue-400' : 'text-gray-400 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  viewMode === 'cards' ? 'bg-white shadow text-brand-ink-600 dark:bg-slate-900 dark:text-brand-ink-400' : 'text-gray-400 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
                 title="Card view"
               >
@@ -537,7 +537,7 @@ export default function ProcurementPage() {
               <button
                 onClick={() => setViewMode('table')}
                 className={`w-6 h-full rounded-full flex items-center justify-center transition-all duration-150 ${
-                  viewMode === 'table' ? 'bg-white shadow text-blue-600 dark:bg-slate-900 dark:text-blue-400' : 'text-gray-400 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  viewMode === 'table' ? 'bg-white shadow text-brand-ink-600 dark:bg-slate-900 dark:text-brand-ink-400' : 'text-gray-400 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
                 title="Table view"
               >
@@ -593,8 +593,8 @@ export default function ProcurementPage() {
       <GlassSummaryBar
         left={
           <div className="flex items-center gap-2">
-            <ShoppingCart className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+            <ShoppingCart className="h-4 w-4 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />
+            <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
               Procurement Overview
             </span>
           </div>
@@ -605,9 +605,9 @@ export default function ProcurementPage() {
               <span className="text-green-700/85 dark:text-green-300 font-medium">Purchases:</span>
               <span className="font-bold text-green-700 dark:text-green-400">{summary.totalPurchases}</span>
             </div>
-            <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-purple-700/85 dark:text-purple-300 font-medium">Total Spent:</span>
-              <span className="font-bold text-purple-700 dark:text-purple-400 font-tabular-nums">{formatCurrency(summary.totalAmountSpent)}</span>
+            <div className="flex items-center gap-1 bg-brand-secondary-surface-50/80 dark:bg-brand-secondary-surface-950/20 border border-brand-secondary-100/50 dark:border-brand-secondary-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-brand-secondary-ink-700/85 dark:text-brand-secondary-ink-300 font-medium">Total Spent:</span>
+              <span className="font-bold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-400 font-tabular-nums">{formatCurrency(summary.totalAmountSpent)}</span>
             </div>
             <div className="flex items-center gap-1 bg-orange-50/80 dark:bg-orange-950/20 border border-orange-100/50 dark:border-orange-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="text-orange-700/85 dark:text-orange-300 font-medium">Budgets:</span>
@@ -633,7 +633,7 @@ export default function ProcurementPage() {
 
         {/* Expanded Filters Panel (when filter open from topbar) */}
         {(activeTab === 'overview' || activeTab === 'items') && filtersExpanded && (
-          <div className="bg-white/80 backdrop-blur-sm border border-blue-100/50 rounded-xl px-4 py-3 shadow-sm animate-in slide-in-from-top-2 duration-200 dark:bg-slate-900/80 dark:border-blue-800/50">
+          <div className="bg-white/80 backdrop-blur-sm border border-brand-100/50 rounded-xl px-4 py-3 shadow-sm animate-in slide-in-from-top-2 duration-200 dark:bg-slate-900/80 dark:border-brand-800/50">
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Category</Label>

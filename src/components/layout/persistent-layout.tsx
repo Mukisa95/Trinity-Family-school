@@ -181,7 +181,7 @@ export function PersistentLayout({ children }: { children: ReactNode }) {
   // PARENT INTERFACE - No routing, just render the dashboard directly
   if (user?.role === 'Parent') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-secondary-surface-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <EnhancedHeader
           onMenuClick={() => { }}
           showMenuButton={false}

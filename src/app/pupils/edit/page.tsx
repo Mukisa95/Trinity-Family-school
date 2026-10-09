@@ -292,10 +292,10 @@ function EditPupilContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-secondary-surface-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="container mx-auto px-4 py-8 max-w-6xl">
           <div className="text-center">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2 dark:from-blue-400 dark:to-purple-400">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-brand-ink-600 to-brand-secondary-ink-600 bg-clip-text text-transparent mb-2 dark:from-brand-ink-400 dark:to-brand-secondary-ink-400">
               Loading Pupil Data...
             </h1>
             <p className="text-gray-600 dark:text-gray-400 text-lg">
@@ -321,7 +321,7 @@ function EditPupilContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-secondary-surface-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Header */}
         <div className="mb-8">
@@ -335,7 +335,7 @@ function EditPupilContent() {
           </Button>
           
           <div className="text-center">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2 dark:from-blue-400 dark:to-purple-400">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-brand-ink-600 to-brand-secondary-ink-600 bg-clip-text text-transparent mb-2 dark:from-brand-ink-400 dark:to-brand-secondary-ink-400">
               Edit Pupil Details
             </h1>
             <p className="text-gray-600 dark:text-gray-400 text-lg">
@@ -358,7 +358,7 @@ function EditPupilContent() {
             <Card className="shadow-lg border-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm">
               <CardHeader className="text-center pb-4">
                 <CardTitle className="flex items-center justify-center text-xl">
-                  <User className="mr-3 h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  <User className="mr-3 h-6 w-6 text-brand-ink-600 dark:text-brand-ink-400" />
                   Pupil Photo
                 </CardTitle>
               </CardHeader>
@@ -374,7 +374,7 @@ function EditPupilContent() {
             <Card className="shadow-lg border-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center text-xl">
-                  <User className="mr-3 h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  <User className="mr-3 h-6 w-6 text-brand-ink-600 dark:text-brand-ink-400" />
                   Basic Information
                 </CardTitle>
               </CardHeader>
@@ -604,7 +604,7 @@ function EditPupilContent() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between text-xl">
                   <div className="flex items-center">
-                    <Users className="mr-3 h-6 w-6 text-purple-600 dark:text-purple-400" />
+                    <Users className="mr-3 h-6 w-6 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                     Guardian Information
                   </div>
                   {guardians.length < 2 && (
@@ -612,7 +612,7 @@ function EditPupilContent() {
                       variant="outline"
                       size="sm"
                       onClick={addGuardian}
-                      className="text-purple-600 border-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950/40"
+                      className="text-brand-secondary-ink-600 border-brand-secondary-600 hover:bg-brand-secondary-surface-50 dark:text-brand-secondary-ink-400 dark:hover:bg-brand-secondary-surface-950/40"
                     >
                       Add Guardian
                     </Button>
@@ -880,7 +880,7 @@ function EditPupilContent() {
               <Button
                 onClick={handleSubmit}
                 disabled={updatePupilMutation.isPending}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+                className="flex-1 bg-gradient-to-r from-brand-surface-600 to-brand-secondary-surface-600 hover:from-brand-surface-700 hover:to-brand-secondary-surface-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 {updatePupilMutation.isPending ? (
                   <>
@@ -913,10 +913,10 @@ function EditPupilContent() {
 export default function EditPupilPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-secondary-surface-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="container mx-auto px-4 py-8 max-w-6xl">
           <div className="text-center">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2 dark:from-blue-400 dark:to-purple-400">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-brand-ink-600 to-brand-secondary-ink-600 bg-clip-text text-transparent mb-2 dark:from-brand-ink-400 dark:to-brand-secondary-ink-400">
               Loading...
             </h1>
             <p className="text-gray-600 dark:text-gray-400 text-lg">

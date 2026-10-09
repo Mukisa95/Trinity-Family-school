@@ -342,7 +342,7 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
               {requirements.length === 0 && (
                 <Button 
                   onClick={handleOpenAddModal}
-                  className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                  className="bg-gradient-to-r from-green-600 to-brand-surface-600 hover:from-green-700 hover:to-brand-surface-700"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Add First Requirement
@@ -436,7 +436,7 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
                         className="h-8 w-8 p-0"
                         title="Edit"
                       >
-                        <Edit className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <Edit className="w-4 h-4 text-brand-ink-600 dark:text-brand-ink-400" />
                       </Button>
 
                       <Button

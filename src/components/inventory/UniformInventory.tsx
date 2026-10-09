@@ -48,12 +48,12 @@ import Link from 'next/link';
 
 // Group colors for visual consistency
 const groupColors: Record<string, string> = {
-    'Shirts': 'bg-blue-500',
-    'Trousers': 'bg-indigo-500',
+    'Shirts': 'bg-brand-surface-500',
+    'Trousers': 'bg-brand-alt-surface-500',
     'Dresses': 'bg-pink-500',
     'Shoes': 'bg-amber-500',
     'Socks': 'bg-green-500',
-    'Sweaters': 'bg-purple-500',
+    'Sweaters': 'bg-brand-secondary-surface-500',
     'Accessories': 'bg-cyan-500',
     'Sportswear': 'bg-orange-500',
     'default': 'bg-slate-500'
@@ -222,7 +222,7 @@ export function UniformInventory() {
     const unconfiguredItems = uniformsWithInventory.filter(item => !item.inventory?.sizes?.length);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-50/40 dark:from-slate-950 dark:via-purple-950/20 dark:to-pink-950/30">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand-secondary-surface-50/30 to-pink-50/40 dark:from-slate-950 dark:via-brand-secondary-surface-950/20 dark:to-pink-950/30">
             <div className="container mx-auto px-4 py-6 max-w-7xl">
                 {/* Header */}
                 <div className="flex items-center gap-4 mb-6">
@@ -233,7 +233,7 @@ export function UniformInventory() {
                     </Link>
                     <div>
                         <h1 className="text-2xl font-bold flex items-center gap-2">
-                            <Shirt className="h-6 w-6 text-purple-500 dark:text-purple-400" />
+                            <Shirt className="h-6 w-6 text-brand-secondary-ink-500 dark:text-brand-secondary-ink-400" />
                             Uniform Inventory
                         </h1>
                         <p className="text-muted-foreground">Manage stock levels by size for each uniform item</p>
@@ -242,26 +242,26 @@ export function UniformInventory() {
 
                 {/* Summary Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <Card className="bg-gradient-to-br from-purple-500 to-violet-600 text-white border-0 shadow-lg">
+                    <Card className="bg-gradient-to-br from-brand-secondary-surface-500 to-brand-secondary-alt-surface-600 text-white border-0 shadow-lg">
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-purple-100 text-sm">Total Items</p>
+                                    <p className="text-brand-secondary-ink-100 text-sm">Total Items</p>
                                     <p className="text-2xl font-bold">{uniforms?.length || 0}</p>
                                 </div>
-                                <Shirt className="h-8 w-8 text-purple-200" />
+                                <Shirt className="h-8 w-8 text-brand-secondary-ink-200" />
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-gradient-to-br from-blue-500 to-cyan-600 text-white border-0 shadow-lg">
+                    <Card className="bg-gradient-to-br from-brand-surface-500 to-cyan-600 text-white border-0 shadow-lg">
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-blue-100 text-sm">Configured</p>
+                                    <p className="text-brand-ink-100 text-sm">Configured</p>
                                     <p className="text-2xl font-bold">{configuredItems.length}</p>
                                 </div>
-                                <Settings2 className="h-8 w-8 text-blue-200" />
+                                <Settings2 className="h-8 w-8 text-brand-ink-200" />
                             </div>
                         </CardContent>
                     </Card>
@@ -400,7 +400,7 @@ export function UniformInventory() {
                                                             ) : (
                                                                 <p
                                                                     className={cn(
-                                                                        "text-2xl font-bold cursor-pointer hover:text-purple-600 transition-colors dark:hover:text-purple-400",
+                                                                        "text-2xl font-bold cursor-pointer hover:text-brand-secondary-ink-600 transition-colors dark:hover:text-brand-secondary-ink-400",
                                                                         quantity === 0 && "text-red-500 dark:text-red-400"
                                                                     )}
                                                                     onClick={() => handleStartEditStock(inv)}
@@ -459,7 +459,7 @@ export function UniformInventory() {
                                             <motion.div
                                                 key={uniform.id}
                                                 whileHover={{ scale: 1.02 }}
-                                                className="p-4 rounded-lg border bg-slate-50 dark:bg-slate-900/50 cursor-pointer hover:border-purple-500 transition-colors"
+                                                className="p-4 rounded-lg border bg-slate-50 dark:bg-slate-900/50 cursor-pointer hover:border-brand-secondary-500 transition-colors"
                                                 onClick={() => handleOpenSpecifySizes(uniform)}
                                             >
                                                 <div className="flex items-center gap-3">

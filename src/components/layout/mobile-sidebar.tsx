@@ -22,16 +22,16 @@ import { isDevControlPath } from '@/config/dev-control';
 // Premium deeper color palettes matching desktop sidebar
 const sectionColors: Record<string, { icon: string; text: string; activeBg: string; activeIcon: string }> = {
   Overview: {
-    icon: 'text-blue-600 dark:text-blue-400 group-hover:text-blue-750',
+    icon: 'text-brand-ink-600 dark:text-brand-ink-400 group-hover:text-brand-ink-700',
     text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
-    activeBg: 'bg-blue-50/80 dark:bg-blue-950/20 text-blue-800 dark:text-blue-200 border border-blue-200/50 dark:border-blue-900/30 shadow-sm',
-    activeIcon: 'text-blue-700 dark:text-blue-300'
+    activeBg: 'bg-brand-surface-50/80 dark:bg-brand-surface-950/20 text-brand-ink-800 dark:text-brand-ink-200 border border-brand-200/50 dark:border-brand-900/30 shadow-sm',
+    activeIcon: 'text-brand-ink-700 dark:text-brand-ink-300'
   },
   Academics: {
-    icon: 'text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-750',
+    icon: 'text-brand-alt-ink-600 dark:text-brand-alt-ink-400 group-hover:text-brand-alt-ink-700',
     text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
-    activeBg: 'bg-indigo-50/80 dark:bg-indigo-950/20 text-indigo-850 dark:text-indigo-200 border border-indigo-200/50 dark:border-indigo-900/30 shadow-sm',
-    activeIcon: 'text-indigo-700 dark:text-indigo-300'
+    activeBg: 'bg-brand-alt-surface-50/80 dark:bg-brand-alt-surface-950/20 text-brand-alt-ink-800 dark:text-brand-alt-ink-200 border border-brand-alt-200/50 dark:border-brand-alt-900/30 shadow-sm',
+    activeIcon: 'text-brand-alt-ink-700 dark:text-brand-alt-ink-300'
   },
   Finance: {
     icon: 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-750',
@@ -56,8 +56,8 @@ const sectionColors: Record<string, { icon: string; text: string; activeBg: stri
 const defaultColors = {
   icon: 'text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200',
   text: 'text-slate-700 group-hover:text-slate-900 dark:text-slate-200 dark:group-hover:text-slate-100',
-  activeBg: 'bg-blue-50 text-blue-800 border border-blue-200 shadow-sm dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60',
-  activeIcon: 'text-blue-700 dark:text-blue-300'
+  activeBg: 'bg-brand-surface-50 text-brand-ink-800 border border-brand-200 shadow-sm dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60',
+  activeIcon: 'text-brand-ink-700 dark:text-brand-ink-300'
 };
 
 interface MobileSidebarProps {
@@ -250,10 +250,10 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
         onTouchEnd={handleTouchEnd}
       >
         {/* Glass morphism background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-white/90 to-blue-50/85 backdrop-blur-xl border-r border-white/20 shadow-2xl dark:from-slate-900/95 dark:via-slate-900/90 dark:to-blue-950/85 dark:border-slate-700/20" />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-white/90 to-brand-surface-50/85 backdrop-blur-xl border-r border-white/20 shadow-2xl dark:from-slate-900/95 dark:via-slate-900/90 dark:to-brand-surface-950/85 dark:border-slate-700/20" />
         
         {/* Animated gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/3 to-pink-500/5 opacity-70" />
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-surface-500/5 via-brand-secondary-surface-500/3 to-pink-500/5 opacity-70" />
         
         {/* Content */}
         <div className="relative h-full flex flex-col">
@@ -262,7 +262,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
             {isLoadingSettings ? (
               <div className="flex items-center space-x-2 flex-1">
                 <div className="relative w-8 h-8 rounded-lg overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-pulse" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-brand-surface-500/20 via-brand-secondary-surface-500/20 to-pink-500/20 animate-pulse" />
                 </div>
                 <div className="flex-1 space-y-1">
                   <div className="h-3 w-24 bg-gradient-to-r from-gray-200 to-gray-300 rounded animate-pulse dark:from-slate-800" />
@@ -283,7 +283,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
                 </div>
               )}
               <div>
-                <h2 className="text-sm font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400">
+                <h2 className="text-sm font-bold bg-gradient-to-r from-brand-ink-600 to-brand-secondary-ink-600 bg-clip-text text-transparent dark:from-brand-ink-400 dark:to-brand-secondary-ink-400">
                   {currentSettings.generalInfo.name || "School Name"}
                 </h2>
                 {currentSettings.generalInfo.motto && (
@@ -367,19 +367,19 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
             <div className={cn(
               'p-1 rounded-lg flex items-center justify-center',
               isActive
-                ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
+                ? 'bg-gradient-to-r from-brand-surface-500 to-brand-secondary-surface-500 text-white shadow-lg'
                 : cn('bg-white/60 dark:bg-slate-900/60', colors.icon)
             )}>
               <Icon size={12} />
             </div>
             <span className={cn(
               'text-sm font-medium',
-              isActive ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200'
+              isActive ? 'text-brand-ink-700 dark:text-brand-ink-300' : 'text-slate-700 dark:text-slate-200'
             )}>
               {item.title}
             </span>
             {isActive && (
-              <div className="ml-auto w-1.5 h-1.5 bg-blue-600 rounded-full" />
+              <div className="ml-auto w-1.5 h-1.5 bg-brand-surface-600 rounded-full" />
             )}
             {isNavigating && (
               <LoadingIndicator 
@@ -415,14 +415,14 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
             <div className={cn(
               'p-1 rounded-lg flex items-center justify-center',
               isActive
-                ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
+                ? 'bg-gradient-to-r from-brand-surface-500 to-brand-secondary-surface-500 text-white shadow-lg'
                 : cn('bg-white/60 dark:bg-slate-900/60', colors.icon)
             )}>
               <Icon size={12} />
             </div>
             <span className={cn(
               'text-sm font-medium flex-1 text-left',
-              isActive ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200'
+              isActive ? 'text-brand-ink-700 dark:text-brand-ink-300' : 'text-slate-700 dark:text-slate-200'
             )}>
               {item.title}
             </span>
@@ -481,12 +481,12 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
                           )} />
                           <span className={cn(
                             'text-sm font-medium',
-                            isSubActive ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200'
+                            isSubActive ? 'text-brand-ink-700 dark:text-brand-ink-300' : 'text-slate-700 dark:text-slate-200'
                           )}>
                             {subItem.title}
                           </span>
                           {isSubActive && (
-                            <div className="ml-auto w-1 h-1 bg-blue-600 rounded-full" />
+                            <div className="ml-auto w-1 h-1 bg-brand-surface-600 rounded-full" />
                           )}
                           {isNavigating && (
                             <LoadingIndicator 

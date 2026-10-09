@@ -121,7 +121,7 @@ const SMSTemplatesPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/40">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand-surface-50 to-brand-alt-surface-50 pb-12 dark:from-slate-900 dark:via-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
             <GlassPageTopBar
                 title="SMS Templates"
                 subtitle="Create and manage reusable message templates for parent communications"

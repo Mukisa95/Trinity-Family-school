@@ -390,8 +390,8 @@ export function PupilRequirementsSection({ pupilId }: PupilRequirementsSectionPr
   const getRequirementIcon = (group: string) => {
     const iconMap: Record<string, React.ReactNode> = {
       'fees': <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />,
-      'uniforms': <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />,
-      'stationery': <BookOpen className="w-4 h-4 text-purple-600 dark:text-purple-400" />,
+      'uniforms': <Package className="w-4 h-4 text-brand-ink-600 dark:text-brand-ink-400" />,
+      'stationery': <BookOpen className="w-4 h-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />,
       'books': <BookOpen className="w-4 h-4 text-orange-600 dark:text-orange-400" />,
       'equipment': <Package className="w-4 h-4 text-gray-600 dark:text-slate-300" />,
       'other': <ClipboardList className="w-4 h-4 text-gray-600 dark:text-slate-300" />
@@ -428,7 +428,7 @@ export function PupilRequirementsSection({ pupilId }: PupilRequirementsSectionPr
               }}
             />
           ) : null}
-          <AvatarFallback className="text-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+          <AvatarFallback className="text-lg bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 text-white font-semibold">
             {pupil?.firstName?.charAt(0)}{pupil?.lastName?.charAt(0)}
           </AvatarFallback>
         </Avatar>
@@ -675,7 +675,7 @@ export function PupilRequirementsSection({ pupilId }: PupilRequirementsSectionPr
                                         </div>
                                       )}
                                       {entry?.itemQuantityReceived && entry.itemQuantityReceived > 0 && (
-                                        <div className="text-xs text-blue-600 mt-1 dark:text-blue-400">
+                                        <div className="text-xs text-brand-ink-600 mt-1 dark:text-brand-ink-400">
                                           Items received: {entry.itemQuantityReceived}
                                         </div>
                                       )}

@@ -108,8 +108,8 @@ export default function DiscountsPage() {
                 <p className="text-sm text-gray-600 dark:text-slate-300">Total Discounts</p>
                 <p className="text-2xl font-bold">{discounts.length}</p>
               </div>
-              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center dark:bg-blue-950/40">
-                <Percent className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <div className="h-8 w-8 bg-brand-surface-100 rounded-full flex items-center justify-center dark:bg-brand-surface-950/40">
+                <Percent className="h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
               </div>
             </div>
           </CardContent>
@@ -136,8 +136,8 @@ export default function DiscountsPage() {
                 <p className="text-sm text-gray-600 dark:text-slate-300">Uniform-Specific</p>
                 <p className="text-2xl font-bold">{discounts.filter(d => d.uniformId).length}</p>
               </div>
-              <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center dark:bg-purple-950/40">
-                <BookOpen className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <div className="h-8 w-8 bg-brand-secondary-surface-100 rounded-full flex items-center justify-center dark:bg-brand-secondary-surface-950/40">
+                <BookOpen className="h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
               </div>
             </div>
           </CardContent>
@@ -201,7 +201,7 @@ export default function DiscountsPage() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {discount.valueType === 'percentage' ? (
-                            <Percent className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                            <Percent className="h-4 w-4 text-brand-ink-500 dark:text-brand-ink-400" />
                           ) : (
                             <DollarSign className="h-4 w-4 text-green-500 dark:text-green-400" />
                           )}

@@ -82,7 +82,7 @@ export function ReportCreationDialogFrame({
       )}>
         <DialogHeader className="border-b border-slate-100 px-5 py-4 sm:px-6 dark:border-slate-700">
           <div className="flex min-w-0 items-center gap-3 pr-8">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700 ring-4 ring-blue-50/80 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-800/80">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-surface-50 text-brand-ink-700 ring-4 ring-brand-50/80 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:ring-brand-800/80">
               <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
             </div>
             <div className="min-w-0 space-y-1">
@@ -113,7 +113,7 @@ export function ReportCreationDialogFrame({
                       className={cn(
                         "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-bold",
                         isComplete || isCurrent
-                          ? "border-blue-600 bg-blue-600 text-white"
+                          ? "border-brand-600 bg-brand-surface-600 text-white"
                           : "border-slate-200 bg-white text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400",
                       )}
                       aria-current={isCurrent ? "step" : undefined}
@@ -121,10 +121,10 @@ export function ReportCreationDialogFrame({
                       {isComplete ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : index + 1}
                     </span>
                     {index < flowSteps.length - 1 && (
-                      <span className={cn("hidden h-px flex-1 sm:block", index < step ? "bg-blue-300" : "bg-slate-200 dark:bg-slate-800")} />
+                      <span className={cn("hidden h-px flex-1 sm:block", index < step ? "bg-brand-surface-300" : "bg-slate-200 dark:bg-slate-800")} />
                     )}
                   </div>
-                  <span className={cn("mt-1 block text-[11px] font-semibold", isCurrent ? "text-blue-700 dark:text-blue-300" : "text-slate-500 dark:text-slate-400")}>
+                  <span className={cn("mt-1 block text-[11px] font-semibold", isCurrent ? "text-brand-ink-700 dark:text-brand-ink-300" : "text-slate-500 dark:text-slate-400")}>
                     {flowStep}
                   </span>
                 </li>
@@ -191,13 +191,13 @@ export function ReportCreationDialog({
           value: "full",
           title: "Full report",
           icon: FileText,
-          iconClassName: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",
+          iconClassName: "bg-brand-surface-50 text-brand-ink-700 dark:bg-brand-surface-950/40 dark:text-brand-ink-300",
         },
         {
           value: "bespoke",
           title: "Bespoke report",
           icon: FileText,
-          iconClassName: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300",
+          iconClassName: "bg-brand-alt-surface-50 text-brand-alt-ink-700 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300",
         },
       );
     }
@@ -248,7 +248,7 @@ export function ReportCreationDialog({
             type="button"
             onClick={continueToReport}
             disabled={!selectedReport}
-            className="min-h-11 rounded-full bg-blue-600 px-6 font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:ring-blue-600"
+            className="min-h-11 rounded-full bg-brand-surface-600 px-6 font-semibold text-white shadow-sm hover:bg-brand-surface-700 focus-visible:ring-brand-600"
           >
             Continue
           </Button>
@@ -268,10 +268,10 @@ export function ReportCreationDialog({
               onClick={() => setSelectedReport(option.value)}
               className={cn(
                 "group flex min-h-16 w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-[border-color,background-color,box-shadow,transform] duration-200 motion-reduce:transition-none",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2",
                 selected
-                  ? "border-blue-600 bg-blue-50/70 shadow-[0_8px_24px_rgba(37,99,235,0.10)] dark:bg-blue-950/70"
-                  : "border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50 active:scale-[0.99] dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-800/60 dark:hover:bg-slate-900",
+                  ? "border-brand-600 bg-brand-surface-50/70 shadow-[0_8px_24px_rgba(37,99,235,0.10)] dark:bg-brand-surface-950/70"
+                  : "border-slate-200 bg-white hover:border-brand-200 hover:bg-slate-50 active:scale-[0.99] dark:border-slate-700 dark:bg-slate-900 dark:hover:border-brand-800/60 dark:hover:bg-slate-900",
               )}
             >
               <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", option.iconClassName)}>
@@ -281,7 +281,7 @@ export function ReportCreationDialog({
                 <span className="block text-base font-semibold text-slate-950 dark:text-slate-100">{option.title}</span>
               </span>
               {selected ? (
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white" aria-label="Selected">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-surface-600 text-white" aria-label="Selected">
                   <Check className="h-4 w-4" aria-hidden="true" />
                 </span>
               ) : (
@@ -293,12 +293,12 @@ export function ReportCreationDialog({
       </div>
 
       {isNursery && !isIndividualReport && (
-        <div className="mt-4 flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/60 p-4 dark:border-blue-800/60 dark:bg-blue-950/60">
+        <div className="mt-4 flex items-start gap-3 rounded-2xl border border-brand-100 bg-brand-surface-50/60 p-4 dark:border-brand-800/60 dark:bg-brand-surface-950/60">
           <Checkbox
             id="omit-nursery-teacher-comment"
             checked={omitNurseryTeacherComment}
             onCheckedChange={(checked) => onOmitNurseryTeacherCommentChange(checked === true)}
-            className="mt-0.5 h-5 w-5 border-blue-300 dark:border-blue-800/60"
+            className="mt-0.5 h-5 w-5 border-brand-300 dark:border-brand-800/60"
           />
           <div>
             <Label htmlFor="omit-nursery-teacher-comment" className="cursor-pointer text-sm font-semibold text-slate-900 dark:text-slate-100">

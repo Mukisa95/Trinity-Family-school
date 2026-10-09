@@ -38,7 +38,7 @@ const TYPE_ICONS = {
 
 const PRIORITY_COLORS = {
   low: 'bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100',
-  medium: 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200',
+  medium: 'bg-brand-surface-100 text-brand-ink-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-200',
   high: 'bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-200',
   urgent: 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200',
 };
@@ -107,7 +107,7 @@ export function FloatingNotificationBubble({ className = '' }: FloatingNotificat
           transition={{ type: "spring", duration: 0.5 }}
           className={`fixed bottom-20 right-4 z-50 max-w-xs ${className}`}
         >
-          <Card className="cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-blue-200 bg-white shadow-lg dark:border-blue-800/60 dark:bg-slate-900">
+          <Card className="cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-brand-200 bg-white shadow-lg dark:border-brand-800/60 dark:bg-slate-900">
             <CardContent className="p-3">
               {/* Header with priority badge and dismiss button */}
               <div className="flex items-center justify-between mb-2">
@@ -139,8 +139,8 @@ export function FloatingNotificationBubble({ className = '' }: FloatingNotificat
                 {/* Click hint */}
                 <div className="flex items-center justify-between pt-1">
                   <div className="flex items-center space-x-2">
-                    <Bell className="h-3 w-3 text-blue-500 dark:text-blue-400" />
-                    <span className="text-xs text-blue-600 font-medium dark:text-blue-400">Click to view</span>
+                    <Bell className="h-3 w-3 text-brand-ink-500 dark:text-brand-ink-400" />
+                    <span className="text-xs text-brand-ink-600 font-medium dark:text-brand-ink-400">Click to view</span>
                   </div>
                   <ChevronRight className="h-3 w-3 text-gray-400 dark:text-slate-400" />
                 </div>

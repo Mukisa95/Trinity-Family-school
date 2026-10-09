@@ -486,7 +486,7 @@ export default function DeploymentSettingsPage() {
         </AlertDescription>
       </Alert>
 
-      <Alert className="border-blue-300 bg-blue-50 text-blue-950 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-100">
+      <Alert className="border-brand-300 bg-brand-surface-50 text-brand-ink-950 dark:border-brand-800 dark:bg-brand-surface-950/30 dark:text-brand-ink-100">
         <Database className="h-4 w-4" />
         <AlertTitle>Two independent live systems</AlertTitle>
         <AlertDescription>
@@ -638,7 +638,7 @@ export default function DeploymentSettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-blue-200 bg-blue-50/40 dark:border-blue-900 dark:bg-blue-950/20">
+      <Card className="border-brand-200 bg-brand-surface-50/40 dark:border-brand-900 dark:bg-brand-surface-950/20">
         <CardHeader>
           <CardTitle className="text-base">Exact setup flow</CardTitle>
           <CardDescription>Follow this order for a live system. Save one integration at a time so a failed provider can be isolated without changing the others.</CardDescription>
@@ -652,7 +652,7 @@ export default function DeploymentSettingsPage() {
             'After Account A passes, repeat the same isolated process for Account B; do not move or merge either database.',
           ].map((step, index) => (
             <div key={step} className="rounded-lg border bg-background/80 p-4">
-              <span className="mb-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-700 text-xs font-bold text-white">{index + 1}</span>
+              <span className="mb-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-surface-700 text-xs font-bold text-white">{index + 1}</span>
               <p className="leading-relaxed">{step}</p>
             </div>
           ))}
@@ -812,7 +812,7 @@ export default function DeploymentSettingsPage() {
                   <Textarea id="firebase-service-account" value={firebaseServiceAccount} onChange={event => setFirebaseServiceAccount(event.target.value)} autoComplete="off" spellCheck={false} className="min-h-64 font-mono text-xs" placeholder={'{\n  "project_id": "…",\n  "client_email": "…",\n  "private_key": "…"\n}'} />
                 </div>
               </div>
-              <Alert className="border-blue-200 bg-blue-50/60 text-blue-950 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
+              <Alert className="border-brand-200 bg-brand-surface-50/60 text-brand-ink-950 dark:border-brand-900 dark:bg-brand-surface-950/30 dark:text-brand-ink-100">
                 <ShieldCheck className="h-4 w-4" />
                 <AlertTitle>Compatibility protection</AlertTitle>
                 <AlertDescription>The wizard seeds both FIREBASE_ADMIN_* and the legacy FIREBASE_* names still used by notification components, preventing a project switch from silently breaking active services.</AlertDescription>

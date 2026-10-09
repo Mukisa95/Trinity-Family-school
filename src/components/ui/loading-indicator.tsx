@@ -60,7 +60,7 @@ export function LoadingOverlay({
       <div className="bg-card border rounded-xl p-8 shadow-2xl flex flex-col items-center gap-6 max-w-md mx-4">
         {/* Animated loading icon */}
         <div className="relative">
-          <div className="h-16 w-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin dark:border-blue-800/60" />
+          <div className="h-16 w-16 border-4 border-brand-200 border-t-blue-600 rounded-full animate-spin dark:border-brand-800/60" />
           <div className="absolute inset-0 h-16 w-16 border-4 border-transparent border-t-purple-600 rounded-full animate-spin" style={{ animationDelay: '0.5s' }} />
         </div>
         
@@ -93,8 +93,8 @@ export function LoadingOverlay({
         
         {/* Progress dots */}
         <div className="flex space-x-1">
-          <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0s' }} />
-          <div className="h-2 w-2 bg-purple-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
+          <div className="h-2 w-2 bg-brand-surface-500 rounded-full animate-pulse" style={{ animationDelay: '0s' }} />
+          <div className="h-2 w-2 bg-brand-secondary-surface-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
           <div className="h-2 w-2 bg-pink-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
         </div>
         

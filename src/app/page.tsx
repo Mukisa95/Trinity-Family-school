@@ -367,7 +367,7 @@ const PupilRowWithDetails = ({
             'bg-gray-100 text-gray-500 dark:bg-slate-900 dark:text-slate-400';
 
   const generalBadgeColor =
-    generalStatus === 'Active' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300' :
+    generalStatus === 'Active' ? 'bg-brand-alt-surface-100 text-brand-alt-ink-700 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300' :
       generalStatus === 'Inactive' ? 'bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300' :
         generalStatus === 'Graduated' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' :
           generalStatus === 'Transferred' ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300' :
@@ -378,14 +378,14 @@ const PupilRowWithDetails = ({
     <div className="bg-white rounded-lg border overflow-hidden dark:bg-slate-900">
       {/* Pupil Name Row — click to toggle sub-menu */}
       <div
-        className="p-2 sm:p-3 hover:bg-blue-50 cursor-pointer flex items-center gap-2 group transition-colors dark:hover:bg-blue-950/40"
+        className="p-2 sm:p-3 hover:bg-brand-surface-50 cursor-pointer flex items-center gap-2 group transition-colors dark:hover:bg-brand-surface-950/40"
         onClick={(e) => {
           e.stopPropagation();
           setIsMenuOpen((prev) => !prev);
         }}
       >
-        <UserCheck className="w-4 h-4 text-gray-400 group-hover:text-blue-500 flex-shrink-0 dark:text-slate-400 dark:group-hover:text-blue-400" />
-        <span className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 truncate flex-1 dark:text-slate-100 dark:group-hover:text-blue-400">
+        <UserCheck className="w-4 h-4 text-gray-400 group-hover:text-brand-ink-500 flex-shrink-0 dark:text-slate-400 dark:group-hover:text-brand-ink-400" />
+        <span className="text-sm font-semibold text-gray-900 group-hover:text-brand-ink-600 truncate flex-1 dark:text-slate-100 dark:group-hover:text-brand-ink-400">
           {formatPupilDisplayName(pupil)}
         </span>
         <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -413,7 +413,7 @@ const PupilRowWithDetails = ({
             <div>
               <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wide dark:text-slate-400">Enrolment</span>
               <select
-                className={`w-full text-[10px] font-semibold rounded-md border border-gray-200 py-0.5 pl-1.5 pr-4 cursor-pointer focus:ring-1 focus:ring-blue-400 bg-white mt-0.5  dark:border-slate-700 dark:bg-slate-900 ${generalBadgeColor}`}
+                className={`w-full text-[10px] font-semibold rounded-md border border-gray-200 py-0.5 pl-1.5 pr-4 cursor-pointer focus:ring-1 focus:ring-brand-400 bg-white mt-0.5  dark:border-slate-700 dark:bg-slate-900 ${generalBadgeColor}`}
                 value={generalStatus || ''}
                 onChange={async (e) => {
                   if (!pupil.id) return;
@@ -434,7 +434,7 @@ const PupilRowWithDetails = ({
               <div>
                 <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wide dark:text-slate-400">Attendance</span>
                 <select
-                  className={`w-full text-[10px] font-semibold rounded-md border border-gray-200 py-0.5 pl-1.5 pr-4 cursor-pointer focus:ring-1 focus:ring-blue-400 bg-white mt-0.5  dark:border-slate-700 dark:bg-slate-900 ${attendanceBadgeColor}`}
+                  className={`w-full text-[10px] font-semibold rounded-md border border-gray-200 py-0.5 pl-1.5 pr-4 cursor-pointer focus:ring-1 focus:ring-brand-400 bg-white mt-0.5  dark:border-slate-700 dark:bg-slate-900 ${attendanceBadgeColor}`}
                   value={attendanceStatus}
                   onChange={async (e) => {
                     const record = pupil.attendanceRecord;
@@ -474,7 +474,7 @@ const PupilRowWithDetails = ({
                   else from.setMonth(today.getMonth() - 3);
                   router.push(`/pupil-detail?id=${pupil.id}&tab=attendance&from=${format(from, 'yyyy-MM-dd')}&to=${format(today, 'yyyy-MM-dd')}`);
                 }}
-                className="capitalize text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/40 dark:border-blue-800/60"
+                className="capitalize text-[10px] font-semibold px-2 py-0.5 rounded-md bg-brand-surface-50 text-brand-ink-700 hover:bg-brand-surface-100 border border-brand-200 transition-colors dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:hover:bg-brand-surface-950/40 dark:border-brand-800/60"
               >
                 {period}
               </button>
@@ -491,7 +491,7 @@ const PupilRowWithDetails = ({
           {/* Guardian Info — compact grid */}
           {showInfo && (
             <div className="pt-1.5 border-t border-gray-200 dark:border-slate-700">
-              <span className="text-[9px] font-bold uppercase text-blue-600 tracking-wide flex items-center gap-1 mb-1 dark:text-blue-400">
+              <span className="text-[9px] font-bold uppercase text-brand-ink-600 tracking-wide flex items-center gap-1 mb-1 dark:text-brand-ink-400">
                 <Info className="w-2.5 h-2.5" /> Guardians
               </span>
               {pupil.guardians && pupil.guardians.length > 0 ? (
@@ -774,7 +774,7 @@ const ExpandableStaffCard = ({
                       placeholder="Search staff by name, phone, department..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:border-slate-700"
+                      className="w-full px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-secondary-500 focus:border-transparent dark:border-slate-700"
                       onClick={(e) => e.stopPropagation()}
                     />
                     {searchQuery && (
@@ -815,7 +815,7 @@ const ExpandableStaffCard = ({
                             >
                               <div className="flex items-center justify-between">
                                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 dark:text-slate-100">
-                                  <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                  <Users className="w-4 h-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                                   {role}
                                   <span className="text-xs font-normal text-gray-500 dark:text-slate-400">({members.length} staff)</span>
                                 </h3>
@@ -846,7 +846,7 @@ const ExpandableStaffCard = ({
                                       <div key={member.id} className="bg-gray-50 rounded-lg p-3 dark:bg-slate-900">
                                         <div className="flex items-start justify-between gap-2 mb-2">
                                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                                            <UserCheck className="w-4 h-4 text-purple-500 flex-shrink-0 dark:text-purple-400" />
+                                            <UserCheck className="w-4 h-4 text-brand-secondary-ink-500 flex-shrink-0 dark:text-brand-secondary-ink-400" />
                                             <div className="min-w-0">
                                               <p className="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
                                                 {member.firstName} {member.lastName}
@@ -874,7 +874,7 @@ const ExpandableStaffCard = ({
                                           {member.alternativePhone && (
                                             <a
                                               href={`tel:${member.alternativePhone}`}
-                                              className="px-2.5 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1.5 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 dark:text-blue-300"
+                                              className="px-2.5 py-1.5 bg-brand-surface-100 hover:bg-brand-surface-200 text-brand-ink-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1.5 dark:bg-brand-surface-950/40 dark:hover:bg-brand-surface-900/40 dark:text-brand-ink-300"
                                               onClick={(e) => e.stopPropagation()}
                                               title="Alternative phone"
                                             >
@@ -1464,12 +1464,12 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
         <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
         {/* Decorative gradient accent */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 rounded-t-xl opacity-60" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-secondary-alt-surface-500 via-brand-secondary-surface-500 to-pink-500 rounded-t-xl opacity-60" />
 
         <CardHeader className="pb-2 pt-3 relative z-20">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent flex items-center whitespace-nowrap dark:from-indigo-400 dark:to-purple-400">
+              <CardTitle className="text-xl font-bold bg-gradient-to-r from-brand-alt-ink-600 to-brand-secondary-ink-600 bg-clip-text text-transparent flex items-center whitespace-nowrap dark:from-brand-alt-ink-400 dark:to-brand-secondary-ink-400">
                 <span className="whitespace-nowrap">By Class</span>
               </CardTitle>
             </div>
@@ -1477,7 +1477,7 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
               variant="ghost"
               size="sm"
               onClick={() => router.push('/classes')}
-              className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:text-indigo-300 dark:hover:bg-indigo-950/40"
+              className="text-brand-alt-ink-600 hover:text-brand-alt-ink-700 hover:bg-brand-alt-surface-50 dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-300 dark:hover:bg-brand-alt-surface-950/40"
             >
               View All
               <ChevronRight className="w-4 h-4 ml-1" />
@@ -1491,11 +1491,11 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
                 <defs>
                   {/* 3D Cylindrical gradients with highlights and shadows */}
                   <linearGradient id="maleGradient" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#6D28D9" stopOpacity={0.7} />
-                    <stop offset="30%" stopColor="#8B5CF6" stopOpacity={1} />
-                    <stop offset="50%" stopColor="#A78BFA" stopOpacity={1} />
-                    <stop offset="70%" stopColor="#8B5CF6" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#6D28D9" stopOpacity={0.8} />
+                    <stop offset="0%" stopColor="rgb(var(--brand-secondary-alt-700))" stopOpacity={0.7} />
+                    <stop offset="30%" stopColor="rgb(var(--brand-secondary-alt-500))" stopOpacity={1} />
+                    <stop offset="50%" stopColor="rgb(var(--brand-secondary-alt-400))" stopOpacity={1} />
+                    <stop offset="70%" stopColor="rgb(var(--brand-secondary-alt-500))" stopOpacity={1} />
+                    <stop offset="100%" stopColor="rgb(var(--brand-secondary-alt-700))" stopOpacity={0.8} />
                   </linearGradient>
                   <linearGradient id="femaleGradient" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stopColor="#DB2777" stopOpacity={0.7} />
@@ -1545,11 +1545,11 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
                           </p>
                           <div className="space-y-2 relative z-10">
                             <div className="flex items-center justify-between gap-4">
-                              <span className="text-sm font-medium text-violet-600 flex items-center gap-2 dark:text-violet-400">
-                                <div className="w-3 h-3 rounded-full bg-gradient-to-br from-violet-400 to-purple-600" />
+                              <span className="text-sm font-medium text-brand-secondary-alt-ink-600 flex items-center gap-2 dark:text-brand-secondary-alt-ink-400">
+                                <div className="w-3 h-3 rounded-full bg-gradient-to-br from-brand-secondary-alt-surface-400 to-brand-secondary-surface-600" />
                                 Boys
                               </span>
-                              <span className="font-bold text-violet-700 text-base dark:text-violet-300">{male}</span>
+                              <span className="font-bold text-brand-secondary-alt-ink-700 text-base dark:text-brand-secondary-alt-ink-300">{male}</span>
                             </div>
                             <div className="flex items-center justify-between gap-4">
                               <span className="text-sm font-medium text-pink-600 flex items-center gap-2 dark:text-pink-400">
@@ -1837,12 +1837,12 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
         <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
         {/* Decorative gradient accent */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-green-500 rounded-t-xl opacity-60" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-surface-500 via-cyan-500 to-green-500 rounded-t-xl opacity-60" />
 
         <CardHeader className="pb-2 pt-3 relative z-20">
           <div className="flex flex-row items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent whitespace-nowrap dark:from-blue-400 dark:to-cyan-400">
+              <CardTitle className="text-xl font-bold bg-gradient-to-r from-brand-ink-600 to-cyan-600 bg-clip-text text-transparent whitespace-nowrap dark:from-brand-ink-400 dark:to-cyan-400">
                 <span className="whitespace-nowrap">
                   {isRecessMode ? 'Recess Period' : 'Present Today'}
                 </span>
@@ -1854,7 +1854,7 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
                   🎓 Recess
                 </Badge>
               )}
-              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-800/60 dark:text-blue-300">
+              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-brand-surface-50 border-brand-200 text-brand-ink-700 dark:bg-brand-surface-950/40 dark:border-brand-800/60 dark:text-brand-ink-300">
                 {overallStats.recorded}/{overallStats.total}
               </Badge>
               <Button
@@ -1864,7 +1864,7 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
                   e.stopPropagation();
                   router.push('/attendance/view');
                 }}
-                className="text-blue-600 hover:text-blue-700 p-1 h-auto hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/40"
+                className="text-brand-ink-600 hover:text-brand-ink-700 p-1 h-auto hover:bg-brand-surface-50 dark:text-brand-ink-400 dark:hover:text-brand-ink-300 dark:hover:bg-brand-surface-950/40"
               >
                 <ChevronRight className="w-4 h-4" />
               </Button>
@@ -1874,7 +1874,7 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
         <CardContent className="px-2 pb-2 pt-0 relative z-20">
           {attendanceLoading ? (
             <div className="h-[180px] flex items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
+              <Loader2 className="h-6 w-6 animate-spin text-brand-ink-600 dark:text-brand-ink-400" />
             </div>
           ) : !isToday && getNonSchoolDayMessage ? (
             <div className="h-[180px] flex flex-col items-center justify-center text-center px-4">
@@ -1922,7 +1922,7 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
             <div className="h-[200px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 25, right: 5, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" vertical={false} opacity={0.3} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--brand-alt-100))" vertical={false} opacity={0.3} />
                   <XAxis
                     dataKey="name"
                     tick={{ fill: 'var(--chart-axis-strong, #4b5563)', fontSize: 11, fontWeight: 700 }}
@@ -1948,7 +1948,7 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
                         const isUnrecorded = data.notRecorded === data.totalPupils;
                         return (
                           <div
-                            className="bg-white rounded-lg border border-blue-100 p-2.5 text-xs shadow-xl dark:bg-slate-900 dark:border-blue-800/60"
+                            className="bg-white rounded-lg border border-brand-100 p-2.5 text-xs shadow-xl dark:bg-slate-900 dark:border-brand-800/60"
                             style={{ minWidth: 140, zIndex: 9999 }}
                           >
                             <p className="font-bold text-gray-800 mb-1.5 leading-tight dark:text-slate-100">{data.name}</p>
@@ -1973,14 +1973,14 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
                               )}
                               {data.excused > 0 && (
                                 <div className="flex justify-between gap-3">
-                                  <span className="text-gray-500 flex items-center gap-1 dark:text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />Excused</span>
-                                  <span className="font-semibold text-blue-700 dark:text-blue-300">{data.excused}</span>
+                                  <span className="text-gray-500 flex items-center gap-1 dark:text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-brand-surface-400 inline-block" />Excused</span>
+                                  <span className="font-semibold text-brand-ink-700 dark:text-brand-ink-300">{data.excused}</span>
                                 </div>
                               )}
                               {data.delayed > 0 && (
                                 <div className="flex justify-between gap-3">
-                                  <span className="text-gray-500 flex items-center gap-1 dark:text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-purple-500 inline-block" />Delayed</span>
-                                  <span className="font-semibold text-purple-700 dark:text-purple-300">{data.delayed}</span>
+                                  <span className="text-gray-500 flex items-center gap-1 dark:text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-brand-secondary-surface-500 inline-block" />Delayed</span>
+                                  <span className="font-semibold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">{data.delayed}</span>
                                 </div>
                               )}
                               {data.notRecorded > 0 && (
@@ -1992,7 +1992,7 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
                             </div>
                             <div className="mt-1.5 pt-1.5 border-t border-gray-100 flex items-center justify-between gap-2 dark:border-slate-700">
                               {!isUnrecorded && (
-                                <span className="font-bold text-blue-600 dark:text-blue-400">{data.attendanceRate}%</span>
+                                <span className="font-bold text-brand-ink-600 dark:text-brand-ink-400">{data.attendanceRate}%</span>
                               )}
                               <span className="text-gray-400 text-[10px] ml-auto dark:text-slate-400">
                                 {isUnrecorded ? '📋 Tap to record' : '👆 Tap to view'}
@@ -2081,7 +2081,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
 
   if (!activePhotos.length) {
     return (
-      <Card className="h-full border-0 rounded-xl bg-gradient-to-br from-slate-50 via-white to-blue-50 relative overflow-visible group dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/40" style={{
+      <Card className="h-full border-0 rounded-xl bg-gradient-to-br from-slate-50 via-white to-brand-surface-50 relative overflow-visible group dark:from-slate-900 dark:via-slate-900 dark:to-brand-surface-950/40" style={{
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
         transform: 'translateZ(0)',
       }}>
@@ -2105,7 +2105,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl opacity-50 group-hover:opacity-100 transition-opacity duration-500 dark:from-blue-950/40 dark:to-indigo-950/40" />
+            <div className="absolute inset-0 bg-gradient-to-br from-brand-surface-50 to-brand-alt-surface-50 rounded-2xl opacity-50 group-hover:opacity-100 transition-opacity duration-500 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40" />
             <ImageIcon className="w-10 h-10 text-gray-300 relative z-10" />
           </motion.div>
           <h3 className="text-gray-900 font-semibold mb-1 relative z-10 dark:text-slate-100">No Moments Yet</h3>
@@ -2193,7 +2193,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
                             "{text}"
                           </h3>
                           {author && (
-                            <p className="text-[10px] md:text-xs text-blue-100 font-medium uppercase tracking-wider opacity-80">
+                            <p className="text-[10px] md:text-xs text-brand-ink-100 font-medium uppercase tracking-wider opacity-80">
                               — {author}
                             </p>
                           )}
@@ -2322,7 +2322,7 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
           />
         )}
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-indigo-700 sm:text-base dark:text-indigo-300">
+          <p className="text-sm font-semibold text-brand-alt-ink-700 sm:text-base dark:text-brand-alt-ink-300">
             {timeGreeting}, {displayName}
           </p>
           <h1 className="truncate text-base font-bold tracking-tight text-gray-900 sm:text-lg md:text-xl dark:text-slate-100">
@@ -2407,16 +2407,16 @@ export default function DashboardPage() {
   // Color schemes for stat cards
   const cardColors = {
     pupils: {
-      bg: 'rgba(59, 130, 246, 0.1)',
-      text: 'text-blue-600 dark:text-blue-400',
-      accent: '#3B82F6',
-      gradient: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 197, 253, 0.1) 100%)'
+      bg: 'rgb(var(--brand-500) / 0.1)',
+      text: 'text-brand-ink-600 dark:text-brand-ink-400',
+      accent: 'rgb(var(--brand-500))',
+      gradient: 'linear-gradient(135deg, rgb(var(--brand-500) / 0.05) 0%, rgb(var(--brand-300) / 0.1) 100%)'
     },
     male: {
-      bg: 'rgba(124, 58, 237, 0.1)',
-      text: 'text-violet-600 dark:text-violet-400',
-      accent: '#7C3AED',
-      gradient: 'linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(196, 181, 253, 0.1) 100%)'
+      bg: 'rgb(var(--brand-secondary-alt-600) / 0.1)',
+      text: 'text-brand-secondary-alt-ink-600 dark:text-brand-secondary-alt-ink-400',
+      accent: 'rgb(var(--brand-secondary-alt-600))',
+      gradient: 'linear-gradient(135deg, rgb(var(--brand-secondary-alt-600) / 0.05) 0%, rgb(var(--brand-secondary-alt-300) / 0.1) 100%)'
     },
     female: {
       bg: 'rgba(236, 72, 153, 0.1)',
@@ -2425,10 +2425,10 @@ export default function DashboardPage() {
       gradient: 'linear-gradient(135deg, rgba(236, 72, 153, 0.05) 0%, rgba(249, 168, 212, 0.1) 100%)'
     },
     staff: {
-      bg: 'rgba(168, 85, 247, 0.1)',
-      text: 'text-purple-600 dark:text-purple-400',
-      accent: '#A855F7',
-      gradient: 'linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, rgba(216, 180, 254, 0.1) 100%)'
+      bg: 'rgb(var(--brand-secondary-500) / 0.1)',
+      text: 'text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400',
+      accent: 'rgb(var(--brand-secondary-500))',
+      gradient: 'linear-gradient(135deg, rgb(var(--brand-secondary-500) / 0.05) 0%, rgb(var(--brand-secondary-300) / 0.1) 100%)'
     },
     classes: {
       bg: 'rgba(34, 197, 94, 0.1)',
@@ -2512,7 +2512,7 @@ export default function DashboardPage() {
               onClick={() => handleCardClick('/pupils?classId=all&status=Active')}
               subtitle="Active students"
               segments={stats.totalPupils ? [
-                { percentage: (stats.malePupils / stats.totalPupils) * 100, color: 'text-blue-500 dark:text-blue-400' },
+                { percentage: (stats.malePupils / stats.totalPupils) * 100, color: 'text-brand-ink-500 dark:text-brand-ink-400' },
                 { percentage: (stats.femalePupils / stats.totalPupils) * 100, color: 'text-pink-500 dark:text-pink-400' }
               ] : [{ percentage: 100, color: cardColors.pupils.text }]}
               isLoading={pupilsLoading}
@@ -2550,7 +2550,7 @@ export default function DashboardPage() {
               color={cardColors.staff}
               subtitle="Total staff"
               segments={staff && staff.length > 0 ? [
-                { percentage: (staff.filter(s => s.gender === 'Male').length / staff.length) * 100, color: 'text-blue-500 dark:text-blue-400' },
+                { percentage: (staff.filter(s => s.gender === 'Male').length / staff.length) * 100, color: 'text-brand-ink-500 dark:text-brand-ink-400' },
                 { percentage: (staff.filter(s => s.gender === 'Female').length / staff.length) * 100, color: 'text-pink-500 dark:text-pink-400' }
               ] : [{ percentage: 100, color: cardColors.staff.text }]}
               isLoading={staffLoading}

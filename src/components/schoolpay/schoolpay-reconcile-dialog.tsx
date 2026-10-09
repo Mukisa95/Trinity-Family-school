@@ -82,13 +82,13 @@ export function SchoolPayReconcileDialog() {
   return (
     <Dialog open={open} onOpenChange={recovering ? undefined : setOpen}>
       <DialogTrigger asChild>
-        <Button type="button" variant="outline" size="sm" className="bg-white/90 border-violet-200 text-violet-800 hover:bg-violet-50 dark:bg-slate-900/90 dark:border-violet-800/60 dark:text-violet-200 dark:hover:bg-violet-950/40">
+        <Button type="button" variant="outline" size="sm" className="bg-white/90 border-brand-secondary-alt-200 text-brand-secondary-alt-ink-800 hover:bg-brand-secondary-alt-surface-50 dark:bg-slate-900/90 dark:border-brand-secondary-alt-800/60 dark:text-brand-secondary-alt-ink-200 dark:hover:bg-brand-secondary-alt-surface-950/40">
           <CalendarSearch /> Recover missing payments
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><CalendarSearch className="text-violet-700 dark:text-violet-300" /> Recover SchoolPay payments</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><CalendarSearch className="text-brand-secondary-alt-ink-700 dark:text-brand-secondary-alt-ink-300" /> Recover SchoolPay payments</DialogTitle>
           <DialogDescription>
             Fetch successful SchoolPay transactions for a date range and add only those that are genuinely missing.
             Existing receipts and transaction IDs are checked before any pupil balance changes.
@@ -116,7 +116,7 @@ export function SchoolPayReconcileDialog() {
           {result && (
             <div aria-live="polite" className="grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3 text-center dark:bg-slate-900">
               <div><p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{result.processed}</p><p className="text-[11px] text-slate-600 dark:text-slate-300">Added</p></div>
-              <div><p className="text-lg font-bold text-blue-700 dark:text-blue-300">{result.duplicates}</p><p className="text-[11px] text-slate-600 dark:text-slate-300">Already recorded</p></div>
+              <div><p className="text-lg font-bold text-brand-ink-700 dark:text-brand-ink-300">{result.duplicates}</p><p className="text-[11px] text-slate-600 dark:text-slate-300">Already recorded</p></div>
               <div><p className="text-lg font-bold text-amber-700 dark:text-amber-300">{result.failed}</p><p className="text-[11px] text-slate-600 dark:text-slate-300">Need review</p></div>
             </div>
           )}
@@ -124,7 +124,7 @@ export function SchoolPayReconcileDialog() {
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={recovering}>Close</Button>
-          <Button type="button" onClick={recover} disabled={recovering || !!rangeError} className="bg-violet-700 hover:bg-violet-800">
+          <Button type="button" onClick={recover} disabled={recovering || !!rangeError} className="bg-brand-secondary-alt-surface-700 hover:bg-brand-secondary-alt-surface-800">
             {recovering ? <Loader2 className="animate-spin" /> : <CalendarSearch />}
             {recovering ? 'Checking SchoolPay…' : 'Recover selected dates'}
           </Button>

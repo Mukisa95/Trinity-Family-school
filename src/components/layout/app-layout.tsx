@@ -76,7 +76,7 @@ function MobileMenuButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="md:hidden p-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl"
+      className="md:hidden p-2 rounded-xl bg-gradient-to-r from-brand-surface-500 to-brand-secondary-surface-600 hover:from-brand-surface-600 hover:to-brand-secondary-surface-700 text-white shadow-lg hover:shadow-xl"
     >
       <Menu size={20} />
     </button>
@@ -517,7 +517,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   // PARENT INTERFACE
   if (user?.role === 'Parent') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-secondary-surface-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <EnhancedHeader
           onMenuClick={() => { }}
           showMenuButton={false}
@@ -543,7 +543,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   if (isMobile) {
     return (
       <NavigationWrapper>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-blue-950/40 dark:via-slate-900 dark:to-purple-950/40">
+        <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-secondary-surface-50 dark:from-brand-surface-950/40 dark:via-slate-900 dark:to-brand-secondary-surface-950/40">
           <EnhancedHeader
             onMenuClick={handleMobileMenuClick}
             showMenuButton={true}

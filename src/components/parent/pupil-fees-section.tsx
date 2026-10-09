@@ -29,7 +29,7 @@ export function PupilFeesSection({ pupilId }: PupilFeesSectionProps) {
                 }}
               />
             ) : null}
-            <AvatarFallback className="text-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+            <AvatarFallback className="text-lg bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 text-white font-semibold">
               {pupil?.firstName?.charAt(0)}{pupil?.lastName?.charAt(0)}
             </AvatarFallback>
           </Avatar>

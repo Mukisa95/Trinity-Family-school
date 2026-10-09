@@ -162,7 +162,7 @@ export function RequirementCoverageModal({
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="item" id="item" />
                   <Label htmlFor="item" className="flex items-center gap-2 cursor-pointer">
-                    <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <Package className="w-4 h-4 text-brand-ink-600 dark:text-brand-ink-400" />
                     Provide Items
                   </Label>
                 </div>
@@ -255,7 +255,7 @@ export function RequirementCoverageModal({
           <Button 
             onClick={handleSubmit}
             disabled={!isValidSubmission()}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-brand-surface-600 hover:bg-brand-surface-700"
           >
             {coverageMode === 'cash' ? 'Make Payment' : 'Provide Items'}
           </Button>

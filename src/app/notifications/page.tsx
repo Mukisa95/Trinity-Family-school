@@ -313,7 +313,7 @@ function ComposeForm({
                     ) : att.type === 'image' ? (
                       <img src={att.url} alt={att.name} className="h-6 w-6 object-cover rounded" />
                     ) : (
-                      <Paperclip className="h-4 w-4 text-blue-500 shrink-0 dark:text-blue-400" />
+                      <Paperclip className="h-4 w-4 text-brand-ink-500 shrink-0 dark:text-brand-ink-400" />
                     )}
                     <span className="flex-1 text-xs truncate">{att.name}</span>
                     <span className="text-xs text-gray-400 dark:text-slate-400">
@@ -409,7 +409,7 @@ function ComposeForm({
           )}
 
           {formData.enablePush && pushPermission === 'granted' && (
-            <div className="space-y-3 pl-3 border-l-2 border-blue-200 dark:border-blue-800/60">
+            <div className="space-y-3 pl-3 border-l-2 border-brand-200 dark:border-brand-800/60">
               <div>
                 <Label htmlFor="compose-push-title" className="text-xs font-medium">Push Title (optional)</Label>
                 <Input
@@ -459,7 +459,7 @@ function ComposeForm({
         <Button
           type="submit"
           disabled={isCreating}
-          className="rounded-full bg-blue-600 hover:bg-blue-700 text-white px-6"
+          className="rounded-full bg-brand-surface-600 hover:bg-brand-surface-700 text-white px-6"
         >
           {isCreating
             ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending…</>
@@ -543,7 +543,7 @@ function PushSettingsDialog({
                     onClick={onRequestPermission}
                     disabled={isRequestingPermission}
                     size="icon"
-                    className="h-10 w-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white"
+                    className="h-10 w-10 rounded-full bg-brand-surface-600 hover:bg-brand-surface-700 text-white"
                   >
                     {isRequestingPermission ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
                   </Button>
@@ -578,14 +578,14 @@ function PushSettingsDialog({
           </div>
 
           {userPushSubscription && pushPermission === 'granted' && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 dark:bg-blue-950/40 dark:border-blue-800/60">
+            <div className="bg-brand-surface-50 border border-brand-200 rounded-xl p-4 dark:bg-brand-surface-950/40 dark:border-brand-800/60">
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/40">
-                  <Smartphone className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div className="p-2 bg-brand-surface-100 rounded-lg dark:bg-brand-surface-950/40">
+                  <Smartphone className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
                 </div>
                 <div>
-                  <p className="font-medium text-blue-900 mb-1.5 dark:text-blue-200">How Background Notifications Work</p>
-                  <ul className="text-sm text-blue-700 space-y-1 dark:text-blue-300">
+                  <p className="font-medium text-brand-ink-900 mb-1.5 dark:text-brand-ink-200">How Background Notifications Work</p>
+                  <ul className="text-sm text-brand-ink-700 space-y-1 dark:text-brand-ink-300">
                     {[
                       'Browser Closed: Notifications still appear via service worker',
                       'Signed In: Works as long as you\'re logged into the app',
@@ -1109,7 +1109,7 @@ export default function NotificationsPage() {
                     placeholder="Search messages…"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 bg-gray-100 rounded-full text-sm placeholder-gray-400 text-gray-700 border-0 focus:outline-none focus:ring-2 focus:ring-blue-400/40 transition-all dark:bg-slate-900 dark:text-slate-200"
+                    className="w-full pl-9 pr-4 py-2 bg-gray-100 rounded-full text-sm placeholder-gray-400 text-gray-700 border-0 focus:outline-none focus:ring-2 focus:ring-brand-400/40 transition-all dark:bg-slate-900 dark:text-slate-200"
                   />
                 </div>
               </div>
@@ -1127,13 +1127,13 @@ export default function NotificationsPage() {
                     className={cn(
                       'px-3 py-1 rounded-full text-xs font-semibold transition-all duration-150',
                       activeTab === tab.id
-                        ? 'bg-blue-600 text-white shadow-sm'
+                        ? 'bg-brand-surface-600 text-white shadow-sm'
                         : 'text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-900',
                     )}
                   >
                     {tab.label}
                     {tab.id === 'unread' && unreadCount > 0 && (
-                      <span className="ml-1.5 bg-white text-blue-600 rounded-full text-[10px] px-1.5 py-px font-bold dark:bg-slate-900 dark:text-blue-400">
+                      <span className="ml-1.5 bg-white text-brand-ink-600 rounded-full text-[10px] px-1.5 py-px font-bold dark:bg-slate-900 dark:text-brand-ink-400">
                         {unreadCount}
                       </span>
                     )}
@@ -1145,13 +1145,13 @@ export default function NotificationsPage() {
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                 {isListLoading ? (
                   <div className="flex flex-col items-center justify-center py-16 gap-3">
-                    <Loader2 className="h-7 w-7 animate-spin text-blue-500 dark:text-blue-400" />
+                    <Loader2 className="h-7 w-7 animate-spin text-brand-ink-500 dark:text-brand-ink-400" />
                     <p className="text-sm text-gray-400 dark:text-slate-400">Loading messages…</p>
                   </div>
                 ) : filteredNotifications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-                    <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center mb-4 dark:from-blue-950/40 dark:to-indigo-950/40">
-                      <Bell className="h-6 w-6 text-blue-400" />
+                    <div className="h-14 w-14 rounded-full bg-gradient-to-br from-brand-surface-50 to-brand-alt-surface-100 flex items-center justify-center mb-4 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
+                      <Bell className="h-6 w-6 text-brand-ink-400" />
                     </div>
                     <p className="text-sm font-semibold text-gray-600 mb-1 dark:text-slate-300">
                       {search ? 'No results found' : activeTab === 'unread' ? 'All caught up!' : 'No notifications yet'}
@@ -1213,7 +1213,7 @@ export default function NotificationsPage() {
         className={cn(
           'fixed bottom-6 right-6 z-40',
           'h-14 w-14 rounded-full',
-          'bg-blue-600 hover:bg-blue-700 active:bg-blue-800',
+          'bg-brand-surface-600 hover:bg-brand-surface-700 active:bg-brand-surface-800',
           'text-white shadow-[0_4px_20px_rgba(37,99,235,0.45)]',
           'flex items-center justify-center',
           'transition-all duration-200 hover:scale-105 active:scale-95',
@@ -1235,7 +1235,7 @@ export default function NotificationsPage() {
               <X className="h-5 w-5" />
             </button>
             <h2 className="text-base font-bold text-gray-900 flex-1 dark:text-slate-100">New Notification</h2>
-            <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-full bg-brand-surface-600 flex items-center justify-center">
               <Edit3 className="h-4 w-4 text-white" />
             </div>
           </div>
@@ -1271,7 +1271,7 @@ export default function NotificationsPage() {
           >
             <ModernDialogHeader className="pb-2">
               <ModernDialogTitle className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-full bg-blue-600 flex items-center justify-center">
+                <div className="h-7 w-7 rounded-full bg-brand-surface-600 flex items-center justify-center">
                   <Edit3 className="h-3.5 w-3.5 text-white" />
                 </div>
                 New Notification

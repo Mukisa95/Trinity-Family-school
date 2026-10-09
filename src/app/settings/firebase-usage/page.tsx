@@ -303,12 +303,12 @@ export default function FirebaseUsagePage() {
         description="Manual, administrator-only usage and expenditure reporting. Nothing refreshes in the background."
       />
 
-      <Card className="border-blue-100 bg-gradient-to-r from-blue-50/80 to-white dark:border-blue-800/60 dark:from-blue-950/80 dark:to-slate-900">
+      <Card className="border-brand-100 bg-gradient-to-r from-brand-surface-50/80 to-white dark:border-brand-800/60 dark:from-brand-surface-950/80 dark:to-slate-900">
         <CardContent className="p-4 sm:p-5">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="space-y-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
-                <span className="flex items-center gap-2"><CalendarRange className="h-4 w-4 text-blue-700 dark:text-blue-300" />Date range</span>
+                <span className="flex items-center gap-2"><CalendarRange className="h-4 w-4 text-brand-ink-700 dark:text-brand-ink-300" />Date range</span>
                 <Select value={rangePreset} onValueChange={value => setRangePreset(value as UsageRangePreset)}>
                   <SelectTrigger className="h-11 bg-white dark:bg-slate-900" aria-label="Usage date range"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -341,13 +341,13 @@ export default function FirebaseUsagePage() {
               <p className="text-center text-xs text-slate-500 lg:text-right dark:text-slate-400">Every request includes 1 admin-check read · 0 writes</p>
             </div>
           </div>
-          <fieldset className="mt-5 border-t border-blue-100 pt-4 dark:border-blue-800/60">
+          <fieldset className="mt-5 border-t border-brand-100 pt-4 dark:border-brand-800/60">
             <legend className="px-1 text-sm font-semibold text-slate-800 dark:text-slate-100">Choose exactly what to refresh</legend>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               {REFRESH_CHOICES.map(choice => {
                 const checked = refreshSelection[choice.id];
                 return (
-                  <label key={choice.id} className={`flex cursor-pointer gap-3 rounded-lg border p-3.5 transition-colors ${checked ? 'border-blue-300 bg-white shadow-sm dark:border-blue-800/60 dark:bg-slate-900' : 'border-slate-200 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-900/70'}`}>
+                  <label key={choice.id} className={`flex cursor-pointer gap-3 rounded-lg border p-3.5 transition-colors ${checked ? 'border-brand-300 bg-white shadow-sm dark:border-brand-800/60 dark:bg-slate-900' : 'border-slate-200 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-900/70'}`}>
                     <Checkbox
                       checked={checked}
                       onCheckedChange={value => toggleRefreshSection(choice.id, value === true)}
@@ -366,7 +366,7 @@ export default function FirebaseUsagePage() {
             {!selectedSections.length && <p className="mt-3 text-xs font-medium text-rose-700 dark:text-rose-300">Select at least one item before loading.</p>}
           </fieldset>
           {filtersChanged && (
-            <p className="mt-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-200">
+            <p className="mt-3 rounded-md border border-brand-200 bg-brand-surface-50 px-3 py-2 text-xs text-brand-ink-900 dark:border-brand-800/60 dark:bg-brand-surface-950/40 dark:text-brand-ink-200">
               Filters changed. Press <strong>Refresh usage</strong> to apply them; the displayed data has not changed yet.
             </p>
           )}
@@ -385,7 +385,7 @@ export default function FirebaseUsagePage() {
       {!stats && !loading && !error && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center px-6 py-12 text-center">
-            <BarChart3 className="h-10 w-10 text-blue-700 dark:text-blue-300" />
+            <BarChart3 className="h-10 w-10 text-brand-ink-700 dark:text-brand-ink-300" />
             <h2 className="mt-4 text-lg font-semibold">Choose a range, then load usage</h2>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
               This page never fetches usage automatically. Loading data requires one deliberate press of the button above.
@@ -420,7 +420,7 @@ export default function FirebaseUsagePage() {
                 {!operationsCurrent ? (
                   <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">{loadedSections.has('operations') ? 'Refresh Reads, writes & deletes for this date range.' : 'Select Reads, writes & deletes and press refresh to load this section.'}</p>
                 ) : <><div className="grid gap-3 sm:grid-cols-3">
-                  <OperationCard icon={TrendingDown} label="Reads" value={stats.operations.reads} className="text-blue-700 dark:text-blue-300" />
+                  <OperationCard icon={TrendingDown} label="Reads" value={stats.operations.reads} className="text-brand-ink-700 dark:text-brand-ink-300" />
                   <OperationCard icon={TrendingUp} label="Writes" value={stats.operations.writes} className="text-emerald-700 dark:text-emerald-300" />
                   <OperationCard icon={FileStack} label="Deletes" value={stats.operations.deletes} className="text-rose-700 dark:text-rose-300" />
                 </div>
@@ -433,7 +433,7 @@ export default function FirebaseUsagePage() {
                         <YAxis tickFormatter={value => new Intl.NumberFormat(undefined, { notation: 'compact' }).format(value)} tick={{ fontSize: 11 }} />
                         <Tooltip labelFormatter={value => formatDate(String(value))} formatter={(value, name) => [formatNumber(Number(value)), String(name)]} />
                         <Legend />
-                        <Line type="monotone" dataKey="reads" name="Reads" stroke="#2563eb" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="reads" name="Reads" stroke="rgb(var(--brand-600))" strokeWidth={2} dot={false} />
                         <Line type="monotone" dataKey="writes" name="Writes" stroke="#059669" strokeWidth={2} dot={false} />
                         <Line type="monotone" dataKey="deletes" name="Deletes" stroke="#e11d48" strokeWidth={2} dot={false} />
                       </LineChart>
@@ -506,7 +506,7 @@ export default function FirebaseUsagePage() {
           </Card>
 
           <div className="flex gap-2 rounded-lg border bg-slate-50 p-4 text-xs leading-relaxed text-slate-600 dark:bg-slate-900 dark:text-slate-300">
-            <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-700 dark:text-blue-300" />
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-ink-700 dark:text-brand-ink-300" />
             <p>Collection sizes are estimates derived from at most five sampled documents per collection and exclude index entries. Expenditure comes from Cloud Billing export and can lag behind current activity. Nothing on this page refreshes until you press the button.</p>
           </div>
         </>
@@ -524,8 +524,8 @@ function UsageCard({ icon: Icon, label, value, detail, tone, progress }: {
   progress?: number;
 }) {
   const colors = {
-    blue: 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
-    violet: 'bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300',
+    blue: 'bg-brand-surface-100 text-brand-ink-700 dark:bg-brand-surface-950/40 dark:text-brand-ink-300',
+    violet: 'bg-brand-secondary-alt-surface-100 text-brand-secondary-alt-ink-700 dark:bg-brand-secondary-alt-surface-950/40 dark:text-brand-secondary-alt-ink-300',
     emerald: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
     amber: 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
     rose: 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300',

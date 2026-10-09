@@ -82,8 +82,8 @@ export function PupilFeesRow({
       <td className="px-6 py-4">
         <div className="flex items-center">
           <div className="flex-shrink-0 h-10 w-10">
-            <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center dark:bg-indigo-950/40">
-              <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
+            <div className="h-10 w-10 rounded-full bg-brand-alt-surface-100 flex items-center justify-center dark:bg-brand-alt-surface-950/40">
+              <span className="text-sm font-medium text-brand-alt-ink-700 dark:text-brand-alt-ink-300">
                 {pupil.firstName.charAt(0)}{pupil.lastName.charAt(0)}
               </span>
             </div>

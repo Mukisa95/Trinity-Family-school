@@ -454,7 +454,7 @@ export default function DutyServicePage() {
                                           variant="outline"
                                           size="sm"
                                           onClick={() => handlePrintDutyRota(rota)}
-                                          className="p-2 h-8 w-8 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                          className="p-2 h-8 w-8 text-brand-ink-600 hover:text-brand-ink-700 dark:text-brand-ink-400 dark:hover:text-brand-ink-300"
                                           title="Print Duty Rota"
                                           disabled={printingRotaId === rota.id}
                                         >
@@ -470,9 +470,9 @@ export default function DutyServicePage() {
 
                                   {/* Assignment detail rows */}
                                   {currentAssignments.staff.length > 0 && (
-                                    <tr className="border-b bg-blue-50/30 dark:bg-blue-950/30">
+                                    <tr className="border-b bg-brand-surface-50/30 dark:bg-brand-surface-950/30">
                                       <td className="p-3 pl-8">
-                                        <div className="text-sm text-blue-600 font-medium dark:text-blue-400">Staff</div>
+                                        <div className="text-sm text-brand-ink-600 font-medium dark:text-brand-ink-400">Staff</div>
                                       </td>
                                       <td colSpan={2} className="p-3">
                                         <div className="text-sm">
@@ -498,9 +498,9 @@ export default function DutyServicePage() {
                                   )}
 
                                   {currentAssignments.pupils.length > 0 && (
-                                    <tr className="border-b bg-purple-50/30 dark:bg-purple-950/30">
+                                    <tr className="border-b bg-brand-secondary-surface-50/30 dark:bg-brand-secondary-surface-950/30">
                                       <td className="p-3 pl-8">
-                                        <div className="text-sm text-purple-600 font-medium dark:text-purple-400">Pupils</div>
+                                        <div className="text-sm text-brand-secondary-ink-600 font-medium dark:text-brand-secondary-ink-400">Pupils</div>
                                       </td>
                                       <td colSpan={2} className="p-3">
                                         <div className="text-sm">

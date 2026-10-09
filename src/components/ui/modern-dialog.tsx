@@ -168,7 +168,7 @@ const ModernDialogContent: React.FC<ModernDialogContentProps> = ({
         <button
           type="button"
           onClick={() => onOpenChange?.(false)}
-          className="absolute right-2 top-2 sm:right-4 sm:top-4 rounded-full p-1.5 sm:p-2 opacity-70 transition-all hover:opacity-100 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 z-50 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center"
+          className="absolute right-2 top-2 sm:right-4 sm:top-4 rounded-full p-1.5 sm:p-2 opacity-70 transition-all hover:opacity-100 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 z-50 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center"
         >
           <X className="h-3 w-3 sm:h-4 sm:w-4" />
           <span className="sr-only">Close</span>
@@ -226,7 +226,7 @@ const ModernDialogTitle: React.FC<{
   <h2
     id={id}
     className={cn(
-      "text-lg sm:text-xl md:text-2xl font-bold leading-none tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400",
+      "text-lg sm:text-xl md:text-2xl font-bold leading-none tracking-tight bg-gradient-to-r from-brand-ink-600 to-brand-secondary-ink-600 bg-clip-text text-transparent dark:from-brand-ink-400 dark:to-brand-secondary-ink-400",
       className
     )}
   >

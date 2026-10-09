@@ -22,7 +22,7 @@ export function SchoolSettingsLoader() {
         className="relative w-16 h-16 mb-2 rounded-md overflow-hidden"
       >
         {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 dark:from-blue-400/30 dark:via-purple-400/30 dark:to-pink-400/30" />
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-surface-500/20 via-brand-secondary-surface-500/20 to-pink-500/20 dark:from-brand-surface-400/30 dark:via-brand-secondary-surface-400/30 dark:to-pink-400/30" />
         
         {/* Shimmer effect */}
         <motion.div

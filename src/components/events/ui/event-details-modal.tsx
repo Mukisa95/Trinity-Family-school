@@ -98,7 +98,7 @@ export function EventDetailsModal({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Scheduled': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+      case 'Scheduled': return 'bg-brand-surface-100 text-brand-ink-800 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60';
       case 'Ongoing': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
       case 'Completed': return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
       case 'Cancelled': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60';
@@ -120,7 +120,7 @@ export function EventDetailsModal({
   return (
     <ModernDialog open={isOpen} onOpenChange={onClose}>
       <ModernDialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden bg-white/95 backdrop-blur-xl border-slate-200/60 shadow-2xl dark:bg-slate-900/95 dark:border-slate-700/60" open={isOpen} onOpenChange={onClose}>
-        <div className="bg-gradient-to-br from-slate-50/90 via-white to-blue-50/30 border-b border-slate-100/50 p-6 sm:px-8 dark:from-slate-900/90 dark:via-slate-900 dark:to-blue-950/30 dark:border-slate-700/50">
+        <div className="bg-gradient-to-br from-slate-50/90 via-white to-brand-surface-50/30 border-b border-slate-100/50 p-6 sm:px-8 dark:from-slate-900/90 dark:via-slate-900 dark:to-brand-surface-950/30 dark:border-slate-700/50">
           <ModernDialogHeader>
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -135,7 +135,7 @@ export function EventDetailsModal({
                     {computedStatus}
                   </Badge>
                   {event.isExamEvent && (
-                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-0 shadow-sm px-2.5 py-0.5 font-medium dark:bg-purple-950/40 dark:text-purple-300">
+                    <Badge variant="outline" className="bg-brand-secondary-surface-50 text-brand-secondary-ink-700 border-0 shadow-sm px-2.5 py-0.5 font-medium dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-300">
                       <GraduationCap className="h-3.5 w-3.5 mr-1.5" />
                       Exam Event
                     </Badge>
@@ -163,7 +163,7 @@ export function EventDetailsModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Type */}
               <div className="flex items-center gap-4 bg-white border border-slate-200/50 shadow-sm rounded-2xl p-4 hover:shadow-md transition-shadow dark:bg-slate-900 dark:border-slate-700/50">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-50 text-blue-600 shadow-inner dark:bg-blue-950/40 dark:text-blue-400">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-brand-surface-50 text-brand-ink-600 shadow-inner dark:bg-brand-surface-950/40 dark:text-brand-ink-400">
                   {getTypeIcon(event.type)}
                 </div>
                 <div>
@@ -213,7 +213,7 @@ export function EventDetailsModal({
               {/* Duration - Only show for non-exam events */}
               {!event.isExamEvent && !event.isAllDay && event.startTime && event.endTime && (
                 <div className="flex items-center gap-4 bg-white border border-slate-200/50 shadow-sm rounded-2xl p-4 hover:shadow-md transition-shadow dark:bg-slate-900 dark:border-slate-700/50">
-                  <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 shadow-inner dark:bg-indigo-950/40 dark:text-indigo-400">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-brand-alt-surface-50 text-brand-alt-ink-600 shadow-inner dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-400">
                     <Clock className="h-5 w-5" />
                   </div>
                   <div>
@@ -230,14 +230,14 @@ export function EventDetailsModal({
 
             {/* Target Audience */}
             {event.targetAudience.length > 0 && (
-              <div className="bg-indigo-50/30 border border-indigo-100/50 rounded-2xl p-5 dark:bg-indigo-950/30 dark:border-indigo-800/50">
-                <h4 className="font-semibold text-indigo-900 flex items-center gap-2 mb-3 dark:text-indigo-200">
-                  <Users className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
+              <div className="bg-brand-alt-surface-50/30 border border-brand-alt-100/50 rounded-2xl p-5 dark:bg-brand-alt-surface-950/30 dark:border-brand-alt-800/50">
+                <h4 className="font-semibold text-brand-alt-ink-900 flex items-center gap-2 mb-3 dark:text-brand-alt-ink-200">
+                  <Users className="h-4 w-4 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />
                   Target Audience
                 </h4>
                 <div className="flex flex-wrap gap-2.5">
                   {event.targetAudience.map((audience, index) => (
-                    <Badge key={index} variant="secondary" className="bg-white text-indigo-700 hover:bg-indigo-50 border-0 shadow-sm px-3 py-1 dark:bg-slate-900 dark:text-indigo-300 dark:hover:bg-indigo-950/40">
+                    <Badge key={index} variant="secondary" className="bg-white text-brand-alt-ink-700 hover:bg-brand-alt-surface-50 border-0 shadow-sm px-3 py-1 dark:bg-slate-900 dark:text-brand-alt-ink-300 dark:hover:bg-brand-alt-surface-950/40">
                       {audience}
                     </Badge>
                   ))}
@@ -274,16 +274,16 @@ export function EventDetailsModal({
               <div>
                 <Separator className="my-4" />
                 <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 dark:text-slate-100">
-                  <GraduationCap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <GraduationCap className="h-5 w-5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                   📚 Exam Details
                 </h4>
 
-                <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4 dark:from-purple-950/40 dark:to-blue-950/40 dark:border-purple-800/60">
+                <div className="bg-gradient-to-r from-brand-secondary-surface-50 to-brand-surface-50 border border-brand-secondary-200 rounded-lg p-4 dark:from-brand-secondary-surface-950/40 dark:to-brand-surface-950/40 dark:border-brand-secondary-800/60">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Exam Type */}
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-950/40">
-                        <BookOpen className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-brand-secondary-surface-100 dark:bg-brand-secondary-surface-950/40">
+                        <BookOpen className="h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                       </div>
                       <div>
                         <p className="text-sm text-gray-500 dark:text-slate-400">Exam Type</p>
@@ -295,8 +295,8 @@ export function EventDetailsModal({
 
                     {/* Exam Nature */}
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-950/40">
-                        <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-brand-surface-100 dark:bg-brand-surface-950/40">
+                        <AlertCircle className="h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                       </div>
                       <div>
                         <p className="text-sm text-gray-500 dark:text-slate-400">Exam Nature</p>
@@ -342,7 +342,7 @@ export function EventDetailsModal({
                       </h5>
                       <div className="flex flex-wrap gap-2">
                         {event.customFields?.classDetails?.map((cls: any, index: number) => (
-                          <Badge key={index} variant="outline" className="bg-white border-purple-300 text-purple-700 dark:bg-slate-900 dark:border-purple-800/60 dark:text-purple-300">
+                          <Badge key={index} variant="outline" className="bg-white border-brand-secondary-300 text-brand-secondary-ink-700 dark:bg-slate-900 dark:border-brand-secondary-800/60 dark:text-brand-secondary-ink-300">
                             {cls.name || cls.className || 'Unknown Class'}
                           </Badge>
                         )) || event.examIntegration?.classIds?.map((classId: string, index: number) => {
@@ -351,7 +351,7 @@ export function EventDetailsModal({
                             event.customFields?.classDetails?.find((c: any) => c.id === classId)?.className ||
                             classId;
                           return (
-                            <Badge key={index} variant="outline" className="bg-white border-purple-300 text-purple-700 dark:bg-slate-900 dark:border-purple-800/60 dark:text-purple-300">
+                            <Badge key={index} variant="outline" className="bg-white border-brand-secondary-300 text-brand-secondary-ink-700 dark:bg-slate-900 dark:border-brand-secondary-800/60 dark:text-brand-secondary-ink-300">
                               {className}
                             </Badge>
                           );
@@ -369,7 +369,7 @@ export function EventDetailsModal({
                       </h5>
                       <div className="flex flex-wrap gap-2">
                         {event.customFields.subjectDetails.map((subject: any, index: number) => (
-                          <Badge key={index} variant="outline" className="bg-white border-blue-300 text-blue-700 dark:bg-slate-900 dark:border-blue-800/60 dark:text-blue-300">
+                          <Badge key={index} variant="outline" className="bg-white border-brand-300 text-brand-ink-700 dark:bg-slate-900 dark:border-brand-800/60 dark:text-brand-ink-300">
                             {subject.name || subject.subjectName || subject.title || subject.id}
                           </Badge>
                         ))}
@@ -395,13 +395,13 @@ export function EventDetailsModal({
                   {/* Exam Statistics */}
                   <div className="mt-4 grid grid-cols-2 gap-4">
                     <div className="bg-white border border-gray-200 rounded-lg p-3 text-center dark:bg-slate-900 dark:border-slate-700">
-                      <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                      <p className="text-2xl font-bold text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">
                         {event.customFields?.classDetails?.length || event.examIntegration?.examIds?.length || 0}
                       </p>
                       <p className="text-sm text-gray-500 dark:text-slate-400">Exam Instances</p>
                     </div>
                     <div className="bg-white border border-gray-200 rounded-lg p-3 text-center dark:bg-slate-900 dark:border-slate-700">
-                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      <p className="text-2xl font-bold text-brand-ink-600 dark:text-brand-ink-400">
                         {event.customFields?.classDetails?.length || event.examIntegration?.classIds?.length || 0}
                       </p>
                       <p className="text-sm text-gray-500 dark:text-slate-400">Classes</p>
@@ -560,7 +560,7 @@ export function EventDetailsModal({
               {/* Edit Button */}
               <button
                 onClick={() => onEdit(event)}
-                className="flex flex-col items-center justify-center min-w-[44px] w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 shrink-0 dark:bg-slate-900 dark:text-blue-400"
+                className="flex flex-col items-center justify-center min-w-[44px] w-11 h-11 rounded-full bg-white text-brand-ink-600 border border-brand-400 shadow-sm hover:bg-gradient-to-br hover:from-brand-surface-400 hover:via-brand-alt-surface-500 hover:to-brand-surface-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 shrink-0 dark:bg-slate-900 dark:text-brand-ink-400"
                 aria-label="Edit Event"
               >
                 <Edit className="w-4 h-4 mb-0.5" />
@@ -582,7 +582,7 @@ export function EventDetailsModal({
                   {/* View Attendance */}
                   <button
                     onClick={() => { window.location.href = `/events/${event.id}/view-attendance`; }}
-                    className="flex flex-col items-center justify-center min-w-[44px] w-11 h-11 rounded-full bg-white text-purple-600 border border-purple-400 shadow-sm hover:bg-gradient-to-br hover:from-purple-400 hover:via-purple-500 hover:to-purple-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 shrink-0 dark:bg-slate-900 dark:text-purple-400"
+                    className="flex flex-col items-center justify-center min-w-[44px] w-11 h-11 rounded-full bg-white text-brand-secondary-ink-600 border border-brand-secondary-400 shadow-sm hover:bg-gradient-to-br hover:from-brand-secondary-surface-400 hover:via-brand-secondary-surface-500 hover:to-brand-secondary-surface-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 shrink-0 dark:bg-slate-900 dark:text-brand-secondary-ink-400"
                     aria-label="View Attendance"
                   >
                     <Users className="w-4 h-4 mb-0.5" />

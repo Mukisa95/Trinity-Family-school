@@ -97,8 +97,8 @@ export function LiveTracker({
             aria-pressed={selected}
             aria-controls="selected-timetable-panel"
             className={`hidden h-8 flex-shrink-0 items-center gap-1 rounded-full border px-2.5 text-[9px] font-extrabold uppercase tracking-wide transition-colors sm:inline-flex ${selected
-                ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-950/40 dark:text-indigo-300"
-                : "border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-indigo-800/60 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
+                ? "border-brand-alt-200 bg-brand-alt-surface-50 text-brand-alt-ink-700 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300"
+                : "border-slate-200 bg-white text-slate-600 hover:border-brand-alt-200 hover:bg-brand-alt-surface-50 hover:text-brand-alt-ink-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-brand-alt-800/60 dark:hover:bg-brand-alt-surface-950/40 dark:hover:text-brand-alt-ink-300"
             }`}
         >
             <span>{selected ? "Timetable shown" : "View timetable"}</span>
@@ -126,25 +126,25 @@ export function LiveTracker({
             <section
                 onClick={handleCardSelect}
                 className={`relative h-full min-w-0 overflow-hidden rounded-2xl border bg-white p-3 pl-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition-all  dark:bg-slate-900 ${selected
-                    ? "border-indigo-200 shadow-[0_12px_34px_rgba(79,70,229,0.12)] dark:border-indigo-800/60"
-                    : "border-amber-200/80 hover:border-indigo-200 hover:shadow-[0_10px_28px_rgba(79,70,229,0.09)] dark:border-amber-800/80 dark:hover:border-indigo-800/60"
+                    ? "border-brand-alt-200 shadow-[0_12px_34px_rgba(79,70,229,0.12)] dark:border-brand-alt-800/60"
+                    : "border-amber-200/80 hover:border-brand-alt-200 hover:shadow-[0_10px_28px_rgba(79,70,229,0.09)] dark:border-amber-800/80 dark:hover:border-brand-alt-800/60"
                 } ${!selected && onSelect ? "cursor-pointer" : ""}`}
             >
-                <div className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${liveEnabled ? "from-amber-400 to-orange-500" : "from-indigo-500 to-violet-500"}`} />
+                <div className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${liveEnabled ? "from-amber-400 to-orange-500" : "from-brand-alt-surface-500 to-brand-secondary-alt-surface-500"}`} />
                 <div className="flex min-h-[52px] items-center gap-3">
                     <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ring-1 ${liveEnabled
                         ? "bg-amber-50 text-amber-600 ring-amber-200/70 dark:bg-amber-950/40 dark:text-amber-400 dark:ring-amber-800/70"
-                        : "bg-indigo-50 text-indigo-600 ring-indigo-200/70 dark:bg-indigo-950/40 dark:text-indigo-400 dark:ring-indigo-800/70"
+                        : "bg-brand-alt-surface-50 text-brand-alt-ink-600 ring-brand-alt-200/70 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-400 dark:ring-brand-alt-800/70"
                     }`}>
                         <Clock className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
                         <div className="flex min-w-0 flex-wrap items-center gap-2">
                             <button type="button" onClick={onSelect} disabled={!onSelect} aria-pressed={selected} aria-controls="selected-timetable-panel"
-                                className="truncate text-left text-sm font-bold text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-slate-100">{timetableLabel}</button>
+                                className="truncate text-left text-sm font-bold text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-alt-500 dark:text-slate-100">{timetableLabel}</button>
                             <span className={`rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ring-1 ring-inset ${liveEnabled
                                 ? "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-800/60"
-                                : "bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:ring-indigo-800/60"
+                                : "bg-brand-alt-surface-50 text-brand-alt-ink-700 ring-brand-alt-200 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300 dark:ring-brand-alt-800/60"
                             }`}>
                                 {statusLabel}
                             </span>
@@ -217,20 +217,20 @@ export function LiveTracker({
         <article
             onClick={handleCardSelect}
             className={`relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border bg-white p-2 pl-3 text-slate-800 transition-all sm:p-3 sm:pl-4  dark:bg-slate-900 dark:text-slate-100 ${selected
-                ? "border-indigo-200 shadow-[0_12px_34px_rgba(79,70,229,0.12)] dark:border-indigo-800/60"
-                : "border-slate-200/90 shadow-[0_8px_24px_rgba(15,23,42,0.06)] hover:border-indigo-200 hover:shadow-[0_10px_30px_rgba(79,70,229,0.10)] dark:border-slate-700/90 dark:hover:border-indigo-800/60"
+                ? "border-brand-alt-200 shadow-[0_12px_34px_rgba(79,70,229,0.12)] dark:border-brand-alt-800/60"
+                : "border-slate-200/90 shadow-[0_8px_24px_rgba(15,23,42,0.06)] hover:border-brand-alt-200 hover:shadow-[0_10px_30px_rgba(79,70,229,0.10)] dark:border-slate-700/90 dark:hover:border-brand-alt-800/60"
             } ${!selected && onSelect ? "cursor-pointer" : ""}`}
         >
-            <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-indigo-500 via-violet-500 to-purple-500" />
+            <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-brand-alt-surface-500 via-brand-secondary-alt-surface-500 to-brand-secondary-surface-500" />
 
             <div className="flex min-w-0 items-center gap-1.5">
-                <span className={`h-2 w-2 shrink-0 rounded-full bg-indigo-600 ${isLive ? "animate-pulse" : "opacity-35"}`} />
+                <span className={`h-2 w-2 shrink-0 rounded-full bg-brand-alt-surface-600 ${isLive ? "animate-pulse" : "opacity-35"}`} />
                 {onSelect ? (
                     <button type="button" onClick={onSelect} aria-pressed={selected} aria-controls="selected-timetable-panel"
-                        className="min-w-0 flex-1 truncate text-left text-[10px] font-extrabold uppercase tracking-wide text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-indigo-400">
+                        className="min-w-0 flex-1 truncate text-left text-[10px] font-extrabold uppercase tracking-wide text-brand-alt-ink-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-alt-500 dark:text-brand-alt-ink-400">
                         {timetableLabel}
                     </button>
-                ) : <span className="min-w-0 flex-1 truncate text-[10px] font-extrabold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">{timetableLabel}</span>}
+                ) : <span className="min-w-0 flex-1 truncate text-[10px] font-extrabold uppercase tracking-wide text-brand-alt-ink-600 dark:text-brand-alt-ink-400">{timetableLabel}</span>}
                 <span className="shrink-0 text-xs font-bold text-slate-900 dark:text-slate-100">{periodLabel}</span>
                 {selectionControl}
             </div>
@@ -249,7 +249,7 @@ export function LiveTracker({
                         type="button"
                         onClick={handlePrev}
                         disabled={!prevPeriod}
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:bg-brand-alt-surface-50 hover:text-brand-alt-ink-700 disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-brand-alt-surface-950/40 dark:hover:text-brand-alt-ink-300"
                         title="Previous Period"
                         aria-label="Show previous period"
                     >
@@ -257,14 +257,14 @@ export function LiveTracker({
                     </button>
                     <div role="progressbar" aria-label={`${timetableLabel} lesson progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progressPct)}
                         className="relative h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100 shadow-inner dark:bg-slate-900">
-                        <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 transition-all duration-1000 ease-linear"
+                        <div className="h-full rounded-full bg-gradient-to-r from-brand-alt-surface-500 via-brand-secondary-alt-surface-500 to-brand-secondary-surface-500 transition-all duration-1000 ease-linear"
                             style={{ width: `${clampedPct}%` }} />
                     </div>
                     {viewOffset !== 0 && (
                         <button
                             type="button"
                             onClick={handleLive}
-                            className="h-7 rounded-full bg-indigo-600 px-2 text-[8px] font-extrabold uppercase tracking-wide text-white transition-colors hover:bg-indigo-700"
+                            className="h-7 rounded-full bg-brand-alt-surface-600 px-2 text-[8px] font-extrabold uppercase tracking-wide text-white transition-colors hover:bg-brand-alt-surface-700"
                             title="Return to Live Time"
                         >
                             Live
@@ -274,7 +274,7 @@ export function LiveTracker({
                         type="button"
                         onClick={handleNext}
                         disabled={!nextPeriod}
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-300"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:bg-brand-alt-surface-50 hover:text-brand-alt-ink-700 disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-brand-alt-surface-950/40 dark:hover:text-brand-alt-ink-300"
                         title="Next Period"
                         aria-label="Show next period"
                     >
@@ -289,10 +289,10 @@ export function LiveTracker({
                     {activeSubjectCards.map((sc, idx) => (
                         <div 
                             key={`${sc.id}-${idx}`} 
-                            className="inline-flex min-h-5 items-center gap-1 rounded-lg border border-indigo-100 bg-indigo-50/70 px-1.5 py-0.5 text-[10px] font-bold tracking-tight text-slate-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50 sm:min-h-6 sm:px-2 dark:border-indigo-800/60 dark:bg-indigo-950/70 dark:text-slate-200 dark:hover:border-indigo-800/60 dark:hover:bg-indigo-950/40"
+                            className="inline-flex min-h-5 items-center gap-1 rounded-lg border border-brand-alt-100 bg-brand-alt-surface-50/70 px-1.5 py-0.5 text-[10px] font-bold tracking-tight text-slate-700 transition-colors hover:border-brand-alt-200 hover:bg-brand-alt-surface-50 sm:min-h-6 sm:px-2 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/70 dark:text-slate-200 dark:hover:border-brand-alt-800/60 dark:hover:bg-brand-alt-surface-950/40"
                         >
-                            <span className="text-indigo-700 dark:text-indigo-300">{sc.classCode}</span>
-                            <span className="select-none text-indigo-300">·</span>
+                            <span className="text-brand-alt-ink-700 dark:text-brand-alt-ink-300">{sc.classCode}</span>
+                            <span className="select-none text-brand-alt-ink-300">·</span>
                             <span>{sc.subjectCode}</span>
                         </div>
                     ))}

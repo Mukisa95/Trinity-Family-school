@@ -90,7 +90,7 @@ export default function BankingPage() {
         backLabel="Dashboard"
         meta={
           <div className="flex items-center gap-1.5 flex-wrap">
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50/80 border border-blue-200/60 text-[10px] font-semibold text-blue-700 dark:bg-blue-950/80 dark:border-blue-800/60 dark:text-blue-300">
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-brand-surface-50/80 border border-brand-200/60 text-[10px] font-semibold text-brand-ink-700 dark:bg-brand-surface-950/80 dark:border-brand-800/60 dark:text-brand-ink-300">
               <CreditCard className="w-3 h-3" />
               {accounts.length} accounts
             </div>
@@ -114,7 +114,7 @@ export default function BankingPage() {
               placeholder="Search accounts..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 pr-3 h-[30px] w-36 focus:w-52 transition-all duration-200 rounded-full border border-blue-200/60 bg-white/90 text-[11px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 placeholder:text-gray-400 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-slate-200 dark:placeholder:text-slate-400"
+              className="pl-8 pr-3 h-[30px] w-36 focus:w-52 transition-all duration-200 rounded-full border border-brand-200/60 bg-white/90 text-[11px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-400/50 placeholder:text-gray-400 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-slate-200 dark:placeholder:text-slate-400"
             />
           </div>
         }

@@ -17,10 +17,10 @@ import { useCreateItemRequest, useMyItemRequests } from '@/lib/hooks/use-item-re
 import type { CreateItemRequestData, ItemRequestStatus } from '@/types';
 
 const statusStyles: Record<ItemRequestStatus, string> = {
-  submitted: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60',
+  submitted: 'bg-brand-surface-50 text-brand-ink-700 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60',
   pending_available: 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60',
   pending_restock: 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60',
-  restock_in_progress: 'bg-violet-50 text-violet-800 border-violet-200 dark:bg-violet-950/40 dark:text-violet-200 dark:border-violet-800/60',
+  restock_in_progress: 'bg-brand-secondary-alt-surface-50 text-brand-secondary-alt-ink-800 border-brand-secondary-alt-200 dark:bg-brand-secondary-alt-surface-950/40 dark:text-brand-secondary-alt-ink-200 dark:border-brand-secondary-alt-800/60',
   ready_to_release: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800/60',
   released: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800/60',
   declined: 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-200 dark:border-rose-800/60',

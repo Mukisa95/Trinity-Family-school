@@ -330,7 +330,7 @@ export function AcademicYearsPageContent() {
     if (year.startDate && typeof year.startDate === 'string') {
       const yearStartDate = parseStartOfDay(year.startDate);
       if (isValid(yearStartDate) && yearStartDate > new Date()) {
-        return { label: 'Upcoming', className: 'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60', icon: CalendarDays };
+        return { label: 'Upcoming', className: 'bg-brand-surface-100 text-brand-ink-700 border-brand-300 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60', icon: CalendarDays };
       }
     }
     return { label: 'Past', className: 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60', icon: CalendarDays };
@@ -523,7 +523,7 @@ export function AcademicYearsPageContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/40">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand-surface-50 to-brand-alt-surface-50 pb-12 dark:from-slate-900 dark:via-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
         <GlassPageTopBar
           title="Academic Years"
           subtitle="Loading academic years..."
@@ -531,7 +531,7 @@ export function AcademicYearsPageContent() {
           backLabel="Dashboard"
         />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand-ink-600 dark:text-brand-ink-400" />
           <span className="ml-2 text-gray-600 dark:text-slate-300">Loading academic years...</span>
         </div>
       </div>
@@ -540,7 +540,7 @@ export function AcademicYearsPageContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/40">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand-surface-50 to-brand-alt-surface-50 pb-12 dark:from-slate-900 dark:via-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
         <GlassPageTopBar
           title="Academic Years"
           subtitle="Error loading data"
@@ -556,7 +556,7 @@ export function AcademicYearsPageContent() {
 
   if (!academicYears.length) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/40">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand-surface-50 to-brand-alt-surface-50 pb-12 dark:from-slate-900 dark:via-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
         <GlassPageTopBar
           title="Academic Years"
           subtitle="System automatically manages academic years and terms"
@@ -590,7 +590,7 @@ export function AcademicYearsPageContent() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/40">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand-surface-50 to-brand-alt-surface-50 pb-12 dark:from-slate-900 dark:via-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
       <GlassPageTopBar
         title={pageTitle}
         subtitle={pageSubtitle}
@@ -602,7 +602,7 @@ export function AcademicYearsPageContent() {
             value={activeSettingTab}
             onChange={(event) => handleTabChange(event.target.value as 'years' | 'subjects' | 'commentary')}
             aria-label="Choose academic setup section"
-            className="h-8 max-w-[42vw] rounded-full border border-indigo-200/80 bg-white/95 px-2.5 text-[10px] font-bold text-indigo-700 shadow-sm outline-none transition-colors hover:bg-indigo-50 focus:ring-2 focus:ring-indigo-400/60 lg:hidden dark:border-indigo-800/80 dark:bg-slate-900/95 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
+            className="h-8 max-w-[42vw] rounded-full border border-brand-alt-200/80 bg-white/95 px-2.5 text-[10px] font-bold text-brand-alt-ink-700 shadow-sm outline-none transition-colors hover:bg-brand-alt-surface-50 focus:ring-2 focus:ring-brand-alt-400/60 lg:hidden dark:border-brand-alt-800/80 dark:bg-slate-900/95 dark:text-brand-alt-ink-300 dark:hover:bg-brand-alt-surface-950/40"
           >
             <option value="years">Years</option>
             <option value="subjects">Subjects</option>
@@ -623,7 +623,7 @@ export function AcademicYearsPageContent() {
                   onClick={() => handleTabChange(tab.id as 'years' | 'subjects' | 'commentary')}
                   className={cn(
                     'rounded-full px-3 py-1 text-xs font-semibold transition-all duration-200',
-                    isActive ? 'bg-white text-indigo-700 shadow-sm dark:bg-slate-900 dark:text-indigo-300' : 'text-gray-600 hover:bg-white/50 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-900/50 dark:hover:text-slate-100'
+                    isActive ? 'bg-white text-brand-alt-ink-700 shadow-sm dark:bg-slate-900 dark:text-brand-alt-ink-300' : 'text-gray-600 hover:bg-white/50 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-900/50 dark:hover:text-slate-100'
                   )}
                 >
                   {tab.label}
@@ -670,16 +670,16 @@ export function AcademicYearsPageContent() {
       <GlassSummaryBar
         left={
           <div className="flex flex-wrap items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 uppercase mr-2 dark:text-indigo-200">
+            <CalendarDays className="h-4 w-4 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />
+            <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 uppercase mr-2 dark:text-brand-alt-ink-200">
               Academic Setup
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
               {activeSettingTab === 'years' && (
                 <>
-                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-blue-950/80 dark:border-blue-800/50">
-                    <span className="font-bold text-blue-700 dark:text-blue-300">{academicYears.length}</span>
-                    <span className="text-blue-700/85 font-medium dark:text-blue-300/85">academic years</span>
+                  <div className="flex items-center gap-1 bg-brand-surface-50/80 border border-brand-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-brand-surface-950/80 dark:border-brand-800/50">
+                    <span className="font-bold text-brand-ink-700 dark:text-brand-ink-300">{academicYears.length}</span>
+                    <span className="text-brand-ink-700/85 font-medium dark:text-brand-ink-300/85">academic years</span>
                   </div>
                   {academicYears.find(y => y.isActive) && (
                     <div className="flex items-center gap-1 bg-green-50/80 border border-green-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-green-950/80 dark:border-green-800/50">
@@ -692,13 +692,13 @@ export function AcademicYearsPageContent() {
 
               {activeSettingTab === 'subjects' && (
                 <>
-                  <div className="flex items-center gap-1 bg-purple-50/80 border border-purple-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-purple-950/80 dark:border-purple-800/50">
-                    <span className="font-bold text-purple-700 dark:text-purple-300">{subjects.length}</span>
-                    <span className="text-purple-700/85 font-medium dark:text-purple-300/85">subjects total</span>
+                  <div className="flex items-center gap-1 bg-brand-secondary-surface-50/80 border border-brand-secondary-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-brand-secondary-surface-950/80 dark:border-brand-secondary-800/50">
+                    <span className="font-bold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">{subjects.length}</span>
+                    <span className="text-brand-secondary-ink-700/85 font-medium dark:text-brand-secondary-ink-300/85">subjects total</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-blue-950/80 dark:border-blue-800/50">
-                    <span className="font-bold text-blue-700 dark:text-blue-300">{subjects.filter(s => s.type === 'Core').length}</span>
-                    <span className="text-blue-700/85 font-medium dark:text-blue-300/85">core</span>
+                  <div className="flex items-center gap-1 bg-brand-surface-50/80 border border-brand-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-brand-surface-950/80 dark:border-brand-800/50">
+                    <span className="font-bold text-brand-ink-700 dark:text-brand-ink-300">{subjects.filter(s => s.type === 'Core').length}</span>
+                    <span className="text-brand-ink-700/85 font-medium dark:text-brand-ink-300/85">core</span>
                   </div>
                   <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-amber-950/80 dark:border-amber-800/50">
                     <span className="font-bold text-amber-700 dark:text-amber-300">{subjects.filter(s => s.type !== 'Core').length}</span>
@@ -713,13 +713,13 @@ export function AcademicYearsPageContent() {
                     <span className="font-bold text-emerald-700 dark:text-emerald-300">2</span>
                     <span className="text-emerald-700/85 font-medium dark:text-emerald-300/85">recipient roles</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-blue-950/80 dark:border-blue-800/50">
-                    <span className="font-bold text-blue-700 dark:text-blue-300">5</span>
-                    <span className="text-blue-700/85 font-medium dark:text-blue-300/85">performance bands</span>
+                  <div className="flex items-center gap-1 bg-brand-surface-50/80 border border-brand-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-brand-surface-950/80 dark:border-brand-800/50">
+                    <span className="font-bold text-brand-ink-700 dark:text-brand-ink-300">5</span>
+                    <span className="text-brand-ink-700/85 font-medium dark:text-brand-ink-300/85">performance bands</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-purple-50/80 border border-purple-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-purple-950/80 dark:border-purple-800/50">
-                    <span className="font-bold text-purple-700 dark:text-purple-300">50+</span>
-                    <span className="text-purple-700/85 font-medium dark:text-purple-300/85">comment templates</span>
+                  <div className="flex items-center gap-1 bg-brand-secondary-surface-50/80 border border-brand-secondary-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-brand-secondary-surface-950/80 dark:border-brand-secondary-800/50">
+                    <span className="font-bold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">50+</span>
+                    <span className="text-brand-secondary-ink-700/85 font-medium dark:text-brand-secondary-ink-300/85">comment templates</span>
                   </div>
                 </>
               )}
@@ -738,14 +738,14 @@ export function AcademicYearsPageContent() {
             ref={year.isActive ? (el) => { activeYearCardRef.current = el; } : null}
             className={`group relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 ${year.isLocked ? 'border-gray-200 bg-gray-50/80 dark:border-slate-700 dark:bg-slate-900/80' :
                 year.isActive ? 'border-green-400 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md dark:from-green-950/40 dark:to-emerald-950/40' :
-                  status.label === 'Upcoming' ? 'border-blue-300 bg-gradient-to-br from-blue-50 to-sky-50 dark:border-blue-800/60 dark:from-blue-950/40 dark:to-sky-950/40' :
+                  status.label === 'Upcoming' ? 'border-brand-300 bg-gradient-to-br from-brand-surface-50 to-sky-50 dark:border-brand-800/60 dark:from-brand-surface-950/40 dark:to-sky-950/40' :
                     'border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 dark:border-amber-800/60 dark:from-amber-950/40 dark:to-orange-950/40'
               }`}>
 
             {/* Status indicator bar */}
             <div className={`absolute top-0 left-0 right-0 h-1 ${year.isLocked ? 'bg-gray-400' :
                 year.isActive ? 'bg-green-500' :
-                  status.label === 'Upcoming' ? 'bg-blue-500' : 'bg-amber-500'
+                  status.label === 'Upcoming' ? 'bg-brand-surface-500' : 'bg-amber-500'
               }`} />
 
             <CardHeader className="pb-3 pt-4 px-4">
@@ -754,7 +754,7 @@ export function AcademicYearsPageContent() {
                 <div className="flex items-center gap-2">
                   <status.icon className={`h-4 w-4 ${year.isLocked ? 'text-gray-500 dark:text-slate-400' :
                       year.isActive ? 'text-green-600 dark:text-green-400' :
-                        status.label === 'Upcoming' ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'
+                        status.label === 'Upcoming' ? 'text-brand-ink-600 dark:text-brand-ink-400' : 'text-amber-600 dark:text-amber-400'
                     }`} />
                   <CardTitle className="text-xl font-bold">{year.name}</CardTitle>
                 </div>
@@ -765,7 +765,7 @@ export function AcademicYearsPageContent() {
                     variant={year.isActive ? 'default' : 'secondary'}
                     className={`text-xs font-medium ${year.isLocked ? 'bg-gray-100 text-gray-600 dark:bg-slate-900 dark:text-slate-300' :
                         year.isActive ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/60' :
-                          status.label === 'Upcoming' ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60' :
+                          status.label === 'Upcoming' ? 'bg-brand-surface-100 text-brand-ink-700 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60' :
                             'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60'
                       }`}
                   >
@@ -917,7 +917,7 @@ export function AcademicYearsPageContent() {
                     return (
                       <React.Fragment key={term.id}>
                         <div className={`relative p-3 rounded-lg border transition-colors ${term.isCurrent ? 'bg-white border-green-200 shadow-sm dark:bg-slate-900 dark:border-green-800/60' :
-                            (nextTerm?.id === term.id) ? 'bg-white border-purple-200 shadow-sm dark:bg-slate-900 dark:border-purple-800/60' : // Simplified condition for "Next Term"
+                            (nextTerm?.id === term.id) ? 'bg-white border-brand-secondary-200 shadow-sm dark:bg-slate-900 dark:border-brand-secondary-800/60' : // Simplified condition for "Next Term"
                               'bg-white/60 border-gray-200 dark:bg-slate-900/60 dark:border-slate-700'
                           }`}>
 
@@ -942,11 +942,11 @@ export function AcademicYearsPageContent() {
                             ) : nextTerm?.id === term.id ? (
                               <>
                                 <div className="flex justify-center">
-                                  <Badge className="text-xs px-2 py-0.5 bg-purple-600 text-white hover:bg-purple-600">
+                                  <Badge className="text-xs px-2 py-0.5 bg-brand-secondary-surface-600 text-white hover:bg-brand-secondary-surface-600">
                                     Next
                                   </Badge>
                                 </div>
-                                <div className="flex justify-end text-xs font-semibold text-purple-700 dark:text-purple-300">
+                                <div className="flex justify-end text-xs font-semibold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">
                                   {daysUntilStart > 0 ? `in ${daysUntilStart} days` : ""}
                                 </div>
                               </>
@@ -992,15 +992,15 @@ export function AcademicYearsPageContent() {
 
                   {/* End-of-year holiday for the last term */}
                   {year.terms.length > 0 && (
-                    <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/40 dark:border-blue-800/60">
+                    <div className="px-3 py-2 bg-brand-surface-50 border border-brand-200 rounded-lg dark:bg-brand-surface-950/40 dark:border-brand-800/60">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                          <span className="text-xs font-medium text-blue-800 dark:text-blue-200">End-of-Year Holiday</span>
+                          <div className="w-2 h-2 rounded-full bg-brand-surface-400"></div>
+                          <span className="text-xs font-medium text-brand-ink-800 dark:text-brand-ink-200">End-of-Year Holiday</span>
                         </div>
-                        <span className="text-xs text-blue-600 font-medium dark:text-blue-400">~60 days</span>
+                        <span className="text-xs text-brand-ink-600 font-medium dark:text-brand-ink-400">~60 days</span>
                       </div>
-                      <div className="text-xs text-blue-600 mt-1 dark:text-blue-400">
+                      <div className="text-xs text-brand-ink-600 mt-1 dark:text-brand-ink-400">
                         Dec - Jan (Next Academic Year)
                       </div>
                     </div>

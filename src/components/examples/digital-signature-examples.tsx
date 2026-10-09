@@ -53,9 +53,9 @@ export function DigitalSignatureExamples() {
             </div>
           </div>
 
-          <div className="bg-blue-50 p-4 rounded-lg dark:bg-blue-950/40">
-            <h4 className="font-medium text-blue-900 mb-2 dark:text-blue-200">How to Add to Your FeeCard Component:</h4>
-            <pre className="text-xs bg-blue-100 p-2 rounded overflow-x-auto text-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
+          <div className="bg-brand-surface-50 p-4 rounded-lg dark:bg-brand-surface-950/40">
+            <h4 className="font-medium text-brand-ink-900 mb-2 dark:text-brand-ink-200">How to Add to Your FeeCard Component:</h4>
+            <pre className="text-xs bg-brand-surface-100 p-2 rounded overflow-x-auto text-brand-ink-900 dark:bg-brand-surface-950/40 dark:text-brand-ink-200">
 {`// 1. Import the component
 import { PaymentSignatureDisplay } from './PaymentSignatureDisplay';
 
@@ -82,7 +82,7 @@ import { PaymentSignatureDisplay } from './PaymentSignatureDisplay';
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <FileCheck className="w-5 h-5 text-brand-ink-600 dark:text-brand-ink-400" />
             Requirement Collection Signatures
           </CardTitle>
         </CardHeader>
@@ -96,7 +96,7 @@ import { PaymentSignatureDisplay } from './PaymentSignatureDisplay';
               </div>
               {/* This shows what requirement signatures look like */}
               <div className="space-y-1">
-                <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                <div className="flex items-center gap-1 text-xs text-brand-ink-600 dark:text-brand-ink-400">
                   <FileCheck className="w-3 h-3" />
                   <span>Assigned by Mary Smith • Mar 10, 2024</span>
                 </div>
@@ -108,9 +108,9 @@ import { PaymentSignatureDisplay } from './PaymentSignatureDisplay';
             </div>
           </div>
 
-          <div className="bg-purple-50 p-4 rounded-lg dark:bg-purple-950/40">
-            <h4 className="font-medium text-purple-900 mb-2 dark:text-purple-200">How to Add to Your Requirement Components:</h4>
-            <pre className="text-xs bg-purple-100 p-2 rounded overflow-x-auto text-purple-900 dark:bg-purple-950/40 dark:text-purple-200">
+          <div className="bg-brand-secondary-surface-50 p-4 rounded-lg dark:bg-brand-secondary-surface-950/40">
+            <h4 className="font-medium text-brand-secondary-ink-900 mb-2 dark:text-brand-secondary-ink-200">How to Add to Your Requirement Components:</h4>
+            <pre className="text-xs bg-brand-secondary-surface-100 p-2 rounded overflow-x-auto text-brand-secondary-ink-900 dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-200">
 {`// 1. Import the component
 import { RequirementSignatureDisplay } from '@/components/common/requirement-signature-display';
 
@@ -135,7 +135,7 @@ import { RequirementSignatureDisplay } from '@/components/common/requirement-sig
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Package className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <Package className="w-5 h-5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
             Uniform Tracking Signatures
           </CardTitle>
         </CardHeader>
@@ -145,7 +145,7 @@ import { RequirementSignatureDisplay } from '@/components/common/requirement-sig
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm">School Uniform Set</span>
-                <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">Paid</Badge>
+                <Badge className="bg-brand-surface-100 text-brand-ink-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-200">Paid</Badge>
               </div>
               {/* ADD THIS TO YOUR UNIFORM DISPLAYS */}
               <UniformSignatureExample uniformId="example-uniform-789" />
@@ -218,7 +218,7 @@ import { RequirementSignatureDisplay } from '@/components/common/requirement-sig
             {/* Badge Variant */}
             <div className="bg-gray-50 p-3 rounded-lg dark:bg-slate-900">
               <h5 className="font-medium text-gray-900 mb-2 dark:text-slate-100">Badge</h5>
-              <Badge variant="outline" className="bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+              <Badge variant="outline" className="bg-brand-surface-50 text-brand-ink-600 dark:bg-brand-surface-950/40 dark:text-brand-ink-400">
                 <Shield className="w-3 h-3 mr-1" />
                 Collected by John Doe
               </Badge>
@@ -231,12 +231,12 @@ import { RequirementSignatureDisplay } from '@/components/common/requirement-sig
               <div className="border rounded-lg p-3 bg-muted/20">
                 <div className="flex items-start gap-3">
                   <div className="p-1.5 rounded-full bg-primary/10">
-                    <Shield className="w-4 h-4 text-primary" />
+                    <Shield className="w-4 h-4 text-link" />
                   </div>
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="font-medium text-sm">Collected</div>
-                      <Badge variant="outline" className="bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">Staff</Badge>
+                      <Badge variant="outline" className="bg-brand-surface-50 text-brand-ink-600 dark:bg-brand-surface-950/40 dark:text-brand-ink-400">Staff</Badge>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
@@ -337,7 +337,7 @@ function FeePaymentSignatureExample({ paymentId }: { paymentId: string }) {
 function RequirementSignatureExample({ requirementId }: { requirementId: string }) {
   return (
     <div className="space-y-1">
-      <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+      <div className="flex items-center gap-1 text-xs text-brand-ink-600 dark:text-brand-ink-400">
         <FileCheck className="w-3 h-3" />
         <span>Assigned by Mary Smith • Mar 10, 2024</span>
       </div>
@@ -352,11 +352,11 @@ function RequirementSignatureExample({ requirementId }: { requirementId: string 
 function UniformSignatureExample({ uniformId }: { uniformId: string }) {
   return (
     <div className="space-y-1">
-      <div className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400">
+      <div className="flex items-center gap-1 text-xs text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">
         <CreditCard className="w-3 h-3" />
         <span>Payment by Jane Parent • Mar 12, 2024</span>
       </div>
-      <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+      <div className="flex items-center gap-1 text-xs text-brand-ink-600 dark:text-brand-ink-400">
         <Package className="w-3 h-3" />
         <span>Items collected by Store Keeper • Mar 16, 2024</span>
       </div>

@@ -30,7 +30,7 @@ interface NotificationListProps {
 
 const PRIORITY_COLORS = {
     low: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700',
-    medium: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60',
+    medium: 'bg-brand-surface-100 text-brand-ink-800 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60',
     high: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60',
     urgent: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60',
 };
@@ -40,7 +40,7 @@ const STATUS_COLORS = {
     completed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60',
     cancelled: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700',
     failed: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60',
-    sent: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60',
+    sent: 'bg-brand-surface-100 text-brand-ink-800 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60',
     delivered: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60',
     read: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60',
 };
@@ -93,13 +93,13 @@ export function NotificationList({
                                         {notification.status}
                                     </Badge>
                                     {notification.enablePush && (
-                                        <Badge variant="outline" className="text-blue-600 border-blue-200 dark:text-blue-400 dark:border-blue-800/60">
+                                        <Badge variant="outline" className="text-brand-ink-600 border-brand-200 dark:text-brand-ink-400 dark:border-brand-800/60">
                                             <Smartphone className="w-3 h-3 mr-1" />
                                             Push
                                         </Badge>
                                     )}
                                     {notification.type === 'flow' && (
-                                        <Badge variant="outline" className="text-purple-600 border-purple-200 dark:text-purple-400 dark:border-purple-800/60">
+                                        <Badge variant="outline" className="text-brand-secondary-ink-600 border-brand-secondary-200 dark:text-brand-secondary-ink-400 dark:border-brand-secondary-800/60">
                                             <FileText className="w-3 h-3 mr-1" />
                                             Flow
                                         </Badge>

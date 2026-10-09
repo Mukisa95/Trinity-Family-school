@@ -29,9 +29,9 @@ const LogoutMessage = ({ username }: LogoutMessageProps) => {
         <motion.div
           animate={{ rotate: [0, 10, -10, 0] }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-blue-950/40"
+          className="w-16 h-16 bg-brand-surface-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-brand-surface-950/40"
         >
-          <SignOut size={32} className="text-blue-600 dark:text-blue-400" weight="duotone" />
+          <SignOut size={32} className="text-brand-ink-600 dark:text-brand-ink-400" weight="duotone" />
         </motion.div>
         
         <h2 className="text-2xl font-bold text-gray-800 mb-2 dark:text-slate-100">

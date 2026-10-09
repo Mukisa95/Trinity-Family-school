@@ -30,7 +30,7 @@ const PLE_SUBJECTS = [
 const getDivisionColor = (division: string) => {
   switch (division) {
     case 'I': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
-    case 'II': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+    case 'II': return 'bg-brand-surface-100 text-brand-ink-800 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60';
     case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
     case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60';
     default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
@@ -39,7 +39,7 @@ const getDivisionColor = (division: string) => {
 
 const getAggregateColor = (aggregate: string) => {
   if (aggregate.startsWith('D')) return 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200';
-  if (aggregate.startsWith('C')) return 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200';
+  if (aggregate.startsWith('C')) return 'bg-brand-surface-100 text-brand-ink-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-200';
   if (aggregate.startsWith('P')) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200';
   return 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200';
 };
@@ -194,7 +194,7 @@ Division: ${pupilResult.division}`;
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
+      <div className="min-h-screen bg-gradient-to-br from-brand-secondary-surface-50 via-brand-alt-surface-50 to-brand-surface-50 dark:from-brand-secondary-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-surface-950/40">
         <GlassPageTopBar
           title="PLE Performance"
           subtitle="Loading pupil performance..."
@@ -213,7 +213,7 @@ Division: ${pupilResult.division}`;
 
   if (!pupilResult || !pleRecord) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
+      <div className="min-h-screen bg-gradient-to-br from-brand-secondary-surface-50 via-brand-alt-surface-50 to-brand-surface-50 dark:from-brand-secondary-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-surface-950/40">
         <GlassPageTopBar
           title="PLE Performance"
           subtitle="PLE Performance Not Found"
@@ -234,7 +234,7 @@ Division: ${pupilResult.division}`;
   }
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animate-in fade-in duration-500 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
+    <div className="bg-gradient-to-br from-brand-surface-50 via-brand-alt-surface-50 to-brand-secondary-surface-50 animate-in fade-in duration-500 dark:from-brand-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-secondary-surface-950/40">
       <GlassPageTopBar
         title={`PLE Performance - ${pleRecord.year}`}
         className="mb-3 sm:mb-4"
@@ -258,9 +258,9 @@ Division: ${pupilResult.division}`;
       />
 
       <div className="mx-auto max-w-7xl pb-4 sm:pb-6">
-        <section aria-label="Pupil and PLE results summary" className="mb-3 overflow-hidden rounded-xl border border-indigo-100 bg-white shadow-sm sm:mb-4 dark:border-indigo-800/60 dark:bg-slate-900">
+        <section aria-label="Pupil and PLE results summary" className="mb-3 overflow-hidden rounded-xl border border-brand-alt-100 bg-white shadow-sm sm:mb-4 dark:border-brand-alt-800/60 dark:bg-slate-900">
           <div className="flex items-start gap-3 px-3 py-3 sm:px-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400" aria-hidden="true">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-alt-surface-50 text-brand-alt-ink-600 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-400" aria-hidden="true">
               <User className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
@@ -275,16 +275,16 @@ Division: ${pupilResult.division}`;
           </div>
 
           {pupilResult.status === 'missed' ? (
-            <div className="border-t border-indigo-100 px-3 py-3 sm:px-4 dark:border-indigo-800/60">
+            <div className="border-t border-brand-alt-100 px-3 py-3 sm:px-4 dark:border-brand-alt-800/60">
               <Badge variant="destructive" className="border-0 px-2 py-0.5 text-xs">Missed Examination</Badge>
               <p className="mt-1.5 text-xs text-gray-600 dark:text-slate-300">This pupil did not participate in the {pleRecord.year} PLE examination.</p>
             </div>
           ) : (
-            <dl className="grid grid-cols-2 border-t border-indigo-100 bg-indigo-50/40 dark:border-indigo-800/60 dark:bg-indigo-950/40">
-              <div className="min-w-0 border-r border-indigo-100 px-3 py-2.5 sm:px-4 dark:border-indigo-800/60">
+            <dl className="grid grid-cols-2 border-t border-brand-alt-100 bg-brand-alt-surface-50/40 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/40">
+              <div className="min-w-0 border-r border-brand-alt-100 px-3 py-2.5 sm:px-4 dark:border-brand-alt-800/60">
                 <dt className="text-xs font-medium text-gray-600 dark:text-slate-300">Total aggregate</dt>
                 <dd className="mt-0.5">
-                  <span className="block text-2xl font-bold leading-tight tabular-nums text-purple-700 dark:text-purple-300">{pupilResult.totalAggregate}</span>
+                  <span className="block text-2xl font-bold leading-tight tabular-nums text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">{pupilResult.totalAggregate}</span>
                   <span className="mt-0.5 block text-[11px] text-gray-500 dark:text-slate-400">Lower is better</span>
                 </dd>
               </div>
@@ -334,7 +334,7 @@ Division: ${pupilResult.division}`;
                     {PLE_SUBJECTS.map(subject => {
                       const grade = pupilResult.subjects[subject.id];
                       return (
-                        <tr key={subject.id} className="hover:bg-indigo-50/40 dark:hover:bg-indigo-950/40">
+                        <tr key={subject.id} className="hover:bg-brand-alt-surface-50/40 dark:hover:bg-brand-alt-surface-950/40">
                           <th scope="row" className="px-3 py-2.5 text-left font-normal sm:px-4">
                             <span className="block break-words font-semibold leading-snug text-gray-900 dark:text-slate-100">{subject.name}</span>
                             <span className="mt-0.5 block text-[11px] leading-snug text-gray-500 dark:text-slate-400">{subject.code}<span className="md:hidden"> · {grade ? getPerformanceLevel(grade) : 'Not recorded'}</span></span>
@@ -363,10 +363,10 @@ Division: ${pupilResult.division}`;
                   <div>
                     <h4 className="font-medium mb-2">Credits</h4>
                     <div className="space-y-1">
-                      <Badge className="bg-blue-100 text-blue-800 w-full justify-center dark:bg-blue-950/40 dark:text-blue-200">C3 (3 points)</Badge>
-                      <Badge className="bg-blue-100 text-blue-800 w-full justify-center dark:bg-blue-950/40 dark:text-blue-200">C4 (4 points)</Badge>
-                      <Badge className="bg-blue-100 text-blue-800 w-full justify-center dark:bg-blue-950/40 dark:text-blue-200">C5 (5 points)</Badge>
-                      <Badge className="bg-blue-100 text-blue-800 w-full justify-center dark:bg-blue-950/40 dark:text-blue-200">C6 (6 points)</Badge>
+                      <Badge className="bg-brand-surface-100 text-brand-ink-800 w-full justify-center dark:bg-brand-surface-950/40 dark:text-brand-ink-200">C3 (3 points)</Badge>
+                      <Badge className="bg-brand-surface-100 text-brand-ink-800 w-full justify-center dark:bg-brand-surface-950/40 dark:text-brand-ink-200">C4 (4 points)</Badge>
+                      <Badge className="bg-brand-surface-100 text-brand-ink-800 w-full justify-center dark:bg-brand-surface-950/40 dark:text-brand-ink-200">C5 (5 points)</Badge>
+                      <Badge className="bg-brand-surface-100 text-brand-ink-800 w-full justify-center dark:bg-brand-surface-950/40 dark:text-brand-ink-200">C6 (6 points)</Badge>
                     </div>
                   </div>
                   <div>
@@ -390,7 +390,7 @@ Division: ${pupilResult.division}`;
                   <h4 className="font-medium mb-2">Division Classification</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs sm:text-sm">
                     <Badge className="bg-green-100 text-green-800 justify-center dark:bg-green-950/40 dark:text-green-200">Div I: 4-12 points</Badge>
-                    <Badge className="bg-blue-100 text-blue-800 justify-center dark:bg-blue-950/40 dark:text-blue-200">Div II: 13-23 points</Badge>
+                    <Badge className="bg-brand-surface-100 text-brand-ink-800 justify-center dark:bg-brand-surface-950/40 dark:text-brand-ink-200">Div II: 13-23 points</Badge>
                     <Badge className="bg-yellow-100 text-yellow-800 justify-center dark:bg-yellow-950/40 dark:text-yellow-200">Div III: 24-29 points</Badge>
                     <Badge className="bg-orange-100 text-orange-800 justify-center dark:bg-orange-950/40 dark:text-orange-200">Div IV: 30+ points</Badge>
                   </div>

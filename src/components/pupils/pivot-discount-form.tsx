@@ -102,13 +102,13 @@ export function PivotDiscountForm({
   };
 
   return (
-    <div className="border border-indigo-100 rounded-lg bg-indigo-50/20 p-4 space-y-4 dark:border-indigo-800/60 dark:bg-indigo-950/20">
+    <div className="border border-brand-alt-100 rounded-lg bg-brand-alt-surface-50/20 p-4 space-y-4 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/20">
       <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
-      <div className="flex items-center justify-between border-b pb-2 border-indigo-50 dark:border-indigo-800/60">
-        <h4 className="text-sm font-semibold text-indigo-900 dark:text-indigo-200">
+      <div className="flex items-center justify-between border-b pb-2 border-brand-alt-50 dark:border-brand-alt-800/60">
+        <h4 className="text-sm font-semibold text-brand-alt-ink-900 dark:text-brand-alt-ink-200">
           Create Pivot Discount (Custom)
         </h4>
-        <span className="text-[10px] bg-indigo-100 text-indigo-800 font-medium px-2 py-0.5 rounded-full dark:bg-indigo-950/40 dark:text-indigo-200">
+        <span className="text-[10px] bg-brand-alt-surface-100 text-brand-alt-ink-800 font-medium px-2 py-0.5 rounded-full dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-200">
           Bespoke Discount
         </span>
       </div>
@@ -210,7 +210,7 @@ export function PivotDiscountForm({
         />
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-indigo-50 sm:justify-end dark:border-indigo-800/60">
+      <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-brand-alt-50 sm:justify-end dark:border-brand-alt-800/60">
         <Button
           type="button"
           variant="ghost"
@@ -237,7 +237,7 @@ export function PivotDiscountForm({
           size="sm"
           onClick={handleOpenSaveClick}
           disabled={isSaving}
-          className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white order-1 sm:order-3"
+          className="h-8 text-xs bg-brand-alt-surface-600 hover:bg-brand-alt-surface-700 text-white order-1 sm:order-3"
           title="Save globally for all pupils to use"
         >
           {isSaving ? "Saving..." : "Open Save (Global)"}

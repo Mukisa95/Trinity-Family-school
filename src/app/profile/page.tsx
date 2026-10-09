@@ -101,13 +101,13 @@ export default function ProfilePage() {
   };
 
   const getRoleColor = () => {
-    if (user.role === 'Admin') return 'bg-gradient-to-br from-purple-500 to-indigo-600';
-    if (user.role === 'Staff') return 'bg-gradient-to-br from-blue-500 to-cyan-600';
+    if (user.role === 'Admin') return 'bg-gradient-to-br from-brand-secondary-surface-500 to-brand-alt-surface-600';
+    if (user.role === 'Staff') return 'bg-gradient-to-br from-brand-surface-500 to-cyan-600';
     return 'bg-gradient-to-br from-green-500 to-emerald-600';
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/40">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand-surface-50 to-brand-alt-surface-50 pb-12 dark:from-slate-900 dark:via-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
       <GlassPageTopBar
         title="My Profile"
         subtitle="View and manage your account details and permissions"
@@ -117,7 +117,7 @@ export default function ProfilePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="space-y-6">
           {/* Hero Profile Section */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-100/50 shadow-lg dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40 dark:border-blue-800/50">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-surface-50 via-brand-alt-surface-50 to-brand-secondary-surface-50 border border-brand-100/50 shadow-lg dark:from-brand-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-secondary-surface-950/40 dark:border-brand-800/50">
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-0" />
         <div className="relative p-6 sm:p-8 lg:p-10">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
@@ -128,7 +128,7 @@ export default function ProfilePage() {
                   <User className="h-12 w-12 sm:h-16 sm:w-16 text-white" />
                 </div>
               </div>
-              <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-1.5 shadow-lg border-2 border-blue-50 dark:bg-slate-900 dark:border-blue-800/60">
+              <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-1.5 shadow-lg border-2 border-brand-50 dark:bg-slate-900 dark:border-brand-800/60">
                 <div className={`w-4 h-4 rounded-full ${user.isActive ? 'bg-green-500' : 'bg-gray-400'}`} />
               </div>
             </div>
@@ -169,7 +169,7 @@ export default function ProfilePage() {
             <div className="w-full sm:w-auto">
               <Button 
                 onClick={() => router.push('/settings/account')} 
-                className="w-full sm:w-auto flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all rounded-full"
+                className="w-full sm:w-auto flex items-center gap-2 bg-gradient-to-r from-brand-surface-600 to-brand-alt-surface-600 hover:from-brand-surface-700 hover:to-brand-alt-surface-700 shadow-lg hover:shadow-xl transition-all rounded-full"
                 size="lg"
               >
                 <Settings className="h-4 w-4" />
@@ -184,10 +184,10 @@ export default function ProfilePage() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Basic Information Card */}
         <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b dark:from-blue-950/40 dark:to-indigo-950/40">
+          <CardHeader className="bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 border-b dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/40">
-                <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 bg-brand-surface-100 rounded-lg dark:bg-brand-surface-950/40">
+                <User className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
               </div>
               Basic Information
             </CardTitle>
@@ -237,10 +237,10 @@ export default function ProfilePage() {
 
         {/* Permissions & Access Card */}
         <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow lg:col-span-2">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b dark:from-purple-950/40 dark:to-pink-950/40">
+          <CardHeader className="bg-gradient-to-r from-brand-secondary-surface-50 to-pink-50 border-b dark:from-brand-secondary-surface-950/40 dark:to-pink-950/40">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-purple-100 rounded-lg dark:bg-purple-950/40">
-                <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <div className="p-2 bg-brand-secondary-surface-100 rounded-lg dark:bg-brand-secondary-surface-950/40">
+                <Shield className="h-5 w-5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
               </div>
               Permissions & Access
             </CardTitle>
@@ -272,7 +272,7 @@ export default function ProfilePage() {
                     {user.granularPermissions.map((gp) => (
                       <div 
                         key={gp.moduleId} 
-                        className="p-4 rounded-lg border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 hover:border-blue-300 hover:shadow-md transition-all dark:border-blue-800/60 dark:from-blue-950/40 dark:to-indigo-950/40 dark:hover:border-blue-800/60"
+                        className="p-4 rounded-lg border-2 border-brand-100 bg-gradient-to-br from-brand-surface-50 to-brand-alt-surface-50 hover:border-brand-300 hover:shadow-md transition-all dark:border-brand-800/60 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40 dark:hover:border-brand-800/60"
                       >
                         <div className="font-semibold text-sm text-gray-900 mb-1 dark:text-slate-100">{gp.moduleId}</div>
                         <div className="text-xs text-gray-600 dark:text-slate-300">

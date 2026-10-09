@@ -208,9 +208,9 @@ function CountdownCell({ targetDate, onTrigger }: { targetDate: Date; onTrigger?
 
   return (
     <div className="flex items-center gap-1 text-xs font-mono">
-      {weeks > 0 && <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-semibold dark:bg-blue-950/40 dark:text-blue-200">{weeks}w</span>}
-      {(weeks > 0 || days > 0) && <span className="bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-semibold dark:bg-indigo-950/40 dark:text-indigo-200">{days}d</span>}
-      <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-semibold dark:bg-purple-950/40 dark:text-purple-200">{String(hours).padStart(2, '0')}h</span>
+      {weeks > 0 && <span className="bg-brand-surface-100 text-brand-ink-800 px-1.5 py-0.5 rounded font-semibold dark:bg-brand-surface-950/40 dark:text-brand-ink-200">{weeks}w</span>}
+      {(weeks > 0 || days > 0) && <span className="bg-brand-alt-surface-100 text-brand-alt-ink-800 px-1.5 py-0.5 rounded font-semibold dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-200">{days}d</span>}
+      <span className="bg-brand-secondary-surface-100 text-brand-secondary-ink-800 px-1.5 py-0.5 rounded font-semibold dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-200">{String(hours).padStart(2, '0')}h</span>
       <span className="bg-pink-100 text-pink-800 px-1.5 py-0.5 rounded font-semibold dark:bg-pink-950/40 dark:text-pink-200">{String(mins).padStart(2, '0')}m</span>
       <span className="bg-red-100 text-red-800 px-1.5 py-0.5 rounded font-semibold dark:bg-red-950/40 dark:text-red-200">{String(secs).padStart(2, '0')}s</span>
     </div>
@@ -325,7 +325,7 @@ function JobCard({
           )}
 
           <div className="flex justify-end gap-2 pt-1 border-t">
-            <Button size="sm" variant="ghost" className="h-7 text-xs text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40" onClick={() => setIsEditing(true)}>
+            <Button size="sm" variant="ghost" className="h-7 text-xs text-brand-ink-600 hover:bg-brand-surface-50 dark:text-brand-ink-400 dark:hover:bg-brand-surface-950/40" onClick={() => setIsEditing(true)}>
               <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit Time
             </Button>
             <Button size="sm" variant="ghost" className="h-7 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40" onClick={() => onCancel(job.id)}>
@@ -527,7 +527,7 @@ export const SMSScheduleListDialog: React.FC<SMSScheduleListDialogProps> = ({ op
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <List className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <List className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
             Scheduled SMS
           </DialogTitle>
         </DialogHeader>
@@ -537,19 +537,19 @@ export const SMSScheduleListDialog: React.FC<SMSScheduleListDialogProps> = ({ op
           <button
             onClick={() => setTab('upcoming')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-              tab === 'upcoming' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
+              tab === 'upcoming' ? 'border-brand-600 text-brand-ink-600 dark:text-brand-ink-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             <Calendar className="h-4 w-4" />
             Upcoming
             {upcoming.length > 0 && (
-              <span className="bg-blue-100 text-blue-700 text-xs rounded-full px-1.5 dark:bg-blue-950/40 dark:text-blue-300">{upcoming.length}</span>
+              <span className="bg-brand-surface-100 text-brand-ink-700 text-xs rounded-full px-1.5 dark:bg-brand-surface-950/40 dark:text-brand-ink-300">{upcoming.length}</span>
             )}
           </button>
           <button
             onClick={() => setTab('history')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-              tab === 'history' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
+              tab === 'history' ? 'border-brand-600 text-brand-ink-600 dark:text-brand-ink-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             <History className="h-4 w-4" />

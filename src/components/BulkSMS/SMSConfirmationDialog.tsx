@@ -103,11 +103,11 @@ const SMSConfirmationDialog: React.FC<SMSConfirmationDialogProps> = ({
 
           {/* Recipient review */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="flex min-w-0 items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 p-3 dark:border-blue-800/60 dark:bg-blue-950/40">
-              <Users className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+            <div className="flex min-w-0 items-center gap-2 rounded-lg border border-brand-100 bg-brand-surface-50 p-3 dark:border-brand-800/60 dark:bg-brand-surface-950/40">
+              <Users className="h-4 w-4 shrink-0 text-brand-ink-600 dark:text-brand-ink-400" />
               <div>
-                <p className="text-xs font-medium text-blue-900 dark:text-blue-200">Total selected</p>
-                <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{recipients.length}</p>
+                <p className="text-xs font-medium text-brand-ink-900 dark:text-brand-ink-200">Total selected</p>
+                <p className="text-lg font-bold text-brand-ink-600 dark:text-brand-ink-400">{recipients.length}</p>
               </div>
             </div>
             <button
@@ -250,7 +250,7 @@ const SMSConfirmationDialog: React.FC<SMSConfirmationDialogProps> = ({
           <Button 
             onClick={handleConfirm}
             disabled={finalRecipientCount === 0}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-brand-surface-600 hover:bg-brand-surface-700"
           >
             Send {totalSMSMessages} SMS{totalSMSMessages !== 1 ? 'es' : ''}
           </Button>

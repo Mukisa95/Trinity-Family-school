@@ -53,7 +53,7 @@ export function ArrayInput({
           value={newItem}
           onChange={(e) => setNewItem(e.target.value)}
           placeholder={placeholder}
-          className={`${className} rounded-2xl border-2 border-gray-300 dark:border-gray-500 bg-white/90 dark:bg-gray-800/90 hover:border-gray-400 dark:hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200`}
+          className={`${className} rounded-2xl border-2 border-gray-300 dark:border-gray-500 bg-white/90 dark:bg-gray-800/90 hover:border-gray-400 dark:hover:border-gray-400 focus:border-brand-500/70 focus:ring-2 focus:ring-brand-500/50 transition-all duration-200`}
           onKeyDown={handleKeyDown}
         />
         <Button 
@@ -61,7 +61,7 @@ export function ArrayInput({
           onClick={handleAddItem}
           disabled={!newItem.trim()}
           size="icon"
-          className="rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
+          className="rounded-2xl bg-gradient-to-r from-brand-surface-500 to-brand-secondary-surface-600 hover:from-brand-surface-600 hover:to-brand-secondary-surface-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
         >
           <Plus className="h-4 w-4" />
         </Button>

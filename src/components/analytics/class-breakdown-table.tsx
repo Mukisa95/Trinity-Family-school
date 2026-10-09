@@ -38,9 +38,9 @@ export function ClassBreakdownTable({ data, isLoading = false }: ClassBreakdownT
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-indigo-100 dark:from-indigo-950/40 dark:to-purple-950/40 dark:border-indigo-800/60">
-        <h3 className="text-lg font-bold text-indigo-900 dark:text-indigo-200">Collection by Class</h3>
-        <p className="text-sm text-indigo-600 mt-1 dark:text-indigo-400">Detailed breakdown of fee collection per class</p>
+      <div className="bg-gradient-to-r from-brand-alt-surface-50 to-brand-secondary-surface-50 px-6 py-4 border-b border-brand-alt-100 dark:from-brand-alt-surface-950/40 dark:to-brand-secondary-surface-950/40 dark:border-brand-alt-800/60">
+        <h3 className="text-lg font-bold text-brand-alt-ink-900 dark:text-brand-alt-ink-200">Collection by Class</h3>
+        <p className="text-sm text-brand-alt-ink-600 mt-1 dark:text-brand-alt-ink-400">Detailed breakdown of fee collection per class</p>
       </div>
 
       {/* Table */}

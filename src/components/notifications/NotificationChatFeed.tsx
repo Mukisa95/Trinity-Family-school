@@ -67,7 +67,7 @@ export function NotificationChatFeed({
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center py-16">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3 dark:text-blue-400" />
+                <Loader2 className="w-8 h-8 animate-spin text-brand-ink-500 mb-3 dark:text-brand-ink-400" />
                 <p className="text-sm text-gray-500 dark:text-slate-400">Loading notifications...</p>
             </div>
         );

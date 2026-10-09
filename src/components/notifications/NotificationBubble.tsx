@@ -203,7 +203,7 @@ export function NotificationBubble({
                             />
                         </div>
                     ) : (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-secondary-surface-400 to-pink-400 flex items-center justify-center text-white text-xs font-bold shadow-sm">
                             {senderInitials}
                         </div>
                     )}
@@ -234,7 +234,7 @@ export function NotificationBubble({
                         "rounded-[20px] px-4 py-3 shadow-sm transition-all duration-200",
                         "hover:shadow-md relative",
                         isSender
-                            ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-sm"
+                            ? "bg-gradient-to-br from-brand-surface-500 to-brand-surface-600 text-white rounded-br-sm"
                             : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-bl-sm"
                     )}>
                         {/* Title */}
@@ -261,7 +261,7 @@ export function NotificationBubble({
                                     "flex items-center gap-1 text-xs mt-2 font-medium transition-colors",
                                     isSender
                                         ? "text-white/80 hover:text-white"
-                                        : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                                        : "text-brand-ink-600 dark:text-brand-ink-400 hover:text-brand-ink-700 dark:hover:text-brand-ink-300"
                                 )}
                             >
                                 {expanded ? (
@@ -288,7 +288,7 @@ export function NotificationBubble({
                         <div className={cn(
                             "absolute bottom-1 w-5 h-5",
                             isSender
-                                ? "-right-1.5 bg-blue-600"
+                                ? "-right-1.5 bg-brand-surface-600"
                                 : "-left-1.5 bg-gray-200 dark:bg-gray-700"
                         )} 
                         style={{
@@ -335,7 +335,7 @@ export function NotificationBubble({
                             <>
                                 <button
                                     onClick={handleResend}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/40"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-brand-ink-600 hover:text-brand-ink-700 hover:bg-brand-surface-50 rounded-md transition-colors dark:text-brand-ink-400 dark:hover:text-brand-ink-300 dark:hover:bg-brand-surface-950/40"
                                     title="Resend notification"
                                 >
                                     <Send className="w-4 h-4" />
@@ -449,7 +449,7 @@ export function NotificationBubble({
                             />
                         </div>
                     ) : (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-surface-400 to-brand-surface-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
                             {senderInitials}
                         </div>
                     )}
@@ -486,7 +486,7 @@ function StatusTicks({ total, delivered, read, status }: StatusTicksProps) {
                 </span>
             ) : hasRead ? (
                 // Read: Double blue ticks (like iMessage)
-                <span className="flex items-center gap-0.5 text-blue-500 dark:text-blue-400">
+                <span className="flex items-center gap-0.5 text-brand-ink-500 dark:text-brand-ink-400">
                     <CheckCheck className="w-3.5 h-3.5" />
                     <span className="text-[10px] font-semibold">{read}</span>
                 </span>

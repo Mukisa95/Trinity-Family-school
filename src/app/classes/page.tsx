@@ -279,14 +279,14 @@ function SearchableSubjectTeacherSelector({
           type="button"
           variant="ghost"
           size="sm"
-          className={cn("h-7 w-7 p-0 rounded-lg border border-purple-200 bg-white hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 flex-shrink-0 dark:border-purple-800/60 dark:bg-slate-900 dark:hover:border-purple-800/60 dark:hover:bg-purple-950/40", buttonClassName)}
+          className={cn("h-7 w-7 p-0 rounded-lg border border-brand-secondary-200 bg-white hover:border-brand-secondary-300 hover:bg-brand-secondary-surface-50 transition-all duration-200 flex-shrink-0 dark:border-brand-secondary-800/60 dark:bg-slate-900 dark:hover:border-brand-secondary-800/60 dark:hover:bg-brand-secondary-surface-950/40", buttonClassName)}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
             setOpen(!open);
           }}
         >
-          <User className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+          <User className="h-3.5 w-3.5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -356,9 +356,9 @@ const LEVEL_ICONS = {
 // Level colors mapping
 const LEVEL_COLORS = {
   'Nursery': 'bg-pink-50 border-pink-200 hover:bg-pink-100 dark:bg-pink-950/40 dark:border-pink-800/60 dark:hover:bg-pink-950/40',
-  'Lower Primary': 'bg-blue-50 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:border-blue-800/60 dark:hover:bg-blue-950/40',
+  'Lower Primary': 'bg-brand-surface-50 border-brand-200 hover:bg-brand-surface-100 dark:bg-brand-surface-950/40 dark:border-brand-800/60 dark:hover:bg-brand-surface-950/40',
   'Upper Primary': 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-950/40 dark:border-green-800/60 dark:hover:bg-green-950/40',
-  'Secondary': 'bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-950/40 dark:border-purple-800/60 dark:hover:bg-purple-950/40',
+  'Secondary': 'bg-brand-secondary-surface-50 border-brand-secondary-200 hover:bg-brand-secondary-surface-100 dark:bg-brand-secondary-surface-950/40 dark:border-brand-secondary-800/60 dark:hover:bg-brand-secondary-surface-950/40',
   'Other': 'bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-slate-900 dark:border-slate-700 dark:hover:bg-slate-900'
 } as const;
 
@@ -639,7 +639,7 @@ export default function ClassesPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <CardTitle className="text-sm font-semibold leading-tight">
-                  <Link href={`/class-detail?id=${classItem.id}`} className="hover:underline text-primary truncate block">
+                  <Link href={`/class-detail?id=${classItem.id}`} className="hover:underline text-link truncate block">
                     {classItem.name}
                   </Link>
                 </CardTitle>
@@ -771,7 +771,7 @@ export default function ClassesPage() {
       <div className="space-y-2">
         <div className="flex items-center space-x-2 pb-1 border-b">
           <div className="p-1 rounded bg-primary/10 flex-shrink-0">
-            <LevelIcon className="h-4 w-4 text-primary" />
+            <LevelIcon className="h-4 w-4 text-link" />
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">{level}</h2>
@@ -872,11 +872,11 @@ export default function ClassesPage() {
           </Button>
           <ModernDialogHeader className="p-3 pb-2">
             <div className="flex items-center gap-2">
-              <div className="p-1 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+              <div className="p-1 bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 rounded-lg">
                 <School className="h-4 w-4 text-white" />
               </div>
               <div>
-                <ModernDialogTitle className="text-base font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400">
+                <ModernDialogTitle className="text-base font-bold bg-gradient-to-r from-brand-ink-600 to-brand-secondary-ink-600 bg-clip-text text-transparent dark:from-brand-ink-400 dark:to-brand-secondary-ink-400">
                   {editingClass ? "Edit Class" : "Create New Class"}
                 </ModernDialogTitle>
                 <ModernDialogDescription className="text-xs text-gray-600 hidden dark:text-slate-300">
@@ -909,8 +909,8 @@ export default function ClassesPage() {
               {/* Basic Information Section */}
               <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-3 border border-gray-200 dark:from-slate-900 dark:to-slate-900 dark:border-slate-700">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="p-1 bg-blue-100 rounded-md dark:bg-blue-950/40">
-                    <Book className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                  <div className="p-1 bg-brand-surface-100 rounded-md dark:bg-brand-surface-950/40">
+                    <Book className="h-3 w-3 text-brand-ink-600 dark:text-brand-ink-400" />
                   </div>
                   <h3 className="text-base font-semibold text-gray-800 dark:text-slate-100">Basic Information</h3>
                 </div>
@@ -925,7 +925,7 @@ export default function ClassesPage() {
                       value={className} 
                       onChange={(e) => setClassName(e.target.value.toUpperCase())} 
                       placeholder="e.g., PRIMARY ONE"
-                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90"
+                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-brand-500/70 focus:ring-2 focus:ring-brand-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -937,7 +937,7 @@ export default function ClassesPage() {
                       value={classCode} 
                       onChange={(e) => setClassCode(e.target.value.toUpperCase())} 
                       placeholder="e.g., P.1"
-                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90"
+                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-brand-500/70 focus:ring-2 focus:ring-brand-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -950,7 +950,7 @@ export default function ClassesPage() {
                       value={classOrder} 
                       onChange={(e) => setClassOrder(e.target.value)} 
                       placeholder="1"
-                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90"
+                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-brand-500/70 focus:ring-2 focus:ring-brand-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -958,7 +958,7 @@ export default function ClassesPage() {
                       Level <span className="text-red-500 dark:text-red-400">*</span>
                     </Label>
                     <Select value={level} onValueChange={(value) => setLevel(value as ClassLevel)}>
-                      <SelectTrigger className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90">
+                      <SelectTrigger className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-brand-500/70 focus:ring-2 focus:ring-brand-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90">
                         <SelectValue placeholder="Select level" />
                       </SelectTrigger>
                       <SelectContent 
@@ -1139,11 +1139,11 @@ export default function ClassesPage() {
               </div>
 
               {/* Subjects Assignment Section */}
-              <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-3 border border-purple-200 dark:from-purple-950/40 dark:to-indigo-950/40 dark:border-purple-800/60">
+              <div className="bg-gradient-to-br from-brand-secondary-surface-50 to-brand-alt-surface-50 rounded-xl p-3 border border-brand-secondary-200 dark:from-brand-secondary-surface-950/40 dark:to-brand-alt-surface-950/40 dark:border-brand-secondary-800/60">
                 {/* Header with expand/collapse trigger */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex-shrink-0">
+                    <div className="p-1.5 bg-gradient-to-br from-brand-secondary-surface-500 to-brand-alt-surface-600 rounded-lg flex-shrink-0">
                       <GraduationCap className="h-3.5 w-3.5 text-white" />
                     </div>
                     <h3 className="text-base font-semibold text-gray-800 dark:text-slate-100">Subject Assignments</h3>
@@ -1152,7 +1152,7 @@ export default function ClassesPage() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 text-purple-600 hover:bg-purple-100/50 rounded-lg dark:text-purple-400 dark:hover:bg-purple-950/50"
+                    className="h-8 w-8 p-0 text-brand-secondary-ink-600 hover:bg-brand-secondary-surface-100/50 rounded-lg dark:text-brand-secondary-ink-400 dark:hover:bg-brand-secondary-surface-950/50"
                     onClick={() => setIsSubjectAssignmentsOpen(!isSubjectAssignmentsOpen)}
                   >
                     <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isSubjectAssignmentsOpen ? 'rotate-180' : ''}`} />
@@ -1176,9 +1176,9 @@ export default function ClassesPage() {
                             .filter(Boolean)
                             .join(', ');
                           return (
-                            <div key={subjectId} className="flex items-center justify-between gap-2 p-2 bg-white/80 hover:bg-white border border-purple-100 rounded-lg shadow-sm transition-all dark:bg-slate-900/80 dark:hover:bg-slate-900 dark:border-purple-800/60">
+                            <div key={subjectId} className="flex items-center justify-between gap-2 p-2 bg-white/80 hover:bg-white border border-brand-secondary-100 rounded-lg shadow-sm transition-all dark:bg-slate-900/80 dark:hover:bg-slate-900 dark:border-brand-secondary-800/60">
                               <div className="flex-1 min-w-0">
-                                <span className="font-semibold text-xs text-purple-900 block truncate dark:text-purple-200">{subject.name}</span>
+                                <span className="font-semibold text-xs text-brand-secondary-ink-900 block truncate dark:text-brand-secondary-ink-200">{subject.name}</span>
                                 <span className="text-[10px] text-gray-500 block truncate dark:text-slate-400">
                                   {teacherNames || 'No teacher assigned'}
                                 </span>
@@ -1219,14 +1219,14 @@ export default function ClassesPage() {
                                   key={subject.id}
                                   className={`rounded-lg p-2.5 border transition-all duration-200 flex items-center justify-between gap-2 cursor-pointer ${
                                     isSelected
-                                      ? 'border-purple-300 bg-purple-50/60 shadow-sm dark:border-purple-800/60 dark:bg-purple-950/60'
+                                      ? 'border-brand-secondary-300 bg-brand-secondary-surface-50/60 shadow-sm dark:border-brand-secondary-800/60 dark:bg-brand-secondary-surface-950/60'
                                       : 'border-gray-200 hover:bg-gray-50/80 bg-white dark:border-slate-700 dark:hover:bg-slate-900/80 dark:bg-slate-900'
                                   }`}
                                   onClick={() => handleSubjectToggle(subject.id)}
                                 >
                                   <div className="flex items-center gap-2 min-w-0">
                                     <div className={`p-1 rounded-md flex-shrink-0 ${
-                                      isSelected ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300' : 'bg-gray-100 text-gray-500 dark:bg-slate-900 dark:text-slate-400'
+                                      isSelected ? 'bg-brand-secondary-surface-100 text-brand-secondary-ink-700 dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-300' : 'bg-gray-100 text-gray-500 dark:bg-slate-900 dark:text-slate-400'
                                     }`}>
                                       <Book className="h-3.5 w-3.5" />
                                     </div>

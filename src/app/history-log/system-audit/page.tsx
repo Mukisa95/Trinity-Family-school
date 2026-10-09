@@ -202,18 +202,18 @@ export default function SystemAuditPage() {
       />
 
       <main className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
-        <Card className="border-blue-100 bg-blue-50/60">
-          <CardContent className="p-4 text-sm text-blue-950">
+        <Card className="border-brand-100 bg-brand-surface-50/60">
+          <CardContent className="p-4 text-sm text-brand-ink-950">
             Automated entries show where to investigate. They do not prove misconduct or identify a root cause by themselves. The collector does not read or attach form values, pupil records, credentials, query values or stack traces, and it masks dynamic route segments.
           </CardContent>
         </Card>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: 'Occurrences', value: stats.occurrences, icon: Activity, color: 'text-blue-600' },
+            { label: 'Occurrences', value: stats.occurrences, icon: Activity, color: 'text-brand-ink-600' },
             { label: 'Errors', value: stats.errors, icon: FileWarning, color: 'text-red-600' },
             { label: 'Slow operations', value: stats.slow, icon: Gauge, color: 'text-amber-600' },
-            { label: 'Observed users', value: stats.users, icon: Users, color: 'text-violet-600' },
+            { label: 'Observed users', value: stats.users, icon: Users, color: 'text-brand-secondary-alt-ink-600' },
           ].map(item => (
             <Card key={item.label}>
               <CardContent className="flex items-center justify-between p-4">

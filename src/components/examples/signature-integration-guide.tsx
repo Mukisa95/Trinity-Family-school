@@ -60,20 +60,20 @@ export function SignatureIntegrationGuide() {
                 Payment Date: March 15, 2024
               </div>
               {/* This is what the signature will look like */}
-              <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded dark:text-blue-400 dark:bg-blue-950/40">
+              <div className="flex items-center gap-1 text-xs text-brand-ink-600 bg-brand-surface-50 px-2 py-1 rounded dark:text-brand-ink-400 dark:bg-brand-surface-950/40">
                 <Shield className="w-3 h-3" />
                 <span>Collected by John Doe • Mar 15, 2024 14:30</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-blue-50 p-4 rounded-lg dark:bg-blue-950/40">
-            <h4 className="font-medium text-blue-900 mb-2 dark:text-blue-200">How to add it:</h4>
-            <div className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
+          <div className="bg-brand-surface-50 p-4 rounded-lg dark:bg-brand-surface-950/40">
+            <h4 className="font-medium text-brand-ink-900 mb-2 dark:text-brand-ink-200">How to add it:</h4>
+            <div className="space-y-2 text-sm text-brand-ink-800 dark:text-brand-ink-200">
               <p><strong>File to edit:</strong> <code>src/app/fees/collect/[id]/components/FeeCard.tsx</code></p>
               <p><strong>Location:</strong> In the payment history section, around line 375</p>
             </div>
-            <pre className="text-xs bg-blue-100 p-3 rounded mt-2 text-blue-900 overflow-x-auto dark:bg-blue-950/40 dark:text-blue-200">
+            <pre className="text-xs bg-brand-surface-100 p-3 rounded mt-2 text-brand-ink-900 overflow-x-auto dark:bg-brand-surface-950/40 dark:text-brand-ink-200">
 {`// 1. Add this import at the top:
 import { PaymentSignatureDisplay } from './PaymentSignatureDisplay';
 
@@ -100,7 +100,7 @@ import { PaymentSignatureDisplay } from './PaymentSignatureDisplay';
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <FileCheck className="w-5 h-5 text-brand-ink-600 dark:text-brand-ink-400" />
             Step 2: Add Signatures to Requirements
           </CardTitle>
         </CardHeader>
@@ -114,7 +114,7 @@ import { PaymentSignatureDisplay } from './PaymentSignatureDisplay';
               </div>
               {/* This is what the signatures will look like */}
               <div className="space-y-1">
-                <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded dark:text-blue-400 dark:bg-blue-950/40">
+                <div className="flex items-center gap-1 text-xs text-brand-ink-600 bg-brand-surface-50 px-2 py-1 rounded dark:text-brand-ink-400 dark:bg-brand-surface-950/40">
                   <FileCheck className="w-3 h-3" />
                   <span>Assigned by Mary Smith • Mar 10, 2024</span>
                 </div>
@@ -126,13 +126,13 @@ import { PaymentSignatureDisplay } from './PaymentSignatureDisplay';
             </div>
           </div>
 
-          <div className="bg-purple-50 p-4 rounded-lg dark:bg-purple-950/40">
-            <h4 className="font-medium text-purple-900 mb-2 dark:text-purple-200">How to add it:</h4>
-            <div className="space-y-2 text-sm text-purple-800 dark:text-purple-200">
+          <div className="bg-brand-secondary-surface-50 p-4 rounded-lg dark:bg-brand-secondary-surface-950/40">
+            <h4 className="font-medium text-brand-secondary-ink-900 mb-2 dark:text-brand-secondary-ink-200">How to add it:</h4>
+            <div className="space-y-2 text-sm text-brand-secondary-ink-800 dark:text-brand-secondary-ink-200">
               <p><strong>File to edit:</strong> <code>src/app/requirement-tracking/page.tsx</code> (or wherever you display requirements)</p>
               <p><strong>Location:</strong> In the requirement item display</p>
             </div>
-            <pre className="text-xs bg-purple-100 p-3 rounded mt-2 text-purple-900 overflow-x-auto dark:bg-purple-950/40 dark:text-purple-200">
+            <pre className="text-xs bg-brand-secondary-surface-100 p-3 rounded mt-2 text-brand-secondary-ink-900 overflow-x-auto dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-200">
 {`// 1. Add this import at the top:
 import { RequirementSignatureDisplay } from '@/components/common/requirement-signature-display';
 

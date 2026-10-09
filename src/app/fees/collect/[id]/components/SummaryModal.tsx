@@ -157,7 +157,7 @@ export function SummaryModal({
           </div>
 
           {/* Academic Period */}
-          <div className="bg-blue-50 rounded-lg p-4 dark:bg-blue-950/40">
+          <div className="bg-brand-surface-50 rounded-lg p-4 dark:bg-brand-surface-950/40">
             <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2 dark:text-slate-100">
               <Calendar size={20} />
               Academic Period
@@ -192,9 +192,9 @@ export function SummaryModal({
 
             {/* Summary Cards */}
             <div className="grid grid-cols-3 gap-4 mb-4">
-              <div className="bg-blue-50 rounded-lg p-3 text-center dark:bg-blue-950/40">
-                <p className="text-sm text-blue-600 font-medium dark:text-blue-400">Total Fees</p>
-                <p className="text-lg font-bold text-blue-900 dark:text-blue-200">{formatCurrency(totalFees)}</p>
+              <div className="bg-brand-surface-50 rounded-lg p-3 text-center dark:bg-brand-surface-950/40">
+                <p className="text-sm text-brand-ink-600 font-medium dark:text-brand-ink-400">Total Fees</p>
+                <p className="text-lg font-bold text-brand-ink-900 dark:text-brand-ink-200">{formatCurrency(totalFees)}</p>
               </div>
               <div className="bg-green-50 rounded-lg p-3 text-center dark:bg-green-950/40">
                 <p className="text-sm text-green-600 font-medium dark:text-green-400">Total Paid</p>

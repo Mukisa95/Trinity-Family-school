@@ -372,7 +372,7 @@ const ModernForm = React.forwardRef<HTMLFormElement, ModernFormProps>(
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
               <motion.div
-                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full"
+                className="bg-gradient-to-r from-brand-surface-500 to-brand-secondary-surface-500 h-2 rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
@@ -394,7 +394,7 @@ const ModernForm = React.forwardRef<HTMLFormElement, ModernFormProps>(
                   className={cn(
                     "flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all duration-200",
                     index === currentStep
-                      ? "bg-blue-500 border-blue-500 text-white"
+                      ? "bg-brand-surface-500 border-brand-500 text-white"
                       : index < currentStep
                       ? "bg-green-500 border-green-500 text-white"
                       : "bg-gray-200 border-gray-300 text-gray-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400"

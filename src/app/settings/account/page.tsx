@@ -283,10 +283,10 @@ export default function AccountSettingsPage() {
         <div className="lg:col-span-2"><PasskeySettings /></div>
         {/* Account Information Card */}
         <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b dark:from-blue-950/40 dark:to-indigo-950/40">
+          <CardHeader className="bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 border-b dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/40">
-                <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 bg-brand-surface-100 rounded-lg dark:bg-brand-surface-950/40">
+                <User className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
               </div>
               Account Information
             </CardTitle>
@@ -318,10 +318,10 @@ export default function AccountSettingsPage() {
 
         {/* Username Settings Card */}
         <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b dark:from-purple-950/40 dark:to-pink-950/40">
+          <CardHeader className="bg-gradient-to-r from-brand-secondary-surface-50 to-pink-50 border-b dark:from-brand-secondary-surface-950/40 dark:to-pink-950/40">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-purple-100 rounded-lg dark:bg-purple-950/40">
-                <User className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <div className="p-2 bg-brand-secondary-surface-100 rounded-lg dark:bg-brand-secondary-surface-950/40">
+                <User className="h-5 w-5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
               </div>
               Username Settings
             </CardTitle>
@@ -349,7 +349,7 @@ export default function AccountSettingsPage() {
               <Button 
                 onClick={handleUpdateUsername}
                 disabled={isUpdatingUsername || formData.username === user.username}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg rounded-full"
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-secondary-surface-600 to-pink-600 hover:from-brand-secondary-surface-700 hover:to-pink-700 shadow-lg rounded-full"
                 size="lg"
               >
                 {isUpdatingUsername ? (
@@ -509,8 +509,8 @@ export default function AccountSettingsPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
                 <div className="flex items-center gap-4">
-                  <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/40">
-                    <LockIcon size={20} className="text-blue-600 dark:text-blue-400" weight="duotone" />
+                  <div className="p-2 bg-brand-surface-100 rounded-lg dark:bg-brand-surface-950/40">
+                    <LockIcon size={20} className="text-brand-ink-600 dark:text-brand-ink-400" weight="duotone" />
                   </div>
                   <div>
                     <Label className="text-sm font-semibold text-gray-900 dark:text-slate-100">Auto Lock</Label>
@@ -521,8 +521,8 @@ export default function AccountSettingsPage() {
                 </div>
                 <button
                   onClick={() => setAutoLockEnabled(!autoLockEnabled)}
-                  className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full ${
-                    autoLockEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-slate-700'
+                  className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 rounded-full ${
+                    autoLockEnabled ? 'bg-brand-surface-600' : 'bg-gray-300 dark:bg-slate-700'
                   }`}
                   type="button"
                 >
@@ -537,7 +537,7 @@ export default function AccountSettingsPage() {
               {autoLockEnabled && (
                 <>
                   <Separator />
-                  <div className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800/60">
+                  <div className="p-4 rounded-lg bg-gradient-to-br from-brand-surface-50 to-brand-alt-surface-50 border border-brand-100 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40 dark:border-brand-800/60">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="flex-1">
                         <Label className="text-sm font-semibold text-gray-900 block mb-1 dark:text-slate-100">Current Preference</Label>
@@ -562,9 +562,9 @@ export default function AccountSettingsPage() {
                     </div>
                   </div>
                   {autoLockAction !== 'signout' && (
-                    <div className="flex items-start justify-between gap-4 rounded-lg border border-indigo-100 bg-indigo-50 p-4 dark:border-indigo-800 dark:bg-indigo-950">
+                    <div className="flex items-start justify-between gap-4 rounded-lg border border-brand-alt-100 bg-brand-alt-surface-50 p-4 dark:border-brand-alt-800 dark:bg-brand-alt-surface-950">
                       <div className="flex items-start gap-3">
-                        <Fingerprint className="mt-0.5 h-5 w-5 shrink-0 text-indigo-700 dark:text-indigo-300" />
+                        <Fingerprint className="mt-0.5 h-5 w-5 shrink-0 text-brand-alt-ink-700 dark:text-brand-alt-ink-300" />
                         <div>
                           <Label className="text-sm font-semibold text-gray-900 dark:text-slate-100">Require device unlock</Label>
                           <p className="mt-0.5 text-xs text-muted-foreground">
@@ -577,7 +577,7 @@ export default function AccountSettingsPage() {
                       <button type="button" role="switch" aria-checked={deviceUnlockForAutoLock}
                         disabled={!localDeviceUnlockAvailable}
                         onClick={() => setDeviceUnlockForAutoLock(!deviceUnlockForAutoLock)}
-                        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-40 ${deviceUnlockForAutoLock ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-700'}`}>
+                        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-40 ${deviceUnlockForAutoLock ? 'bg-brand-alt-surface-600' : 'bg-gray-300 dark:bg-slate-700'}`}>
                         <span className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${deviceUnlockForAutoLock ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
                     </div>
@@ -639,8 +639,8 @@ export default function AccountSettingsPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center mb-6">
-                <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 mb-4 dark:from-blue-950/40 dark:to-indigo-950/40">
-                  <LockIcon size={28} className="text-blue-600 dark:text-blue-400" weight="duotone" />
+                <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-gradient-to-br from-brand-surface-100 to-brand-alt-surface-100 mb-4 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
+                  <LockIcon size={28} className="text-brand-ink-600 dark:text-brand-ink-400" weight="duotone" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2 dark:text-slate-100">
                   Set Auto Lock Preference
@@ -649,8 +649,8 @@ export default function AccountSettingsPage() {
                   Choose what happens when you interact with the browser window
                 </p>
                 {autoLockAction && (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full dark:bg-blue-950/40">
-                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-surface-50 rounded-full dark:bg-brand-surface-950/40">
+                    <span className="text-xs font-medium text-brand-ink-700 dark:text-brand-ink-300">
                       Current: {
                         autoLockAction === 'lock-on-close' ? 'Lock on Close' :
                         autoLockAction === 'lock-on-leave' ? 'Lock on Leave' :
@@ -666,8 +666,8 @@ export default function AccountSettingsPage() {
                   onClick={handleLockOnCloseAndSavePreference}
                   className={`w-full flex items-center justify-center h-12 text-base font-medium transition-all rounded-full ${
                     autoLockAction === 'lock-on-close'
-                      ? 'bg-blue-700 text-white ring-2 ring-blue-400 shadow-lg'
-                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
+                      ? 'bg-brand-surface-700 text-white ring-2 ring-brand-400 shadow-lg'
+                      : 'bg-brand-surface-600 text-white hover:bg-brand-surface-700 shadow-md hover:shadow-lg'
                   }`}
                 >
                   <LockIcon size={18} weight="duotone" className="mr-2" />
@@ -679,8 +679,8 @@ export default function AccountSettingsPage() {
                   onClick={handleLockOnLeaveAndSavePreference}
                   className={`w-full flex items-center justify-center h-12 text-base font-medium transition-all rounded-full ${
                     autoLockAction === 'lock-on-leave'
-                      ? 'bg-blue-700 text-white ring-2 ring-blue-400 shadow-lg'
-                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
+                      ? 'bg-brand-surface-700 text-white ring-2 ring-brand-400 shadow-lg'
+                      : 'bg-brand-surface-600 text-white hover:bg-brand-surface-700 shadow-md hover:shadow-lg'
                   }`}
                 >
                   <LockIcon size={18} weight="duotone" className="mr-2" />

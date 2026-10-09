@@ -4,6 +4,7 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/contexts/auth-context';
 import type { Pupil } from '@/types';
 import { cn } from '@/lib/utils';
@@ -118,7 +119,7 @@ export function ParentBottomNavigation({
     <>
       {/* Floating Rounded Navigation Bar - Compact with Color */}
       <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50">
-        <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg rounded-full shadow-2xl border-2 border-blue-200 dark:border-blue-800 px-1.5 py-1.5">
+        <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg rounded-full shadow-2xl border-2 border-brand-200 dark:border-brand-800 px-1.5 py-1.5">
           {/* Navigation Tabs - Compact Rounded Pill Design */}
           <div className="flex items-center gap-0.5">
             <ThemeToggle />
@@ -133,7 +134,7 @@ export function ParentBottomNavigation({
                   className={cn(
                     "h-10 px-4 flex flex-col items-center justify-center gap-0.5 rounded-full transition-all duration-300",
                     isActive 
-                      ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105" 
+                      ? "bg-gradient-to-r from-brand-surface-500 to-brand-secondary-surface-600 text-white shadow-lg scale-105"
                       : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:scale-105"
                   )}
                   onClick={() => handleViewChange(item.id as 'dashboard' | 'home' | 'settings')}
@@ -176,13 +177,16 @@ export function ParentBottomNavigation({
               <a
                 href="/parent/settings"
                 onClick={() => setIsSettingsOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 transition-colors duration-150 dark:hover:text-blue-300"
+                className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-brand-surface-50 dark:hover:bg-brand-surface-900/20 hover:text-brand-ink-700 transition-colors duration-150 dark:hover:text-brand-ink-300"
               >
-                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0">
-                  <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <div className="w-8 h-8 rounded-full bg-brand-surface-100 dark:bg-brand-surface-900/40 flex items-center justify-center flex-shrink-0">
+                  <User className="w-4 h-4 text-brand-ink-600 dark:text-brand-ink-400" />
                 </div>
                 <span className="font-medium">User Settings</span>
               </a>
+              <Link href="/parent/settings/look-and-feel" onClick={() => setIsSettingsOpen(false)} className="flex min-h-11 items-center gap-3 px-4 py-3 text-sm text-link hover:bg-accent">
+                <Settings className="h-5 w-5" aria-hidden="true" />Look and Feel
+              </Link>
               <button
                 onClick={() => { setIsSettingsOpen(false); logout(); }}
                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150"
@@ -234,14 +238,14 @@ export function ParentBottomNavigation({
                     className={cn(
                       "w-full h-auto p-4 justify-start rounded-xl transition-all duration-200",
                       currentPupilId === pupil.id 
-                        ? "bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-2 border-blue-200 dark:border-blue-800 shadow-md" 
+                        ? "bg-gradient-to-r from-brand-surface-50 to-brand-secondary-surface-50 dark:from-brand-surface-900/20 dark:to-brand-secondary-surface-900/20 border-2 border-brand-200 dark:border-brand-800 shadow-md"
                         : "hover:bg-gray-50 dark:hover:bg-gray-800 border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
                     )}
                     onClick={() => handlePupilChange(pupil.id)}
                   >
                     <Avatar className="h-12 w-12 mr-4 ring-2 ring-white dark:ring-gray-800 shadow-lg">
                       <AvatarImage src={pupil.photo || undefined} alt={`${formatPupilDisplayName(pupil)}`} />
-                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-lg">
+                      <AvatarFallback className="bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 text-white font-semibold text-lg">
                         {pupil.firstName?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
@@ -255,7 +259,7 @@ export function ParentBottomNavigation({
                     </div>
                     {currentPupilId === pupil.id && (
                       <div className="ml-2">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse" />
+                        <div className="w-3 h-3 bg-brand-surface-500 rounded-full animate-pulse" />
                       </div>
                     )}
                   </Button>

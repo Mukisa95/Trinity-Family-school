@@ -29,7 +29,7 @@ export function PupilsProgressIndicator({
   if (!isProcessing && !error) return null;
 
   return (
-    <Card className="mb-6 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 dark:border-blue-800/60 dark:from-blue-950/40 dark:to-indigo-950/40">
+    <Card className="mb-6 border-brand-200 bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 dark:border-brand-800/60 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
@@ -39,8 +39,8 @@ export function PupilsProgressIndicator({
                   <RefreshCw className="w-4 h-4 text-red-600 dark:text-red-400" />
                 </div>
               ) : (
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center dark:bg-blue-950/40">
-                  <Loader2 className="w-4 h-4 text-blue-600 animate-spin dark:text-blue-400" />
+                <div className="w-8 h-8 rounded-full bg-brand-surface-100 flex items-center justify-center dark:bg-brand-surface-950/40">
+                  <Loader2 className="w-4 h-4 text-brand-ink-600 animate-spin dark:text-brand-ink-400" />
                 </div>
               )}
               <div>
@@ -84,15 +84,15 @@ export function PupilsProgressIndicator({
             {/* Stats */}
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <Users className="w-4 h-4 text-brand-ink-600 dark:text-brand-ink-400" />
                 <span className="text-gray-600 dark:text-slate-300">Loaded:</span>
                 <span className="font-semibold text-gray-900 dark:text-slate-100">
                   <AnimatedCounter value={processedCount} /> / <AnimatedCounter value={totalCount} />
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-indigo-100 flex items-center justify-center dark:bg-indigo-950/40">
-                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                <div className="w-4 h-4 rounded bg-brand-alt-surface-100 flex items-center justify-center dark:bg-brand-alt-surface-950/40">
+                  <span className="text-xs font-bold text-brand-alt-ink-600 dark:text-brand-alt-ink-400">
                     <AnimatedCounter value={currentBatch} />
                   </span>
                 </div>

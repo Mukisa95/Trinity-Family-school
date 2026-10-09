@@ -617,7 +617,7 @@ export default function PromotePupilsPage() {
                       </div>
 
                       {/* PLE Record Creation Checkbox */}
-                      <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-md border border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60">
+                      <div className="flex items-start space-x-2 p-3 bg-brand-surface-50 rounded-md border border-brand-200 dark:bg-brand-surface-950/40 dark:border-brand-800/60">
                         <Checkbox
                           id="createPLERecord"
                           checked={createPLERecord}
@@ -816,20 +816,20 @@ export default function PromotePupilsPage() {
                       {/* Current Year's Pupils Table */}
                       <div>
                         <div className="mb-2 flex items-center justify-between">
-                          <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                          <h3 className="text-sm font-semibold text-brand-ink-700 dark:text-brand-ink-300">
                             Current Year's Pupils ({currentYearPupils.length})
                           </h3>
                           {currentYearPupils.length > 0 && (
-                            <span className="text-xs text-blue-600 dark:text-blue-400">
+                            <span className="text-xs text-brand-ink-600 dark:text-brand-ink-400">
                               {currentYearPupilIds.length} selected
                             </span>
                           )}
                         </div>
                         {currentYearPupils.length > 0 ? (
-                          <div className="border-2 border-blue-200 rounded-lg overflow-hidden dark:border-blue-800/60">
+                          <div className="border-2 border-brand-200 rounded-lg overflow-hidden dark:border-brand-800/60">
                             <Table>
                               <TableHeader>
-                                <TableRow className="bg-blue-50 dark:bg-blue-950/40">
+                                <TableRow className="bg-brand-surface-50 dark:bg-brand-surface-950/40">
                                   <TableHead className="w-[50px]">
                                     <Checkbox
                                       checked={allCurrentSelected}
@@ -843,7 +843,7 @@ export default function PromotePupilsPage() {
                               </TableHeader>
                               <TableBody>
                                 {currentYearPupils.map(pupil => (
-                                  <TableRow key={pupil.id} className="bg-blue-50/30 dark:bg-blue-950/30">
+                                  <TableRow key={pupil.id} className="bg-brand-surface-50/30 dark:bg-brand-surface-950/30">
                                     <TableCell>
                                       <Checkbox
                                         checked={currentYearPupilIds.includes(pupil.id)}
@@ -852,7 +852,7 @@ export default function PromotePupilsPage() {
                                       />
                                     </TableCell>
                                     <TableCell className="font-medium">{formatPupilDisplayName(pupil)}</TableCell>
-                                    <TableCell className="text-sm text-blue-700 dark:text-blue-300">
+                                    <TableCell className="text-sm text-brand-ink-700 dark:text-brand-ink-300">
                                       {pupil.registrationDate ? new Date(pupil.registrationDate).toLocaleDateString() : 'N/A'}
                                     </TableCell>
                                   </TableRow>

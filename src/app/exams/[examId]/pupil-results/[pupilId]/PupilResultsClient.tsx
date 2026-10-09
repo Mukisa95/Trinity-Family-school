@@ -88,7 +88,7 @@ import { createStaffNameMap } from '@/lib/utils/staff-names';
 // Utility functions for results calculation
 const getGradeColor = (grade: string): string => {
   if (grade.startsWith('D')) return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
-  if (grade.startsWith('C')) return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+  if (grade.startsWith('C')) return 'bg-brand-surface-100 text-brand-ink-800 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60';
   if (grade.startsWith('P')) return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
   return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60'; // For F9
 };
@@ -96,7 +96,7 @@ const getGradeColor = (grade: string): string => {
 const getDivisionColor = (division: string): string => {
   switch (division) {
     case 'I': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
-    case 'II': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+    case 'II': return 'bg-brand-surface-100 text-brand-ink-800 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60';
     case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
     case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60';
     default: return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60'; // For 'U'
@@ -153,7 +153,7 @@ const PrintModal = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-            <Printer className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <Printer className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
             Print Reports
           </DialogTitle>
           <DialogDescription>
@@ -164,14 +164,14 @@ const PrintModal = ({
         {isGenerating ? (
           <div className="py-4">
             <div className="text-center">
-              <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto mb-4 animate-spin dark:border-blue-800/60"></div>
+              <div className="w-12 h-12 border-4 border-brand-200 border-t-blue-600 rounded-full mx-auto mb-4 animate-spin dark:border-brand-800/60"></div>
               <h3 className="text-lg font-bold text-gray-900 mb-2 dark:text-slate-100">Generating Report</h3>
-              <p className="text-sm text-blue-600 font-medium mb-4 dark:text-blue-400">{generationStatus}</p>
+              <p className="text-sm text-brand-ink-600 font-medium mb-4 dark:text-brand-ink-400">{generationStatus}</p>
 
               {/* Compact Progress Bar */}
               <div className="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden border dark:bg-slate-900">
                 <div
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-brand-surface-500 to-brand-surface-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${generationProgress}%` }}
                 />
               </div>
@@ -179,12 +179,12 @@ const PrintModal = ({
               {/* Progress and ETA */}
               <div className="flex justify-between items-center mb-4 text-sm">
                 <span className="font-semibold text-gray-800 dark:text-slate-100">{generationProgress}% Complete</span>
-                <span className="text-blue-600 font-medium dark:text-blue-400">{eta}</span>
+                <span className="text-brand-ink-600 font-medium dark:text-brand-ink-400">{eta}</span>
               </div>
 
               {/* Compact Tip */}
-              <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60">
-                <div className="text-xs text-blue-800 dark:text-blue-200">
+              <div className="mt-3 p-2 bg-brand-surface-50 rounded border border-brand-200 dark:bg-brand-surface-950/40 dark:border-brand-800/60">
+                <div className="text-xs text-brand-ink-800 dark:text-brand-ink-200">
                   <span className="font-semibold">💡</span> Report will download automatically when ready
                 </div>
               </div>
@@ -1371,14 +1371,14 @@ export default function PupilResultsClient() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
+      <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-brand-alt-surface-50 to-brand-secondary-surface-50 dark:from-brand-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-secondary-surface-950/40">
         <GlassPageTopBar
           title="Individual Results"
           backHref={examId ? `/exams/${examId}/view-results` : '/exams'}
         />
         <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
           <div className="text-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto dark:text-indigo-400" />
+            <Loader2 className="h-8 w-8 animate-spin text-brand-alt-ink-600 mx-auto dark:text-brand-alt-ink-400" />
             <p className="text-muted-foreground font-medium">Loading pupil results...</p>
           </div>
         </div>
@@ -1388,7 +1388,7 @@ export default function PupilResultsClient() {
 
   if (examResultError || !pupilDetails || !pupilResults) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
+      <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-brand-alt-surface-50 to-brand-secondary-surface-50 dark:from-brand-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-secondary-surface-950/40">
         <GlassPageTopBar
           title="Individual Results"
           backHref={examId ? `/exams/${examId}/view-results` : '/exams'}
@@ -1418,7 +1418,7 @@ export default function PupilResultsClient() {
   const weakestSubject = subjectsByMarks[subjectsByMarks.length - 1];
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animate-in fade-in duration-500 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
+    <div className="bg-gradient-to-br from-brand-surface-50 via-brand-alt-surface-50 to-brand-secondary-surface-50 animate-in fade-in duration-500 dark:from-brand-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-secondary-surface-950/40">
       <GlassPageTopBar
         title="Individual Results"
         className="mb-3 sm:mb-4"
@@ -1445,9 +1445,9 @@ export default function PupilResultsClient() {
       />
 
       <div className="mx-auto max-w-7xl pb-4 sm:pb-6">
-        <section aria-label="Pupil and results summary" className="mb-3 overflow-hidden rounded-xl border border-indigo-100 bg-white shadow-sm sm:mb-4 dark:border-indigo-800/60 dark:bg-slate-900">
+        <section aria-label="Pupil and results summary" className="mb-3 overflow-hidden rounded-xl border border-brand-alt-100 bg-white shadow-sm sm:mb-4 dark:border-brand-alt-800/60 dark:bg-slate-900">
           <div className="flex items-start gap-3 px-3 py-3 sm:px-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400" aria-hidden="true">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-alt-surface-50 text-brand-alt-ink-600 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-400" aria-hidden="true">
               <User className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
@@ -1455,34 +1455,34 @@ export default function PupilResultsClient() {
               <dl className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 sm:text-sm dark:text-slate-300">
                 <div className="flex min-w-0 gap-1"><dt>Admission:</dt><dd className="break-all font-medium text-gray-900 dark:text-slate-100">{pupilDetails.admissionNumber}</dd></div>
                 <div className="flex gap-1"><dt>Class:</dt><dd className="font-medium text-gray-900 dark:text-slate-100">{classSnap?.name}</dd></div>
-                <div className="flex items-center gap-1"><dt>Position:</dt><dd className="font-semibold text-indigo-700 dark:text-indigo-300">{position}</dd></div>
+                <div className="flex items-center gap-1"><dt>Position:</dt><dd className="font-semibold text-brand-alt-ink-700 dark:text-brand-alt-ink-300">{position}</dd></div>
               </dl>
             </div>
           </div>
 
-          <dl className="grid grid-cols-2 border-t border-indigo-100 bg-indigo-50/40 sm:grid-cols-4 dark:border-indigo-800/60 dark:bg-indigo-950/40">
-            <div className="min-w-0 border-r border-indigo-100 px-3 py-2.5 sm:px-4 dark:border-indigo-800/60">
+          <dl className="grid grid-cols-2 border-t border-brand-alt-100 bg-brand-alt-surface-50/40 sm:grid-cols-4 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/40">
+            <div className="min-w-0 border-r border-brand-alt-100 px-3 py-2.5 sm:px-4 dark:border-brand-alt-800/60">
               <dt className="text-xs font-medium text-gray-600 dark:text-slate-300">Total marks</dt>
               <dd className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="text-2xl font-bold leading-tight tabular-nums text-blue-700 dark:text-blue-300">{pupilResults.totalMarks}</span>
+                <span className="text-2xl font-bold leading-tight tabular-nums text-brand-ink-700 dark:text-brand-ink-300">{pupilResults.totalMarks}</span>
                 <span className="text-xs text-gray-600 dark:text-slate-300">Avg. {pupilResults.averageMarks.toFixed(1)}%</span>
               </dd>
             </div>
-            <div className="min-w-0 border-indigo-100 px-3 py-2.5 sm:border-r sm:px-4 dark:border-indigo-800/60">
+            <div className="min-w-0 border-brand-alt-100 px-3 py-2.5 sm:border-r sm:px-4 dark:border-brand-alt-800/60">
               <dt className="text-xs font-medium text-gray-600 dark:text-slate-300">Aggregates <span className="font-normal">/ {subjectSnaps.length * 9}</span></dt>
               <dd className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <span className="text-2xl font-bold leading-tight tabular-nums text-purple-700 dark:text-purple-300">{pupilResults.totalAggregates}</span>
+                <span className="text-2xl font-bold leading-tight tabular-nums text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">{pupilResults.totalAggregates}</span>
                 <Badge className={`${getDivisionColor(pupilResults.division)} border-0 px-2 py-0.5 text-xs`}>Division {pupilResults.division}</Badge>
               </dd>
             </div>
-            <div className="min-w-0 border-r border-t border-indigo-100 bg-white px-3 py-2 sm:border-t-0 sm:px-4 sm:py-2.5 dark:border-indigo-800/60 dark:bg-slate-900">
+            <div className="min-w-0 border-r border-t border-brand-alt-100 bg-white px-3 py-2 sm:border-t-0 sm:px-4 sm:py-2.5 dark:border-brand-alt-800/60 dark:bg-slate-900">
               <dt className="text-[11px] font-medium text-gray-500 sm:text-xs dark:text-slate-400">Best subject</dt>
               <dd className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs sm:mt-1.5 sm:text-sm">
                 <span className="break-words font-semibold text-green-700 dark:text-green-300">{bestSubject?.code || 'N/A'}</span>
                 {bestSubject && <><span className="tabular-nums text-gray-600 dark:text-slate-300">{bestSubject.marks ?? 0}%</span><Badge className={`${getGradeColor(bestSubject.grade || 'F9')} border-0 px-1.5 py-0 text-[11px]`}>{bestSubject.grade || 'F9'}</Badge></>}
               </dd>
             </div>
-            <div className="min-w-0 border-t border-indigo-100 bg-white px-3 py-2 sm:border-t-0 sm:px-4 sm:py-2.5 dark:border-indigo-800/60 dark:bg-slate-900">
+            <div className="min-w-0 border-t border-brand-alt-100 bg-white px-3 py-2 sm:border-t-0 sm:px-4 sm:py-2.5 dark:border-brand-alt-800/60 dark:bg-slate-900">
               <dt className="text-[11px] font-medium text-gray-500 sm:text-xs dark:text-slate-400">Needs focus</dt>
               <dd className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs sm:mt-1.5 sm:text-sm">
                 <span className="break-words font-semibold text-orange-700 dark:text-orange-300">{weakestSubject?.code || 'N/A'}</span>
@@ -1520,7 +1520,7 @@ export default function PupilResultsClient() {
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                   {pupilResults.subjectResults.map(subject => (
-                    <tr key={subject.subjectId} className="hover:bg-indigo-50/40 dark:hover:bg-indigo-950/40">
+                    <tr key={subject.subjectId} className="hover:bg-brand-alt-surface-50/40 dark:hover:bg-brand-alt-surface-950/40">
                       <th scope="row" className="px-3 py-2.5 text-left font-normal sm:px-4">
                         <span className="block break-words font-semibold leading-snug text-gray-900 dark:text-slate-100">{subject.name}</span>
                         <span className="mt-0.5 block break-words text-[11px] leading-snug text-gray-500 dark:text-slate-400">{subject.code}<span className="md:hidden"> · {getRemarks(subject.marks || 0)}</span></span>
@@ -1540,7 +1540,7 @@ export default function PupilResultsClient() {
             <TabsContent value="history" className="mt-0 p-3 sm:p-4">
               {isLoadingHistory ? (
                 <div className="flex items-center justify-center gap-2 py-8" role="status">
-                  <Loader2 className="h-5 w-5 animate-spin text-blue-500 dark:text-blue-400" aria-hidden="true" />
+                  <Loader2 className="h-5 w-5 animate-spin text-brand-ink-500 dark:text-brand-ink-400" aria-hidden="true" />
                   <span className="text-sm text-gray-600 dark:text-slate-300">Loading exam history...</span>
                 </div>
               ) : examHistory.length === 0 ? (
@@ -1571,7 +1571,7 @@ export default function PupilResultsClient() {
                         <div><dt className="text-[11px] text-gray-500 dark:text-slate-400">Position</dt><dd className="mt-0.5 break-words font-medium text-gray-900 dark:text-slate-100">{exam.position}</dd></div>
                       </dl>
                       <details className="group border-t border-gray-100 dark:border-slate-700">
-                        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 text-xs font-medium text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 [&::-webkit-details-marker]:hidden dark:text-indigo-300">
+                        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 text-xs font-medium text-brand-alt-ink-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-alt-500 [&::-webkit-details-marker]:hidden dark:text-brand-alt-ink-300">
                           <span>Subject results ({Object.keys(exam.subjects).length})</span>
                           <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
                         </summary>
@@ -1627,8 +1627,8 @@ export default function PupilResultsClient() {
               className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors dark:border-slate-700 dark:hover:bg-slate-900"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/40">
-                  <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div className="p-2 bg-brand-surface-100 rounded-lg dark:bg-brand-surface-950/40">
+                  <BarChart3 className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-slate-100">Grading Scale</h3>
@@ -2066,7 +2066,7 @@ export default function PupilResultsClient() {
 
           {isLoadingComparisonExams ? (
             <div className="py-8 text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600 mb-2 dark:text-blue-400" />
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-brand-ink-600 mb-2 dark:text-brand-ink-400" />
               <p className="text-sm text-gray-600 dark:text-slate-300">Loading available exams...</p>
             </div>
           ) : availableComparisonExams.length === 0 ? (
@@ -2097,7 +2097,7 @@ export default function PupilResultsClient() {
                       }
                     }}
                     className={`w-full p-3 border rounded-lg text-left transition-colors cursor-pointer ${isSelected
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40'
+                        ? 'border-brand-500 bg-brand-surface-50 dark:bg-brand-surface-950/40'
                         : canSelect
                           ? 'border-gray-200 hover:bg-gray-50 dark:border-slate-700 dark:hover:bg-slate-900'
                           : 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed dark:border-slate-700 dark:bg-slate-900'
@@ -2127,7 +2127,7 @@ export default function PupilResultsClient() {
                         </div>
                       </div>
                       {isSelected && (
-                        <div className="ml-2 text-blue-600 dark:text-blue-400">
+                        <div className="ml-2 text-brand-ink-600 dark:text-brand-ink-400">
                           <Check className="h-5 w-5" />
                         </div>
                       )}
@@ -2140,11 +2140,11 @@ export default function PupilResultsClient() {
 
           {selectedComparisonExams.length > 0 && (
             <div className="mt-4 space-y-3">
-              <div className="p-3 bg-blue-50 rounded-lg dark:bg-blue-950/40">
-                <p className="text-sm text-blue-800 mb-3 dark:text-blue-200">
+              <div className="p-3 bg-brand-surface-50 rounded-lg dark:bg-brand-surface-950/40">
+                <p className="text-sm text-brand-ink-800 mb-3 dark:text-brand-ink-200">
                   <span className="font-semibold">{selectedComparisonExams.length}</span> of 2 exams selected
                 </p>
-                <p className="text-xs text-blue-700 mb-2 dark:text-blue-300">Customize exam names (optional):</p>
+                <p className="text-xs text-brand-ink-700 mb-2 dark:text-brand-ink-300">Customize exam names (optional):</p>
                 <div className="space-y-2">
                   {selectedComparisonExams.map((examId, index) => {
                     const exam = availableComparisonExams.find(e => e.id === examId);

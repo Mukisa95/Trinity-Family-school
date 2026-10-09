@@ -1296,7 +1296,7 @@ export default function FeesCollectionPage() {
     <div className="glass-page-route-skeleton min-h-screen">
       {/* Background fetching indicator - Fixed at top */}
       {(isFetchingPupils || isFetchingFeeStructures) && !isLoadingPupils && !isLoadingFeeStructures && (
-        <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 animate-pulse">
+        <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-gradient-to-r from-brand-surface-500 via-brand-alt-surface-500 to-brand-secondary-surface-500 animate-pulse">
           <div className="h-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite] dark:via-slate-900/30"></div>
         </div>
       )}
@@ -1319,12 +1319,12 @@ export default function FeesCollectionPage() {
               size="sm"
               showIcon={false}
               className="shrink-0"
-              triggerClassName="h-[34px] min-w-[80px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
+              triggerClassName="h-[34px] min-w-[80px] max-w-[110px] rounded-full border-brand-200/60 bg-white/90 px-2 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
               includeAllOption={true}
               allOptionLabel="All Classes"
             />
             {/* Year & Term - Compact */}
-            <div className="flex items-center bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full shadow-sm overflow-hidden h-[34px] shrink-0">
+            <div className="flex items-center bg-gradient-to-r from-brand-surface-500 to-brand-alt-surface-600 rounded-full shadow-sm overflow-hidden h-[34px] shrink-0">
               <Select value={filters.year} onValueChange={(value) => setFilters(prev => ({ ...prev, year: value }))}>
                 <SelectTrigger className="border-0 bg-transparent text-white hover:bg-white/10 transition-colors rounded-l-full rounded-r-none h-full px-2 focus:ring-0 focus:ring-offset-0 text-xs [&>svg]:hidden w-auto font-semibold">
                   <SelectValue placeholder="Year" />
@@ -1362,11 +1362,11 @@ export default function FeesCollectionPage() {
               size="sm"
               showIcon={false}
               className="shrink-0"
-              triggerClassName="h-[34px] min-w-[90px] max-w-[125px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
+              triggerClassName="h-[34px] min-w-[90px] max-w-[125px] rounded-full border-brand-200/60 bg-white/90 px-2.5 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
               includeAllOption={true}
               allOptionLabel="All Classes"
             />
-            <div className="flex items-center bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full shadow-sm overflow-hidden h-[34px] shrink-0">
+            <div className="flex items-center bg-gradient-to-r from-brand-surface-500 to-brand-alt-surface-600 rounded-full shadow-sm overflow-hidden h-[34px] shrink-0">
               <Select value={filters.year} onValueChange={(value) => setFilters(prev => ({ ...prev, year: value }))}>
                 <SelectTrigger className="border-0 bg-transparent text-white hover:bg-white/10 transition-colors rounded-l-full rounded-r-none h-full px-2 focus:ring-0 focus:ring-offset-0 text-xs [&>svg]:hidden w-auto font-semibold">
                   <SelectValue placeholder="Year" />
@@ -1441,23 +1441,23 @@ export default function FeesCollectionPage() {
       <GlassSummaryBar
         left={
           <div className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+            <CreditCard className="h-4 w-4 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />
+            <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
               Class Fees Summary
             </span>
           </div>
         }
         right={
           <>
-            <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-blue-700/85 dark:text-blue-300 font-medium">Students:</span>
-              <span className="font-bold text-blue-700 dark:text-blue-400">
+            <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-brand-ink-700/85 dark:text-brand-ink-300 font-medium">Students:</span>
+              <span className="font-bold text-brand-ink-700 dark:text-brand-ink-400">
                 {sortedPupils.length !== pupils.length ? `${sortedPupils.length}/${pupils.length}` : sortedPupils.length}
               </span>
             </div>
-            <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-purple-700/85 dark:text-purple-300 font-medium">Total Fees:</span>
-              <span className="font-bold text-purple-700 dark:text-purple-400">{formatCurrency(totals.totalFees)}</span>
+            <div className="flex items-center gap-1 bg-brand-secondary-surface-50/80 dark:bg-brand-secondary-surface-950/20 border border-brand-secondary-100/50 dark:border-brand-secondary-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-brand-secondary-ink-700/85 dark:text-brand-secondary-ink-300 font-medium">Total Fees:</span>
+              <span className="font-bold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-400">{formatCurrency(totals.totalFees)}</span>
             </div>
             <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="text-green-700/85 dark:text-green-300 font-medium">Collected:</span>
@@ -1477,16 +1477,16 @@ export default function FeesCollectionPage() {
 
         {/* Compact Filter Panel - Same design as Pupils page */}
         {isFiltersExpanded && (
-          <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-sm border border-blue-100/50 mb-4 sm:mb-6 overflow-hidden animate-in slide-in-from-top-2 duration-300 dark:bg-slate-900/90 dark:border-blue-800/50">
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-sm border border-brand-100/50 mb-4 sm:mb-6 overflow-hidden animate-in slide-in-from-top-2 duration-300 dark:bg-slate-900/90 dark:border-brand-800/50">
             <div className="px-2 sm:px-4 py-2 sm:py-3">
               {/* Single Row: Stats and Controls */}
               <div className="flex items-center justify-between gap-2 sm:gap-4 mb-2 sm:mb-3">
                 {/* Statistics Pills */}
                 <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                   {(searchQuery || filters.class !== 'all' || filters.section !== 'all' || filters.status !== 'Active' || filters.balanceStatus !== 'all' || filters.balanceMin || filters.balanceMax) && (
-                    <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-purple-50 rounded-full border border-purple-100 dark:bg-purple-950/40 dark:border-purple-800/60">
-                      <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-purple-500"></div>
-                      <span className="text-xs text-purple-600 font-medium dark:text-purple-400">Filtered</span>
+                    <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-brand-secondary-surface-50 rounded-full border border-brand-secondary-100 dark:bg-brand-secondary-surface-950/40 dark:border-brand-secondary-800/60">
+                      <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-brand-secondary-surface-500"></div>
+                      <span className="text-xs text-brand-secondary-ink-600 font-medium dark:text-brand-secondary-ink-400">Filtered</span>
                     </div>
                   )}
                 </div>
@@ -1522,15 +1522,15 @@ export default function FeesCollectionPage() {
 
 
               {/* Expandable Filter Controls */}
-              <div className="border-t border-blue-50 pt-2 sm:pt-3 dark:border-blue-800/60">
+              <div className="border-t border-brand-50 pt-2 sm:pt-3 dark:border-brand-800/60">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
                   {/* Class Filter */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-medium text-blue-700 dark:text-blue-300">Class</label>
+                    <label className="block text-xs font-medium text-brand-ink-700 dark:text-brand-ink-300">Class</label>
                     <select
                       value={filters.class}
                       onChange={(e) => setFilters(prev => ({ ...prev, class: e.target.value }))}
-                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white dark:bg-blue-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
+                      className="w-full rounded-lg border-0 bg-brand-surface-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-brand-400/50 focus:bg-white transition-all duration-200 hover:bg-white dark:bg-brand-surface-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                     >
                       <option value="all">All Classes</option>
                       {classes.map(cls => (
@@ -1541,11 +1541,11 @@ export default function FeesCollectionPage() {
 
                   {/* Section Filter */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-medium text-blue-700 dark:text-blue-300">Section</label>
+                    <label className="block text-xs font-medium text-brand-ink-700 dark:text-brand-ink-300">Section</label>
                     <select
                       value={filters.section}
                       onChange={(e) => setFilters(prev => ({ ...prev, section: e.target.value }))}
-                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white dark:bg-blue-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
+                      className="w-full rounded-lg border-0 bg-brand-surface-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-brand-400/50 focus:bg-white transition-all duration-200 hover:bg-white dark:bg-brand-surface-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                     >
                       <option value="all">All Sections</option>
                       <option value="day">Day</option>
@@ -1555,11 +1555,11 @@ export default function FeesCollectionPage() {
 
                   {/* Status Filter */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-medium text-blue-700 dark:text-blue-300">Status</label>
+                    <label className="block text-xs font-medium text-brand-ink-700 dark:text-brand-ink-300">Status</label>
                     <select
                       value={filters.status}
                       onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white dark:bg-blue-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
+                      className="w-full rounded-lg border-0 bg-brand-surface-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-brand-400/50 focus:bg-white transition-all duration-200 hover:bg-white dark:bg-brand-surface-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                     >
                       <option value="all">All Status</option>
                       <option value="Active">Active</option>
@@ -1573,7 +1573,7 @@ export default function FeesCollectionPage() {
 
                   {/* Balance Filter */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-medium text-blue-700 dark:text-blue-300">Balance</label>
+                    <label className="block text-xs font-medium text-brand-ink-700 dark:text-brand-ink-300">Balance</label>
                     <select
                       value={filters.balanceStatus}
                       onChange={(e) => {
@@ -1585,7 +1585,7 @@ export default function FeesCollectionPage() {
                           balanceMax: value !== 'custom_range' ? '' : prev.balanceMax
                         }));
                       }}
-                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white dark:bg-blue-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
+                      className="w-full rounded-lg border-0 bg-brand-surface-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-brand-400/50 focus:bg-white transition-all duration-200 hover:bg-white dark:bg-brand-surface-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                     >
                       <option value="all">All Balances</option>
                       <option value="with_balance">With Balance</option>
@@ -1597,16 +1597,16 @@ export default function FeesCollectionPage() {
 
                   {/* Fee Item Filter - dynamically shows only fees actually assigned to visible pupils */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-medium text-blue-700 dark:text-blue-300">
+                    <label className="block text-xs font-medium text-brand-ink-700 dark:text-brand-ink-300">
                       Fee Item
                       {isProcessing && (
-                        <span className="ml-1 text-blue-400 font-normal">(loading...)</span>
+                        <span className="ml-1 text-brand-ink-400 font-normal">(loading...)</span>
                       )}
                     </label>
                     <select
                       value={filters.feeItem}
                       onChange={(e) => setFilters(prev => ({ ...prev, feeItem: e.target.value }))}
-                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white dark:bg-blue-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
+                      className="w-full rounded-lg border-0 bg-brand-surface-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-brand-400/50 focus:bg-white transition-all duration-200 hover:bg-white dark:bg-brand-surface-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                       disabled={isProcessing && dynamicFeeItems.length === 0}
                     >
                       <option value="">All Fee Items ({dynamicFeeItems.length})</option>
@@ -1641,22 +1641,22 @@ export default function FeesCollectionPage() {
                   {/* Balance Range - Show when Custom Range is selected */}
                   {filters.balanceStatus === 'custom_range' && (
                     <div className="space-y-1 col-span-2 sm:col-span-1">
-                      <label className="block text-xs font-medium text-blue-700 dark:text-blue-300">Amount Range</label>
+                      <label className="block text-xs font-medium text-brand-ink-700 dark:text-brand-ink-300">Amount Range</label>
                       <div className="flex items-center gap-1">
                         <input
                           type="number"
                           placeholder="Min"
                           value={filters.balanceMin}
                           onChange={(e) => setFilters(prev => ({ ...prev, balanceMin: e.target.value }))}
-                          className="w-16 sm:w-20 rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1 sm:px-1.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white text-center dark:bg-blue-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
+                          className="w-16 sm:w-20 rounded-lg border-0 bg-brand-surface-50/50 py-1 sm:py-1.5 px-1 sm:px-1.5 text-xs shadow-sm focus:ring-2 focus:ring-brand-400/50 focus:bg-white transition-all duration-200 hover:bg-white text-center dark:bg-brand-surface-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                         />
-                        <span className="text-xs text-blue-400 font-medium">-</span>
+                        <span className="text-xs text-brand-ink-400 font-medium">-</span>
                         <input
                           type="number"
                           placeholder="Max"
                           value={filters.balanceMax}
                           onChange={(e) => setFilters(prev => ({ ...prev, balanceMax: e.target.value }))}
-                          className="w-16 sm:w-20 rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1 sm:px-1.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white text-center dark:bg-blue-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
+                          className="w-16 sm:w-20 rounded-lg border-0 bg-brand-surface-50/50 py-1 sm:py-1.5 px-1 sm:px-1.5 text-xs shadow-sm focus:ring-2 focus:ring-brand-400/50 focus:bg-white transition-all duration-200 hover:bg-white text-center dark:bg-brand-surface-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                         />
                       </div>
                     </div>
@@ -1690,7 +1690,7 @@ export default function FeesCollectionPage() {
                 <div className="space-y-4">
                   {Array.from({ length: 5 }).map((_, index) => (
                     <Card key={index} className="shadow-lg border-0 overflow-hidden bg-white rounded-2xl dark:bg-slate-900">
-                      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
+                      <div className="bg-gradient-to-r from-brand-surface-500 to-brand-alt-surface-600 p-4">
                         <div className="flex items-center space-x-3">
                           <Skeleton className="h-12 w-12 rounded-full" />
                           <div className="flex-1 space-y-2">
@@ -1725,7 +1725,7 @@ export default function FeesCollectionPage() {
 
                   return (
                     <Card key={pupil.id} className="shadow-lg border-0 overflow-hidden bg-white rounded-2xl cursor-pointer dark:bg-slate-900" onClick={() => handlePupilClick(pupil.id)}>
-                      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 text-white">
+                      <div className="bg-gradient-to-r from-brand-surface-500 to-brand-alt-surface-600 p-4 text-white">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <div className="relative">
@@ -1869,7 +1869,7 @@ export default function FeesCollectionPage() {
                       >
                         <div className="flex items-center space-x-1">
                           <span>Pupil ({sortedPupils.length})</span>
-                          <ArrowUpDown size={14} className={`${sortConfig.key === 'firstName' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-slate-400'}`} />
+                          <ArrowUpDown size={14} className={`${sortConfig.key === 'firstName' ? 'text-brand-ink-600 dark:text-brand-ink-400' : 'text-gray-400 dark:text-slate-400'}`} />
                         </div>
                       </th>
                       <th
@@ -1878,7 +1878,7 @@ export default function FeesCollectionPage() {
                       >
                         <div className="flex items-center space-x-1">
                           <span>Class</span>
-                          <ArrowUpDown size={14} className={`${sortConfig.key === 'class' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-slate-400'}`} />
+                          <ArrowUpDown size={14} className={`${sortConfig.key === 'class' ? 'text-brand-ink-600 dark:text-brand-ink-400' : 'text-gray-400 dark:text-slate-400'}`} />
                         </div>
                       </th>
                       <th
@@ -1887,7 +1887,7 @@ export default function FeesCollectionPage() {
                       >
                         <div className="flex items-center space-x-1">
                           <span>Section</span>
-                          <ArrowUpDown size={14} className={`${sortConfig.key === 'section' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-slate-400'}`} />
+                          <ArrowUpDown size={14} className={`${sortConfig.key === 'section' ? 'text-brand-ink-600 dark:text-brand-ink-400' : 'text-gray-400 dark:text-slate-400'}`} />
                         </div>
                       </th>
                       <th
@@ -1896,7 +1896,7 @@ export default function FeesCollectionPage() {
                       >
                         <div className="flex items-center space-x-1">
                           <span>{filters.feeItem ? 'Fee Amount' : 'Total Fees'}</span>
-                          <ArrowUpDown size={14} className={`${sortConfig.key === 'totalFees' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-slate-400'}`} />
+                          <ArrowUpDown size={14} className={`${sortConfig.key === 'totalFees' ? 'text-brand-ink-600 dark:text-brand-ink-400' : 'text-gray-400 dark:text-slate-400'}`} />
                         </div>
                       </th>
                       <th
@@ -1905,7 +1905,7 @@ export default function FeesCollectionPage() {
                       >
                         <div className="flex items-center space-x-1">
                           <span>Paid</span>
-                          <ArrowUpDown size={14} className={`${sortConfig.key === 'totalPaid' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-slate-400'}`} />
+                          <ArrowUpDown size={14} className={`${sortConfig.key === 'totalPaid' ? 'text-brand-ink-600 dark:text-brand-ink-400' : 'text-gray-400 dark:text-slate-400'}`} />
                         </div>
                       </th>
                       <th
@@ -1914,7 +1914,7 @@ export default function FeesCollectionPage() {
                       >
                         <div className="flex items-center space-x-1">
                           <span>Balance</span>
-                          <ArrowUpDown size={14} className={`${sortConfig.key === 'balance' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-slate-400'}`} />
+                          <ArrowUpDown size={14} className={`${sortConfig.key === 'balance' ? 'text-brand-ink-600 dark:text-brand-ink-400' : 'text-gray-400 dark:text-slate-400'}`} />
                         </div>
                       </th>
                       {/* Removed Last Payment and Status columns for speed optimization */}
@@ -1943,10 +1943,10 @@ export default function FeesCollectionPage() {
                     )}
 
                     {/* Summary Row */}
-                    <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 border-t-2 border-blue-200 dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800/60">
+                    <tr className="bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 border-t-2 border-brand-200 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40 dark:border-brand-800/60">
                       <td colSpan={3} className="px-6 py-4">
                         <div className="flex items-center space-x-2">
-                          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                          <div className="w-8 h-8 bg-gradient-to-br from-brand-surface-500 to-brand-alt-surface-600 rounded-lg flex items-center justify-center">
                             <PieChart className="w-4 h-4 text-white" />
                           </div>
                           <div>
@@ -1984,7 +1984,7 @@ export default function FeesCollectionPage() {
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
             transition={{ duration: 0.2 }}
             onClick={scrollToTop}
-            className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110"
+            className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-brand-surface-600 to-brand-alt-surface-600 hover:from-brand-surface-700 hover:to-brand-alt-surface-700 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110"
             aria-label="Scroll to top"
           >
             <ArrowUpDown className="w-5 h-5 rotate-180" />
@@ -2000,7 +2000,7 @@ export default function FeesCollectionPage() {
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle className="flex items-center">
-              <Printer className="mr-2 h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              <Printer className="mr-2 h-5 w-5 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" />
               Print Fees Collection Report - Select Columns
             </DialogTitle>
             <DialogDescription>
@@ -2019,7 +2019,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.pupilInfo}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, pupilInfo: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Pupil Name</span>
                 </label>
@@ -2029,7 +2029,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.admissionNumber}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, admissionNumber: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Admission Number</span>
                 </label>
@@ -2039,7 +2039,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.class}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, class: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Class</span>
                 </label>
@@ -2049,7 +2049,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.section}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, section: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Section</span>
                 </label>
@@ -2063,7 +2063,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.totalFees}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, totalFees: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Total Fees</span>
                 </label>
@@ -2073,7 +2073,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.totalPaid}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, totalPaid: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Amount Paid</span>
                 </label>
@@ -2083,7 +2083,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.balance}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, balance: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Outstanding Balance</span>
                 </label>
@@ -2099,7 +2099,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.feeBreakdown}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, feeBreakdown: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Fee Breakdown</span>
                 </label>
@@ -2109,7 +2109,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.showFilters}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, showFilters: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Show Applied Filters</span>
                 </label>
@@ -2119,7 +2119,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.showSummary}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, showSummary: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Show Totals Summary Row</span>
                 </label>
@@ -2129,7 +2129,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.showStatusMark}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, showStatusMark: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">
                     Show Status Mark&nbsp;
@@ -2156,7 +2156,7 @@ export default function FeesCollectionPage() {
                     showSummary: columnSelection.showSummary,
                     showStatusMark: columnSelection.showStatusMark
                   })}
-                  className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/40"
+                  className="px-3 py-1 text-xs bg-brand-surface-100 text-brand-ink-700 rounded-md hover:bg-brand-surface-200 transition-colors dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:hover:bg-brand-surface-900/40"
                 >
                   Standard Report
                 </button>
@@ -2194,7 +2194,7 @@ export default function FeesCollectionPage() {
                     showSummary: columnSelection.showSummary,
                     showStatusMark: columnSelection.showStatusMark
                   })}
-                  className="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors dark:bg-purple-950/40 dark:text-purple-300 dark:hover:bg-purple-900/40"
+                  className="px-3 py-1 text-xs bg-brand-secondary-surface-100 text-brand-secondary-ink-700 rounded-md hover:bg-brand-secondary-surface-200 transition-colors dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-300 dark:hover:bg-brand-secondary-surface-900/40"
                 >
                   Complete Report
                 </button>
@@ -2221,19 +2221,19 @@ export default function FeesCollectionPage() {
             </div>
 
             {/* Preview Information */}
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-4 dark:bg-blue-950/40 dark:border-blue-800/60">
+            <div className="bg-brand-surface-50 border border-brand-200 rounded-md p-4 dark:bg-brand-surface-950/40 dark:border-brand-800/60">
               <div className="flex items-start gap-2">
-                <svg className="h-5 w-5 text-blue-600 mt-0.5 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 text-brand-ink-600 mt-0.5 dark:text-brand-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div className="text-sm">
-                  <p className="font-medium text-blue-900 dark:text-blue-200">PDF Preview</p>
-                  <p className="text-blue-800 mt-1 dark:text-blue-200">
+                  <p className="font-medium text-brand-ink-900 dark:text-brand-ink-200">PDF Preview</p>
+                  <p className="text-brand-ink-800 mt-1 dark:text-brand-ink-200">
                     Selected columns: {Object.entries(columnSelection).filter(([k, v]) => k !== 'showFilters' && v).length} |
                     Students to include: {sortedPupils.length} |
                     Orientation: {Object.entries(columnSelection).filter(([k, v]) => k !== 'showFilters' && v).length > 6 ? 'Landscape' : 'Portrait'}
                   </p>
-                  <p className="text-blue-700 mt-1 text-xs dark:text-blue-300">
+                  <p className="text-brand-ink-700 mt-1 text-xs dark:text-brand-ink-300">
                     Total Fees: {formatCurrency(totals.totalFees)} | Paid: {formatCurrency(totals.totalPaid)} | Balance: {formatCurrency(totals.balance)}
                   </p>
                   {Object.entries(columnSelection).filter(([k, v]) => k !== 'showFilters' && v).length === 0 && (
@@ -2257,7 +2257,7 @@ export default function FeesCollectionPage() {
             {Object.values(columnSelection).some(Boolean) && (
               <Button
                 onClick={handleGeneratePDF}
-                className="bg-indigo-600 hover:bg-indigo-700"
+                className="bg-brand-alt-surface-600 hover:bg-brand-alt-surface-700"
               >
                 <Printer className="mr-2 h-4 w-4" />
                 Generate PDF

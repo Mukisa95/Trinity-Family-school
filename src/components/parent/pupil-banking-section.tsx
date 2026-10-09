@@ -89,27 +89,27 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
   return (
     <div className="space-y-6">
       {/* Parent Notice */}
-      <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/40">
-        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <AlertDescription className="text-blue-800 dark:text-blue-200">
+      <Alert className="border-brand-200 bg-brand-surface-50 dark:border-brand-800/60 dark:bg-brand-surface-950/40">
+        <Info className="h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
+        <AlertDescription className="text-brand-ink-800 dark:text-brand-ink-200">
           <strong>Parent View:</strong> You can view your child's banking information here. 
           For any transactions or changes, please contact the school administration.
         </AlertDescription>
       </Alert>
 
       {/* Account Overview Card */}
-      <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40">
+      <Card className="shadow-lg border-0 bg-gradient-to-br from-brand-surface-50 to-brand-alt-surface-50 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2">
-              <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <Wallet className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
               Banking Account
             </span>
             <Button
               variant="ghost"
               size="sm"
               onClick={toggleBalanceVisibility}
-              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              className="text-brand-ink-600 hover:text-brand-ink-700 dark:text-brand-ink-400 dark:hover:text-brand-ink-300"
             >
               {showBalance ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
@@ -125,7 +125,7 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
             <div className="space-y-4">
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1 dark:text-slate-300">Current Balance</p>
-                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                <p className="text-3xl font-bold text-brand-ink-600 dark:text-brand-ink-400">
                   {showBalance ? formatCurrency(account?.balance || 0) : '****'}
                 </p>
                 <p className="text-sm text-gray-500 dark:text-slate-400">
@@ -164,7 +164,7 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
           onClick={() => setSelectedTab('overview')}
           className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
             selectedTab === 'overview'
-              ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-400'
+              ? 'bg-white text-brand-ink-600 shadow-sm dark:bg-slate-900 dark:text-brand-ink-400'
               : 'text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-slate-100'
           }`}
         >
@@ -175,7 +175,7 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
           onClick={() => setSelectedTab('transactions')}
           className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
             selectedTab === 'transactions'
-              ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-400'
+              ? 'bg-white text-brand-ink-600 shadow-sm dark:bg-slate-900 dark:text-brand-ink-400'
               : 'text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-slate-100'
           }`}
         >
@@ -186,7 +186,7 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
           onClick={() => setSelectedTab('loans')}
           className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
             selectedTab === 'loans'
-              ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-400'
+              ? 'bg-white text-brand-ink-600 shadow-sm dark:bg-slate-900 dark:text-brand-ink-400'
               : 'text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-slate-100'
           }`}
         >

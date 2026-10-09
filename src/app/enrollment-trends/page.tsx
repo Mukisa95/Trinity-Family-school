@@ -303,8 +303,8 @@ export default function EnrollmentTrendsPage() {
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center space-y-4">
             <div className="relative">
-              <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto dark:border-blue-800/60"></div>
-              <Sparkles className="w-6 h-6 text-blue-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 dark:text-blue-400" />
+              <div className="w-16 h-16 border-4 border-brand-200 border-t-blue-600 rounded-full animate-spin mx-auto dark:border-brand-800/60"></div>
+              <Sparkles className="w-6 h-6 text-brand-ink-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 dark:text-brand-ink-400" />
             </div>
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-gray-700 dark:text-slate-200">Loading Enrollment Data</h3>
@@ -332,14 +332,14 @@ export default function EnrollmentTrendsPage() {
         <div className="max-w-7xl mx-auto px-4 py-8">
           <Card className="w-full max-w-md bg-white/80 backdrop-blur-sm border-0 shadow-xl mx-auto dark:bg-slate-900/80">
             <CardContent className="p-8 text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6 dark:from-blue-950/40 dark:to-indigo-950/40">
-                <Users className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+              <div className="w-20 h-20 bg-gradient-to-br from-brand-surface-100 to-brand-alt-surface-100 rounded-full flex items-center justify-center mx-auto mb-6 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
+                <Users className="w-10 h-10 text-brand-ink-600 dark:text-brand-ink-400" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3 dark:text-slate-100">No Enrollment Data Available</h3>
               <p className="text-gray-600 mb-6 leading-relaxed dark:text-slate-300">
                 Start by adding student records to see comprehensive enrollment trends and analytics.
               </p>
-              <Button onClick={() => router.push('/pupils')} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg">
+              <Button onClick={() => router.push('/pupils')} className="bg-gradient-to-r from-brand-surface-600 to-brand-alt-surface-600 hover:from-brand-surface-700 hover:to-brand-alt-surface-700 text-white shadow-lg">
                 <UserCheck className="w-4 h-4 mr-2" />
                 Manage Students
               </Button>
@@ -366,7 +366,7 @@ export default function EnrollmentTrendsPage() {
         className="mb-1.5"
         meta={
           <div className="flex items-center gap-3">
-            <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100/80 whitespace-nowrap dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/80">
+            <span className="bg-brand-surface-50 text-brand-ink-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-brand-100/80 whitespace-nowrap dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/80">
               {stats.total} total
             </span>
             <span className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-100/80 whitespace-nowrap dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/80">
@@ -396,16 +396,16 @@ export default function EnrollmentTrendsPage() {
       <GlassSummaryBar
         left={
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+            <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
               Enrollment Summary
             </span>
           </div>
         }
         right={
           <>
-            <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="font-bold text-blue-600 dark:text-blue-400">{stats.total.toLocaleString()}</span>
-              <span className="text-blue-700/85 dark:text-blue-300 font-medium">Total Enrollments</span>
+            <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-brand-ink-600 dark:text-brand-ink-400">{stats.total.toLocaleString()}</span>
+              <span className="text-brand-ink-700/85 dark:text-brand-ink-300 font-medium">Total Enrollments</span>
             </div>
             <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="font-bold text-green-600 dark:text-green-400">{stats.thisYear.toLocaleString()}</span>
@@ -416,9 +416,9 @@ export default function EnrollmentTrendsPage() {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="font-bold text-purple-600 dark:text-purple-400">{stats.classesInvolved}</span>
-              <span className="text-purple-700/85 dark:text-purple-300 font-medium">Active Classes</span>
+            <div className="flex items-center gap-1 bg-brand-secondary-surface-50/80 dark:bg-brand-secondary-surface-950/20 border border-brand-secondary-100/50 dark:border-brand-secondary-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">{stats.classesInvolved}</span>
+              <span className="text-brand-secondary-ink-700/85 dark:text-brand-secondary-ink-300 font-medium">Active Classes</span>
             </div>
             <div className="flex items-center gap-1 bg-orange-50/80 dark:bg-orange-950/20 border border-orange-100/50 dark:border-orange-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="text-orange-700/85 dark:text-orange-300 font-medium">Peak Month:</span>
@@ -496,7 +496,7 @@ export default function EnrollmentTrendsPage() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600 dark:text-slate-300">Found:</span>
-                          <span className="font-medium text-blue-600 dark:text-blue-400">{filteredData.length} records</span>
+                          <span className="font-medium text-brand-ink-600 dark:text-brand-ink-400">{filteredData.length} records</span>
                         </div>
                       </div>
                     </div>
@@ -543,11 +543,11 @@ export default function EnrollmentTrendsPage() {
         {/* Compact Main Content Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm shadow-lg h-10 dark:bg-slate-900/80">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-brand-surface-600 data-[state=active]:text-white text-xs">
               <Eye className="w-3.5 h-3.5 mr-1.5 hidden sm:inline" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="table" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs">
+            <TabsTrigger value="table" className="data-[state=active]:bg-brand-surface-600 data-[state=active]:text-white text-xs">
               <Users className="w-3.5 h-3.5 mr-1.5 hidden sm:inline" />
               Records
             </TabsTrigger>
@@ -559,7 +559,7 @@ export default function EnrollmentTrendsPage() {
               <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-lg dark:bg-slate-900/80 dark:border-slate-700/20">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <Activity className="w-4 h-4 text-brand-ink-600 dark:text-brand-ink-400" />
                     Monthly Trends
                   </CardTitle>
                   <p className="text-xs text-gray-500 dark:text-slate-400">
@@ -572,8 +572,8 @@ export default function EnrollmentTrendsPage() {
                       <AreaChart data={monthlyTrendData}>
                         <defs>
                           <linearGradient id="enrollmentGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.8} />
-                            <stop offset="100%" stopColor="#3B82F6" stopOpacity={0.1} />
+                            <stop offset="0%" stopColor="rgb(var(--brand-500))" stopOpacity={0.8} />
+                            <stop offset="100%" stopColor="rgb(var(--brand-500))" stopOpacity={0.1} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -595,7 +595,7 @@ export default function EnrollmentTrendsPage() {
                               return (
                                 <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg p-3 border border-white/20 dark:bg-slate-900/95 dark:border-slate-700/20">
                                   <p className="font-semibold text-gray-900 text-sm dark:text-slate-100">{label}</p>
-                                  <p className="text-xs text-blue-600 font-medium dark:text-blue-400">
+                                  <p className="text-xs text-brand-ink-600 font-medium dark:text-brand-ink-400">
                                     {payload[0].value} enrollments
                                   </p>
                                 </div>
@@ -607,7 +607,7 @@ export default function EnrollmentTrendsPage() {
                         <Area
                           type="monotone"
                           dataKey="enrollments"
-                          stroke="#3B82F6"
+                          stroke="rgb(var(--brand-500))"
                           strokeWidth={2}
                           fill="url(#enrollmentGradient)"
                           dot={{ r: 3, strokeWidth: 2, fill: '#3B82F6' }}
@@ -623,7 +623,7 @@ export default function EnrollmentTrendsPage() {
               <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-lg flex flex-col dark:bg-slate-900/80 dark:border-slate-700/20">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <BarChart3 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <BarChart3 className="w-4 h-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                     Class Enrollment
                   </CardTitle>
                   <p className="text-xs text-gray-500 dark:text-slate-400">
@@ -765,13 +765,13 @@ export default function EnrollmentTrendsPage() {
                             <TableCell className="font-medium text-gray-900 py-2 text-sm dark:text-slate-100">{student.name}</TableCell>
                             <TableCell className="text-gray-700 py-2 text-sm dark:text-slate-200">{student.admissionNumber}</TableCell>
                             <TableCell className="py-2">
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">
+                              <Badge variant="outline" className="text-xs bg-brand-surface-50 text-brand-ink-700 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60">
                                 {student.class}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-gray-600 py-2 text-sm dark:text-slate-300">{student.formattedDate}</TableCell>
                             <TableCell className="py-2">
-                              <Badge variant="outline" className={`text-xs ${student.gender === 'Male' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60' : 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-950/40 dark:text-pink-300 dark:border-pink-800/60'
+                              <Badge variant="outline" className={`text-xs ${student.gender === 'Male' ? 'bg-brand-surface-50 text-brand-ink-700 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60' : 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-950/40 dark:text-pink-300 dark:border-pink-800/60'
                                 }`}>
                                 {student.gender}
                               </Badge>

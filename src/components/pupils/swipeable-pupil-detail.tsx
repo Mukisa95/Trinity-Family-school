@@ -24,9 +24,9 @@ const sections = [
     id: 'information',
     title: 'Information',
     icon: Info,
-    color: 'text-blue-600 dark:text-blue-400',
-    bgColor: 'bg-blue-50 dark:bg-blue-950/40',
-    borderColor: 'border-blue-200 dark:border-blue-800/60'
+    color: 'text-brand-ink-600 dark:text-brand-ink-400',
+    bgColor: 'bg-brand-surface-50 dark:bg-brand-surface-950/40',
+    borderColor: 'border-brand-200 dark:border-brand-800/60'
   },
   {
     id: 'fees',
@@ -40,9 +40,9 @@ const sections = [
     id: 'requirements',
     title: 'Requirements',
     icon: Shirt,
-    color: 'text-purple-600 dark:text-purple-400',
-    bgColor: 'bg-purple-50 dark:bg-purple-950/40',
-    borderColor: 'border-purple-200 dark:border-purple-800/60'
+    color: 'text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400',
+    bgColor: 'bg-brand-secondary-surface-50 dark:bg-brand-secondary-surface-950/40',
+    borderColor: 'border-brand-secondary-200 dark:border-brand-secondary-800/60'
   },
   {
     id: 'attendance',
@@ -56,9 +56,9 @@ const sections = [
     id: 'results',
     title: 'Results',
     icon: BookOpen,
-    color: 'text-indigo-600 dark:text-indigo-400',
-    bgColor: 'bg-indigo-50 dark:bg-indigo-950/40',
-    borderColor: 'border-indigo-200 dark:border-indigo-800/60'
+    color: 'text-brand-alt-ink-600 dark:text-brand-alt-ink-400',
+    bgColor: 'bg-brand-alt-surface-50 dark:bg-brand-alt-surface-950/40',
+    borderColor: 'border-brand-alt-200 dark:border-brand-alt-800/60'
   }
 ];
 
@@ -134,7 +134,7 @@ export function SwipeablePupilDetail({ pupil, children, onSectionChange }: Swipe
         {/* Progress Bar */}
         <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-slate-800">
           <div
-            className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300 ease-out"
+            className="bg-gradient-to-r from-brand-surface-500 to-brand-secondary-surface-500 h-2 rounded-full transition-all duration-300 ease-out"
             style={{ width: `${((activeIndex + 1) / sections.length) * 100}%` }}
           />
         </div>
@@ -203,7 +203,7 @@ export function SwipeablePupilDetail({ pupil, children, onSectionChange }: Swipe
         }
         
         .pupil-detail-swiper .swiper-pagination-bullet-active {
-          background: #3b82f6;
+          background: rgb(var(--brand-surface-500));
           opacity: 1;
         }
         

@@ -231,7 +231,7 @@ export function FeesHolidayModal({
                       setCategories(categories.filter((c) => c !== "required"));
                     }
                   }}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-slate-700 dark:text-blue-400"
+                  className="h-4 w-4 rounded border-gray-300 text-brand-ink-600 focus:ring-brand-500 dark:border-slate-700 dark:text-brand-ink-400"
                 />
                 <Label htmlFor="category-required" className="cursor-pointer font-medium">
                   Required Fees
@@ -253,7 +253,7 @@ export function FeesHolidayModal({
                       setCategories(categories.filter((c) => c !== "non-required"));
                     }
                   }}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-slate-700 dark:text-blue-400"
+                  className="h-4 w-4 rounded border-gray-300 text-brand-ink-600 focus:ring-brand-500 dark:border-slate-700 dark:text-brand-ink-400"
                 />
                 <Label htmlFor="category-non-required" className="cursor-pointer font-medium">
                   Non-Required Fees
@@ -320,12 +320,12 @@ export function FeesHolidayModal({
           )}
 
           {/* Discount Preview */}
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/40 dark:border-blue-800/60">
+          <div className="p-4 bg-brand-surface-50 border border-brand-200 rounded-lg dark:bg-brand-surface-950/40 dark:border-brand-800/60">
             <div className="flex items-center gap-2 mb-2">
-              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-semibold text-blue-900 dark:text-blue-200">Discount Preview</span>
+              <Info className="h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
+              <span className="text-sm font-semibold text-brand-ink-900 dark:text-brand-ink-200">Discount Preview</span>
             </div>
-            <div className="text-sm text-blue-800 dark:text-blue-200">
+            <div className="text-sm text-brand-ink-800 dark:text-brand-ink-200">
               <span>This will apply a </span>
               <Badge variant="outline" className="mx-1">
                 {getDiscountLabel(discountType)}
@@ -351,7 +351,7 @@ export function FeesHolidayModal({
               id="isActive"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-slate-700 dark:text-blue-400"
+              className="h-4 w-4 rounded border-gray-300 text-brand-ink-600 focus:ring-brand-500 dark:border-slate-700 dark:text-brand-ink-400"
             />
             <Label htmlFor="isActive" className="cursor-pointer">
               Active (discount will be applied)

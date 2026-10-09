@@ -145,7 +145,7 @@ export default function BoardingListPage() {
 
   return (
     <div className="relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-fuchsia-50 pointer-events-none dark:from-indigo-950/40 dark:via-slate-900" />
+      <div className="absolute inset-0 bg-gradient-to-br from-brand-alt-surface-50 via-white to-fuchsia-50 pointer-events-none dark:from-brand-alt-surface-950/40 dark:via-slate-900" />
       <div className="relative p-3 sm:p-4 space-y-4">
         <div className="flex items-center gap-3 justify-between">
           <PageHeader title="Boarding Pupils" />
@@ -154,12 +154,12 @@ export default function BoardingListPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, admission number, or class..."
-              className="pl-3 pr-3 py-2 text-sm border border-indigo-200 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 rounded-full bg-white/90 dark:border-indigo-800/60 dark:focus:ring-indigo-800/60 dark:bg-slate-900/90"
+              className="pl-3 pr-3 py-2 text-sm border border-brand-alt-200 focus:border-brand-alt-400 focus:ring-1 focus:ring-brand-alt-100 rounded-full bg-white/90 dark:border-brand-alt-800/60 dark:focus:ring-brand-alt-800/60 dark:bg-slate-900/90"
             />
           </div>
           <Button
             onClick={() => router.push('/boarding/dormitory')}
-            className="rounded-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white shadow hover:from-indigo-700 hover:to-fuchsia-700"
+            className="rounded-full bg-gradient-to-r from-brand-alt-surface-600 to-fuchsia-600 text-white shadow hover:from-brand-alt-surface-700 hover:to-fuchsia-700"
             size="sm"
           >
             Back
@@ -168,7 +168,7 @@ export default function BoardingListPage() {
 
         <div className="grid gap-4 lg:grid-cols-2">
         {/* Boys */}
-        <Card className="border-indigo-100 bg-white/90 backdrop-blur-sm shadow-sm dark:border-indigo-800/60 dark:bg-slate-900/90">
+        <Card className="border-brand-alt-100 bg-white/90 backdrop-blur-sm shadow-sm dark:border-brand-alt-800/60 dark:bg-slate-900/90">
           <CardHeader className="py-2 sm:py-3">
             <CardTitle className="text-sm sm:text-base">Boys ({boys.length})</CardTitle>
           </CardHeader>
@@ -181,35 +181,35 @@ export default function BoardingListPage() {
                 const list = (boysByClass.get(cls) || []).slice().sort((a, b) => (a.lastName || '').localeCompare(b.lastName || ''));
                 return (
                   <div key={`boys-${cls}`} className="px-2 sm:px-3">
-                    <div className="text-xs font-medium text-indigo-900 mb-2 dark:text-indigo-200">{cls} • {list.length}</div>
-                    <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden dark:bg-slate-900 dark:border-indigo-800/60">
-                      <table className="min-w-full divide-y divide-indigo-100 dark:divide-indigo-800/60">
+                    <div className="text-xs font-medium text-brand-alt-ink-900 mb-2 dark:text-brand-alt-ink-200">{cls} • {list.length}</div>
+                    <div className="bg-white rounded-xl shadow-sm border border-brand-alt-100 overflow-hidden dark:bg-slate-900 dark:border-brand-alt-800/60">
+                      <table className="min-w-full divide-y divide-brand-alt-100 dark:divide-brand-alt-800/60">
                         <thead className="hidden">
                           <tr>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider dark:text-indigo-400">Pupil Info</th>
-                            <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider dark:text-indigo-400">Class</th>
-                            <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider dark:text-indigo-400">Family</th>
+                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-brand-alt-ink-500 uppercase tracking-wider dark:text-brand-alt-ink-400">Pupil Info</th>
+                            <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-brand-alt-ink-500 uppercase tracking-wider dark:text-brand-alt-ink-400">Class</th>
+                            <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-brand-alt-ink-500 uppercase tracking-wider dark:text-brand-alt-ink-400">Family</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-indigo-100 dark:bg-slate-900 dark:divide-indigo-800/60">
+                        <tbody className="bg-white divide-y divide-brand-alt-100 dark:bg-slate-900 dark:divide-brand-alt-800/60">
                           {list.map(p => {
                             const initials = `${(p.firstName || '').trim()[0] || ''}${(p.lastName || '').trim()[0] || ''}`.toUpperCase();
                             const guardiansCount = Array.isArray(p.guardians) ? p.guardians.length : 0;
                             const siblings = siblingsMap.get(p.id) || [];
                             const siblingCount = siblings.length;
                             return (
-                              <tr key={p.id} className="hover:bg-indigo-50 transition-colors dark:hover:bg-indigo-950/40">
+                              <tr key={p.id} className="hover:bg-brand-alt-surface-50 transition-colors dark:hover:bg-brand-alt-surface-950/40">
                                 <td className="px-2 sm:px-4 py-2 sm:py-3">
                                   <div className="flex items-center space-x-2 sm:space-x-3">
                                     <div className="relative flex-shrink-0">
-                                      <a className="block h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-indigo-100 overflow-hidden ring-2 ring-indigo-100 hover:ring-indigo-300 transition-all flex-shrink-0 dark:bg-indigo-950/40 dark:ring-indigo-800/60 dark:hover:ring-indigo-800/60" href={`/pupil-detail?id=${p.id}`}>
-                                        <div className="h-full w-full flex items-center justify-center text-indigo-500 text-xs sm:text-sm font-medium dark:text-indigo-400">
+                                      <a className="block h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-brand-alt-surface-100 overflow-hidden ring-2 ring-brand-alt-100 hover:ring-brand-alt-300 transition-all flex-shrink-0 dark:bg-brand-alt-surface-950/40 dark:ring-brand-alt-800/60 dark:hover:ring-brand-alt-800/60" href={`/pupil-detail?id=${p.id}`}>
+                                        <div className="h-full w-full flex items-center justify-center text-brand-alt-ink-500 text-xs sm:text-sm font-medium dark:text-brand-alt-ink-400">
                                           {initials || 'PU'}
                                         </div>
                                       </a>
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                      <a className="text-xs sm:text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors block truncate dark:text-indigo-400 dark:hover:text-indigo-200" href={`/pupil-detail?id=${p.id}`}>
+                                      <a className="text-xs sm:text-sm font-medium text-brand-alt-ink-600 hover:text-brand-alt-ink-800 transition-colors block truncate dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-200" href={`/pupil-detail?id=${p.id}`}>
                                         {formatPupilDisplayName(p).toUpperCase()}
                                       </a>
                                       <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
@@ -226,10 +226,10 @@ export default function BoardingListPage() {
                                   <div className="text-sm">{p.classCode || p.className || ''}</div>
                                 </td>
                                 <td className="hidden md:table-cell px-4 py-3">
-                                  <div className="text-left text-sm text-indigo-900 dark:text-indigo-200">
+                                  <div className="text-left text-sm text-brand-alt-ink-900 dark:text-brand-alt-ink-200">
                                     <span className="text-xs text-gray-500 dark:text-slate-400">
                                       <button
-                                        className="hover:underline cursor-pointer text-indigo-700 dark:text-indigo-300"
+                                        className="hover:underline cursor-pointer text-brand-alt-ink-700 dark:text-brand-alt-ink-300"
                                         onClick={(e) => {
                                           e.preventDefault();
                                           setSelectedPupilGuardians({
@@ -243,7 +243,7 @@ export default function BoardingListPage() {
                                       </button>
                                       {' • '}
                                       <button
-                                        className="hover:underline cursor-pointer text-indigo-700 dark:text-indigo-300"
+                                        className="hover:underline cursor-pointer text-brand-alt-ink-700 dark:text-brand-alt-ink-300"
                                         onClick={(e) => {
                                           e.preventDefault();
                                           const siblings = siblingsMap.get(p.id) || [];
@@ -273,7 +273,7 @@ export default function BoardingListPage() {
         </Card>
 
         {/* Girls */}
-        <Card className="border-indigo-100 bg-white/90 backdrop-blur-sm shadow-sm dark:border-indigo-800/60 dark:bg-slate-900/90">
+        <Card className="border-brand-alt-100 bg-white/90 backdrop-blur-sm shadow-sm dark:border-brand-alt-800/60 dark:bg-slate-900/90">
           <CardHeader className="py-2 sm:py-3">
             <CardTitle className="text-sm sm:text-base">Girls ({girls.length})</CardTitle>
           </CardHeader>
@@ -286,24 +286,24 @@ export default function BoardingListPage() {
                 const list = (girlsByClass.get(cls) || []).slice().sort((a, b) => (a.lastName || '').localeCompare(b.lastName || ''));
                 return (
                   <div key={`girls-${cls}`} className="px-2 sm:px-3">
-                    <div className="text-xs font-medium text-indigo-900 mb-2 dark:text-indigo-200">{cls} • {list.length}</div>
-                    <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden dark:bg-slate-900 dark:border-indigo-800/60">
-                      <table className="min-w-full divide-y divide-indigo-100 dark:divide-indigo-800/60">
+                    <div className="text-xs font-medium text-brand-alt-ink-900 mb-2 dark:text-brand-alt-ink-200">{cls} • {list.length}</div>
+                    <div className="bg-white rounded-xl shadow-sm border border-brand-alt-100 overflow-hidden dark:bg-slate-900 dark:border-brand-alt-800/60">
+                      <table className="min-w-full divide-y divide-brand-alt-100 dark:divide-brand-alt-800/60">
                         <thead className="hidden">
                           <tr>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider dark:text-indigo-400">Pupil Info</th>
-                            <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider dark:text-indigo-400">Class</th>
-                            <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider dark:text-indigo-400">Family</th>
+                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-brand-alt-ink-500 uppercase tracking-wider dark:text-brand-alt-ink-400">Pupil Info</th>
+                            <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-brand-alt-ink-500 uppercase tracking-wider dark:text-brand-alt-ink-400">Class</th>
+                            <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-brand-alt-ink-500 uppercase tracking-wider dark:text-brand-alt-ink-400">Family</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-indigo-100 dark:bg-slate-900 dark:divide-indigo-800/60">
+                        <tbody className="bg-white divide-y divide-brand-alt-100 dark:bg-slate-900 dark:divide-brand-alt-800/60">
                           {list.map(p => {
                             const initials = `${(p.firstName || '').trim()[0] || ''}${(p.lastName || '').trim()[0] || ''}`.toUpperCase();
                             const guardiansCount = Array.isArray(p.guardians) ? p.guardians.length : 0;
                             const siblings = siblingsMap.get(p.id) || [];
                             const siblingCount = siblings.length;
                             return (
-                              <tr key={p.id} className="hover:bg-indigo-50 transition-colors dark:hover:bg-indigo-950/40">
+                              <tr key={p.id} className="hover:bg-brand-alt-surface-50 transition-colors dark:hover:bg-brand-alt-surface-950/40">
                                 <td className="px-2 sm:px-4 py-2 sm:py-3">
                                   <div className="flex items-center space-x-2 sm:space-x-3">
                                     <div className="relative flex-shrink-0">
@@ -331,10 +331,10 @@ export default function BoardingListPage() {
                                   <div className="text-sm">{p.classCode || p.className || ''}</div>
                                 </td>
                                 <td className="hidden md:table-cell px-4 py-3">
-                                  <div className="text-left text-sm text-indigo-900 dark:text-indigo-200">
+                                  <div className="text-left text-sm text-brand-alt-ink-900 dark:text-brand-alt-ink-200">
                                     <span className="text-xs text-gray-500 dark:text-slate-400">
                                       <button
-                                        className="hover:underline cursor-pointer text-indigo-700 dark:text-indigo-300"
+                                        className="hover:underline cursor-pointer text-brand-alt-ink-700 dark:text-brand-alt-ink-300"
                                         onClick={(e) => {
                                           e.preventDefault();
                                           setSelectedPupilGuardians({
@@ -348,7 +348,7 @@ export default function BoardingListPage() {
                                       </button>
                                       {' • '}
                                       <button
-                                        className="hover:underline cursor-pointer text-indigo-700 dark:text-indigo-300"
+                                        className="hover:underline cursor-pointer text-brand-alt-ink-700 dark:text-brand-alt-ink-300"
                                         onClick={(e) => {
                                           e.preventDefault();
                                           const siblings = siblingsMap.get(p.id) || [];

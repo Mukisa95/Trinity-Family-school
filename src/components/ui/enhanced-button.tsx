@@ -26,10 +26,10 @@ const enhancedButtonVariants = cva(
         outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground hover:scale-[1.02] active:scale-[0.98]",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:scale-[1.02] active:scale-[0.98]",
         ghost: "hover:bg-accent hover:text-accent-foreground hover:scale-[1.02] active:scale-[0.98]",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-link underline-offset-4 hover:underline",
         success: "bg-green-600 text-white hover:bg-green-700 hover:scale-[1.02] active:scale-[0.98]",
         warning: "bg-yellow-600 text-white hover:bg-yellow-700 hover:scale-[1.02] active:scale-[0.98]",
-        gradient: "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 hover:scale-[1.02] active:scale-[0.98]",
+        gradient: "bg-gradient-to-r from-brand-surface-600 to-brand-secondary-surface-600 text-white hover:from-brand-surface-700 hover:to-brand-secondary-surface-700 hover:scale-[1.02] active:scale-[0.98]",
         glass: "bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 hover:scale-[1.02] active:scale-[0.98] dark:bg-slate-900/10 dark:border-slate-700/20 dark:hover:bg-slate-900/20",
       },
       size: {

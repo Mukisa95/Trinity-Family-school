@@ -176,8 +176,8 @@ export default function DormitoriesPage() {
         backLabel="Back to boarding"
         className="mb-1.5"
         meta={
-          <div className="rounded-full bg-gradient-to-r from-indigo-500 to-fuchsia-500 p-[1px] shrink-0 shadow-sm">
-            <div className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:bg-slate-900 dark:text-indigo-300">
+          <div className="rounded-full bg-gradient-to-r from-brand-alt-surface-500 to-fuchsia-500 p-[1px] shrink-0 shadow-sm">
+            <div className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-brand-alt-ink-700 dark:bg-slate-900 dark:text-brand-alt-ink-300">
               In-House
             </div>
           </div>
@@ -203,24 +203,24 @@ export default function DormitoriesPage() {
       <GlassSummaryBar
         left={
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+            <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
               Dormitories Summary
             </span>
           </div>
         }
         right={
           <>
-            <div className="flex items-center gap-1 bg-indigo-50/80 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="font-bold text-indigo-600 dark:text-indigo-400">{dormitories.length}</span>
-              <span className="text-indigo-700/85 dark:text-indigo-300 font-medium">Total Dorms</span>
+            <div className="flex items-center gap-1 bg-brand-alt-surface-50/80 dark:bg-brand-alt-surface-950/20 border border-brand-alt-100/50 dark:border-brand-alt-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-brand-alt-ink-600 dark:text-brand-alt-ink-400">{dormitories.length}</span>
+              <span className="text-brand-alt-ink-700/85 dark:text-brand-alt-ink-300 font-medium">Total Dorms</span>
             </div>
             <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="font-bold text-green-600 dark:text-green-400">{dormitories.reduce((n, d) => n + (d.bedCapacity ?? 0), 0)}</span>
               <span className="text-green-700/85 dark:text-green-300 font-medium">Total Capacity</span>
             </div>
-            <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="font-bold text-blue-600 dark:text-blue-400">{dormitories.filter(d => d.gender === 'Male').length}</span>
-              <span className="text-blue-700/85 dark:text-blue-300 font-medium">Boys Dorms</span>
+            <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-brand-ink-600 dark:text-brand-ink-400">{dormitories.filter(d => d.gender === 'Male').length}</span>
+              <span className="text-brand-ink-700/85 dark:text-brand-ink-300 font-medium">Boys Dorms</span>
             </div>
             <div className="flex items-center gap-1 bg-fuchsia-50/80 dark:bg-fuchsia-950/20 border border-fuchsia-100/50 dark:border-fuchsia-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="font-bold text-fuchsia-600 dark:text-fuchsia-400">{dormitories.filter(d => d.gender === 'Female').length}</span>
@@ -298,7 +298,7 @@ export default function DormitoriesPage() {
                   <Button
                     onClick={handleSaveDormitory}
                     disabled={createMutation.isPending || updateMutation.isPending}
-                    className="rounded-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white shadow-md hover:from-indigo-700 hover:to-fuchsia-700"
+                    className="rounded-full bg-gradient-to-r from-brand-alt-surface-600 to-fuchsia-600 text-white shadow-md hover:from-brand-alt-surface-700 hover:to-fuchsia-700"
                   >
                     {editing
                       ? (updateMutation.isPending ? 'Saving…' : 'Save Changes')
@@ -313,7 +313,7 @@ export default function DormitoriesPage() {
         <Card className="border-white/60 bg-white/70 backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/70">
           <CardHeader className="py-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Bed className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> Dormitories
+              <Bed className="h-5 w-5 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" /> Dormitories
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -358,7 +358,7 @@ export default function DormitoriesPage() {
                       </div>
                       <Link
                         href={`/boarding/dormitory/${d.id}`}
-                        className="text-sm rounded-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white px-3 py-1 shadow hover:from-indigo-700 hover:to-fuchsia-700"
+                        className="text-sm rounded-full bg-gradient-to-r from-brand-alt-surface-600 to-fuchsia-600 text-white px-3 py-1 shadow hover:from-brand-alt-surface-700 hover:to-fuchsia-700"
                       >
                         Open
                       </Link>

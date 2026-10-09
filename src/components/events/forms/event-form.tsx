@@ -714,7 +714,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
             {!event && (
               <div className="flex items-center gap-2 bg-slate-100 rounded-full p-1 dark:bg-slate-900">
                 <div className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${!isExamMode
-                  ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-400'
+                  ? 'bg-white text-brand-ink-600 shadow-sm dark:bg-slate-900 dark:text-brand-ink-400'
                   : 'text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-slate-100'
                   }`}>
                   Event
@@ -768,8 +768,8 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
             {/* Basic Information */}
             <div className="bg-white border-0 shadow-sm ring-1 ring-slate-200 rounded-2xl p-6 md:p-8 space-y-6 dark:bg-slate-900 dark:ring-slate-700">
               <div className="flex items-center gap-3 text-slate-800 border-b border-slate-100 pb-4 dark:text-slate-100 dark:border-slate-700">
-                <div className="p-2 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-100/50 dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800/50">
-                  <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div className="p-2 bg-gradient-to-br from-brand-surface-50 to-brand-alt-surface-50 rounded-xl shadow-sm border border-brand-100/50 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40 dark:border-brand-800/50">
+                  <Calendar className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
                 </div>
                 <h3 className="text-lg font-semibold tracking-tight">Basic Information</h3>
               </div>
@@ -785,7 +785,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                     onChange={(e) => updateFormData('title', e.target.value)}
                     {...formValidation.getFieldProps('title')}
                     placeholder={isExamMode ? "e.g., Mathematics End Term Exam" : "e.g., Annual Science Fair"}
-                    className={`mt-1 ${fieldError('title') ? 'border-red-500 focus:border-red-500' : 'border-slate-300 focus:border-blue-500 dark:border-slate-700'}`}
+                    className={`mt-1 ${fieldError('title') ? 'border-red-500 focus:border-red-500' : 'border-slate-300 focus:border-brand-500 dark:border-slate-700'}`}
                   />
                   {fieldError('title') && (
                     <p id="title-error" role="alert" className="text-xs text-red-500 mt-1 flex items-center gap-1 dark:text-red-400">
@@ -799,7 +799,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                   <div>
                     <Label htmlFor="type" className="text-sm font-medium">Event Type <span className="text-red-500 dark:text-red-400">*</span></Label>
                     <Select value={formData.type} onValueChange={handleTypeChange}>
-                      <SelectTrigger className="mt-1 border-slate-300 focus:border-blue-500 dark:border-slate-700">
+                      <SelectTrigger className="mt-1 border-slate-300 focus:border-brand-500 dark:border-slate-700">
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -822,7 +822,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                 <div>
                   <Label htmlFor="priority" className="text-sm font-medium">Priority</Label>
                   <Select value={formData.priority} onValueChange={(value: EventPriority) => updateFormData('priority', value)}>
-                    <SelectTrigger className="mt-1 border-slate-300 focus:border-blue-500 dark:border-slate-700">
+                    <SelectTrigger className="mt-1 border-slate-300 focus:border-brand-500 dark:border-slate-700">
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
                     <SelectContent>
@@ -850,7 +850,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                       value={formData.location || ''}
                       onChange={(e) => updateFormData('location', e.target.value)}
                       placeholder="e.g., Main Hall, Room 201"
-                      className="pl-9 border-slate-300 focus:border-blue-500 dark:border-slate-700"
+                      className="pl-9 border-slate-300 focus:border-brand-500 dark:border-slate-700"
                     />
                   </div>
                 </div>
@@ -868,7 +868,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                       value={formData.colorCode || EVENT_TYPE_COLORS['Academic']}
                       onChange={(e) => updateFormData('colorCode', e.target.value)}
                       placeholder="#3b82f6"
-                      className="flex-1 border-slate-300 focus:border-blue-500 dark:border-slate-700"
+                      className="flex-1 border-slate-300 focus:border-brand-500 dark:border-slate-700"
                     />
                   </div>
                 </div>
@@ -883,7 +883,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                     onChange={(e) => updateFormData('description', e.target.value)}
                     placeholder={isExamMode ? "Describe exam requirements, format, and instructions..." : "Provide event details, agenda, or requirements..."}
                     rows={4}
-                    className="mt-1.5 border-slate-300 focus:border-blue-500 focus:ring-blue-500/20 resize-y min-h-[100px] dark:border-slate-700"
+                    className="mt-1.5 border-slate-300 focus:border-brand-500 focus:ring-brand-500/20 resize-y min-h-[100px] dark:border-slate-700"
                   />
                 </div>
               </div>
@@ -892,8 +892,8 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
             {/* Date & Time */}
             <div className="bg-white border-0 shadow-sm ring-1 ring-slate-200 rounded-2xl p-6 md:p-8 space-y-6 dark:bg-slate-900 dark:ring-slate-700">
               <div className="flex items-center gap-3 text-slate-800 border-b border-slate-100 pb-4 dark:text-slate-100 dark:border-slate-700">
-                <div className="p-2 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl shadow-sm border border-purple-100/50 dark:from-purple-950/40 dark:to-pink-950/40 dark:border-purple-800/50">
-                  <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                <div className="p-2 bg-gradient-to-br from-brand-secondary-surface-50 to-pink-50 rounded-xl shadow-sm border border-brand-secondary-100/50 dark:from-brand-secondary-surface-950/40 dark:to-pink-950/40 dark:border-brand-secondary-800/50">
+                  <Clock className="h-5 w-5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                 </div>
                 <h3 className="text-lg font-semibold tracking-tight">Date & Time</h3>
                 <div className="ml-auto flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:bg-slate-100/80 transition-colors dark:bg-slate-900 dark:border-slate-700 dark:hover:bg-slate-900/80"
@@ -902,7 +902,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                     id="allDay"
                     checked={formData.isAllDay}
                     onCheckedChange={(checked) => updateFormData('isAllDay', checked)}
-                    className="data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                    className="data-[state=checked]:bg-brand-secondary-surface-600 data-[state=checked]:border-brand-secondary-600"
                   />
                   <Label htmlFor="allDay" className="text-sm font-medium cursor-pointer text-slate-700 dark:text-slate-200">
                     All Day Event
@@ -936,14 +936,14 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                           ) : (
                             <div className="flex flex-col gap-2">
                               {selectedDates.sort((a, b) => a.getTime() - b.getTime()).map((date, idx) => (
-                                <div key={idx} className="flex items-center justify-between bg-blue-50/50 hover:bg-blue-50 border border-blue-100 px-3 py-2 rounded-lg transition-colors group dark:bg-blue-950/50 dark:hover:bg-blue-950/40 dark:border-blue-800/60">
+                                <div key={idx} className="flex items-center justify-between bg-brand-surface-50/50 hover:bg-brand-surface-50 border border-brand-100 px-3 py-2 rounded-lg transition-colors group dark:bg-brand-surface-950/50 dark:hover:bg-brand-surface-950/40 dark:border-brand-800/60">
                                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                                     {date.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
                                   </span>
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-100 hover:text-red-500 rounded-full dark:hover:bg-blue-950/40 dark:hover:text-red-400"
+                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-brand-surface-100 hover:text-red-500 rounded-full dark:hover:bg-brand-surface-950/40 dark:hover:text-red-400"
                                     onClick={() => setSelectedDates(selectedDates.filter(d => d.getTime() !== date.getTime()))}
                                   >
                                     <X className="h-3.5 w-3.5" />
@@ -1014,7 +1014,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                         value={formData.startTime || ''}
                         onChange={(e) => updateFormData('startTime', e.target.value)}
                         {...formValidation.getFieldProps('startTime')}
-                        className={`border-slate-300 focus:border-blue-500  dark:border-slate-700 ${fieldError('startTime') ? 'border-red-500 focus:border-red-500' : ''}`}
+                        className={`border-slate-300 focus:border-brand-500  dark:border-slate-700 ${fieldError('startTime') ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
                       {fieldError('startTime') && (
                         <p id="startTime-error" role="alert" className="text-xs text-red-500 flex items-center gap-1 dark:text-red-400">
@@ -1034,7 +1034,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                         value={formData.endTime || ''}
                         onChange={(e) => updateFormData('endTime', e.target.value)}
                         {...formValidation.getFieldProps('endTime')}
-                        className={`border-slate-300 focus:border-blue-500  dark:border-slate-700 ${fieldError('endTime') ? 'border-red-500 focus:border-red-500' : ''}`}
+                        className={`border-slate-300 focus:border-brand-500  dark:border-slate-700 ${fieldError('endTime') ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
                       {fieldError('endTime') && (
                         <p id="endTime-error" role="alert" className="text-xs text-red-500 flex items-center gap-1 dark:text-red-400">
@@ -1163,7 +1163,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                     <Users className="h-5 w-5" />
                     Target Audience *
                     {formData.requiresAttendance && (
-                      <span className="text-sm font-normal text-blue-600 dark:text-blue-400">(Attendance Tracking Enabled)</span>
+                      <span className="text-sm font-normal text-brand-ink-600 dark:text-brand-ink-400">(Attendance Tracking Enabled)</span>
                     )}
                   </h3>
 
@@ -1171,8 +1171,8 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                     {/* Attendance-specific restrictions */}
                     {formData.requiresAttendance ? (
                       <div className="space-y-4">
-                        <div className="bg-blue-50 border border-blue-200 rounded-md p-3 dark:bg-blue-950/40 dark:border-blue-800/60">
-                          <p className="text-sm text-blue-800 mb-2 dark:text-blue-200">
+                        <div className="bg-brand-surface-50 border border-brand-200 rounded-md p-3 dark:bg-brand-surface-950/40 dark:border-brand-800/60">
+                          <p className="text-sm text-brand-ink-800 mb-2 dark:text-brand-ink-200">
                             <strong>Attendance Mode:</strong> Select one audience type for attendance tracking.
                           </p>
                         </div>
@@ -1205,7 +1205,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                         {formData.targetAudience && formData.targetAudience.length > 0 && (
                           <div className="flex flex-wrap gap-2">
                             {formData.targetAudience.map((audience, index) => (
-                              <Badge key={index} variant="default" className="bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
+                              <Badge key={index} variant="default" className="bg-brand-surface-100 text-brand-ink-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-200">
                                 {audience}
                               </Badge>
                             ))}
@@ -1406,9 +1406,9 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                 handleSubmit();
               }}
               disabled={createExamMutation.isPending}
-              className={`flex-1 sm:flex-none h-11 px-8 rounded-xl font-medium shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 transition-all active:scale-[0.98] ${isExamMode
+              className={`flex-1 sm:flex-none h-11 px-8 rounded-xl font-medium shadow-md shadow-brand-500/20 hover:shadow-lg hover:shadow-brand-500/30 transition-all active:scale-[0.98] ${isExamMode
                 ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
-                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
+                : 'bg-gradient-to-r from-brand-surface-600 to-brand-alt-surface-600 hover:from-brand-surface-700 hover:to-brand-alt-surface-700'
                 } text-white`}
             >
               <Save className="h-4 w-4 mr-2" />

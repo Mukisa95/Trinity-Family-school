@@ -216,7 +216,7 @@ function PendingPupilsContent() {
   if (pupilsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-link" />
         <span className="ml-2">Loading pending pupils...</span>
       </div>
     );
@@ -235,7 +235,7 @@ function PendingPupilsContent() {
                   <Button
                     onClick={handleToggleSelectionMode}
                     variant="default"
-                    className="rounded-full bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                    className="rounded-full bg-gradient-to-br from-brand-surface-600 to-brand-surface-700 hover:from-brand-surface-700 hover:to-brand-surface-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
                   >
                     <CheckCircle className="mr-2 h-4 w-4" />
                     Select
@@ -387,7 +387,7 @@ function PendingPupilsContent() {
                       <TableCell>
                         <Link
                           href={`/class-detail?id=${pupil.classId}`}
-                          className="text-blue-600 hover:underline font-medium dark:text-blue-400"
+                          className="text-brand-ink-600 hover:underline font-medium dark:text-brand-ink-400"
                         >
                           {getClassCode(pupil.classId) || getClassName(pupil.classId)}
                         </Link>
@@ -434,7 +434,7 @@ export default function PendingPupilsPage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-link" />
         <span className="ml-2">Loading...</span>
       </div>
     }>

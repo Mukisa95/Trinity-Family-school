@@ -130,7 +130,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
   if (isLoading || !dormitory) {
     return (
       <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-fuchsia-50 pointer-events-none dark:from-indigo-950/40 dark:via-slate-900" />
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-alt-surface-50 via-white to-fuchsia-50 pointer-events-none dark:from-brand-alt-surface-950/40 dark:via-slate-900" />
         <div className="relative p-4">
           <Button variant="secondary" onClick={() => goBack('/boarding/dormitory')} className="mb-3 inline-flex gap-2 rounded-full bg-white/70 backdrop-blur dark:bg-slate-900/70">
             <ArrowLeft className="h-4 w-4" /> Back
@@ -143,14 +143,14 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
 
   return (
     <div className="relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-fuchsia-50 pointer-events-none dark:from-indigo-950/40 dark:via-slate-900" />
+      <div className="absolute inset-0 bg-gradient-to-br from-brand-alt-surface-50 via-white to-fuchsia-50 pointer-events-none dark:from-brand-alt-surface-950/40 dark:via-slate-900" />
       <div className="relative p-4 sm:p-6 space-y-4">
         <div className="flex items-center justify-between">
           <Button variant="secondary" onClick={() => goBack('/boarding/dormitory')} className="inline-flex gap-2 rounded-full bg-white/70 backdrop-blur dark:bg-slate-900/70">
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
           <Dialog open={assignOpen} onOpenChange={(v) => { if (!v) setSelectedPupilIds([]); setAssignOpen(v); }}>
-            <Button onClick={() => setAssignOpen(true)} className="inline-flex gap-2 rounded-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white shadow-lg hover:from-indigo-700 hover:to-fuchsia-700">
+            <Button onClick={() => setAssignOpen(true)} className="inline-flex gap-2 rounded-full bg-gradient-to-r from-brand-alt-surface-600 to-fuchsia-600 text-white shadow-lg hover:from-brand-alt-surface-700 hover:to-fuchsia-700">
               <Plus className="h-4 w-4" /> Assign Pupils
             </Button>
             <DialogContent className="max-w-lg border border-white/60 bg-white/70 backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/70">
@@ -171,7 +171,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
                 <Button
                   onClick={() => assignMutation.mutate()}
                   disabled={assignMutation.isPending || selectedPupilIds.length === 0}
-                  className="rounded-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white shadow hover:from-indigo-700 hover:to-fuchsia-700"
+                  className="rounded-full bg-gradient-to-r from-brand-alt-surface-600 to-fuchsia-600 text-white shadow hover:from-brand-alt-surface-700 hover:to-fuchsia-700"
                 >
                   {assignMutation.isPending ? 'Assigning…' : 'Assign'}
                 </Button>
@@ -236,7 +236,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
             </Card>
           </div>
           <div className="lg:col-span-2">
-            <Card className="border-indigo-100 bg-white/90 backdrop-blur-sm shadow-sm h-full dark:border-indigo-800/60 dark:bg-slate-900/90">
+            <Card className="border-brand-alt-100 bg-white/90 backdrop-blur-sm shadow-sm h-full dark:border-brand-alt-800/60 dark:bg-slate-900/90">
               <CardHeader className="py-2 sm:py-3">
                 <CardTitle className="text-sm sm:text-base">Assigned Pupils ({assignedPupils.length})</CardTitle>
               </CardHeader>
@@ -248,27 +248,27 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
                     <div className="px-2 sm:px-4 py-2 sm:py-3">
                       <div className="flex items-center justify-between gap-2 sm:gap-4 mb-2 sm:mb-3">
                         <div className="flex-1 relative group">
-                          <div className="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none text-blue-500/80 group-hover:text-blue-600 transition-all duration-500 z-10 dark:text-blue-400/80 dark:group-hover:text-blue-400">
+                          <div className="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none text-brand-ink-500/80 group-hover:text-brand-ink-600 transition-all duration-500 z-10 dark:text-brand-ink-400/80 dark:group-hover:text-brand-ink-400">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256" className="sm:w-4 sm:h-4" fill="currentColor"><path d="M192,112a80,80,0,1,1-80-80A80,80,0,0,1,192,112Z" opacity=".2"></path><path d="M229.66,218.34,179.6,168.28a88.21,88.21,0,1,0-11.32,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
                           </div>
                           <input
                             placeholder="Search pupils..."
-                            className="w-full pl-8 sm:pl-10 pr-4 sm:pr-6 py-1.5 sm:py-2 text-sm bg-white rounded-full focus:ring-2 focus:ring-blue-400/50 focus:outline-none shadow-sm hover:shadow-md transition-all duration-500 ease-in-out placeholder:text-gray-400 placeholder:text-sm border border-indigo-100 dark:bg-slate-900 dark:placeholder:text-slate-400 dark:border-indigo-800/60"
+                            className="w-full pl-8 sm:pl-10 pr-4 sm:pr-6 py-1.5 sm:py-2 text-sm bg-white rounded-full focus:ring-2 focus:ring-brand-400/50 focus:outline-none shadow-sm hover:shadow-md transition-all duration-500 ease-in-out placeholder:text-gray-400 placeholder:text-sm border border-brand-alt-100 dark:bg-slate-900 dark:placeholder:text-slate-400 dark:border-brand-alt-800/60"
                             onChange={() => {}}
                           />
                         </div>
                       </div>
                     </div>
-                    <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden dark:bg-slate-900 dark:border-indigo-800/60">
-                      <table className="min-w-full divide-y divide-indigo-100 dark:divide-indigo-800/60">
-                        <thead className="bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-950/40 dark:to-slate-900">
+                    <div className="bg-white rounded-xl shadow-sm border border-brand-alt-100 overflow-hidden dark:bg-slate-900 dark:border-brand-alt-800/60">
+                      <table className="min-w-full divide-y divide-brand-alt-100 dark:divide-brand-alt-800/60">
+                        <thead className="bg-gradient-to-r from-brand-alt-surface-50 to-white dark:from-brand-alt-surface-950/40 dark:to-slate-900">
                           <tr>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider dark:text-indigo-400">Pupil Info</th>
-                            <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider dark:text-indigo-400">Class</th>
-                            <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider dark:text-indigo-400">Family</th>
+                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-brand-alt-ink-500 uppercase tracking-wider dark:text-brand-alt-ink-400">Pupil Info</th>
+                            <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-brand-alt-ink-500 uppercase tracking-wider dark:text-brand-alt-ink-400">Class</th>
+                            <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-brand-alt-ink-500 uppercase tracking-wider dark:text-brand-alt-ink-400">Family</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-indigo-100 dark:bg-slate-900 dark:divide-indigo-800/60">
+                        <tbody className="bg-white divide-y divide-brand-alt-100 dark:bg-slate-900 dark:divide-brand-alt-800/60">
                           {assignedPupils
                             .sort((a, b) => (a.lastName || '').localeCompare(b.lastName || ''))
                             .map((p) => {
@@ -276,18 +276,18 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
                               const guardiansCount = Array.isArray(p.guardians) ? p.guardians.length : 0;
                               const siblingsCount = (p.familyId ? (pupils as Pupil[]).filter(px => px.familyId === p.familyId && px.id !== p.id).length : 0);
                               return (
-                                <tr key={p.id} className="hover:bg-indigo-50 transition-colors dark:hover:bg-indigo-950/40">
+                                <tr key={p.id} className="hover:bg-brand-alt-surface-50 transition-colors dark:hover:bg-brand-alt-surface-950/40">
                                   <td className="px-2 sm:px-4 py-2 sm:py-3">
                                     <div className="flex items-center space-x-2 sm:space-x-3">
                                       <div className="relative flex-shrink-0">
-                                        <a className="block h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-indigo-100 overflow-hidden ring-2 ring-indigo-100 hover:ring-indigo-300 transition-all flex-shrink-0 dark:bg-indigo-950/40 dark:ring-indigo-800/60 dark:hover:ring-indigo-800/60" href={`/pupil-detail?id=${p.id}`}>
-                                          <div className="h-full w-full flex items-center justify-center text-indigo-500 text-xs sm:text-sm font-medium dark:text-indigo-400">
+                                        <a className="block h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-brand-alt-surface-100 overflow-hidden ring-2 ring-brand-alt-100 hover:ring-brand-alt-300 transition-all flex-shrink-0 dark:bg-brand-alt-surface-950/40 dark:ring-brand-alt-800/60 dark:hover:ring-brand-alt-800/60" href={`/pupil-detail?id=${p.id}`}>
+                                          <div className="h-full w-full flex items-center justify-center text-brand-alt-ink-500 text-xs sm:text-sm font-medium dark:text-brand-alt-ink-400">
                                             {initials || 'PU'}
                                           </div>
                                         </a>
                                       </div>
                                       <div className="min-w-0 flex-1">
-                                        <a className="text-xs sm:text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors block truncate dark:text-indigo-400 dark:hover:text-indigo-200" href={`/pupil-detail?id=${p.id}`}>
+                                        <a className="text-xs sm:text-sm font-medium text-brand-alt-ink-600 hover:text-brand-alt-ink-800 transition-colors block truncate dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-200" href={`/pupil-detail?id=${p.id}`}>
                                           {formatPupilDisplayName(p).toUpperCase()}
                                         </a>
                                         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
@@ -302,16 +302,16 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
                                   </td>
                                   <td className="hidden sm:table-cell px-4 py-3">
                                     <div className="text-sm">
-                                      <button className="text-indigo-900 hover:text-indigo-600 hover:underline transition-colors font-medium text-left dark:text-indigo-200 dark:hover:text-indigo-400" type="button">
+                                      <button className="text-brand-alt-ink-900 hover:text-brand-alt-ink-600 hover:underline transition-colors font-medium text-left dark:text-brand-alt-ink-200 dark:hover:text-brand-alt-ink-400" type="button">
                                         {p.classCode || p.className || ''}
                                       </button>
                                     </div>
                                   </td>
                                   <td className="hidden md:table-cell px-4 py-3">
-                                    <div className="text-left text-sm text-indigo-900 dark:text-indigo-200">
+                                    <div className="text-left text-sm text-brand-alt-ink-900 dark:text-brand-alt-ink-200">
                                       <span className="text-xs text-gray-500 dark:text-slate-400">
                                         <button
-                                          className="hover:underline cursor-pointer text-indigo-700 dark:text-indigo-300"
+                                          className="hover:underline cursor-pointer text-brand-alt-ink-700 dark:text-brand-alt-ink-300"
                                           onClick={(e) => {
                                             e.preventDefault();
                                             setSelectedPupilGuardians({
@@ -325,7 +325,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
                                         </button>
                                         {' • '}
                                         <button
-                                          className="hover:underline cursor-pointer text-indigo-700 dark:text-indigo-300"
+                                          className="hover:underline cursor-pointer text-brand-alt-ink-700 dark:text-brand-alt-ink-300"
                                           onClick={(e) => {
                                             e.preventDefault();
                                             const siblings = getSiblings(p);

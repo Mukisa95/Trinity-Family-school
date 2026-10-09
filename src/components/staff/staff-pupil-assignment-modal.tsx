@@ -240,7 +240,7 @@ export function StaffPupilAssignmentModal({
               <div className="text-sm text-gray-600 dark:text-slate-300">
                 {filteredPupils.length} pupil{filteredPupils.length !== 1 ? "s" : ""} found
                 {selectedPupilIds.size > 0 && (
-                  <span className="ml-2 text-blue-600 font-medium dark:text-blue-400">
+                  <span className="ml-2 text-brand-ink-600 font-medium dark:text-brand-ink-400">
                     ({selectedPupilIds.size} selected)
                   </span>
                 )}
@@ -250,7 +250,7 @@ export function StaffPupilAssignmentModal({
               <div className="flex-1 overflow-y-auto space-y-2">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
+                    <Loader2 className="h-8 w-8 animate-spin text-brand-ink-600 dark:text-brand-ink-400" />
                     <span className="ml-2 text-gray-600 dark:text-slate-300">Loading pupils...</span>
                   </div>
                 ) : filteredPupils.length === 0 ? (
@@ -264,7 +264,7 @@ export function StaffPupilAssignmentModal({
                       key={pupil.id}
                       className={`cursor-pointer transition-all hover:shadow-md ${
                         selectedPupilIds.has(pupil.id)
-                          ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/40"
+                          ? "ring-2 ring-brand-500 bg-brand-surface-50 dark:bg-brand-surface-950/40"
                           : ""
                       }`}
                       onClick={() => handleTogglePupil(pupil.id)}
@@ -280,7 +280,7 @@ export function StaffPupilAssignmentModal({
                             {pupil.photo ? (
                               <AvatarImage src={pupil.photo} alt={formatPupilDisplayName(pupil)} />
                             ) : null}
-                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                            <AvatarFallback className="bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 text-white">
                               {pupil.firstName[0]}{pupil.lastName[0]}
                             </AvatarFallback>
                           </Avatar>
@@ -343,7 +343,7 @@ export function StaffPupilAssignmentModal({
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            <Users className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
                             <h3 className="font-semibold">
                               {familyId === "no-family" ? "No Family" : `Family ${familyId.slice(0, 8)}`}
                             </h3>
@@ -365,7 +365,7 @@ export function StaffPupilAssignmentModal({
                               key={pupil.id}
                               className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
                                 selectedPupilIds.has(pupil.id)
-                                  ? "bg-blue-50 border border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60"
+                                  ? "bg-brand-surface-50 border border-brand-200 dark:bg-brand-surface-950/40 dark:border-brand-800/60"
                                   : "hover:bg-gray-50 dark:hover:bg-slate-900"
                               }`}
                               onClick={() => handleTogglePupil(pupil.id)}
@@ -428,7 +428,7 @@ export function StaffPupilAssignmentModal({
                             {pupil.photo ? (
                               <AvatarImage src={pupil.photo} alt={formatPupilDisplayName(pupil)} />
                             ) : null}
-                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                            <AvatarFallback className="bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 text-white">
                               {pupil.firstName[0]}{pupil.lastName[0]}
                             </AvatarFallback>
                           </Avatar>

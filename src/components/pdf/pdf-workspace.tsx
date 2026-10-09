@@ -48,15 +48,15 @@ function PDFDocumentSurface({
     return (
       <div className="flex h-full min-h-0 items-center justify-center bg-slate-100 px-5 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
         <div className="w-full max-w-md rounded-[28px] border border-slate-200 bg-white p-6 text-center shadow-[0_24px_70px_-24px_rgba(15,23,42,0.32)] sm:p-8 dark:border-slate-700 dark:bg-slate-900">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 ring-1 ring-blue-200 dark:bg-blue-950/40 dark:ring-blue-800/60">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600 motion-reduce:animate-none dark:text-blue-400" aria-hidden="true" />
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-brand-surface-50 ring-1 ring-brand-200 dark:bg-brand-surface-950/40 dark:ring-brand-800/60">
+            <Loader2 className="h-8 w-8 animate-spin text-brand-ink-600 motion-reduce:animate-none dark:text-brand-ink-400" aria-hidden="true" />
           </div>
           <h2 className="text-lg font-semibold sm:text-xl">Creating {document.title}</h2>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{document.message}</p>
           <Progress value={document.progress} className="mt-6 h-2 bg-slate-100 dark:bg-slate-900" />
           <div className="mt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
             <span>Generation continues if this window is minimized</span>
-            <span className="font-semibold text-blue-700 dark:text-blue-300">{document.progress}%</span>
+            <span className="font-semibold text-brand-ink-700 dark:text-brand-ink-300">{document.progress}%</span>
           </div>
         </div>
       </div>
@@ -159,7 +159,7 @@ export function PDFWorkspace() {
             aria-atomic="true"
             className="pdf-workspace-solid-surface fixed bottom-[11.75rem] right-3 z-[95] isolate w-[min(380px,calc(100vw-24px))] overflow-hidden rounded-[24px] border-2 border-emerald-300 shadow-[0_24px_70px_-20px_rgba(5,150,105,0.55)] dark:border-emerald-800/60"
           >
-            <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-indigo-500" />
+            <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-brand-alt-surface-500" />
             <div className="flex items-start gap-3 p-4">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
                 <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
@@ -195,9 +195,9 @@ export function PDFWorkspace() {
             <button
               type="button"
               onClick={() => expandWorkspace()}
-              className="flex min-w-0 flex-1 items-center gap-2 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              className="flex min-w-0 flex-1 items-center gap-2 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-alt-500"
             >
-              <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+              <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-alt-surface-600 text-white shadow-sm">
                 <FileText className="h-4 w-4" aria-hidden="true" />
                 {generatingCount > 0 && (
                   <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-white bg-amber-400 dark:border-slate-700" />
@@ -222,9 +222,9 @@ export function PDFWorkspace() {
                 role="tab"
                 aria-selected={document.id === activeDocumentId}
                 onClick={() => expandWorkspace(document.id)}
-                className={`min-w-[150px] rounded-xl border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                className={`min-w-[150px] rounded-xl border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-alt-500 ${
                   document.id === activeDocumentId
-                    ? "border-blue-300 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/40"
+                    ? "border-brand-300 bg-brand-surface-50 dark:border-brand-800/60 dark:bg-brand-surface-950/40"
                     : "border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-900"
                 }`}
               >
@@ -258,7 +258,7 @@ export function PDFWorkspace() {
     >
       <header className="flex min-h-14 items-center gap-1 border-b border-slate-200 bg-white px-2 text-slate-900 sm:min-h-16 sm:gap-2 sm:px-4 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200 sm:h-11 sm:w-11 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-800/60">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-surface-50 text-brand-ink-700 ring-1 ring-brand-200 sm:h-11 sm:w-11 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:ring-brand-800/60">
             <FileText className="h-4 w-4" aria-hidden="true" />
           </span>
           <div className="min-w-0">
@@ -271,7 +271,7 @@ export function PDFWorkspace() {
             <>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button type="button" size="icon" variant="ghost" className="h-11 w-11 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700 sm:h-9 sm:w-9 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300" aria-label="Download PDF or image">
+                  <Button type="button" size="icon" variant="ghost" className="h-11 w-11 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-brand-surface-50 hover:text-brand-ink-700 sm:h-9 sm:w-9 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-300" aria-label="Download PDF or image">
                     <Download className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -284,18 +284,18 @@ export function PDFWorkspace() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button type="button" size="icon" variant="ghost" onClick={viewerActions.printPDF} className="hidden h-9 w-9 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700 sm:inline-flex dark:border-slate-700 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300" aria-label="Print PDF">
+              <Button type="button" size="icon" variant="ghost" onClick={viewerActions.printPDF} className="hidden h-9 w-9 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-brand-surface-50 hover:text-brand-ink-700 sm:inline-flex dark:border-slate-700 dark:text-slate-300 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-300" aria-label="Print PDF">
                 <Printer className="h-4 w-4" aria-hidden="true" />
               </Button>
-              <Button type="button" size="icon" variant="ghost" onClick={viewerActions.openExternally} className="hidden h-9 w-9 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700 sm:inline-flex dark:border-slate-700 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300" aria-label="Open PDF in browser">
+              <Button type="button" size="icon" variant="ghost" onClick={viewerActions.openExternally} className="hidden h-9 w-9 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-brand-surface-50 hover:text-brand-ink-700 sm:inline-flex dark:border-slate-700 dark:text-slate-300 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-300" aria-label="Open PDF in browser">
                 <ExternalLink className="h-4 w-4" aria-hidden="true" />
               </Button>
-              <Button type="button" size="icon" variant="ghost" onClick={viewerActions.toggleFullscreen} className="hidden h-9 w-9 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700 sm:inline-flex dark:border-slate-700 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300" aria-label={viewerActions.isFullscreen ? "Exit full screen" : "View PDF workspace in full screen"}>
+              <Button type="button" size="icon" variant="ghost" onClick={viewerActions.toggleFullscreen} className="hidden h-9 w-9 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-brand-surface-50 hover:text-brand-ink-700 sm:inline-flex dark:border-slate-700 dark:text-slate-300 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-300" aria-label={viewerActions.isFullscreen ? "Exit full screen" : "View PDF workspace in full screen"}>
                 {viewerActions.isFullscreen ? <Minimize2 className="h-4 w-4" aria-hidden="true" /> : <Maximize2 className="h-4 w-4" aria-hidden="true" />}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button type="button" size="icon" variant="ghost" className="h-11 w-11 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700 sm:hidden dark:border-slate-700 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300" aria-label="More PDF actions">
+                  <Button type="button" size="icon" variant="ghost" className="h-11 w-11 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-brand-surface-50 hover:text-brand-ink-700 sm:hidden dark:border-slate-700 dark:text-slate-300 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-300" aria-label="More PDF actions">
                     <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -313,7 +313,7 @@ export function PDFWorkspace() {
               </DropdownMenu>
             </>
           )}
-          <Button type="button" size="icon" variant="ghost" onClick={minimizeWorkspace} className="h-11 w-11 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700 sm:h-9 sm:w-9 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300" aria-label="Minimize PDF workspace">
+          <Button type="button" size="icon" variant="ghost" onClick={minimizeWorkspace} className="h-11 w-11 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-brand-surface-50 hover:text-brand-ink-700 sm:h-9 sm:w-9 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-300" aria-label="Minimize PDF workspace">
             <Minimize2 className="h-4 w-4" aria-hidden="true" />
           </Button>
           <Button type="button" size="icon" variant="ghost" onClick={closeAllDocuments} className="h-11 w-11 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-red-50 hover:text-red-700 sm:h-9 sm:w-9 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-red-950/40 dark:hover:text-red-300" aria-label="Close all PDF documents">
@@ -339,7 +339,7 @@ export function PDFWorkspace() {
               aria-selected={document.id === activeDocumentId}
               aria-controls="pdf-workspace-panel"
               onClick={() => selectDocument(document.id)}
-              className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 px-2 py-2.5 text-left text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+              className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 px-2 py-2.5 text-left text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
             >
               {document.status === "generating" ? (
                 <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-amber-500 motion-reduce:animate-none dark:text-amber-400" aria-hidden="true" />
@@ -351,7 +351,7 @@ export function PDFWorkspace() {
               <span className="truncate">{document.title}</span>
             </button>
             {document.status === "error" && (
-            <button type="button" onClick={() => retryDocument(document.id)} className="flex h-11 w-11 cursor-pointer touch-manipulation items-center justify-center rounded-full text-slate-500 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:h-9 sm:w-9 dark:text-slate-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-300" aria-label={`Retry ${document.title}`}>
+            <button type="button" onClick={() => retryDocument(document.id)} className="flex h-11 w-11 cursor-pointer touch-manipulation items-center justify-center rounded-full text-slate-500 hover:bg-brand-surface-50 hover:text-brand-ink-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 sm:h-9 sm:w-9 dark:text-slate-400 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-300" aria-label={`Retry ${document.title}`}>
                 <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
             )}

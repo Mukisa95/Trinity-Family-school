@@ -95,17 +95,17 @@ export function ParentOfflineReadinessCard({ accountId }: { accountId?: string }
   return (
     <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 dark:bg-slate-900 dark:border-slate-700" aria-live="polite">
       <div className="flex items-start gap-3">
-        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${status?.ready ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'}`}>
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${status?.ready ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' : 'bg-brand-surface-100 text-brand-ink-700 dark:bg-brand-surface-950 dark:text-brand-ink-300'}`}>
           {status?.ready ? <CheckCircle2 className="w-5 h-5" /> : <CloudDownload className="w-5 h-5" />}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">Offline download</p>
-            <span className={`text-sm font-bold tabular-nums ${status?.ready ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'}`}>
+            <span className={`text-sm font-bold tabular-nums ${status?.ready ? 'text-green-700 dark:text-green-300' : 'text-brand-ink-700 dark:text-brand-ink-300'}`}>
               {percentage}%
             </span>
           </div>
-          <p className={`text-sm font-medium ${status?.ready ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'}`}>
+          <p className={`text-sm font-medium ${status?.ready ? 'text-green-700 dark:text-green-300' : 'text-brand-ink-700 dark:text-brand-ink-300'}`}>
             {status?.ready
               ? 'Dashboard ready offline'
               : status
@@ -113,7 +113,7 @@ export function ParentOfflineReadinessCard({ accountId }: { accountId?: string }
                 : 'Checking saved information…'}
           </p>
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-slate-800" role="progressbar" aria-label="Offline download progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentage}>
-            <div className={`h-full rounded-full transition-[width] duration-300 ${status?.ready ? 'bg-green-600' : 'bg-blue-600'}`} style={{ width: `${percentage}%` }} />
+            <div className={`h-full rounded-full transition-[width] duration-300 ${status?.ready ? 'bg-green-600' : 'bg-brand-surface-600'}`} style={{ width: `${percentage}%` }} />
           </div>
           <p className="mt-2 text-xs text-gray-500 dark:text-slate-400">
             {status?.preparedAt
@@ -133,7 +133,7 @@ export function ParentOfflineReadinessCard({ accountId }: { accountId?: string }
                   <li key={dataset.id} className="flex items-start gap-2 rounded-lg bg-gray-50 px-3 py-2 dark:bg-slate-900">
                     {dataset.state === 'saved'
                       ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-300" />
-                      : <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-blue-500 dark:text-blue-400" />}
+                      : <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-brand-ink-500 dark:text-brand-ink-400" />}
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-baseline justify-between gap-x-2">
                         <span className="text-xs font-medium text-gray-800 dark:text-slate-100">{dataset.label}</span>
@@ -153,7 +153,7 @@ export function ParentOfflineReadinessCard({ accountId }: { accountId?: string }
 
       {error && <p className="mt-2 text-xs text-red-600 dark:text-red-300">{error}</p>}
       <button type="button" disabled={busy || !online} onClick={retry}
-        className="mt-3 flex min-h-10 items-center gap-2 text-xs font-semibold text-blue-700 disabled:opacity-50 dark:text-blue-300">
+        className="mt-3 flex min-h-10 items-center gap-2 text-xs font-semibold text-brand-ink-700 disabled:opacity-50 dark:text-brand-ink-300">
         <RefreshCw className={`w-3.5 h-3.5 ${busy ? 'animate-spin' : ''}`} />
         {busy ? 'Updating downloaded data…' : status?.ready ? 'Check for updates' : 'Continue download'}
       </button>

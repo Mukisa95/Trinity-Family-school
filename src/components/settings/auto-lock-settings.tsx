@@ -69,7 +69,7 @@ export function AutoLockSettings() {
           </div>
         </div>
         <button type="button" role="switch" aria-checked={autoLockEnabled} onClick={toggleAutoLock}
-          className={`relative mt-1 inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${autoLockEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-slate-700'}`}>
+          className={`relative mt-1 inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${autoLockEnabled ? 'bg-brand-surface-600' : 'bg-gray-300 dark:bg-slate-700'}`}>
           <span className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${autoLockEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
       </div>
@@ -82,7 +82,7 @@ export function AutoLockSettings() {
               const selected = autoLockAction === action.value;
               return (
                 <button key={action.value} type="button" onClick={() => setAutoLockAction(action.value)}
-                  className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-medium transition-colors ${selected ? 'border-blue-500 bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-100' : 'border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:hover:bg-slate-800 dark:text-slate-300'}`}>
+                  className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-medium transition-colors ${selected ? 'border-brand-500 bg-brand-surface-50 text-brand-ink-800 dark:bg-brand-surface-950 dark:text-brand-ink-100' : 'border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:hover:bg-slate-800 dark:text-slate-300'}`}>
                   <Icon className="h-4 w-4 shrink-0" /> {action.label}
                 </button>
               );
@@ -90,12 +90,12 @@ export function AutoLockSettings() {
           </div>
 
           {autoLockAction !== 'signout' && (
-            <div className="flex items-start justify-between gap-3 rounded-xl bg-indigo-50 px-3 py-3 dark:bg-indigo-950">
+            <div className="flex items-start justify-between gap-3 rounded-xl bg-brand-alt-surface-50 px-3 py-3 dark:bg-brand-alt-surface-950">
               <div className="flex gap-2">
-                <Fingerprint className="mt-0.5 h-4 w-4 shrink-0 text-indigo-700 dark:text-indigo-300" />
+                <Fingerprint className="mt-0.5 h-4 w-4 shrink-0 text-brand-alt-ink-700 dark:text-brand-alt-ink-300" />
                 <div>
-                  <p className="text-xs font-semibold text-indigo-950 dark:text-indigo-100">Require device unlock</p>
-                  <p className="mt-0.5 text-[11px] leading-4 text-indigo-700 dark:text-indigo-300">
+                  <p className="text-xs font-semibold text-brand-alt-ink-950 dark:text-brand-alt-ink-100">Require device unlock</p>
+                  <p className="mt-0.5 text-[11px] leading-4 text-brand-alt-ink-700 dark:text-brand-alt-ink-300">
                     {deviceUnlockAvailable === null
                       ? 'Checking biometric / device unlock on this device…'
                       : deviceUnlockAvailable
@@ -107,13 +107,13 @@ export function AutoLockSettings() {
               <button type="button" role="switch" aria-checked={deviceUnlockForAutoLock}
                 disabled={deviceUnlockAvailable !== true}
                 onClick={() => setDeviceUnlockForAutoLock(!deviceUnlockForAutoLock)}
-                className={`relative mt-0.5 inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-40 ${deviceUnlockForAutoLock ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-700'}`}>
+                className={`relative mt-0.5 inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-40 ${deviceUnlockForAutoLock ? 'bg-brand-alt-surface-600' : 'bg-gray-300 dark:bg-slate-700'}`}>
                 <span className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${deviceUnlockForAutoLock ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
             </div>
           )}
 
-          <button type="button" onClick={lockAccount} className="min-h-10 text-xs font-semibold text-blue-700 dark:text-blue-300">
+          <button type="button" onClick={lockAccount} className="min-h-10 text-xs font-semibold text-brand-ink-700 dark:text-brand-ink-300">
             Lock now to test
           </button>
         </>

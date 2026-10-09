@@ -86,7 +86,7 @@ export function ProcurementSignatureDisplay({
         
         {modificationSignatures.map((modSig, index) => (
           <div key={modSig.id} className="flex items-center gap-2">
-            <Edit3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <Edit3 className="w-4 h-4 text-brand-ink-600 dark:text-brand-ink-400" />
             <DetailedSignature
               signature={modSig.signature}
               action="Modified"
@@ -198,7 +198,7 @@ export function ItemSignatureDisplay({
         
         {latestModification && (
           <div className="flex items-center gap-2">
-            <Edit3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <Edit3 className="w-4 h-4 text-brand-ink-600 dark:text-brand-ink-400" />
             <DetailedSignature
               signature={latestModification.signature}
               action="Last Modified"
@@ -284,7 +284,7 @@ export function ProcurementAuditTrail({
       case 'purchase_modified':
       case 'item_modified':
       case 'budget_modified':
-        return <Edit3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
+        return <Edit3 className="w-4 h-4 text-brand-ink-600 dark:text-brand-ink-400" />;
       case 'purchase_deleted':
         return <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />;
       default:
@@ -326,7 +326,7 @@ export function ProcurementAuditTrail({
                   {getActionLabel(auditEntry.action)}
                 </span>
                 <span className="text-muted-foreground">by</span>
-                <span className="font-medium text-primary">
+                <span className="font-medium text-link">
                   {auditEntry.signature.userName}
                 </span>
               </div>

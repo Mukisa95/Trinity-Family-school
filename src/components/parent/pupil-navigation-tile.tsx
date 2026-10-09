@@ -25,10 +25,10 @@ export function PupilNavigationTile({
       label: 'Pupil Info',
       icon: User,
       description: 'Personal & School Information',
-      gradient: 'from-blue-500 to-indigo-600',
-      outline: 'hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20',
-      iconColor: 'text-blue-600 dark:text-blue-400',
-      labelColor: 'text-blue-700 dark:text-blue-300'
+      gradient: 'from-brand-surface-500 to-brand-alt-surface-600',
+      outline: 'hover:border-brand-300 dark:hover:border-brand-600 hover:bg-brand-surface-50 dark:hover:bg-brand-surface-900/20',
+      iconColor: 'text-brand-ink-600 dark:text-brand-ink-400',
+      labelColor: 'text-brand-ink-700 dark:text-brand-ink-300'
     },
     {
       id: 'fees' as const,
@@ -52,7 +52,7 @@ export function PupilNavigationTile({
         <CardContent className="p-4 sm:p-6">
           {/* Header */}
           <div className="flex items-center mb-4">
-            <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-2 rounded-lg mr-3">
+            <div className="bg-gradient-to-r from-brand-secondary-surface-500 to-pink-600 p-2 rounded-lg mr-3">
               <BookOpen className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -106,7 +106,7 @@ export function PupilNavigationTile({
           {/* Active Section Indicator */}
           <div className="mt-4 p-3 bg-white/60 dark:bg-gray-800/40 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
-              <Info className="h-4 w-4 text-blue-500 mr-2 dark:text-blue-400" />
+              <Info className="h-4 w-4 text-brand-ink-500 mr-2 dark:text-brand-ink-400" />
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 Currently viewing: <span className="font-semibold text-gray-900 dark:text-gray-100">
                   {navigationItems.find(item => item.id === activeView)?.label}

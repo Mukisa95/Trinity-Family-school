@@ -152,7 +152,7 @@ import {
 const getGradeColor = (grade: string): string => {
   if (grade === 'MISSED') return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60';
   if (grade.startsWith('D')) return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
-  if (grade.startsWith('C')) return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+  if (grade.startsWith('C')) return 'bg-brand-surface-100 text-brand-ink-800 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60';
   if (grade.startsWith('P')) return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
   return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60'; // For F9
 };
@@ -160,7 +160,7 @@ const getGradeColor = (grade: string): string => {
 const getDivisionColor = (division: string): string => {
   switch (division) {
     case 'I': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
-    case 'II': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+    case 'II': return 'bg-brand-surface-100 text-brand-ink-800 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60';
     case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
     case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60';
     default: return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60'; // For 'U'
@@ -615,7 +615,7 @@ const PrintAssessmentOptionsDialog = ({
           <Button
             type="button"
             onClick={handleConfirm}
-            className="min-h-11 rounded-full bg-blue-600 px-6 font-semibold text-white hover:bg-blue-700"
+            className="min-h-11 rounded-full bg-brand-surface-600 px-6 font-semibold text-white hover:bg-brand-surface-700"
           >
             Create PDF
           </Button>
@@ -703,10 +703,10 @@ const PrintAssessmentOptionsDialog = ({
 
           {reportType !== 'detailed' && (
             <RadioGroup value={orientation} onValueChange={(value) => setOrientation(value as 'landscape' | 'portrait')} className="grid grid-cols-2 gap-3">
-              <Label htmlFor="orientation-landscape" className="flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 hover:border-blue-300 has-[[data-state=checked]]:border-blue-600 has-[[data-state=checked]]:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-blue-800/60">
+              <Label htmlFor="orientation-landscape" className="flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 hover:border-brand-300 has-[[data-state=checked]]:border-brand-600 has-[[data-state=checked]]:bg-brand-surface-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-brand-800/60">
                 <RadioGroupItem id="orientation-landscape" value="landscape" /> Landscape
               </Label>
-              <Label htmlFor="orientation-portrait" className="flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 hover:border-blue-300 has-[[data-state=checked]]:border-blue-600 has-[[data-state=checked]]:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-blue-800/60">
+              <Label htmlFor="orientation-portrait" className="flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 hover:border-brand-300 has-[[data-state=checked]]:border-brand-600 has-[[data-state=checked]]:bg-brand-surface-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-brand-800/60">
                 <RadioGroupItem id="orientation-portrait" value="portrait" /> Portrait
               </Label>
             </RadioGroup>
@@ -717,8 +717,8 @@ const PrintAssessmentOptionsDialog = ({
               <h3 className="shrink-0 text-sm font-bold text-slate-900 dark:text-slate-100">Grading scale</h3>
               <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pb-0.5">
                 {gradingScale.slice(0, 10).map((scale, index) => (
-                  <span key={`${scale.grade}-${index}`} className="shrink-0 rounded-full border border-blue-100 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 dark:border-blue-800/60 dark:bg-slate-900 dark:text-slate-200">
-                    {scale.minMark === 0 ? `0-${scale.maxMark}` : `${scale.minMark}-${scale.maxMark}`} · <span className="text-blue-700 dark:text-blue-300">{scale.grade}</span>
+                  <span key={`${scale.grade}-${index}`} className="shrink-0 rounded-full border border-brand-100 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 dark:border-brand-800/60 dark:bg-slate-900 dark:text-slate-200">
+                    {scale.minMark === 0 ? `0-${scale.maxMark}` : `${scale.minMark}-${scale.maxMark}`} · <span className="text-brand-ink-700 dark:text-brand-ink-300">{scale.grade}</span>
                   </span>
                 ))}
               </div>
@@ -4079,8 +4079,8 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
   const getSortIcon = (field: string) => {
     if (sortField !== field) return null;
     return sortDirection === 'asc' ?
-      <ChevronUp className="w-3 h-3 text-blue-600 dark:text-blue-400" /> :
-      <ChevronDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />;
+      <ChevronUp className="w-3 h-3 text-brand-ink-600 dark:text-brand-ink-400" /> :
+      <ChevronDown className="w-3 h-3 text-brand-ink-600 dark:text-brand-ink-400" />;
   };
 
   // 🚀 OPTIMIZED: Only show loading spinner if we have no cached data at all
@@ -4093,7 +4093,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto" />
           <p className="mt-4 text-lg text-gray-700 dark:text-slate-200">Loading exam results...</p>
         </div>
       </div>
@@ -4134,7 +4134,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       <div className="min-h-screen p-2">
         <div className="max-w-7xl mx-auto">
           <div className="bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden mb-4 dark:bg-slate-900 dark:border-slate-700">
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 border-b border-gray-200 dark:border-slate-700">
+            <div className="bg-gradient-to-r from-brand-surface-600 to-brand-secondary-surface-600 p-3 border-b border-gray-200 dark:border-slate-700">
               <div className="flex justify-between items-start gap-2">
                 <div className="min-w-0 flex-1">
                   <h1 className="text-lg font-bold text-white truncate">
@@ -4244,14 +4244,14 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
           className="mb-1.5"
           meta={
             <div className="flex items-center gap-1.5">
-              <span className="rounded-full border border-blue-200/60 bg-blue-50/80 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/80 dark:text-blue-300">
+              <span className="rounded-full border border-brand-200/60 bg-brand-surface-50/80 px-2 py-0.5 text-[10px] font-semibold text-brand-ink-700 dark:border-brand-800/60 dark:bg-brand-surface-950/80 dark:text-brand-ink-300">
                 {filteredAndSortedResults.length} of {processedResults.length} pupils
               </span>
               {examStreams.length > 1 && (
                 <Select value={selectedStreamId} onValueChange={selectStreamScope}>
                   <SelectTrigger
                     aria-label="Choose stream results to view"
-                    className="h-7 w-[132px] rounded-full border-indigo-200 bg-indigo-50 px-2 text-[10px] font-semibold text-indigo-700 shadow-none hover:bg-indigo-100 dark:border-indigo-800/60 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
+                    className="h-7 w-[132px] rounded-full border-brand-alt-200 bg-brand-alt-surface-50 px-2 text-[10px] font-semibold text-brand-alt-ink-700 shadow-none hover:bg-brand-alt-surface-100 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300 dark:hover:bg-brand-alt-surface-950/40"
                   >
                     <GitBranch className="mr-1 h-3 w-3 shrink-0" />
                     <SelectValue />
@@ -4293,7 +4293,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                       aria-label={`Switch ${examSwitcher.label.toLowerCase()}`}
                     />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-64 rounded-xl border border-blue-100 bg-white/95 p-2 shadow-xl backdrop-blur dark:border-blue-800/60 dark:bg-slate-900/95">
+                  <DropdownMenuContent align="end" className="w-64 rounded-xl border border-brand-100 bg-white/95 p-2 shadow-xl backdrop-blur dark:border-brand-800/60 dark:bg-slate-900/95">
                     <div className="px-2 pb-2 pt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       Choose {examSwitcher.label === 'Classes' ? 'class' : 'set'}
                     </div>
@@ -4308,8 +4308,8 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                               onClick={() => handleExamSwitch(option.id, option.classId)}
                               className={`flex h-10 items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-semibold transition-colors ${
                                 isCurrentExam
-                                  ? 'cursor-default border-blue-600 bg-blue-600 text-white'
-                                  : 'border-blue-100 bg-blue-50/70 text-blue-700 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800/60 dark:bg-blue-950/70 dark:text-blue-300 dark:hover:border-blue-800/60 dark:hover:bg-blue-950/40'
+                                  ? 'cursor-default border-brand-600 bg-brand-surface-600 text-white'
+                                  : 'border-brand-100 bg-brand-surface-50/70 text-brand-ink-700 hover:border-brand-300 hover:bg-brand-surface-100 dark:border-brand-800/60 dark:bg-brand-surface-950/70 dark:text-brand-ink-300 dark:hover:border-brand-800/60 dark:hover:bg-brand-surface-950/40'
                               }`}
                               aria-current={isCurrentExam ? 'page' : undefined}
                             >
@@ -4373,7 +4373,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         left={
           <div className="flex items-center gap-2">
             {isNurseryExam ? <BookOpen className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> : <Trophy className="h-4 w-4 text-amber-500 dark:text-amber-400" />}
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+            <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
               {isNurseryExam ? 'Nursery Assessment Scale' : 'Exam Analytics'}
             </span>
           </div>
@@ -4396,7 +4396,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                   if (p) setSelectedPupilIdForPopup(p.pupilInfo.pupilId);
                 }}
               >
-                <span className="text-green-700/85 dark:text-indigo-300 font-medium">Best Pupil:</span>
+                <span className="text-green-700/85 dark:text-brand-alt-ink-300 font-medium">Best Pupil:</span>
                 <span className="font-bold text-green-600 dark:text-green-400 truncate max-w-[120px]" title={analytics.bestPupil.name}>
                   {analytics.bestPupil.name} ({analytics.bestPupil.totalMarks}m / Agg {analytics.bestPupil.totalAggregates})
                 </span>
@@ -4408,20 +4408,20 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                   if (p) setSelectedPupilIdForPopup(p.pupilInfo.pupilId);
                 }}
               >
-                <span className="text-red-700/85 dark:text-indigo-300 font-medium">Needs Imp:</span>
+                <span className="text-red-700/85 dark:text-brand-alt-ink-300 font-medium">Needs Imp:</span>
                 <span className="font-bold text-red-600 dark:text-red-400 truncate max-w-[120px]" title={analytics.worstPupil.name}>
                   {analytics.worstPupil.name} ({analytics.worstPupil.totalMarks}m / Agg {analytics.worstPupil.totalAggregates})
                 </span>
               </div>
-              <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="text-blue-700/85 dark:text-indigo-300 font-medium">Best Subj:</span>
-                <span className="font-bold text-blue-600 dark:text-blue-400 truncate max-w-[100px]" title={analytics.bestSubject.name}>
+              <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="text-brand-ink-700/85 dark:text-brand-alt-ink-300 font-medium">Best Subj:</span>
+                <span className="font-bold text-brand-ink-600 dark:text-brand-ink-400 truncate max-w-[100px]" title={analytics.bestSubject.name}>
                   {analytics.bestSubject.code} ({analytics.bestSubject.averageMarks.toFixed(1)}%)
                 </span>
               </div>
-              <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="text-purple-700/85 dark:text-indigo-300 font-medium">Worst Subj:</span>
-                <span className="font-bold text-purple-600 dark:text-purple-400 truncate max-w-[100px]" title={analytics.worstSubject.name}>
+              <div className="flex items-center gap-1 bg-brand-secondary-surface-50/80 dark:bg-brand-secondary-surface-950/20 border border-brand-secondary-100/50 dark:border-brand-secondary-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="text-brand-secondary-ink-700/85 dark:text-brand-alt-ink-300 font-medium">Worst Subj:</span>
+                <span className="font-bold text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400 truncate max-w-[100px]" title={analytics.worstSubject.name}>
                   {analytics.worstSubject.code} ({analytics.worstSubject.averageMarks.toFixed(1)}%)
                 </span>
               </div>
@@ -4491,7 +4491,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
               {/* Major Subjects Legend */}
               {!isNurseryExam && subjectSnaps && subjectSnaps.length > 4 && (examResultData?.majorSubjects && examResultData.majorSubjects.length > 0) && (
                 <div className="mt-3 pt-3 border-t border-gray-300 dark:border-slate-700">
-                  <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300">
+                  <div className="flex items-center gap-2 text-xs text-brand-ink-700 dark:text-brand-ink-300">
                     <span className="font-semibold">★</span>
                     <span>Major subjects (used for aggregates and division calculation)</span>
                     {examResultData?.majorSubjects && (
@@ -4515,7 +4515,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                       }}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
                         isPupilSelectMode
-                          ? 'bg-indigo-600 text-white shadow-sm'
+                          ? 'bg-brand-alt-surface-600 text-white shadow-sm'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
                       }`}
                     >
@@ -4535,7 +4535,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                       <button
                         type="button"
                         onClick={() => setSelectedPdfPupilIds(new Set(filteredAndSortedResults.map(r => r.pupilInfo.pupilId)))}
-                        className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold dark:text-indigo-400 dark:hover:text-indigo-200"
+                        className="text-xs text-brand-alt-ink-600 hover:text-brand-alt-ink-800 font-semibold dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-200"
                       >
                         Select all
                       </button>
@@ -4566,7 +4566,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                               selectedPdfPupilIds.size === 0
                                 ? 'hover:bg-gray-50 dark:hover:bg-slate-900'
                                 : isChecked
-                                  ? 'bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/40'
+                                  ? 'bg-brand-alt-surface-50 hover:bg-brand-alt-surface-100 dark:bg-brand-alt-surface-950/40 dark:hover:bg-brand-alt-surface-950/40'
                                   : 'opacity-50 hover:bg-gray-50 dark:hover:bg-slate-900'
                             }`}
                           >
@@ -4660,12 +4660,12 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                     <div
                       key={result.pupilInfo.pupilId}
                       onClick={() => handleViewDetails(result.pupilInfo.pupilId)}
-                      className="bg-white border border-gray-200 rounded-md p-2 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300 hover:-translate-y-0.5 cursor-pointer dark:bg-slate-900 dark:border-slate-700 dark:hover:border-blue-800/60"
+                      className="bg-white border border-gray-200 rounded-md p-2 shadow-sm hover:shadow-md transition-all duration-200 hover:border-brand-300 hover:-translate-y-0.5 cursor-pointer dark:bg-slate-900 dark:border-slate-700 dark:hover:border-brand-800/60"
                     >
                       {/* Ultra Compact Header */}
                       {!isNurseryExam && <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-1">
-                          <span className="text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-blue-700 px-1.5 py-0.5 rounded text-xs">
+                          <span className="text-xs font-bold text-white bg-gradient-to-r from-brand-surface-600 to-brand-surface-700 px-1.5 py-0.5 rounded text-xs">
                             #{result.position}
                           </span>
                           <Badge
@@ -4689,19 +4689,19 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
 
                       {/* Ultra Compact Performance Summary */}
                       {!isNurseryExam && <div className="grid grid-cols-2 gap-1 mb-2">
-                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded p-1 text-center dark:from-blue-950/40 dark:to-blue-950/40">
-                          <div className="text-sm font-bold text-blue-900 dark:text-blue-200">
+                        <div className="bg-gradient-to-r from-brand-surface-50 to-brand-surface-100 rounded p-1 text-center dark:from-brand-surface-950/40 dark:to-brand-surface-950/40">
+                          <div className="text-sm font-bold text-brand-ink-900 dark:text-brand-ink-200">
                             {result.totalMarks}
                           </div>
-                          <div className="text-xs text-blue-700 font-medium dark:text-blue-300">
+                          <div className="text-xs text-brand-ink-700 font-medium dark:text-brand-ink-300">
                             Marks
                           </div>
                         </div>
-                        <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded p-1 text-center dark:from-purple-950/40 dark:to-purple-950/40">
-                          <div className="text-sm font-bold text-purple-900 dark:text-purple-200">
+                        <div className="bg-gradient-to-r from-brand-secondary-surface-50 to-brand-secondary-surface-100 rounded p-1 text-center dark:from-brand-secondary-surface-950/40 dark:to-brand-secondary-surface-950/40">
+                          <div className="text-sm font-bold text-brand-secondary-ink-900 dark:text-brand-secondary-ink-200">
                             {result.totalAggregates}
                           </div>
-                          <div className="text-xs text-purple-700 font-medium dark:text-purple-300">
+                          <div className="text-xs text-brand-secondary-ink-700 font-medium dark:text-brand-secondary-ink-300">
                             Agg
                           </div>
                         </div>
@@ -4733,7 +4733,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                                       {subject.code}
                                     </span>
                                     {!isNurseryExam && isMajorSubject && (
-                                      <span className="text-xs text-blue-600 font-semibold dark:text-blue-400" title="Major Subject">
+                                      <span className="text-xs text-brand-ink-600 font-semibold dark:text-brand-ink-400" title="Major Subject">
                                         ★
                                       </span>
                                     )}
@@ -4775,12 +4775,12 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
             ) : (
               // Compact Table View for Desktop with Column Sorting
               <Table
-                containerClassName="max-h-[62vh] overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
+                containerClassName="max-h-[62vh] overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset"
                 containerProps={{ tabIndex: 0, role: 'region', 'aria-label': 'Exam results table' }}
               >
                   <TableHeader className="sticky top-0 z-30 bg-gray-50 shadow-[0_2px_8px_rgba(15,23,42,0.12)] dark:bg-slate-900">
-                    <TableRow className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-slate-900 dark:to-blue-950/40">
-                      <TableHead className="sticky left-0 z-40 w-12 bg-gradient-to-r from-gray-50 to-blue-50 px-1 py-2 text-xs font-medium uppercase tracking-wider text-gray-600 shadow-sm dark:from-slate-900 dark:to-blue-950/40 dark:text-slate-300">
+                    <TableRow className="bg-gradient-to-r from-gray-50 to-brand-surface-50 dark:from-slate-900 dark:to-brand-surface-950/40">
+                      <TableHead className="sticky left-0 z-40 w-12 bg-gradient-to-r from-gray-50 to-brand-surface-50 px-1 py-2 text-xs font-medium uppercase tracking-wider text-gray-600 shadow-sm dark:from-slate-900 dark:to-brand-surface-950/40 dark:text-slate-300">
                         <div
                           className="flex flex-col items-center gap-1"
                           onClick={(e) => e.stopPropagation()}
@@ -4799,7 +4799,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                                   setIsPrintMode(true);
                                   setSelectedPupils([]);
                                 }}
-                                className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer dark:text-blue-400 dark:hover:text-blue-200"
+                                className="text-xs text-brand-ink-600 hover:text-brand-ink-800 hover:underline cursor-pointer dark:text-brand-ink-400 dark:hover:text-brand-ink-200"
                                 title="Switch to Print Mode"
                               >
                                 Release
@@ -4807,14 +4807,14 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                             </>
                           ) : (
                             <>
-                              <Printer className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                              <Printer className="h-3 w-3 text-brand-ink-600 dark:text-brand-ink-400" />
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setIsPrintMode(false);
                                   setSelectedPupilForPrint(null);
                                 }}
-                                className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer dark:text-blue-400 dark:hover:text-blue-200"
+                                className="text-xs text-brand-ink-600 hover:text-brand-ink-800 hover:underline cursor-pointer dark:text-brand-ink-400 dark:hover:text-brand-ink-200"
                                 title="Switch to Release Mode"
                               >
                                 Print
@@ -4824,7 +4824,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                         </div>
                       </TableHead>
                       <TableHead
-                        className="sticky left-8 z-40 cursor-pointer bg-gradient-to-r from-gray-50 to-blue-50 px-2 py-2 text-xs font-medium uppercase tracking-wider text-gray-600 shadow-sm transition-colors hover:bg-blue-100 dark:from-slate-900 dark:to-blue-950/40 dark:text-slate-300 dark:hover:bg-blue-950/40"
+                        className="sticky left-8 z-40 cursor-pointer bg-gradient-to-r from-gray-50 to-brand-surface-50 px-2 py-2 text-xs font-medium uppercase tracking-wider text-gray-600 shadow-sm transition-colors hover:bg-brand-surface-100 dark:from-slate-900 dark:to-brand-surface-950/40 dark:text-slate-300 dark:hover:bg-brand-surface-950/40"
                         onClick={() => handleSort('name')}
                       >
                         <div className="flex items-center gap-1">
@@ -4835,7 +4835,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                       {subjectSnaps?.map(subject => (
                         <TableHead
                           key={subject.code}
-                          className="text-xs font-medium text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-blue-100 transition-colors py-2 px-1 dark:text-slate-300 dark:hover:bg-blue-950/40"
+                          className="text-xs font-medium text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-brand-surface-100 transition-colors py-2 px-1 dark:text-slate-300 dark:hover:bg-brand-surface-950/40"
                           onClick={() => handleSort(`subject_${subject.code}`)}
                         >
                           <div className="flex flex-col items-center gap-1">
@@ -4843,12 +4843,12 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                               {subject.name.length > 8 ? subject.code : subject.name}
                               {getSortIcon(`subject_${subject.code}`)}
                             </div>
-                            {subject.name.length > 8 && <span className="text-blue-400 text-xs">{subject.code}</span>}
+                            {subject.name.length > 8 && <span className="text-brand-ink-400 text-xs">{subject.code}</span>}
                           </div>
                         </TableHead>
                       ))}
                       {!isNurseryExam && <TableHead
-                        className="text-xs font-medium text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-blue-100 transition-colors py-2 px-2 dark:text-slate-300 dark:hover:bg-blue-950/40"
+                        className="text-xs font-medium text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-brand-surface-100 transition-colors py-2 px-2 dark:text-slate-300 dark:hover:bg-brand-surface-950/40"
                         onClick={() => handleSort('marks')}
                       >
                         <div className="flex items-center justify-center gap-1">
@@ -4857,7 +4857,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                         </div>
                       </TableHead>}
                       {!isNurseryExam && <TableHead
-                        className="text-xs font-medium text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-blue-100 transition-colors py-2 px-2 dark:text-slate-300 dark:hover:bg-blue-950/40"
+                        className="text-xs font-medium text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-brand-surface-100 transition-colors py-2 px-2 dark:text-slate-300 dark:hover:bg-brand-surface-950/40"
                         onClick={() => handleSort('aggregates')}
                       >
                         <div className="flex items-center justify-center gap-1">
@@ -4880,8 +4880,8 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                           onClick={() => handleViewDetails(result.pupilInfo.pupilId)}
                           className={`
                             ${index % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-gray-50 dark:bg-slate-900'}
-                            hover:bg-blue-50 transition-colors cursor-pointer
-                           dark:hover:bg-blue-950/40`}
+                            hover:bg-brand-surface-50 transition-colors cursor-pointer
+                           dark:hover:bg-brand-surface-950/40`}
                         >
                           <TableCell className="sticky left-0 bg-inherit font-medium text-xs py-2 px-1 w-12 text-center">
                             <div
@@ -4925,7 +4925,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                           </TableCell>
                           <TableCell className="sticky left-8 bg-inherit py-2 px-2">
                             <div className="flex flex-col">
-                              <span className="text-xs font-medium text-blue-600 whitespace-nowrap dark:text-blue-400">
+                              <span className="text-xs font-medium text-brand-ink-600 whitespace-nowrap dark:text-brand-ink-400">
                                 {result.pupilInfo?.name}
                               </span>
                               <span className="text-xs text-gray-500 dark:text-slate-400" title={result.pupilInfo?.classNameAtExam}>
@@ -4960,7 +4960,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                                           {subjectResult.grade}
                                         </Badge>
                                       )}
-                                      <span className="text-xs text-blue-600 font-semibold dark:text-blue-400" title="Major Subject">
+                                      <span className="text-xs text-brand-ink-600 font-semibold dark:text-brand-ink-400" title="Major Subject">
                                         ★
                                       </span>
                                     </div>
@@ -4970,12 +4970,12 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                             );
                           })}
                           {!isNurseryExam && <TableCell className="text-center py-2 px-2">
-                            <span className="text-xs font-medium text-gray-900 bg-blue-50 px-1.5 py-0.5 rounded dark:text-slate-100 dark:bg-blue-950/40">
+                            <span className="text-xs font-medium text-gray-900 bg-brand-surface-50 px-1.5 py-0.5 rounded dark:text-slate-100 dark:bg-brand-surface-950/40">
                               {result.totalMarks}
                             </span>
                           </TableCell>}
                           {!isNurseryExam && <TableCell className="text-center py-2 px-2">
-                            <span className="text-xs font-medium text-gray-900 bg-purple-50 px-1.5 py-0.5 rounded dark:text-slate-100 dark:bg-purple-950/40">
+                            <span className="text-xs font-medium text-gray-900 bg-brand-secondary-surface-50 px-1.5 py-0.5 rounded dark:text-slate-100 dark:bg-brand-secondary-surface-950/40">
                               {result.totalAggregates}
                             </span>
                           </TableCell>}
@@ -5001,7 +5001,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
           <div className="mt-4 bg-white rounded-lg shadow-lg border border-gray-100 p-4 dark:bg-slate-900 dark:border-slate-700">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Send className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <Send className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
                   Release Selected Results
                 </h3>
@@ -5040,8 +5040,8 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
               </Button>
             </div>
 
-            <div className="mt-3 p-3 bg-blue-50 rounded-md dark:bg-blue-950/40">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
+            <div className="mt-3 p-3 bg-brand-surface-50 rounded-md dark:bg-brand-surface-950/40">
+              <p className="text-sm text-brand-ink-800 dark:text-brand-ink-200">
                 <strong>Note:</strong> Released results will be immediately visible to parents in their dashboard.
                 This action requires admin authentication and cannot be undone without admin intervention.
               </p>
@@ -5147,7 +5147,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
               type="button"
               onClick={handleConfirmProgressiveExam}
               disabled={!selectedProgressiveExam && selectedProgressiveExam !== 'none'}
-              className="min-h-11 rounded-full bg-blue-600 px-6 font-semibold text-white hover:bg-blue-700"
+              className="min-h-11 rounded-full bg-brand-surface-600 px-6 font-semibold text-white hover:bg-brand-surface-700"
             >
               Continue
             </Button>
@@ -5159,9 +5159,9 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
             <Label
               key={exam.id}
               htmlFor={`progressive-exam-${exam.id}`}
-              className="flex min-h-16 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 transition-colors hover:border-blue-200 hover:bg-slate-50 has-[[data-state=checked]]:border-blue-600 has-[[data-state=checked]]:bg-blue-50/70 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-800/60 dark:hover:bg-slate-900"
+              className="flex min-h-16 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 transition-colors hover:border-brand-200 hover:bg-slate-50 has-[[data-state=checked]]:border-brand-600 has-[[data-state=checked]]:bg-brand-surface-50/70 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-brand-800/60 dark:hover:bg-slate-900"
             >
-              <RadioGroupItem value={exam.id} id={`progressive-exam-${exam.id}`} className="h-5 w-5 border-blue-300 dark:border-blue-800/60" />
+              <RadioGroupItem value={exam.id} id={`progressive-exam-${exam.id}`} className="h-5 w-5 border-brand-300 dark:border-brand-800/60" />
               <span className="min-w-0">
                 <span className="block truncate text-base font-semibold text-slate-950 dark:text-slate-100">{exam.name}</span>
               </span>
@@ -5169,9 +5169,9 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
           ))}
           <Label
             htmlFor="progressive-exam-none"
-            className="flex min-h-16 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 transition-colors hover:border-blue-200 hover:bg-slate-50 has-[[data-state=checked]]:border-blue-600 has-[[data-state=checked]]:bg-blue-50/70 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-800/60 dark:hover:bg-slate-900"
+            className="flex min-h-16 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 transition-colors hover:border-brand-200 hover:bg-slate-50 has-[[data-state=checked]]:border-brand-600 has-[[data-state=checked]]:bg-brand-surface-50/70 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-brand-800/60 dark:hover:bg-slate-900"
           >
-            <RadioGroupItem value="none" id="progressive-exam-none" className="h-5 w-5 border-blue-300 dark:border-blue-800/60" />
+            <RadioGroupItem value="none" id="progressive-exam-none" className="h-5 w-5 border-brand-300 dark:border-brand-800/60" />
             <span>
               <span className="block text-base font-semibold text-slate-950 dark:text-slate-100">No progress records</span>
             </span>
@@ -5273,7 +5273,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                 setShowReportConfigModal(true);
               }}
               disabled={!transReportType}
-              className="min-h-11 rounded-full bg-blue-600 px-6 font-semibold text-white hover:bg-blue-700"
+              className="min-h-11 rounded-full bg-brand-surface-600 px-6 font-semibold text-white hover:bg-brand-surface-700"
             >
               Continue
             </Button>
@@ -5286,7 +5286,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
               value: 'grading' as const,
               title: 'Grading scale',
               icon: BarChart3,
-              iconClassName: 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
+              iconClassName: 'bg-brand-surface-50 text-brand-ink-700 dark:bg-brand-surface-950/40 dark:text-brand-ink-300',
             },
             {
               value: 'progress' as const,
@@ -5304,10 +5304,10 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                 role="radio"
                 aria-checked={selected}
                 onClick={() => handleTransTypeSelection(option.value)}
-                className={`group flex min-h-16 w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-[border-color,background-color,box-shadow,transform] duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 ${
+                className={`group flex min-h-16 w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-[border-color,background-color,box-shadow,transform] duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 ${
                   selected
-                    ? 'border-blue-600 bg-blue-50/70 shadow-[0_8px_24px_rgba(37,99,235,0.10)] dark:bg-blue-950/70'
-                    : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50 active:scale-[0.99] dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-800/60 dark:hover:bg-slate-900'
+                    ? 'border-brand-600 bg-brand-surface-50/70 shadow-[0_8px_24px_rgba(37,99,235,0.10)] dark:bg-brand-surface-950/70'
+                    : 'border-slate-200 bg-white hover:border-brand-200 hover:bg-slate-50 active:scale-[0.99] dark:border-slate-700 dark:bg-slate-900 dark:hover:border-brand-800/60 dark:hover:bg-slate-900'
                 }`}
               >
                 <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${option.iconClassName}`}>
@@ -5317,7 +5317,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                   <span className="block text-base font-semibold text-slate-950 dark:text-slate-100">{option.title}</span>
                 </span>
                 {selected ? (
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white" aria-label="Selected">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-surface-600 text-white" aria-label="Selected">
                     <Check className="h-4 w-4" aria-hidden="true" />
                   </span>
                 ) : (
@@ -5360,7 +5360,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
             <Button
               type="button"
               onClick={handleReportConfigComplete}
-              className="min-h-11 rounded-full bg-blue-600 px-6 font-semibold text-white hover:bg-blue-700"
+              className="min-h-11 rounded-full bg-brand-surface-600 px-6 font-semibold text-white hover:bg-brand-surface-700"
             >
               {transReportType === 'progress' ? 'Choose exams' : 'Create PDF'}
             </Button>
@@ -5778,7 +5778,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                 }
               }}
               disabled={selectedComparisonExams.length === 0 || isLoadingComparisonExams}
-              className="min-h-11 rounded-full bg-blue-600 px-6 font-semibold text-white hover:bg-blue-700"
+              className="min-h-11 rounded-full bg-brand-surface-600 px-6 font-semibold text-white hover:bg-brand-surface-700"
             >
               Create PDF{selectedComparisonExams.length > 0 ? ` (${selectedComparisonExams.length}/2)` : ''}
             </Button>
@@ -5787,7 +5787,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       >
         {isLoadingComparisonExams ? (
           <div className="py-8 text-center">
-            <Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
+            <Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin text-brand-ink-600 dark:text-brand-ink-400" />
             <p className="text-sm text-slate-600 dark:text-slate-300">Loading available exams...</p>
           </div>
         ) : availableComparisonExams.length === 0 ? (
@@ -5814,9 +5814,9 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                   }}
                   className={`w-full rounded-2xl border p-3 text-left transition-[border-color,background-color,box-shadow] duration-200 ${
                     isSelected
-                      ? 'border-blue-600 bg-blue-50/70 shadow-[0_8px_24px_rgba(37,99,235,0.10)] dark:bg-blue-950/70'
+                      ? 'border-brand-600 bg-brand-surface-50/70 shadow-[0_8px_24px_rgba(37,99,235,0.10)] dark:bg-brand-surface-950/70'
                       : canSelect
-                        ? 'cursor-pointer border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-800/60 dark:hover:bg-slate-900'
+                        ? 'cursor-pointer border-slate-200 bg-white hover:border-brand-200 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-brand-800/60 dark:hover:bg-slate-900'
                         : 'cursor-not-allowed border-slate-200 bg-slate-100 opacity-60 dark:border-slate-700 dark:bg-slate-900'
                   }`}
                   role="checkbox"
@@ -5846,7 +5846,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                             }
                           }}
                           disabled={!canSelect}
-                          className="h-5 w-5 border-blue-300 dark:border-blue-800/60"
+                          className="h-5 w-5 border-brand-300 dark:border-brand-800/60"
                         />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -5857,7 +5857,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                       </div>
                     </div>
                     {isSelected && (
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white" aria-label="Selected">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-surface-600 text-white" aria-label="Selected">
                         <Check className="h-4 w-4" aria-hidden="true" />
                       </span>
                     )}
@@ -5869,8 +5869,8 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         )}
 
         {selectedComparisonExams.length > 0 && (
-          <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50/60 p-4 dark:border-blue-800/60 dark:bg-blue-950/60">
-            <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
+          <div className="mt-5 rounded-2xl border border-brand-100 bg-brand-surface-50/60 p-4 dark:border-brand-800/60 dark:bg-brand-surface-950/60">
+            <p className="text-sm font-medium text-brand-ink-900 dark:text-brand-ink-200">
               {selectedComparisonExams.length} of 2 exams selected
             </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -5908,11 +5908,11 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
             <>
               <DialogHeader>
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-brand-alt-surface-500 to-brand-secondary-surface-600 flex items-center justify-center text-white font-bold text-sm">
                     {selectedPupilData.pupilInfo.name.charAt(0)}
                   </div>
                   <div className="text-left">
-                    <DialogTitle className="text-base font-bold text-indigo-950 dark:text-white">
+                    <DialogTitle className="text-base font-bold text-brand-alt-ink-950 dark:text-white">
                       {selectedPupilData.pupilInfo.name}
                     </DialogTitle>
                     <DialogDescription className="text-xs text-muted-foreground mt-0.5">
@@ -5925,13 +5925,13 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
               <div className="mt-4 space-y-4">
                 {/* Summary Badges */}
                 {!isNurseryExam && <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2 border rounded-xl bg-gradient-to-br from-indigo-50/50 to-indigo-100/30 border-indigo-100 text-center dark:from-indigo-950/50 dark:to-indigo-950/30 dark:border-indigo-800/60">
-                    <div className="text-xs text-indigo-700/80 font-medium dark:text-indigo-300/80">Total Marks</div>
-                    <div className="text-lg font-black text-indigo-900 dark:text-indigo-200">{selectedPupilData.totalMarks}</div>
+                  <div className="p-2 border rounded-xl bg-gradient-to-br from-brand-alt-surface-50/50 to-brand-alt-surface-100/30 border-brand-alt-100 text-center dark:from-brand-alt-surface-950/50 dark:to-brand-alt-surface-950/30 dark:border-brand-alt-800/60">
+                    <div className="text-xs text-brand-alt-ink-700/80 font-medium dark:text-brand-alt-ink-300/80">Total Marks</div>
+                    <div className="text-lg font-black text-brand-alt-ink-900 dark:text-brand-alt-ink-200">{selectedPupilData.totalMarks}</div>
                   </div>
                   <div className="p-2 border rounded-xl bg-gradient-to-br from-emerald-50/50 to-emerald-100/30 border-emerald-100 text-center dark:from-emerald-950/50 dark:to-emerald-950/30 dark:border-emerald-800/60">
                     <div className="text-xs text-emerald-700/80 font-medium dark:text-emerald-300/80">Aggregates / Div</div>
-                    <div className="text-lg font-black text-indigo-900 dark:text-indigo-200">
+                    <div className="text-lg font-black text-brand-alt-ink-900 dark:text-brand-alt-ink-200">
                       {selectedPupilData.totalAggregates} (Div {selectedPupilData.division})
                     </div>
                   </div>
@@ -5965,7 +5965,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                                   {res?.comment || res?.grade || '-'}
                                 </td>
                               ) : <>
-                              <td className="px-3 py-2 text-center font-bold text-indigo-950 dark:text-white">{res ? `${res.marks}%` : '-'}</td>
+                              <td className="px-3 py-2 text-center font-bold text-brand-alt-ink-950 dark:text-white">{res ? `${res.marks}%` : '-'}</td>
                               <td className="px-3 py-2 text-center">
                                 {res ? (
                                   <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${getGradeColor(res.grade)}`}>
@@ -5986,7 +5986,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                 {/* Rank and Class Position */}
                 <div className="flex items-center justify-between px-3 py-2 border rounded-xl bg-muted/20">
                   <span className="text-xs font-semibold text-muted-foreground">Class Position</span>
-                  <span className="text-sm font-black text-indigo-900 dark:text-indigo-300">
+                  <span className="text-sm font-black text-brand-alt-ink-900 dark:text-brand-alt-ink-300">
                     #{selectedPupilData.position} of {processedResults.length}
                   </span>
                 </div>
@@ -6251,7 +6251,7 @@ function PerformanceAnalysisPage({
   const getDivisionColor = (division: string) => {
     switch (division) {
       case 'I': return 'bg-gradient-to-r from-green-500 to-emerald-500 text-white';
-      case 'II': return 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white';
+      case 'II': return 'bg-gradient-to-r from-brand-surface-500 to-cyan-500 text-white';
       case 'III': return 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white';
       case 'IV': return 'bg-gradient-to-r from-orange-500 to-red-500 text-white';
       case 'U': return 'bg-gradient-to-r from-red-600 to-red-700 text-white';
@@ -6262,13 +6262,13 @@ function PerformanceAnalysisPage({
 
   const getGradeColor = (grade: string) => {
     if (['D1', 'D2'].includes(grade)) return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
-    if (['C3', 'C4', 'C5', 'C6'].includes(grade)) return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+    if (['C3', 'C4', 'C5', 'C6'].includes(grade)) return 'bg-brand-surface-100 text-brand-ink-800 border-brand-300 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60';
     if (['P7', 'P8'].includes(grade)) return 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
     return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60';
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-purple-50/50 dark:from-slate-900 dark:via-indigo-950/40 dark:to-purple-950/50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand-alt-surface-50/40 to-brand-secondary-surface-50/50 dark:from-slate-900 dark:via-brand-alt-surface-950/40 dark:to-brand-secondary-surface-950/50">
       <GlassPageTopBar
         title="Performance Analysis"
         recordDetails={`${examDetails?.name || 'Exam'} | ${className} | ${academicYearName} - ${termName}`}
@@ -6280,7 +6280,7 @@ function PerformanceAnalysisPage({
             size="sm"
             onClick={() => setShowAnalysisPrintType(true)}
             disabled={isGeneratingPDF}
-            className="h-9 w-full gap-2 rounded-full bg-indigo-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:w-auto"
+            className="h-9 w-full gap-2 rounded-full bg-brand-alt-surface-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-brand-alt-surface-700 focus-visible:ring-2 focus-visible:ring-brand-alt-500 focus-visible:ring-offset-2 sm:w-auto"
             aria-label={isGeneratingPDF ? 'Creating performance analysis PDF' : 'Print performance analysis PDF'}
           >
             {isGeneratingPDF
@@ -6291,20 +6291,20 @@ function PerformanceAnalysisPage({
         }
         below={
           <div
-            className="grid grid-cols-2 gap-1.5 rounded-xl border border-white/70 bg-white/55 p-1.5 shadow-sm ring-1 ring-indigo-100/60 sm:grid-cols-4 dark:border-slate-700/70 dark:bg-slate-900/55 dark:ring-indigo-800/60"
+            className="grid grid-cols-2 gap-1.5 rounded-xl border border-white/70 bg-white/55 p-1.5 shadow-sm ring-1 ring-brand-alt-100/60 sm:grid-cols-4 dark:border-slate-700/70 dark:bg-slate-900/55 dark:ring-brand-alt-800/60"
             aria-label="Overall performance statistics"
           >
-            <div className="flex min-w-0 items-center gap-2 rounded-lg bg-blue-50/85 px-2.5 py-1.5 dark:bg-blue-950/85">
-              <span className="shrink-0 text-sm font-black tabular-nums text-blue-900 dark:text-blue-200">{overallStats.totalPupils}</span>
-              <span className="truncate text-xs font-semibold text-blue-700 dark:text-blue-300">Total Pupils</span>
+            <div className="flex min-w-0 items-center gap-2 rounded-lg bg-brand-surface-50/85 px-2.5 py-1.5 dark:bg-brand-surface-950/85">
+              <span className="shrink-0 text-sm font-black tabular-nums text-brand-ink-900 dark:text-brand-ink-200">{overallStats.totalPupils}</span>
+              <span className="truncate text-xs font-semibold text-brand-ink-700 dark:text-brand-ink-300">Total Pupils</span>
             </div>
             <div className="flex min-w-0 items-center gap-2 rounded-lg bg-emerald-50/85 px-2.5 py-1.5 dark:bg-emerald-950/85">
               <span className="shrink-0 text-sm font-black tabular-nums text-emerald-900 dark:text-emerald-200">{overallStats.passRate}%</span>
               <span className="truncate text-xs font-semibold text-emerald-700 dark:text-emerald-300">Pass Rate (I-IV)</span>
             </div>
-            <div className="flex min-w-0 items-center gap-2 rounded-lg bg-purple-50/85 px-2.5 py-1.5 dark:bg-purple-950/85">
-              <span className="shrink-0 text-sm font-black tabular-nums text-purple-900 dark:text-purple-200">{overallStats.averageMarks}</span>
-              <span className="truncate text-xs font-semibold text-purple-700 dark:text-purple-300">Avg. Marks</span>
+            <div className="flex min-w-0 items-center gap-2 rounded-lg bg-brand-secondary-surface-50/85 px-2.5 py-1.5 dark:bg-brand-secondary-surface-950/85">
+              <span className="shrink-0 text-sm font-black tabular-nums text-brand-secondary-ink-900 dark:text-brand-secondary-ink-200">{overallStats.averageMarks}</span>
+              <span className="truncate text-xs font-semibold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">Avg. Marks</span>
             </div>
             <div className="flex min-w-0 items-center gap-2 rounded-lg bg-amber-50/85 px-2.5 py-1.5 dark:bg-amber-950/85">
               <span className="shrink-0 text-sm font-black tabular-nums text-amber-900 dark:text-amber-200">{overallStats.averageAggregates}</span>
@@ -6335,13 +6335,13 @@ function PerformanceAnalysisPage({
             {
               title: "Self analysis",
               icon: FileText,
-              iconClassName: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",
+              iconClassName: "bg-brand-surface-50 text-brand-ink-700 dark:bg-brand-surface-950/40 dark:text-brand-ink-300",
               onClick: () => { setShowAnalysisPrintType(false); setShowPrintSections(true); },
             },
             {
               title: "Cross analysis",
               icon: GitBranch,
-              iconClassName: "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300",
+              iconClassName: "bg-brand-secondary-alt-surface-50 text-brand-secondary-alt-ink-700 dark:bg-brand-secondary-alt-surface-950/40 dark:text-brand-secondary-alt-ink-300",
               onClick: () => { setShowAnalysisPrintType(false); setShowCrossAnalysis(true); },
             },
             {
@@ -6355,7 +6355,7 @@ function PerformanceAnalysisPage({
               key={title}
               type="button"
               onClick={onClick}
-              className="group flex min-h-20 items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition-[border-color,background-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-800/60 dark:hover:bg-blue-950/40"
+              className="group flex min-h-20 items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition-[border-color,background-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:bg-brand-surface-50/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none dark:border-slate-700 dark:bg-slate-900 dark:hover:border-brand-800/60 dark:hover:bg-brand-surface-950/40"
             >
               <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${iconClassName}`}>
                 <Icon className="h-5 w-5" aria-hidden="true" />
@@ -6383,7 +6383,7 @@ function PerformanceAnalysisPage({
               type="button"
               disabled={selectedCrossExamIds.length < 2 || selectedCrossMetricCount === 0 || isGeneratingPDF}
               onClick={() => { setShowCrossAnalysis(false); onPrintCrossAnalysis(selectedCrossExamIds, crossMetrics); }}
-              className="min-h-11 gap-2 rounded-full bg-blue-600 px-6 font-semibold text-white shadow-sm hover:bg-blue-700"
+              className="min-h-11 gap-2 rounded-full bg-brand-surface-600 px-6 font-semibold text-white shadow-sm hover:bg-brand-surface-700"
             >
               {isGeneratingPDF ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Printer className="h-4 w-4" aria-hidden="true" />}
               {isGeneratingPDF ? 'Creating PDF...' : `Create PDF (${selectedCrossExamIds.length}/5)`}
@@ -6392,9 +6392,9 @@ function PerformanceAnalysisPage({
         }
       >
           <div className="space-y-4">
-            <div className="flex items-center justify-between gap-3 rounded-2xl border border-violet-100 bg-violet-50/70 px-4 py-3 dark:border-violet-800/60 dark:bg-violet-950/70">
-              <p className="text-xs font-bold text-violet-950 dark:text-violet-100">Exam scope</p>
-              <Label htmlFor="cross-analysis-all-terms" className="flex shrink-0 cursor-pointer items-center gap-2 text-xs font-semibold text-violet-900 dark:text-violet-200">
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-brand-secondary-alt-100 bg-brand-secondary-alt-surface-50/70 px-4 py-3 dark:border-brand-secondary-alt-800/60 dark:bg-brand-secondary-alt-surface-950/70">
+              <p className="text-xs font-bold text-brand-secondary-alt-ink-950 dark:text-brand-secondary-alt-ink-100">Exam scope</p>
+              <Label htmlFor="cross-analysis-all-terms" className="flex shrink-0 cursor-pointer items-center gap-2 text-xs font-semibold text-brand-secondary-alt-ink-900 dark:text-brand-secondary-alt-ink-200">
                 <Checkbox
                   id="cross-analysis-all-terms"
                   checked={showAllCrossTerms}
@@ -6410,7 +6410,7 @@ function PerformanceAnalysisPage({
                   <h3 id="cross-analysis-exams-title" className="text-sm font-bold text-slate-900 dark:text-slate-100">Exam sets</h3>
                   <p className="text-xs text-slate-600 dark:text-slate-300">The current exam is selected initially. Maximum five exams.</p>
                 </div>
-                <span className="shrink-0 text-xs font-bold tabular-nums text-violet-700 dark:text-violet-300" aria-live="polite">
+                <span className="shrink-0 text-xs font-bold tabular-nums text-brand-secondary-alt-ink-700 dark:text-brand-secondary-alt-ink-300" aria-live="polite">
                   {selectedCrossExamIds.length}/5 selected
                 </span>
               </div>
@@ -6427,9 +6427,9 @@ function PerformanceAnalysisPage({
                       htmlFor={`cross-analysis-exam-${exam.id}`}
                       className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border p-3 transition-colors ${
                         selected
-                          ? 'border-violet-300 bg-violet-50 dark:border-violet-800/60 dark:bg-violet-950/40'
+                          ? 'border-brand-secondary-alt-300 bg-brand-secondary-alt-surface-50 dark:border-brand-secondary-alt-800/60 dark:bg-brand-secondary-alt-surface-950/40'
                           : canSelect
-                            ? 'border-slate-200 bg-white hover:border-violet-200 hover:bg-violet-50/50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-violet-800/60 dark:hover:bg-violet-950/50'
+                            ? 'border-slate-200 bg-white hover:border-brand-secondary-alt-200 hover:bg-brand-secondary-alt-surface-50/50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-brand-secondary-alt-800/60 dark:hover:bg-brand-secondary-alt-surface-950/50'
                             : 'cursor-not-allowed border-slate-200 bg-slate-100 opacity-60 dark:border-slate-700 dark:bg-slate-900'
                       }`}
                     >
@@ -6445,7 +6445,7 @@ function PerformanceAnalysisPage({
                           {exam.termName || 'Unknown term'} - {formatCrossExamDate(exam.startDate)}{exam.batchId ? ` - Batch ${exam.batchId}` : ''}
                         </span>
                       </span>
-                      {exam.id === currentExamId && <Badge variant="outline" className="shrink-0 border-violet-200 bg-white text-[10px] text-violet-700 dark:border-violet-800/60 dark:bg-slate-900 dark:text-violet-300">Current</Badge>}
+                      {exam.id === currentExamId && <Badge variant="outline" className="shrink-0 border-brand-secondary-alt-200 bg-white text-[10px] text-brand-secondary-alt-ink-700 dark:border-brand-secondary-alt-800/60 dark:bg-slate-900 dark:text-brand-secondary-alt-ink-300">Current</Badge>}
                       <span className="sr-only">{examLabel}</span>
                     </Label>
                   );
@@ -6467,7 +6467,7 @@ function PerformanceAnalysisPage({
                   <Label
                     key={key}
                     htmlFor={`cross-analysis-metric-${key}`}
-                    className="flex min-h-11 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-2 transition-colors hover:border-violet-300 hover:bg-violet-50/60 has-[[data-state=checked]]:border-violet-400 has-[[data-state=checked]]:bg-violet-50 dark:border-slate-700 dark:bg-slate-900/80 dark:hover:border-violet-800/60 dark:hover:bg-violet-950/60"
+                    className="flex min-h-11 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-2 transition-colors hover:border-brand-secondary-alt-300 hover:bg-brand-secondary-alt-surface-50/60 has-[[data-state=checked]]:border-brand-secondary-alt-400 has-[[data-state=checked]]:bg-brand-secondary-alt-surface-50 dark:border-slate-700 dark:bg-slate-900/80 dark:hover:border-brand-secondary-alt-800/60 dark:hover:bg-brand-secondary-alt-surface-950/60"
                   >
                     <Checkbox
                       id={`cross-analysis-metric-${key}`}
@@ -6503,7 +6503,7 @@ function PerformanceAnalysisPage({
               type="button"
               disabled={selectedSubjectSetExamIds.length === 0 || selectedSubjectCodes.length === 0 || isGeneratingPDF}
               onClick={() => { setShowSubjectSetAnalysis(false); onPrintSubjectSetAnalysis(selectedSubjectSetExamIds, selectedSubjectCodes); }}
-              className="min-h-11 gap-2 rounded-full bg-blue-600 px-6 font-semibold text-white shadow-sm hover:bg-blue-700"
+              className="min-h-11 gap-2 rounded-full bg-brand-surface-600 px-6 font-semibold text-white shadow-sm hover:bg-brand-surface-700"
             >
               {isGeneratingPDF ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Printer className="h-4 w-4" aria-hidden="true" />}
               {isGeneratingPDF ? 'Creating PDF...' : `Create PDF (${selectedSubjectCodes.length} subject${selectedSubjectCodes.length === 1 ? '' : 's'})`}
@@ -6625,7 +6625,7 @@ function PerformanceAnalysisPage({
               type="button"
               disabled={selectedPrintSectionCount === 0 || isGeneratingPDF}
               onClick={() => { setShowPrintSections(false); onPrintAnalysis(printSections); }}
-              className="min-h-11 gap-2 rounded-full bg-blue-600 px-6 font-semibold text-white shadow-sm hover:bg-blue-700"
+              className="min-h-11 gap-2 rounded-full bg-brand-surface-600 px-6 font-semibold text-white shadow-sm hover:bg-brand-surface-700"
             >
               {isGeneratingPDF ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Printer className="h-4 w-4" aria-hidden="true" />}
               {isGeneratingPDF ? 'Creating PDF...' : 'Create PDF'}
@@ -6636,7 +6636,7 @@ function PerformanceAnalysisPage({
           <div className="grid gap-3 sm:grid-cols-3">
             <Label
               htmlFor="analysis-section-aggregate"
-              className="flex min-h-20 cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50 dark:border-slate-700 dark:bg-slate-900/80 dark:hover:border-indigo-800/60 dark:hover:bg-indigo-950/60"
+              className="flex min-h-20 cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-brand-alt-300 hover:bg-brand-alt-surface-50/60 has-[[data-state=checked]]:border-brand-alt-400 has-[[data-state=checked]]:bg-brand-alt-surface-50 dark:border-slate-700 dark:bg-slate-900/80 dark:hover:border-brand-alt-800/60 dark:hover:bg-brand-alt-surface-950/60"
             >
               <Checkbox
                 id="analysis-section-aggregate"
@@ -6652,7 +6652,7 @@ function PerformanceAnalysisPage({
 
             <Label
               htmlFor="analysis-section-divisions"
-              className="flex min-h-20 cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50 dark:border-slate-700 dark:bg-slate-900/80 dark:hover:border-indigo-800/60 dark:hover:bg-indigo-950/60"
+              className="flex min-h-20 cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-brand-alt-300 hover:bg-brand-alt-surface-50/60 has-[[data-state=checked]]:border-brand-alt-400 has-[[data-state=checked]]:bg-brand-alt-surface-50 dark:border-slate-700 dark:bg-slate-900/80 dark:hover:border-brand-alt-800/60 dark:hover:bg-brand-alt-surface-950/60"
             >
               <Checkbox
                 id="analysis-section-divisions"
@@ -6668,7 +6668,7 @@ function PerformanceAnalysisPage({
 
             <Label
               htmlFor="analysis-section-subject-grades"
-              className="flex min-h-20 cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50 dark:border-slate-700 dark:bg-slate-900/80 dark:hover:border-indigo-800/60 dark:hover:bg-indigo-950/60"
+              className="flex min-h-20 cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-brand-alt-300 hover:bg-brand-alt-surface-50/60 has-[[data-state=checked]]:border-brand-alt-400 has-[[data-state=checked]]:bg-brand-alt-surface-50 dark:border-slate-700 dark:bg-slate-900/80 dark:hover:border-brand-alt-800/60 dark:hover:bg-brand-alt-surface-950/60"
             >
               <Checkbox
                 id="analysis-section-subject-grades"
@@ -6743,10 +6743,10 @@ function PerformanceAnalysisPage({
           )}
 
           {/* Division Distribution */}
-          <Card className="overflow-hidden border-purple-200/80 bg-white/90 shadow-sm dark:border-purple-800/80 dark:bg-slate-900/90">
+          <Card className="overflow-hidden border-brand-secondary-200/80 bg-white/90 shadow-sm dark:border-brand-secondary-800/80 dark:bg-slate-900/90">
             <CardHeader className="p-4 pb-2">
               <CardTitle className="flex items-center gap-2 text-base font-bold text-gray-900 sm:text-lg dark:text-slate-100">
-                <PieChart className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                <PieChart className="h-5 w-5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                 Class Division Breakdown
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">Performance distribution by division</CardDescription>
@@ -6760,13 +6760,13 @@ function PerformanceAnalysisPage({
                       key={div.division}
                       className={`overflow-hidden rounded-xl border bg-white transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none  dark:bg-slate-900 ${
                         isExpanded
-                          ? 'border-purple-300 shadow-md dark:border-purple-800/60'
-                          : 'border-slate-200 shadow-sm hover:border-purple-200 hover:shadow-md dark:border-slate-700 dark:hover:border-purple-800/60'
+                          ? 'border-brand-secondary-300 shadow-md dark:border-brand-secondary-800/60'
+                          : 'border-slate-200 shadow-sm hover:border-brand-secondary-200 hover:shadow-md dark:border-slate-700 dark:hover:border-brand-secondary-800/60'
                       }`}
                     >
                       <button
                         type="button"
-                        className="relative flex h-11 w-full cursor-pointer items-center overflow-hidden bg-slate-100 px-3 text-left outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-inset dark:bg-slate-900 dark:hover:bg-slate-900"
+                        className="relative flex h-11 w-full cursor-pointer items-center overflow-hidden bg-slate-100 px-3 text-left outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-brand-secondary-500 focus-visible:ring-inset dark:bg-slate-900 dark:hover:bg-slate-900"
                         onClick={() => {
                           setExpandedDivisions(prev =>
                             isExpanded
@@ -6794,7 +6794,7 @@ function PerformanceAnalysisPage({
                       </button>
 
                       {isExpanded && (
-                        <div className="p-2 border-t border-purple-200 bg-white dark:border-purple-800/60 dark:bg-slate-900">
+                        <div className="p-2 border-t border-brand-secondary-200 bg-white dark:border-brand-secondary-800/60 dark:bg-slate-900">
                           <div className="space-y-1">
                             {(() => {
                               const divisionData = divisionAnalysis.find(d => d.division === div.division);
@@ -6805,8 +6805,8 @@ function PerformanceAnalysisPage({
                                     <div className="flex items-center justify-between mb-1">
                                       <div className="font-semibold text-gray-900 text-xs dark:text-slate-100">{pupil.name}</div>
                                       <div className="flex items-center gap-2">
-                                        <span className="text-xs bg-blue-100 px-1 rounded dark:bg-blue-950/40">T:{pupil.totalMarks}</span>
-                                        <span className="text-xs bg-purple-100 px-1 rounded dark:bg-purple-950/40">A:{pupil.totalAggregates}</span>
+                                        <span className="text-xs bg-brand-surface-100 px-1 rounded dark:bg-brand-surface-950/40">T:{pupil.totalMarks}</span>
+                                        <span className="text-xs bg-brand-secondary-surface-100 px-1 rounded dark:bg-brand-secondary-surface-950/40">A:{pupil.totalAggregates}</span>
                                       </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-1">
@@ -6844,10 +6844,10 @@ function PerformanceAnalysisPage({
           </Card>
 
           {/* Subject-wise Grade Distribution */}
-          <Card className="overflow-hidden border-blue-200/80 bg-white/90 shadow-sm dark:border-blue-800/80 dark:bg-slate-900/90">
+          <Card className="overflow-hidden border-brand-200/80 bg-white/90 shadow-sm dark:border-brand-800/80 dark:bg-slate-900/90">
             <CardHeader className="p-4 pb-2">
               <CardTitle className="flex items-center gap-2 text-base font-bold text-gray-900 sm:text-lg dark:text-slate-100">
-                <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <BarChart3 className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
                 Subject Performance Analysis
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">Performance analysis sorted by average marks (best to worst)</CardDescription>
@@ -6861,13 +6861,13 @@ function PerformanceAnalysisPage({
                         key={subject.code}
                         className={`overflow-hidden rounded-xl border bg-white transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none  dark:bg-slate-900 ${
                           isExpanded
-                            ? 'border-blue-300 shadow-md dark:border-blue-800/60'
-                            : 'border-slate-200 shadow-sm hover:border-blue-200 hover:shadow-md dark:border-slate-700 dark:hover:border-blue-800/60'
+                            ? 'border-brand-300 shadow-md dark:border-brand-800/60'
+                            : 'border-slate-200 shadow-sm hover:border-brand-200 hover:shadow-md dark:border-slate-700 dark:hover:border-brand-800/60'
                         }`}
                       >
                         <button
                           type="button"
-                          className="flex h-11 w-full cursor-pointer items-center justify-between gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 px-3 text-left outline-none transition-colors hover:from-blue-100 hover:to-indigo-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset dark:from-blue-950/40 dark:to-indigo-950/40 dark:hover:from-blue-950/40 dark:hover:to-indigo-950/40"
+                          className="flex h-11 w-full cursor-pointer items-center justify-between gap-2 bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 px-3 text-left outline-none transition-colors hover:from-brand-surface-100 hover:to-brand-alt-surface-100 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40 dark:hover:from-brand-surface-950/40 dark:hover:to-brand-alt-surface-950/40"
                           onClick={() => {
                             setExpandedSubjects(prev =>
                               isExpanded
@@ -6878,19 +6878,19 @@ function PerformanceAnalysisPage({
                           aria-expanded={isExpanded}
                           aria-label={`${subject.subject}, code ${subject.code}: average ${subject.averageMarks} marks across ${subject.totalPupils} pupils. ${isExpanded ? 'Collapse grade details' : 'Expand grade details'}.`}
                         >
-                          <span className="rounded-md border border-blue-200 bg-white/90 px-2 py-1 text-xs font-black text-blue-950 shadow-sm dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-100">
+                          <span className="rounded-md border border-brand-200 bg-white/90 px-2 py-1 text-xs font-black text-brand-ink-950 shadow-sm dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-100">
                             {subject.code}
                           </span>
                           <span className="ml-auto whitespace-nowrap text-xs font-semibold tabular-nums text-slate-700 dark:text-slate-200">
-                            <strong className="text-sm text-blue-950 dark:text-blue-100">{subject.averageMarks}</strong> avg · {subject.totalPupils} pupils
+                            <strong className="text-sm text-brand-ink-950 dark:text-brand-ink-100">{subject.averageMarks}</strong> avg · {subject.totalPupils} pupils
                           </span>
                           {isExpanded
-                            ? <ChevronUp className="h-4 w-4 shrink-0 text-blue-700 dark:text-blue-300" aria-hidden="true" />
-                            : <ChevronDown className="h-4 w-4 shrink-0 text-blue-700 dark:text-blue-300" aria-hidden="true" />}
+                            ? <ChevronUp className="h-4 w-4 shrink-0 text-brand-ink-700 dark:text-brand-ink-300" aria-hidden="true" />
+                            : <ChevronDown className="h-4 w-4 shrink-0 text-brand-ink-700 dark:text-brand-ink-300" aria-hidden="true" />}
                         </button>
 
                         {isExpanded && (
-                          <div className="border-t border-blue-200 bg-blue-50/30 p-2 dark:border-blue-800/60 dark:bg-blue-950/30">
+                          <div className="border-t border-brand-200 bg-brand-surface-50/30 p-2 dark:border-brand-800/60 dark:bg-brand-surface-950/30">
                           <div className="space-y-3">
                             {subject.gradeDistribution.map((gradeData) => {
                               const gradeKey = `${subject.code}-${gradeData.grade}`;
@@ -6909,7 +6909,7 @@ function PerformanceAnalysisPage({
                                     }}
                                   >
                                     <div className="flex items-center gap-3 flex-1">
-                                      <Badge className={`${getGradeColor(gradeData.grade)} px-3 py-1 font-bold ${isExpanded ? 'ring-2 ring-blue-300 dark:ring-blue-800/60' : ''}`}>
+                                      <Badge className={`${getGradeColor(gradeData.grade)} px-3 py-1 font-bold ${isExpanded ? 'ring-2 ring-brand-300 dark:ring-brand-800/60' : ''}`}>
                                         {gradeData.grade}
                                       </Badge>
                                       <div className="flex-1">

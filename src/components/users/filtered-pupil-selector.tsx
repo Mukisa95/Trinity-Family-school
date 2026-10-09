@@ -208,7 +208,7 @@ export function FilteredPupilSelector({ onSelect, selectedPupilId, availablePupi
               <Card
                 key={pupil.id}
                 className={`cursor-pointer transition-all hover:shadow-md ${
-                  selectedPupilId === pupil.id ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/40' : ''
+                  selectedPupilId === pupil.id ? 'ring-2 ring-brand-500 bg-brand-surface-50 dark:bg-brand-surface-950/40' : ''
                 }`}
                 onClick={() => handlePupilSelect(pupil)}
               >
@@ -254,7 +254,7 @@ export function FilteredPupilSelector({ onSelect, selectedPupilId, availablePupi
 
                     {/* Selection Indicator */}
                     {selectedPupilId === pupil.id && (
-                      <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full bg-brand-surface-500 flex items-center justify-center">
                         <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>

@@ -83,7 +83,7 @@ export function NotificationParticipantsDialog({
       <DialogContent className="max-h-[calc(100dvh-1.5rem)] overflow-hidden rounded-2xl p-0 sm:max-w-lg">
         <div className="border-b border-slate-100 px-5 py-5 pr-12 dark:border-slate-700">
           <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
-            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <Users className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
             Recipients
           </DialogTitle>
           <DialogDescription className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -93,7 +93,7 @@ export function NotificationParticipantsDialog({
 
         <div className="max-h-[calc(100dvh-12rem)] overflow-y-auto px-5 py-4">
           {isLoading ? (
-            <div className="flex min-h-40 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400" /></div>
+            <div className="flex min-h-40 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-brand-ink-600 dark:text-brand-ink-400" /></div>
           ) : error ? (
             <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-300">{error}</p>
           ) : data && !data.canViewNames ? (
@@ -108,7 +108,7 @@ export function NotificationParticipantsDialog({
                   value={search}
                   onChange={event => setSearch(event.target.value)}
                   placeholder="Search recipients"
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:bg-slate-900 dark:focus:ring-blue-800/60"
+                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:bg-slate-900 dark:focus:ring-brand-800/60"
                 />
               </label>
               <div className="divide-y divide-slate-100 rounded-xl border border-slate-100 bg-white dark:divide-slate-700 dark:border-slate-700 dark:bg-slate-900">

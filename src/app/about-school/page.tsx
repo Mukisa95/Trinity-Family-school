@@ -590,7 +590,7 @@ export default function AboutSchoolPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle className="flex items-center"><Landmark className="mr-2 h-5 w-5 text-primary" /> General Information</CardTitle>
+            <CardTitle className="flex items-center"><Landmark className="mr-2 h-5 w-5 text-link" /> General Information</CardTitle>
           </CardHeader>
           <CardContent>
             {isEditing ? (
@@ -624,7 +624,7 @@ export default function AboutSchoolPage() {
 
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle className="flex items-center"><Info className="mr-2 h-5 w-5 text-primary" /> Contact & Address</CardTitle>
+            <CardTitle className="flex items-center"><Info className="mr-2 h-5 w-5 text-link" /> Contact & Address</CardTitle>
           </CardHeader>
           <CardContent>
             {isEditing ? (
@@ -648,7 +648,7 @@ export default function AboutSchoolPage() {
                 <DetailItem label="Email" value={displayValue(currentSettings.contact.email)} icon={Mail}/>
                 <DetailItem label="Phone" value={displayValue(currentSettings.contact.phone)} icon={Phone}/>
                 <DetailItem label="Alternative Phone" value={displayValue(currentSettings.contact.alternativePhone)} />
-                <DetailItem label="Website" value={currentSettings.contact.website ? <a href={currentSettings.contact.website.startsWith('http') ? currentSettings.contact.website : `https://${currentSettings.contact.website}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{currentSettings.contact.website}</a> : displayValue(null)} icon={Globe}/>
+                <DetailItem label="Website" value={currentSettings.contact.website ? <a href={currentSettings.contact.website.startsWith('http') ? currentSettings.contact.website : `https://${currentSettings.contact.website}`} target="_blank" rel="noopener noreferrer" className="text-link hover:underline">{currentSettings.contact.website}</a> : displayValue(null)} icon={Globe}/>
                 
                 <h4 className="font-semibold mt-4 mb-2 text-sm text-muted-foreground">Address Details</h4>
                 <DetailItem label="Physical Address" value={displayValue(currentSettings.address.physical)} icon={Landmark}/>
@@ -663,7 +663,7 @@ export default function AboutSchoolPage() {
         
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle className="flex items-center"><Users2 className="mr-2 h-5 w-5 text-primary" /> Leadership & Vision</CardTitle>
+            <CardTitle className="flex items-center"><Users2 className="mr-2 h-5 w-5 text-link" /> Leadership & Vision</CardTitle>
           </CardHeader>
           <CardContent>
             {isEditing ? (
@@ -706,7 +706,7 @@ export default function AboutSchoolPage() {
         {/* Social Media Card */}
         <Card className="lg:col-span-1">
             <CardHeader>
-                    <CardTitle className="flex items-center"><Globe className="mr-2 h-5 w-5 text-primary" /> Social Media</CardTitle>
+                    <CardTitle className="flex items-center"><Globe className="mr-2 h-5 w-5 text-link" /> Social Media</CardTitle>
                 </CardHeader>
                 <CardContent>
                     {isEditing ? (
@@ -719,11 +719,11 @@ export default function AboutSchoolPage() {
                         </>
                     ) : (
                         <>
-                            <DetailItem label="Facebook" value={currentSettings.socialMedia?.facebook ? <a href={currentSettings.socialMedia.facebook} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{currentSettings.socialMedia.facebook}</a> : displayValue(null)} icon={Facebook}/>
-                            <DetailItem label="Twitter" value={currentSettings.socialMedia?.twitter ? <a href={currentSettings.socialMedia.twitter} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{currentSettings.socialMedia.twitter}</a> : displayValue(null)} icon={Twitter}/>
-                            <DetailItem label="Instagram" value={currentSettings.socialMedia?.instagram ? <a href={currentSettings.socialMedia.instagram} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{currentSettings.socialMedia.instagram}</a> : displayValue(null)} icon={Instagram}/>
-                            <DetailItem label="LinkedIn" value={currentSettings.socialMedia?.linkedin ? <a href={currentSettings.socialMedia.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{currentSettings.socialMedia.linkedin}</a> : displayValue(null)} icon={Linkedin}/>
-                            <DetailItem label="WhatsApp Group" value={currentSettings.socialMedia?.whatsapp ? <a href={currentSettings.socialMedia.whatsapp} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{currentSettings.socialMedia.whatsapp}</a> : displayValue(null)} icon={MessageCircle}/>
+                            <DetailItem label="Facebook" value={currentSettings.socialMedia?.facebook ? <a href={currentSettings.socialMedia.facebook} target="_blank" rel="noopener noreferrer" className="text-link hover:underline">{currentSettings.socialMedia.facebook}</a> : displayValue(null)} icon={Facebook}/>
+                            <DetailItem label="Twitter" value={currentSettings.socialMedia?.twitter ? <a href={currentSettings.socialMedia.twitter} target="_blank" rel="noopener noreferrer" className="text-link hover:underline">{currentSettings.socialMedia.twitter}</a> : displayValue(null)} icon={Twitter}/>
+                            <DetailItem label="Instagram" value={currentSettings.socialMedia?.instagram ? <a href={currentSettings.socialMedia.instagram} target="_blank" rel="noopener noreferrer" className="text-link hover:underline">{currentSettings.socialMedia.instagram}</a> : displayValue(null)} icon={Instagram}/>
+                            <DetailItem label="LinkedIn" value={currentSettings.socialMedia?.linkedin ? <a href={currentSettings.socialMedia.linkedin} target="_blank" rel="noopener noreferrer" className="text-link hover:underline">{currentSettings.socialMedia.linkedin}</a> : displayValue(null)} icon={Linkedin}/>
+                            <DetailItem label="WhatsApp Group" value={currentSettings.socialMedia?.whatsapp ? <a href={currentSettings.socialMedia.whatsapp} target="_blank" rel="noopener noreferrer" className="text-link hover:underline">{currentSettings.socialMedia.whatsapp}</a> : displayValue(null)} icon={MessageCircle}/>
                         </>
                     )}
             </CardContent>
@@ -732,7 +732,7 @@ export default function AboutSchoolPage() {
         {/* Pending Status Card */}
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle className="flex items-center"><Clock className="mr-2 h-5 w-5 text-primary" /> Pending Status Management</CardTitle>
+            <CardTitle className="flex items-center"><Clock className="mr-2 h-5 w-5 text-link" /> Pending Status Management</CardTitle>
           </CardHeader>
           <CardContent>
             {isEditing ? (
@@ -947,15 +947,15 @@ export default function AboutSchoolPage() {
         {/* App Icon Management */}
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle className="flex items-center"><ImageIcon className="mr-2 h-5 w-5 text-primary" /> App Icon Management</CardTitle>
+            <CardTitle className="flex items-center"><ImageIcon className="mr-2 h-5 w-5 text-link" /> App Icon Management</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 dark:bg-blue-950/40 dark:border-blue-800/60">
-                <h4 className="font-semibold text-sm mb-2 flex items-center text-blue-900 dark:text-blue-200">
+              <div className="bg-brand-surface-50 border border-brand-200 rounded-lg p-4 dark:bg-brand-surface-950/40 dark:border-brand-800/60">
+                <h4 className="font-semibold text-sm mb-2 flex items-center text-brand-ink-900 dark:text-brand-ink-200">
                   <Info className="mr-2 h-4 w-4" /> How to Change Your App Icon
                 </h4>
-                <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside dark:text-blue-200">
+                <ul className="text-sm text-brand-ink-800 space-y-1 list-disc list-inside dark:text-brand-ink-200">
                   <li>Upload your school logo as a PNG, JPEG, or WebP file</li>
                   <li>Image must be at least 192×192 pixels (512×512 or higher recommended)</li>
                   <li>The system will automatically generate all required icon sizes</li>
@@ -1044,7 +1044,7 @@ export default function AboutSchoolPage() {
                   
                   {isGeneratingIcons && (
                     <div className="p-8 bg-gray-50 rounded-lg border text-center dark:bg-slate-900">
-                      <Loader2 className="mx-auto h-12 w-12 text-primary animate-spin mb-3" />
+                      <Loader2 className="mx-auto h-12 w-12 text-link animate-spin mb-3" />
                       <p className="text-sm font-medium">Generating all icon sizes...</p>
                       <p className="text-xs text-muted-foreground mt-1">This may take a few seconds</p>
                     </div>
@@ -1069,9 +1069,9 @@ export default function AboutSchoolPage() {
                       </div>
                       
                       {iconGenerationResults.success && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 dark:bg-blue-950/40 dark:border-blue-800/60">
-                          <h4 className="font-semibold text-xs mb-2 text-blue-900 dark:text-blue-200">Next Steps:</h4>
-                          <ol className="text-xs text-blue-800 space-y-1 list-decimal list-inside dark:text-blue-200">
+                        <div className="bg-brand-surface-50 border border-brand-200 rounded-lg p-3 dark:bg-brand-surface-950/40 dark:border-brand-800/60">
+                          <h4 className="font-semibold text-xs mb-2 text-brand-ink-900 dark:text-brand-ink-200">Next Steps:</h4>
+                          <ol className="text-xs text-brand-ink-800 space-y-1 list-decimal list-inside dark:text-brand-ink-200">
                             <li>Clear your browser cache (Ctrl+Shift+Delete)</li>
                             <li>Uninstall the PWA if already installed</li>
                             <li>Reload the website (Ctrl+F5)</li>
@@ -1109,7 +1109,7 @@ export default function AboutSchoolPage() {
       <div className="mt-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center"><Users2 className="mr-2 h-5 w-5 text-primary" /> School Houses</CardTitle>
+            <CardTitle className="flex items-center"><Users2 className="mr-2 h-5 w-5 text-link" /> School Houses</CardTitle>
             <div>
               <Button onClick={openCreateHouse} size="sm">
                 Add House

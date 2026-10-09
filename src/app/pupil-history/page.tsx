@@ -373,10 +373,10 @@ export default function PupilHistoryPage() {
   const getStatusBadgeColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
-      case 'graduated': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+      case 'graduated': return 'bg-brand-surface-100 text-brand-ink-800 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60';
       case 'inactive': return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
       case 'on leave': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
-      case 'transferred': return 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-200 dark:border-purple-800/60';
+      case 'transferred': return 'bg-brand-secondary-surface-100 text-brand-secondary-ink-800 border-brand-secondary-200 dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-200 dark:border-brand-secondary-800/60';
       default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
     }
   };
@@ -438,7 +438,7 @@ export default function PupilHistoryPage() {
           backLabel="Back to pupils"
         />
         <div className="max-w-7xl mx-auto px-4 py-12 flex flex-col items-center justify-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-brand-600 border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
           <p className="mt-4 text-gray-600 dark:text-slate-300">Loading pupil history data...</p>
         </div>
       </div>
@@ -456,7 +456,7 @@ export default function PupilHistoryPage() {
         titleControls={
           <div className="flex items-center gap-1.5 lg:hidden">
             <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="h-[34px] min-w-[80px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+              <SelectTrigger className="h-[34px] min-w-[80px] max-w-[110px] rounded-full border-brand-200/60 bg-white/90 px-2 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden shrink-0 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                 <SelectValue placeholder="Class" />
               </SelectTrigger>
               <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999] dark:bg-slate-900">
@@ -468,7 +468,7 @@ export default function PupilHistoryPage() {
             </Select>
 
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="h-[34px] min-w-[75px] max-w-[100px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+              <SelectTrigger className="h-[34px] min-w-[75px] max-w-[100px] rounded-full border-brand-200/60 bg-white/90 px-2 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden shrink-0 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999] dark:bg-slate-900">
@@ -484,7 +484,7 @@ export default function PupilHistoryPage() {
         center={
           <div className="hidden lg:flex items-center gap-2">
             <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="h-[34px] min-w-[90px] max-w-[125px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+              <SelectTrigger className="h-[34px] min-w-[90px] max-w-[125px] rounded-full border-brand-200/60 bg-white/90 px-2.5 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden shrink-0 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                 <SelectValue placeholder="Class" />
               </SelectTrigger>
               <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999] dark:bg-slate-900">
@@ -496,7 +496,7 @@ export default function PupilHistoryPage() {
             </Select>
 
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="h-[34px] min-w-[85px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+              <SelectTrigger className="h-[34px] min-w-[85px] max-w-[110px] rounded-full border-brand-200/60 bg-white/90 px-2.5 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden shrink-0 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999] dark:bg-slate-900">
@@ -540,24 +540,24 @@ export default function PupilHistoryPage() {
       <GlassSummaryBar
         left={
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+            <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
               Pupil History Summary
             </span>
           </div>
         }
         right={
           <>
-            <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="font-bold text-blue-600 dark:text-blue-400">{stats.total}</span>
-              <span className="text-blue-700/85 dark:text-blue-300 font-medium">Total Pupils</span>
+            <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-brand-ink-600 dark:text-brand-ink-400">{stats.total}</span>
+              <span className="text-brand-ink-700/85 dark:text-brand-ink-300 font-medium">Total Pupils</span>
             </div>
             <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="font-bold text-green-600 dark:text-green-400">{stats.active}</span>
               <span className="text-green-700/85 dark:text-green-300 font-medium">Active</span>
             </div>
-            <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="font-bold text-purple-600 dark:text-purple-400">{stats.graduated}</span>
-              <span className="text-purple-700/85 dark:text-purple-300 font-medium">Graduated</span>
+            <div className="flex items-center gap-1 bg-brand-secondary-surface-50/80 dark:bg-brand-secondary-surface-950/20 border border-brand-secondary-100/50 dark:border-brand-secondary-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">{stats.graduated}</span>
+              <span className="text-brand-secondary-ink-700/85 dark:text-brand-secondary-ink-300 font-medium">Graduated</span>
             </div>
             <div className="flex items-center gap-1 bg-gray-50/80 dark:bg-gray-800/30 border border-gray-100/50 dark:border-gray-700/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="font-bold text-gray-600 dark:text-gray-400">{stats.inactive}</span>
@@ -614,7 +614,7 @@ export default function PupilHistoryPage() {
                               Age: {pupil.age} • {pupil.gender}
                             </div>
                             {pupil.currentClass && (
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">
+                              <Badge variant="outline" className="text-xs bg-brand-surface-50 text-brand-ink-700 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60">
                                 {pupil.currentClass}
                               </Badge>
                             )}
@@ -675,14 +675,14 @@ export default function PupilHistoryPage() {
                               <div key={index} className="flex items-start gap-3">
                                 <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
                                   history.status === 'current' ? 'bg-green-500' :
-                                  history.status === 'completed' ? 'bg-blue-500' : 'bg-gray-400'
+                                  history.status === 'completed' ? 'bg-brand-surface-500' : 'bg-gray-400'
                                 }`} />
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
                                     <span className="font-medium text-sm">{history.class}</span>
                                     <Badge variant="outline" className={`text-xs ${
                                       history.status === 'current' ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/60' :
-                                      history.status === 'completed' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60' :
+                                      history.status === 'completed' ? 'bg-brand-surface-50 text-brand-ink-700 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60' :
                                       'bg-gray-50 text-gray-700 border-gray-200 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-700'
                                     }`}>
                                       {history.status}
@@ -841,7 +841,7 @@ export default function PupilHistoryPage() {
                                 <Card>
                                   <CardHeader className="pb-3">
                                     <CardTitle className="text-base flex items-center gap-2">
-                                      <BarChart3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                      <BarChart3 className="w-4 h-4 text-brand-ink-600 dark:text-brand-ink-400" />
                                       Academic Summary
                                     </CardTitle>
                                   </CardHeader>

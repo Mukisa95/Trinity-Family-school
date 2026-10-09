@@ -222,8 +222,8 @@ export default function ClassHistoryPage() {
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="h-3 w-3 opacity-40" />;
     return sortDir === 'asc'
-      ? <ArrowUp className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-      : <ArrowDown className="h-3 w-3 text-blue-600 dark:text-blue-400" />;
+      ? <ArrowUp className="h-3 w-3 text-brand-ink-600 dark:text-brand-ink-400" />
+      : <ArrowDown className="h-3 w-3 text-brand-ink-600 dark:text-brand-ink-400" />;
   };
 
   // Filter & sort
@@ -341,7 +341,7 @@ export default function ClassHistoryPage() {
     'Active': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60',
     'Inactive': 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700',
     'Graduated': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60',
-    'Transferred': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60',
+    'Transferred': 'bg-brand-surface-100 text-brand-ink-800 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60',
     'Suspended': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60',
     'Pending': 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60',
   };
@@ -351,7 +351,7 @@ export default function ClassHistoryPage() {
       <PageHeader
         title={
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-brand-surface-500 to-brand-alt-surface-600 rounded-lg flex items-center justify-center">
               <History className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -372,7 +372,7 @@ export default function ClassHistoryPage() {
       />
 
       {/* Filters */}
-      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800/60">
+      <Card className="bg-gradient-to-br from-brand-surface-50 to-brand-alt-surface-50 border-brand-200 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40 dark:border-brand-800/60">
         <CardContent className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -428,14 +428,14 @@ export default function ClassHistoryPage() {
       {/* Statistics */}
       {selectedAcademicYear && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 dark:from-blue-950/40 dark:to-blue-950/40 dark:border-blue-800/60">
+          <Card className="bg-gradient-to-br from-brand-surface-50 to-brand-surface-100 border-brand-200 dark:from-brand-surface-950/40 dark:to-brand-surface-950/40 dark:border-brand-800/60">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-blue-600 font-medium dark:text-blue-400">Total Pupils</p>
-                  <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{getHistoricalPupils.length}</p>
+                  <p className="text-sm text-brand-ink-600 font-medium dark:text-brand-ink-400">Total Pupils</p>
+                  <p className="text-2xl font-bold text-brand-ink-700 dark:text-brand-ink-300">{getHistoricalPupils.length}</p>
                 </div>
-                <Users className="w-8 h-8 text-blue-500 dark:text-blue-400" />
+                <Users className="w-8 h-8 text-brand-ink-500 dark:text-brand-ink-400" />
               </div>
             </CardContent>
           </Card>
@@ -454,16 +454,16 @@ export default function ClassHistoryPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 dark:from-purple-950/40 dark:to-purple-950/40 dark:border-purple-800/60">
+          <Card className="bg-gradient-to-br from-brand-secondary-surface-50 to-brand-secondary-surface-100 border-brand-secondary-200 dark:from-brand-secondary-surface-950/40 dark:to-brand-secondary-surface-950/40 dark:border-brand-secondary-800/60">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-purple-600 font-medium dark:text-purple-400">Selected Year</p>
-                  <p className="text-lg font-bold text-purple-700 dark:text-purple-300">
+                  <p className="text-sm text-brand-secondary-ink-600 font-medium dark:text-brand-secondary-ink-400">Selected Year</p>
+                  <p className="text-lg font-bold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">
                     {selectedAcademicYear.name}
                   </p>
                 </div>
-                <Calendar className="w-8 h-8 text-purple-500 dark:text-purple-400" />
+                <Calendar className="w-8 h-8 text-brand-secondary-ink-500 dark:text-brand-secondary-ink-400" />
               </div>
             </CardContent>
           </Card>
@@ -490,7 +490,7 @@ export default function ClassHistoryPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <Users className="w-5 h-5 text-brand-ink-600 dark:text-brand-ink-400" />
                 <CardTitle>
                   Class History — {selectedAcademicYear.name}
                 </CardTitle>
@@ -575,7 +575,7 @@ export default function ClassHistoryPage() {
                       <TableHead>
                         <button
                           onClick={() => handleSort('name')}
-                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-blue-400"
+                          className="flex items-center gap-1 hover:text-brand-ink-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-brand-ink-400"
                         >
                           Pupil <SortIcon field="name" />
                         </button>
@@ -583,7 +583,7 @@ export default function ClassHistoryPage() {
                       <TableHead>
                         <button
                           onClick={() => handleSort('admissionNumber')}
-                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-blue-400"
+                          className="flex items-center gap-1 hover:text-brand-ink-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-brand-ink-400"
                         >
                           Adm. No. <SortIcon field="admissionNumber" />
                         </button>
@@ -591,7 +591,7 @@ export default function ClassHistoryPage() {
                       <TableHead>
                         <button
                           onClick={() => handleSort('gender')}
-                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-blue-400"
+                          className="flex items-center gap-1 hover:text-brand-ink-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-brand-ink-400"
                         >
                           Gender <SortIcon field="gender" />
                         </button>
@@ -599,7 +599,7 @@ export default function ClassHistoryPage() {
                       <TableHead>
                         <button
                           onClick={() => handleSort('joined')}
-                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-blue-400"
+                          className="flex items-center gap-1 hover:text-brand-ink-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-brand-ink-400"
                         >
                           Joined School <SortIcon field="joined" />
                         </button>
@@ -608,7 +608,7 @@ export default function ClassHistoryPage() {
                       <TableHead>
                         <button
                           onClick={() => handleSort('status')}
-                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-blue-400"
+                          className="flex items-center gap-1 hover:text-brand-ink-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-brand-ink-400"
                         >
                           Status <SortIcon field="status" />
                         </button>
@@ -616,7 +616,7 @@ export default function ClassHistoryPage() {
                       <TableHead>
                         <button
                           onClick={() => handleSort('terms')}
-                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-blue-400"
+                          className="flex items-center gap-1 hover:text-brand-ink-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-brand-ink-400"
                         >
                           Terms in Class <SortIcon field="terms" />
                         </button>
@@ -633,7 +633,7 @@ export default function ClassHistoryPage() {
                       const statusColor = statusColors[pupil.status as string] || 'bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100';
 
                       return (
-                        <TableRow key={pupil.id} className="hover:bg-blue-50/50 dark:hover:bg-blue-950/50">
+                        <TableRow key={pupil.id} className="hover:bg-brand-surface-50/50 dark:hover:bg-brand-surface-950/50">
                           <TableCell className="font-medium text-gray-400 text-xs dark:text-slate-400">
                             {index + 1}
                           </TableCell>
@@ -647,14 +647,14 @@ export default function ClassHistoryPage() {
                                     className="object-cover"
                                   />
                                 ) : null}
-                                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-medium text-sm">
+                                <AvatarFallback className="bg-gradient-to-br from-brand-surface-500 to-brand-alt-surface-600 text-white font-medium text-sm">
                                   {pupil.firstName[0]}{pupil.lastName[0]}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
                                 <Link
                                   href={`/pupil-detail?id=${pupil.id}`}
-                                  className="font-semibold text-gray-900 hover:text-blue-600 hover:underline transition-colors text-sm dark:text-slate-100 dark:hover:text-blue-400"
+                                  className="font-semibold text-gray-900 hover:text-brand-ink-600 hover:underline transition-colors text-sm dark:text-slate-100 dark:hover:text-brand-ink-400"
                                 >
                                   {formatPupilDisplayName(pupil)}
                                 </Link>
@@ -689,7 +689,7 @@ export default function ClassHistoryPage() {
                                     in{' '}
                                     <Link
                                       href={`/class-detail?id=${joinedClass.id}`}
-                                      className="text-blue-500 hover:underline font-medium dark:text-blue-400"
+                                      className="text-brand-ink-500 hover:underline font-medium dark:text-brand-ink-400"
                                     >
                                       {joinedClass.name}
                                     </Link>
@@ -704,7 +704,7 @@ export default function ClassHistoryPage() {
                             {pupilCurrentClass ? (
                               <Link
                                 href={`/class-detail?id=${pupilCurrentClass.id}`}
-                                className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                                className="text-sm font-medium text-brand-ink-600 hover:underline dark:text-brand-ink-400"
                               >
                                 {pupilCurrentClass.name}
                               </Link>
@@ -728,7 +728,7 @@ export default function ClassHistoryPage() {
                                   <Badge
                                     key={termId}
                                     variant="outline"
-                                    className="text-xs bg-blue-50 text-blue-700 border-blue-200 min-w-[1.5rem] justify-center dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60"
+                                    className="text-xs bg-brand-surface-50 text-brand-ink-700 border-brand-200 min-w-[1.5rem] justify-center dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60"
                                     title={selectedAcademicYear.terms.find(t => t.id === termId)?.name}
                                   >
                                     {termNum}

@@ -198,8 +198,8 @@ export function PupilPhotoDetail({
                 <AvatarFallback
                   className={`text-lg font-bold ${
                     isLoading
-                      ? "bg-gradient-to-br from-blue-200 via-indigo-200 to-purple-200 text-gray-400"
-                      : "bg-gradient-to-br from-blue-500 to-cyan-500 text-white"
+                      ? "bg-gradient-to-br from-brand-surface-200 via-brand-alt-surface-200 to-brand-secondary-surface-200 text-gray-400"
+                      : "bg-gradient-to-br from-brand-surface-500 to-cyan-500 text-white"
                   }`}
                 >
                   {getInitials()}
@@ -208,7 +208,7 @@ export function PupilPhotoDetail({
 
               {isLoading && (
                 <div
-                  className="pointer-events-none absolute inset-[-4px] rounded-full border-2 border-dashed border-blue-400 opacity-50"
+                  className="pointer-events-none absolute inset-[-4px] rounded-full border-2 border-dashed border-brand-400 opacity-50"
                   style={{ animation: "spin 2s linear infinite" }}
                 />
               )}

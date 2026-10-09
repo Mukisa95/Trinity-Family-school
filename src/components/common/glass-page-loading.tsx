@@ -20,7 +20,7 @@ export function GlassPageTopBarSkeleton({ className }: { className?: string }) {
       )}
       aria-hidden="true"
     >
-      <div className="h-px bg-gradient-to-r from-transparent via-blue-200/60 to-transparent dark:via-blue-900/60" />
+      <div className="h-px bg-gradient-to-r from-transparent via-brand-surface-200/60 to-transparent dark:via-brand-surface-900/60" />
       <div className="w-full px-4 py-2.5 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
           <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -36,7 +36,7 @@ export function GlassPageTopBarSkeleton({ className }: { className?: string }) {
           </div>
 
           <div className="flex shrink-0 items-center justify-center gap-2 lg:justify-start">
-            <div className="flex items-center gap-1 rounded-full border border-white/60 bg-white/80 px-2 py-1 shadow-sm ring-1 ring-blue-100/60 backdrop-blur-sm dark:border-slate-700/60 dark:bg-slate-900/80 dark:ring-blue-800/60">
+            <div className="flex items-center gap-1 rounded-full border border-white/60 bg-white/80 px-2 py-1 shadow-sm ring-1 ring-brand-100/60 backdrop-blur-sm dark:border-slate-700/60 dark:bg-slate-900/80 dark:ring-brand-800/60">
               <SkeletonBlock className="h-10 w-10 sm:h-11 sm:w-11" />
               <SkeletonBlock className="h-10 w-10 sm:h-11 sm:w-11" />
               <SkeletonBlock className="h-10 w-10 sm:h-11 sm:w-11" />

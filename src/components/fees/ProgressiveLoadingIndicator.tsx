@@ -77,10 +77,10 @@ export function ProgressiveLoadingIndicator({
     
     if (isProcessing) {
       return {
-        color: 'text-blue-600 dark:text-blue-400',
-        bgColor: 'bg-blue-50 dark:bg-blue-950/40',
-        borderColor: 'border-blue-200 dark:border-blue-800/60',
-        icon: <Calculator className="h-5 w-5 text-blue-600 animate-pulse dark:text-blue-400" />
+        color: 'text-brand-ink-600 dark:text-brand-ink-400',
+        bgColor: 'bg-brand-surface-50 dark:bg-brand-surface-950/40',
+        borderColor: 'border-brand-200 dark:border-brand-800/60',
+        icon: <Calculator className="h-5 w-5 text-brand-ink-600 animate-pulse dark:text-brand-ink-400" />
       };
     }
     
@@ -169,7 +169,7 @@ export function ProgressiveLoadingIndicator({
               {isProcessing && totalBatches > 1 && (
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600 dark:text-slate-300">Current Batch:</span>
-                  <Badge variant="outline" className="text-blue-600 border-blue-300 dark:text-blue-400 dark:border-blue-800/60">
+                  <Badge variant="outline" className="text-brand-ink-600 border-brand-300 dark:text-brand-ink-400 dark:border-brand-800/60">
                     <AnimatedCounter value={currentBatch} /> of <AnimatedCounter value={totalBatches} />
                   </Badge>
                 </div>
@@ -188,10 +188,10 @@ export function ProgressiveLoadingIndicator({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200 dark:border-slate-700">
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-1 mb-1">
-                      <DollarSign className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                      <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">Total Fees</span>
+                      <DollarSign className="h-4 w-4 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" />
+                      <span className="text-sm font-medium text-brand-alt-ink-600 dark:text-brand-alt-ink-400">Total Fees</span>
                     </div>
-                    <p className="text-lg font-bold text-indigo-900 dark:text-indigo-200">
+                    <p className="text-lg font-bold text-brand-alt-ink-900 dark:text-brand-alt-ink-200">
                       {formatCurrency(totals.totalFees)}
                     </p>
                   </div>
@@ -220,7 +220,7 @@ export function ProgressiveLoadingIndicator({
 
               {/* Optimization Metrics */}
               {optimizationInfo && (
-                <div className="bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-lg p-4 dark:from-emerald-950/40 dark:to-blue-950/40 dark:border-emerald-800/60">
+                <div className="bg-gradient-to-r from-emerald-50 to-brand-surface-50 border border-emerald-200 rounded-lg p-4 dark:from-emerald-950/40 dark:to-brand-surface-950/40 dark:border-emerald-800/60">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center dark:bg-emerald-950/40">
                       <TrendingUp className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
@@ -237,17 +237,17 @@ export function ProgressiveLoadingIndicator({
                     </div>
                     
                     <div className="bg-white/60 rounded-lg p-2 dark:bg-slate-900/60">
-                      <div className="text-lg font-bold text-blue-700 dark:text-blue-300">
+                      <div className="text-lg font-bold text-brand-ink-700 dark:text-brand-ink-300">
                         {optimizationInfo.cacheHits}
                       </div>
-                      <div className="text-xs text-blue-600 dark:text-blue-400">Cache Hits</div>
+                      <div className="text-xs text-brand-ink-600 dark:text-brand-ink-400">Cache Hits</div>
                     </div>
                     
                     <div className="bg-white/60 rounded-lg p-2 dark:bg-slate-900/60">
-                      <div className="text-lg font-bold text-purple-700 dark:text-purple-300">
+                      <div className="text-lg font-bold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">
                         {optimizationInfo.groupsCreated}
                       </div>
-                      <div className="text-xs text-purple-600 dark:text-purple-400">Groups</div>
+                      <div className="text-xs text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">Groups</div>
                     </div>
                     
                     <div className="bg-white/60 rounded-lg p-2 dark:bg-slate-900/60">

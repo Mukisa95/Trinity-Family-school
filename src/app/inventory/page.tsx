@@ -64,10 +64,10 @@ import { useItemReleaseQueue } from '@/lib/hooks/use-item-requests';
 // Category colors for visual consistency
 const categoryColors: Record<InventoryCategory, string> = {
     'Furniture': 'bg-amber-500',
-    'Electronics': 'bg-blue-500',
-    'Laboratory': 'bg-purple-500',
+    'Electronics': 'bg-brand-surface-500',
+    'Laboratory': 'bg-brand-secondary-surface-500',
     'Sports': 'bg-green-500',
-    'Library': 'bg-indigo-500',
+    'Library': 'bg-brand-alt-surface-500',
     'Kitchen': 'bg-orange-500',
     'Classroom': 'bg-cyan-500',
     'Office': 'bg-slate-500',
@@ -84,7 +84,7 @@ const conditionColors: Record<ItemCondition, string> = {
     'Fair': 'bg-yellow-500 text-black',
     'Poor': 'bg-orange-500 text-white',
     'Damaged': 'bg-red-500 text-white',
-    'Under Repair': 'bg-blue-500 text-white',
+    'Under Repair': 'bg-brand-surface-500 text-white',
     'Disposed': 'bg-gray-500 text-white'
 };
 
@@ -276,7 +276,7 @@ export default function InventoryPage() {
                                     className={cn(
                                         "h-6 px-3 rounded-full text-[10px] font-semibold transition-all duration-205",
                                         isActive
-                                            ? "bg-white text-indigo-700 shadow-sm font-bold dark:bg-slate-900 dark:text-indigo-300"
+                                            ? "bg-white text-brand-alt-ink-700 shadow-sm font-bold dark:bg-slate-900 dark:text-brand-alt-ink-300"
                                             : "text-slate-600 hover:text-slate-900 hover:bg-white/50 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-900/50"
                                     )}
                                 >
@@ -355,7 +355,7 @@ export default function InventoryPage() {
                     left={
                         <div className="flex items-center gap-2">
                             <PackageCheck className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                            <span className="text-xs font-black uppercase tracking-wider text-indigo-900 dark:text-indigo-200 sm:text-sm">Release requests</span>
+                            <span className="text-xs font-black uppercase tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 sm:text-sm">Release requests</span>
                         </div>
                     }
                     right={
@@ -374,17 +374,17 @@ export default function InventoryPage() {
             ) : canViewInventory ? <GlassSummaryBar
                 left={
                     <div className="flex items-center gap-2">
-                        <Warehouse className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
-                        <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+                        <Warehouse className="h-4 w-4 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />
+                        <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
                             Inventory Overview
                         </span>
                     </div>
                 }
                 right={
                     <>
-                        <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                            <span className="text-blue-700/85 dark:text-blue-300 font-medium">Total Items:</span>
-                            <span className="font-bold text-blue-700 dark:text-blue-400">{summary?.totalItems || 0}</span>
+                        <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                            <span className="text-brand-ink-700/85 dark:text-brand-ink-300 font-medium">Total Items:</span>
+                            <span className="font-bold text-brand-ink-700 dark:text-brand-ink-400">{summary?.totalItems || 0}</span>
                         </div>
                         <div className={cn(
                             "flex items-center gap-1 border px-2 py-0.5 rounded-md text-[10px] sm:text-xs",
@@ -395,9 +395,9 @@ export default function InventoryPage() {
                             <span className="font-medium">Low Stock:</span>
                             <span className="font-bold">{summary?.lowStockCount || 0}</span>
                         </div>
-                        <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                            <span className="text-purple-700/85 dark:text-purple-300 font-medium">Items Issued:</span>
-                            <span className="font-bold text-purple-700 dark:text-purple-400">{issuedItems?.length || 0}</span>
+                        <div className="flex items-center gap-1 bg-brand-secondary-surface-50/80 dark:bg-brand-secondary-surface-950/20 border border-brand-secondary-100/50 dark:border-brand-secondary-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                            <span className="text-brand-secondary-ink-700/85 dark:text-brand-secondary-ink-300 font-medium">Items Issued:</span>
+                            <span className="font-bold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-400">{issuedItems?.length || 0}</span>
                         </div>
                         <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
                             <span className="text-green-700/85 dark:text-green-300 font-medium">Total Value:</span>

@@ -124,7 +124,7 @@ export function RequirementReleaseModal({
                       }
                     }}
                   />
-                  <Label htmlFor="release-all" className="font-medium text-blue-600 dark:text-blue-400">
+                  <Label htmlFor="release-all" className="font-medium text-brand-ink-600 dark:text-brand-ink-400">
                     Release All Remaining Items
                   </Label>
                 </div>

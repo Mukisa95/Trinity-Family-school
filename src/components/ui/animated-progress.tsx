@@ -25,7 +25,7 @@ const AnimatedProgress = React.forwardRef<
       {...props}
     >
       <motion.div
-        className={`h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full ${indicatorClassName}`}
+        className={`h-full bg-gradient-to-r from-brand-surface-500 to-brand-alt-surface-600 rounded-full ${indicatorClassName}`}
         initial={{ width: "0%" }}
         animate={{ width: `${value}%` }}
         transition={{

@@ -111,7 +111,7 @@ export function PupilInfoSection({ pupil }: PupilInfoSectionProps) {
         {pupil.address && (
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
             <h3 className="text-lg font-semibold mb-3 flex items-center">
-              <MapPin className="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400" />
+              <MapPin className="w-5 h-5 mr-2 text-brand-ink-500 dark:text-brand-ink-400" />
               Address
             </h3>
             <p className="text-gray-600 dark:text-gray-400">{pupil.address}</p>
@@ -122,14 +122,14 @@ export function PupilInfoSection({ pupil }: PupilInfoSectionProps) {
         {pupil.guardians && pupil.guardians.length > 0 && (
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <Users className="w-5 h-5 mr-2 text-indigo-500 dark:text-indigo-400" />
+              <Users className="w-5 h-5 mr-2 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />
               Guardian Information
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               {pupil.guardians.map((guardian, index) => (
                 <div key={guardian.id || index} className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
                   <div className="font-semibold text-base mb-1 text-gray-900 dark:text-gray-100">{guardian.firstName} {guardian.lastName}</div>
-                  <div className="text-sm font-medium text-indigo-600 dark:text-indigo-400 mb-3">{guardian.relationship}</div>
+                  <div className="text-sm font-medium text-brand-alt-ink-600 dark:text-brand-alt-ink-400 mb-3">{guardian.relationship}</div>
                   
                   <div className="space-y-1.5 text-sm">
                     {guardian.phone && (

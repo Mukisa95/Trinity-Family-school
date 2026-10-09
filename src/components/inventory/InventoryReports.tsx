@@ -118,7 +118,7 @@ export function InventoryReports({
                         <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-lg flex items-center gap-2">
-                                    <PieChart className="h-5 w-5 text-blue-500 dark:text-blue-400" />
+                                    <PieChart className="h-5 w-5 text-brand-ink-500 dark:text-brand-ink-400" />
                                     By Category
                                 </CardTitle>
                             </CardHeader>
@@ -189,7 +189,7 @@ export function InventoryReports({
                         <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-lg flex items-center gap-2">
-                                    <Package className="h-5 w-5 text-purple-500 dark:text-purple-400" />
+                                    <Package className="h-5 w-5 text-brand-secondary-ink-500 dark:text-brand-secondary-ink-400" />
                                     Condition Status
                                 </CardTitle>
                             </CardHeader>
@@ -218,17 +218,17 @@ export function InventoryReports({
                         </Card>
 
                         {/* Quick Stats */}
-                        <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
+                        <Card className="border-0 shadow-lg bg-gradient-to-br from-brand-surface-50 to-brand-alt-surface-50 dark:from-brand-surface-950/30 dark:to-brand-alt-surface-950/30">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-lg flex items-center gap-2">
-                                    <TrendingUp className="h-5 w-5 text-indigo-500 dark:text-indigo-400" />
+                                    <TrendingUp className="h-5 w-5 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />
                                     Summary Statistics
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="p-3 bg-white dark:bg-slate-800 rounded-lg">
-                                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{summary?.totalItems || 0}</p>
+                                        <p className="text-2xl font-bold text-brand-ink-600 dark:text-brand-ink-400">{summary?.totalItems || 0}</p>
                                         <p className="text-xs text-muted-foreground">Total Item Types</p>
                                     </div>
                                     <div className="p-3 bg-white dark:bg-slate-800 rounded-lg">
@@ -236,7 +236,7 @@ export function InventoryReports({
                                         <p className="text-xs text-muted-foreground">Total Units</p>
                                     </div>
                                     <div className="p-3 bg-white dark:bg-slate-800 rounded-lg">
-                                        <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{formatCurrency(summary?.totalValue || 0)}</p>
+                                        <p className="text-2xl font-bold text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">{formatCurrency(summary?.totalValue || 0)}</p>
                                         <p className="text-xs text-muted-foreground">Total Value</p>
                                     </div>
                                     <div className="p-3 bg-white dark:bg-slate-800 rounded-lg">
@@ -269,30 +269,30 @@ export function InventoryReports({
                             </CardContent>
                         </Card>
 
-                        <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
+                        <Card className="border-0 shadow-lg bg-gradient-to-br from-brand-surface-500 to-brand-alt-surface-600 text-white">
                             <CardContent className="p-6">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-blue-100 text-sm">Total Items</p>
+                                        <p className="text-brand-ink-100 text-sm">Total Items</p>
                                         <p className="text-3xl font-bold">{valueReport?.totalItemCount || 0}</p>
                                     </div>
-                                    <Package className="h-12 w-12 text-blue-300/50" />
+                                    <Package className="h-12 w-12 text-brand-ink-300/50" />
                                 </div>
                             </CardContent>
                         </Card>
 
-                        <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-violet-600 text-white">
+                        <Card className="border-0 shadow-lg bg-gradient-to-br from-brand-secondary-surface-500 to-brand-secondary-alt-surface-600 text-white">
                             <CardContent className="p-6">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-purple-100 text-sm">Average Value/Item</p>
+                                        <p className="text-brand-secondary-ink-100 text-sm">Average Value/Item</p>
                                         <p className="text-3xl font-bold">
                                             {formatCurrency(
                                                 (valueReport?.totalAssetValue || 0) / Math.max(valueReport?.totalItemCount || 1, 1)
                                             )}
                                         </p>
                                     </div>
-                                    <TrendingUp className="h-12 w-12 text-purple-300/50" />
+                                    <TrendingUp className="h-12 w-12 text-brand-secondary-ink-300/50" />
                                 </div>
                             </CardContent>
                         </Card>
@@ -426,7 +426,7 @@ export function InventoryReports({
                     <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80">
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
-                                <MapPin className="h-5 w-5 text-indigo-500 dark:text-indigo-400" />
+                                <MapPin className="h-5 w-5 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />
                                 Stock by Location
                             </CardTitle>
                         </CardHeader>
@@ -441,7 +441,7 @@ export function InventoryReports({
                                             <span className="font-medium">{location}</span>
                                             <Badge variant="outline">{data.itemCount}</Badge>
                                         </div>
-                                        <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{data.totalQuantity}</p>
+                                        <p className="text-2xl font-bold text-brand-alt-ink-600 dark:text-brand-alt-ink-400">{data.totalQuantity}</p>
                                         <p className="text-xs text-muted-foreground">total units</p>
                                     </div>
                                 ))}

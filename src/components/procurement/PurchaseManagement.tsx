@@ -541,10 +541,10 @@ export function PurchaseManagement({
 
               <div className="space-y-6">
                 {/* Digital Signature Section */}
-                <div className="border-2 border-dashed border-blue-200 rounded-lg p-4 dark:border-blue-800/60">
+                <div className="border-2 border-dashed border-brand-200 rounded-lg p-4 dark:border-brand-800/60">
                   <div className="flex items-center gap-2 mb-3">
-                    <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    <h4 className="font-medium text-blue-800 dark:text-blue-200">Staff Authentication</h4>
+                    <Shield className="w-5 h-5 text-brand-ink-600 dark:text-brand-ink-400" />
+                    <h4 className="font-medium text-brand-ink-800 dark:text-brand-ink-200">Staff Authentication</h4>
                   </div>
 
                   {!authenticatedUser ? (
@@ -555,7 +555,7 @@ export function PurchaseManagement({
                       <Button
                         onClick={() => setShowDigitalSignature(true)}
                         variant="outline"
-                        className="w-full border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                        className="w-full border-brand-300 text-brand-ink-700 hover:bg-brand-surface-50 dark:border-brand-800/60 dark:text-brand-ink-300 dark:hover:bg-brand-surface-950/40"
                       >
                         <Shield className="w-4 h-4 mr-2" />
                         Authenticate Staff Member

@@ -48,7 +48,7 @@ const DetailItem = React.memo(function DetailItem({ icon, label, value, multilin
         {icon && <span className="mr-2 text-gray-500 dark:text-slate-400">{icon}</span>}
         <span className="font-medium text-gray-600 dark:text-slate-300">{label}:</span>
       </div>
-      <span className={`text-right ${multiline ? 'mt-1 ml-0 sm:ml-6 text-left sm:text-right' : ''} ${highlight ? 'font-semibold text-blue-600 dark:text-blue-400' : 'text-gray-800 dark:text-slate-100'}`}>
+      <span className={`text-right ${multiline ? 'mt-1 ml-0 sm:ml-6 text-left sm:text-right' : ''} ${highlight ? 'font-semibold text-brand-ink-600 dark:text-brand-ink-400' : 'text-gray-800 dark:text-slate-100'}`}>
         {value}
       </span>
     </div>
@@ -81,7 +81,7 @@ export function InformationSection({ pupil, classes }: { pupil: any; classes: an
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center text-lg">
-            <UserSquare className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <UserSquare className="mr-2 h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
             Personal Details
           </CardTitle>
         </CardHeader>
@@ -116,7 +116,7 @@ export function InformationSection({ pupil, classes }: { pupil: any; classes: an
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center text-lg">
-            <UserSquare className="mr-2 h-5 w-5 text-purple-600 dark:text-purple-400" />
+            <UserSquare className="mr-2 h-5 w-5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
             Guardian Information
           </CardTitle>
         </CardHeader>
@@ -212,7 +212,7 @@ export function RequirementsSection({ pupil }: { pupil: any }) {
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center text-lg">
-            <Shirt className="mr-2 h-5 w-5 text-purple-600 dark:text-purple-400" />
+            <Shirt className="mr-2 h-5 w-5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
             Requirements & Uniforms
           </CardTitle>
         </CardHeader>
@@ -223,7 +223,7 @@ export function RequirementsSection({ pupil }: { pupil: any }) {
             <p className="text-gray-600 mb-4 dark:text-slate-300">
               Track {pupil.firstName}'s uniform requirements, books, and other school supplies.
             </p>
-            <Button className="bg-purple-600 hover:bg-purple-700">
+            <Button className="bg-brand-secondary-surface-600 hover:bg-brand-secondary-surface-700">
               View Requirements
             </Button>
           </div>
@@ -266,7 +266,7 @@ export function ResultsSection({ pupil, examHistory }: { pupil: any; examHistory
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center text-lg">
-            <BookOpen className="mr-2 h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <BookOpen className="mr-2 h-5 w-5 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" />
             Examination Results
           </CardTitle>
         </CardHeader>

@@ -124,7 +124,7 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto mb-4" />
+          <Loader2 className="h-16 w-16 animate-spin text-link mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">Loading pupil information...</p>
         </div>
       </div>
@@ -195,9 +195,9 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
           title: 'Personal Information',
           subtitle: 'View student profile and academic details',
           icon: User,
-          gradient: 'from-blue-500 via-blue-600 to-cyan-600',
-          particles: 'from-blue-400/20 to-cyan-400/20',
-          accentColor: 'text-blue-200'
+          gradient: 'from-brand-surface-500 via-brand-surface-600 to-cyan-600',
+          particles: 'from-brand-surface-400/20 to-cyan-400/20',
+          accentColor: 'text-brand-ink-200'
         };
       case 'fees':
         return {
@@ -222,9 +222,9 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
           title: 'Attendance Records',
           subtitle: 'View daily attendance and participation tracking',
           icon: CalendarCheck,
-          gradient: 'from-violet-500 via-purple-600 to-indigo-600',
-          particles: 'from-violet-400/20 to-purple-400/20',
-          accentColor: 'text-violet-200'
+          gradient: 'from-brand-secondary-alt-surface-500 via-brand-secondary-surface-600 to-brand-alt-surface-600',
+          particles: 'from-brand-secondary-alt-surface-400/20 to-brand-secondary-surface-400/20',
+          accentColor: 'text-brand-secondary-alt-ink-200'
         };
       case 'banking':
         return {
@@ -249,9 +249,9 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
           title: 'Dashboard Overview',
           subtitle: 'Welcome to your student information portal',
           icon: User,
-          gradient: 'from-blue-500 via-blue-600 to-cyan-600',
-          particles: 'from-blue-400/20 to-cyan-400/20',
-          accentColor: 'text-blue-200'
+          gradient: 'from-brand-surface-500 via-brand-surface-600 to-cyan-600',
+          particles: 'from-brand-surface-400/20 to-cyan-400/20',
+          accentColor: 'text-brand-ink-200'
         };
     }
   };
@@ -354,17 +354,17 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
               className={`
                 group relative px-1.5 sm:px-2 md:px-3 py-1 sm:py-1.5 md:py-2 rounded-full font-medium text-xs transition-all duration-300 transform hover:scale-105 active:scale-95 flex-shrink-0
                 ${currentView === 'info' 
-                  ? 'bg-white text-blue-600 shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/25 dark:bg-slate-900 dark:text-blue-400'
-                  : 'bg-white/20 backdrop-blur-sm text-slate-600 border-2 border-blue-600/60 hover:bg-blue-50/30 hover:border-blue-600/80 shadow-md shadow-blue-200/30 dark:bg-slate-900/20 dark:text-slate-300 dark:hover:bg-blue-950/30'
+                  ? 'bg-white text-brand-ink-600 shadow-md shadow-brand-600/20 hover:shadow-lg hover:shadow-brand-600/25 dark:bg-slate-900 dark:text-brand-ink-400'
+                  : 'bg-white/20 backdrop-blur-sm text-slate-600 border-2 border-brand-600/60 hover:bg-brand-surface-50/30 hover:border-brand-600/80 shadow-md shadow-brand-200/30 dark:bg-slate-900/20 dark:text-slate-300 dark:hover:bg-brand-surface-950/30'
                 }
               `}
             >
               <div className="flex items-center">
-                <User className={`w-3 h-3 mr-0.5 sm:mr-1 md:mr-1.5 transition-colors ${currentView === 'info' ? 'text-blue-600 dark:text-blue-400' : 'text-blue-700 dark:text-blue-300'}`} />
-                <span className={`whitespace-nowrap ${currentView === 'info' ? 'text-blue-600 dark:text-blue-400' : 'text-blue-700 dark:text-blue-300'}`}>Info</span>
+                <User className={`w-3 h-3 mr-0.5 sm:mr-1 md:mr-1.5 transition-colors ${currentView === 'info' ? 'text-brand-ink-600 dark:text-brand-ink-400' : 'text-brand-ink-700 dark:text-brand-ink-300'}`} />
+                <span className={`whitespace-nowrap ${currentView === 'info' ? 'text-brand-ink-600 dark:text-brand-ink-400' : 'text-brand-ink-700 dark:text-brand-ink-300'}`}>Info</span>
               </div>
               {currentView === 'info' && (
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/20 to-cyan-400/20 animate-pulse"></div>
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-brand-surface-400/20 to-cyan-400/20 animate-pulse"></div>
               )}
             </button>
             
@@ -414,20 +414,20 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
               className={`
                 group relative px-1.5 sm:px-2 md:px-3 py-1 sm:py-1.5 md:py-2 rounded-full font-medium text-xs transition-all duration-300 transform hover:scale-105 active:scale-95 flex-shrink-0
                 ${currentView === 'attendance' 
-                  ? 'bg-white text-violet-600 shadow-md shadow-violet-600/20 hover:shadow-lg hover:shadow-violet-600/25 dark:bg-slate-900 dark:text-violet-400'
-                  : 'bg-white/20 backdrop-blur-sm text-slate-600 border-2 border-violet-600/60 hover:bg-violet-50/30 hover:border-violet-600/80 shadow-md shadow-violet-200/30 dark:bg-slate-900/20 dark:text-slate-300 dark:hover:bg-violet-950/30'
+                  ? 'bg-white text-brand-secondary-alt-ink-600 shadow-md shadow-brand-secondary-alt-600/20 hover:shadow-lg hover:shadow-brand-secondary-alt-600/25 dark:bg-slate-900 dark:text-brand-secondary-alt-ink-400'
+                  : 'bg-white/20 backdrop-blur-sm text-slate-600 border-2 border-brand-secondary-alt-600/60 hover:bg-brand-secondary-alt-surface-50/30 hover:border-brand-secondary-alt-600/80 shadow-md shadow-brand-secondary-alt-200/30 dark:bg-slate-900/20 dark:text-slate-300 dark:hover:bg-brand-secondary-alt-surface-950/30'
                 }
               `}
             >
               <div className="flex items-center">
-                <CalendarCheck className={`w-3 h-3 mr-0.5 sm:mr-1 md:mr-1.5 transition-colors ${currentView === 'attendance' ? 'text-violet-600 dark:text-violet-400' : 'text-violet-700 dark:text-violet-300'}`} />
-                <span className={`whitespace-nowrap ${currentView === 'attendance' ? 'text-violet-600 dark:text-violet-400' : 'text-violet-700 dark:text-violet-300'}`}>
+                <CalendarCheck className={`w-3 h-3 mr-0.5 sm:mr-1 md:mr-1.5 transition-colors ${currentView === 'attendance' ? 'text-brand-secondary-alt-ink-600 dark:text-brand-secondary-alt-ink-400' : 'text-brand-secondary-alt-ink-700 dark:text-brand-secondary-alt-ink-300'}`} />
+                <span className={`whitespace-nowrap ${currentView === 'attendance' ? 'text-brand-secondary-alt-ink-600 dark:text-brand-secondary-alt-ink-400' : 'text-brand-secondary-alt-ink-700 dark:text-brand-secondary-alt-ink-300'}`}>
                   <span className="hidden sm:inline">Attendance</span>
                   <span className="sm:hidden">Attend</span>
                 </span>
               </div>
               {currentView === 'attendance' && (
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-violet-400/20 to-purple-400/20 animate-pulse"></div>
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-brand-secondary-alt-surface-400/20 to-brand-secondary-surface-400/20 animate-pulse"></div>
               )}
             </button>
             

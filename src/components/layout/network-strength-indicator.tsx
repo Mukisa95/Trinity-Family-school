@@ -131,7 +131,7 @@ export function NetworkStrengthIndicator() {
             onMouseLeave={() => setShowTooltip(false)}
         >
             <button
-                className="relative p-1.5 hover:bg-blue-50/80 rounded-full transition-all duration-200 transform hover:scale-110 active:scale-95 dark:hover:bg-blue-950/80"
+                className="relative p-1.5 hover:bg-brand-surface-50/80 rounded-full transition-all duration-200 transform hover:scale-110 active:scale-95 dark:hover:bg-brand-surface-950/80"
                 style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}
                 type="button"
                 aria-label={`Network: ${getLabel()}`}

@@ -98,7 +98,7 @@ const WizaRechargeDialog: React.FC<WizaRechargeDialogProps> = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-primary" />
+            <CreditCard className="h-5 w-5 text-link" />
             Recharge SMS Balance
           </DialogTitle>
           <DialogDescription>
@@ -112,7 +112,7 @@ const WizaRechargeDialog: React.FC<WizaRechargeDialogProps> = ({
           {currentBalance !== null && currentBalance !== undefined && (
             <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
               <span className="text-sm text-muted-foreground">Current Balance</span>
-              <span className="font-semibold text-primary">
+              <span className="font-semibold text-link">
                 UGX {Number(currentBalance).toLocaleString()}
               </span>
             </div>

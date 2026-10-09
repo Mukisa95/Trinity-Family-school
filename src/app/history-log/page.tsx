@@ -344,7 +344,7 @@ export default function HistoryLogPage() {
               <p className="text-sm text-muted-foreground">Exports</p>
               <p className="text-2xl font-semibold">{logStats.exports}</p>
             </div>
-            <Download className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <Download className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
           </CardContent>
         </Card>
         <Card>

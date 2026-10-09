@@ -186,7 +186,7 @@ function ComposeNotificationDialog({
                   value={title}
                   onChange={event => setTitle(event.target.value)}
                   placeholder="What should people see?"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:bg-slate-900 dark:focus:ring-blue-800/60"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm outline-none transition focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:bg-slate-900 dark:focus:ring-brand-800/60"
                   autoFocus
                 />
               </label>
@@ -198,7 +198,7 @@ function ComposeNotificationDialog({
                   onChange={event => setBody(event.target.value)}
                   placeholder="Write your message…"
                   rows={8}
-                  className="min-h-44 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm leading-6 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:bg-slate-900 dark:focus:ring-blue-800/60"
+                  className="min-h-44 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm leading-6 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:bg-slate-900 dark:focus:ring-brand-800/60"
                 />
                 <span className="mt-1.5 block text-xs text-slate-400 dark:text-slate-400">No message length limit.</span>
               </label>
@@ -212,7 +212,7 @@ function ComposeNotificationDialog({
                       type="button"
                       onClick={() => setTarget(option.value)}
                       className={`rounded-xl border px-3.5 py-3 text-left transition ${target === option.value
-                        ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500 dark:bg-blue-950/40'
+                        ? 'border-brand-500 bg-brand-surface-50 ring-1 ring-brand-500 dark:bg-brand-surface-950/40'
                         : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-700 dark:hover:bg-slate-900'
                       }`}
                     >
@@ -237,28 +237,28 @@ function ComposeNotificationDialog({
               <fieldset>
                 <legend className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">Delivery time</legend>
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => setDeliveryMode('now')} className={`rounded-xl border px-3.5 py-3 text-left transition ${deliveryMode === 'now' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500 dark:bg-blue-950/40' : 'border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-900'}`}>
+                  <button type="button" onClick={() => setDeliveryMode('now')} className={`rounded-xl border px-3.5 py-3 text-left transition ${deliveryMode === 'now' ? 'border-brand-500 bg-brand-surface-50 ring-1 ring-brand-500 dark:bg-brand-surface-950/40' : 'border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-900'}`}>
                     <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">Send now</span>
                     <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">Deliver immediately</span>
                   </button>
-                  <button type="button" onClick={() => setDeliveryMode('scheduled')} className={`rounded-xl border px-3.5 py-3 text-left transition ${deliveryMode === 'scheduled' ? 'border-violet-500 bg-violet-50 ring-1 ring-violet-500 dark:bg-violet-950/40' : 'border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-900'}`}>
+                  <button type="button" onClick={() => setDeliveryMode('scheduled')} className={`rounded-xl border px-3.5 py-3 text-left transition ${deliveryMode === 'scheduled' ? 'border-brand-secondary-alt-500 bg-brand-secondary-alt-surface-50 ring-1 ring-brand-secondary-alt-500 dark:bg-brand-secondary-alt-surface-950/40' : 'border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-900'}`}>
                     <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">Schedule</span>
                     <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">Within about five minutes</span>
                   </button>
                 </div>
                 {deliveryMode === 'scheduled' && (
-                  <div className="mt-3 rounded-xl border border-violet-200 bg-violet-50 p-3.5 dark:border-violet-800/60 dark:bg-violet-950/40">
+                  <div className="mt-3 rounded-xl border border-brand-secondary-alt-200 bg-brand-secondary-alt-surface-50 p-3.5 dark:border-brand-secondary-alt-800/60 dark:bg-brand-secondary-alt-surface-950/40">
                     <div className="grid gap-3 sm:grid-cols-2">
                       <label>
-                        <span className="mb-1.5 block text-xs font-semibold text-violet-900 dark:text-violet-200">Date</span>
-                        <input type="date" value={scheduleFields.date} onChange={event => setScheduleFields(current => ({ ...current, date: event.target.value }))} className="h-11 w-full rounded-lg border border-violet-200 bg-white px-3 text-sm outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100 dark:border-violet-800/60 dark:bg-slate-900 dark:focus:ring-violet-800/60" />
+                        <span className="mb-1.5 block text-xs font-semibold text-brand-secondary-alt-ink-900 dark:text-brand-secondary-alt-ink-200">Date</span>
+                        <input type="date" value={scheduleFields.date} onChange={event => setScheduleFields(current => ({ ...current, date: event.target.value }))} className="h-11 w-full rounded-lg border border-brand-secondary-alt-200 bg-white px-3 text-sm outline-none focus:border-brand-secondary-alt-400 focus:ring-4 focus:ring-brand-secondary-alt-100 dark:border-brand-secondary-alt-800/60 dark:bg-slate-900 dark:focus:ring-brand-secondary-alt-800/60" />
                       </label>
                       <label>
-                        <span className="mb-1.5 block text-xs font-semibold text-violet-900 dark:text-violet-200">Time · Africa/Kampala</span>
-                        <input type="time" value={scheduleFields.time} onChange={event => setScheduleFields(current => ({ ...current, time: event.target.value }))} className="h-11 w-full rounded-lg border border-violet-200 bg-white px-3 text-sm outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100 dark:border-violet-800/60 dark:bg-slate-900 dark:focus:ring-violet-800/60" />
+                        <span className="mb-1.5 block text-xs font-semibold text-brand-secondary-alt-ink-900 dark:text-brand-secondary-alt-ink-200">Time · Africa/Kampala</span>
+                        <input type="time" value={scheduleFields.time} onChange={event => setScheduleFields(current => ({ ...current, time: event.target.value }))} className="h-11 w-full rounded-lg border border-brand-secondary-alt-200 bg-white px-3 text-sm outline-none focus:border-brand-secondary-alt-400 focus:ring-4 focus:ring-brand-secondary-alt-100 dark:border-brand-secondary-alt-800/60 dark:bg-slate-900 dark:focus:ring-brand-secondary-alt-800/60" />
                       </label>
                     </div>
-                    <p className="mt-2 text-xs leading-5 text-violet-700 dark:text-violet-300">The notification will show you as the sender and will be marked internally as scheduled.</p>
+                    <p className="mt-2 text-xs leading-5 text-brand-secondary-alt-ink-700 dark:text-brand-secondary-alt-ink-300">The notification will show you as the sender and will be marked internally as scheduled.</p>
                   </div>
                 )}
               </fieldset>
@@ -278,7 +278,7 @@ function ComposeNotificationDialog({
               <button
                 type="submit"
                 disabled={isSending || !canSend}
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl bg-brand-surface-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200 transition hover:bg-brand-surface-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : deliveryMode === 'scheduled' ? <CalendarClock className="h-4 w-4" /> : <Send className="h-4 w-4" />}
                 {isSending ? 'Working…' : deliveryMode === 'scheduled' ? 'Schedule notification' : 'Send notification'}
@@ -371,7 +371,7 @@ function ScheduledNotificationsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-hidden p-0 sm:max-w-2xl">
         <div className="border-b border-slate-100 px-5 py-5 pr-14 sm:px-6 dark:border-slate-700">
-          <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-slate-100"><CalendarClock className="h-5 w-5 text-violet-600 dark:text-violet-400" /> Scheduled notifications</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-slate-100"><CalendarClock className="h-5 w-5 text-brand-secondary-alt-ink-600 dark:text-brand-secondary-alt-ink-400" /> Scheduled notifications</DialogTitle>
           <DialogDescription className="mt-1">Upcoming and recently completed notifications. Times use Africa/Kampala.</DialogDescription>
         </div>
         <div className="max-h-[65dvh] overflow-y-auto p-4 sm:p-6">
@@ -388,10 +388,10 @@ function ScheduledNotificationsDialog({
                       <h3 className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">{job.title}</h3>
                       <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{job.body}</p>
                     </div>
-                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${job.status === 'sent' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : job.status === 'failed' ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300' : job.status === 'cancelled' ? 'bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300' : 'bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300'}`}>{job.status}</span>
+                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${job.status === 'sent' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : job.status === 'failed' ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300' : job.status === 'cancelled' ? 'bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300' : 'bg-brand-secondary-alt-surface-100 text-brand-secondary-alt-ink-700 dark:bg-brand-secondary-alt-surface-950/40 dark:text-brand-secondary-alt-ink-300'}`}>{job.status}</span>
                   </div>
                   <div className="mt-3 flex items-center gap-3 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                    <CalendarClock className="h-4 w-4 text-violet-500 dark:text-violet-400" />
+                    <CalendarClock className="h-4 w-4 text-brand-secondary-alt-ink-500 dark:text-brand-secondary-alt-ink-400" />
                     <span>{job.runAt ? new Date(job.runAt).toLocaleString('en-UG', { timeZone: 'Africa/Kampala', dateStyle: 'medium', timeStyle: 'short' }) : 'Time unavailable'}</span>
                     {job.status === 'scheduled' && (
                       <button type="button" onClick={() => void cancelJob(job.id)} disabled={cancellingId === job.id} className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/40">
@@ -630,13 +630,13 @@ export default function PushNotificationsPage() {
                   value={search}
                   onChange={event => setSearch(event.target.value)}
                   placeholder="Search notifications"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:bg-slate-900 dark:focus:ring-blue-800/60"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 text-sm outline-none transition focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:bg-slate-900 dark:focus:ring-brand-800/60"
                 />
                 <SlidersHorizontal className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-400" />
               </div>
               <div className="mt-3 flex items-center gap-2">
-                <button onClick={() => setShowUnreadOnly(false)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${!showUnreadOnly ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300' : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-900'}`}>All</button>
-                <button onClick={() => setShowUnreadOnly(true)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${showUnreadOnly ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300' : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-900'}`}>Unread{unreadCount ? ` (${unreadCount})` : ''}</button>
+                <button onClick={() => setShowUnreadOnly(false)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${!showUnreadOnly ? 'bg-brand-surface-50 text-brand-ink-700 dark:bg-brand-surface-950/40 dark:text-brand-ink-300' : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-900'}`}>All</button>
+                <button onClick={() => setShowUnreadOnly(true)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${showUnreadOnly ? 'bg-brand-surface-50 text-brand-ink-700 dark:bg-brand-surface-950/40 dark:text-brand-ink-300' : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-900'}`}>Unread{unreadCount ? ` (${unreadCount})` : ''}</button>
                 <span className="ml-auto text-xs font-medium text-slate-400 dark:text-slate-400">Newest first</span>
               </div>
             </div>
@@ -662,7 +662,7 @@ export default function PushNotificationsPage() {
                 ))
               ) : (
                 <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center">
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950/40"><Bell className="h-6 w-6 text-blue-500 dark:text-blue-400" /></div>
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand-surface-50 dark:bg-brand-surface-950/40"><Bell className="h-6 w-6 text-brand-ink-500 dark:text-brand-ink-400" /></div>
                   <p className="font-semibold text-slate-700 dark:text-slate-200">No notifications here</p>
                   <p className="mt-1 text-sm text-slate-400 dark:text-slate-400">{search || showUnreadOnly ? 'Try a different search or filter.' : 'Messages delivered to you will appear here.'}</p>
                 </div>
@@ -694,7 +694,7 @@ export default function PushNotificationsPage() {
       <button
         type="button"
         onClick={() => setComposerOpen(true)}
-        className="fixed bottom-6 right-5 z-30 inline-flex h-14 items-center justify-center gap-2 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 px-5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(37,99,235,0.4)] transition hover:scale-105 hover:from-blue-600 hover:to-blue-800 active:scale-95 sm:bottom-8 sm:right-8"
+        className="fixed bottom-6 right-5 z-30 inline-flex h-14 items-center justify-center gap-2 rounded-full bg-gradient-to-br from-brand-surface-500 to-brand-surface-700 px-5 text-sm font-bold text-white shadow-[0_12px_28px_rgb(var(--brand-600)/0.4)] transition hover:scale-105 hover:from-brand-surface-600 hover:to-brand-surface-800 active:scale-95 sm:bottom-8 sm:right-8"
         aria-label="Compose notification"
       >
         <Plus className="h-5 w-5" />

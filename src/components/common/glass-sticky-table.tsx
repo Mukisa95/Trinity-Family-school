@@ -16,7 +16,7 @@ export function GlassStickyTableShell({
   return (
     <div
       className={cn(
-        "overflow-visible rounded-xl border border-indigo-100 bg-white shadow-sm dark:border-indigo-800/60 dark:bg-slate-900",
+        "overflow-visible rounded-xl border border-brand-alt-100 bg-white shadow-sm dark:border-brand-alt-800/60 dark:bg-slate-900",
         className
       )}
       {...props}
@@ -44,7 +44,7 @@ export function GlassStickyTable({
 }: TableHTMLAttributes<HTMLTableElement>) {
   return (
     <table
-      className={cn("min-w-full divide-y divide-indigo-100 dark:divide-indigo-800/60", className)}
+      className={cn("min-w-full divide-y divide-brand-alt-100 dark:divide-brand-alt-800/60", className)}
       {...props}
     />
   );
@@ -84,8 +84,8 @@ export function GlassStickyTableHeader({
       className={cn(
         "bg-white/[0.82] shadow-[0_8px_24px_rgba(79,70,229,0.10)] backdrop-blur-[18px] dark:bg-slate-900/[0.82]",
         "[&_th]:sticky [&_th]:z-20 [&_th]:top-[var(--glass-table-sticky-top)]",
-        "[&_th]:bg-gradient-to-r [&_th]:from-indigo-50/95 [&_th]:to-white/95",
-        "[&_th]:border-b [&_th]:border-indigo-100/80",
+        "[&_th]:bg-gradient-to-r [&_th]:from-brand-alt-surface-50/95 [&_th]:to-white/95",
+        "[&_th]:border-b [&_th]:border-brand-alt-100/80",
         "dark:[&_th]:from-slate-800/95 dark:[&_th]:to-slate-900/95 dark:[&_th]:border-slate-700/80",
         className
       )}

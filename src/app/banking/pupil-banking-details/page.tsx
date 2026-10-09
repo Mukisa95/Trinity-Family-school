@@ -100,8 +100,8 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
           <div className="relative">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto dark:text-blue-400" />
-            <div className="absolute inset-0 h-12 w-12 rounded-full border-2 border-blue-200 border-t-transparent animate-spin mx-auto dark:border-blue-800/60"></div>
+            <Loader2 className="h-12 w-12 animate-spin text-brand-ink-600 mx-auto dark:text-brand-ink-400" />
+            <div className="absolute inset-0 h-12 w-12 rounded-full border-2 border-brand-200 border-t-transparent animate-spin mx-auto dark:border-brand-800/60"></div>
           </div>
           <div className="space-y-2">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-slate-100">Loading Banking Details</h3>
@@ -124,7 +124,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
               <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100">Pupil Not Found</h1>
               <p className="text-gray-600 text-lg dark:text-slate-300">The pupil ID provided could not be found in our records.</p>
             </div>
-            <SmartBackButton fallbackHref="/banking/list" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl transition-all duration-200 hover:scale-105">
+            <SmartBackButton fallbackHref="/banking/list" className="bg-brand-surface-600 hover:bg-brand-surface-700 text-white px-8 py-3 rounded-xl transition-all duration-200 hover:scale-105">
   <ArrowLeft className="w-5 h-5 mr-2" />
   Back to Banking List
 </SmartBackButton>
@@ -143,8 +143,8 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
           <div className="relative">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto dark:text-blue-400" />
-            <div className="absolute inset-0 h-12 w-12 rounded-full border-2 border-blue-200 border-t-transparent animate-spin mx-auto dark:border-blue-800/60"></div>
+            <Loader2 className="h-12 w-12 animate-spin text-brand-ink-600 mx-auto dark:text-brand-ink-400" />
+            <div className="absolute inset-0 h-12 w-12 rounded-full border-2 border-brand-200 border-t-transparent animate-spin mx-auto dark:border-brand-800/60"></div>
           </div>
           <div className="space-y-2">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-slate-100">Loading Account Details</h3>
@@ -165,15 +165,15 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                 <img
                   src={pupil.photo}
                   alt={`${formatPupilDisplayName(pupil)}`}
-                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-indigo-200 shadow-md shrink-0 dark:border-indigo-800/60"
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-brand-alt-200 shadow-md shrink-0 dark:border-brand-alt-800/60"
                 />
               ) : (
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-base sm:text-lg font-bold text-white shadow-md shrink-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-brand-alt-surface-500 to-brand-secondary-surface-600 flex items-center justify-center text-base sm:text-lg font-bold text-white shadow-md shrink-0">
                   {pupil.firstName[0]}
                 </div>
               )}
               <div className="min-w-0 flex flex-col">
-                <span className="truncate text-base sm:text-lg font-bold leading-tight text-indigo-900 dark:text-indigo-200">
+                <span className="truncate text-base sm:text-lg font-bold leading-tight text-brand-alt-ink-900 dark:text-brand-alt-ink-200">
                   {`${formatPupilDisplayName(pupil)}`}
                 </span>
                 <span className="mt-0.5 truncate text-xs font-medium text-gray-500 sm:text-sm dark:text-slate-400">
@@ -197,10 +197,10 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                     <img
                       src={pupil.photo}
                       alt={`${formatPupilDisplayName(pupil)}`}
-                      className="w-24 h-24 rounded-full object-cover border-4 border-blue-200 shadow-lg dark:border-blue-800/60"
+                      className="w-24 h-24 rounded-full object-cover border-4 border-brand-200 shadow-lg dark:border-brand-800/60"
                     />
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-3xl font-bold text-white shadow-lg">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-brand-surface-500 to-brand-alt-surface-600 flex items-center justify-center text-3xl font-bold text-white shadow-lg">
                       {pupil.firstName[0]}
                     </div>
                   )}
@@ -211,7 +211,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100">{`${formatPupilDisplayName(pupil)}`}</h1>
                   <p className="text-lg text-gray-600 dark:text-slate-300">ID: {pupil.admissionNumber}</p>
                   {pupil.className && (
-                    <Badge className="bg-blue-100 text-blue-800 text-sm px-3 py-1 dark:bg-blue-950/40 dark:text-blue-200">
+                    <Badge className="bg-brand-surface-100 text-brand-ink-800 text-sm px-3 py-1 dark:bg-brand-surface-950/40 dark:text-brand-ink-200">
                       {pupil.className}
                     </Badge>
                   )}
@@ -231,7 +231,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                 {/* Create Account Button */}
                 <Button
                   onClick={handleCreateAccount}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-xl text-lg font-semibold transition-all duration-200 hover:scale-105 shadow-lg"
+                  className="bg-gradient-to-r from-brand-surface-600 to-brand-alt-surface-600 hover:from-brand-surface-700 hover:to-brand-alt-surface-700 text-white px-8 py-3 rounded-xl text-lg font-semibold transition-all duration-200 hover:scale-105 shadow-lg"
                 >
                   <Plus className="w-5 h-5 mr-2" />
                   Create Bank Account
@@ -257,15 +257,15 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
               <img
                 src={pupil.photo}
                 alt={`${formatPupilDisplayName(pupil)}`}
-                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-indigo-200 shadow-md shrink-0 dark:border-indigo-800/60"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-brand-alt-200 shadow-md shrink-0 dark:border-brand-alt-800/60"
               />
             ) : (
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-base sm:text-lg font-bold text-white shadow-md shrink-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-brand-alt-surface-500 to-brand-secondary-surface-600 flex items-center justify-center text-base sm:text-lg font-bold text-white shadow-md shrink-0">
                 {pupil.firstName[0]}
               </div>
             )}
             <div className="min-w-0 flex flex-col">
-              <span className="truncate text-base sm:text-lg font-bold leading-tight text-indigo-900 dark:text-indigo-200">
+              <span className="truncate text-base sm:text-lg font-bold leading-tight text-brand-alt-ink-900 dark:text-brand-alt-ink-200">
                 {`${formatPupilDisplayName(pupil)}`}
               </span>
               <span className="mt-0.5 truncate text-xs font-medium text-gray-500 sm:text-sm dark:text-slate-400">
@@ -304,8 +304,8 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
       <GlassSummaryBar
         left={
           <div className="flex items-center gap-2">
-            <Wallet className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+            <Wallet className="h-4 w-4 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />
+            <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
               Pupil Account Summary
             </span>
           </div>
@@ -328,9 +328,9 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
               <span className="text-red-700/85 dark:text-red-350 font-medium">Outstanding:</span>
               <span className="font-bold text-red-650 dark:text-red-400 font-tabular-nums">{formatCurrency(totalOutstanding)}</span>
             </div>
-            <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-blue-700/85 dark:text-blue-300 font-medium">Transactions:</span>
-              <span className="font-bold text-blue-700 dark:text-blue-400">{transactions.length}</span>
+            <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-brand-ink-700/85 dark:text-brand-ink-300 font-medium">Transactions:</span>
+              <span className="font-bold text-brand-ink-700 dark:text-brand-ink-400">{transactions.length}</span>
             </div>
           </>
         }
@@ -441,7 +441,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
             <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80">
               <CardHeader className="pb-4">
                 <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2 dark:text-slate-100">
-                  <History className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <History className="w-5 h-5 text-brand-ink-600 dark:text-brand-ink-400" />
                   Recent Transactions
                 </CardTitle>
               </CardHeader>
@@ -620,10 +620,10 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                 Withdraw money from {formatPupilDisplayName(pupil)}'s account
               </ModernDialogDescription>
             </ModernDialogHeader>
-            <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60">
+            <div className="mb-6 p-4 bg-brand-surface-50 rounded-xl border border-brand-200 dark:bg-brand-surface-950/40 dark:border-brand-800/60">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Current Balance:</span>
-                <span className="text-lg font-bold text-blue-900 dark:text-blue-200">{formatCurrency(account.balance)}</span>
+                <span className="text-sm font-medium text-brand-ink-700 dark:text-brand-ink-300">Current Balance:</span>
+                <span className="text-lg font-bold text-brand-ink-900 dark:text-brand-ink-200">{formatCurrency(account.balance)}</span>
               </div>
             </div>
             <form onSubmit={async (e) => {
@@ -1025,8 +1025,8 @@ export default function PupilBankingDetailPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
           <div className="relative">
-            <Loader2 className="h-16 w-16 animate-spin text-blue-600 mx-auto dark:text-blue-400" />
-            <div className="absolute inset-0 h-16 w-16 rounded-full border-4 border-blue-200 border-t-transparent animate-spin mx-auto dark:border-blue-800/60"></div>
+            <Loader2 className="h-16 w-16 animate-spin text-brand-ink-600 mx-auto dark:text-brand-ink-400" />
+            <div className="absolute inset-0 h-16 w-16 rounded-full border-4 border-brand-200 border-t-transparent animate-spin mx-auto dark:border-brand-800/60"></div>
           </div>
           <div className="space-y-2">
             <h3 className="text-xl font-bold text-gray-800 dark:text-slate-100">Loading Banking Details</h3>

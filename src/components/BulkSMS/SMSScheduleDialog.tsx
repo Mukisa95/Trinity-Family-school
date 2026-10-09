@@ -267,7 +267,7 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
       <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <Calendar className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
             Schedule SMS
             <Badge variant="outline" className="ml-auto text-xs">
               Step {step} of 3
@@ -290,18 +290,18 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
                   onClick={() => setScheduleType(id)}
                   className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all ${
                     scheduleType === id
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40'
+                      ? 'border-brand-500 bg-brand-surface-50 dark:bg-brand-surface-950/40'
                       : 'border-gray-200 hover:border-gray-300 bg-white dark:border-slate-700 dark:hover:border-slate-700 dark:bg-slate-900'
                   }`}
                 >
-                  <div className={`p-2 rounded-full ${scheduleType === id ? 'bg-blue-100 dark:bg-blue-950/40' : 'bg-gray-100 dark:bg-slate-900'}`}>
-                    <Icon className={`h-5 w-5 ${scheduleType === id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-slate-400'}`} />
+                  <div className={`p-2 rounded-full ${scheduleType === id ? 'bg-brand-surface-100 dark:bg-brand-surface-950/40' : 'bg-gray-100 dark:bg-slate-900'}`}>
+                    <Icon className={`h-5 w-5 ${scheduleType === id ? 'text-brand-ink-600 dark:text-brand-ink-400' : 'text-gray-500 dark:text-slate-400'}`} />
                   </div>
                   <div>
                     <div className="font-semibold text-sm">{label}</div>
                     <div className="text-xs text-gray-500 dark:text-slate-400">{desc}</div>
                   </div>
-                  {scheduleType === id && <CheckCircle className="ml-auto h-5 w-5 text-blue-600 flex-shrink-0 dark:text-blue-400" />}
+                  {scheduleType === id && <CheckCircle className="ml-auto h-5 w-5 text-brand-ink-600 flex-shrink-0 dark:text-brand-ink-400" />}
                 </button>
               ))}
             </div>
@@ -381,7 +381,7 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
                 </div>
 
                 {occurrenceCount > 0 && (
-                  <p className="text-xs text-blue-700 bg-blue-50 rounded px-3 py-2 dark:text-blue-300 dark:bg-blue-950/40">
+                  <p className="text-xs text-brand-ink-700 bg-brand-surface-50 rounded px-3 py-2 dark:text-brand-ink-300 dark:bg-brand-surface-950/40">
                     This schedule will send the message <strong>{occurrenceCount} times</strong> between {weeklyStart} and {weeklyEnd}.
                   </p>
                 )}
@@ -457,11 +457,11 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
                 </div>
                 <div className="bg-white rounded border p-2 dark:bg-slate-900">
                   <div className="text-xs text-gray-500 dark:text-slate-400">SMS per Send</div>
-                  <div className="font-bold text-blue-700 dark:text-blue-300">{totalSMSPerSend.toLocaleString()}</div>
+                  <div className="font-bold text-brand-ink-700 dark:text-brand-ink-300">{totalSMSPerSend.toLocaleString()}</div>
                 </div>
                 <div className="bg-white rounded border p-2 dark:bg-slate-900">
                   <div className="text-xs text-gray-500 dark:text-slate-400">Occurrences</div>
-                  <div className="font-bold text-purple-700 dark:text-purple-300">{occurrenceCount}</div>
+                  <div className="font-bold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">{occurrenceCount}</div>
                 </div>
                 <div className="bg-white rounded border p-2 dark:bg-slate-900">
                   <div className="text-xs text-gray-500 dark:text-slate-400">Cost / Send</div>
@@ -473,7 +473,7 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
               <div className={`grid grid-cols-2 gap-2 rounded-lg p-3 border ${canAfford === false ? 'bg-red-50 border-red-200 dark:bg-red-950/40 dark:border-red-800/60' : 'bg-green-50 border-green-200 dark:bg-green-950/40 dark:border-green-800/60'}`}>
                 <div>
                   <div className="text-xs text-gray-500 font-medium dark:text-slate-400">Total Cost</div>
-                  <div className={`text-xl font-bold ${canAfford === false ? 'text-red-700 dark:text-red-300' : 'text-blue-700 dark:text-blue-300'}`}>
+                  <div className={`text-xl font-bold ${canAfford === false ? 'text-red-700 dark:text-red-300' : 'text-brand-ink-700 dark:text-brand-ink-300'}`}>
                     UGX {totalCost.toLocaleString()}
                   </div>
                 </div>

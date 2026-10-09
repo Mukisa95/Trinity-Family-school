@@ -65,7 +65,7 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
     if (period.isCompleted) {
       return <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400" />;
     } else if (period.isCurrent) {
-      return <Clock className="h-4 w-4 text-blue-500 dark:text-blue-400" />;
+      return <Clock className="h-4 w-4 text-brand-ink-500 dark:text-brand-ink-400" />;
     } else {
       return <Circle className="h-4 w-4 text-gray-400 dark:text-slate-400" />;
     }
@@ -76,7 +76,7 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
     if (period.isCompleted) {
       return <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs dark:bg-green-950/40 dark:text-green-200">Completed</Badge>;
     } else if (period.isCurrent) {
-      return <Badge variant="default" className="bg-blue-100 text-blue-800 text-xs dark:bg-blue-950/40 dark:text-blue-200">Current</Badge>;
+      return <Badge variant="default" className="bg-brand-surface-100 text-brand-ink-800 text-xs dark:bg-brand-surface-950/40 dark:text-brand-ink-200">Current</Badge>;
     } else {
       return <Badge variant="outline" className="text-xs">Upcoming</Badge>;
     }
@@ -135,7 +135,7 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{timeline.totalPeriods}</div>
+              <div className="text-2xl font-bold text-brand-ink-600 dark:text-brand-ink-400">{timeline.totalPeriods}</div>
               <p className="text-sm text-muted-foreground">Total Periods</p>
             </div>
             <div className="text-center">
@@ -223,7 +223,7 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                               <>
                                 {staffAssignments.length > 0 && (
                                   <div className="mb-2">
-                                    <div className="text-xs font-medium text-blue-600 mb-1 dark:text-blue-400">Staff</div>
+                                    <div className="text-xs font-medium text-brand-ink-600 mb-1 dark:text-brand-ink-400">Staff</div>
                                     {staffAssignments.map((assignment) => (
                                       <div key={assignment.id} className="text-sm ml-2">
                                         <div className="flex items-center gap-2">
@@ -257,7 +257,7 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                                 
                                 {pupilAssignments.length > 0 && (
                                   <div className="mb-2">
-                                    <div className="text-xs font-medium text-purple-600 mb-1 dark:text-purple-400">Pupils</div>
+                                    <div className="text-xs font-medium text-brand-secondary-ink-600 mb-1 dark:text-brand-secondary-ink-400">Pupils</div>
                                     {pupilAssignments.map((assignment) => (
                                       <div key={assignment.id} className="text-sm ml-2">
                                         <div className="flex items-center gap-2">
@@ -307,9 +307,9 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                                   <>
                                     {/* Service Description */}
                                     {period.assignments.some((a: DutyAssignment) => a.service) && (
-                                      <div className="mb-4 p-3 bg-blue-50 rounded border dark:bg-blue-950/40">
-                                        <h5 className="text-sm font-medium text-blue-800 mb-1 dark:text-blue-200">Service Description</h5>
-                                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                                      <div className="mb-4 p-3 bg-brand-surface-50 rounded border dark:bg-brand-surface-950/40">
+                                        <h5 className="text-sm font-medium text-brand-ink-800 mb-1 dark:text-brand-ink-200">Service Description</h5>
+                                        <p className="text-sm text-brand-ink-700 dark:text-brand-ink-300">
                                           {period.assignments.find((a: DutyAssignment) => a.service)?.service}
                                         </p>
                                       </div>
@@ -324,10 +324,10 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                                           <>
                                             {staffAssignments.length > 0 && (
                                               <div>
-                                                <h5 className="text-sm font-medium text-blue-600 mb-2 dark:text-blue-400">Staff</h5>
+                                                <h5 className="text-sm font-medium text-brand-ink-600 mb-2 dark:text-brand-ink-400">Staff</h5>
                                                 <div className="space-y-2">
                                                                                                      {staffAssignments.map((assignment: DutyAssignment) => (
-                                                     <div key={assignment.id} className="flex items-center justify-between p-2 border rounded bg-blue-50/30 dark:bg-blue-950/30">
+                                                     <div key={assignment.id} className="flex items-center justify-between p-2 border rounded bg-brand-surface-50/30 dark:bg-brand-surface-950/30">
                                                        <div>
                                                          <p className="font-medium">
                                                            {getMemberName(assignment.memberId, assignment.memberType)}
@@ -336,7 +336,7 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                                                            Type: {assignment.memberType}
                                                          </p>
                                                          {assignment.service && (
-                                                           <p className="text-sm text-blue-600 mt-1 dark:text-blue-400">
+                                                           <p className="text-sm text-brand-ink-600 mt-1 dark:text-brand-ink-400">
                                                              Service: {assignment.service}
                                                            </p>
                                                          )}
@@ -446,10 +446,10 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                                             
                                             {pupilAssignments.length > 0 && (
                                               <div>
-                                                <h5 className="text-sm font-medium text-purple-600 mb-2 dark:text-purple-400">Pupils</h5>
+                                                <h5 className="text-sm font-medium text-brand-secondary-ink-600 mb-2 dark:text-brand-secondary-ink-400">Pupils</h5>
                                                 <div className="space-y-2">
                                                   {pupilAssignments.map((assignment: DutyAssignment) => (
-                                                    <div key={assignment.id} className="flex items-center justify-between p-2 border rounded bg-purple-50/30 dark:bg-purple-950/30">
+                                                    <div key={assignment.id} className="flex items-center justify-between p-2 border rounded bg-brand-secondary-surface-50/30 dark:bg-brand-secondary-surface-950/30">
                                                       <div>
                                                         <p className="font-medium">
                                                           {getMemberName(assignment.memberId, assignment.memberType)}
@@ -458,7 +458,7 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                                                           Type: {assignment.memberType}
                                                         </p>
                                                         {assignment.service && (
-                                                          <p className="text-sm text-purple-600 mt-1 dark:text-purple-400">
+                                                          <p className="text-sm text-brand-secondary-ink-600 mt-1 dark:text-brand-secondary-ink-400">
                                                             Service: {assignment.service}
                                                           </p>
                                                         )}

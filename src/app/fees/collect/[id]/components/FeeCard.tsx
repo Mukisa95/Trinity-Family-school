@@ -496,16 +496,16 @@ export function FeeCard({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border-2 border-slate-200 p-3 sm:p-4 transition-colors hover:border-indigo-300 dark:bg-slate-900 dark:border-slate-700 dark:hover:border-indigo-800/60">
+    <div className="bg-white rounded-xl shadow-sm border-2 border-slate-200 p-3 sm:p-4 transition-colors hover:border-brand-alt-300 dark:bg-slate-900 dark:border-slate-700 dark:hover:border-brand-alt-800/60">
       {/* Fee Header - name and pay action on one line */}
       <div className="flex items-center justify-between gap-3">
         <h3 className="min-w-0 flex-1 text-base sm:text-lg font-medium text-gray-900 break-words leading-tight dark:text-slate-100">{fee.name}</h3>
         <button
           onClick={handlePrimaryAction}
           disabled={isPaymentDataLoading}
-          className={`inline-flex flex-shrink-0 items-center justify-center px-4 py-2 border-2 text-xs sm:text-sm font-semibold rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isPaymentDataLoading
+          className={`inline-flex flex-shrink-0 items-center justify-center px-4 py-2 border-2 text-xs sm:text-sm font-semibold rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-alt-500 ${isPaymentDataLoading
             ? 'border-gray-300 text-gray-400 bg-gray-50 cursor-not-allowed shadow-none dark:border-slate-700 dark:text-slate-400 dark:bg-slate-900'
-            : 'border-indigo-600 text-indigo-700 bg-white shadow-sm hover:bg-indigo-50 hover:border-indigo-700 hover:shadow-md hover:scale-95 origin-center dark:text-indigo-300 dark:bg-slate-900 dark:hover:bg-indigo-950/40'
+            : 'border-brand-alt-600 text-brand-alt-ink-700 bg-white shadow-sm hover:bg-brand-alt-surface-50 hover:border-brand-alt-700 hover:shadow-md hover:scale-95 origin-center dark:text-brand-alt-ink-300 dark:bg-slate-900 dark:hover:bg-brand-alt-surface-950/40'
             }`}
         >
           {isPaymentDataLoading ? (
@@ -537,11 +537,11 @@ export function FeeCard({
 
           {/* Discount Information - Compact */}
           {fee.discount && (
-            <div className={`p-2.5 mt-2 rounded-md border ${fee.discount.type === 'fees-holiday' ? 'border-blue-200 bg-blue-50 hover:border-blue-300 dark:border-blue-800/60 dark:bg-blue-950/40 dark:hover:border-blue-800/60' : 'border-purple-100 bg-purple-50 hover:border-purple-200 dark:border-purple-800/60 dark:bg-purple-950/40 dark:hover:border-purple-800/60'} transition-all`}>
+            <div className={`p-2.5 mt-2 rounded-md border ${fee.discount.type === 'fees-holiday' ? 'border-brand-200 bg-brand-surface-50 hover:border-brand-300 dark:border-brand-800/60 dark:bg-brand-surface-950/40 dark:hover:border-brand-800/60' : 'border-brand-secondary-100 bg-brand-secondary-surface-50 hover:border-brand-secondary-200 dark:border-brand-secondary-800/60 dark:bg-brand-secondary-surface-950/40 dark:hover:border-brand-secondary-800/60'} transition-all`}>
               {fee.discount.type === 'fees-holiday' ? (
                 // Fees Holiday Display - New Format
                 <>
-                  <div className="text-xs sm:text-sm text-blue-700 mb-1.5 dark:text-blue-300">
+                  <div className="text-xs sm:text-sm text-brand-ink-700 mb-1.5 dark:text-brand-ink-300">
                     This fee has been halted as part of staff privilege to {(() => {
                       if (assignedStaff) {
                         const title = assignedStaff.gender === 'Female' ? 'Mrs' : 'Mr';
@@ -550,7 +550,7 @@ export function FeeCard({
                       return 'staff member';
                     })()}
                   </div>
-                  <div className="text-xs sm:text-sm text-blue-600 mt-0.5 break-words dark:text-blue-400">
+                  <div className="text-xs sm:text-sm text-brand-ink-600 mt-0.5 break-words dark:text-brand-ink-400">
                     Applied to: {fee.name} ({new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(fee.originalAmount || fee.amount)})
                   </div>
                 </>
@@ -559,24 +559,24 @@ export function FeeCard({
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-x-4 gap-y-1.5 w-full">
                   {/* Left Column: Discount Name & Amount */}
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
-                    <span className="font-semibold text-purple-900 bg-purple-150/70 border border-purple-200 px-2 py-0.5 rounded text-[11px] uppercase tracking-wider truncate max-w-[150px] dark:text-purple-200 dark:border-purple-800/60" title={fee.discount.name}>
+                    <span className="font-semibold text-brand-secondary-ink-900 bg-brand-secondary-surface-100/70 border border-brand-secondary-200 px-2 py-0.5 rounded text-[11px] uppercase tracking-wider truncate max-w-[150px] dark:text-brand-secondary-ink-200 dark:border-brand-secondary-800/60" title={fee.discount.name}>
                       {fee.discount.name}
                     </span>
-                    <span className="text-purple-700 font-medium text-xs sm:text-sm dark:text-purple-300">
-                      Active Discount: <span className="font-bold text-purple-900 dark:text-purple-200">{formatCurrency(fee.discount.amount)}</span>
+                    <span className="text-brand-secondary-ink-700 font-medium text-xs sm:text-sm dark:text-brand-secondary-ink-300">
+                      Active Discount: <span className="font-bold text-brand-secondary-ink-900 dark:text-brand-secondary-ink-200">{formatCurrency(fee.discount.amount)}</span>
                     </span>
                   </div>
                   
                   {/* Right Column: Calculations and Term */}
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm font-medium">
-                    <span className="text-purple-650">
-                      Old amount: <span className="line-through text-purple-500/80 dark:text-purple-400/80">{formatCurrency(fee.originalAmount || (fee.amount + fee.discount.amount))}</span>
+                    <span className="text-brand-secondary-ink-600">
+                      Old amount: <span className="line-through text-brand-secondary-ink-500/80 dark:text-brand-secondary-ink-400/80">{formatCurrency(fee.originalAmount || (fee.amount + fee.discount.amount))}</span>
                     </span>
                     <span className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-150 px-2 py-0.5 rounded-md dark:text-emerald-300 dark:bg-emerald-950/40">
                       New amount: <span className="font-bold text-emerald-800 dark:text-emerald-200">{formatCurrency(fee.amount)}</span>
                     </span>
-                    <span className="text-purple-300 text-xs hidden sm:inline">|</span>
-                    <span className="text-purple-500 text-xs font-normal dark:text-purple-400">
+                    <span className="text-brand-secondary-ink-300 text-xs hidden sm:inline">|</span>
+                    <span className="text-brand-secondary-ink-500 text-xs font-normal dark:text-brand-secondary-ink-400">
                       {selectedTerm} - {selectedAcademicYear?.name}
                     </span>
                   </div>
@@ -598,9 +598,9 @@ export function FeeCard({
                   .map(([termYear, items], termIndex) => {
                     // Color scheme for different terms
                     const colorSchemes = [
-                      { bg: 'bg-blue-50 dark:bg-blue-950/40', border: 'border-blue-200 dark:border-blue-800/60', header: 'bg-blue-100 dark:bg-blue-950/40', text: 'text-blue-900 dark:text-blue-200', accent: 'text-blue-700 dark:text-blue-300' },
+                      { bg: 'bg-brand-surface-50 dark:bg-brand-surface-950/40', border: 'border-brand-200 dark:border-brand-800/60', header: 'bg-brand-surface-100 dark:bg-brand-surface-950/40', text: 'text-brand-ink-900 dark:text-brand-ink-200', accent: 'text-brand-ink-700 dark:text-brand-ink-300' },
                       { bg: 'bg-amber-50 dark:bg-amber-950/40', border: 'border-amber-200 dark:border-amber-800/60', header: 'bg-amber-100 dark:bg-amber-950/40', text: 'text-amber-900 dark:text-amber-200', accent: 'text-amber-700 dark:text-amber-300' },
-                      { bg: 'bg-purple-50 dark:bg-purple-950/40', border: 'border-purple-200 dark:border-purple-800/60', header: 'bg-purple-100 dark:bg-purple-950/40', text: 'text-purple-900 dark:text-purple-200', accent: 'text-purple-700 dark:text-purple-300' },
+                      { bg: 'bg-brand-secondary-surface-50 dark:bg-brand-secondary-surface-950/40', border: 'border-brand-secondary-200 dark:border-brand-secondary-800/60', header: 'bg-brand-secondary-surface-100 dark:bg-brand-secondary-surface-950/40', text: 'text-brand-secondary-ink-900 dark:text-brand-secondary-ink-200', accent: 'text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300' },
                       { bg: 'bg-green-50 dark:bg-green-950/40', border: 'border-green-200 dark:border-green-800/60', header: 'bg-green-100 dark:bg-green-950/40', text: 'text-green-900 dark:text-green-200', accent: 'text-green-700 dark:text-green-300' },
                       { bg: 'bg-pink-50 dark:bg-pink-950/40', border: 'border-pink-200 dark:border-pink-800/60', header: 'bg-pink-100 dark:bg-pink-950/40', text: 'text-pink-900 dark:text-pink-200', accent: 'text-pink-700 dark:text-pink-300' },
                     ];
@@ -654,22 +654,22 @@ export function FeeCard({
           {/* Uniform Details */}
           {UniformFeesIntegrationService.isUniformFee(fee) && (
             <div className="mt-2 space-y-2">
-              <div className="p-2 rounded-md border border-blue-100 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/40">
+              <div className="p-2 rounded-md border border-brand-100 bg-brand-surface-50 dark:border-brand-800/60 dark:bg-brand-surface-950/40">
                 <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs">
                   <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
-                    <div className="flex items-center gap-1 font-semibold text-blue-900 shrink-0 dark:text-blue-200">
-                      <TShirt size={14} className="text-blue-600 dark:text-blue-400" />
+                    <div className="flex items-center gap-1 font-semibold text-brand-ink-900 shrink-0 dark:text-brand-ink-200">
+                      <TShirt size={14} className="text-brand-ink-600 dark:text-brand-ink-400" />
                       <span>Uniform Details</span>
                     </div>
 
                     {(fee as any).uniformDetails?.selectionMode && (
-                      <span className="text-[10px] text-blue-700 bg-blue-100/80 px-1.5 py-0.5 rounded border border-blue-200 font-medium shrink-0 dark:text-blue-300 dark:bg-blue-950/80 dark:border-blue-800/60">
+                      <span className="text-[10px] text-brand-ink-700 bg-brand-surface-100/80 px-1.5 py-0.5 rounded border border-brand-200 font-medium shrink-0 dark:text-brand-ink-300 dark:bg-brand-surface-950/80 dark:border-brand-800/60">
                         {(fee as any).uniformDetails.selectionMode}
                       </span>
                     )}
 
                     <div className="flex flex-wrap items-center gap-1">
-                      <span className="text-[11px] font-medium text-blue-800 shrink-0 dark:text-blue-200">Items:</span>
+                      <span className="text-[11px] font-medium text-brand-ink-800 shrink-0 dark:text-brand-ink-200">Items:</span>
                       {(() => {
                         const uniformIds = (fee as any).uniformDetails?.uniformId || [];
                         const uniformIdArray = Array.isArray(uniformIds) ? uniformIds : [uniformIds];
@@ -738,7 +738,7 @@ export function FeeCard({
                                     <span className="text-gray-400 dark:text-slate-400">○</span>
                                     <span>{name} (0/{totalQty})</span>
                                     {sizeInfo && (
-                                      <span className={`text-[9px] ml-0.5 ${sizeInfo.available ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
+                                      <span className={`text-[9px] ml-0.5 ${sizeInfo.available ? 'text-brand-ink-600 dark:text-brand-ink-400' : 'text-red-600 dark:text-red-400'}`}>
                                         ({sizeInfo.size}{sizeInfo.available ? '' : ' - Out'})
                                       </span>
                                     )}
@@ -754,7 +754,7 @@ export function FeeCard({
                     </div>
 
                     {(fee as any).uniformDetails?.discountAmount > 0 && (
-                      <span className="text-[10px] font-medium text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded border border-purple-200 shrink-0 dark:text-purple-300 dark:bg-purple-950/40 dark:border-purple-800/60">
+                      <span className="text-[10px] font-medium text-brand-secondary-ink-700 bg-brand-secondary-surface-100 px-1.5 py-0.5 rounded border border-brand-secondary-200 shrink-0 dark:text-brand-secondary-ink-300 dark:bg-brand-secondary-surface-950/40 dark:border-brand-secondary-800/60">
                         Discount Applied: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format((fee as any).uniformDetails.discountAmount)}
                       </span>
                     )}
@@ -762,7 +762,7 @@ export function FeeCard({
 
                   <button
                     onClick={() => setIsUniformTrackingExpanded(!isUniformTrackingExpanded)}
-                    className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium shrink-0 ml-auto dark:text-blue-400 dark:hover:text-blue-200"
+                    className="text-xs text-brand-ink-600 hover:text-brand-ink-800 flex items-center gap-1 font-medium shrink-0 ml-auto dark:text-brand-ink-400 dark:hover:text-brand-ink-200"
                   >
                     {isUniformTrackingExpanded ? (
                       <>
@@ -781,7 +781,7 @@ export function FeeCard({
 
               {/* Expandable Uniform Tracking Section */}
               {isUniformTrackingExpanded && (
-                <div className="mt-2 p-3 rounded-md border border-indigo-200 bg-indigo-50 dark:border-indigo-800/60 dark:bg-indigo-950/40">
+                <div className="mt-2 p-3 rounded-md border border-brand-alt-200 bg-brand-alt-surface-50 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/40">
                   {isUniformTrackingLoading ? (
                     <div className="text-sm text-gray-600 dark:text-slate-300">Loading tracking information...</div>
                   ) : uniformTrackingRecord ? (
@@ -845,7 +845,7 @@ export function FeeCard({
                                     {!isCollected && (
                                       <div className="flex items-center gap-1">
                                         {sizeStatus.status === 'available' && (
-                                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[9px] px-1 py-0 h-4 font-normal dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">
+                                          <Badge variant="outline" className="bg-brand-surface-50 text-brand-ink-700 border-brand-200 text-[9px] px-1 py-0 h-4 font-normal dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60">
                                             Size: {sizeStatus.size}
                                           </Badge>
                                         )}
@@ -916,7 +916,7 @@ export function FeeCard({
                                     </div>
                                   )}
                                   {historyItem.collectedItems && historyItem.collectedItems.length > 0 && (
-                                    <div className="text-blue-600 text-xs mt-1 dark:text-blue-400">
+                                    <div className="text-brand-ink-600 text-xs mt-1 dark:text-brand-ink-400">
                                       📦 Collected: {historyItem.collectedItems.length} item(s)
                                     </div>
                                   )}
@@ -987,7 +987,7 @@ export function FeeCard({
             {hasMorePayments && (
               <button
                 onClick={() => setIsPaymentHistoryExpanded(!isPaymentHistoryExpanded)}
-                className="text-[10px] text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5 px-1 py-0.5 dark:text-indigo-400 dark:hover:text-indigo-200"
+                className="text-[10px] text-brand-alt-ink-600 hover:text-brand-alt-ink-800 flex items-center gap-0.5 px-1 py-0.5 dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-200"
               >
                 {isPaymentHistoryExpanded ? (
                   <>
@@ -1034,7 +1034,7 @@ export function FeeCard({
                       </span>
                     )}
                     {(payment as any).isCarryForwardPayment && (
-                      <span className="px-1 py-0.5 text-[9px] font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
+                      <span className="px-1 py-0.5 text-[9px] font-medium rounded bg-brand-surface-100 text-brand-ink-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-200">
                         CF
                       </span>
                     )}
@@ -1045,7 +1045,7 @@ export function FeeCard({
                     </span>
                     <button
                       onClick={() => handlePrintReceipt(payment)}
-                      className="text-blue-600 hover:text-blue-800 p-0.5 rounded hover:bg-blue-50 transition-colors dark:text-blue-400 dark:hover:text-blue-200 dark:hover:bg-blue-950/40"
+                      className="text-brand-ink-600 hover:text-brand-ink-800 p-0.5 rounded hover:bg-brand-surface-50 transition-colors dark:text-brand-ink-400 dark:hover:text-brand-ink-200 dark:hover:bg-brand-surface-950/40"
                       title="Print"
                     >
                       <Printer className="h-3 w-3" />
@@ -1079,7 +1079,7 @@ export function FeeCard({
                       </span>
                     )}
                     {(payment as any).originalTerm && (payment as any).originalYear && (
-                      <span className="text-[10px] text-blue-600 dark:text-blue-400">
+                      <span className="text-[10px] text-brand-ink-600 dark:text-brand-ink-400">
                         {(payment as any).originalTerm} {(payment as any).originalYear}
                       </span>
                     )}
@@ -1140,7 +1140,7 @@ export function FeeCard({
                             </span>
                           )}
                           {(payment as any).isCarryForwardPayment && (
-                            <span className="px-1 py-0.5 text-[9px] font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
+                            <span className="px-1 py-0.5 text-[9px] font-medium rounded bg-brand-surface-100 text-brand-ink-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-200">
                               CF
                             </span>
                           )}
@@ -1161,7 +1161,7 @@ export function FeeCard({
                             </span>
                           )}
                           {(payment as any).originalTerm && (payment as any).originalYear && (
-                            <span className="text-[10px] text-blue-600 whitespace-nowrap dark:text-blue-400">
+                            <span className="text-[10px] text-brand-ink-600 whitespace-nowrap dark:text-brand-ink-400">
                               {(payment as any).originalTerm} {(payment as any).originalYear}
                             </span>
                           )}
@@ -1178,7 +1178,7 @@ export function FeeCard({
                     <div className="col-span-3 flex items-center justify-end gap-0.5">
                       <button
                         onClick={() => handlePrintReceipt(payment)}
-                        className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors dark:text-blue-400 dark:hover:text-blue-200 dark:hover:bg-blue-950/40"
+                        className="text-brand-ink-600 hover:text-brand-ink-800 p-1 rounded hover:bg-brand-surface-50 transition-colors dark:text-brand-ink-400 dark:hover:text-brand-ink-200 dark:hover:bg-brand-surface-950/40"
                         title="Print Receipt"
                       >
                         <Printer className="h-3.5 w-3.5" />
@@ -1219,7 +1219,7 @@ export function FeeCard({
         <div className="mt-3 flex justify-end">
           <button
             onClick={handleGenerateAssignmentCard}
-            className="inline-flex items-center justify-center px-3 py-1.5 text-xs sm:text-sm font-medium text-indigo-700 bg-indigo-50 rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 hover:scale-95 origin-center dark:text-indigo-300 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/40"
+            className="inline-flex items-center justify-center px-3 py-1.5 text-xs sm:text-sm font-medium text-brand-alt-ink-700 bg-brand-alt-surface-50 rounded-md hover:bg-brand-alt-surface-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-alt-500 transition-all duration-300 hover:scale-95 origin-center dark:text-brand-alt-ink-300 dark:bg-brand-alt-surface-950/40 dark:hover:bg-brand-alt-surface-950/40"
           >
             <IdentificationCard className="w-4 h-4 mr-1.5" />
             Card

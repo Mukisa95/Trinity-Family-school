@@ -406,7 +406,7 @@ export function CalendarWrapper({
             </p>
             <Button
               onClick={() => window.location.reload()}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-xl transition-all duration-200 transform hover:scale-105"
+              className="bg-gradient-to-r from-brand-surface-600 to-brand-alt-surface-600 hover:from-brand-surface-700 hover:to-brand-alt-surface-700 text-white px-6 py-2 rounded-xl transition-all duration-200 transform hover:scale-105"
             >
               Try Again
             </Button>
@@ -424,8 +424,8 @@ export function CalendarWrapper({
             backLabel="Dashboard"
             meta={
               <div className="flex items-center gap-1.5 flex-wrap">
-                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50/80 border border-blue-200/60 text-[10px] font-semibold text-blue-700 dark:bg-blue-950/80 dark:border-blue-800/60 dark:text-blue-300">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-brand-surface-50/80 border border-brand-200/60 text-[10px] font-semibold text-brand-ink-700 dark:bg-brand-surface-950/80 dark:border-brand-800/60 dark:text-brand-ink-300">
+                  <div className="w-1.5 h-1.5 bg-brand-surface-500 rounded-full animate-pulse" />
                   {allEvents.length} event{allEvents.length !== 1 ? 's' : ''}
                 </div>
                 {ugandaHolidays.data && ugandaHolidays.data.length > 0 && (
@@ -444,7 +444,7 @@ export function CalendarWrapper({
                   placeholder="Search events..."
                   value={filters.searchTerm || ''}
                   onChange={(e) => handleFilterChange({ searchTerm: e.target.value || undefined })}
-                  className="pl-8 pr-3 h-[30px] w-36 sm:w-48 focus:w-56 transition-all duration-200 rounded-full border border-blue-200/60 bg-white/90 text-[11px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 placeholder:text-gray-400 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-slate-200 dark:placeholder:text-slate-400"
+                  className="pl-8 pr-3 h-[30px] w-36 sm:w-48 focus:w-56 transition-all duration-200 rounded-full border border-brand-200/60 bg-white/90 text-[11px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-400/50 placeholder:text-gray-400 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-slate-200 dark:placeholder:text-slate-400"
                 />
               </div>
             }
@@ -559,7 +559,7 @@ export function CalendarWrapper({
             )}>
               <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 relative overflow-hidden animate-in slide-in-from-bottom-4 duration-500 dark:bg-slate-900 dark:border-slate-700/60">
                 {/* Subtle header flair within the calendar body */}
-                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-500" />
+                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-brand-surface-500 via-brand-alt-surface-500 to-brand-surface-500" />
 
                 <div className={cn(
                   "p-2 ssm:p-4 md:p-8 transition-all duration-300 ease-spring",
@@ -575,7 +575,7 @@ export function CalendarWrapper({
                         {!isLoadingAcademicYears && (
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-sm rounded-2xl p-4 sm:p-5 mb-6 dark:bg-slate-900/80 dark:border-slate-700/60">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 dark:bg-indigo-950/40 dark:text-indigo-400">
+                              <div className="w-10 h-10 bg-brand-alt-surface-100 text-brand-alt-ink-600 rounded-xl flex items-center justify-center shrink-0 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-400">
                                 <BookOpen className="w-5 h-5" />
                               </div>
                               <div>
@@ -669,7 +669,7 @@ export function CalendarWrapper({
                               {/* Term Stats Dashboard */}
                               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                 {/* Main Info Card */}
-                                <div className="lg:col-span-2 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-8 text-white shadow-xl shadow-blue-900/10 relative overflow-hidden">
+                                <div className="lg:col-span-2 bg-gradient-to-br from-brand-surface-600 to-brand-alt-surface-700 rounded-3xl p-8 text-white shadow-xl shadow-brand-900/10 relative overflow-hidden">
                                   <div className="absolute top-0 right-0 p-8 opacity-10">
                                     <CalendarIcon className="w-48 h-48 -mr-12 -mt-12" />
                                   </div>
@@ -688,15 +688,15 @@ export function CalendarWrapper({
 
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-8">
                                       <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-md border border-white/10 dark:bg-slate-900/10 dark:border-slate-700/10">
-                                        <p className="text-blue-100 text-sm font-medium mb-1">Start Date</p>
+                                        <p className="text-brand-ink-100 text-sm font-medium mb-1">Start Date</p>
                                         <p className="font-bold">{format(termStart, 'MMM d, yyyy')}</p>
                                       </div>
                                       <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-md border border-white/10 dark:bg-slate-900/10 dark:border-slate-700/10">
-                                        <p className="text-blue-100 text-sm font-medium mb-1">End Date</p>
+                                        <p className="text-brand-ink-100 text-sm font-medium mb-1">End Date</p>
                                         <p className="font-bold">{format(termEnd, 'MMM d, yyyy')}</p>
                                       </div>
                                       <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-md border border-white/10 sm:col-span-1 col-span-2 dark:bg-slate-900/10 dark:border-slate-700/10">
-                                        <p className="text-blue-100 text-sm font-medium mb-1">Duration</p>
+                                        <p className="text-brand-ink-100 text-sm font-medium mb-1">Duration</p>
                                         <p className="font-bold">{Math.ceil((termEnd.getTime() - termStart.getTime()) / (1000 * 60 * 60 * 24))} days</p>
                                       </div>
                                     </div>
@@ -710,11 +710,11 @@ export function CalendarWrapper({
                                       <div>
                                         <div className="flex justify-between items-end mb-3">
                                           <h4 className="text-slate-500 font-medium dark:text-slate-400">Term Progress</h4>
-                                          <span className="text-2xl font-black text-blue-600 dark:text-blue-400">{Math.round(termProgress)}%</span>
+                                          <span className="text-2xl font-black text-brand-ink-600 dark:text-brand-ink-400">{Math.round(termProgress)}%</span>
                                         </div>
                                         <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden dark:bg-slate-900">
                                           <div
-                                            className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-1000 ease-out relative"
+                                            className="bg-gradient-to-r from-brand-surface-500 to-brand-alt-surface-600 h-full rounded-full transition-all duration-1000 ease-out relative"
                                             style={{ width: `${termProgress}%` }}
                                           >
                                             <div className="absolute inset-0 bg-white/20 w-full dark:bg-slate-900/20" style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />
@@ -728,7 +728,7 @@ export function CalendarWrapper({
                                     </div>
                                   ) : (
                                     <div className="text-center space-y-4">
-                                      <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto text-blue-500 dark:bg-blue-950/40 dark:text-blue-400">
+                                      <div className="w-16 h-16 bg-brand-surface-50 rounded-2xl flex items-center justify-center mx-auto text-brand-ink-500 dark:bg-brand-surface-950/40 dark:text-brand-ink-400">
                                         <CalendarIcon size={32} />
                                       </div>
                                       <div>
@@ -756,7 +756,7 @@ export function CalendarWrapper({
                                     <p className="text-slate-500 mb-6 max-w-sm mx-auto dark:text-slate-400">There are currently no events scheduled for this academic term.</p>
                                     <Button
                                       onClick={handleCreateEvent}
-                                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20"
+                                      className="bg-brand-surface-600 hover:bg-brand-surface-700 text-white rounded-xl shadow-lg shadow-brand-600/20"
                                     >
                                       <Plus className="mr-2 h-4 w-4" />
                                       Schedule First Event
@@ -959,7 +959,7 @@ export function CalendarWrapper({
             .fullcalendar-container .fc {
               font-family: inherit;
               --fc-border-color: rgba(226, 232, 240, 0.6);
-              --fc-today-bg-color: rgba(59, 130, 246, 0.04);
+              --fc-today-bg-color: rgb(var(--brand-500) / 0.04);
               --fc-page-bg-color: transparent;
             }
             
@@ -1002,7 +1002,7 @@ export function CalendarWrapper({
             .fullcalendar-container .fc-button-primary {
               /* Default (inactive): white center + colorful outer ring */
               background: var(--calendar-control-bg, white) !important;
-              color: var(--calendar-control, #4f46e5) !important;
+              color: var(--calendar-control, rgb(var(--brand-alt-ink-600))) !important;
               border: none !important;
               outline: 3px solid #60a5fa !important;
               outline-offset: 0px !important;
@@ -1011,7 +1011,7 @@ export function CalendarWrapper({
               padding: 0 !important;
               text-transform: capitalize !important;
               transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-              box-shadow: 0 0 0 5px rgba(96, 165, 250, 0.25), 0 6px 16px rgba(59, 130, 246, 0.35) !important;
+              box-shadow: 0 0 0 5px rgb(var(--brand-400) / 0.25), 0 6px 16px rgb(var(--brand-500) / 0.35) !important;
               display: inline-flex !important;
               flex-direction: column !important;
               align-items: center !important;
@@ -1092,7 +1092,7 @@ export function CalendarWrapper({
             
             .fullcalendar-container .fc-button-primary:hover:not(:disabled) {
               transform: scale(1.08) !important;
-              box-shadow: 0 0 0 5px rgba(96, 165, 250, 0.35), 0 10px 24px rgba(59, 130, 246, 0.50) !important;
+              box-shadow: 0 0 0 5px rgb(var(--brand-400) / 0.35), 0 10px 24px rgb(var(--brand-500) / 0.50) !important;
             }
             
             .fullcalendar-container .fc-button-primary:active {
@@ -1102,11 +1102,11 @@ export function CalendarWrapper({
             /* Active (clicked): colorful gradient center + white inner ring */
             .fullcalendar-container .fc-button-active,
             .fullcalendar-container .fc-button-primary:not(:disabled):focus {
-              background: linear-gradient(135deg, #3b82f6, #6366f1, #2563eb) !important;
+              background: linear-gradient(135deg, rgb(var(--brand-surface-500)), rgb(var(--brand-alt-surface-500)), rgb(var(--brand-surface-600))) !important;
               color: white !important;
               outline: 3px solid white !important;
               outline-offset: 0px !important;
-              box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.45), 0 8px 20px rgba(99, 102, 241, 0.50) !important;
+              box-shadow: 0 0 0 5px rgb(var(--brand-alt-500) / 0.45), 0 8px 20px rgb(var(--brand-alt-500) / 0.50) !important;
             }
 
             /* Toolbar container - transparent so ring shadows show */
@@ -1160,11 +1160,11 @@ export function CalendarWrapper({
             }
             
             .fullcalendar-container .fc-day-today {
-              background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(99, 102, 241, 0.05)) !important;
+              background: linear-gradient(135deg, rgb(var(--brand-500) / 0.05), rgb(var(--brand-alt-500) / 0.05)) !important;
             }
             
             .fullcalendar-container .fc-highlight {
-              background: rgba(59, 130, 246, 0.1) !important;
+              background: rgb(var(--brand-500) / 0.1) !important;
             }
             
             .fullcalendar-container .fc-daygrid-event {
@@ -1179,7 +1179,7 @@ export function CalendarWrapper({
             }
             
             .fullcalendar-container .fc-list-event:hover td {
-              background: linear-gradient(135deg, rgba(59, 130, 246, 0.03), rgba(99, 102, 241, 0.03));
+              background: linear-gradient(135deg, rgb(var(--brand-500) / 0.03), rgb(var(--brand-alt-500) / 0.03));
             }
             
             /* Uganda Holiday Styles */

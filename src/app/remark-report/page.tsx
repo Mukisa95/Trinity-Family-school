@@ -72,7 +72,7 @@ const PERFORMANCE_STATUS_OPTIONS = [
   { value: 'good', label: 'Good', color: 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200' },
   { value: 'fair', label: 'Fair', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200' },
   { value: 'weak', label: 'Weak', color: 'bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-200' },
-  { value: 'young', label: 'Young', color: 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-200' },
+  { value: 'young', label: 'Young', color: 'bg-brand-secondary-surface-100 text-brand-secondary-ink-800 dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-200' },
   { value: 'irregular', label: 'Irregular Performance', color: 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200' }
 ];
 
@@ -1821,14 +1821,14 @@ export default function RemarkReportPage() {
 
   if (classesLoading || pupilsLoading || academicYearsLoading || settingsLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
+      <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-brand-alt-surface-50 to-brand-secondary-surface-50 dark:from-brand-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-secondary-surface-950/40">
         <GlassPageTopBar
           title="Pupil Performance Report"
           backHref="/"
         />
         <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
           <div className="text-center space-y-4">
-            <RefreshCw className="h-8 w-8 animate-spin text-indigo-600 mx-auto dark:text-indigo-400" />
+            <RefreshCw className="h-8 w-8 animate-spin text-brand-alt-ink-600 mx-auto dark:text-brand-alt-ink-400" />
             <p className="text-muted-foreground font-medium">Loading data...</p>
           </div>
         </div>
@@ -1837,7 +1837,7 @@ export default function RemarkReportPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animate-in fade-in duration-500 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
+    <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-brand-alt-surface-50 to-brand-secondary-surface-50 animate-in fade-in duration-500 dark:from-brand-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-secondary-surface-950/40">
       <GlassPageTopBar
         title="Pupil Performance Report"
         subtitle="Manage and track pupil performance status for nursery classes. Select subject-based statuses for detailed assessment reports."
@@ -1846,7 +1846,7 @@ export default function RemarkReportPage() {
         titleControls={
           <div className="flex items-center gap-1.5 lg:hidden">
             <Select value={selectedClass} onValueChange={setSelectedClass} disabled={isSaving}>
-              <SelectTrigger className="h-[34px] min-w-[70px] max-w-[100px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+              <SelectTrigger className="h-[34px] min-w-[70px] max-w-[100px] rounded-full border-brand-200/60 bg-white/90 px-2 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden shrink-0 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                 <SelectValue placeholder="Class" />
               </SelectTrigger>
               <SelectContent>
@@ -1859,7 +1859,7 @@ export default function RemarkReportPage() {
             </Select>
 
             <Select value={selectedTermId} onValueChange={setSelectedTermId} disabled={isSaving}>
-              <SelectTrigger className="h-[34px] min-w-[65px] max-w-[85px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+              <SelectTrigger className="h-[34px] min-w-[65px] max-w-[85px] rounded-full border-brand-200/60 bg-white/90 px-2 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden shrink-0 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                 <SelectValue placeholder="Term" />
               </SelectTrigger>
               <SelectContent>
@@ -1875,7 +1875,7 @@ export default function RemarkReportPage() {
         center={
           <>
             <Select value={selectedClass} onValueChange={setSelectedClass} disabled={isSaving}>
-              <SelectTrigger className="h-[34px] min-w-[85px] max-w-[115px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+              <SelectTrigger className="h-[34px] min-w-[85px] max-w-[115px] rounded-full border-brand-200/60 bg-white/90 px-2.5 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden shrink-0 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                 <SelectValue placeholder="Class" />
               </SelectTrigger>
               <SelectContent>
@@ -1888,7 +1888,7 @@ export default function RemarkReportPage() {
             </Select>
 
             <Select value={selectedTermId} onValueChange={setSelectedTermId} disabled={isSaving}>
-              <SelectTrigger className="h-[34px] min-w-[75px] max-w-[95px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+              <SelectTrigger className="h-[34px] min-w-[75px] max-w-[95px] rounded-full border-brand-200/60 bg-white/90 px-2 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden shrink-0 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                 <SelectValue placeholder="Term" />
               </SelectTrigger>
               <SelectContent>
@@ -1968,10 +1968,10 @@ export default function RemarkReportPage() {
 
         {/* Batch Report Progress Indicator */}
         {batchProgress.isGenerating && (
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6 border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 dark:bg-slate-900 dark:border-blue-800/60 dark:from-blue-950/40 dark:to-indigo-950/40">
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6 border border-brand-200 bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 dark:bg-slate-900 dark:border-brand-800/60 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
             <div className="flex items-center space-x-4">
               <div className="flex-shrink-0">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
+                <Loader2 className="h-8 w-8 animate-spin text-brand-ink-600 dark:text-brand-ink-400" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">
@@ -2062,14 +2062,14 @@ export default function RemarkReportPage() {
             className={`mb-6 flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
               autoSaveState === 'error'
                 ? 'border-red-300 bg-red-50 text-red-900 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200'
-                : 'border-indigo-200 bg-indigo-50/80 text-indigo-950 dark:border-indigo-800/60 dark:bg-indigo-950/80 dark:text-indigo-100'
+                : 'border-brand-alt-200 bg-brand-alt-surface-50/80 text-brand-alt-ink-950 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/80 dark:text-brand-alt-ink-100'
             }`}
             role="status"
             aria-live="polite"
           >
             <div className="flex items-start gap-3">
               {autoSaveState === 'saving' || autoSaveState === 'waiting' ? (
-                <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-indigo-600 dark:text-indigo-400" />
+                <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-brand-alt-ink-600 dark:text-brand-alt-ink-400" />
               ) : autoSaveState === 'error' ? (
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600 dark:text-red-400" />
               ) : (
@@ -2098,7 +2098,7 @@ export default function RemarkReportPage() {
               <Button
                 onClick={handleSaveChanges}
                 disabled={isSaving}
-                className="h-11 shrink-0 bg-indigo-600 hover:bg-indigo-700"
+                className="h-11 shrink-0 bg-brand-alt-surface-600 hover:bg-brand-alt-surface-700"
               >
                 {isSaving ? (
                   <><RefreshCw className="mr-2 h-4 w-4 animate-spin" />Saving remaining…</>
@@ -2128,7 +2128,7 @@ export default function RemarkReportPage() {
                           size="sm"
                           onClick={() => setIsBatchSubjectEditorOpen(true)}
                           disabled={isSaving || !selectedTermId || filteredPupils.length === 0}
-                          className="h-11 w-11 rounded-full p-0 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-900 dark:text-indigo-300 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-200"
+                          className="h-11 w-11 rounded-full p-0 text-brand-alt-ink-700 hover:bg-brand-alt-surface-100 hover:text-brand-alt-ink-900 dark:text-brand-alt-ink-300 dark:hover:bg-brand-alt-surface-950/40 dark:hover:text-brand-alt-ink-200"
                           aria-label={`Batch edit subject statuses for ${filteredPupils.length} visible pupils`}
                           title="Batch edit subject statuses"
                         >
@@ -2143,10 +2143,10 @@ export default function RemarkReportPage() {
                         className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider cursor-pointer"
                         onClick={() => handleSortColumn('name')}
                       >
-                        <div className="flex items-center space-x-2 hover:text-primary transition-all duration-200 hover:scale-105 rounded-lg px-2 py-1 hover:bg-primary/10 w-fit">
+                        <div className="flex items-center space-x-2 hover:text-link transition-all duration-200 hover:scale-105 rounded-lg px-2 py-1 hover:bg-primary/10 w-fit">
                           <span>Name</span>
                           {(sortBy === 'name' || sortBy === 'firstName' || sortBy === 'lastName') && (
-                            <span className="text-primary font-bold">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                            <span className="text-link font-bold">{sortOrder === 'asc' ? '↑' : '↓'}</span>
                           )}
                         </div>
                       </th>
@@ -2154,10 +2154,10 @@ export default function RemarkReportPage() {
                         className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider cursor-pointer"
                         onClick={() => handleSortColumn('status')}
                       >
-                        <div className="flex items-center space-x-2 hover:text-primary transition-all duration-200 hover:scale-105 rounded-lg px-2 py-1 hover:bg-primary/10 w-fit">
+                        <div className="flex items-center space-x-2 hover:text-link transition-all duration-200 hover:scale-105 rounded-lg px-2 py-1 hover:bg-primary/10 w-fit">
                           <span>Current Status</span>
                           {sortBy === 'status' && (
-                            <span className="text-primary font-bold">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                            <span className="text-link font-bold">{sortOrder === 'asc' ? '↑' : '↓'}</span>
                           )}
                         </div>
                       </th>
@@ -2169,10 +2169,10 @@ export default function RemarkReportPage() {
                           type="button"
                           onClick={toggleBulkTie}
                           disabled={isSaving || !selectedTermId}
-                          className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-wider text-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-wider text-foreground transition-colors hover:bg-primary/10 hover:text-link disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <span>Tie</span>
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] ${bulkTieEnabled ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300' : 'bg-gray-100 text-gray-600 dark:bg-slate-900 dark:text-slate-300'}`}>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] ${bulkTieEnabled ? 'bg-brand-surface-100 text-brand-ink-700 dark:bg-brand-surface-950/40 dark:text-brand-ink-300' : 'bg-gray-100 text-gray-600 dark:bg-slate-900 dark:text-slate-300'}`}>
                             {bulkTieEnabled ? 'All On' : 'All Off'}
                           </span>
                         </button>
@@ -2227,7 +2227,7 @@ export default function RemarkReportPage() {
                                   )}
                                 </div>
                                 <div className="ml-4">
-                                  <Link href={`/pupils/${pupil.id}`} className="text-sm font-medium text-indigo-600 hover:text-indigo-900 hover:underline dark:text-indigo-400 dark:hover:text-indigo-200">
+                                  <Link href={`/pupils/${pupil.id}`} className="text-sm font-medium text-brand-alt-ink-600 hover:text-brand-alt-ink-900 hover:underline dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-200">
                                     {formatPupilDisplayName(pupil)}
                                   </Link>
                                   <p className="text-xs text-gray-500 dark:text-slate-400">{pupil.admissionNumber || pupil.learnerIdentificationNumber || 'No Reg No.'}</p>
@@ -2354,7 +2354,7 @@ export default function RemarkReportPage() {
                                           disabled={isSaving || !selectedTermId}
                                         >
                                           <SelectTrigger
-                                            className="h-11 min-w-[190px] border-indigo-300 bg-white text-indigo-800 dark:border-indigo-800/60 dark:bg-slate-900 dark:text-indigo-200"
+                                            className="h-11 min-w-[190px] border-brand-alt-300 bg-white text-brand-alt-ink-800 dark:border-brand-alt-800/60 dark:bg-slate-900 dark:text-brand-alt-ink-200"
                                             aria-label={`Set a status for ${selectedSubjects.length} selected subjects`}
                                           >
                                             <SelectValue placeholder={`Set status for ${selectedSubjects.length}`} />
@@ -2409,7 +2409,7 @@ export default function RemarkReportPage() {
                                           key={subject.value}
                                           className={`space-y-2 rounded-xl border p-3 transition-colors ${
                                             isSelected
-                                              ? 'border-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/80'
+                                              ? 'border-brand-alt-400 bg-brand-alt-surface-50/80 dark:bg-brand-alt-surface-950/80'
                                               : 'border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900'
                                           }`}
                                         >
@@ -2442,7 +2442,7 @@ export default function RemarkReportPage() {
                                             )}
                                             disabled={isSaving || !selectedTermId}
                                           >
-                                            <SelectTrigger className={`w-full ${hasChange ? 'ring-2 ring-blue-500' : ''}`}>
+                                            <SelectTrigger className={`w-full ${hasChange ? 'ring-2 ring-brand-500' : ''}`}>
                                               <SelectValue placeholder="Not set" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -2494,7 +2494,7 @@ export default function RemarkReportPage() {
           <DialogHeader className="pr-10">
             <div className="flex flex-wrap items-center gap-2">
               <DialogTitle>Batch edit subject statuses</DialogTitle>
-              <Badge variant="secondary" className="bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200">
+              <Badge variant="secondary" className="bg-brand-alt-surface-100 text-brand-alt-ink-800 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-200">
                 {filteredPupils.length} visible pupil{filteredPupils.length === 1 ? '' : 's'}
               </Badge>
             </div>
@@ -2504,7 +2504,7 @@ export default function RemarkReportPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-200">
+          <div className="rounded-xl border border-brand-200 bg-brand-surface-50 px-4 py-3 text-sm text-brand-ink-900 dark:border-brand-800/60 dark:bg-brand-surface-950/40 dark:text-brand-ink-200">
             These are ordinary individual pupil changes. They are not linked after applying, and they
             are progressively saved for each pupil shortly after you make them.
           </div>
@@ -2564,7 +2564,7 @@ export default function RemarkReportPage() {
             <Button
               type="button"
               onClick={() => setIsBatchSubjectEditorOpen(false)}
-              className="h-11 min-w-[110px] bg-indigo-600 hover:bg-indigo-700"
+              className="h-11 min-w-[110px] bg-brand-alt-surface-600 hover:bg-brand-alt-surface-700"
             >
               Done
             </Button>
@@ -2592,17 +2592,17 @@ export default function RemarkReportPage() {
             const coverage = getSubjectCoverage(coveragePupil.id);
             return (
               <div className="space-y-4">
-                <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-800/60 dark:bg-indigo-950/40">
+                <div className="rounded-xl border border-brand-alt-200 bg-brand-alt-surface-50 p-4 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/40">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold text-indigo-950 dark:text-indigo-100">
+                      <p className="text-sm font-semibold text-brand-alt-ink-950 dark:text-brand-alt-ink-100">
                         {coverage.completed} of {coverage.total} subjects complete
                       </p>
-                      <p className="mt-1 text-xs text-indigo-800 dark:text-indigo-200">
+                      <p className="mt-1 text-xs text-brand-alt-ink-800 dark:text-brand-alt-ink-200">
                         Changes made here use the same progressive autosave as the main table.
                       </p>
                     </div>
-                    <Badge className="bg-indigo-600 text-white tabular-nums">
+                    <Badge className="bg-brand-alt-surface-600 text-white tabular-nums">
                       {coverage.completed}/{coverage.total}
                     </Badge>
                   </div>
@@ -2768,7 +2768,7 @@ export default function RemarkReportPage() {
               type="button"
               onClick={handleAddMissingSubjectComments}
               disabled={isAddingSubjectComments}
-              className="h-11 bg-indigo-600 hover:bg-indigo-700"
+              className="h-11 bg-brand-alt-surface-600 hover:bg-brand-alt-surface-700"
             >
               {isAddingSubjectComments
                 ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving comments…</>

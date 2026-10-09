@@ -145,7 +145,7 @@ export function ModernDatePicker({
               "hover:shadow-md hover:border-primary/50 hover:bg-gradient-to-r hover:from-background hover:to-primary/5",
               "focus:ring-2 focus:ring-primary/20 focus:border-primary",
               disabled && "opacity-50 cursor-not-allowed",
-              examMode && "border-blue-200 hover:border-blue-400 dark:border-blue-800/60",
+              examMode && "border-brand-200 hover:border-brand-400 dark:border-brand-800/60",
               className,
               triggerProps?.className,
             )}
@@ -157,7 +157,7 @@ export function ModernDatePicker({
             <div className="relative flex items-center w-full">
               <CalendarIcon className={cn(
                 "mr-2 h-3 w-3 transition-colors duration-200",
-                examMode ? "text-blue-500 group-hover:text-blue-600 dark:text-blue-400 dark:group-hover:text-blue-400" : "text-primary/70 group-hover:text-primary"
+                examMode ? "text-brand-ink-500 group-hover:text-brand-ink-600 dark:text-brand-ink-400 dark:group-hover:text-brand-ink-400" : "text-link/70 group-hover:text-link"
               )} />
               <span className="flex-1 truncate">
                 {date ? formatDisplayDate(date) : placeholder}
@@ -166,7 +166,7 @@ export function ModernDatePicker({
                 animate={{ rotate: isOpen ? 180 : 0 }}
                 transition={{ duration: 0.2 }}
               >
-                <ChevronDown className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
+                <ChevronDown className="h-3 w-3 text-muted-foreground group-hover:text-link transition-colors duration-200" />
               </motion.div>
             </div>
           </Button>
@@ -183,17 +183,17 @@ export function ModernDatePicker({
             transition={{ duration: 0.2, ease: "easeOut" }}
             className={cn(
               "rounded-lg border shadow-lg bg-gradient-to-br from-white to-gray-50/50 dark:from-slate-900 dark:to-slate-900/50",
-              examMode && "border-blue-200 dark:border-blue-800/60"
+              examMode && "border-brand-200 dark:border-brand-800/60"
             )}
           >
             {showQuickSelects && (
               <div className={cn(
                 "border-b",
-                examMode ? "bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-950/40" : "bg-gradient-to-r from-primary/5 to-transparent"
+                examMode ? "bg-gradient-to-r from-brand-surface-50 to-transparent dark:from-brand-surface-950/40" : "bg-gradient-to-r from-primary/5 to-transparent"
               )}>
                 <div className="flex items-center justify-between p-3">
                   <div className="flex items-center gap-2">
-                    <Zap className={cn("h-4 w-4", examMode ? "text-blue-500 dark:text-blue-400" : "text-primary")} />
+                    <Zap className={cn("h-4 w-4", examMode ? "text-brand-ink-500 dark:text-brand-ink-400" : "text-link")} />
                     <span className="text-sm font-medium text-gray-700 dark:text-slate-200">
                       {examMode ? "Exam Quick Dates" : "Quick Select"}
                     </span>
@@ -225,8 +225,8 @@ export function ModernDatePicker({
                             className={cn(
                               "text-xs p-2 rounded-md transition-all duration-200 text-left group",
                               examMode 
-                                ? "hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/40 dark:hover:text-blue-400"
-                                : "hover:bg-primary/10 hover:text-primary"
+                                ? "hover:bg-brand-surface-50 hover:text-brand-ink-600 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-400"
+                                : "hover:bg-primary/10 hover:text-link"
                             )}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
@@ -255,7 +255,7 @@ export function ModernDatePicker({
                 className="rounded-md"
                 classNames={{
                   day_selected: examMode 
-                    ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:bg-blue-500 hover:text-white focus:bg-blue-500 focus:text-white shadow-md"
+                    ? "bg-gradient-to-br from-brand-surface-500 to-brand-surface-600 text-white hover:bg-brand-surface-500 hover:text-white focus:bg-brand-surface-500 focus:text-white shadow-md"
                     : "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground shadow-md",
                   day_today: "bg-gradient-to-br from-accent to-accent/80 text-accent-foreground font-semibold",
                   day: "hover:bg-gradient-to-br hover:from-primary/10 hover:to-primary/5 transition-all duration-200 hover:scale-105",
@@ -265,8 +265,8 @@ export function ModernDatePicker({
             </div>
             
             {examMode && excludeWeekends && (
-              <div className="border-t bg-blue-50/50 p-2 dark:bg-blue-950/50">
-                <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+              <div className="border-t bg-brand-surface-50/50 p-2 dark:bg-brand-surface-950/50">
+                <div className="flex items-center gap-2 text-xs text-brand-ink-600 dark:text-brand-ink-400">
                   <AlertCircle className="h-3 w-3" />
                   <span>Weekends are disabled for exam scheduling</span>
                 </div>
@@ -281,14 +281,14 @@ export function ModernDatePicker({
                 animate={{ opacity: 1 }}
                 className={cn(
                   "border-t p-3",
-                  examMode ? "bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-950/40" : "bg-gradient-to-r from-gray-50 to-transparent dark:from-slate-900"
+                  examMode ? "bg-gradient-to-r from-brand-surface-50 to-transparent dark:from-brand-surface-950/40" : "bg-gradient-to-r from-gray-50 to-transparent dark:from-slate-900"
                 )}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-600 dark:text-slate-300">Selected:</span>
                   <span className={cn(
                     "text-xs font-medium",
-                    examMode ? "text-blue-600 dark:text-blue-400" : "text-primary"
+                    examMode ? "text-brand-ink-600 dark:text-brand-ink-400" : "text-link"
                   )}>
                     {format(date, "EEEE, MMMM do, yyyy")}
                   </span>

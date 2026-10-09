@@ -871,9 +871,9 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
       case 'Late':
         return <Clock className={`${sizeClasses[size]} text-yellow-600 dark:text-yellow-400`} />;
       case 'Excused':
-        return <Info className={`${sizeClasses[size]} text-blue-600 dark:text-blue-400`} />;
+        return <Info className={`${sizeClasses[size]} text-brand-ink-600 dark:text-brand-ink-400`} />;
       case 'Delayed':
-        return <AlertCircle className={`${sizeClasses[size]} text-purple-600 dark:text-purple-400`} />;
+        return <AlertCircle className={`${sizeClasses[size]} text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400`} />;
       default:
         return <AlertCircle className={`${sizeClasses[size]} text-gray-400 dark:text-slate-400`} />;
     }
@@ -888,9 +888,9 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
       case 'Late':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
       case 'Excused':
-        return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+        return 'bg-brand-surface-100 text-brand-ink-800 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60';
       case 'Delayed':
-        return 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-200 dark:border-purple-800/60';
+        return 'bg-brand-secondary-surface-100 text-brand-secondary-ink-800 border-brand-secondary-200 dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-200 dark:border-brand-secondary-800/60';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
     }
@@ -932,7 +932,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
               }}
             />
           ) : null}
-          <AvatarFallback className="text-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+          <AvatarFallback className="text-lg bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 text-white font-semibold">
             {pupil?.firstName?.charAt(0)}{pupil?.lastName?.charAt(0)}
           </AvatarFallback>
         </Avatar>
@@ -1025,7 +1025,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
           selectedDateRecord.status === 'Present' ? 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/40 dark:to-emerald-950/40' :
             selectedDateRecord.status === 'Absent' ? 'bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-950/40 dark:to-pink-950/40' :
               selectedDateRecord.status === 'Late' ? 'bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950/40 dark:to-amber-950/40' :
-                selectedDateRecord.status === 'Excused' ? 'bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40' :
+                selectedDateRecord.status === 'Excused' ? 'bg-gradient-to-br from-brand-surface-50 to-brand-alt-surface-50 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40' :
                   'bg-gradient-to-br from-gray-50 to-slate-50 dark:from-slate-900 dark:to-slate-900' : 'bg-gradient-to-br from-gray-50 to-slate-50 dark:from-slate-900 dark:to-slate-900'}`}>
           {/* Decorative background pattern */}
           <div className="absolute inset-0 opacity-5">
@@ -1034,7 +1034,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                 selectedDateRecord.status === 'Present' ? 'bg-green-400' :
                   selectedDateRecord.status === 'Absent' ? 'bg-red-400' :
                     selectedDateRecord.status === 'Late' ? 'bg-yellow-400' :
-                      selectedDateRecord.status === 'Excused' ? 'bg-blue-400' :
+                      selectedDateRecord.status === 'Excused' ? 'bg-brand-surface-400' :
                         'bg-gray-400' : 'bg-gray-400'
                 }`}></div>
             </div>
@@ -1044,7 +1044,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
             selectedDateRecord.status === 'Present' ? 'bg-gradient-to-r from-green-50/80 to-emerald-50/80 dark:from-green-950/80 dark:to-emerald-950/80' :
               selectedDateRecord.status === 'Absent' ? 'bg-gradient-to-r from-red-50/80 to-pink-50/80 dark:from-red-950/80 dark:to-pink-950/80' :
                 selectedDateRecord.status === 'Late' ? 'bg-gradient-to-r from-yellow-50/80 to-amber-50/80 dark:from-yellow-950/80 dark:to-amber-950/80' :
-                  selectedDateRecord.status === 'Excused' ? 'bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-950/80 dark:to-indigo-950/80' :
+                  selectedDateRecord.status === 'Excused' ? 'bg-gradient-to-r from-brand-surface-50/80 to-brand-alt-surface-50/80 dark:from-brand-surface-950/80 dark:to-brand-alt-surface-950/80' :
                     'bg-gradient-to-r from-gray-50/80 to-slate-50/80 dark:from-slate-900/80 dark:to-slate-900/80' : 'bg-gradient-to-r from-gray-50/80 to-slate-50/80 dark:from-slate-900/80 dark:to-slate-900/80'}`}>
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
@@ -1052,7 +1052,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                   <div className={`w-5 h-5 rounded-full ${selectedDateRecord.status === 'Present' ? 'bg-green-100 dark:bg-green-950/40' :
                     selectedDateRecord.status === 'Absent' ? 'bg-red-100 dark:bg-red-950/40' :
                       selectedDateRecord.status === 'Late' ? 'bg-yellow-100 dark:bg-yellow-950/40' :
-                        selectedDateRecord.status === 'Excused' ? 'bg-blue-100 dark:bg-blue-950/40' :
+                        selectedDateRecord.status === 'Excused' ? 'bg-brand-surface-100 dark:bg-brand-surface-950/40' :
                           'bg-gray-100 dark:bg-slate-900'
                     } flex items-center justify-center`}>
                     {getStatusIcon(selectedDateRecord.status, 'sm')}
@@ -1064,7 +1064,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                   selectedDateRecord.status === 'Present' ? 'text-green-800 dark:text-green-200' :
                     selectedDateRecord.status === 'Absent' ? 'text-red-800 dark:text-red-200' :
                       selectedDateRecord.status === 'Late' ? 'text-yellow-800 dark:text-yellow-200' :
-                        selectedDateRecord.status === 'Excused' ? 'text-blue-800 dark:text-blue-200' :
+                        selectedDateRecord.status === 'Excused' ? 'text-brand-ink-800 dark:text-brand-ink-200' :
                           'text-gray-800 dark:text-slate-100' : 'text-gray-600 dark:text-slate-300'
                   }`}>
                   {getPersonalizedMessage(selectedDateRecord || null, selectedDate)}
@@ -1075,7 +1075,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                   variant="outline"
                   size="sm"
                   onClick={() => handleEditRemarks(selectedDateRecord)}
-                  className="text-blue-600 hover:text-blue-700 text-xs px-2 py-1 dark:text-blue-400 dark:hover:text-blue-300"
+                  className="text-brand-ink-600 hover:text-brand-ink-700 text-xs px-2 py-1 dark:text-brand-ink-400 dark:hover:text-brand-ink-300"
                 >
                   <Edit3 className="h-3 w-3 mr-1" />
                   Please tell us why
@@ -1089,7 +1089,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-white/50  dark:border-slate-700/50 ${selectedDateRecord.status === 'Present' ? 'bg-gradient-to-br from-green-100 to-green-200 dark:from-green-950/40 dark:to-green-900/40' :
                   selectedDateRecord.status === 'Absent' ? 'bg-gradient-to-br from-red-100 to-red-200 dark:from-red-950/40 dark:to-red-900/40' :
                     selectedDateRecord.status === 'Late' ? 'bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-950/40 dark:to-yellow-900/40' :
-                      selectedDateRecord.status === 'Excused' ? 'bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-950/40 dark:to-blue-900/40' :
+                      selectedDateRecord.status === 'Excused' ? 'bg-gradient-to-br from-brand-surface-100 to-brand-surface-200 dark:from-brand-surface-950/40 dark:to-brand-surface-900/40' :
                         'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-slate-900 dark:to-slate-800'
                   }`}>
                   {getStatusIcon(selectedDateRecord.status, 'lg')}
@@ -1099,7 +1099,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${selectedDateRecord.status === 'Present' ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200' :
                       selectedDateRecord.status === 'Absent' ? 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200' :
                         selectedDateRecord.status === 'Late' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200' :
-                          selectedDateRecord.status === 'Excused' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200' :
+                          selectedDateRecord.status === 'Excused' ? 'bg-brand-surface-100 text-brand-ink-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-200' :
                             'bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100'
                       }`}>
                       {selectedDateRecord.status}
@@ -1110,13 +1110,13 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                       <div className={`flex-1 p-3 rounded-xl bg-white/60 backdrop-blur-sm border border-white/20  dark:bg-slate-900/60 dark:border-slate-700/20 ${selectedDateRecord.status === 'Present' ? 'shadow-green-100' :
                         selectedDateRecord.status === 'Absent' ? 'shadow-red-100' :
                           selectedDateRecord.status === 'Late' ? 'shadow-yellow-100' :
-                            selectedDateRecord.status === 'Excused' ? 'shadow-blue-100' :
+                            selectedDateRecord.status === 'Excused' ? 'shadow-brand-100' :
                               'shadow-gray-100'
                         }`}>
                         <p className={`text-sm ${selectedDateRecord.status === 'Present' ? 'text-green-700 dark:text-green-300' :
                           selectedDateRecord.status === 'Absent' ? 'text-red-700 dark:text-red-300' :
                             selectedDateRecord.status === 'Late' ? 'text-yellow-700 dark:text-yellow-300' :
-                              selectedDateRecord.status === 'Excused' ? 'text-blue-700 dark:text-blue-300' :
+                              selectedDateRecord.status === 'Excused' ? 'text-brand-ink-700 dark:text-brand-ink-300' :
                                 'text-gray-700 dark:text-slate-200'
                           }`}>
                           <strong>Remarks:</strong> {selectedDateRecord.remarks}
@@ -1126,7 +1126,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEditRemarks(selectedDateRecord)}
-                        className="text-blue-600 hover:text-blue-700 p-2 h-auto rounded-full hover:bg-blue-50 transition-colors shadow-sm dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/40"
+                        className="text-brand-ink-600 hover:text-brand-ink-700 p-2 h-auto rounded-full hover:bg-brand-surface-50 transition-colors shadow-sm dark:text-brand-ink-400 dark:hover:text-brand-ink-300 dark:hover:bg-brand-surface-950/40"
                       >
                         <Edit3 className="h-4 w-4" />
                       </Button>
@@ -1178,12 +1178,12 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                 <span className="text-xs text-yellow-700 dark:text-yellow-300">Late</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-full bg-blue-100 border border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60"></div>
-                <span className="text-xs text-blue-700 dark:text-blue-300">Excused</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-brand-surface-100 border border-brand-200 dark:bg-brand-surface-950/40 dark:border-brand-800/60"></div>
+                <span className="text-xs text-brand-ink-700 dark:text-brand-ink-300">Excused</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-full bg-purple-100 border border-purple-200 dark:bg-purple-950/40 dark:border-purple-800/60"></div>
-                <span className="text-xs text-purple-700 dark:text-purple-300">Delayed</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-brand-secondary-surface-100 border border-brand-secondary-200 dark:bg-brand-secondary-surface-950/40 dark:border-brand-secondary-800/60"></div>
+                <span className="text-xs text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">Delayed</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-2.5 h-2.5 rounded-full bg-gray-100 border border-gray-200 dark:bg-slate-900 dark:border-slate-700"></div>
@@ -1243,19 +1243,19 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                         };
                       case 'Excused':
                         return {
-                          bg: 'bg-blue-50 dark:bg-blue-950/40',
-                          border: 'border-blue-200 dark:border-blue-800/60',
-                          text: 'text-blue-800 dark:text-blue-200',
-                          iconBg: 'bg-blue-100 dark:bg-blue-950/40',
-                          iconColor: 'text-blue-600 dark:text-blue-400'
+                          bg: 'bg-brand-surface-50 dark:bg-brand-surface-950/40',
+                          border: 'border-brand-200 dark:border-brand-800/60',
+                          text: 'text-brand-ink-800 dark:text-brand-ink-200',
+                          iconBg: 'bg-brand-surface-100 dark:bg-brand-surface-950/40',
+                          iconColor: 'text-brand-ink-600 dark:text-brand-ink-400'
                         };
                       case 'Delayed':
                         return {
-                          bg: 'bg-purple-50 dark:bg-purple-950/40',
-                          border: 'border-purple-200 dark:border-purple-800/60',
-                          text: 'text-purple-800 dark:text-purple-200',
-                          iconBg: 'bg-purple-100 dark:bg-purple-950/40',
-                          iconColor: 'text-purple-600 dark:text-purple-400'
+                          bg: 'bg-brand-secondary-surface-50 dark:bg-brand-secondary-surface-950/40',
+                          border: 'border-brand-secondary-200 dark:border-brand-secondary-800/60',
+                          text: 'text-brand-secondary-ink-800 dark:text-brand-secondary-ink-200',
+                          iconBg: 'bg-brand-secondary-surface-100 dark:bg-brand-secondary-surface-950/40',
+                          iconColor: 'text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400'
                         };
                       default:
                         return {
@@ -1286,8 +1286,8 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                         record.status === 'Present' ? 'bg-gradient-to-b from-green-400 to-green-600' :
                           record.status === 'Absent' ? 'bg-gradient-to-b from-red-400 to-red-600' :
                             record.status === 'Late' ? 'bg-gradient-to-b from-yellow-400 to-yellow-600' :
-                              record.status === 'Excused' ? 'bg-gradient-to-b from-blue-400 to-blue-600' :
-                                record.status === 'Delayed' ? 'bg-gradient-to-b from-purple-400 to-purple-600' :
+                              record.status === 'Excused' ? 'bg-gradient-to-b from-brand-surface-400 to-brand-surface-600' :
+                                record.status === 'Delayed' ? 'bg-gradient-to-b from-brand-secondary-surface-400 to-brand-secondary-surface-600' :
                                   'bg-gradient-to-b from-gray-400 to-gray-600' :
                         'bg-gradient-to-b from-gray-400 to-gray-600'
                         }`}></div>
@@ -1316,7 +1316,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleEditRemarks(record)}
-                                  className="text-blue-600 hover:text-blue-700 p-1 h-auto flex-shrink-0 rounded-full hover:bg-blue-50 transition-colors dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/40"
+                                  className="text-brand-ink-600 hover:text-brand-ink-700 p-1 h-auto flex-shrink-0 rounded-full hover:bg-brand-surface-50 transition-colors dark:text-brand-ink-400 dark:hover:text-brand-ink-300 dark:hover:bg-brand-surface-950/40"
                                 >
                                   <Edit3 className="h-3 w-3" />
                                 </Button>
@@ -1331,7 +1331,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEditRemarks(record)}
-                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                            className="text-brand-ink-600 hover:text-brand-ink-700 dark:text-brand-ink-400 dark:hover:text-brand-ink-300"
                           >
                             <Edit3 className="h-4 w-4" />
                           </Button>
@@ -1349,21 +1349,21 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
             ) : viewMode === 'term' && termSummary ? (
               <div className="space-y-3">
                 {/* Term Summary */}
-                <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-4 shadow-lg border border-blue-100/50 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40 dark:border-blue-800/50">
+                <div className="relative overflow-hidden bg-gradient-to-br from-brand-surface-50 via-brand-alt-surface-50 to-brand-secondary-surface-50 rounded-2xl p-4 shadow-lg border border-brand-100/50 dark:from-brand-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-secondary-surface-950/40 dark:border-brand-800/50">
                   {/* Decorative elements */}
                   <div className="absolute top-0 right-0 w-24 h-24 opacity-10">
-                    <div className="w-full h-full bg-blue-400 rounded-full transform translate-x-8 -translate-y-8"></div>
+                    <div className="w-full h-full bg-brand-surface-400 rounded-full transform translate-x-8 -translate-y-8"></div>
                   </div>
                   <div className="absolute bottom-0 left-0 w-16 h-16 opacity-10">
-                    <div className="w-full h-full bg-indigo-400 rounded-full transform -translate-x-4 translate-y-4"></div>
+                    <div className="w-full h-full bg-brand-alt-surface-400 rounded-full transform -translate-x-4 translate-y-4"></div>
                   </div>
 
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-bold text-blue-900 bg-white/60 px-4 py-2 rounded-xl backdrop-blur-sm dark:text-blue-200 dark:bg-slate-900/60">
+                      <h3 className="text-lg font-bold text-brand-ink-900 bg-white/60 px-4 py-2 rounded-xl backdrop-blur-sm dark:text-brand-ink-200 dark:bg-slate-900/60">
                         {termSummary.term.name} Summary
                       </h3>
-                      <Badge className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-xs px-3 py-1 rounded-full shadow-md">
+                      <Badge className="bg-gradient-to-r from-brand-surface-500 to-brand-alt-surface-500 text-white text-xs px-3 py-1 rounded-full shadow-md">
                         {termSummary.attendanceRate}% Attendance
                       </Badge>
                     </div>
@@ -1381,7 +1381,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                         <div className="text-xs text-gray-600 font-medium dark:text-slate-300">Late</div>
                       </div>
                       <div className="text-center bg-white/60 p-3 rounded-xl backdrop-blur-sm shadow-sm border border-white/20 dark:bg-slate-900/60 dark:border-slate-700/20">
-                        <div className="text-2xl font-bold text-blue-600 mb-1 dark:text-blue-400">{termSummary.excused}</div>
+                        <div className="text-2xl font-bold text-brand-ink-600 mb-1 dark:text-brand-ink-400">{termSummary.excused}</div>
                         <div className="text-xs text-gray-600 font-medium dark:text-slate-300">Excused</div>
                       </div>
                       <div className="text-center bg-white/60 p-3 rounded-xl backdrop-blur-sm shadow-sm border border-white/20 dark:bg-slate-900/60 dark:border-slate-700/20">
@@ -1398,11 +1398,11 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                   {monthlyBreakdown.map((month) => (
                     <div key={month.monthKey} className="bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 dark:bg-slate-900/80 dark:border-slate-700/50">
                       <div
-                        className="flex items-center justify-between p-3 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-colors rounded-xl dark:hover:from-blue-950/50 dark:hover:to-indigo-950/50"
+                        className="flex items-center justify-between p-3 cursor-pointer hover:bg-gradient-to-r hover:from-brand-surface-50/50 hover:to-brand-alt-surface-50/50 transition-colors rounded-xl dark:hover:from-brand-surface-950/50 dark:hover:to-brand-alt-surface-950/50"
                         onClick={() => toggleMonthExpansion(month.monthKey)}
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${expandedMonths.has(month.monthKey) ? 'bg-blue-100 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400' : 'bg-gray-100 text-gray-500 dark:bg-slate-900 dark:text-slate-400'
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${expandedMonths.has(month.monthKey) ? 'bg-brand-surface-100 text-brand-ink-600 dark:bg-brand-surface-950/40 dark:text-brand-ink-400' : 'bg-gray-100 text-gray-500 dark:bg-slate-900 dark:text-slate-400'
                             } transition-colors`}>
                             {expandedMonths.has(month.monthKey) ? (
                               <ChevronDown className="h-4 w-4" />
@@ -1411,7 +1411,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                             )}
                           </div>
                           <span className="font-semibold text-sm text-gray-800 dark:text-slate-100">{month.monthName}</span>
-                          <Badge className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-xs px-2 py-1 rounded-full">
+                          <Badge className="bg-gradient-to-r from-brand-surface-500 to-brand-alt-surface-500 text-white text-xs px-2 py-1 rounded-full">
                             {month.attendanceRate}% Attendance
                           </Badge>
                         </div>
@@ -1419,7 +1419,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                           <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium dark:bg-green-950/40 dark:text-green-300">Present: {month.present}</span>
                           <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium dark:bg-red-950/40 dark:text-red-300">Absent: {month.absent}</span>
                           <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-medium dark:bg-yellow-950/40 dark:text-yellow-300">Late: {month.late}</span>
-                          <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium dark:bg-blue-950/40 dark:text-blue-300">Excused: {month.excused}</span>
+                          <span className="bg-brand-surface-100 text-brand-ink-700 px-2 py-1 rounded-full font-medium dark:bg-brand-surface-950/40 dark:text-brand-ink-300">Excused: {month.excused}</span>
                         </div>
                       </div>
 
@@ -1431,7 +1431,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                               variant="ghost"
                               size="sm"
                               onClick={() => toggleMonthDaysExpansion(month.monthKey)}
-                              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                              className="text-brand-ink-600 hover:text-brand-ink-700 dark:text-brand-ink-400 dark:hover:text-brand-ink-300"
                             >
                               {expandedMonthDays.has(month.monthKey) ? 'Hide Details' : 'Show Details'}
                             </Button>
@@ -1460,7 +1460,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleEditRemarks(record)}
-                                                className="text-blue-600 hover:text-blue-700 p-1 h-auto dark:text-blue-400 dark:hover:text-blue-300"
+                                                className="text-brand-ink-600 hover:text-brand-ink-700 p-1 h-auto dark:text-brand-ink-400 dark:hover:text-brand-ink-300"
                                               >
                                                 <Edit3 className="h-3 w-3" />
                                               </Button>
@@ -1478,7 +1478,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                                           variant="ghost"
                                           size="sm"
                                           onClick={() => handleEditRemarks(record)}
-                                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                          className="text-brand-ink-600 hover:text-brand-ink-700 dark:text-brand-ink-400 dark:hover:text-brand-ink-300"
                                         >
                                           <Edit3 className="h-4 w-4" />
                                         </Button>
@@ -1523,11 +1523,11 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                       <div className="text-sm text-gray-600 dark:text-slate-300">Late</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{yearSummary.excused}</div>
+                      <div className="text-2xl font-bold text-brand-ink-600 dark:text-brand-ink-400">{yearSummary.excused}</div>
                       <div className="text-sm text-gray-600 dark:text-slate-300">Excused</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{yearSummary.delayed}</div>
+                      <div className="text-2xl font-bold text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">{yearSummary.delayed}</div>
                       <div className="text-sm text-gray-600 dark:text-slate-300">Delayed</div>
                     </div>
                     <div className="text-center">
@@ -1620,7 +1620,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={() => handleEditRemarks(record)}
-                                                        className="text-blue-600 hover:text-blue-700 p-1 h-auto dark:text-blue-400 dark:hover:text-blue-300"
+                                                        className="text-brand-ink-600 hover:text-brand-ink-700 p-1 h-auto dark:text-brand-ink-400 dark:hover:text-brand-ink-300"
                                                       >
                                                         <Edit3 className="h-2 w-2" />
                                                       </Button>
@@ -1638,7 +1638,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                                                   variant="ghost"
                                                   size="sm"
                                                   onClick={() => handleEditRemarks(record)}
-                                                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                                  className="text-brand-ink-600 hover:text-brand-ink-700 dark:text-brand-ink-400 dark:hover:text-brand-ink-300"
                                                 >
                                                   <Edit3 className="h-3 w-3" />
                                                 </Button>
@@ -1681,7 +1681,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleEditRemarks(record)}
-                                className="text-blue-600 hover:text-blue-700 p-1 h-auto dark:text-blue-400 dark:hover:text-blue-300"
+                                className="text-brand-ink-600 hover:text-brand-ink-700 p-1 h-auto dark:text-brand-ink-400 dark:hover:text-brand-ink-300"
                               >
                                 <Edit3 className="h-3 w-3" />
                               </Button>
@@ -1696,7 +1696,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEditRemarks(record)}
-                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                          className="text-brand-ink-600 hover:text-brand-ink-700 dark:text-brand-ink-400 dark:hover:text-brand-ink-300"
                         >
                           <Edit3 className="h-4 w-4" />
                         </Button>

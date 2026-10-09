@@ -573,7 +573,7 @@ export function TimetableGrid({
                                 variant={selectedDay === dayId ? "default" : "outline"}
                                 onClick={() => setSelectedDay(dayId)}
                                 size="sm"
-                                className={`rounded-xl text-xs px-3 sm:px-4 py-1 h-8 ${selectedDay === dayId ? "bg-indigo-600 hover:bg-indigo-700 shadow-sm" : "bg-white text-gray-600 hover:bg-indigo-50 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-indigo-950/40"}`}
+                                className={`rounded-xl text-xs px-3 sm:px-4 py-1 h-8 ${selectedDay === dayId ? "bg-brand-alt-surface-600 hover:bg-brand-alt-surface-700 shadow-sm" : "bg-white text-gray-600 hover:bg-brand-alt-surface-50 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-brand-alt-surface-950/40"}`}
                             >
                                 {dayName}
                             </Button>
@@ -715,7 +715,7 @@ export function TimetableGrid({
 
                                                             <div className="flex justify-end gap-2 pt-2">
                                                                 <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setEditingPeriod(null)}>Cancel</Button>
-                                                                <Button size="sm" className="h-7 text-xs bg-blue-600" onClick={handleSavePeriodTimes} disabled={savePeriodsMutation.isPending}>
+                                                                <Button size="sm" className="h-7 text-xs bg-brand-surface-600" onClick={handleSavePeriodTimes} disabled={savePeriodsMutation.isPending}>
                                                                     {savePeriodsMutation.isPending ? "Saving..." : "Apply & Shift"}
                                                                 </Button>
                                                             </div>
@@ -814,7 +814,7 @@ export function TimetableGrid({
                                                     const actTeacher = staffList.find(s => s.id === sharedAct.teacherId);
                                                     const innerContent = (
                                                         <div
-                                                            className={`flex flex-col items-center justify-center h-full gap-0.5 px-1 py-1 mx-0.5 my-0.5 rounded border transition-all ${isEditing ? 'cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-900/40' : ''}`}
+                                                            className={`flex flex-col items-center justify-center h-full gap-0.5 px-1 py-1 mx-0.5 my-0.5 rounded border transition-all ${isEditing ? 'cursor-pointer hover:bg-brand-secondary-surface-200 dark:hover:bg-brand-secondary-surface-900/40' : ''}`}
                                                             style={{ background: 'hsl(270,50%,var(--schedule-upcoming-bg-lightness,87%))', borderColor: 'hsl(270,45%,var(--schedule-upcoming-border-lightness,75%))', color: 'hsl(270,60%,var(--schedule-upcoming-text-lightness,28%))' }}
                                                         >
                                                             <span className="text-[9px] font-black uppercase tracking-wide leading-tight text-center">{sharedAct.activityName}</span>
@@ -923,7 +923,7 @@ export function TimetableGrid({
                                                     ${isEditing ? 'cursor-pointer' : 'cursor-default'}
                                                     ${entry
                                                         ? (entry.entryType === 'activity'
-                                                            ? `bg-purple-50/60 hover:bg-purple-100 border-purple-100  dark:bg-purple-950/60 dark:hover:bg-purple-950/40 dark:border-purple-800/60 ${periodState === 'past' ? 'opacity-50' : ''}`
+                                                            ? `bg-brand-secondary-surface-50/60 hover:bg-brand-secondary-surface-100 border-brand-secondary-100  dark:bg-brand-secondary-surface-950/60 dark:hover:bg-brand-secondary-surface-950/40 dark:border-brand-secondary-800/60 ${periodState === 'past' ? 'opacity-50' : ''}`
                                                             : (!isSplit ? 'border-transparent' : ''))
                                                         : (isEditing ? 'hover:bg-gray-50 hover:border-gray-300 border-dashed border-gray-200 dark:hover:bg-slate-900 dark:hover:border-slate-700 dark:border-slate-700' : 'border-transparent')
                                                     }
@@ -933,10 +933,10 @@ export function TimetableGrid({
                                                     <>
                                                         {entry.entryType === 'activity' ? (
                                                             <>
-                                                                <span className={`font-black text-[9px] uppercase tracking-wide leading-tight ${periodState === 'past' ? 'text-purple-400' : 'text-purple-700 dark:text-purple-300'}`}>
+                                                                <span className={`font-black text-[9px] uppercase tracking-wide leading-tight ${periodState === 'past' ? 'text-brand-secondary-ink-400' : 'text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300'}`}>
                                                                     {entry.activityName || 'ACT'}
                                                                 </span>
-                                                                <span className={`text-[8px] truncate max-w-full leading-tight ${periodState === 'past' ? 'text-purple-300' : 'text-purple-500 dark:text-purple-400'} `}>
+                                                                <span className={`text-[8px] truncate max-w-full leading-tight ${periodState === 'past' ? 'text-brand-secondary-ink-300' : 'text-brand-secondary-ink-500 dark:text-brand-secondary-ink-400'} `}>
                                                                     {entryTeacher ? `${entryTeacher.firstName[0]}${entryTeacher.lastName[0]} ` : ''}
                                                                 </span>
                                                             </>
@@ -986,7 +986,7 @@ export function TimetableGrid({
                                                         )}
                                                     </>
                                                 ) : (
-                                                    isEditing && <Plus className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-400 group-hover:scale-125 transition-transform" />
+                                                    isEditing && <Plus className="w-3.5 h-3.5 text-gray-300 group-hover:text-brand-ink-400 group-hover:scale-125 transition-transform" />
                                                 )
                                                 }
                                             </div >
@@ -1057,7 +1057,7 @@ function StreamLayoutControl({
                     type="button"
                     aria-label={`Manage stream layout for ${classItem.name}`}
                     title="Manage stream layout"
-                    className="inline-flex h-5 w-5 flex-none items-center justify-center rounded border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-800/60 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
+                    className="inline-flex h-5 w-5 flex-none items-center justify-center rounded border border-brand-alt-200 bg-brand-alt-surface-50 text-brand-alt-ink-700 hover:bg-brand-alt-surface-100 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300 dark:hover:bg-brand-alt-surface-950/40"
                 >
                     <Rows3 className="h-3 w-3" />
                 </button>
@@ -1066,7 +1066,7 @@ function StreamLayoutControl({
                 <p className="text-xs font-bold text-gray-900 dark:text-slate-100">Stream layout</p>
                 <p className="mt-0.5 text-[10px] leading-4 text-gray-500 dark:text-slate-400">Change every lesson for this class or only {DAYS[selectedDay - 1]}.</p>
                 {streamModePending && (
-                    <div role="status" className="mt-2 flex items-center gap-1.5 rounded-md bg-indigo-50 px-2 py-1.5 text-[10px] font-semibold text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
+                    <div role="status" className="mt-2 flex items-center gap-1.5 rounded-md bg-brand-alt-surface-50 px-2 py-1.5 text-[10px] font-semibold text-brand-alt-ink-700 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300">
                         <Loader2 className="h-3 w-3 animate-spin" /> Updating stream lessons…
                     </div>
                 )}
@@ -1135,18 +1135,18 @@ function StreamedClassRows({
             {streams.map((stream, streamIndex) => {
                 let skipCells = 0;
                 return (
-                    <tr key={`${classItem.id}-${stream.id}`} className="border-b border-indigo-100 bg-white hover:bg-indigo-50/30 dark:border-indigo-800/60 dark:bg-slate-900 dark:hover:bg-indigo-950/30">
+                    <tr key={`${classItem.id}-${stream.id}`} className="border-b border-brand-alt-100 bg-white hover:bg-brand-alt-surface-50/30 dark:border-brand-alt-800/60 dark:bg-slate-900 dark:hover:bg-brand-alt-surface-950/30">
                         {streamIndex === 0 && (
                             <td
                                 rowSpan={streams.length}
-                                className="sticky left-0 z-20 border-r border-indigo-100 bg-white p-0 align-middle shadow-[1px_0_0_0_#eef2ff] dark:border-indigo-800/60 dark:bg-slate-900"
+                                className="sticky left-0 z-20 border-r border-brand-alt-100 bg-white p-0 align-middle shadow-[1px_0_0_0_#eef2ff] dark:border-brand-alt-800/60 dark:bg-slate-900"
                                 style={{ width: classColumnWidth, minWidth: classColumnWidth, maxWidth: classColumnWidth }}
                             >
                                 <div
                                     className="grid"
                                     style={{ minHeight: streams.length * 42, gridTemplateColumns: 'minmax(54px, 1fr) minmax(34px, 0.7fr)' }}
                                 >
-                                    <div className="relative flex items-center justify-center border-r border-indigo-100 px-1 text-center dark:border-indigo-800/60">
+                                    <div className="relative flex items-center justify-center border-r border-brand-alt-100 px-1 text-center dark:border-brand-alt-800/60">
                                         <span className="min-w-0 truncate text-[10px] font-black leading-tight text-gray-800 dark:text-slate-100" title={classItem.name}>
                                             {classItem.code || classItem.name}
                                         </span>
@@ -1160,14 +1160,14 @@ function StreamedClassRows({
                                             />
                                         </div>
                                     </div>
-                                    <div className="flex min-w-0 flex-col bg-indigo-50/60 dark:bg-indigo-950/60">
+                                    <div className="flex min-w-0 flex-col bg-brand-alt-surface-50/60 dark:bg-brand-alt-surface-950/60">
                                         {streams.map((labelStream, labelIndex) => (
                                             <div
                                                 key={labelStream.id}
-                                                className={`flex min-h-[42px] flex-1 items-center justify-center px-1 text-center ${labelIndex < streams.length - 1 ? 'border-b border-indigo-100 dark:border-indigo-800/60' : ''}`}
+                                                className={`flex min-h-[42px] flex-1 items-center justify-center px-1 text-center ${labelIndex < streams.length - 1 ? 'border-b border-brand-alt-100 dark:border-brand-alt-800/60' : ''}`}
                                                 title={labelStream.name}
                                             >
-                                                <span className="block max-w-full truncate text-[9px] font-bold leading-tight text-indigo-700 dark:text-indigo-300">
+                                                <span className="block max-w-full truncate text-[9px] font-bold leading-tight text-brand-alt-ink-700 dark:text-brand-alt-ink-300">
                                                     {labelStream.code || labelStream.name}
                                                 </span>
                                             </div>
@@ -1225,13 +1225,13 @@ function StreamedClassRows({
                                 <div
                                     style={isSplitSubject ? undefined : cellStyle}
                                     className={`absolute inset-0 m-px flex flex-col items-center justify-center rounded border text-center transition-colors ${isSplitSubject ? 'overflow-hidden border-transparent p-0' : 'p-1'} ${
-                                        entry ? 'border-transparent' : isEditing ? 'border-dashed border-indigo-200 hover:bg-indigo-50 dark:border-indigo-800/60 dark:hover:bg-indigo-950/40' : 'border-transparent'
+                                        entry ? 'border-transparent' : isEditing ? 'border-dashed border-brand-alt-200 hover:bg-brand-alt-surface-50 dark:border-brand-alt-800/60 dark:hover:bg-brand-alt-surface-950/40' : 'border-transparent'
                                     } ${isEditing ? 'cursor-pointer' : 'cursor-default'}`}
                                 >
                                     {entry ? entry.entryType === 'activity' ? (
                                         <>
-                                            <span className="text-[9px] font-black uppercase leading-tight text-purple-700 dark:text-purple-300">{entry.activityName || 'ACT'}</span>
-                                            <span className="text-[8px] text-purple-500 dark:text-purple-400">{teacher ? `${teacher.firstName[0]}. ${teacher.lastName}` : ''}</span>
+                                            <span className="text-[9px] font-black uppercase leading-tight text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">{entry.activityName || 'ACT'}</span>
+                                            <span className="text-[8px] text-brand-secondary-ink-500 dark:text-brand-secondary-ink-400">{teacher ? `${teacher.firstName[0]}. ${teacher.lastName}` : ''}</span>
                                         </>
                                     ) : isSplitSubject ? (
                                         <div className="flex h-full w-full flex-col rounded border" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
@@ -1257,7 +1257,7 @@ function StreamedClassRows({
                                             <span className="w-full truncate text-[10px] font-bold leading-tight">{subject?.code || subject?.name || '?'}</span>
                                             <span className="max-w-full truncate text-[8px] opacity-75">{teacher ? `${teacher.firstName[0]}. ${teacher.lastName}` : ''}</span>
                                         </>
-                                    ) : isEditing ? <Plus className="h-3.5 w-3.5 text-indigo-300" /> : null}
+                                    ) : isEditing ? <Plus className="h-3.5 w-3.5 text-brand-alt-ink-300" /> : null}
                                 </div>
                             );
                             return (
@@ -1344,7 +1344,7 @@ function AssignmentPopup({
     return (
         <div className="flex flex-col bg-slate-50 dark:bg-slate-900">
             {/* Header */}
-            <div className="p-3 border-b bg-white flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white dark:bg-slate-900 dark:from-blue-950/50 dark:to-slate-900">
+            <div className="p-3 border-b bg-white flex justify-between items-center bg-gradient-to-r from-brand-surface-50/50 to-white dark:bg-slate-900 dark:from-brand-surface-950/50 dark:to-slate-900">
                 <div>
                     <h4 className="font-bold text-sm text-gray-800 dark:text-slate-100">{classItem.name}{streamName ? ` · ${streamName}` : ''}</h4>
                     <span className="text-xs text-gray-500 block font-mono dark:text-slate-400">
@@ -1357,10 +1357,10 @@ function AssignmentPopup({
             </div>
 
             {onStreamModeChange && streamMode && (
-                <div className="flex items-center justify-between gap-2 border-b border-indigo-100 bg-indigo-50 px-3 py-2 dark:border-indigo-800/60 dark:bg-indigo-950/40">
+                <div className="flex items-center justify-between gap-2 border-b border-brand-alt-100 bg-brand-alt-surface-50 px-3 py-2 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/40">
                     <div className="flex min-w-0 items-center gap-1.5">
-                        <GitBranch className="h-3.5 w-3.5 flex-shrink-0 text-indigo-600 dark:text-indigo-400" />
-                        <span className="truncate text-[10px] font-semibold text-indigo-900 dark:text-indigo-200">
+                        <GitBranch className="h-3.5 w-3.5 flex-shrink-0 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" />
+                        <span className="truncate text-[10px] font-semibold text-brand-alt-ink-900 dark:text-brand-alt-ink-200">
                             {streamMode === 'separate' ? 'Separate stream lesson' : 'Shared stream lesson'}
                         </span>
                     </div>
@@ -1369,7 +1369,7 @@ function AssignmentPopup({
                         size="sm"
                         variant="outline"
                         disabled={streamModePending}
-                        className="h-8 flex-shrink-0 border-indigo-200 bg-white px-2 text-[10px] text-indigo-700 dark:border-indigo-800/60 dark:bg-slate-900 dark:text-indigo-300"
+                        className="h-8 flex-shrink-0 border-brand-alt-200 bg-white px-2 text-[10px] text-brand-alt-ink-700 dark:border-brand-alt-800/60 dark:bg-slate-900 dark:text-brand-alt-ink-300"
                         onClick={() => onStreamModeChange(streamMode === 'separate' ? 'consolidated' : 'separate')}
                     >
                         {streamModePending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
@@ -1378,7 +1378,7 @@ function AssignmentPopup({
                 </div>
             )}
             {onStreamModeChange && streamMode === 'separate' && (
-                <p className="border-b border-indigo-100 bg-indigo-50/60 px-3 pb-2 text-[9px] leading-3 text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-950/60 dark:text-indigo-300">
+                <p className="border-b border-brand-alt-100 bg-brand-alt-surface-50/60 px-3 pb-2 text-[9px] leading-3 text-brand-alt-ink-700 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/60 dark:text-brand-alt-ink-300">
                     Combining keeps the lesson from the stream you opened and removes the other stream copies.
                 </p>
             )}
@@ -1387,14 +1387,14 @@ function AssignmentPopup({
             <div className="flex border-b bg-white dark:bg-slate-900">
                 <button
                     onClick={() => setTab('subject')}
-                    className={`flex-1 py-2 text-xs font-semibold transition-all border-b-2 ${tab === 'subject' ? 'border-blue-600 text-blue-700 dark:text-blue-300' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
+                    className={`flex-1 py-2 text-xs font-semibold transition-all border-b-2 ${tab === 'subject' ? 'border-brand-600 text-brand-ink-700 dark:text-brand-ink-300' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
                         }`}
                 >
                     📚 Subject
                 </button>
                 <button
                     onClick={() => setTab('activity')}
-                    className={`flex-1 py-2 text-xs font-semibold transition-all border-b-2 ${tab === 'activity' ? 'border-purple-600 text-purple-700 dark:text-purple-300' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
+                    className={`flex-1 py-2 text-xs font-semibold transition-all border-b-2 ${tab === 'activity' ? 'border-brand-secondary-600 text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
                         }`}
                 >
                     🎯 Co-Curricular
@@ -1429,10 +1429,10 @@ function AssignmentPopup({
                                                 <button
                                                     key={`pri-${sub.id}-${teacher.id}`}
                                                     onClick={() => { setPrimarySubId(sub.id); setPrimaryTId(teacher.id); }}
-                                                    className={`w-full flex justify-between items-center text-left px-2 py-1.5 rounded border text-xs transition-all ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'hover:bg-blue-50 border-transparent text-gray-700 dark:hover:bg-blue-950/40 dark:text-slate-200'}`}
+                                                    className={`w-full flex justify-between items-center text-left px-2 py-1.5 rounded border text-xs transition-all ${isSelected ? 'bg-brand-surface-600 border-brand-600 text-white' : 'hover:bg-brand-surface-50 border-transparent text-gray-700 dark:hover:bg-brand-surface-950/40 dark:text-slate-200'}`}
                                                 >
                                                     <span className="font-bold truncate">{sub.name}</span>
-                                                    <span className={`text-[10px] truncate max-w-[50%] text-right ${isSelected ? 'text-blue-100' : 'text-gray-500 dark:text-slate-400'}`}>
+                                                    <span className={`text-[10px] truncate max-w-[50%] text-right ${isSelected ? 'text-brand-ink-100' : 'text-gray-500 dark:text-slate-400'}`}>
                                                         {teacher.firstName} {teacher.lastName}
                                                     </span>
                                                 </button>
@@ -1455,7 +1455,7 @@ function AssignmentPopup({
                                             setOptTId(null);
                                         }
                                     }}
-                                    className="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-slate-700 dark:text-blue-400"
+                                    className="w-3.5 h-3.5 rounded border-gray-300 text-brand-ink-600 focus:ring-brand-500 dark:border-slate-700 dark:text-brand-ink-400"
                                 />
                                 <label htmlFor="optionalToggle" className="text-[11px] font-semibold text-gray-700 cursor-pointer dark:text-slate-200">
                                     + Add Optional/Alternative Subject
@@ -1465,8 +1465,8 @@ function AssignmentPopup({
                             {/* Optional Subject Selection */}
                             {hasOptional && (
                                 <div className="space-y-1 animate-in slide-in-from-top-2 duration-200">
-                                    <Label className="text-xs font-semibold text-blue-700 dark:text-blue-300">Optional Subject</Label>
-                                    <div className="max-h-[120px] overflow-y-auto border border-blue-200 rounded-md p-1 custom-scrollbar space-y-1 bg-white dark:border-blue-800/60 dark:bg-slate-900">
+                                    <Label className="text-xs font-semibold text-brand-ink-700 dark:text-brand-ink-300">Optional Subject</Label>
+                                    <div className="max-h-[120px] overflow-y-auto border border-brand-200 rounded-md p-1 custom-scrollbar space-y-1 bg-white dark:border-brand-800/60 dark:bg-slate-900">
                                         {assignments.map(assign => {
                                             const sub = subjects.find(s => s.id === assign.subjectId);
                                             if (!sub) return null;
@@ -1483,7 +1483,7 @@ function AssignmentPopup({
                                                     <button
                                                         key={`opt-${sub.id}-${teacher.id}`}
                                                         onClick={() => { setOptSubId(sub.id); setOptTId(teacher.id); }}
-                                                        className={`w-full flex justify-between items-center text-left px-2 py-1.5 rounded border text-[11px] transition-all ${isSelected ? 'bg-blue-100 border-blue-300 text-blue-800 font-bold dark:bg-blue-950/40 dark:border-blue-800/60 dark:text-blue-200' : 'hover:bg-slate-50 border-transparent text-gray-700 dark:hover:bg-slate-900 dark:text-slate-200'}`}
+                                                        className={`w-full flex justify-between items-center text-left px-2 py-1.5 rounded border text-[11px] transition-all ${isSelected ? 'bg-brand-surface-100 border-brand-300 text-brand-ink-800 font-bold dark:bg-brand-surface-950/40 dark:border-brand-800/60 dark:text-brand-ink-200' : 'hover:bg-slate-50 border-transparent text-gray-700 dark:hover:bg-slate-900 dark:text-slate-200'}`}
                                                     >
                                                         <span className="truncate">{sub.name}</span>
                                                         <span className="truncate max-w-[50%] text-right opacity-70">
@@ -1500,7 +1500,7 @@ function AssignmentPopup({
                             <button
                                 disabled={!primarySubId || !primaryTId || (hasOptional && (!optSubId || !optTId))}
                                 onClick={() => onAssign(primarySubId!, primaryTId!, isDouble ? 2 : 1, hasOptional ? optSubId! : undefined, hasOptional ? optTId! : undefined)}
-                                className="w-full mt-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-bold py-2 rounded-lg transition-all"
+                                className="w-full mt-2 bg-brand-surface-600 hover:bg-brand-surface-700 disabled:opacity-40 text-white text-xs font-bold py-2 rounded-lg transition-all"
                             >
                                 Save Subject
                             </button>
@@ -1529,7 +1529,7 @@ function AssignmentPopup({
                         <select
                             value={activityTeacherId}
                             onChange={e => setActivityTeacherId(e.target.value)}
-                            className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white dark:border-slate-700 dark:focus:ring-purple-800/60 dark:bg-slate-900"
+                            className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-secondary-300 bg-white dark:border-slate-700 dark:focus:ring-brand-secondary-800/60 dark:bg-slate-900"
                         >
                             <option value="">— Optional —</option>
                             {staffList.map(s => (
@@ -1546,19 +1546,19 @@ function AssignmentPopup({
                             </Label>
                             <div className="max-h-[120px] overflow-y-auto border border-gray-200 rounded-md bg-white p-2 custom-scrollbar space-y-1.5 dark:border-slate-700 dark:bg-slate-900">
                                 {otherClasses.map(cls => (
-                                    <label key={cls.id} className="flex items-center gap-2 cursor-pointer hover:text-purple-700 dark:hover:text-purple-300">
+                                    <label key={cls.id} className="flex items-center gap-2 cursor-pointer hover:text-brand-secondary-ink-700 dark:hover:text-brand-secondary-ink-300">
                                         <input
                                             type="checkbox"
                                             checked={linkedClassIds.includes(cls.id)}
                                             onChange={() => toggleLinkedClass(cls.id)}
-                                            className="w-3.5 h-3.5 rounded border-gray-300 text-purple-600 focus:ring-purple-500 dark:border-slate-700 dark:text-purple-400"
+                                            className="w-3.5 h-3.5 rounded border-gray-300 text-brand-secondary-ink-600 focus:ring-brand-secondary-500 dark:border-slate-700 dark:text-brand-secondary-ink-400"
                                         />
                                         <span className="text-xs font-medium">{cls.name}</span>
                                     </label>
                                 ))}
                             </div>
                             {linkedClassIds.length > 0 && (
-                                <p className="text-[10px] text-purple-600 mt-1 dark:text-purple-400">
+                                <p className="text-[10px] text-brand-secondary-ink-600 mt-1 dark:text-brand-secondary-ink-400">
                                     Activity will be shared with {linkedClassIds.length} other class{linkedClassIds.length !== 1 ? 'es' : ''}.
                                 </p>
                             )}
@@ -1568,7 +1568,7 @@ function AssignmentPopup({
                     <button
                         disabled={!activityName.trim()}
                         onClick={() => onAssignActivity(activityName.trim(), activityTeacherId, linkedClassIds, isDouble ? 2 : 1)}
-                        className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-xs font-bold py-2 rounded-lg transition-all"
+                        className="w-full bg-brand-secondary-surface-600 hover:bg-brand-secondary-surface-700 disabled:opacity-40 text-white text-xs font-bold py-2 rounded-lg transition-all"
                     >
                         Save Activity
                     </button>
@@ -1582,7 +1582,7 @@ function AssignmentPopup({
                     id="doublePeriodToggle"
                     checked={isDouble}
                     onChange={(e) => setIsDouble(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-slate-700 dark:text-blue-400"
+                    className="w-3.5 h-3.5 rounded border-gray-300 text-brand-ink-600 focus:ring-brand-500 dark:border-slate-700 dark:text-brand-ink-400"
                 />
                 <label htmlFor="doublePeriodToggle" className="text-xs font-semibold text-gray-700 cursor-pointer dark:text-slate-200">
                     Make Double Period <span className="text-gray-400 font-normal dark:text-slate-400">(Spans 2 columns)</span>

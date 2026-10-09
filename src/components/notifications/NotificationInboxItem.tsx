@@ -35,7 +35,7 @@ function formatTimestamp(dateStr: string): string {
 
 const PRIORITY_PILL: Record<NotificationPriority, { label: string; className: string }> = {
   low:    { label: 'Low',    className: 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700' },
-  medium: { label: 'Med',   className: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/60' },
+  medium: { label: 'Med',   className: 'bg-brand-surface-50 text-brand-ink-600 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-400 dark:border-brand-800/60' },
   high:   { label: 'High',  className: 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-800/60' },
   urgent: { label: 'Urgent',className: 'bg-red-50 text-red-600 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800/60' },
 };
@@ -54,8 +54,8 @@ const TYPE_EMOJI: Record<string, string> = {
 
 // Avatar gradient palettes — deterministically picked by first char of name
 const AVATAR_GRADIENTS = [
-  'from-blue-500 to-indigo-600',
-  'from-violet-500 to-purple-600',
+  'from-brand-surface-500 to-brand-alt-surface-600',
+  'from-brand-secondary-alt-surface-500 to-brand-secondary-surface-600',
   'from-emerald-500 to-teal-600',
   'from-rose-500 to-pink-600',
   'from-amber-500 to-orange-600',
@@ -101,7 +101,7 @@ export function NotificationInboxItem({
       className={cn(
         'group w-full text-left px-4 py-3.5 flex items-start gap-3 transition-all duration-150 relative border-b border-gray-100 dark:border-slate-700',
         isSelected
-          ? 'bg-blue-50 border-l-4 border-l-blue-500 dark:bg-blue-950/40'
+          ? 'bg-brand-surface-50 border-l-4 border-l-blue-500 dark:bg-brand-surface-950/40'
           : 'hover:bg-gray-50 border-l-4 border-l-transparent dark:hover:bg-slate-900',
         isUnread && !isSelected && 'bg-white dark:bg-slate-900',
         !isUnread && !isSelected && 'bg-gray-50/60 dark:bg-slate-900/60',
@@ -127,7 +127,7 @@ export function NotificationInboxItem({
         )}
         {/* Sender indicator dot for sent items */}
         {isSender && (
-          <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center dark:border-slate-700">
+          <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-brand-surface-500 border-2 border-white flex items-center justify-center dark:border-slate-700">
             <svg className="w-1.5 h-1.5 text-white" fill="currentColor" viewBox="0 0 20 20">
               <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
             </svg>
@@ -192,7 +192,7 @@ export function NotificationInboxItem({
             )}
             {/* Unread dot */}
             {isUnread && (
-              <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
+              <span className="h-2 w-2 rounded-full bg-brand-surface-500 shrink-0" />
             )}
           </div>
         </div>

@@ -133,10 +133,10 @@ const SMSResultDialog: React.FC<SMSResultDialogProps> = ({
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <MessageSquare className="h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                     <div>
-                      <p className="text-xs font-medium text-blue-900 dark:text-blue-200">Total</p>
-                      <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{result.details?.total}</p>
+                      <p className="text-xs font-medium text-brand-ink-900 dark:text-brand-ink-200">Total</p>
+                      <p className="text-lg font-bold text-brand-ink-600 dark:text-brand-ink-400">{result.details?.total}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -169,10 +169,10 @@ const SMSResultDialog: React.FC<SMSResultDialogProps> = ({
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <DollarSign className="h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                     <div>
-                      <p className="text-xs font-medium text-purple-900 dark:text-purple-200">Cost</p>
-                      <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{result.cost}</p>
+                      <p className="text-xs font-medium text-brand-secondary-ink-900 dark:text-brand-secondary-ink-200">Cost</p>
+                      <p className="text-lg font-bold text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">{result.cost}</p>
                     </div>
                   </div>
                 </CardContent>

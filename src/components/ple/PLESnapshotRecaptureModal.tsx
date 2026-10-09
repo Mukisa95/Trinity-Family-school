@@ -294,17 +294,17 @@ export function PLESnapshotRecaptureModal({
 
                     {/* Processing Status */}
                     {isProcessing && processingStatus && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 dark:bg-blue-950/40 dark:border-blue-800/60">
+                        <div className="bg-brand-surface-50 border border-brand-200 rounded-lg p-4 dark:bg-brand-surface-950/40 dark:border-brand-800/60">
                             <div className="flex items-center gap-3 mb-2">
-                                <Loader2 className="w-5 h-5 animate-spin text-blue-600 dark:text-blue-400" />
-                                <span className="font-medium text-blue-900 dark:text-blue-200">Processing...</span>
+                                <Loader2 className="w-5 h-5 animate-spin text-brand-ink-600 dark:text-brand-ink-400" />
+                                <span className="font-medium text-brand-ink-900 dark:text-brand-ink-200">Processing...</span>
                             </div>
-                            <div className="text-sm text-blue-800 dark:text-blue-200">
+                            <div className="text-sm text-brand-ink-800 dark:text-brand-ink-200">
                                 Processing {processingStatus.current} of {processingStatus.total}: {processingStatus.currentPupilName}
                             </div>
-                            <div className="mt-2 bg-blue-200 rounded-full h-2 overflow-hidden dark:bg-blue-900/40">
+                            <div className="mt-2 bg-brand-surface-200 rounded-full h-2 overflow-hidden dark:bg-brand-surface-900/40">
                                 <div
-                                    className="bg-blue-600 h-full transition-all duration-300"
+                                    className="bg-brand-surface-600 h-full transition-all duration-300"
                                     style={{ width: `${(processingStatus.current / processingStatus.total) * 100}%` }}
                                 />
                             </div>
@@ -319,7 +319,7 @@ export function PLESnapshotRecaptureModal({
                     <Button
                         onClick={handleBatchRecapture}
                         disabled={selectedPupilIds.size === 0 || isProcessing}
-                        className="bg-purple-600 hover:bg-purple-700"
+                        className="bg-brand-secondary-surface-600 hover:bg-brand-secondary-surface-700"
                     >
                         {isProcessing ? (
                             <>

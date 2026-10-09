@@ -38,7 +38,7 @@ createRoot(document.getElementById('app')).render(<Fixture/>);
 ` }, bundle: true, jsx: 'automatic', platform: 'browser', alias: { '@': path.join(root, 'src') }, outfile: path.join(output, 'fixture.js'), define: { 'process.env.NODE_ENV': '"production"' }, plugins: [{ name: 'fixture-data', setup(b) { b.onResolve({filter:/.*/}, a=>Object.hasOwn(mocks,a.path)?({path:a.path,namespace:'mock'}):undefined); b.onLoad({filter:/.*/,namespace:'mock'},a=>({contents:mocks[a.path],loader:'tsx',resolveDir:root})); } }] });
   const config = require('typescript').transpileModule(fs.readFileSync(path.join(root,'tailwind.config.ts'),'utf8'),{compilerOptions:{module:1}}).outputText;
   const mod = {exports:{}}; new Function('require','module','exports',config)(require,mod,mod.exports);
-  const css = fs.readFileSync(path.join(root,'src/app/globals.css'),'utf8').replace(/^@import[^;]+;/,'') + '\n' + fs.readFileSync(path.join(root,'src/app/theme.css'),'utf8');
+  const css = fs.readFileSync(path.join(root,'src/app/globals.css'),'utf8').replace(/^@import[^;]+;/,'') + '\n' + fs.readFileSync(path.join(root,'src/app/theme.css'),'utf8') + '\n' + fs.readFileSync(path.join(root,'src/app/brand-theme.css'),'utf8');
   const built = await require('postcss')([require('tailwindcss')({...mod.exports.default,content:[path.join(root,'src/**/*.{ts,tsx}'),{raw:fs.readFileSync(__filename,'utf8'),extension:'tsx'}]})]).process(css,{from:path.join(root,'src/app/globals.css')});
   fs.writeFileSync(path.join(output,'fixture.css'),built.css);
   const hydrationTree = `import React,{useEffect} from 'react'; import {ThemeProvider,useAppearance} from './src/components/providers/theme-provider'; import {ThemeToggle} from './src/components/ui/theme-toggle'; function Probe(){const {ready,preference}=useAppearance();useEffect(()=>{window.themeHydrated=ready;window.appearancePreference=preference},[ready,preference]);return <ThemeToggle/>;} const tree=<ThemeProvider><div className="bg-background text-foreground"><Probe/></div></ThemeProvider>;`;
@@ -86,6 +86,8 @@ async function run() {
     await page.waitForFunction(()=>!document.documentElement.dataset.themeReveal);
     console.log('Circular reveal verified.');
     assert.equal(await toggle.getAttribute('aria-checked'),'true');
+    const activeText=await page.locator('[data-sidebar="menu-button"][data-active="true"]').evaluate(el=>getComputedStyle(el).color);
+    assert.equal(activeText,'rgb(147, 197, 253)','Active navigation uses readable ink, independently of button fills');
     const night=await page.locator('.dashboard-bg-wrapper').evaluate(el=>({image:getComputedStyle(el,'::after').backgroundImage,opacity:getComputedStyle(el,'::after').opacity}));assert.ok(night.image.includes('Night%20Background.png'));assert.equal(night.opacity,'1');
     await page.locator('.dashboard-bg-wrapper').evaluate(el=>el.style.setProperty('--scroll-blur','6px'));await page.waitForFunction(()=>getComputedStyle(document.querySelector('.dashboard-bg-wrapper'),'::before').backdropFilter==='blur(6px)');await page.locator('.dashboard-bg-wrapper').evaluate(el=>el.style.setProperty('--scroll-blur','0px'));await page.waitForFunction(()=>getComputedStyle(document.querySelector('.dashboard-bg-wrapper'),'::before').backdropFilter==='blur(0px)');
     assert.equal(await page.evaluate(()=>localStorage.getItem('trinity-appearance')),'dark');
@@ -95,7 +97,7 @@ async function run() {
     await page.getByText('Open details',{exact:true}).click();assert.equal(await page.getByRole('dialog').count(),1);
     await page.screenshot({path:path.join(output,'dark-dialog.png')});await page.getByRole('button',{name:'Close',exact:true}).click();
     await page.reload();await toggle.waitFor();assert.equal(await toggle.getAttribute('aria-checked'),'true');await page.emulateMedia({colorScheme:'light'});assert.equal(await toggle.getAttribute('aria-checked'),'true');
-    await page.getByRole('button',{name:/Amina Test/}).click();await page.getByRole('menuitemradio',{name:'Use device setting'}).click();await page.keyboard.press('Escape');
+    await page.getByRole('button',{name:/Amina Test/}).click();assert.equal(await page.getByRole('menuitem',{name:'Look and Feel',exact:true}).getAttribute('href'),'/settings/look-and-feel');await page.getByRole('menuitemradio',{name:'Use device setting'}).click();await page.keyboard.press('Escape');
     await page.waitForFunction(()=>!document.documentElement.dataset.themeReveal);
     await page.emulateMedia({colorScheme:'dark'});await page.waitForFunction(()=>document.documentElement.classList.contains('dark'));
     await page.waitForFunction(()=>getComputedStyle(document.querySelector('.dashboard-bg-wrapper'),'::after').opacity==='1');
@@ -134,7 +136,11 @@ async function run() {
     await page.emulateMedia({reducedMotion:'reduce'});await mobile.click();await page.waitForFunction(()=>document.querySelector('[role="switch"][aria-busy="true"]')===null);
     assert.equal(await mobile.getAttribute('aria-checked'),'true');
     assert.equal(await page.evaluate(()=>getComputedStyle(document.body).opacity),'1');
+    await page.evaluate(()=>localStorage.setItem('trinity-look-and-feel',JSON.stringify({preset:'soft-indigo',background:'plain',dimming:60})));
+    let beforeHydration;
+    await page.route('**/hydration.js',async route=>{await page.waitForFunction(()=>document.documentElement.dataset.appTheme);beforeHydration=await page.evaluate(()=>({preset:document.documentElement.dataset.appTheme,background:document.documentElement.dataset.appBackground,dimming:document.documentElement.style.getPropertyValue('--night-dim-top')}));assert.equal(await page.evaluate(()=>Boolean(window.themeHydrated)),false);await route.continue();});
     await page.goto(url+'/hydration');await page.waitForFunction(()=>window.themeHydrated);
+    assert.deepEqual(beforeHydration,{preset:'soft-indigo',background:'plain',dimming:'0.55'},'Saved settings are applied before hydration begins');
     assert.equal(await page.getByRole('switch',{name:'Dark theme'}).getAttribute('aria-checked'),'true');
     assert.equal(await page.getByRole('switch',{name:'Dark theme'}).getAttribute('title'),'Switch to light theme');
     assert.deepEqual(errors,[]);

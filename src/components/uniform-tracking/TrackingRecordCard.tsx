@@ -143,8 +143,8 @@ export function TrackingRecordCard({
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     {/* Left: Icon & Name */}
                     <div className="flex items-start gap-3 flex-1">
-                        <div className="p-2 bg-blue-100 rounded-lg shrink-0 dark:bg-blue-950/40">
-                            <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <div className="p-2 bg-brand-surface-100 rounded-lg shrink-0 dark:bg-brand-surface-950/40">
+                            <Package className="w-5 h-5 text-brand-ink-600 dark:text-brand-ink-400" />
                         </div>
                         <div>
                             <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -153,7 +153,7 @@ export function TrackingRecordCard({
                                 </h3>
                                 <Badge
                                     variant="outline"
-                                    className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60"
+                                    className="text-xs bg-brand-surface-50 text-brand-ink-700 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60"
                                 >
                                     {record.selectionMode === 'full' ? 'Full Set' :
                                         record.selectionMode === 'partial' ? 'Multiple Items' :
@@ -335,7 +335,7 @@ export function TrackingRecordCard({
                         {/* Amount To Pay */}
                         <div>
                             <p className="text-gray-500 text-xs mb-1 dark:text-slate-400">{getDiscountAmount(record) > 0 ? 'Amount to Pay' : 'Amount'}</p>
-                            <p className="font-medium text-indigo-900 text-sm sm:text-base dark:text-indigo-200">{formatCurrency(getFinalAmount(record))}</p>
+                            <p className="font-medium text-brand-alt-ink-900 text-sm sm:text-base dark:text-brand-alt-ink-200">{formatCurrency(getFinalAmount(record))}</p>
                         </div>
 
                         {/* Paid */}
@@ -389,7 +389,7 @@ export function TrackingRecordCard({
                                     {paymentHistory.length > 2 && (
                                         <button
                                             onClick={() => setIsPaymentHistoryOpen(!isPaymentHistoryOpen)}
-                                            className="w-full text-center mt-2 text-[10px] text-blue-600 hover:text-blue-800 flex items-center justify-center gap-1 py-1 hover:bg-blue-50 rounded transition-colors dark:text-blue-400 dark:hover:text-blue-200 dark:hover:bg-blue-950/40"
+                                            className="w-full text-center mt-2 text-[10px] text-brand-ink-600 hover:text-brand-ink-800 flex items-center justify-center gap-1 py-1 hover:bg-brand-surface-50 rounded transition-colors dark:text-brand-ink-400 dark:hover:text-brand-ink-200 dark:hover:bg-brand-surface-950/40"
                                         >
                                             {isPaymentHistoryOpen ? (
                                                 <>Show Less <ChevronUp className="w-3 h-3" /></>
@@ -436,7 +436,7 @@ export function TrackingRecordCard({
                                     {collectionHistory.length > 2 && (
                                         <button
                                             onClick={() => setIsCollectionHistoryOpen(!isCollectionHistoryOpen)}
-                                            className="w-full text-center mt-2 text-[10px] text-blue-600 hover:text-blue-800 flex items-center justify-center gap-1 py-1 hover:bg-blue-50 rounded transition-colors dark:text-blue-400 dark:hover:text-blue-200 dark:hover:bg-blue-950/40"
+                                            className="w-full text-center mt-2 text-[10px] text-brand-ink-600 hover:text-brand-ink-800 flex items-center justify-center gap-1 py-1 hover:bg-brand-surface-50 rounded transition-colors dark:text-brand-ink-400 dark:hover:text-brand-ink-200 dark:hover:bg-brand-surface-950/40"
                                         >
                                             {isCollectionHistoryOpen ? (
                                                 <>Show Less <ChevronUp className="w-3 h-3" /></>

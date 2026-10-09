@@ -82,7 +82,7 @@ export function StockDashboard({
                 <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-lg flex items-center gap-2">
-                            <Package className="h-5 w-5 text-blue-500 dark:text-blue-400" />
+                            <Package className="h-5 w-5 text-brand-ink-500 dark:text-brand-ink-400" />
                             Inventory by Category
                         </CardTitle>
                         <CardDescription>Distribution of items across categories</CardDescription>
@@ -156,7 +156,7 @@ export function StockDashboard({
                 <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-lg flex items-center gap-2">
-                            <Clock className="h-5 w-5 text-purple-500 dark:text-purple-400" />
+                            <Clock className="h-5 w-5 text-brand-secondary-ink-500 dark:text-brand-secondary-ink-400" />
                             Recent Activity
                         </CardTitle>
                         <CardDescription>Latest inventory movements</CardDescription>
@@ -180,7 +180,7 @@ export function StockDashboard({
                                             <div className={cn(
                                                 "h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-medium",
                                                 transaction.type === 'purchase' || transaction.type === 'return' ? 'bg-green-500' :
-                                                    transaction.type === 'issue' ? 'bg-blue-500' :
+                                                    transaction.type === 'issue' ? 'bg-brand-surface-500' :
                                                         transaction.type === 'dispose' || transaction.type === 'damage' || transaction.type === 'loss' ? 'bg-red-500' :
                                                             'bg-slate-500'
                                             )}>
@@ -272,7 +272,7 @@ export function StockDashboard({
                 <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-lg flex items-center gap-2">
-                            <MapPin className="h-5 w-5 text-indigo-500 dark:text-indigo-400" />
+                            <MapPin className="h-5 w-5 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />
                             By Location
                         </CardTitle>
                     </CardHeader>
@@ -299,7 +299,7 @@ export function StockDashboard({
                 </Card>
 
                 {/* Quick Actions */}
-                <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-brand-surface-50 to-brand-alt-surface-50 dark:from-brand-surface-950/30 dark:to-brand-alt-surface-950/30">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-lg">Quick Actions</CardTitle>
                     </CardHeader>

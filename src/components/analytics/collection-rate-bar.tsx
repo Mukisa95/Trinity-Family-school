@@ -26,7 +26,7 @@ export function CollectionRateBar({
   // Color based on collection rate
   const getColor = () => {
     if (clampedRate >= 80) return 'bg-green-500';
-    if (clampedRate >= 60) return 'bg-blue-500';
+    if (clampedRate >= 60) return 'bg-brand-surface-500';
     if (clampedRate >= 40) return 'bg-yellow-500';
     return 'bg-red-500';
   };

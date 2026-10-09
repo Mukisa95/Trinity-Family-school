@@ -136,7 +136,7 @@ export function ParentSidebar({
           <div className="flex items-center justify-between">
             {!isCollapsed && (
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 rounded-lg flex items-center justify-center">
                   <School className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -168,7 +168,7 @@ export function ParentSidebar({
                   <div className="flex items-center space-x-3">
                                          <Avatar className="h-8 w-8">
                        <AvatarImage src={currentPupil?.photo || undefined} alt={`${formatPupilDisplayName(currentPupil ?? {})}`} />
-                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm font-semibold">
+                      <AvatarFallback className="bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 text-white text-sm font-semibold">
                         {currentPupil?.firstName?.charAt(0) || 'S'}
                       </AvatarFallback>
                     </Avatar>
@@ -196,14 +196,14 @@ export function ParentSidebar({
                       className={cn(
                         "w-full h-auto p-3 justify-start",
                         currentPupilId === pupil.id 
-                          ? "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800" 
+                          ? "bg-brand-surface-50 dark:bg-brand-surface-900/20 border border-brand-200 dark:border-brand-800"
                           : "hover:bg-gray-50 dark:hover:bg-gray-800"
                       )}
                       onClick={() => handlePupilChange(pupil.id)}
                     >
                                              <Avatar className="h-10 w-10 mr-3">
                          <AvatarImage src={pupil.photo || undefined} alt={`${formatPupilDisplayName(pupil)}`} />
-                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+                        <AvatarFallback className="bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 text-white font-semibold">
                           {pupil.firstName?.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
@@ -235,7 +235,7 @@ export function ParentSidebar({
             className={cn(
                   "w-full h-auto p-3 justify-start transition-all duration-200",
                   isActive 
-                    ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md" 
+                    ? "bg-gradient-to-r from-brand-surface-500 to-brand-secondary-surface-600 text-white shadow-md"
                     : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                 )}
                 onClick={() => handleViewChange(item.id as 'dashboard' | 'home' | 'notifications')}
@@ -322,7 +322,7 @@ export function ParentSidebar({
           )}>
                          <Avatar className="h-8 w-8">
                <AvatarImage src={undefined} alt={user?.username || 'Parent'} />
-               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm font-semibold">
+               <AvatarFallback className="bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 text-white text-sm font-semibold">
                  {user?.username?.charAt(0) || 'P'}
                   </AvatarFallback>
                 </Avatar>
@@ -348,7 +348,7 @@ export function ParentSidebar({
               {!isCollapsed && <span className="ml-3 text-sm">Download app</span>}
             </Link>
           </Button>
-        <Button
+        <Button asChild
           variant="ghost"
             size="sm"
             className={cn(
@@ -356,8 +356,10 @@ export function ParentSidebar({
               isCollapsed && "justify-center"
             )}
           >
-            <Settings className="h-4 w-4" />
-            {!isCollapsed && <span className="ml-3 text-sm">Settings</span>}
+            <Link href="/parent/settings/look-and-feel" aria-label="Look and Feel" title="Look and Feel">
+              <Settings className="h-4 w-4" />
+              {!isCollapsed && <span className="ml-3 text-sm">Look and Feel</span>}
+            </Link>
         </Button>
 
           <Button

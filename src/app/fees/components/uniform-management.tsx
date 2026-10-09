@@ -243,7 +243,7 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
           <Button 
             onClick={() => void refetch()}
             disabled={isFetching}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-brand-surface-600 hover:bg-brand-surface-700"
           >
             Retry
           </Button>
@@ -377,7 +377,7 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
               {uniforms.length === 0 && (
                 <Button 
                   onClick={handleOpenAddModal}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  className="bg-gradient-to-r from-brand-secondary-surface-600 to-brand-surface-600 hover:from-brand-secondary-surface-700 hover:to-brand-surface-700"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Add First Uniform
@@ -392,8 +392,8 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
                     {/* Uniform Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-3">
-                        <div className="p-2 bg-purple-100 rounded-lg shrink-0 dark:bg-purple-950/40">
-                          <Shirt className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        <div className="p-2 bg-brand-secondary-surface-100 rounded-lg shrink-0 dark:bg-brand-secondary-surface-950/40">
+                          <Shirt className="w-5 h-5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -402,7 +402,7 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
                             </h3>
                             <Badge 
                               variant="outline" 
-                              className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60"
+                              className="text-xs bg-brand-surface-50 text-brand-ink-700 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60"
                             >
                               {uniform.group}
                             </Badge>
@@ -430,7 +430,7 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                             <div>
                               <p className="text-gray-500 text-xs dark:text-slate-400">Price</p>
-                              <p className="font-medium text-purple-700 dark:text-purple-300">
+                              <p className="font-medium text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">
                                 {formatCurrency(uniform.price)}
                               </p>
                             </div>

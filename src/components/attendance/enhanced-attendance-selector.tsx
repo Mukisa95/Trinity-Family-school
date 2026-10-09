@@ -92,7 +92,7 @@ export function EnhancedAttendanceSelector({
   const getStatusIcon = (status: 'past' | 'current' | 'future') => {
     switch (status) {
       case 'past':
-        return <Camera className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
+        return <Camera className="h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />;
       case 'current':
         return <Database className="h-4 w-4 text-green-600 dark:text-green-400" />;
       case 'future':
@@ -103,7 +103,7 @@ export function EnhancedAttendanceSelector({
   const getStatusBadge = (status: 'past' | 'current' | 'future') => {
     switch (status) {
       case 'past':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">Historical Data</Badge>;
+        return <Badge variant="secondary" className="bg-brand-surface-100 text-brand-ink-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-200">Historical Data</Badge>;
       case 'current':
         return <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200">Live Data</Badge>;
       case 'future':

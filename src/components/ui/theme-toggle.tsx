@@ -18,10 +18,10 @@ export function ThemeToggle({ className, compact = false }: { className?: string
       onClick={event => void changeTheme(dark ? "light" : "dark", event.currentTarget)}
       className={cn("theme-toggle inline-flex h-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-wait", compact ? "theme-toggle-compact w-11" : "w-16", className)}
     >
-      <span aria-hidden="true" className={cn("theme-toggle-track relative flex h-8 items-center rounded-full border border-blue-200/80 bg-blue-50/90 px-[7px] text-slate-500 shadow-inner dark:border-slate-600/70 dark:bg-slate-800/90 dark:text-slate-400", compact ? "w-8 justify-center" : "w-[60px] justify-between")}>
+      <span aria-hidden="true" className={cn("theme-toggle-track relative flex h-8 items-center rounded-full border border-brand-200/80 bg-brand-surface-50/90 px-[7px] text-slate-500 shadow-inner dark:border-slate-600/70 dark:bg-slate-800/90 dark:text-slate-400", compact ? "w-8 justify-center" : "w-[60px] justify-between")}>
         <span className="theme-toggle-thumb absolute left-[3px] top-[3px] h-6 w-6 rounded-full bg-white shadow-[0_2px_6px_rgba(15,23,42,0.16)] dark:bg-slate-600" />
         <Sun className="theme-toggle-icon theme-toggle-sun relative h-4 w-4 text-amber-500 dark:text-slate-400" strokeWidth={1.8} />
-        <Moon className="theme-toggle-icon theme-toggle-moon relative h-4 w-4 text-slate-500 dark:text-blue-200" strokeWidth={1.8} />
+        <Moon className="theme-toggle-icon theme-toggle-moon relative h-4 w-4 text-slate-500 dark:text-brand-ink-200" strokeWidth={1.8} />
       </span>
     </button>
   );

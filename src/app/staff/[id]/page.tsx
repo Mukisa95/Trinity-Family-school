@@ -284,7 +284,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
 
         {/* Header Card */}
         <Card className="mb-6 overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-lg dark:bg-slate-900/80">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-24 relative">
+          <div className="bg-gradient-to-r from-brand-surface-600 to-brand-secondary-surface-600 h-24 relative">
             <div className="absolute inset-0 bg-black/10" />
           </div>
           <CardContent className="p-6 -mt-12 relative">
@@ -292,7 +292,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
               <div className="flex-shrink-0">
                 <Avatar className="w-24 h-24 border-4 border-white shadow-lg dark:border-slate-700">
                   <AvatarImage src={staff.photo} alt={`${staff.firstName} ${staff.lastName}`} />
-                  <AvatarFallback className="text-xl font-semibold bg-gradient-to-br from-blue-500 to-purple-500 text-white">
+                  <AvatarFallback className="text-xl font-semibold bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-500 text-white">
                     {staff.firstName?.[0]}{staff.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>
@@ -363,7 +363,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                     {staff.contactNumber ? (
                       <a 
                         href={`tel:${staff.contactNumber}`}
-                        className="text-primary hover:underline font-medium cursor-pointer"
+                        className="text-link hover:underline font-medium cursor-pointer"
                       >
                         {staff.contactNumber}
                       </a>
@@ -395,7 +395,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                 <CollapsibleTrigger className="w-full">
                   <CardHeader className="flex flex-row items-center justify-between p-4 hover:bg-gray-50/50 rounded-t-lg transition-colors dark:hover:bg-slate-900/50">
                     <div className="flex items-center gap-2">
-                      <UserCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      <UserCircle2 className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
                       <CardTitle className="text-lg">Personal Information</CardTitle>
                     </div>
                     {expandedSections.personal ? 
@@ -445,7 +445,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                 <CollapsibleTrigger className="w-full">
                   <CardHeader className="flex flex-row items-center justify-between p-4 hover:bg-gray-50/50 rounded-t-lg transition-colors dark:hover:bg-slate-900/50">
                     <div className="flex items-center gap-2">
-                      <Briefcase className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                      <Briefcase className="h-5 w-5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                       <CardTitle className="text-lg">Employment Details</CardTitle>
                     </div>
                     {expandedSections.employment ? 
@@ -539,7 +539,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                           <ul className="space-y-2">
                             {staff.specializations.map((spec: string, index: number) => (
                               <li key={index} className="flex items-center gap-2 text-sm">
-                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0" />
+                                <div className="w-1.5 h-1.5 bg-brand-surface-500 rounded-full flex-shrink-0" />
                                 {spec}
                               </li>
                             ))}
@@ -642,7 +642,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                         <ul className="mt-1 space-y-1">
                           {staff.medications.map((medication: string, index: number) => (
                             <li key={index} className="text-sm flex items-center gap-2">
-                              <div className="w-1 h-1 bg-blue-400 rounded-full" />
+                              <div className="w-1 h-1 bg-brand-surface-400 rounded-full" />
                               {medication}
                             </li>
                           ))}
@@ -687,7 +687,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                         {staff.emergencyContact?.phone ? (
                           <a 
                             href={`tel:${staff.emergencyContact.phone}`}
-                            className="text-primary hover:underline font-medium cursor-pointer"
+                            className="text-link hover:underline font-medium cursor-pointer"
                           >
                             {staff.emergencyContact.phone}
                           </a>
@@ -712,7 +712,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                   <CollapsibleTrigger className="w-full">
                     <CardHeader className="flex flex-row items-center justify-between p-4 hover:bg-gray-50/50 rounded-t-lg transition-colors dark:hover:bg-slate-900/50">
                       <div className="flex items-center gap-2">
-                        <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        <Users className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
                         <CardTitle className="text-base">Pupil Relatives ({assignedPupils.length})</CardTitle>
                       </div>
                       {expandedSections.pupils ? 
@@ -729,7 +729,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                             <div className="flex-1">
                               <Link 
                                 href={`/pupil-detail?id=${pupil.id}`}
-                                className="text-primary hover:underline font-medium text-sm"
+                                className="text-link hover:underline font-medium text-sm"
                               >
                                 {formatPupilDisplayName(pupil)}
                               </Link>
@@ -757,7 +757,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                               </div>
                             </div>
                             {pupil.photo && (
-                              <Avatar className="h-10 w-10 border-2 border-blue-200 dark:border-blue-800/60">
+                              <Avatar className="h-10 w-10 border-2 border-brand-200 dark:border-brand-800/60">
                                 <AvatarImage src={pupil.photo} alt={formatPupilDisplayName(pupil)} />
                                 <AvatarFallback className="text-xs bg-gray-200 text-gray-600 dark:bg-slate-800 dark:text-slate-300">
                                   {pupil.firstName?.[0] || 'P'}{pupil.lastName?.[0] || 'P'}

@@ -128,9 +128,9 @@ export default function BankingListPage() {
 
   if (accountsLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 flex items-center justify-center p-4 dark:from-slate-900 dark:to-blue-950/30">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-brand-surface-50/30 flex items-center justify-center p-4 dark:from-slate-900 dark:to-brand-surface-950/30">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto mb-4"></div>
           <p className="text-gray-600 font-medium dark:text-slate-300">Loading bank accounts...</p>
         </div>
       </div>
@@ -138,7 +138,7 @@ export default function BankingListPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-blue-950/40 dark:via-slate-900 dark:to-indigo-950/40">
+    <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-alt-surface-50 dark:from-brand-surface-950/40 dark:via-slate-900 dark:to-brand-alt-surface-950/40">
       <GlassPageTopBar
         title="Bank Accounts"
         subtitle="Manage student banking"
@@ -153,7 +153,7 @@ export default function BankingListPage() {
               placeholder="Search accounts..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 pr-3 h-[30px] w-36 focus:w-52 transition-all duration-200 rounded-full border border-blue-200/60 bg-white/90 text-[11px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 placeholder:text-gray-400 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-slate-200 dark:placeholder:text-slate-400"
+              className="pl-8 pr-3 h-[30px] w-36 focus:w-52 transition-all duration-200 rounded-full border border-brand-200/60 bg-white/90 text-[11px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-400/50 placeholder:text-gray-400 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-slate-200 dark:placeholder:text-slate-400"
             />
           </div>
         }
@@ -172,17 +172,17 @@ export default function BankingListPage() {
       <GlassSummaryBar
         left={
           <div className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+            <CreditCard className="h-4 w-4 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />
+            <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
               Banking Overview
             </span>
           </div>
         }
         right={
           <>
-            <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-blue-700/85 dark:text-blue-300 font-medium">Total Accounts:</span>
-              <span className="font-bold text-blue-700 dark:text-blue-400">{accounts.length}</span>
+            <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-brand-ink-700/85 dark:text-brand-ink-300 font-medium">Total Accounts:</span>
+              <span className="font-bold text-brand-ink-700 dark:text-brand-ink-400">{accounts.length}</span>
             </div>
             <div className="flex items-center gap-1 bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="text-emerald-700/85 dark:text-emerald-350 font-medium">Active:</span>
@@ -263,16 +263,16 @@ export default function BankingListPage() {
                         return (
                           <tr 
                             key={account.id} 
-                            className="hover:bg-blue-50/50 cursor-pointer group transition-all duration-200 dark:hover:bg-blue-950/50"
+                            className="hover:bg-brand-surface-50/50 cursor-pointer group transition-all duration-200 dark:hover:bg-brand-surface-950/50"
                             onClick={() => handleViewAccount(account.pupilId)}
                           >
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-medium">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-surface-500 to-brand-surface-600 flex items-center justify-center text-white font-medium">
                                   {account.pupil.firstName[0]}
                                 </div>
                                 <div>
-                                  <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors dark:text-slate-100 dark:group-hover:text-blue-400">
+                                  <p className="font-semibold text-gray-900 group-hover:text-brand-ink-600 transition-colors dark:text-slate-100 dark:group-hover:text-brand-ink-400">
                                     {pupilName}
                                   </p>
                                   <p className="text-sm text-gray-500 dark:text-slate-400">
@@ -361,12 +361,12 @@ export default function BankingListPage() {
                     return (
                       <div 
                         key={account.id}
-                        className="p-4 hover:bg-blue-50/50 cursor-pointer transition-all duration-200 active:bg-blue-100/50 dark:hover:bg-blue-950/50 dark:active:bg-blue-950/50"
+                        className="p-4 hover:bg-brand-surface-50/50 cursor-pointer transition-all duration-200 active:bg-brand-surface-100/50 dark:hover:bg-brand-surface-950/50 dark:active:bg-brand-surface-950/50"
                         onClick={() => handleViewAccount(account.pupilId)}
                       >
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-medium">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-surface-500 to-brand-surface-600 flex items-center justify-center text-white font-medium">
                               {account.pupil.firstName[0]}
                             </div>
                             <div>

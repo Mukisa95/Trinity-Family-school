@@ -163,33 +163,33 @@ export function SchoolPayPaymentBanner({
   return (
     <div className="space-y-3 mb-4">
       {visible.map((tx) => (
-        <div key={tx.key} className="theme-surface-tint relative rounded-2xl overflow-hidden border border-violet-300 shadow-md dark:border-violet-800/60"
+        <div key={tx.key} className="theme-surface-tint relative rounded-2xl overflow-hidden border border-brand-secondary-alt-300 shadow-md dark:border-brand-secondary-alt-800/60"
           style={{ background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 40%, #f3e8ff 100%)', animation: 'slideDown 0.3s ease-out' }}>
-          <div className="h-1 w-full bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500" />
+          <div className="h-1 w-full bg-gradient-to-r from-brand-secondary-alt-surface-500 via-brand-secondary-surface-500 to-fuchsia-500" />
           <div className="p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-lg shadow-md flex-shrink-0">⚡</div>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-secondary-alt-surface-500 to-brand-secondary-surface-600 flex items-center justify-center text-white text-lg shadow-md flex-shrink-0">⚡</div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-violet-900 text-base dark:text-violet-200">{fmt(tx.totalAmount)}</span>
-                    <span className="text-xs bg-violet-200 text-violet-800 rounded-full px-2 py-0.5 font-semibold dark:bg-violet-900/40 dark:text-violet-200">SchoolPay Payment Received</span>
-                    {tx.paymentMethod && <span className="text-xs bg-white/70 border border-violet-200 text-violet-700 rounded-full px-2 py-0.5 dark:bg-slate-900/70 dark:border-violet-800/60 dark:text-violet-300">{tx.paymentMethod}</span>}
+                    <span className="font-bold text-brand-secondary-alt-ink-900 text-base dark:text-brand-secondary-alt-ink-200">{fmt(tx.totalAmount)}</span>
+                    <span className="text-xs bg-brand-secondary-alt-surface-200 text-brand-secondary-alt-ink-800 rounded-full px-2 py-0.5 font-semibold dark:bg-brand-secondary-alt-surface-900/40 dark:text-brand-secondary-alt-ink-200">SchoolPay Payment Received</span>
+                    {tx.paymentMethod && <span className="text-xs bg-white/70 border border-brand-secondary-alt-200 text-brand-secondary-alt-ink-700 rounded-full px-2 py-0.5 dark:bg-slate-900/70 dark:border-brand-secondary-alt-800/60 dark:text-brand-secondary-alt-ink-300">{tx.paymentMethod}</span>}
                     {tx.termGroups.length > 1 && <span className="text-xs bg-fuchsia-100 text-fuchsia-700 rounded-full px-2 py-0.5 font-medium">Split across {tx.termGroups.length} terms</span>}
                   </div>
-                  <p className="text-xs text-violet-600 mt-0.5 dark:text-violet-400">
+                  <p className="text-xs text-brand-secondary-alt-ink-600 mt-0.5 dark:text-brand-secondary-alt-ink-400">
                     {fmtDate(tx.paymentDate)}
-                    {tx.payerName && tx.payerName !== '—' && <span className="ml-2 text-violet-500 dark:text-violet-400">· Paid by {tx.payerName}</span>}
-                    {tx.payCode && <span className="ml-2 font-mono text-violet-400">PC: {tx.payCode}</span>}
+                    {tx.payerName && tx.payerName !== '—' && <span className="ml-2 text-brand-secondary-alt-ink-500 dark:text-brand-secondary-alt-ink-400">· Paid by {tx.payerName}</span>}
+                    {tx.payCode && <span className="ml-2 font-mono text-brand-secondary-alt-ink-400">PC: {tx.payCode}</span>}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <button onClick={() => onRedistribute(tx)} className="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-full font-semibold transition-colors shadow-sm">Redistribute</button>
+                <button onClick={() => onRedistribute(tx)} className="text-xs px-3 py-1.5 bg-brand-secondary-alt-surface-600 hover:bg-brand-secondary-alt-surface-700 text-white rounded-full font-semibold transition-colors shadow-sm">Redistribute</button>
                 {/* Dismiss is saved to Firestore — gone for ALL users, permanently */}
                 <button
                   onClick={() => dismiss(tx.key)}
-                  className="w-6 h-6 rounded-full bg-violet-200/60 hover:bg-violet-200 flex items-center justify-center text-violet-600 text-xs transition-colors dark:bg-violet-900/60 dark:hover:bg-violet-900/40 dark:text-violet-400"
+                  className="w-6 h-6 rounded-full bg-brand-secondary-alt-surface-200/60 hover:bg-brand-secondary-alt-surface-200 flex items-center justify-center text-brand-secondary-alt-ink-600 text-xs transition-colors dark:bg-brand-secondary-alt-surface-900/60 dark:hover:bg-brand-secondary-alt-surface-900/40 dark:text-brand-secondary-alt-ink-400"
                   title="Dismiss for everyone (saved to server — permanent)"
                 >✕</button>
               </div>
@@ -201,24 +201,24 @@ export function SchoolPayPaymentBanner({
                   <div className="flex items-center gap-1.5 mb-1">
                     {group.isPushed
                       ? <span className="text-[10px] font-semibold text-fuchsia-600 bg-fuchsia-50 border border-fuchsia-200 rounded-full px-2 py-0.5">→ Pushed to {group.termLabel}</span>
-                      : <span className="text-[10px] font-semibold text-violet-600 bg-violet-50 border border-violet-200 rounded-full px-2 py-0.5 dark:text-violet-400 dark:bg-violet-950/40 dark:border-violet-800/60">{group.termLabel}</span>}
-                    <span className="text-[10px] text-violet-500 font-medium dark:text-violet-400">{fmt(group.subTotal)}</span>
+                      : <span className="text-[10px] font-semibold text-brand-secondary-alt-ink-600 bg-brand-secondary-alt-surface-50 border border-brand-secondary-alt-200 rounded-full px-2 py-0.5 dark:text-brand-secondary-alt-ink-400 dark:bg-brand-secondary-alt-surface-950/40 dark:border-brand-secondary-alt-800/60">{group.termLabel}</span>}
+                    <span className="text-[10px] text-brand-secondary-alt-ink-500 font-medium dark:text-brand-secondary-alt-ink-400">{fmt(group.subTotal)}</span>
                   </div>
                   <div className="grid gap-1 sm:grid-cols-2">
                     {group.payments.map((p: any) => (
-                      <div key={p.id} className="flex items-center justify-between bg-white/70 rounded-lg px-3 py-2 border border-violet-100 text-sm dark:bg-slate-900/70 dark:border-violet-800/60">
+                      <div key={p.id} className="flex items-center justify-between bg-white/70 rounded-lg px-3 py-2 border border-brand-secondary-alt-100 text-sm dark:bg-slate-900/70 dark:border-brand-secondary-alt-800/60">
                         <div className="min-w-0">
                           <p className="font-medium text-gray-800 truncate text-xs dark:text-slate-100">{getFeeName(p.feeStructureId)}</p>
                           {p.feeStructureId === 'schoolpay-general' && <p className="text-[10px] text-amber-600 dark:text-amber-400">Advance / Needs matching</p>}
                         </div>
-                        <span className="ml-2 font-bold text-violet-800 text-xs shrink-0 dark:text-violet-200">{fmt(p.amount)}</span>
+                        <span className="ml-2 font-bold text-brand-secondary-alt-ink-800 text-xs shrink-0 dark:text-brand-secondary-alt-ink-200">{fmt(p.amount)}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               ))}
             </div>
-            {tx.txRef && <p className="text-[10px] text-violet-400 font-mono mt-2 truncate">Ref: {tx.txRef}</p>}
+            {tx.txRef && <p className="text-[10px] text-brand-secondary-alt-ink-400 font-mono mt-2 truncate">Ref: {tx.txRef}</p>}
           </div>
         </div>
       ))}

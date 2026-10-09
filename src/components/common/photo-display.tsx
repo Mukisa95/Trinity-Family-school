@@ -94,7 +94,7 @@ export function PhotoDisplay({
     if (isIndexError) {
       return (
         <div className={cn(
-          'bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 rounded-lg flex items-center justify-center relative overflow-hidden',
+          'bg-gradient-to-br from-brand-surface-100 to-brand-secondary-surface-100 dark:from-brand-surface-900 dark:to-brand-secondary-surface-900 rounded-lg flex items-center justify-center relative overflow-hidden',
           getAspectRatioClass(),
           className
         )}>
@@ -105,7 +105,7 @@ export function PhotoDisplay({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20" />
+            <div className="absolute inset-0 bg-gradient-to-br from-brand-surface-500/20 to-brand-secondary-surface-500/20" />
           )}
           {children}
         </div>

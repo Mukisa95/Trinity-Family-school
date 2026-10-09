@@ -170,7 +170,7 @@ export function CarryForwardPaymentModal({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span className="font-bold text-sm text-indigo-600 dark:text-indigo-400">Shs.</span>
+            <span className="font-bold text-sm text-brand-alt-ink-600 dark:text-brand-alt-ink-400">Shs.</span>
             Record Carry Forward Payment
           </DialogTitle>
         </DialogHeader>
@@ -178,16 +178,16 @@ export function CarryForwardPaymentModal({
         <div className="py-4 space-y-6">
           <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
           {/* Fee Information */}
-          <div className="bg-indigo-50 rounded-lg p-4 dark:bg-indigo-950/40">
-            <h3 className="font-medium text-indigo-900 mb-2 dark:text-indigo-200">{fee.name}</h3>
+          <div className="bg-brand-alt-surface-50 rounded-lg p-4 dark:bg-brand-alt-surface-950/40">
+            <h3 className="font-medium text-brand-alt-ink-900 mb-2 dark:text-brand-alt-ink-200">{fee.name}</h3>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
-                <span className="text-indigo-700 dark:text-indigo-300">Total Outstanding:</span>
+                <span className="text-brand-alt-ink-700 dark:text-brand-alt-ink-300">Total Outstanding:</span>
                 <span className="font-bold text-red-600 dark:text-red-400">
                   {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(balance)}
                 </span>
               </div>
-              <div className="text-indigo-700 text-xs dark:text-indigo-300">
+              <div className="text-brand-alt-ink-700 text-xs dark:text-brand-alt-ink-300">
                 {fee.feeBreakdown?.length || 0} item(s) from previous terms
               </div>
             </div>
@@ -205,7 +205,7 @@ export function CarryForwardPaymentModal({
                   onClick={() => handlePaymentTypeChange('general')}
                   className={`p-2.5 border rounded-full text-center transition-all flex items-center justify-center gap-2 ${
                     paymentType === 'general' 
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-900 shadow-sm ring-1 ring-indigo-500/30 dark:bg-indigo-950/40 dark:text-indigo-200'
+                      ? 'border-brand-alt-500 bg-brand-alt-surface-50 text-brand-alt-ink-900 shadow-sm ring-1 ring-brand-alt-500/30 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-200'
                       : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700 dark:border-slate-700 dark:hover:border-slate-700 dark:bg-slate-900 dark:text-slate-200'
                   }`}
                 >
@@ -218,7 +218,7 @@ export function CarryForwardPaymentModal({
                   onClick={() => handlePaymentTypeChange('item-specific')}
                   className={`p-2.5 border rounded-full text-center transition-all flex items-center justify-center gap-2 ${
                     paymentType === 'item-specific' 
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-900 shadow-sm ring-1 ring-indigo-500/30 dark:bg-indigo-950/40 dark:text-indigo-200'
+                      ? 'border-brand-alt-500 bg-brand-alt-surface-50 text-brand-alt-ink-900 shadow-sm ring-1 ring-brand-alt-500/30 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-200'
                       : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700 dark:border-slate-700 dark:hover:border-slate-700 dark:bg-slate-900 dark:text-slate-200'
                   }`}
                 >
@@ -243,7 +243,7 @@ export function CarryForwardPaymentModal({
                     onClick={() => handleItemSelect(item)}
                     className={`w-full p-3 border rounded-lg text-left transition-all ${
                       selectedItem === item 
-                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40'
+                        ? 'border-brand-alt-500 bg-brand-alt-surface-50 dark:bg-brand-alt-surface-950/40'
                         : 'border-gray-200 hover:border-gray-300 dark:border-slate-700 dark:hover:border-slate-700'
                     }`}
                   >
@@ -279,7 +279,7 @@ export function CarryForwardPaymentModal({
                 onChange={(e) => handleAmountChange(e.target.value)}
                 placeholder="Enter amount"
                 {...formValidation.getFieldProps('carryPaymentAmount')}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-red-200 ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-alt-500 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-red-200 ${
                   formValidation.getFieldError('carryPaymentAmount') ? 'border-red-600' : 'border-gray-300 dark:border-slate-700'
                 }`}
                 disabled={isProcessing}
@@ -299,10 +299,10 @@ export function CarryForwardPaymentModal({
                       key={suggestion.label}
                       type="button"
                       onClick={() => handleAmountChange(formatMoneyInput(suggestion.value.toString()))}
-                      className="px-2.5 py-1 text-xs border border-indigo-200 rounded-full hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white whitespace-nowrap dark:border-indigo-800/60 dark:hover:bg-indigo-950/40 dark:bg-slate-900"
+                      className="px-2.5 py-1 text-xs border border-brand-alt-200 rounded-full hover:bg-brand-alt-surface-50 focus:outline-none focus:ring-2 focus:ring-brand-alt-500 bg-white whitespace-nowrap dark:border-brand-alt-800/60 dark:hover:bg-brand-alt-surface-950/40 dark:bg-slate-900"
                       disabled={isProcessing}
                     >
-                      <span className="font-medium text-indigo-900 dark:text-indigo-200">{suggestion.label}</span>
+                      <span className="font-medium text-brand-alt-ink-900 dark:text-brand-alt-ink-200">{suggestion.label}</span>
                       <span className="text-gray-500 ml-1 dark:text-slate-400">
                         ({new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(suggestion.value)})
                       </span>
@@ -334,7 +334,7 @@ export function CarryForwardPaymentModal({
               <div className="bg-gray-50 rounded-lg p-3 dark:bg-slate-900">
                 <div className="text-sm">
                   <span className="text-gray-600 dark:text-slate-300">Payment Type: </span>
-                  <span className="font-medium text-indigo-600 dark:text-indigo-400">
+                  <span className="font-medium text-brand-alt-ink-600 dark:text-brand-alt-ink-400">
                     {paymentType === 'general' ? 'General Distribution' : 'Item Specific'}
                   </span>
                 </div>

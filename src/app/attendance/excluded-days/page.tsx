@@ -387,7 +387,7 @@ export default function ManageExcludedDaysPage() {
         <Card className="md:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <PlusCircle className="mr-2 h-5 w-5 text-primary" />
+              <PlusCircle className="mr-2 h-5 w-5 text-link" />
               Add New Exclusion
             </CardTitle>
           </CardHeader>
@@ -521,7 +521,7 @@ export default function ManageExcludedDaysPage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between w-full">
               <div className="flex items-center">
-                <CalendarOff className="mr-2 h-5 w-5 text-primary" />
+                <CalendarOff className="mr-2 h-5 w-5 text-link" />
                 Current Excluded Days ({filteredExcludedDays.length})
               </div>
               <div className="flex items-center gap-2 text-sm font-normal w-64">

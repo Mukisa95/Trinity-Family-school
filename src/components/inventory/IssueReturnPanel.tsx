@@ -253,7 +253,7 @@ export function IssueReturnPanel({
         <div className="space-y-6">
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'issue' | 'return')}>
                 <TabsList className="bg-white/80 dark:bg-slate-800/80 border">
-                    <TabsTrigger value="issue" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+                    <TabsTrigger value="issue" className="data-[state=active]:bg-brand-surface-500 data-[state=active]:text-white">
                         <Send className="h-4 w-4 mr-2" />
                         Issue Items
                     </TabsTrigger>
@@ -271,7 +271,7 @@ export function IssueReturnPanel({
                     <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <Send className="h-5 w-5 text-blue-500 dark:text-blue-400" />
+                                <Send className="h-5 w-5 text-brand-ink-500 dark:text-brand-ink-400" />
                                 Issue Inventory Items
                             </CardTitle>
                             <CardDescription>
@@ -314,7 +314,7 @@ export function IssueReturnPanel({
                                         <motion.div
                                             key={item.id}
                                             whileHover={{ scale: 1.02 }}
-                                            className="p-3 rounded-lg border bg-slate-50 dark:bg-slate-900/50 cursor-pointer hover:border-blue-500 transition-colors"
+                                            className="p-3 rounded-lg border bg-slate-50 dark:bg-slate-900/50 cursor-pointer hover:border-brand-500 transition-colors"
                                             onClick={() => {
                                                 setSelectedItemId(item.id);
                                                 setIssueDialogOpen(true);
@@ -377,7 +377,7 @@ export function IssueReturnPanel({
                     <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <Clock className="h-5 w-5 text-purple-500 dark:text-purple-400" />
+                                <Clock className="h-5 w-5 text-brand-secondary-ink-500 dark:text-brand-secondary-ink-400" />
                                 Currently Issued Items
                             </CardTitle>
                             <CardDescription>

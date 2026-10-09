@@ -53,7 +53,7 @@ export function ClassAttendanceSummaryDialog({ open, onOpenChange, date, classId
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl gap-4 p-0">
-        <DialogHeader className="rounded-t-2xl border-b border-slate-200 bg-gradient-to-br from-indigo-50 via-white to-sky-50 px-5 py-5 sm:px-6 dark:border-slate-700 dark:from-indigo-950/40 dark:via-slate-900 dark:to-sky-950/40">
+        <DialogHeader className="rounded-t-2xl border-b border-slate-200 bg-gradient-to-br from-brand-alt-surface-50 via-white to-sky-50 px-5 py-5 sm:px-6 dark:border-slate-700 dark:from-brand-alt-surface-950/40 dark:via-slate-900 dark:to-sky-950/40">
           <DialogTitle className="text-lg text-slate-900 sm:text-xl dark:text-slate-100">
             {summary.className} attendance
           </DialogTitle>

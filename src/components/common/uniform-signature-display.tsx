@@ -151,7 +151,7 @@ export function UniformCollectionSignature({
 
   return (
     <div className={`flex items-center gap-1 ${className}`}>
-      <Package className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+      <Package className="w-3 h-3 text-brand-ink-600 dark:text-brand-ink-400" />
       <DigitalSignatureDisplay
         signature={collectionSignature.signature}
         action="collected by"

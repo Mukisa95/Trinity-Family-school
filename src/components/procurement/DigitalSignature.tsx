@@ -106,8 +106,8 @@ export function DigitalSignature({ onSignatureComplete, onCancel, disabled }: Di
   return (
     <div className="space-y-4">
       <div className="text-center space-y-2">
-        <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mx-auto dark:bg-blue-950/40">
-          <User className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+        <div className="flex items-center justify-center w-16 h-16 bg-brand-surface-100 rounded-full mx-auto dark:bg-brand-surface-950/40">
+          <User className="w-8 h-8 text-brand-ink-600 dark:text-brand-ink-400" />
         </div>
         <h3 className="text-lg font-semibold">Digital Signature Required</h3>
         <p className="text-sm text-gray-600 dark:text-slate-300">

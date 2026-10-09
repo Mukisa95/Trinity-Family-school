@@ -488,7 +488,7 @@ export default function StaffForm() {
     <div className="bg-gradient-to-br from-card to-card/50 rounded-2xl shadow-lg border border-border/50 backdrop-blur-sm">
       <div className="px-4 py-2.5 border-b border-border/30 bg-gradient-to-r from-background/50 to-transparent">
         <div className="flex items-center gap-2.5">
-          {icon && <div className="text-primary">{icon}</div>}
+          {icon && <div className="text-link">{icon}</div>}
           <h2 className="text-base font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
             {title}
           </h2>
@@ -502,7 +502,7 @@ export default function StaffForm() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
+      <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-brand-alt-surface-50 to-brand-secondary-surface-50 dark:from-brand-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-secondary-surface-950/40">
         <GlassPageTopBar
           title={id ? 'Edit Staff Member' : 'Add New Staff Member'}
           subtitle={id ? 'Update staff member information' : 'Register a new staff member to the system'}
@@ -519,7 +519,7 @@ export default function StaffForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
+    <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-brand-alt-surface-50 to-brand-secondary-surface-50 dark:from-brand-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-secondary-surface-950/40">
       <GlassPageTopBar
         title={id ? 'Edit Staff Member' : 'Add New Staff Member'}
         subtitle={id ? 'Update staff member information' : 'Register a new staff member to the system'}
@@ -552,7 +552,7 @@ export default function StaffForm() {
                 </div>
               ) : (
                 <div className="w-40 h-40 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-primary/30 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 bg-gradient-to-br from-background to-muted/30">
-                  <div className="text-primary/60 mb-3">
+                  <div className="text-link/60 mb-3">
                     <User className="h-16 w-16" />
                   </div>
                   <div className="flex flex-col items-center space-y-3">
@@ -591,7 +591,7 @@ export default function StaffForm() {
                   <Input
                     value={staffData.employeeId || ""}
                     readOnly
-                    className="font-mono text-sm bg-gradient-to-r from-primary/10 to-primary/5 border-primary/30 text-primary font-semibold"
+                    className="font-mono text-sm bg-gradient-to-r from-primary/10 to-primary/5 border-primary/30 text-link font-semibold"
                     placeholder="Will be generated automatically"
                   />
                   <Button
@@ -768,7 +768,7 @@ export default function StaffForm() {
               <div className="flex flex-col space-y-3">
                 <div className="flex items-center justify-center w-full">
                   <label className="w-full h-32 flex flex-col items-center justify-center border-2 border-dashed border-primary/30 rounded-xl cursor-pointer hover:bg-primary/5 transition-all duration-200 bg-gradient-to-br from-background to-muted/30">
-                    <Upload className="h-8 w-8 text-primary/60" />
+                    <Upload className="h-8 w-8 text-link/60" />
                     <span className="mt-2 text-sm text-muted-foreground font-medium">Upload CV photos</span>
                     <input
                       type="file"
@@ -861,7 +861,7 @@ export default function StaffForm() {
               <div className="flex flex-col space-y-3">
                 <div className="flex items-center justify-center w-full">
                   <label className="w-full h-32 flex flex-col items-center justify-center border-2 border-dashed border-primary/30 rounded-xl cursor-pointer hover:bg-primary/5 transition-all duration-200 bg-gradient-to-br from-background to-muted/30">
-                    <Upload className="h-8 w-8 text-primary/60" />
+                    <Upload className="h-8 w-8 text-link/60" />
                     <span className="mt-2 text-sm text-muted-foreground font-medium">Upload qualification documents</span>
                     <input
                       type="file"

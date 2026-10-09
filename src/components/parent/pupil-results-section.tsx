@@ -301,7 +301,7 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600 dark:text-green-400';
-    if (score >= 70) return 'text-blue-600 dark:text-blue-400';
+    if (score >= 70) return 'text-brand-ink-600 dark:text-brand-ink-400';
     if (score >= 60) return 'text-yellow-600 dark:text-yellow-400';
     return 'text-red-600 dark:text-red-400';
   };
@@ -378,7 +378,7 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
                 }}
               />
             ) : null}
-            <AvatarFallback className="text-sm bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+            <AvatarFallback className="text-sm bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 text-white font-semibold">
               {pupil?.firstName?.charAt(0)}{pupil?.lastName?.charAt(0)}
             </AvatarFallback>
           </Avatar>

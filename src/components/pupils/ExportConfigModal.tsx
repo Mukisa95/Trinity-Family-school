@@ -260,10 +260,10 @@ export function ExportConfigModal({
                     <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-400">Active Columns (In Order)</Label>
                     <div className="space-y-1.5">
                       {activeColumns.map((colId, index) => (
-                        <div key={colId} className="flex items-center gap-2 bg-indigo-50/50 border border-indigo-100 p-2 rounded-lg group dark:bg-indigo-950/50 dark:border-indigo-800/60">
+                        <div key={colId} className="flex items-center gap-2 bg-brand-alt-surface-50/50 border border-brand-alt-100 p-2 rounded-lg group dark:bg-brand-alt-surface-950/50 dark:border-brand-alt-800/60">
                           <button 
                             onClick={() => toggleColumn(colId, true)}
-                            className="text-indigo-600 hover:text-indigo-800 p-1 bg-white rounded shadow-sm hover:bg-slate-50 transition-colors dark:text-indigo-400 dark:hover:text-indigo-200 dark:bg-slate-900 dark:hover:bg-slate-900"
+                            className="text-brand-alt-ink-600 hover:text-brand-alt-ink-800 p-1 bg-white rounded shadow-sm hover:bg-slate-50 transition-colors dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-200 dark:bg-slate-900 dark:hover:bg-slate-900"
                             title="Remove column"
                           >
                             <Eye className="w-4 h-4" />

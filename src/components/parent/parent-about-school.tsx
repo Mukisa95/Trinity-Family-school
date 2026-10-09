@@ -78,7 +78,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
 
   if (!activePhotos.length) {
     return (
-      <Card className="h-full border-0 shadow-xl bg-gradient-to-br from-slate-50 via-white to-blue-50 overflow-hidden dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/40">
+      <Card className="h-full border-0 shadow-xl bg-gradient-to-br from-slate-50 via-white to-brand-surface-50 overflow-hidden dark:from-slate-900 dark:via-slate-900 dark:to-brand-surface-950/40">
         <CardContent className="flex items-center justify-center h-64 relative">
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-5">
@@ -91,7 +91,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
           
           <div className="text-center text-gray-400 relative z-10 dark:text-slate-400">
             <motion.div 
-              className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center shadow-lg dark:from-blue-950/40 dark:to-purple-950/40"
+              className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-brand-surface-100 to-brand-secondary-surface-100 rounded-2xl flex items-center justify-center shadow-lg dark:from-brand-surface-950/40 dark:to-brand-secondary-surface-950/40"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.5 }}
@@ -141,7 +141,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
           <button
             type="button"
             aria-label={`Open ${activePhotos[currentSlide].title || 'school photo'} in a larger viewer`}
-            className="absolute inset-0 z-10 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+            className="absolute inset-0 z-10 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
             onClick={() => {
               setResumeSlideshowOnClose(isPlaying);
               setIsPlaying(false);
@@ -218,7 +218,7 @@ export function ParentAboutSchool() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand-ink-600 dark:text-brand-ink-400" />
         <span className="ml-2 text-gray-600 dark:text-slate-300">Loading school information...</span>
       </div>
     );
@@ -246,10 +246,10 @@ export function ParentAboutSchool() {
   };
 
   const socialLinks = [
-    { icon: Facebook, url: settings.socialMedia?.facebook, label: 'Facebook', color: 'text-blue-600 dark:text-blue-400' },
+    { icon: Facebook, url: settings.socialMedia?.facebook, label: 'Facebook', color: 'text-brand-ink-600 dark:text-brand-ink-400' },
     { icon: Twitter, url: settings.socialMedia?.twitter, label: 'Twitter', color: 'text-sky-500 dark:text-sky-400' },
     { icon: Instagram, url: settings.socialMedia?.instagram, label: 'Instagram', color: 'text-pink-600 dark:text-pink-400' },
-    { icon: Linkedin, url: settings.socialMedia?.linkedin, label: 'LinkedIn', color: 'text-blue-700 dark:text-blue-300' }
+    { icon: Linkedin, url: settings.socialMedia?.linkedin, label: 'LinkedIn', color: 'text-brand-ink-700 dark:text-brand-ink-300' }
   ].filter(social => social.url);
 
   // Determine layout based on number of children
@@ -288,7 +288,7 @@ export function ParentAboutSchool() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="text-center py-4 md:py-6 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl"
+        className="text-center py-4 md:py-6 bg-gradient-to-br from-brand-surface-50 to-brand-alt-surface-100 dark:from-brand-surface-900/20 dark:to-brand-alt-surface-900/20 rounded-xl"
       >
         {/* Logo and Pupils Photos Layout */}
         <div className="flex justify-center items-center mb-2 md:mb-3 gap-4 md:gap-6">
@@ -310,7 +310,7 @@ export function ParentAboutSchool() {
                     className="object-contain"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                  <div className="w-full h-full bg-gradient-to-br from-brand-surface-500 to-brand-alt-surface-600 flex items-center justify-center shadow-lg">
                     <School className="h-6 w-6 md:h-8 md:w-8 text-white" />
                   </div>
                 )}
@@ -347,7 +347,7 @@ export function ParentAboutSchool() {
                       }}
                     />
                   ) : null}
-                  <AvatarFallback className="text-sm md:text-base bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+                  <AvatarFallback className="text-sm md:text-base bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 text-white font-semibold">
                     {familyMembers[0].firstName?.charAt(0)}{familyMembers[0].lastName?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
@@ -392,7 +392,7 @@ export function ParentAboutSchool() {
                           }}
                         />
                       ) : null}
-                      <AvatarFallback className="text-sm md:text-base bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+                      <AvatarFallback className="text-sm md:text-base bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 text-white font-semibold">
                         {pupil.firstName?.charAt(0)}{pupil.lastName?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
@@ -415,7 +415,7 @@ export function ParentAboutSchool() {
                     className="object-contain"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                  <div className="w-full h-full bg-gradient-to-br from-brand-surface-500 to-brand-alt-surface-600 flex items-center justify-center shadow-lg">
                     <School className="h-8 w-8 md:h-10 md:w-10 text-white" />
                   </div>
                 )}
@@ -455,7 +455,7 @@ export function ParentAboutSchool() {
                           }}
                         />
                       ) : null}
-                      <AvatarFallback className="text-sm md:text-base bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+                      <AvatarFallback className="text-sm md:text-base bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 text-white font-semibold">
                         {pupil.firstName?.charAt(0)}{pupil.lastName?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
@@ -535,10 +535,10 @@ export function ParentAboutSchool() {
         {settings.visionMissionValues.vision && (
           <AnimatedCard variants={itemVariants} className="group hover:shadow-lg transition-all duration-300">
             <CardHeader className="text-center pb-4">
-              <div className="mx-auto w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+              <div className="mx-auto w-12 h-12 bg-gradient-to-br from-brand-secondary-surface-500 to-pink-500 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                 <Target className="h-6 w-6 text-white" />
               </div>
-              <CardTitle className="text-xl text-purple-700 dark:text-purple-300">Our Vision</CardTitle>
+              <CardTitle className="text-xl text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">Our Vision</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 dark:text-gray-400 text-center leading-relaxed">
@@ -551,10 +551,10 @@ export function ParentAboutSchool() {
         {settings.visionMissionValues.mission && (
           <AnimatedCard variants={itemVariants} className="group hover:shadow-lg transition-all duration-300">
             <CardHeader className="text-center pb-4">
-              <div className="mx-auto w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+              <div className="mx-auto w-12 h-12 bg-gradient-to-br from-brand-surface-500 to-cyan-500 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                 <Heart className="h-6 w-6 text-white" />
               </div>
-              <CardTitle className="text-xl text-blue-700 dark:text-blue-300">Our Mission</CardTitle>
+              <CardTitle className="text-xl text-brand-ink-700 dark:text-brand-ink-300">Our Mission</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 dark:text-gray-400 text-center leading-relaxed">
@@ -590,10 +590,10 @@ export function ParentAboutSchool() {
       >
         {/* School Description */}
         {settings.visionMissionValues.description && (
-          <AnimatedCard variants={itemVariants} className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 hover:shadow-lg transition-all duration-300">
+          <AnimatedCard variants={itemVariants} className="bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 dark:from-brand-surface-900/10 dark:to-brand-alt-surface-900/10 hover:shadow-lg transition-all duration-300">
             <CardHeader>
               <CardTitle className="text-xl flex items-center justify-center">
-                <BookOpen className="h-5 w-5 mr-3 text-blue-600 dark:text-blue-400" />
+                <BookOpen className="h-5 w-5 mr-3 text-brand-ink-600 dark:text-brand-ink-400" />
                 About Our School
               </CardTitle>
             </CardHeader>
@@ -609,7 +609,7 @@ export function ParentAboutSchool() {
         <AnimatedCard variants={itemVariants} className="hover:shadow-lg transition-all duration-300">
           <CardHeader>
             <CardTitle className="text-xl flex items-center">
-              <Phone className="h-5 w-5 mr-3 text-blue-600 dark:text-blue-400" />
+              <Phone className="h-5 w-5 mr-3 text-brand-ink-600 dark:text-brand-ink-400" />
               Contact Information
             </CardTitle>
           </CardHeader>
@@ -639,7 +639,7 @@ export function ParentAboutSchool() {
                   href={settings.contact.website} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                  className="text-brand-ink-600 hover:text-brand-ink-800 dark:text-brand-ink-400 dark:hover:text-brand-ink-300 transition-colors"
                 >
                   {settings.contact.website}
                 </a>

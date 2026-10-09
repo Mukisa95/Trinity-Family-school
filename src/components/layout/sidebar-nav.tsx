@@ -27,16 +27,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Premium deeper color palettes for each section's icons and active states
 const sectionColors: Record<string, { icon: string; text: string; activeBg: string; activeIcon: string }> = {
   Overview: {
-    icon: 'text-blue-600 dark:text-blue-400 group-hover:text-blue-750',
+    icon: 'text-brand-ink-600 dark:text-brand-ink-400 group-hover:text-brand-ink-700',
     text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
-    activeBg: 'bg-blue-50 dark:bg-blue-950/30 text-blue-800 dark:text-blue-200 border border-blue-200/60 dark:border-blue-900/50 shadow-sm',
-    activeIcon: 'text-blue-700 dark:text-blue-300'
+    activeBg: 'bg-brand-surface-50 dark:bg-brand-surface-950/30 text-brand-ink-800 dark:text-brand-ink-200 border border-brand-200/60 dark:border-brand-900/50 shadow-sm',
+    activeIcon: 'text-brand-ink-700 dark:text-brand-ink-300'
   },
   Academics: {
-    icon: 'text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-750',
+    icon: 'text-brand-alt-ink-600 dark:text-brand-alt-ink-400 group-hover:text-brand-alt-ink-700',
     text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
-    activeBg: 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-200 border border-indigo-200/60 dark:border-indigo-900/50 shadow-sm',
-    activeIcon: 'text-indigo-700 dark:text-indigo-300'
+    activeBg: 'bg-brand-alt-surface-50 dark:bg-brand-alt-surface-950/30 text-brand-alt-ink-800 dark:text-brand-alt-ink-200 border border-brand-alt-200/60 dark:border-brand-alt-900/50 shadow-sm',
+    activeIcon: 'text-brand-alt-ink-700 dark:text-brand-alt-ink-300'
   },
   Finance: {
     icon: 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-750',
@@ -61,8 +61,8 @@ const sectionColors: Record<string, { icon: string; text: string; activeBg: stri
 const defaultColors = {
   icon: 'text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200',
   text: 'text-slate-700 group-hover:text-slate-900 dark:text-slate-200 dark:group-hover:text-slate-100',
-  activeBg: 'bg-blue-50 text-blue-800 border border-blue-200 shadow-sm dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60',
-  activeIcon: 'text-blue-700 dark:text-blue-300'
+  activeBg: 'bg-brand-surface-50 text-brand-ink-800 border border-brand-200 shadow-sm dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60',
+  activeIcon: 'text-brand-ink-700 dark:text-brand-ink-300'
 };
 
 interface SidebarNavProps {
@@ -83,6 +83,8 @@ export function SidebarNav({ items }: SidebarNavProps) {
 
   // ── Permission helpers ──────────────────────────────────────────────────────
   function checkItemPermission(href: string): boolean {
+    // Personal appearance settings do not grant access to school administration.
+    if (href === '/settings/look-and-feel') return Boolean(user);
     if (href.startsWith('http://') || href.startsWith('https://')) return true;
 
     if (isDevControlPath(href)) return user?.role === 'Admin';
@@ -184,7 +186,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0, opacity: 0 }}
                 transition={{ duration: 0.15 }}
-                className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0"
+                className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-surface-600 shrink-0"
               />
             )}
           </AnimatePresence>
@@ -320,7 +322,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
                         />
                         <span className="truncate">{sub.title}</span>
                         {subActive && (
-                          <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />
+                          <span className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-surface-600 shrink-0" />
                         )}
                       </Link>
                     );
@@ -440,7 +442,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
                       />
                       <span className="truncate">{sub.title}</span>
                       {subActive && (
-                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-surface-600 shrink-0" />
                       )}
                     </Link>
                   );

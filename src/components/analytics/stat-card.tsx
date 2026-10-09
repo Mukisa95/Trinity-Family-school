@@ -20,10 +20,10 @@ interface StatCardProps {
 
 const colorClasses = {
   blue: {
-    bg: 'from-blue-50 to-blue-100 dark:from-blue-950/40 dark:to-blue-950/40',
-    icon: 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-950/40',
-    text: 'text-blue-900 dark:text-blue-200',
-    subtitle: 'text-blue-600 dark:text-blue-400'
+    bg: 'from-brand-surface-50 to-brand-surface-100 dark:from-brand-surface-950/40 dark:to-brand-surface-950/40',
+    icon: 'text-brand-ink-600 bg-brand-surface-100 dark:text-brand-ink-400 dark:bg-brand-surface-950/40',
+    text: 'text-brand-ink-900 dark:text-brand-ink-200',
+    subtitle: 'text-brand-ink-600 dark:text-brand-ink-400'
   },
   green: {
     bg: 'from-green-50 to-green-100 dark:from-green-950/40 dark:to-green-950/40',
@@ -44,10 +44,10 @@ const colorClasses = {
     subtitle: 'text-red-600 dark:text-red-400'
   },
   purple: {
-    bg: 'from-purple-50 to-purple-100 dark:from-purple-950/40 dark:to-purple-950/40',
-    icon: 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-950/40',
-    text: 'text-purple-900 dark:text-purple-200',
-    subtitle: 'text-purple-600 dark:text-purple-400'
+    bg: 'from-brand-secondary-surface-50 to-brand-secondary-surface-100 dark:from-brand-secondary-surface-950/40 dark:to-brand-secondary-surface-950/40',
+    icon: 'text-brand-secondary-ink-600 bg-brand-secondary-surface-100 dark:text-brand-secondary-ink-400 dark:bg-brand-secondary-surface-950/40',
+    text: 'text-brand-secondary-ink-900 dark:text-brand-secondary-ink-200',
+    subtitle: 'text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400'
   }
 };
 

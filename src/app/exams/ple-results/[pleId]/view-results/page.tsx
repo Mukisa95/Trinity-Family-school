@@ -199,8 +199,8 @@ export default function ViewPLEResultsPage({ params }: { params: Promise<{ pleId
       return <ArrowUpDown className="h-3 w-3 ml-1 text-gray-400 dark:text-slate-400" />;
     }
     return sortDirection === "asc"
-      ? <ArrowUp className="h-3 w-3 ml-1 text-blue-600 dark:text-blue-400" />
-      : <ArrowDown className="h-3 w-3 ml-1 text-blue-600 dark:text-blue-400" />;
+      ? <ArrowUp className="h-3 w-3 ml-1 text-brand-ink-600 dark:text-brand-ink-400" />
+      : <ArrowDown className="h-3 w-3 ml-1 text-brand-ink-600 dark:text-brand-ink-400" />;
   };
 
   // Filter and sort results using useMemo instead of useEffect to prevent infinite loops
@@ -767,7 +767,7 @@ Division: ${pupil.division}`;
 
   if (!mounted || isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
+      <div className="min-h-screen bg-gradient-to-br from-brand-secondary-surface-50 via-brand-alt-surface-50 to-brand-surface-50 dark:from-brand-secondary-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-surface-950/40">
         <GlassPageTopBar
           title="View Results"
           subtitle="Loading PLE results..."
@@ -786,7 +786,7 @@ Division: ${pupil.division}`;
 
   if (!pleRecord) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
+      <div className="min-h-screen bg-gradient-to-br from-brand-secondary-surface-50 via-brand-alt-surface-50 to-brand-surface-50 dark:from-brand-secondary-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-surface-950/40">
         <GlassPageTopBar
           title="View Results"
           subtitle="PLE record not found"
@@ -808,7 +808,7 @@ Division: ${pupil.division}`;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 animate-in fade-in duration-500 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
+    <div className="min-h-screen bg-gradient-to-br from-brand-secondary-surface-50 via-brand-alt-surface-50 to-brand-surface-50 animate-in fade-in duration-500 dark:from-brand-secondary-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-surface-950/40">
       <GlassPageTopBar
         title={`View Results - ${pleRecord.examName}`}
         subtitle="View PLE examination results and statistics."
@@ -897,7 +897,7 @@ Division: ${pupil.division}`;
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Best Performer</CardTitle>
-                <Star className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <Star className="h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-sm font-bold">
@@ -915,10 +915,10 @@ Division: ${pupil.division}`;
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Completion Status</CardTitle>
-                <GraduationCap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <GraduationCap className="h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                <div className="text-2xl font-bold text-brand-ink-600 dark:text-brand-ink-400">
                   {pupilResults.filter(r =>
                     r.division && r.totalAggregate > 0 && Object.values(r.subjects).every(aggregate => aggregate)
                   ).length}
@@ -936,7 +936,7 @@ Division: ${pupil.division}`;
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Medal className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                <Medal className="h-5 w-5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                 Division Breakdown
               </CardTitle>
             </CardHeader>
@@ -948,8 +948,8 @@ Division: ${pupil.division}`;
                   <p className="text-xs text-muted-foreground mt-1">4-12 points</p>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{statistics.divisionII}</div>
-                  <Badge variant="secondary" className="mt-1 bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60 dark:hover:bg-blue-950/40">Division II</Badge>
+                  <div className="text-2xl font-bold text-brand-ink-600 dark:text-brand-ink-400">{statistics.divisionII}</div>
+                  <Badge variant="secondary" className="mt-1 bg-brand-surface-100 text-brand-ink-800 border-brand-200 hover:bg-brand-surface-100 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60 dark:hover:bg-brand-surface-950/40">Division II</Badge>
                   <p className="text-xs text-muted-foreground mt-1">13-23 points</p>
                 </div>
                 <div className="text-center">
@@ -1102,7 +1102,7 @@ Division: ${pupil.division}`;
                           <div className="font-medium">
                             <button
                               onClick={() => router.push(`/pupil-detail?id=${pupil.pupilId}`)}
-                              className="text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer text-left dark:text-blue-400 dark:hover:text-blue-200"
+                              className="text-brand-ink-600 hover:text-brand-ink-800 hover:underline transition-colors cursor-pointer text-left dark:text-brand-ink-400 dark:hover:text-brand-ink-200"
                             >
                               {formatPupilDisplayName(pupil)}
                             </button>
@@ -1242,7 +1242,7 @@ Division: ${pupil.division}`;
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-              <Printer className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <Printer className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
               Print Options
             </DialogTitle>
             <DialogDescription>
@@ -1274,8 +1274,8 @@ Division: ${pupil.division}`;
               className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors dark:border-slate-700 dark:hover:bg-slate-900"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/40">
-                  <FileSpreadsheet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div className="p-2 bg-brand-surface-100 rounded-lg dark:bg-brand-surface-950/40">
+                  <FileSpreadsheet className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-slate-100">Assessment</h3>

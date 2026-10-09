@@ -78,7 +78,7 @@ import {
 const getGradeColor = (grade: string): string => {
   if (grade === 'MISSED') return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60';
   if (grade.startsWith('D')) return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
-  if (grade.startsWith('C')) return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+  if (grade.startsWith('C')) return 'bg-brand-surface-100 text-brand-ink-800 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60';
   if (grade.startsWith('P')) return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
   return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60'; // For F9
 };
@@ -86,7 +86,7 @@ const getGradeColor = (grade: string): string => {
 const getDivisionColor = (division: string): string => {
   switch (division) {
     case 'I': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
-    case 'II': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+    case 'II': return 'bg-brand-surface-100 text-brand-ink-800 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60';
     case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
     case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60';
     default: return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60'; // For 'U'
@@ -280,7 +280,7 @@ function GradingScaleModal({
                       type="number"
                       value={scale.minMark}
                       onChange={(e) => handleLocalChange(index, 'minMark', parseInt(e.target.value) || 0)}
-                      className="h-10 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700"
+                      className="h-10 text-sm border-gray-300 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700"
                       min="0"
                       max="100"
                       placeholder="0"
@@ -293,7 +293,7 @@ function GradingScaleModal({
                       type="number"
                       value={scale.maxMark}
                       onChange={(e) => handleLocalChange(index, 'maxMark', parseInt(e.target.value) || 0)}
-                      className="h-10 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700"
+                      className="h-10 text-sm border-gray-300 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700"
                       min="0"
                       max="100"
                       placeholder="100"
@@ -306,7 +306,7 @@ function GradingScaleModal({
                       type="text"
                       value={scale.grade}
                       onChange={(e) => handleLocalChange(index, 'grade', e.target.value.toUpperCase())}
-                      className="h-10 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 font-semibold dark:border-slate-700"
+                      className="h-10 text-sm border-gray-300 focus:border-brand-500 focus:ring-brand-500 font-semibold dark:border-slate-700"
                       placeholder="A1"
                       maxLength={3}
                     />
@@ -318,7 +318,7 @@ function GradingScaleModal({
                       type="number"
                       value={scale.aggregates ?? ''}
                       onChange={(e) => handleLocalChange(index, 'aggregates', parseInt(e.target.value) || 0)}
-                      className="h-10 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700"
+                      className="h-10 text-sm border-gray-300 focus:border-brand-500 focus:ring-brand-500 dark:border-slate-700"
                       min="0"
                       max="9"
                       placeholder="1"
@@ -392,7 +392,7 @@ function GradingScaleModal({
               disabled={!isValid}
               className={`px-6 py-2 ${
                 isValid 
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                  ? 'bg-brand-surface-600 hover:bg-brand-surface-700 text-white'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed dark:text-slate-400 dark:bg-slate-700'
               }`}
             >
@@ -1367,7 +1367,7 @@ export default function RecordResultsView() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto dark:text-blue-400" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand-ink-600 mx-auto dark:text-brand-ink-400" />
           <p className="mt-2 text-sm text-gray-700 dark:text-slate-200">Loading exam data...</p>
         </div>
       </div>
@@ -1412,9 +1412,9 @@ export default function RecordResultsView() {
     if (isNurseryExam || !showMajorSubjectSelector) return null;
 
     return (
-      <Card className="mb-3 border-blue-100 dark:border-blue-800/60">
+      <Card className="mb-3 border-brand-100 dark:border-brand-800/60">
         <CardHeader className="py-2 px-3">
-          <CardTitle className="text-xs font-medium text-blue-700 dark:text-blue-300">
+          <CardTitle className="text-xs font-medium text-brand-ink-700 dark:text-brand-ink-300">
             Select 4 Major Subjects for Aggregates Calculation
           </CardTitle>
         </CardHeader>
@@ -1449,16 +1449,16 @@ export default function RecordResultsView() {
     
     return (
       <div
-        className="flex max-h-[62vh] flex-col overflow-auto overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
+        className="flex max-h-[62vh] flex-col overflow-auto overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset"
         role="region"
         aria-label="Record results table for the selected subject"
         tabIndex={0}
       >
-        <div className="sticky top-0 z-30 flex min-h-11 items-center justify-between border-b bg-blue-50 p-2 shadow-sm dark:bg-blue-950/40">
+        <div className="sticky top-0 z-30 flex min-h-11 items-center justify-between border-b bg-brand-surface-50 p-2 shadow-sm dark:bg-brand-surface-950/40">
           <Button variant="ghost" size="sm" onClick={prevSubject} className="h-7 px-2">
             <ChevronLeft className="h-3 w-3" />
           </Button>
-          <div className="text-xs font-medium text-blue-700 dark:text-blue-300">
+          <div className="text-xs font-medium text-brand-ink-700 dark:text-brand-ink-300">
             {currentSubject.code} ({activeSubjectIndex + 1}/{examSubjects.length})
           </div>
           <Button variant="ghost" size="sm" onClick={nextSubject} className="h-7 px-2">
@@ -1476,7 +1476,7 @@ export default function RecordResultsView() {
                 >
                   Pupil
                   {sortField === 'name' && (
-                    <span className="text-blue-600 dark:text-blue-400">
+                    <span className="text-brand-ink-600 dark:text-brand-ink-400">
                       {sortDirection === 'asc' ? '↑' : '↓'}
                     </span>
                   )}
@@ -1589,7 +1589,7 @@ export default function RecordResultsView() {
   const renderDesktopTable = () => {
     return (
       <div
-        className="max-h-[62vh] overflow-auto overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
+        className="max-h-[62vh] overflow-auto overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset"
         role="region"
         aria-label="Record results table"
         tabIndex={0}
@@ -1604,7 +1604,7 @@ export default function RecordResultsView() {
                 >
                   Pupil
                   {sortField === 'name' && (
-                    <span className="text-blue-600 dark:text-blue-400">
+                    <span className="text-brand-ink-600 dark:text-brand-ink-400">
                       {sortDirection === 'asc' ? '↑' : '↓'}
                     </span>
                   )}
@@ -1624,7 +1624,7 @@ export default function RecordResultsView() {
                 >
                   Total
                   {sortField === 'totalMarks' && (
-                    <span className="text-blue-600 dark:text-blue-400">
+                    <span className="text-brand-ink-600 dark:text-brand-ink-400">
                       {sortDirection === 'asc' ? '↑' : '↓'}
                     </span>
                   )}
@@ -1832,7 +1832,7 @@ export default function RecordResultsView() {
             onClick={requestBackNavigation}
             aria-label="Back to exams"
             title="Back to exams"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-200/60 bg-blue-50/80 text-blue-600 shadow-sm transition-all duration-300 hover:scale-105 hover:bg-blue-100 hover:text-blue-700 active:scale-95 dark:border-blue-800/60 dark:bg-blue-950/80 dark:text-blue-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-brand-200/60 bg-brand-surface-50/80 text-brand-ink-600 shadow-sm transition-all duration-300 hover:scale-105 hover:bg-brand-surface-100 hover:text-brand-ink-700 active:scale-95 dark:border-brand-800/60 dark:bg-brand-surface-950/80 dark:text-brand-ink-400 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-300"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
@@ -1840,14 +1840,14 @@ export default function RecordResultsView() {
         className="mb-1.5"
         meta={
           <div className="flex items-center gap-1.5">
-            <span className="rounded-full border border-blue-200/60 bg-blue-50/80 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/80 dark:text-blue-300">
+            <span className="rounded-full border border-brand-200/60 bg-brand-surface-50/80 px-2 py-0.5 text-[10px] font-semibold text-brand-ink-700 dark:border-brand-800/60 dark:bg-brand-surface-950/80 dark:text-brand-ink-300">
               {filteredAndSortedPupils.length} of {pupilSnaps.length} pupils
             </span>
             {examStreams.length > 1 && (
               <Select value={selectedStreamId} onValueChange={selectStreamScope}>
                 <SelectTrigger
                   aria-label="Choose stream pupils to record"
-                  className="h-7 w-[132px] rounded-full border-indigo-200 bg-indigo-50 px-2 text-[10px] font-semibold text-indigo-700 shadow-none hover:bg-indigo-100 dark:border-indigo-800/60 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
+                  className="h-7 w-[132px] rounded-full border-brand-alt-200 bg-brand-alt-surface-50 px-2 text-[10px] font-semibold text-brand-alt-ink-700 shadow-none hover:bg-brand-alt-surface-100 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300 dark:hover:bg-brand-alt-surface-950/40"
                 >
                   <GitBranch className="mr-1 h-3 w-3 shrink-0" />
                   <SelectValue />
@@ -1894,7 +1894,7 @@ export default function RecordResultsView() {
                       aria-label={`Switch ${examSwitcher.label.toLowerCase()}`}
                     />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-64 rounded-xl border border-blue-100 bg-white/95 p-2 shadow-xl backdrop-blur dark:border-blue-800/60 dark:bg-slate-900/95">
+                  <DropdownMenuContent align="end" className="w-64 rounded-xl border border-brand-100 bg-white/95 p-2 shadow-xl backdrop-blur dark:border-brand-800/60 dark:bg-slate-900/95">
                     <div className="px-2 pb-2 pt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       Choose {examSwitcher.label === 'Classes' ? 'class' : 'set'}
                     </div>
@@ -1909,8 +1909,8 @@ export default function RecordResultsView() {
                               onClick={() => requestExamSwitch(option.id, option.classId, option.label)}
                               className={`flex h-10 items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-semibold transition-colors ${
                                 isCurrentExam
-                                  ? 'cursor-default border-blue-600 bg-blue-600 text-white'
-                                  : 'border-blue-100 bg-blue-50/70 text-blue-700 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800/60 dark:bg-blue-950/70 dark:text-blue-300 dark:hover:border-blue-800/60 dark:hover:bg-blue-950/40'
+                                  ? 'cursor-default border-brand-600 bg-brand-surface-600 text-white'
+                                  : 'border-brand-100 bg-brand-surface-50/70 text-brand-ink-700 hover:border-brand-300 hover:bg-brand-surface-100 dark:border-brand-800/60 dark:bg-brand-surface-950/70 dark:text-brand-ink-300 dark:hover:border-brand-800/60 dark:hover:bg-brand-surface-950/40'
                               }`}
                               aria-current={isCurrentExam ? 'page' : undefined}
                             >
@@ -1987,7 +1987,7 @@ export default function RecordResultsView() {
       <GlassSummaryBar
         left={
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+            <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
               {isNurseryExam ? 'Nursery Assessment Scale' : 'Grading Scale'}
             </span>
           </div>
@@ -2006,7 +2006,7 @@ export default function RecordResultsView() {
                   className={`border px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold whitespace-nowrap ${
                     scale.grade === 'MISSED' ? 'bg-orange-50/80 text-orange-700 border-orange-200 dark:bg-orange-950/80 dark:text-orange-300 dark:border-orange-800/60' :
                     scale.grade.startsWith('D') ? 'bg-green-50/80 text-green-700 border-green-200 dark:bg-green-950/80 dark:text-green-300 dark:border-green-800/60' :
-                    scale.grade.startsWith('C') ? 'bg-blue-50/80 text-blue-700 border-blue-200 dark:bg-blue-950/80 dark:text-blue-300 dark:border-blue-800/60' :
+                    scale.grade.startsWith('C') ? 'bg-brand-surface-50/80 text-brand-ink-700 border-brand-200 dark:bg-brand-surface-950/80 dark:text-brand-ink-300 dark:border-brand-800/60' :
                     scale.grade.startsWith('P') ? 'bg-yellow-50/80 text-yellow-700 border-yellow-200 dark:bg-yellow-950/80 dark:text-yellow-300 dark:border-yellow-800/60' :
                     'bg-red-50/80 text-red-700 border-red-200 dark:bg-red-950/80 dark:text-red-300 dark:border-red-800/60'
                   }`}

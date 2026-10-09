@@ -83,7 +83,7 @@ const PostCard: React.FC<PostCardProps> = ({
       case 1:
         return <Crown className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-yellow-500 dark:text-yellow-400`} />;
       case 2:
-        return <Users className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-blue-500 dark:text-blue-400`} />;
+        return <Users className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-brand-ink-500 dark:text-brand-ink-400`} />;
       default:
         return <Users className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-gray-500 dark:text-slate-400`} />;
     }
@@ -98,11 +98,11 @@ const PostCard: React.FC<PostCardProps> = ({
       case 1:
         return 'bg-yellow-50 border-yellow-200 shadow-md dark:bg-yellow-950/40 dark:border-yellow-800/60';
       case 2:
-        return 'bg-blue-50 border-blue-200 shadow-md dark:bg-blue-950/40 dark:border-blue-800/60';
+        return 'bg-brand-surface-50 border-brand-200 shadow-md dark:bg-brand-surface-950/40 dark:border-brand-800/60';
       case 3:
         return 'bg-green-50 border-green-200 shadow-md dark:bg-green-950/40 dark:border-green-800/60';
       case 4:
-        return 'bg-purple-50 border-purple-200 shadow-md dark:bg-purple-950/40 dark:border-purple-800/60';
+        return 'bg-brand-secondary-surface-50 border-brand-secondary-200 shadow-md dark:bg-brand-secondary-surface-950/40 dark:border-brand-secondary-800/60';
       default:
         return 'bg-gray-50 border-gray-200 shadow-md dark:bg-slate-900 dark:border-slate-700';
     }
@@ -315,7 +315,7 @@ const ListView: React.FC<{
                       {post.positionOfHonour === 1 ? (
                         <Crown className="h-4 w-4 text-yellow-500 dark:text-yellow-400" />
                       ) : (
-                        <Users className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                        <Users className="h-4 w-4 text-brand-ink-500 dark:text-brand-ink-400" />
                       )}
                       <span className="font-medium">{post.positionOfHonour}</span>
                     </div>

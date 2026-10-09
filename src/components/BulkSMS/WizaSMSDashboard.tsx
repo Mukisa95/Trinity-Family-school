@@ -136,7 +136,7 @@ export const WizaSMSDashboard: React.FC<WizaSMSDashboardProps> = ({ open, onClos
           <div className="relative flex-1 overflow-hidden bg-white dark:bg-slate-900">
             {isLoading && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-background/80">
-                <RefreshCw className="h-7 w-7 animate-spin text-primary" />
+                <RefreshCw className="h-7 w-7 animate-spin text-link" />
                 <p className="text-sm text-muted-foreground">Loading Wiza SMS…</p>
               </div>
             )}

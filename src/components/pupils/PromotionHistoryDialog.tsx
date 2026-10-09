@@ -51,14 +51,14 @@ const typeConfig: Record<PromotionBatchType, {
     },
     Transfer: {
         icon: ArrowRight,
-        color: "text-blue-700 dark:text-blue-300",
-        bgColor: "bg-blue-100 dark:bg-blue-950/40",
+        color: "text-brand-ink-700 dark:text-brand-ink-300",
+        bgColor: "bg-brand-surface-100 dark:bg-brand-surface-950/40",
         label: "Transfer"
     },
     Graduation: {
         icon: GraduationCap,
-        color: "text-purple-700 dark:text-purple-300",
-        bgColor: "bg-purple-100 dark:bg-purple-950/40",
+        color: "text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300",
+        bgColor: "bg-brand-secondary-surface-100 dark:bg-brand-secondary-surface-950/40",
         label: "Graduation"
     }
 };

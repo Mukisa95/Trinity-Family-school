@@ -307,7 +307,7 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
 
   if (!mounted || isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
+      <div className="min-h-screen bg-gradient-to-br from-brand-secondary-surface-50 via-brand-alt-surface-50 to-brand-surface-50 dark:from-brand-secondary-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-surface-950/40">
         <GlassPageTopBar
           title="Record Results"
           subtitle="Loading PLE record..."
@@ -326,7 +326,7 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
 
   if (!pleRecord) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
+      <div className="min-h-screen bg-gradient-to-br from-brand-secondary-surface-50 via-brand-alt-surface-50 to-brand-surface-50 dark:from-brand-secondary-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-surface-950/40">
         <GlassPageTopBar
           title="Record Results"
           subtitle="PLE record not found"
@@ -348,7 +348,7 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 animate-in fade-in duration-500 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
+    <div className="min-h-screen bg-gradient-to-br from-brand-secondary-surface-50 via-brand-alt-surface-50 to-brand-surface-50 animate-in fade-in duration-500 dark:from-brand-secondary-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-surface-950/40">
       <GlassPageTopBar
         title={`Record Results - ${pleRecord.examName}`}
         subtitle="Enter PLE aggregates for each subject and candidate."
@@ -356,10 +356,10 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
         backLabel="Back to PLE"
         meta={
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="bg-purple-50 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-100/80 whitespace-nowrap dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/80">
+            <span className="bg-brand-secondary-surface-50 text-brand-secondary-ink-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-brand-secondary-100/80 whitespace-nowrap dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-300 dark:border-brand-secondary-800/80">
               {pleRecord.totalCandidates} candidates
             </span>
-            <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100/80 whitespace-nowrap dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/80">
+            <span className="bg-brand-surface-50 text-brand-ink-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-brand-100/80 whitespace-nowrap dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/80">
               {orderedSubjects.length} subjects
             </span>
             <span className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-100/80 whitespace-nowrap dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/80">
@@ -497,7 +497,7 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
                         </div>
                       ) : (
                         <div className={`px-2 py-1 rounded text-xs font-mono font-medium ${pupil.totalAggregate > 0
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
+                          ? 'bg-brand-surface-100 text-brand-ink-700 dark:bg-brand-surface-950/40 dark:text-brand-ink-300'
                           : 'bg-gray-100 text-gray-500 dark:bg-slate-900 dark:text-slate-400'
                           }`}>
                           {pupil.totalAggregate || '--'}
@@ -553,7 +553,7 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
             <div className="w-px h-4 bg-gray-300 mx-2 dark:bg-slate-700"></div>
             {PLE_DIVISIONS.map(div => (
               <div key={div.value} className="flex items-center gap-1">
-                <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium dark:bg-blue-950/40 dark:text-blue-300">
+                <span className="bg-brand-surface-100 text-brand-ink-700 px-1.5 py-0.5 rounded font-medium dark:bg-brand-surface-950/40 dark:text-brand-ink-300">
                   Div {div.value}
                 </span>
                 <span className="text-gray-600 dark:text-slate-300">{div.label.split('(')[1]?.replace(')', '')}</span>

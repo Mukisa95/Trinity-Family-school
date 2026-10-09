@@ -265,7 +265,7 @@ export const AccountBalance: React.FC = () => {
           {isAutoTopUpEnabled && autoTopUpConfig && (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <Zap className="h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                 <span className="text-sm font-medium">Auto Top-up Active</span>
                 <Badge variant="default" className="text-xs">
                   <CheckCircle className="h-3 w-3 mr-1" />

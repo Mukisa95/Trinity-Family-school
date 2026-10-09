@@ -165,7 +165,7 @@ export default function TimetablePage() {
                     <DropdownMenuTrigger asChild>
                         <button
                             type="button"
-                            className="flex h-8 w-auto items-center rounded-full border border-blue-200/70 bg-white/95 px-2 text-[10px] font-bold text-blue-700 shadow-sm transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-blue-800/70 dark:bg-slate-900/95 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                            className="flex h-8 w-auto items-center rounded-full border border-brand-200/70 bg-white/95 px-2 text-[10px] font-bold text-brand-ink-700 shadow-sm transition-colors hover:bg-brand-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-brand-800/70 dark:bg-slate-900/95 dark:text-brand-ink-300 dark:hover:bg-brand-surface-950/40"
                             aria-label={`Select academic year and term. Current selection: ${selectedPeriodLabel}`}
                         >
                             <span className="whitespace-nowrap">{selectedPeriodLabel}</span>
@@ -194,7 +194,7 @@ export default function TimetablePage() {
                                             className="cursor-pointer justify-between py-2 text-xs"
                                         >
                                             <span>{term.name}</span>
-                                            {isSelected && <Check className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />}
+                                            {isSelected && <Check className="h-3.5 w-3.5 text-brand-ink-600 dark:text-brand-ink-400" />}
                                         </DropdownMenuItem>
                                     );
                                 })}
@@ -210,7 +210,7 @@ export default function TimetablePage() {
                         <DropdownMenuTrigger asChild>
                             <button
                                 type="button"
-                                className="flex h-8 w-full max-w-[22vw] items-center gap-1 rounded-full border border-violet-200/70 bg-white/95 px-1.5 text-[9px] font-bold text-violet-700 shadow-sm transition-colors hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:border-violet-800/70 dark:bg-slate-900/95 dark:text-violet-300 dark:hover:bg-violet-950/40"
+                                className="flex h-8 w-full max-w-[22vw] items-center gap-1 rounded-full border border-brand-secondary-alt-200/70 bg-white/95 px-1.5 text-[9px] font-bold text-brand-secondary-alt-ink-700 shadow-sm transition-colors hover:bg-brand-secondary-alt-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary-alt-500 dark:border-brand-secondary-alt-800/70 dark:bg-slate-900/95 dark:text-brand-secondary-alt-ink-300 dark:hover:bg-brand-secondary-alt-surface-950/40"
                                 aria-label={`Choose timetable. Current selection: ${selectedTimetableLabel}`}
                             >
                                 <TableProperties className="h-3.5 w-3.5 shrink-0" />
@@ -234,7 +234,7 @@ export default function TimetablePage() {
                                         className="cursor-pointer justify-between py-2 text-xs"
                                     >
                                         <span className="truncate">{profile.name || "Main Timetable"}</span>
-                                        {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-violet-600 dark:text-violet-400" />}
+                                        {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-brand-secondary-alt-ink-600 dark:text-brand-secondary-alt-ink-400" />}
                                     </DropdownMenuItem>
                                 );
                             })}
@@ -246,7 +246,7 @@ export default function TimetablePage() {
                                         className="cursor-pointer justify-between py-2 text-xs"
                                     >
                                         <span>All Timetables</span>
-                                        {viewMode === "all" && <Check className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />}
+                                        {viewMode === "all" && <Check className="h-3.5 w-3.5 text-brand-secondary-alt-ink-600 dark:text-brand-secondary-alt-ink-400" />}
                                     </DropdownMenuItem>
                                 </>
                             )}
@@ -262,7 +262,7 @@ export default function TimetablePage() {
             <select
                 value={yearId}
                 onChange={(e) => { setYearId(e.target.value); setTermId(''); }}
-                className="h-[30px] cursor-pointer rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
+                className="h-[30px] cursor-pointer rounded-full border border-brand-200/60 bg-white/90 px-2 text-[10px] font-semibold text-brand-ink-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
             >
                 <option value="" disabled>Select Year</option>
                 {years.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
@@ -271,7 +271,7 @@ export default function TimetablePage() {
                 value={termId}
                 onChange={(e) => setTermId(e.target.value)}
                 disabled={!yearId}
-                className="h-[30px] cursor-pointer rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 disabled:opacity-50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
+                className="h-[30px] cursor-pointer rounded-full border border-brand-200/60 bg-white/90 px-2 text-[10px] font-semibold text-brand-ink-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-400/50 disabled:opacity-50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
             >
                 <option value="" disabled>Select Term</option>
                 {viewTerms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -290,8 +290,8 @@ export default function TimetablePage() {
                                 }}
                                 className={`px-3 py-0.5 rounded-full font-bold text-[10px] transition-all whitespace-nowrap flex-shrink-0 border ${
                                     selectedProfileId === profile.id && viewMode === 'single'
-                                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-500/20'
-                                        : 'bg-white/80 border-white/60 text-gray-600 hover:bg-blue-50 hover:text-blue-600 dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-400'
+                                        ? 'bg-brand-surface-600 text-white border-brand-600 shadow-sm shadow-brand-500/20'
+                                        : 'bg-white/80 border-white/60 text-gray-600 hover:bg-brand-surface-50 hover:text-brand-ink-600 dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-300 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-400'
                                 }`}
                             >
                                 {profile.name || "Main Timetable"}
@@ -370,7 +370,7 @@ export default function TimetablePage() {
                                     {nativeApp && <DropdownMenuItem onClick={() => void androidOfflineRequest('openTimetableSettings').catch(error => toast({ title: 'Could not open timetable controls', description: error.message, variant: 'destructive' }))}>
                                         <Settings className="mr-2 h-4 w-4" /><span>Card and widgets</span>
                                     </DropdownMenuItem>}
-                                    <DropdownMenuItem onClick={() => setIsGeneratorOpen(true)} className="cursor-pointer text-blue-600 focus:text-blue-700 focus:bg-blue-50 py-2.5 dark:text-blue-400 dark:focus:text-blue-300 dark:focus:bg-blue-950/40">
+                                    <DropdownMenuItem onClick={() => setIsGeneratorOpen(true)} className="cursor-pointer text-brand-ink-600 focus:text-brand-ink-700 focus:bg-brand-surface-50 py-2.5 dark:text-brand-ink-400 dark:focus:text-brand-ink-300 dark:focus:bg-brand-surface-950/40">
                                         <PlusCircle className="mr-2 h-4 w-4" />
                                         <span>New Timetable Structure</span>
                                     </DropdownMenuItem>
@@ -423,14 +423,14 @@ export default function TimetablePage() {
                 </div>
             ) : profiles.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-xl border border-gray-200 flex flex-col items-center justify-center dark:bg-slate-900 dark:border-slate-700">
-                    <div className="p-4 bg-blue-50 text-blue-500 rounded-full mb-4 dark:bg-blue-950/40 dark:text-blue-400">
+                    <div className="p-4 bg-brand-surface-50 text-brand-ink-500 rounded-full mb-4 dark:bg-brand-surface-950/40 dark:text-brand-ink-400">
                         <TableProperties className="h-12 w-12" />
                     </div>
                     <h2 className="text-xl font-semibold text-gray-800 mb-2 dark:text-slate-100">No Timetable Configured</h2>
                     <p className="text-gray-500 mb-6 max-w-md dark:text-slate-400">You haven't generated a timetable structure for {viewYear?.name || 'this Year'} - {viewTerms.find(t => t.id === termId)?.name || 'this Term'} yet. Create one to get started.</p>
                     <button
                         onClick={() => setIsGeneratorOpen(true)}
-                        className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 transition"
+                        className="flex items-center gap-2 bg-brand-surface-600 text-white px-6 py-2.5 rounded-lg hover:bg-brand-surface-700 transition"
                     >
                         <PlusCircle className="h-4 w-4" />
                         Generate New Timetable Structure
@@ -444,7 +444,7 @@ export default function TimetablePage() {
                     {viewMode === 'all' ? (
                         <div className="space-y-4">
                             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm dark:bg-slate-900 dark:border-slate-700">
-                                <h2 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-5 dark:from-purple-400 dark:to-blue-400">
+                                <h2 className="text-xl font-bold bg-gradient-to-r from-brand-secondary-ink-600 to-brand-ink-600 bg-clip-text text-transparent mb-5 dark:from-brand-secondary-ink-400 dark:to-brand-ink-400">
                                     All Timetables — Combined Timeline View
                                 </h2>
                                 <CombinedTimelineView yearId={yearId} termId={termId} />

@@ -3223,7 +3223,7 @@ function PupilsContent() {
                 <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Class Options</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => router.push(`/class-detail?id=${rowPupil.classId}`)}>
-                  <Settings className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <Settings className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                   View Class Details
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handlePupilClassChange(rowPupil)}>
@@ -3235,7 +3235,7 @@ function PupilsContent() {
             <div className="mt-0.5">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="block text-left text-xs capitalize text-gray-500 transition-colors hover:text-indigo-600 hover:underline dark:text-slate-400 dark:hover:text-indigo-400">
+                  <button className="block text-left text-xs capitalize text-gray-500 transition-colors hover:text-brand-alt-ink-600 hover:underline dark:text-slate-400 dark:hover:text-brand-alt-ink-400">
                     {rowPupil.section}
                   </button>
                 </DropdownMenuTrigger>
@@ -3244,17 +3244,17 @@ function PupilsContent() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => handlePupilSectionChange(rowPupil, 'Day')}
-                    className={rowPupil.section === 'Day' ? 'bg-blue-50 dark:bg-blue-950/40' : ''}
+                    className={rowPupil.section === 'Day' ? 'bg-brand-surface-50 dark:bg-brand-surface-950/40' : ''}
                   >
                     Day
-                    {rowPupil.section === 'Day' && <span className="ml-auto text-blue-600 dark:text-blue-400">✓</span>}
+                    {rowPupil.section === 'Day' && <span className="ml-auto text-brand-ink-600 dark:text-brand-ink-400">✓</span>}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => handlePupilSectionChange(rowPupil, 'Boarding')}
-                    className={rowPupil.section === 'Boarding' ? 'bg-purple-50 dark:bg-purple-950/40' : ''}
+                    className={rowPupil.section === 'Boarding' ? 'bg-brand-secondary-surface-50 dark:bg-brand-secondary-surface-950/40' : ''}
                   >
                     Boarding
-                    {rowPupil.section === 'Boarding' && <span className="ml-auto text-purple-600 dark:text-purple-400">✓</span>}
+                    {rowPupil.section === 'Boarding' && <span className="ml-auto text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">✓</span>}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -3283,7 +3283,7 @@ function PupilsContent() {
                 <button
                   type="button"
                   onClick={() => handleManageIdCodes(rowPupil)}
-                  className="mt-1 flex items-center gap-1 self-start text-[10px] font-medium text-indigo-500 transition-colors hover:text-indigo-700 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300"
+                  className="mt-1 flex items-center gap-1 self-start text-[10px] font-medium text-brand-alt-ink-500 transition-colors hover:text-brand-alt-ink-700 hover:underline dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-300"
                 >
                   <Edit className="h-3 w-3" /> Edit
                 </button>
@@ -3292,7 +3292,7 @@ function PupilsContent() {
               <button
                 type="button"
                 onClick={() => handleManageIdCodes(rowPupil)}
-                className="text-xs font-medium text-gray-400 transition-colors hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400"
+                className="text-xs font-medium text-gray-400 transition-colors hover:text-brand-alt-ink-600 dark:text-slate-400 dark:hover:text-brand-alt-ink-400"
               >
                 <span className="flex items-center gap-1">
                   <CreditCard className="h-3 w-3" />
@@ -3319,7 +3319,7 @@ function PupilsContent() {
                     guardians: rowPupil.guardians || [],
                     emergencyContactId: rowPupil.emergencyContactGuardianId || '',
                   })}
-                  className="text-xs text-blue-700 transition-colors hover:text-blue-900 hover:underline dark:text-blue-300 dark:hover:text-blue-200"
+                  className="text-xs text-brand-ink-700 transition-colors hover:text-brand-ink-900 hover:underline dark:text-brand-ink-300 dark:hover:text-brand-ink-200"
                 >
                   {guardianCount} guardian{guardianCount !== 1 ? 's' : ''}
                 </button>
@@ -3365,7 +3365,7 @@ function PupilsContent() {
           )}
         </td>
 
-        <td className="px-2 py-2 text-right text-xs font-medium uppercase tracking-wider text-indigo-500 sm:px-4 sm:py-3 dark:text-indigo-400">
+        <td className="px-2 py-2 text-right text-xs font-medium uppercase tracking-wider text-brand-alt-ink-500 sm:px-4 sm:py-3 dark:text-brand-alt-ink-400">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -3388,11 +3388,11 @@ function PupilsContent() {
                 Collect Fees
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleEditName(rowPupil)}>
-                <User className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <User className="mr-2 h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                 Edit Name
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => { window.location.href = `/pupils/edit?id=${rowPupil.id}`; }}>
-                <Edit className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <Edit className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                 Edit Pupil Details
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleStatusChange(rowPupil)}>
@@ -3413,7 +3413,7 @@ function PupilsContent() {
                 Register New Sibling
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleLinkSiblings(rowPupil)}>
-                <UserPlus className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <UserPlus className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                 Link Existing as Sibling
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -3432,7 +3432,7 @@ function PupilsContent() {
     <div className="min-h-screen">
       {/* Background fetching indicator - Fixed at top */}
       {pupilsManager.isFetching && !isLoadingPupils && (
-        <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 animate-pulse">
+        <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-gradient-to-r from-brand-surface-500 via-brand-alt-surface-500 to-brand-secondary-surface-500 animate-pulse">
           <div className="h-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite] dark:via-slate-900/30"></div>
         </div>
       )}
@@ -3462,7 +3462,7 @@ function PupilsContent() {
               size="sm"
               showIcon={false}
               className="shrink-0"
-              triggerClassName="h-[34px] w-[58px] min-w-0 max-w-[58px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 sm:w-[68px] sm:max-w-[68px] dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
+              triggerClassName="h-[34px] w-[58px] min-w-0 max-w-[58px] rounded-full border-brand-200/60 bg-white/90 px-2 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 sm:w-[68px] sm:max-w-[68px] dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
               includeAllOption={true}
               allOptionLabel="All"
             />
@@ -3477,7 +3477,7 @@ function PupilsContent() {
               size="sm"
               showIcon={false}
               className="shrink-0"
-              triggerClassName="h-[34px] min-w-[120px] max-w-[160px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
+              triggerClassName="h-[34px] min-w-[120px] max-w-[160px] rounded-full border-brand-200/60 bg-white/90 px-3 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
               includeAllOption={true}
               allOptionLabel="All Classes"
             />
@@ -3532,8 +3532,8 @@ function PupilsContent() {
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel className="font-semibold text-xs text-muted-foreground">Export Options</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setIsColumnSelectionModalOpen(true)} className="cursor-pointer py-1.5 focus:bg-indigo-50 dark:focus:bg-indigo-950/40">
-                  <Printer size={14} className="mr-2 text-indigo-600 dark:text-indigo-400" weight="duotone" />
+                <DropdownMenuItem onClick={() => setIsColumnSelectionModalOpen(true)} className="cursor-pointer py-1.5 focus:bg-brand-alt-surface-50 dark:focus:bg-brand-alt-surface-950/40">
+                  <Printer size={14} className="mr-2 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" weight="duotone" />
                   <span className="font-medium text-[11px] text-gray-700 dark:text-slate-200">Print List</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleGenerateRegistrationFormPDF} className="cursor-pointer py-1.5 focus:bg-sky-50 dark:focus:bg-sky-950/40">
@@ -3567,21 +3567,21 @@ function PupilsContent() {
       />
 
       <div className="hidden">
-        <div className="h-px bg-gradient-to-r from-transparent via-blue-200/60 to-transparent dark:via-blue-900/60" />
+        <div className="h-px bg-gradient-to-r from-transparent via-brand-surface-200/60 to-transparent dark:via-brand-surface-900/60" />
         <div className="max-w-7xl mx-auto py-1">
           <div className="flex flex-row items-center justify-between gap-1.5 sm:gap-3 w-full flex-nowrap">
             
             {/* Left section: Title + count badge + class selector */}
             <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
-              <div className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full bg-blue-50/80 border border-blue-200/60 text-blue-600 shadow-sm flex-shrink-0 dark:bg-blue-950/80 dark:border-blue-800/60 dark:text-blue-400">
+              <div className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full bg-brand-surface-50/80 border border-brand-200/60 text-brand-ink-600 shadow-sm flex-shrink-0 dark:bg-brand-surface-950/80 dark:border-brand-800/60 dark:text-brand-ink-400">
                 <Users className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                  <h1 className="text-xs sm:text-lg font-bold text-indigo-900 leading-tight dark:text-indigo-200">
+                  <h1 className="text-xs sm:text-lg font-bold text-brand-alt-ink-900 leading-tight dark:text-brand-alt-ink-200">
                     Pupils
                   </h1>
-                  <span className="bg-indigo-50 text-indigo-700 text-[8px] sm:text-[10px] font-bold px-1 sm:px-2 py-0.5 rounded-full border border-indigo-100/80 whitespace-nowrap dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/80">
+                  <span className="bg-brand-alt-surface-50 text-brand-alt-ink-700 text-[8px] sm:text-[10px] font-bold px-1 sm:px-2 py-0.5 rounded-full border border-brand-alt-100/80 whitespace-nowrap dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300 dark:border-brand-alt-800/80">
                     {statusCount} {statusLabel}
                   </span>
                   
@@ -3593,7 +3593,7 @@ function PupilsContent() {
                       onClassChange={handleClassChangeWithTransition}
                       placeholder="Class"
                       size="sm"
-                      className="bg-transparent border-0 ring-0 focus:ring-0 text-blue-700 font-semibold text-[10px] sm:text-xs min-w-[70px] sm:min-w-[100px] dark:text-blue-300"
+                      className="bg-transparent border-0 ring-0 focus:ring-0 text-brand-ink-700 font-semibold text-[10px] sm:text-xs min-w-[70px] sm:min-w-[100px] dark:text-brand-ink-300"
                       includeAllOption={true}
                       allOptionLabel="All Classes"
                     />
@@ -3604,7 +3604,7 @@ function PupilsContent() {
 
             {/* Middle section: Dynamic flex-growing Search bar */}
             <div className="relative group flex-1 min-w-[50px] max-w-[200px] sm:max-w-xs mx-1 sm:mx-2">
-              <div className="absolute inset-y-0 left-0 pl-1.5 sm:pl-2.5 flex items-center pointer-events-none text-blue-500/80 group-hover:text-blue-600 transition-all duration-500 z-10 dark:text-blue-400/80 dark:group-hover:text-blue-400">
+              <div className="absolute inset-y-0 left-0 pl-1.5 sm:pl-2.5 flex items-center pointer-events-none text-brand-ink-500/80 group-hover:text-brand-ink-600 transition-all duration-500 z-10 dark:text-brand-ink-400/80 dark:group-hover:text-brand-ink-400">
                 <MagnifyingGlass size={11} className="w-3 h-3 sm:w-3.5 sm:h-3.5" weight="duotone" />
               </div>
               <input
@@ -3612,7 +3612,7 @@ function PupilsContent() {
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="w-full pl-5 sm:pl-8 pr-1.5 py-1 text-[10px] sm:text-xs bg-white/70 rounded-full focus:ring-2 focus:ring-blue-400/50 focus:outline-none shadow-sm hover:shadow-md transition-all duration-500 ease-in-out placeholder:text-gray-400 border border-gray-200/60 dark:bg-slate-900/70 dark:placeholder:text-slate-400 dark:border-slate-700/60"
+                className="w-full pl-5 sm:pl-8 pr-1.5 py-1 text-[10px] sm:text-xs bg-white/70 rounded-full focus:ring-2 focus:ring-brand-400/50 focus:outline-none shadow-sm hover:shadow-md transition-all duration-500 ease-in-out placeholder:text-gray-400 border border-gray-200/60 dark:bg-slate-900/70 dark:placeholder:text-slate-400 dark:border-slate-700/60"
               />
             </div>
 
@@ -3634,13 +3634,13 @@ function PupilsContent() {
                 {/* Filter button */}
                 <button
                   onClick={() => setIsFilterPopupOpen(true)}
-                  className="relative flex items-center justify-center h-7 w-7 sm:w-auto px-0 sm:px-3 rounded-full font-semibold text-xs transition-all whitespace-nowrap border bg-white border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 flex-shrink-0 active:scale-95 dark:bg-slate-900 dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40 dark:hover:border-blue-800/60"
+                  className="relative flex items-center justify-center h-7 w-7 sm:w-auto px-0 sm:px-3 rounded-full font-semibold text-xs transition-all whitespace-nowrap border bg-white border-brand-200 text-brand-ink-700 hover:bg-brand-surface-50 hover:border-brand-300 flex-shrink-0 active:scale-95 dark:bg-slate-900 dark:border-brand-800/60 dark:text-brand-ink-300 dark:hover:bg-brand-surface-950/40 dark:hover:border-brand-800/60"
                   title="Filter Pupils"
                 >
                   <FunnelSimple size={13} className="sm:mr-1" weight="duotone" />
                   <span className="hidden sm:inline">Filters</span>
                   {activeFiltersCount > 0 && (
-                    <span className="absolute sm:relative -top-1 -right-1 sm:top-auto sm:right-auto sm:ml-1.5 px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-blue-600 text-white leading-none">
+                    <span className="absolute sm:relative -top-1 -right-1 sm:top-auto sm:right-auto sm:ml-1.5 px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-brand-surface-600 text-white leading-none">
                       {activeFiltersCount}
                     </span>
                   )}
@@ -3662,8 +3662,8 @@ function PupilsContent() {
                   <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuLabel className="font-semibold text-xs text-muted-foreground">Export Options</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setIsColumnSelectionModalOpen(true)} className="cursor-pointer py-1.5 focus:bg-indigo-50 dark:focus:bg-indigo-950/40">
-                      <Printer size={14} className="mr-2 text-indigo-600 dark:text-indigo-400" weight="duotone" />
+                    <DropdownMenuItem onClick={() => setIsColumnSelectionModalOpen(true)} className="cursor-pointer py-1.5 focus:bg-brand-alt-surface-50 dark:focus:bg-brand-alt-surface-950/40">
+                      <Printer size={14} className="mr-2 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" weight="duotone" />
                       <span className="font-medium text-[11px] text-gray-700 dark:text-slate-200">Print List</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleGenerateRegistrationFormPDF} className="cursor-pointer py-1.5 focus:bg-sky-50 dark:focus:bg-sky-950/40">
@@ -3689,7 +3689,7 @@ function PupilsContent() {
                 <ActionGuard module="pupils" page="create" action="access_page">
                   <button
                     onClick={() => router.push('/pupils/new')}
-                    className="flex items-center justify-center h-7 w-7 sm:w-auto px-0 sm:px-3 rounded-full font-semibold text-xs transition-all whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0 shadow-sm active:scale-95"
+                    className="flex items-center justify-center h-7 w-7 sm:w-auto px-0 sm:px-3 rounded-full font-semibold text-xs transition-all whitespace-nowrap bg-brand-surface-600 hover:bg-brand-surface-700 text-white flex-shrink-0 shadow-sm active:scale-95"
                     title="Add New Pupil"
                   >
                     <Plus size={13} className="sm:mr-1" strokeWidth={2.5} />
@@ -3707,32 +3707,32 @@ function PupilsContent() {
 
         {/* Show message when no class is selected */}
         {!selectedClassId || selectedClassId === '' ? (
-          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-12 text-center dark:bg-slate-900 dark:border-indigo-800/60">
+          <div className="bg-white rounded-xl shadow-sm border border-brand-alt-100 p-12 text-center dark:bg-slate-900 dark:border-brand-alt-800/60">
             <div className="flex flex-col items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center dark:bg-indigo-950/40">
-                <Users className="w-8 h-8 text-indigo-500 dark:text-indigo-400" />
+              <div className="w-16 h-16 rounded-full bg-brand-alt-surface-100 flex items-center justify-center dark:bg-brand-alt-surface-950/40">
+                <Users className="w-8 h-8 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-indigo-700 mb-2 dark:text-indigo-300">Select a Class</h3>
-                <p className="text-indigo-500 dark:text-indigo-400">Please select a class from the dropdown above to view pupils</p>
+                <h3 className="text-lg font-semibold text-brand-alt-ink-700 mb-2 dark:text-brand-alt-ink-300">Select a Class</h3>
+                <p className="text-brand-alt-ink-500 dark:text-brand-alt-ink-400">Please select a class from the dropdown above to view pupils</p>
               </div>
             </div>
           </div>
         ) : isLoadingPupils || isLoadingClassesFinal || isLoadingSettingsFinal ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-            <span className="ml-3 text-indigo-600 dark:text-indigo-400">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-alt-600"></div>
+            <span className="ml-3 text-brand-alt-ink-600 dark:text-brand-alt-ink-400">
               Loading pupils and school information...
             </span>
           </div>
         ) : filteredAndSortedPupils.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-12 text-center dark:bg-slate-900 dark:border-indigo-800/60">
-            <p className="text-indigo-500 dark:text-indigo-400">No pupils found for the selected class</p>
+          <div className="bg-white rounded-xl shadow-sm border border-brand-alt-100 p-12 text-center dark:bg-slate-900 dark:border-brand-alt-800/60">
+            <p className="text-brand-alt-ink-500 dark:text-brand-alt-ink-400">No pupils found for the selected class</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-indigo-100 bg-white shadow-sm dark:border-indigo-800/60 dark:bg-slate-900">
+          <div className="overflow-hidden rounded-xl border border-brand-alt-100 bg-white shadow-sm dark:border-brand-alt-800/60 dark:bg-slate-900">
             <div className="overflow-x-auto rounded-t-xl">
-              <table className="min-w-full divide-y divide-indigo-100 dark:divide-indigo-800/60">
+              <table className="min-w-full divide-y divide-brand-alt-100 dark:divide-brand-alt-800/60">
                 <thead className="border-b-2 border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/30 backdrop-blur-sm">
                   <tr>
                     <th
@@ -3741,7 +3741,7 @@ function PupilsContent() {
                     >
                       <button
                         type="button"
-                        className="flex items-center space-x-2 rounded-lg px-2 py-1 transition-all duration-200 hover:scale-105 hover:bg-primary/10 hover:text-primary"
+                        className="flex items-center space-x-2 rounded-lg px-2 py-1 transition-all duration-200 hover:scale-105 hover:bg-primary/10 hover:text-link"
                       >
                         <span className="hidden sm:inline">PUPIL DETAILS</span>
                         <span className="sm:hidden">PUPIL</span>
@@ -3755,7 +3755,7 @@ function PupilsContent() {
                     >
                       <button
                         type="button"
-                        className="flex items-center space-x-1 rounded-lg px-2 py-1 transition-all duration-200 hover:scale-105 hover:bg-primary/10 hover:text-primary"
+                        className="flex items-center space-x-1 rounded-lg px-2 py-1 transition-all duration-200 hover:scale-105 hover:bg-primary/10 hover:text-link"
                       >
                         <span>MOPH</span>
                         {getSortIcon('class')}
@@ -3783,7 +3783,7 @@ function PupilsContent() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-indigo-100 dark:bg-slate-900 dark:divide-indigo-800/60">
+                <tbody className="bg-white divide-y divide-brand-alt-100 dark:bg-slate-900 dark:divide-brand-alt-800/60">
                   {showSkeleton || isLoadingPupils || isPending ? (
                     <PupilTableRowSkeleton count={8} />
                   ) : (
@@ -3865,7 +3865,7 @@ function PupilsContent() {
                                       <span className="hidden xs:inline text-gray-300">•</span>
                                       <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                          <button className="whitespace-nowrap hover:text-indigo-600 transition-colors font-medium dark:hover:text-indigo-400">
+                                          <button className="whitespace-nowrap hover:text-brand-alt-ink-600 transition-colors font-medium dark:hover:text-brand-alt-ink-400">
                                             {calculateAgeAbbreviated(pupil.dateOfBirth)}
                                           </button>
                                         </DropdownMenuTrigger>
@@ -3903,7 +3903,7 @@ function PupilsContent() {
                                         <DropdownMenuItem onClick={() => {
                                           router.push(`/class-detail?id=${pupil.classId}`);
                                         }}>
-                                          <Settings className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                          <Settings className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                                           View Class Details
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handlePupilClassChange(pupil)}>
@@ -3924,23 +3924,23 @@ function PupilsContent() {
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem
                                           onClick={() => handlePupilSectionChange(pupil, 'Day')}
-                                          className={pupil.section === 'Day' ? 'bg-blue-50 dark:bg-blue-950/40' : ''}
+                                          className={pupil.section === 'Day' ? 'bg-brand-surface-50 dark:bg-brand-surface-950/40' : ''}
                                         >
-                                          <svg className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <svg className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                                           </svg>
                                           Day
-                                          {pupil.section === 'Day' && <span className="ml-auto text-blue-600 dark:text-blue-400">✓</span>}
+                                          {pupil.section === 'Day' && <span className="ml-auto text-brand-ink-600 dark:text-brand-ink-400">✓</span>}
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
                                           onClick={() => handlePupilSectionChange(pupil, 'Boarding')}
-                                          className={pupil.section === 'Boarding' ? 'bg-purple-50 dark:bg-purple-950/40' : ''}
+                                          className={pupil.section === 'Boarding' ? 'bg-brand-secondary-surface-50 dark:bg-brand-secondary-surface-950/40' : ''}
                                         >
-                                          <svg className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <svg className="mr-2 h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                                           </svg>
                                           Boarding
-                                          {pupil.section === 'Boarding' && <span className="ml-auto text-purple-600 dark:text-purple-400">✓</span>}
+                                          {pupil.section === 'Boarding' && <span className="ml-auto text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">✓</span>}
                                         </DropdownMenuItem>
                                       </DropdownMenuContent>
                                     </DropdownMenu>
@@ -3960,7 +3960,7 @@ function PupilsContent() {
                                           guardians: pupil.guardians || [],
                                           emergencyContactId: pupil.emergencyContactGuardianId || ''
                                         })}>
-                                          <svg className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <svg className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                           </svg>
                                           Guardians ({pupil.guardians?.length || 0})
@@ -4001,7 +4001,7 @@ function PupilsContent() {
                                     ) : (
                                       <button
                                         onClick={() => handleManageIdCodes(pupil)}
-                                        className="text-gray-400 hover:text-indigo-600 transition-colors text-xs dark:text-slate-400 dark:hover:text-indigo-400"
+                                        className="text-gray-400 hover:text-brand-alt-ink-600 transition-colors text-xs dark:text-slate-400 dark:hover:text-brand-alt-ink-400"
                                       >
                                         <div className="flex items-center gap-1">
                                           <CreditCard className="h-3 w-3" />
@@ -4028,7 +4028,7 @@ function PupilsContent() {
                                   <DropdownMenuItem onClick={() => {
                                     router.push(`/class-detail?id=${pupil.classId}`);
                                   }}>
-                                    <Settings className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                    <Settings className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                                     View Class Details
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handlePupilClassChange(pupil)}>
@@ -4040,7 +4040,7 @@ function PupilsContent() {
                               <div className="mt-0.5">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <button className="text-xs text-gray-500 capitalize hover:text-indigo-600 hover:underline transition-colors text-left block dark:text-slate-400 dark:hover:text-indigo-400">
+                                    <button className="text-xs text-gray-500 capitalize hover:text-brand-alt-ink-600 hover:underline transition-colors text-left block dark:text-slate-400 dark:hover:text-brand-alt-ink-400">
                                       {pupil.section}
                                     </button>
                                   </DropdownMenuTrigger>
@@ -4049,23 +4049,23 @@ function PupilsContent() {
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
                                       onClick={() => handlePupilSectionChange(pupil, 'Day')}
-                                      className={pupil.section === 'Day' ? 'bg-blue-50 dark:bg-blue-950/40' : ''}
+                                      className={pupil.section === 'Day' ? 'bg-brand-surface-50 dark:bg-brand-surface-950/40' : ''}
                                     >
-                                      <svg className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <svg className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                                       </svg>
                                       Day
-                                      {pupil.section === 'Day' && <span className="ml-auto text-blue-600 dark:text-blue-400">✓</span>}
+                                      {pupil.section === 'Day' && <span className="ml-auto text-brand-ink-600 dark:text-brand-ink-400">✓</span>}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onClick={() => handlePupilSectionChange(pupil, 'Boarding')}
-                                      className={pupil.section === 'Boarding' ? 'bg-purple-50 dark:bg-purple-950/40' : ''}
+                                      className={pupil.section === 'Boarding' ? 'bg-brand-secondary-surface-50 dark:bg-brand-secondary-surface-950/40' : ''}
                                     >
-                                      <svg className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <svg className="mr-2 h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                                       </svg>
                                       Boarding
-                                      {pupil.section === 'Boarding' && <span className="ml-auto text-purple-600 dark:text-purple-400">✓</span>}
+                                      {pupil.section === 'Boarding' && <span className="ml-auto text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">✓</span>}
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
@@ -4092,7 +4092,7 @@ function PupilsContent() {
                                   })}
                                   <button
                                     onClick={() => handleManageIdCodes(pupil)}
-                                    className="text-[10px] text-indigo-500 hover:text-indigo-700 hover:underline transition-colors self-start mt-1 font-medium flex items-center gap-1 dark:text-indigo-400 dark:hover:text-indigo-300"
+                                    className="text-[10px] text-brand-alt-ink-500 hover:text-brand-alt-ink-700 hover:underline transition-colors self-start mt-1 font-medium flex items-center gap-1 dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-300"
                                   >
                                     <Edit className="h-3 w-3" /> Edit
                                   </button>
@@ -4100,7 +4100,7 @@ function PupilsContent() {
                               ) : (
                                 <button
                                   onClick={() => handleManageIdCodes(pupil)}
-                                  className="text-gray-400 hover:text-indigo-600 transition-colors text-xs font-medium dark:text-slate-400 dark:hover:text-indigo-400"
+                                  className="text-gray-400 hover:text-brand-alt-ink-600 transition-colors text-xs font-medium dark:text-slate-400 dark:hover:text-brand-alt-ink-400"
                                 >
                                   <div className="flex items-center gap-1">
                                     <CreditCard className="h-3 w-3" />
@@ -4130,7 +4130,7 @@ function PupilsContent() {
                                         guardians: pupil.guardians || [],
                                         emergencyContactId: pupil.emergencyContactGuardianId || ''
                                       })}
-                                      className="text-xs text-blue-700 hover:text-blue-900 hover:underline transition-colors dark:text-blue-300 dark:hover:text-blue-200"
+                                      className="text-xs text-brand-ink-700 hover:text-brand-ink-900 hover:underline transition-colors dark:text-brand-ink-300 dark:hover:text-brand-ink-200"
                                     >
                                       {guardianCount} guardian{guardianCount !== 1 ? 's' : ''}
                                     </button>
@@ -4184,7 +4184,7 @@ function PupilsContent() {
                               );
                             })()}
                           </td>
-                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-indigo-500 uppercase tracking-wider dark:text-indigo-400">
+                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-brand-alt-ink-500 uppercase tracking-wider dark:text-brand-alt-ink-400">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button 
@@ -4210,13 +4210,13 @@ function PupilsContent() {
                                   Collect Fees
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleEditName(pupil)}>
-                                  <User className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                  <User className="mr-2 h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                                   Edit Name
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => {
                                   window.location.href = `/pupils/edit?id=${pupil.id}`;
                                 }}>
-                                  <Edit className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                  <Edit className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                                   Edit Pupil Details
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleStatusChange(pupil)}>
@@ -4237,7 +4237,7 @@ function PupilsContent() {
                                   Register New Sibling
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleLinkSiblings(pupil)}>
-                                  <UserPlus className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                  <UserPlus className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                                   Link Existing as Sibling
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
@@ -4333,17 +4333,17 @@ function PupilsContent() {
 
             {/* 🚀 INFINITE SCROLL STATUS BAR */}
             {totalFilteredCount > 0 && (
-              <div className="px-4 py-2.5 border-t border-indigo-100 bg-gradient-to-r from-indigo-50/40 to-white dark:border-indigo-800/60 dark:from-indigo-950/40 dark:to-slate-900">
+              <div className="px-4 py-2.5 border-t border-brand-alt-100 bg-gradient-to-r from-brand-alt-surface-50/40 to-white dark:border-brand-alt-800/60 dark:from-brand-alt-surface-950/40 dark:to-slate-900">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm text-gray-500 dark:text-slate-400">
                     Showing{' '}
-                    <span className="font-semibold text-indigo-600 dark:text-indigo-400">{filteredAndSortedPupils.length}</span>
+                    <span className="font-semibold text-brand-alt-ink-600 dark:text-brand-alt-ink-400">{filteredAndSortedPupils.length}</span>
                     {' '}of{' '}
-                    <span className="font-semibold text-indigo-600 dark:text-indigo-400">{totalFilteredCount}</span>
+                    <span className="font-semibold text-brand-alt-ink-600 dark:text-brand-alt-ink-400">{totalFilteredCount}</span>
                     {' '}pupils
                   </p>
                   {filteredAndSortedPupils.length < totalFilteredCount && (
-                    <div className="flex items-center gap-2 text-xs text-indigo-500 font-medium dark:text-indigo-400">
+                    <div className="flex items-center gap-2 text-xs text-brand-alt-ink-500 font-medium dark:text-brand-alt-ink-400">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       Loading more&hellip;
                     </div>
@@ -4387,21 +4387,21 @@ function PupilsContent() {
           })()}
           {/* Compact inline header — sits on same line as built-in close button */}
           <div className="flex items-center gap-2 pr-32 mb-3">
-            <svg className="h-4 w-4 text-blue-600 flex-shrink-0 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-4 w-4 text-brand-ink-600 flex-shrink-0 dark:text-brand-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
             <h2 className="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
-              Guardians of <span className="text-blue-700 dark:text-blue-300">{selectedPupilGuardians?.pupilName}</span>
+              Guardians of <span className="text-brand-ink-700 dark:text-brand-ink-300">{selectedPupilGuardians?.pupilName}</span>
             </h2>
           </div>
 
           <div className="space-y-2">
             {selectedPupilGuardians?.guardians && selectedPupilGuardians.guardians.length > 0 ? (
               selectedPupilGuardians.guardians.map((guardian, index) => (
-                <div key={index} className="border rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:border-blue-200 transition-all duration-200 group dark:hover:bg-blue-950/40 dark:hover:border-blue-800/60">
+                <div key={index} className="border rounded-lg px-3 py-2.5 hover:bg-brand-surface-50 hover:border-brand-200 transition-all duration-200 group dark:hover:bg-brand-surface-950/40 dark:hover:border-brand-800/60">
                   <div className="flex items-start gap-3">
                     {/* Avatar */}
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 mt-0.5">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-surface-500 to-brand-alt-surface-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 mt-0.5">
                       {guardian.firstName.charAt(0)}{guardian.lastName.charAt(0)}
                     </div>
 
@@ -4425,7 +4425,7 @@ function PupilsContent() {
                         {guardian.phone && (
                           <>
                             <span className="text-gray-300 text-xs">·</span>
-                            <a href={`tel:${guardian.phone}`} className="text-xs text-blue-600 hover:underline font-medium dark:text-blue-400">
+                            <a href={`tel:${guardian.phone}`} className="text-xs text-brand-ink-600 hover:underline font-medium dark:text-brand-ink-400">
                               {guardian.phone}
                             </a>
                           </>
@@ -4433,7 +4433,7 @@ function PupilsContent() {
                         {guardian.secondaryPhone && (
                           <>
                             <span className="text-gray-300 text-xs">·</span>
-                            <a href={`tel:${guardian.secondaryPhone}`} className="text-xs text-blue-600 hover:underline font-medium dark:text-blue-400">
+                            <a href={`tel:${guardian.secondaryPhone}`} className="text-xs text-brand-ink-600 hover:underline font-medium dark:text-brand-ink-400">
                               {guardian.secondaryPhone}
                             </a>
                           </>
@@ -4441,13 +4441,13 @@ function PupilsContent() {
                         {guardian.additionalPhones && guardian.additionalPhones.filter(Boolean).map((ph, i) => (
                           <React.Fragment key={i}>
                             <span className="text-gray-300 text-xs">·</span>
-                            <a href={`tel:${ph}`} className="text-xs text-blue-600 hover:underline font-medium dark:text-blue-400">{ph}</a>
+                            <a href={`tel:${ph}`} className="text-xs text-brand-ink-600 hover:underline font-medium dark:text-brand-ink-400">{ph}</a>
                           </React.Fragment>
                         ))}
                         {guardian.email && (
                           <>
                             <span className="text-gray-300 text-xs">·</span>
-                            <a href={`mailto:${guardian.email}`} className="text-xs text-blue-600 hover:underline dark:text-blue-400">
+                            <a href={`mailto:${guardian.email}`} className="text-xs text-brand-ink-600 hover:underline dark:text-brand-ink-400">
                               {guardian.email}
                             </a>
                           </>
@@ -4498,7 +4498,7 @@ function PupilsContent() {
                     emergencyContactId: p.emergencyContactGuardianId || '',
                   });
                 }}
-                className="absolute right-12 top-3 sm:right-14 sm:top-3.5 flex items-center gap-1 h-6 px-2 rounded-full text-[11px] font-semibold border bg-white border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 active:scale-95 transition-all z-50 dark:bg-slate-900 dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40 dark:hover:border-blue-800/60"
+                className="absolute right-12 top-3 sm:right-14 sm:top-3.5 flex items-center gap-1 h-6 px-2 rounded-full text-[11px] font-semibold border bg-white border-brand-200 text-brand-ink-700 hover:bg-brand-surface-50 hover:border-brand-300 active:scale-95 transition-all z-50 dark:bg-slate-900 dark:border-brand-800/60 dark:text-brand-ink-300 dark:hover:bg-brand-surface-950/40 dark:hover:border-brand-800/60"
                 title="Switch to Guardians"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4522,10 +4522,10 @@ function PupilsContent() {
               selectedPupilSiblings.siblings.map((sibling, index) => {
                 const siblingClass = classes.find(c => c.id === sibling.classId);
                 return (
-                  <div key={index} className="border rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:border-blue-200 transition-all duration-200 group dark:hover:bg-blue-950/40 dark:hover:border-blue-800/60">
+                  <div key={index} className="border rounded-lg px-3 py-2.5 hover:bg-brand-surface-50 hover:border-brand-200 transition-all duration-200 group dark:hover:bg-brand-surface-950/40 dark:hover:border-brand-800/60">
                     <div className="flex items-center gap-3">
                       <Link href={`/pupil-detail?id=${sibling.id}`} className="flex items-center gap-3 flex-1 cursor-pointer min-w-0">
-                        <Avatar className="w-8 h-8 flex-shrink-0 group-hover:ring-2 group-hover:ring-blue-300 transition-all duration-200 dark:group-hover:ring-blue-800/60">
+                        <Avatar className="w-8 h-8 flex-shrink-0 group-hover:ring-2 group-hover:ring-brand-300 transition-all duration-200 dark:group-hover:ring-brand-800/60">
                           {sibling.photo && sibling.photo.trim() !== '' && sibling.photo.startsWith('http') ? (
                             <AvatarImage
                               src={sibling.photo}
@@ -4535,12 +4535,12 @@ function PupilsContent() {
                               }}
                             />
                           ) : null}
-                          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-xs">
+                          <AvatarFallback className="bg-gradient-to-br from-brand-surface-500 to-brand-alt-surface-600 text-white font-bold text-xs">
                             {sibling.firstName.charAt(0)}{sibling.lastName.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-sm text-gray-900 group-hover:text-blue-600 transition-colors duration-200 truncate dark:text-slate-100 dark:group-hover:text-blue-400">{formatPupilDisplayName(sibling)}</h4>
+                          <h4 className="font-semibold text-sm text-gray-900 group-hover:text-brand-ink-600 transition-colors duration-200 truncate dark:text-slate-100 dark:group-hover:text-brand-ink-400">{formatPupilDisplayName(sibling)}</h4>
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs text-gray-500 dark:text-slate-400">{sibling.admissionNumber}</span>
                             <span className="text-gray-300 text-xs">·</span>
@@ -4555,7 +4555,7 @@ function PupilsContent() {
                               : sibling.status === 'Inactive'
                                 ? 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200'
                                 : sibling.status === 'Graduated'
-                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200'
+                                  ? 'bg-brand-surface-100 text-brand-ink-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-200'
                                   : 'bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100'
                               }`}>
                               {sibling.status || 'Unknown'}
@@ -4566,7 +4566,7 @@ function PupilsContent() {
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <Link
                           href={`/pupil-detail?id=${sibling.id}`}
-                          className="flex items-center justify-center h-7 w-7 rounded-full transition-all border bg-white border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 active:scale-95 dark:bg-slate-900 dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40 dark:hover:border-blue-800/60"
+                          className="flex items-center justify-center h-7 w-7 rounded-full transition-all border bg-white border-brand-200 text-brand-ink-700 hover:bg-brand-surface-50 hover:border-brand-300 active:scale-95 dark:bg-slate-900 dark:border-brand-800/60 dark:text-brand-ink-300 dark:hover:bg-brand-surface-950/40 dark:hover:border-brand-800/60"
                           title="View pupil"
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -4786,7 +4786,7 @@ function PupilsContent() {
         <ModernDialogContent size="md" open={editNameModal.isOpen} onOpenChange={() => setEditNameModal({ isOpen: false, pupil: null })}>
           <ModernDialogHeader>
             <ModernDialogTitle className="flex items-center">
-              <User className="mr-2 h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <User className="mr-2 h-5 w-5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
               Edit Name - {editNameModal.pupil ? formatPupilDisplayName(editNameModal.pupil) : ''}
             </ModernDialogTitle>
             <ModernDialogDescription>
@@ -4845,7 +4845,7 @@ function PupilsContent() {
             <Button
               onClick={handleSaveName}
               disabled={!editFirstName.trim() || !editLastName.trim() || updatePupilMutation.isPending}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-brand-secondary-surface-600 hover:bg-brand-secondary-surface-700"
             >
               {updatePupilMutation.isPending ? (
                 <>
@@ -4909,17 +4909,17 @@ function PupilsContent() {
             </div>
 
             {selectedNewClassId && selectedNewClassId !== classChangeModal.pupil?.classId && (
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-md dark:bg-blue-950/40 dark:border-blue-800/60">
+              <div className="p-4 bg-brand-surface-50 border border-brand-200 rounded-md dark:bg-brand-surface-950/40 dark:border-brand-800/60">
                 <div className="flex items-start gap-2">
-                  <svg className="h-5 w-5 text-blue-600 mt-0.5 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 text-brand-ink-600 mt-0.5 dark:text-brand-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <div className="text-sm">
-                    <p className="font-medium text-blue-900 dark:text-blue-200">Class Change Summary</p>
-                    <p className="text-blue-800 mt-1 dark:text-blue-200">
+                    <p className="font-medium text-brand-ink-900 dark:text-brand-ink-200">Class Change Summary</p>
+                    <p className="text-brand-ink-800 mt-1 dark:text-brand-ink-200">
                       Moving from <span className="font-medium">{getClassName(classChangeModal.pupil?.classId)}</span> to <span className="font-medium">{getClassName(selectedNewClassId)}</span>
                     </p>
-                    <p className="text-blue-700 mt-2 text-xs dark:text-blue-300">
+                    <p className="text-brand-ink-700 mt-2 text-xs dark:text-brand-ink-300">
                       This action will create a promotion history record for tracking purposes.
                     </p>
                   </div>
@@ -4999,7 +4999,7 @@ function PupilsContent() {
         <ModernDialogContent size="lg" open={isColumnSelectionModalOpen} onOpenChange={() => setIsColumnSelectionModalOpen(false)}>
           <ModernDialogHeader>
             <ModernDialogTitle className="flex items-center">
-              <Printer className="mr-2 h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              <Printer className="mr-2 h-5 w-5 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" />
               Print Pupils List
             </ModernDialogTitle>
             <ModernDialogDescription>
@@ -5019,7 +5019,7 @@ function PupilsContent() {
                     onClick={() => setPrintLayoutOptions(prev => ({ ...prev, orientation: opt }))}
                     className={`px-2.5 py-1 text-xs rounded-md border font-medium transition-colors ${
                       printLayoutOptions.orientation === opt
-                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        ? 'bg-brand-alt-surface-600 text-white border-brand-alt-600'
                         : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-900'
                     }`}
                   >
@@ -5035,7 +5035,7 @@ function PupilsContent() {
                   aria-checked={printLayoutOptions.grayscale}
                   onClick={() => setPrintLayoutOptions(prev => ({ ...prev, grayscale: !prev.grayscale }))}
                   className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                    printLayoutOptions.grayscale ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-700'
+                    printLayoutOptions.grayscale ? 'bg-brand-alt-surface-600' : 'bg-gray-300 dark:bg-slate-700'
                   }`}
                 >
                   <span
@@ -5055,7 +5055,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.pin}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, pin: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">PIN/ID Number</span>
                 </label>
@@ -5065,7 +5065,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.name}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, name: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Full Name</span>
                 </label>
@@ -5075,7 +5075,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.age}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, age: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Age</span>
                 </label>
@@ -5085,7 +5085,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.dateOfBirth}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, dateOfBirth: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Date of Birth</span>
                 </label>
@@ -5095,7 +5095,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.gender}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, gender: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Gender</span>
                 </label>
@@ -5109,7 +5109,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.class}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, class: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Class (Code)</span>
                 </label>
@@ -5119,7 +5119,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.house}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, house: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">House</span>
                 </label>
@@ -5129,7 +5129,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.payCode}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, payCode: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Pay Code</span>
                 </label>
@@ -5139,7 +5139,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.lin}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, lin: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">LIN</span>
                 </label>
@@ -5149,7 +5149,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.indexNumber}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, indexNumber: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Index Number</span>
                 </label>
@@ -5159,7 +5159,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.codes}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, codes: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">ID Codes</span>
                 </label>
@@ -5169,7 +5169,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.section}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, section: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Section</span>
                 </label>
@@ -5179,7 +5179,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.status}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, status: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Status</span>
                 </label>
@@ -5195,7 +5195,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.guardianContacts}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, guardianContacts: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Guardian Contacts</span>
                 </label>
@@ -5205,7 +5205,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.siblings}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, siblings: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Siblings</span>
                 </label>
@@ -5215,7 +5215,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.religion}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, religion: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Religion</span>
                 </label>
@@ -5225,7 +5225,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.photo}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, photo: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Photo Status</span>
                 </label>
@@ -5235,7 +5235,7 @@ function PupilsContent() {
                     type="checkbox"
                     checked={columnSelection.actualPhoto}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, actualPhoto: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
+                    className="rounded border-gray-300 text-brand-alt-ink-600 focus:ring-brand-alt-500 dark:border-slate-700 dark:text-brand-alt-ink-400"
                   />
                   <span className="text-sm">Actual Photo</span>
                 </label>
@@ -5266,7 +5266,7 @@ function PupilsContent() {
                     photo: false,
                     actualPhoto: false
                   })}
-                  className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/40"
+                  className="px-3 py-1 text-xs bg-brand-surface-100 text-brand-ink-700 rounded-md hover:bg-brand-surface-200 transition-colors dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:hover:bg-brand-surface-900/40"
                 >
                   Basic Info
                 </button>
@@ -5318,7 +5318,7 @@ function PupilsContent() {
                     photo: false,
                     actualPhoto: true
                   })}
-                  className="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors dark:bg-purple-950/40 dark:text-purple-300 dark:hover:bg-purple-900/40"
+                  className="px-3 py-1 text-xs bg-brand-secondary-surface-100 text-brand-secondary-ink-700 rounded-md hover:bg-brand-secondary-surface-200 transition-colors dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-300 dark:hover:bg-brand-secondary-surface-900/40"
                 >
                   Complete Info
                 </button>
@@ -5352,14 +5352,14 @@ function PupilsContent() {
             </div>
 
             {/* Preview Information */}
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-4 dark:bg-blue-950/40 dark:border-blue-800/60">
+            <div className="bg-brand-surface-50 border border-brand-200 rounded-md p-4 dark:bg-brand-surface-950/40 dark:border-brand-800/60">
               <div className="flex items-start gap-2">
-                <svg className="h-5 w-5 text-blue-600 mt-0.5 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 text-brand-ink-600 mt-0.5 dark:text-brand-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div className="text-sm">
-                  <p className="font-medium text-blue-900 dark:text-blue-200">PDF Preview</p>
-                  <p className="text-blue-800 mt-1 dark:text-blue-200">
+                  <p className="font-medium text-brand-ink-900 dark:text-brand-ink-200">PDF Preview</p>
+                  <p className="text-brand-ink-800 mt-1 dark:text-brand-ink-200">
                     Selected columns: {Object.values(columnSelection).filter(Boolean).length} |
                     Pupils to include: {filteredAndSortedPupils.length} |
                     Orientation: {printLayoutOptions.orientation === 'auto'
@@ -5371,7 +5371,7 @@ function PupilsContent() {
                         })()
                       : `${printLayoutOptions.orientation.charAt(0).toUpperCase()}${printLayoutOptions.orientation.slice(1)} (Manual)`}
                   </p>
-                  <p className="text-blue-700 mt-1 text-xs dark:text-blue-300">
+                  <p className="text-brand-ink-700 mt-1 text-xs dark:text-brand-ink-300">
                     Style: Compact table with smaller fonts{printLayoutOptions.grayscale ? ' in gray scale' : ''}.
                   </p>
                   {Object.values(columnSelection).filter(Boolean).length === 0 && (
@@ -5395,7 +5395,7 @@ function PupilsContent() {
             {Object.values(columnSelection).some(Boolean) && (
               <Button
                 onClick={handleGenerateCompactPDF}
-                className="bg-indigo-600 hover:bg-indigo-700"
+                className="bg-brand-alt-surface-600 hover:bg-brand-alt-surface-700"
               >
                 <Printer className="mr-2 h-4 w-4" />
                 Generate PDF
@@ -5422,8 +5422,8 @@ function PupilsContent() {
       >
         <ModernDialogContent size="md">
           <ModernDialogHeader>
-            <ModernDialogTitle className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200">
-              <FunnelSimple size={20} className="text-indigo-600 animate-[pulse_2s_infinite] dark:text-indigo-400" weight="duotone" />
+            <ModernDialogTitle className="flex items-center gap-2 text-brand-alt-ink-900 dark:text-brand-alt-ink-200">
+              <FunnelSimple size={20} className="text-brand-alt-ink-600 animate-[pulse_2s_infinite] dark:text-brand-alt-ink-400" weight="duotone" />
               Filter Pupils
             </ModernDialogTitle>
             <ModernDialogDescription className="text-gray-500 dark:text-slate-400">
@@ -5434,11 +5434,11 @@ function PupilsContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
             {/* Status Filter */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-indigo-950 dark:text-indigo-100">Status</label>
+              <label className="block text-xs font-semibold text-brand-alt-ink-950 dark:text-brand-alt-ink-100">Status</label>
               <select
                 value={filters.status}
                 onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
+                className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-brand-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
               >
                 <option value="">All Statuses</option>
                 <option value="Active">Active</option>
@@ -5452,11 +5452,11 @@ function PupilsContent() {
 
             {/* Gender Filter */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-indigo-950 dark:text-indigo-100">Gender</label>
+              <label className="block text-xs font-semibold text-brand-alt-ink-950 dark:text-brand-alt-ink-100">Gender</label>
               <select
                 value={filters.gender}
                 onChange={(e) => setFilters(prev => ({ ...prev, gender: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
+                className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-brand-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
               >
                 <option value="">All Genders</option>
                 <option value="Male">Male</option>
@@ -5466,11 +5466,11 @@ function PupilsContent() {
 
             {/* Section Filter */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-indigo-950 dark:text-indigo-100">Section</label>
+              <label className="block text-xs font-semibold text-brand-alt-ink-950 dark:text-brand-alt-ink-100">Section</label>
               <select
                 value={filters.section}
                 onChange={(e) => setFilters(prev => ({ ...prev, section: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
+                className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-brand-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
               >
                 <option value="">All Sections</option>
                 <option value="Boarding">Boarding</option>
@@ -5480,11 +5480,11 @@ function PupilsContent() {
 
             {/* Photo Filter */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-indigo-950 dark:text-indigo-100">Photo</label>
+              <label className="block text-xs font-semibold text-brand-alt-ink-950 dark:text-brand-alt-ink-100">Photo</label>
               <select
                 value={filters.photoFilter}
                 onChange={(e) => setFilters(prev => ({ ...prev, photoFilter: e.target.value as Filters['photoFilter'] }))}
-                className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
+                className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-brand-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
               >
                 <option value="all">All pupils</option>
                 <option value="with">With photo</option>
@@ -5494,7 +5494,7 @@ function PupilsContent() {
 
             {/* Age Range Filter */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-indigo-950 dark:text-indigo-100">Age Range</label>
+              <label className="block text-xs font-semibold text-brand-alt-ink-950 dark:text-brand-alt-ink-100">Age Range</label>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
@@ -5505,10 +5505,10 @@ function PupilsContent() {
                     ...prev,
                     ageRange: { ...prev.ageRange, min: parseInt(e.target.value) || 0 }
                   }))}
-                  className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white text-center focus:outline-none transition-all duration-200 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
+                  className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-brand-400/50 focus:bg-white text-center focus:outline-none transition-all duration-200 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                   placeholder="Min age"
                 />
-                <span className="text-xs text-indigo-400 font-medium">—</span>
+                <span className="text-xs text-brand-alt-ink-400 font-medium">—</span>
                 <input
                   type="number"
                   min={filters.ageRange.min}
@@ -5517,7 +5517,7 @@ function PupilsContent() {
                     ...prev,
                     ageRange: { ...prev.ageRange, max: parseInt(e.target.value) || 0 }
                   }))}
-                  className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white text-center focus:outline-none transition-all duration-200 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
+                  className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-brand-400/50 focus:bg-white text-center focus:outline-none transition-all duration-200 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                   placeholder="Max age"
                 />
               </div>
@@ -5525,12 +5525,12 @@ function PupilsContent() {
 
             {/* Codes Filter */}
             <div className="col-span-1 sm:col-span-2 space-y-1.5">
-              <label className="block text-xs font-semibold text-indigo-950 dark:text-indigo-100">Codes Filter</label>
+              <label className="block text-xs font-semibold text-brand-alt-ink-950 dark:text-brand-alt-ink-100">Codes Filter</label>
               <div className="flex gap-2">
                 <select
                   value={filters.hasCodeType || ''}
                   onChange={(e) => setFilters(prev => ({ ...prev, hasCodeType: e.target.value }))}
-                  className="w-[60%] rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
+                  className="w-[60%] rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-brand-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                 >
                   <option value="">Any Identifier Code</option>
                   {availableIdTypes.map(type => (
@@ -5541,7 +5541,7 @@ function PupilsContent() {
                   value={filters.hasCodeFilterType || 'with'}
                   onChange={(e) => setFilters(prev => ({ ...prev, hasCodeFilterType: e.target.value as 'with' | 'without' }))}
                   disabled={!filters.hasCodeType}
-                  className="w-[40%] rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white disabled:opacity-55 dark:border-slate-700/80 dark:bg-slate-900/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
+                  className="w-[40%] rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-brand-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white disabled:opacity-55 dark:border-slate-700/80 dark:bg-slate-900/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                 >
                   <option value="with">With</option>
                   <option value="without">Without</option>
@@ -5567,7 +5567,7 @@ function PupilsContent() {
             )}
             <button
               onClick={() => setIsFilterPopupOpen(false)}
-              className="inline-flex items-center justify-center h-8 px-4 rounded-full font-semibold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all duration-200"
+              className="inline-flex items-center justify-center h-8 px-4 rounded-full font-semibold text-xs bg-brand-alt-surface-600 hover:bg-brand-alt-surface-700 text-white shadow-sm transition-all duration-200"
             >
               Done
             </button>
@@ -5617,28 +5617,28 @@ function PupilsContent() {
                     key={selectedFamilyPupil.id}
                     href={`/fees/collect/${selectedFamilyPupil.id}`}
                     onClick={() => setSelectedFamilyPupil(null)}
-                    className="flex items-center justify-between p-3 rounded-lg border border-indigo-100 bg-indigo-50/30 hover:bg-indigo-50/60 transition-all group dark:border-indigo-800/60 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/60"
+                    className="flex items-center justify-between p-3 rounded-lg border border-brand-alt-100 bg-brand-alt-surface-50/30 hover:bg-brand-alt-surface-50/60 transition-all group dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/30 dark:hover:bg-brand-alt-surface-950/60"
                   >
                     <div className="flex items-center gap-2.5">
-                      <Avatar className="h-8 w-8 border border-indigo-200 dark:border-indigo-800/60">
+                      <Avatar className="h-8 w-8 border border-brand-alt-200 dark:border-brand-alt-800/60">
                         <AvatarImage
                           src={selectedFamilyPupil.photo && selectedFamilyPupil.photo.trim() !== '' ? selectedFamilyPupil.photo : undefined}
                           alt={`${formatPupilDisplayName(selectedFamilyPupil)}`}
                         />
-                        <AvatarFallback className="text-[10px] bg-indigo-100 text-indigo-700 font-bold dark:bg-indigo-950/40 dark:text-indigo-300">
+                        <AvatarFallback className="text-[10px] bg-brand-alt-surface-100 text-brand-alt-ink-700 font-bold dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300">
                           {selectedFamilyPupil.firstName?.[0] || 'P'}{selectedFamilyPupil.lastName?.[0] || 'P'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="text-left">
-                        <p className="font-semibold text-sm text-indigo-900 transition-colors dark:text-indigo-200">
+                        <p className="font-semibold text-sm text-brand-alt-ink-900 transition-colors dark:text-brand-alt-ink-200">
                           {formatPupilDisplayName(selectedFamilyPupil)} (Current)
                         </p>
-                        <p className="text-xs text-indigo-700/80 font-mono dark:text-indigo-300/80">
+                        <p className="text-xs text-brand-alt-ink-700/80 font-mono dark:text-brand-alt-ink-300/80">
                           {classes.find(c => c.id === selectedFamilyPupil.classId)?.code || classes.find(c => c.id === selectedFamilyPupil.classId)?.name || 'N/A'} • {selectedFamilyPupil.admissionNumber}
                         </p>
                       </div>
                     </div>
-                    <span className="font-bold text-xs text-indigo-500 group-hover:text-indigo-700 transition-colors dark:text-indigo-400 dark:group-hover:text-indigo-300">Shs.</span>
+                    <span className="font-bold text-xs text-brand-alt-ink-500 group-hover:text-brand-alt-ink-700 transition-colors dark:text-brand-alt-ink-400 dark:group-hover:text-brand-alt-ink-300">Shs.</span>
                   </Link>
                 )}
 
@@ -5661,7 +5661,7 @@ function PupilsContent() {
                         </AvatarFallback>
                       </Avatar>
                       <div className="text-left">
-                        <p className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">
+                        <p className="font-medium text-sm text-foreground group-hover:text-link transition-colors">
                           {formatPupilDisplayName(sibling)}
                         </p>
                         <p className="text-xs text-muted-foreground font-mono">
@@ -5713,12 +5713,12 @@ export default function PupilsPage() {
       <div className="min-h-screen p-6">
         <div className="bg-white/80 border-b shadow-sm backdrop-blur-xl sticky top-0 z-10 border-b-indigo-100 -mx-6 px-6 py-4 mb-6 dark:bg-slate-900/80">
           <div className="max-w-7xl mx-auto">
-            <h1 className="text-xl font-bold text-indigo-900 dark:text-indigo-200">🚀 Loading Pupils...</h1>
+            <h1 className="text-xl font-bold text-brand-alt-ink-900 dark:text-brand-alt-ink-200">🚀 Loading Pupils...</h1>
             <p className="text-sm text-gray-600 mt-1 dark:text-slate-300">Setting up class-based loading for better performance</p>
           </div>
         </div>
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-alt-600"></div>
           <span className="ml-3 text-gray-600 dark:text-slate-300">Initializing pupils management...</span>
         </div>
       </div>

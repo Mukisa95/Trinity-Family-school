@@ -567,16 +567,16 @@ export function RequirementReceptionModal({
       <ModernDialogContent open={isOpen} onOpenChange={onClose}>
         <ModernDialogHeader>
           <ModernDialogTitle className="flex items-center gap-3">
-            <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <Package className="w-5 h-5 text-brand-ink-600 dark:text-brand-ink-400" />
             Receive Class Requirements
           </ModernDialogTitle>
 
           {/* Pupil and Context Info */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border dark:from-blue-950/40 dark:to-indigo-950/40">
+          <div className="bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 p-4 rounded-lg border dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <User className="w-4 h-4 text-brand-ink-600 dark:text-brand-ink-400" />
                   <span className="font-semibold text-gray-900 dark:text-slate-100">
                     {formatPupilDisplayName(pupil)}
                   </span>
@@ -682,7 +682,7 @@ export function RequirementReceptionModal({
                       <div className="flex items-center justify-between gap-2">
                         {/* Left side - Basic info */}
                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <BookOpen className="w-3 h-3 text-blue-600 flex-shrink-0 dark:text-blue-400" />
+                          <BookOpen className="w-3 h-3 text-brand-ink-600 flex-shrink-0 dark:text-brand-ink-400" />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="font-medium text-sm truncate">{item.requirement.name}</span>
@@ -796,7 +796,7 @@ export function RequirementReceptionModal({
           <Button
             onClick={handleSubmit}
             disabled={!hasItemsToReceive || isSubmitting}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-brand-surface-600 hover:bg-brand-surface-700"
           >
             {isSubmitting ? 'Processing...' : `Receive Items (${totalItemsToReceive})`}
           </Button>

@@ -344,7 +344,7 @@ function WeekGridView({
                         return (
                             <tbody
                                 key={day.id}
-                                className={isToday ? "relative z-10 outline outline-2 outline-indigo-500 -outline-offset-[2px] shadow-[0_4px_20px_rgba(99,102,241,0.2)]" : ""}
+                                className={isToday ? "relative z-10 outline outline-2 outline-brand-alt-500 -outline-offset-[2px] shadow-[0_4px_20px_rgba(99,102,241,0.2)]" : ""}
                             >
                                 {dayRows.map((row, rowIdx) => {
                                     const cls = row.classItem;
@@ -355,13 +355,13 @@ function WeekGridView({
                                     return (
                                         <tr
                                             key={`${day.id}-${cls.id}-${row.stream?.id || 'all'}`}
-                                            className={`${isToday ? (dayIdx % 2 === 0 ? "bg-indigo-50/30 dark:bg-indigo-950/30" : "bg-indigo-50/50 dark:bg-indigo-950/50") : (dayIdx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50/40 dark:bg-slate-900/40")} border-b border-gray-100 dark:border-slate-700`}
+                                            className={`${isToday ? (dayIdx % 2 === 0 ? "bg-brand-alt-surface-50/30 dark:bg-brand-alt-surface-950/30" : "bg-brand-alt-surface-50/50 dark:bg-brand-alt-surface-950/50") : (dayIdx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50/40 dark:bg-slate-900/40")} border-b border-gray-100 dark:border-slate-700`}
                                         >
                                             {/* Day label cell — only on first visual row, spans class and stream rows */}
                                             {rowIdx === 0 && (
                                                 <td
                                                     rowSpan={rowCount}
-                                                    className={`sticky left-0 z-10 border-r border-b border-gray-200 text-center align-middle font-black  dark:border-slate-700 ${isToday ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-gray-600 dark:bg-slate-900 dark:text-slate-300'}`}
+                                                    className={`sticky left-0 z-10 border-r border-b border-gray-200 text-center align-middle font-black  dark:border-slate-700 ${isToday ? 'bg-brand-alt-surface-500 text-white' : 'bg-slate-100 text-gray-600 dark:bg-slate-900 dark:text-slate-300'}`}
                                                     style={{ width: 48, minWidth: 48 }}
                                                 >
                                                     <div className="flex items-center justify-center h-full">
@@ -386,14 +386,14 @@ function WeekGridView({
                                                             className="grid h-full"
                                                             style={{ minHeight: row.streamCount * 38, gridTemplateColumns: 'minmax(54px, 1fr) minmax(34px, 0.7fr)' }}
                                                         >
-                                                            <div className="flex items-center justify-center border-r border-indigo-100 px-1 text-center dark:border-indigo-800/60">
+                                                            <div className="flex items-center justify-center border-r border-brand-alt-100 px-1 text-center dark:border-brand-alt-800/60">
                                                                 <span className="block max-w-full truncate" title={cls.name}>{cls.code || cls.name}</span>
                                                             </div>
-                                                            <div className="flex min-w-0 flex-col bg-indigo-50/60 dark:bg-indigo-950/60">
+                                                            <div className="flex min-w-0 flex-col bg-brand-alt-surface-50/60 dark:bg-brand-alt-surface-950/60">
                                                                 {classStreamRows.map((streamRow, streamRowIndex) => (
                                                                     <div
                                                                         key={streamRow.stream!.id}
-                                                                        className={`flex min-h-[38px] flex-1 items-center justify-center px-1 text-center text-[9px] font-bold text-indigo-700  dark:text-indigo-300 ${streamRowIndex < classStreamRows.length - 1 ? 'border-b border-indigo-100 dark:border-indigo-800/60' : ''}`}
+                                                                        className={`flex min-h-[38px] flex-1 items-center justify-center px-1 text-center text-[9px] font-bold text-brand-alt-ink-700  dark:text-brand-alt-ink-300 ${streamRowIndex < classStreamRows.length - 1 ? 'border-b border-brand-alt-100 dark:border-brand-alt-800/60' : ''}`}
                                                                         title={streamRow.stream!.name}
                                                                     >
                                                                         <span className="block max-w-full truncate">{streamRow.stream!.code || streamRow.stream!.name}</span>
@@ -771,7 +771,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                     value={filterId}
                     onChange={event => setFilterId(event.target.value)}
                     aria-label={`Choose ${filterMode}`}
-                    className="h-11 w-[76px] cursor-pointer appearance-none truncate bg-transparent px-1 text-center text-[10px] font-semibold text-indigo-700 focus:outline-none sm:hidden dark:text-indigo-300"
+                    className="h-11 w-[76px] cursor-pointer appearance-none truncate bg-transparent px-1 text-center text-[10px] font-semibold text-brand-alt-ink-700 focus:outline-none sm:hidden dark:text-brand-alt-ink-300"
                 >
                     <option value="">{filterMode === "class" ? "Class" : filterMode === "teacher" ? "Teacher" : "Subject"}</option>
                     {filterMode === "class" && profileClasses.map(classItem => (
@@ -795,7 +795,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                     icon={isEditing ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
                     tone={isEditing ? "emerald" : "blue"}
                     onClick={() => { setViewMode("day"); setIsEditing(!isEditing); }}
-                    className="h-[54px] w-[54px] min-w-[54px] flex-none rounded-full border-indigo-300/65 bg-white/72 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/55 backdrop-blur-[20px] sm:hidden dark:border-indigo-800/65 dark:bg-slate-900/72 dark:ring-indigo-800/55"
+                    className="h-[54px] w-[54px] min-w-[54px] flex-none rounded-full border-brand-alt-300/65 bg-white/72 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-brand-alt-200/55 backdrop-blur-[20px] sm:hidden dark:border-brand-alt-800/65 dark:bg-slate-900/72 dark:ring-brand-alt-800/55"
                 />,
                 mobileControlTargets.edit,
             )}
@@ -837,7 +837,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                                 <button
                                     onClick={() => setViewMode("day")}
                                     className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${viewMode === "day"
-                                        ? "bg-blue-50 text-blue-700 shadow-sm border border-blue-200/50 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/50"
+                                        ? "bg-brand-surface-50 text-brand-ink-700 shadow-sm border border-brand-200/50 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/50"
                                         : "text-gray-500 hover:text-gray-700 bg-transparent dark:text-slate-400 dark:hover:text-slate-200"
                                         }`}
                                 >
@@ -846,7 +846,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                                 <button
                                     onClick={() => setViewMode("week")}
                                     className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${viewMode === "week"
-                                        ? "bg-purple-50 text-purple-700 shadow-sm border border-purple-200/50 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/50"
+                                        ? "bg-brand-secondary-surface-50 text-brand-secondary-ink-700 shadow-sm border border-brand-secondary-200/50 dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-300 dark:border-brand-secondary-800/50"
                                         : "text-gray-500 hover:text-gray-700 bg-transparent dark:text-slate-400 dark:hover:text-slate-200"
                                         }`}
                                 >
@@ -872,7 +872,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                                 <select
                                     value={filterId}
                                     onChange={e => setFilterId(e.target.value)}
-                                    className="text-xs font-semibold text-indigo-700 focus:outline-none bg-indigo-50/50 rounded-full px-2.5 py-1 max-w-[120px] truncate appearance-none cursor-pointer border border-indigo-100/50 dark:text-indigo-300 dark:bg-indigo-950/50 dark:border-indigo-800/50"
+                                    className="text-xs font-semibold text-brand-alt-ink-700 focus:outline-none bg-brand-alt-surface-50/50 rounded-full px-2.5 py-1 max-w-[120px] truncate appearance-none cursor-pointer border border-brand-alt-100/50 dark:text-brand-alt-ink-300 dark:bg-brand-alt-surface-950/50 dark:border-brand-alt-800/50"
                                 >
                                     <option value="">— Class —</option>
                                     {profileClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -882,7 +882,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                                 <select
                                     value={filterId}
                                     onChange={e => setFilterId(e.target.value)}
-                                    className="text-xs font-semibold text-indigo-700 focus:outline-none bg-indigo-50/50 rounded-full px-2.5 py-1 max-w-[120px] truncate appearance-none cursor-pointer border border-indigo-100/50 dark:text-indigo-300 dark:bg-indigo-950/50 dark:border-indigo-800/50"
+                                    className="text-xs font-semibold text-brand-alt-ink-700 focus:outline-none bg-brand-alt-surface-50/50 rounded-full px-2.5 py-1 max-w-[120px] truncate appearance-none cursor-pointer border border-brand-alt-100/50 dark:text-brand-alt-ink-300 dark:bg-brand-alt-surface-950/50 dark:border-brand-alt-800/50"
                                 >
                                     <option value="">— Teacher —</option>
                                     {staffList.map(s => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
@@ -892,14 +892,14 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                                 <select
                                     value={filterId}
                                     onChange={e => setFilterId(e.target.value)}
-                                    className="max-w-[120px] cursor-pointer appearance-none truncate rounded-full border border-indigo-100/50 bg-indigo-50/50 px-2.5 py-1 text-xs font-semibold text-indigo-700 focus:outline-none dark:border-indigo-800/50 dark:bg-indigo-950/50 dark:text-indigo-300"
+                                    className="max-w-[120px] cursor-pointer appearance-none truncate rounded-full border border-brand-alt-100/50 bg-brand-alt-surface-50/50 px-2.5 py-1 text-xs font-semibold text-brand-alt-ink-700 focus:outline-none dark:border-brand-alt-800/50 dark:bg-brand-alt-surface-950/50 dark:text-brand-alt-ink-300"
                                 >
                                     <option value="">— Subject —</option>
                                     {subjects.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
                                 </select>
                             )}
-                            {filterId && filterMode === "teacher" && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold ml-1 dark:bg-blue-950/40 dark:text-blue-300">{entries.filter(e => e.teacherId === filterId).length}</span>}
-                            {filterId && filterMode === "subject" && <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-bold ml-1 dark:bg-purple-950/40 dark:text-purple-300">{entries.filter(e => e.subjectId === filterId).length}</span>}
+                            {filterId && filterMode === "teacher" && <span className="text-[10px] bg-brand-surface-100 text-brand-ink-700 px-1.5 py-0.5 rounded-full font-bold ml-1 dark:bg-brand-surface-950/40 dark:text-brand-ink-300">{entries.filter(e => e.teacherId === filterId).length}</span>}
+                            {filterId && filterMode === "subject" && <span className="text-[10px] bg-brand-secondary-surface-100 text-brand-secondary-ink-700 px-1.5 py-0.5 rounded-full font-bold ml-1 dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-300">{entries.filter(e => e.subjectId === filterId).length}</span>}
                         </div>
                     </div>
 
@@ -917,7 +917,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                                         aria-label={`Show ${dayName}`}
                                         aria-pressed={selectedDay === dayId}
                                         className={`min-h-11 flex-shrink-0 whitespace-nowrap rounded-full px-2 text-[10px] font-bold transition-colors sm:min-h-0 sm:px-2.5 sm:py-1 sm:text-[11px] ${selectedDay === dayId
-                                            ? "bg-blue-600 text-white shadow-sm"
+                                            ? "bg-brand-surface-600 text-white shadow-sm"
                                             : "text-gray-500 hover:bg-gray-50 dark:text-slate-400 dark:hover:bg-slate-900"
                                             }`}
                                     >
@@ -986,7 +986,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
 
                         {/* Add Lesson (Turns on Edit Mode) */}
                         <button
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full shadow-lg border border-blue-700 flex items-center gap-2 text-sm font-semibold transition-all hover:-translate-y-0.5"
+                            className="bg-brand-surface-600 hover:bg-brand-surface-700 text-white px-5 py-2.5 rounded-full shadow-lg border border-brand-700 flex items-center gap-2 text-sm font-semibold transition-all hover:-translate-y-0.5"
                             onClick={() => { setIsEditing(true); setIsFabOpen(false); }}
                         >
                             <span>➕</span> Add / Manage Lessons

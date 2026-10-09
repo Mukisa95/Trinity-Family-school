@@ -570,7 +570,7 @@ export default function LoginPage() {
         .trinity-portal-landing .hstat:last-child { border-right:none; padding-right:0; margin-right:0; }
         .trinity-portal-landing .hstat-icon { font-size:22px; margin-bottom:5px; }
         .trinity-portal-landing .hstat-icon.green { color:var(--trinity-green); }
-        .trinity-portal-landing .hstat-icon.blue  { color:#2563eb; }
+        .trinity-portal-landing .hstat-icon.blue  { color:rgb(var(--brand-ink-600)); }
         .trinity-portal-landing .hstat-icon.gold  { color:var(--trinity-gold2); }
         .trinity-portal-landing .hstat-icon.teal  { color:#0ea5a0; }
         .trinity-portal-landing .hstat-val { font-size:1.6rem; font-weight:800; color:var(--trinity-navy); line-height:1.1; }
@@ -630,8 +630,8 @@ export default function LoginPage() {
         }
         .trinity-portal-landing .ic-green  { background:#e8f7ee; color:#1a7a4a; }
         .trinity-portal-landing .ic-gold   { background:#fef8e7; color:#d4a017; }
-        .trinity-portal-landing .ic-blue   { background:#e8f0fe; color:#2563eb; }
-        .trinity-portal-landing .ic-purple { background:#f0ebff; color:#7c3aed; }
+        .trinity-portal-landing .ic-blue   { background:#e8f0fe; color:rgb(var(--brand-ink-600)); }
+        .trinity-portal-landing .ic-purple { background:#f0ebff; color:rgb(var(--brand-secondary-alt-ink-600)); }
         .trinity-portal-landing .ic-teal   { background:#e6f7f7; color:#0ea5a0; }
         .trinity-portal-landing .ql-text strong { display:block; font-size:14px; font-weight:700; color:var(--trinity-navy); }
         .trinity-portal-landing .ql-text span   { font-size:12px; color:var(--trinity-muted); font-weight:400; margin-top:1px; display:block; }
@@ -697,8 +697,8 @@ export default function LoginPage() {
           display:flex; align-items:center; justify-content:center;
           font-size:24px;
         }
-        .trinity-portal-landing .ab1 { background:#e8f0fe; color:#2563eb; }
-        .trinity-portal-landing .ab2 { background:#f0ebff; color:#7c3aed; }
+        .trinity-portal-landing .ab1 { background:#e8f0fe; color:rgb(var(--brand-ink-600)); }
+        .trinity-portal-landing .ab2 { background:#f0ebff; color:rgb(var(--brand-secondary-alt-ink-600)); }
         .trinity-portal-landing .ab3 { background:#e8f7ee; color:#1a7a4a; }
         .trinity-portal-landing .about-card h3 { font-size:18px; font-weight:700; color:var(--trinity-navy); margin-bottom:12px; }
         .trinity-portal-landing .about-card p { font-size:14px; color:var(--trinity-muted); line-height:1.6; }
@@ -736,9 +736,9 @@ export default function LoginPage() {
           display:flex; align-items:center; justify-content:center;
           font-size:22px;
         }
-        .trinity-portal-landing .co1 { background:#e8f0fe; color:#2563eb; }
+        .trinity-portal-landing .co1 { background:#e8f0fe; color:rgb(var(--brand-ink-600)); }
         .trinity-portal-landing .co2 { background:#e8f7ee; color:#1a7a4a; }
-        .trinity-portal-landing .co3 { background:#f0ebff; color:#7c3aed; }
+        .trinity-portal-landing .co3 { background:#f0ebff; color:rgb(var(--brand-secondary-alt-ink-600)); }
         .trinity-portal-landing .co4 { background:#fef8e7; color:#d4a017; }
         .trinity-portal-landing .contact-card h4 { font-size:15px; font-weight:700; color:var(--trinity-navy); margin-bottom:10px; }
         .trinity-portal-landing .contact-card p,
@@ -853,7 +853,7 @@ export default function LoginPage() {
           transition:background .25s, border-color .25s, box-shadow .25s;
         }
         .trinity-portal-landing .mfield input::placeholder { color:rgba(255,255,255,.65); }
-        .trinity-portal-landing .mfield input:focus { border-color:#60a5fa; box-shadow:0 0 0 4px rgba(96,165,250,.15); background:rgba(255,255,255,.12); }
+        .trinity-portal-landing .mfield input:focus { border-color:rgb(var(--brand-400)); box-shadow:0 0 0 4px rgb(var(--brand-400) / .15); background:rgba(255,255,255,.12); }
         
         .trinity-portal-landing .eye-btn { position:absolute; right:16px; top:50%; transform:translateY(-50%); cursor:pointer; color:rgba(255,255,255,.35); transition:color .2s; }
         .trinity-portal-landing .eye-btn:hover { color:rgba(255,255,255,.7); }
@@ -869,13 +869,13 @@ export default function LoginPage() {
 
         .trinity-portal-landing .modal-submit {
           width:100%; padding:11px; border:none; border-radius:99px;
-          background:linear-gradient(135deg,#2563eb,#4f46e5);
+          background:linear-gradient(135deg,rgb(var(--brand-surface-600)),rgb(var(--brand-alt-surface-600)));
           color:#fff; font-weight:700; font-size:14.5px;
           cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;
-          box-shadow:0 8px 20px rgba(37,99,235,.25);
+          box-shadow:0 8px 20px rgb(var(--brand-600) / .25);
           transition:transform .2s, box-shadow .2s;
         }
-        .trinity-portal-landing .modal-submit:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgba(37,99,235,.45); }
+        .trinity-portal-landing .modal-submit:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgb(var(--brand-600) / .45); }
         .trinity-portal-landing .modal-submit:active { transform:scale(.98); }
         .trinity-portal-landing .modal-submit.loading { pointer-events:none; }
         .trinity-portal-landing .modal-submit .spinner { width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;display:none;animation:spin .7s linear infinite; }

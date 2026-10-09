@@ -1145,7 +1145,7 @@ export function FeesManagementPageContent() {
                           <div key={`${linkedFee.id}-${index}`} className="border-b last:border-0 pb-2 last:pb-0">
                             <div className="font-medium">{linkedFee.name}</div>
                             <div className="text-xs text-muted-foreground">{formatCurrency(currentLinkedFeeAmount)}</div>
-                            <div className="text-xs text-blue-600 font-medium dark:text-blue-400">{getTermName(linkedFee)}</div>
+                            <div className="text-xs text-brand-ink-600 font-medium dark:text-brand-ink-400">{getTermName(linkedFee)}</div>
                           </div>
                         );
                       })}
@@ -1422,7 +1422,7 @@ export function FeesManagementPageContent() {
         value={activeFilter}
         onChange={(event) => setActiveFilter(event.target.value as ActiveFilter)}
         aria-label="Choose fee type"
-        className="h-[34px] min-w-0 max-w-[35vw] rounded-full border border-violet-200/70 bg-white/95 px-2.5 text-[10px] font-bold text-violet-700 shadow-sm outline-none transition-colors hover:bg-violet-50 focus:ring-2 focus:ring-violet-400/60 lg:max-w-none dark:border-violet-800/70 dark:bg-slate-900/95 dark:text-violet-300 dark:hover:bg-violet-950/40"
+        className="h-[34px] min-w-0 max-w-[35vw] rounded-full border border-brand-secondary-alt-200/70 bg-white/95 px-2.5 text-[10px] font-bold text-brand-secondary-alt-ink-700 shadow-sm outline-none transition-colors hover:bg-brand-secondary-alt-surface-50 focus:ring-2 focus:ring-brand-secondary-alt-400/60 lg:max-w-none dark:border-brand-secondary-alt-800/70 dark:bg-slate-900/95 dark:text-brand-secondary-alt-ink-300 dark:hover:bg-brand-secondary-alt-surface-950/40"
       >
         <option value="general">General</option>
         <option value="assignment">Assignment</option>
@@ -1437,7 +1437,7 @@ export function FeesManagementPageContent() {
             setSelectedAcademicYearId(event.target.value);
           }}
           aria-label="Choose academic year"
-          className="h-[34px] min-w-0 max-w-[42vw] rounded-full border border-blue-200/70 bg-white/95 px-2.5 text-[10px] font-bold text-blue-700 shadow-sm outline-none transition-colors hover:bg-blue-50 focus:ring-2 focus:ring-blue-400/60 lg:max-w-none dark:border-blue-800/70 dark:bg-slate-900/95 dark:text-blue-300 dark:hover:bg-blue-950/40"
+          className="h-[34px] min-w-0 max-w-[42vw] rounded-full border border-brand-200/70 bg-white/95 px-2.5 text-[10px] font-bold text-brand-ink-700 shadow-sm outline-none transition-colors hover:bg-brand-surface-50 focus:ring-2 focus:ring-brand-400/60 lg:max-w-none dark:border-brand-800/70 dark:bg-slate-900/95 dark:text-brand-ink-300 dark:hover:bg-brand-surface-950/40"
         >
           {availableAcademicYears.map((year) => {
             const isCurrent = year.id === currentAcademicYear?.id;
@@ -1527,16 +1527,16 @@ export function FeesManagementPageContent() {
       <GlassSummaryBar
         left={
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-bold text-xs text-indigo-500 dark:text-indigo-400">Shs.</span>
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 uppercase mr-2 dark:text-indigo-200">
+            <span className="font-bold text-xs text-brand-alt-ink-500 dark:text-brand-alt-ink-400">Shs.</span>
+            <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 uppercase mr-2 dark:text-brand-alt-ink-200">
               Accounts Overview
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
               {activeSettingTab === 'fees' && (
                 <>
-                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-blue-950/80 dark:border-blue-800/50">
-                    <span className="font-bold text-blue-700 dark:text-blue-300">{totalFeesCount}</span>
-                    <span className="text-blue-700/85 font-medium dark:text-blue-300/85">total fee structures</span>
+                  <div className="flex items-center gap-1 bg-brand-surface-50/80 border border-brand-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-brand-surface-950/80 dark:border-brand-800/50">
+                    <span className="font-bold text-brand-ink-700 dark:text-brand-ink-300">{totalFeesCount}</span>
+                    <span className="text-brand-ink-700/85 font-medium dark:text-brand-ink-300/85">total fee structures</span>
                   </div>
                   <div className="flex items-center gap-1 bg-green-50/80 border border-green-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-green-950/80 dark:border-green-800/50">
                     <span className="font-bold text-green-700 dark:text-green-300">{activeFeesCount}</span>
@@ -1551,18 +1551,18 @@ export function FeesManagementPageContent() {
 
               {activeSettingTab === 'uniforms' && (
                 uniformSummaryLoading ? (
-                  <span className="text-xs text-purple-700 dark:text-purple-300" role="status">Loading uniform items...</span>
+                  <span className="text-xs text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300" role="status">Loading uniform items...</span>
                 ) : uniformsError ? (
                   <span className="text-xs text-red-700 dark:text-red-300">Uniform data unavailable</span>
                 ) : (
                 <>
-                  <div className="flex items-center gap-1 bg-purple-50/80 border border-purple-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-purple-950/80 dark:border-purple-800/50">
-                    <span className="font-bold text-purple-700 dark:text-purple-300">{totalUniforms}</span>
-                    <span className="text-purple-700/85 font-medium dark:text-purple-300/85">uniform items</span>
+                  <div className="flex items-center gap-1 bg-brand-secondary-surface-50/80 border border-brand-secondary-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-brand-secondary-surface-950/80 dark:border-brand-secondary-800/50">
+                    <span className="font-bold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">{totalUniforms}</span>
+                    <span className="text-brand-secondary-ink-700/85 font-medium dark:text-brand-secondary-ink-300/85">uniform items</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-blue-950/80 dark:border-blue-800/50">
-                    <span className="font-bold text-blue-700 dark:text-blue-300">{activeUniforms}</span>
-                    <span className="text-blue-700/85 font-medium dark:text-blue-300/85">active items</span>
+                  <div className="flex items-center gap-1 bg-brand-surface-50/80 border border-brand-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-brand-surface-950/80 dark:border-brand-800/50">
+                    <span className="font-bold text-brand-ink-700 dark:text-brand-ink-300">{activeUniforms}</span>
+                    <span className="text-brand-ink-700/85 font-medium dark:text-brand-ink-300/85">active items</span>
                   </div>
                   <div className="flex items-center gap-1 bg-green-50/80 border border-green-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-green-950/80 dark:border-green-800/50">
                     <span className="font-bold text-green-700 dark:text-green-300">{uniqueUniformGroups.length}</span>
@@ -1582,9 +1582,9 @@ export function FeesManagementPageContent() {
                     <span className="font-bold text-emerald-700 dark:text-emerald-300">{totalRequirements}</span>
                     <span className="text-emerald-700/85 font-medium dark:text-emerald-300/85">requirement items</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-blue-950/80 dark:border-blue-800/50">
-                    <span className="font-bold text-blue-700 dark:text-blue-300">{activeRequirements}</span>
-                    <span className="text-blue-700/85 font-medium dark:text-blue-300/85">active items</span>
+                  <div className="flex items-center gap-1 bg-brand-surface-50/80 border border-brand-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-brand-surface-950/80 dark:border-brand-800/50">
+                    <span className="font-bold text-brand-ink-700 dark:text-brand-ink-300">{activeRequirements}</span>
+                    <span className="text-brand-ink-700/85 font-medium dark:text-brand-ink-300/85">active items</span>
                   </div>
                   <div className="flex items-center gap-1 bg-green-50/80 border border-green-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-green-950/80 dark:border-green-800/50">
                     <span className="font-bold text-green-700 dark:text-green-300">{uniqueRequirementGroups.length}</span>
@@ -1614,7 +1614,7 @@ export function FeesManagementPageContent() {
                   className={cn(
                     "rounded-full px-3 py-1 text-xs font-semibold transition-all duration-300",
                     isActive
-                      ? "bg-white text-indigo-700 shadow-sm dark:bg-slate-900 dark:text-indigo-300"
+                      ? "bg-white text-brand-alt-ink-700 shadow-sm dark:bg-slate-900 dark:text-brand-alt-ink-300"
                       : "text-gray-600 hover:text-gray-900 hover:bg-white/50 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-900/50"
                   )}
                 >

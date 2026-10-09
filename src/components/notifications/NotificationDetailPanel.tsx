@@ -50,8 +50,8 @@ function formatFileSize(bytes: number): string {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center h-full py-24 px-8 text-center">
-      <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center mb-6 shadow-inner dark:from-blue-950/40 dark:to-indigo-950/40">
-        <Bell className="h-9 w-9 text-blue-400" />
+      <div className="h-20 w-20 rounded-full bg-gradient-to-br from-brand-surface-50 to-brand-alt-surface-100 flex items-center justify-center mb-6 shadow-inner dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
+        <Bell className="h-9 w-9 text-brand-ink-400" />
       </div>
       <h3 className="text-lg font-semibold text-gray-700 mb-2 dark:text-slate-200">Select a notification</h3>
       <p className="text-sm text-gray-400 max-w-xs leading-relaxed dark:text-slate-400">
@@ -200,8 +200,8 @@ export function NotificationDetailPanel({
               aria-controls="notification-reply-composer"
               title={isReplyComposerOpen ? 'Close reply' : 'Reply'}
               className={cn(
-                'inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-colors focus:outline-none focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-800/60',
-                isReplyComposerOpen ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300' : 'text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40',
+                'inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-colors focus:outline-none focus:ring-4 focus:ring-brand-100 dark:focus:ring-brand-800/60',
+                isReplyComposerOpen ? 'bg-brand-surface-100 text-brand-ink-700 dark:bg-brand-surface-950/40 dark:text-brand-ink-300' : 'text-brand-ink-600 hover:bg-brand-surface-50 dark:text-brand-ink-400 dark:hover:bg-brand-surface-950/40',
               )}
             >
               <MessageCircle className="h-4 w-4" />
@@ -214,7 +214,7 @@ export function NotificationDetailPanel({
               onClick={() => onViewRecipients(notification)}
               title="View recipients"
               aria-label="View recipients"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300 dark:focus:ring-blue-800/60"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-brand-surface-50 hover:text-brand-ink-700 focus:outline-none focus:ring-4 focus:ring-brand-100 dark:text-slate-300 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-300 dark:focus:ring-brand-800/60"
             >
               <Users className="h-4 w-4" />
             </button>
@@ -224,7 +224,7 @@ export function NotificationDetailPanel({
             <button
               onClick={() => onResend(notification)}
               title="Resend"
-              className="flex items-center justify-center h-8 w-8 rounded-full text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors dark:text-slate-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-400"
+              className="flex items-center justify-center h-8 w-8 rounded-full text-gray-500 hover:bg-brand-surface-50 hover:text-brand-ink-600 transition-colors dark:text-slate-400 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-400"
             >
               <RefreshCw className="h-4 w-4" />
             </button>
@@ -307,7 +307,7 @@ export function NotificationDetailPanel({
                     className={cn(
                       'max-w-[92%] rounded-2xl border px-4 py-3 text-sm shadow-sm',
                       authoredByCurrentUser
-                        ? 'ml-auto border-blue-200 bg-blue-50 text-slate-800 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-slate-100'
+                        ? 'ml-auto border-brand-200 bg-brand-surface-50 text-slate-800 dark:border-brand-800/60 dark:bg-brand-surface-950/40 dark:text-slate-100'
                         : 'border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200',
                     )}
                   >
@@ -343,7 +343,7 @@ export function NotificationDetailPanel({
           {safeDestinationUrl && (
             <a
               href={safeDestinationUrl}
-              className="mt-5 inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2.5 text-sm font-semibold text-blue-700 transition hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:border-blue-800/60 dark:hover:bg-blue-950/40"
+              className="mt-5 inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-surface-50 px-3.5 py-2.5 text-sm font-semibold text-brand-ink-700 transition hover:border-brand-300 hover:bg-brand-surface-100 dark:border-brand-800/60 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:hover:border-brand-800/60 dark:hover:bg-brand-surface-950/40"
             >
               <ExternalLink className="h-4 w-4" />
               {destinationLabel}
@@ -368,7 +368,7 @@ export function NotificationDetailPanel({
                         att.type === 'pdf'
                           ? 'bg-red-50 text-red-500 dark:bg-red-950/40 dark:text-red-400'
                           : att.type === 'image'
-                            ? 'bg-blue-50 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400'
+                            ? 'bg-brand-surface-50 text-brand-ink-500 dark:bg-brand-surface-950/40 dark:text-brand-ink-400'
                             : 'bg-gray-100 text-gray-500 dark:bg-slate-900 dark:text-slate-400',
                       )}
                     >
@@ -391,7 +391,7 @@ export function NotificationDetailPanel({
                     <a
                       href={att.downloadUrl || att.url}
                       download={att.name}
-                      className="h-7 w-7 rounded-full flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-950/40"
+                      className="h-7 w-7 rounded-full flex items-center justify-center text-gray-400 hover:text-brand-ink-600 hover:bg-brand-surface-50 transition-colors dark:text-slate-400 dark:hover:text-brand-ink-400 dark:hover:bg-brand-surface-950/40"
                     >
                       <Download className="h-3.5 w-3.5" />
                     </a>
@@ -409,7 +409,7 @@ export function NotificationDetailPanel({
               className="mt-8 scroll-mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 dark:border-slate-700 dark:bg-slate-900"
             >
               <div className="flex items-center gap-2">
-                <MessageCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <MessageCircle className="h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                 <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Reply</h3>
                 <button
                   type="button"
@@ -425,8 +425,8 @@ export function NotificationDetailPanel({
                   onClick={() => setReplyMode('sender')}
                   disabled={!canReplyToSender}
                   className={cn(
-                    'rounded-lg px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-45 dark:focus:ring-blue-800/60',
-                    replyMode === 'sender' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-900',
+                    'rounded-lg px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus:ring-4 focus:ring-brand-100 disabled:cursor-not-allowed disabled:opacity-45 dark:focus:ring-brand-800/60',
+                    replyMode === 'sender' ? 'bg-brand-surface-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-900',
                   )}
                 >
                   Reply to sender
@@ -437,8 +437,8 @@ export function NotificationDetailPanel({
                   disabled={!canUseReplyAll}
                   title={canUseReplyAll ? 'Reply to the sender and every original recipient' : 'Reply all is only available to staff and administrators'}
                   className={cn(
-                    'rounded-lg px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-45 dark:focus:ring-blue-800/60',
-                    replyMode === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-900',
+                    'rounded-lg px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus:ring-4 focus:ring-brand-100 disabled:cursor-not-allowed disabled:opacity-45 dark:focus:ring-brand-800/60',
+                    replyMode === 'all' ? 'bg-brand-surface-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-900',
                   )}
                 >
                   Reply all
@@ -453,7 +453,7 @@ export function NotificationDetailPanel({
                 placeholder="Write a reply..."
                 rows={4}
                 maxLength={12000}
-                className="mt-3 min-h-28 w-full resize-y rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm leading-6 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-blue-800/60"
+                className="mt-3 min-h-28 w-full resize-y rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm leading-6 outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-brand-800/60"
               />
               {replyError && <p className="mt-2 text-xs font-medium text-red-600 dark:text-red-400">{replyError}</p>}
               <div className="mt-3 flex items-center justify-between gap-3">

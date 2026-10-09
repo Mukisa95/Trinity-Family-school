@@ -109,7 +109,7 @@ export function PhotoUploadCrop({ onPhotoChange, currentPhoto, className }: Phot
           <div className="relative group">
             <ModernDialogTrigger asChild>
               <div 
-                className="relative overflow-hidden rounded-full border-4 border-dashed border-blue-200 hover:border-blue-500 hover:bg-blue-50/50 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-800 transition-all duration-300 w-[150px] h-[150px] flex items-center justify-center cursor-pointer shadow-sm"
+                className="relative overflow-hidden rounded-full border-4 border-dashed border-brand-200 hover:border-brand-500 hover:bg-brand-surface-50/50 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-800 transition-all duration-300 w-[150px] h-[150px] flex items-center justify-center cursor-pointer shadow-sm"
               >
                 {currentPhoto ? (
                   <>
@@ -128,8 +128,8 @@ export function PhotoUploadCrop({ onPhotoChange, currentPhoto, className }: Phot
                   </>
                 ) : (
                   <div className="flex flex-col items-center justify-center p-4 text-center w-full h-full">
-                    <Camera className="h-8 w-8 text-blue-500/75 group-hover:text-blue-600 group-hover:scale-110 transition-all duration-300 mb-1" />
-                    <span className="text-[10px] font-bold text-blue-600/90 group-hover:text-blue-700 transition-colors duration-300">ADD PHOTO</span>
+                    <Camera className="h-8 w-8 text-brand-ink-500/75 group-hover:text-brand-ink-600 group-hover:scale-110 transition-all duration-300 mb-1" />
+                    <span className="text-[10px] font-bold text-brand-ink-600/90 group-hover:text-brand-ink-700 transition-colors duration-300">ADD PHOTO</span>
                   </div>
                 )}
               </div>

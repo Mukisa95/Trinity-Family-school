@@ -8,11 +8,11 @@ const PUPIL_ROW_THEMES = {
     action: "text-pink-900 hover:text-pink-600 hover:bg-pink-50/50 dark:text-pink-300 dark:hover:text-pink-200 dark:hover:bg-pink-900/35",
   },
   male: {
-    row: "hover:bg-indigo-50 focus-within:bg-indigo-50 dark:hover:bg-indigo-950/45 dark:focus-within:bg-indigo-950/45 transition-colors duration-150 motion-reduce:transition-none",
-    name: "text-indigo-600 hover:text-indigo-800 dark:text-indigo-300 dark:hover:text-indigo-200",
-    sibling: "text-indigo-700 hover:text-indigo-900 dark:text-indigo-300 dark:hover:text-indigo-200",
-    detail: "text-indigo-900 hover:text-indigo-600 dark:text-indigo-300 dark:hover:text-indigo-200",
-    action: "text-indigo-900 hover:text-indigo-600 hover:bg-indigo-50/50 dark:text-indigo-300 dark:hover:text-indigo-200 dark:hover:bg-indigo-900/35",
+    row: "hover:bg-brand-alt-surface-50 focus-within:bg-brand-alt-surface-50 dark:hover:bg-brand-alt-surface-950/45 dark:focus-within:bg-brand-alt-surface-950/45 transition-colors duration-150 motion-reduce:transition-none",
+    name: "text-brand-alt-ink-600 hover:text-brand-alt-ink-800 dark:text-brand-alt-ink-300 dark:hover:text-brand-alt-ink-200",
+    sibling: "text-brand-alt-ink-700 hover:text-brand-alt-ink-900 dark:text-brand-alt-ink-300 dark:hover:text-brand-alt-ink-200",
+    detail: "text-brand-alt-ink-900 hover:text-brand-alt-ink-600 dark:text-brand-alt-ink-300 dark:hover:text-brand-alt-ink-200",
+    action: "text-brand-alt-ink-900 hover:text-brand-alt-ink-600 hover:bg-brand-alt-surface-50/50 dark:text-brand-alt-ink-300 dark:hover:text-brand-alt-ink-200 dark:hover:bg-brand-alt-surface-900/35",
   },
 } as const;
 

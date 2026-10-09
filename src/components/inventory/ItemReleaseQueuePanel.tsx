@@ -100,9 +100,9 @@ export function ItemReleaseQueuePanel({ requests, isLoading, focusRequestId }: I
 
   return (
     <div className="space-y-4">
-      <Card className="border-blue-100 bg-blue-50/50 dark:border-blue-900/50 dark:bg-blue-950/20">
-        <CardContent className="flex gap-3 p-4 text-sm text-blue-950 dark:text-blue-100">
-          <CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-blue-700 dark:text-blue-300" />
+      <Card className="border-brand-100 bg-brand-surface-50/50 dark:border-brand-900/50 dark:bg-brand-surface-950/20">
+        <CardContent className="flex gap-3 p-4 text-sm text-brand-ink-950 dark:text-brand-ink-100">
+          <CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-brand-ink-700 dark:text-brand-ink-300" />
           <p>Requests and releases use the everyday stock unit, such as one pen or one kilogram—not a procurement box or sack. A release creates an Inventory issue record only after current stock is sufficient. Pending and declined responses never reduce stock.</p>
         </CardContent>
       </Card>
@@ -117,7 +117,7 @@ export function ItemReleaseQueuePanel({ requests, isLoading, focusRequestId }: I
         <Card
           key={item.id}
           id={`release-request-${item.id}`}
-          className={cn('overflow-hidden', item.id === focusRequestId && 'border-violet-400 ring-2 ring-violet-200 dark:ring-violet-900')}
+          className={cn('overflow-hidden', item.id === focusRequestId && 'border-brand-secondary-alt-400 ring-2 ring-brand-secondary-alt-200 dark:ring-brand-secondary-alt-900')}
         >
           <CardHeader className="gap-2 pb-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -137,7 +137,7 @@ export function ItemReleaseQueuePanel({ requests, isLoading, focusRequestId }: I
             </div>
             <div className="flex flex-wrap gap-2">
               {canRelease && item.canRelease && <Button className="min-h-11 gap-2 bg-emerald-600 hover:bg-emerald-700" onClick={() => openDecision(item, 'release')}><PackageCheck className="h-4 w-4" /> Release</Button>}
-              {canStartRestock && !item.canRelease && <Button variant="outline" className="min-h-11 gap-2 border-violet-200 text-violet-800 hover:bg-violet-50 dark:border-violet-800 dark:text-violet-200 dark:hover:bg-violet-950/40" onClick={() => beginRestock(item)} disabled={startRestock.isPending}><PackagePlus className="h-4 w-4" /> Start restocking</Button>}
+              {canStartRestock && !item.canRelease && <Button variant="outline" className="min-h-11 gap-2 border-brand-secondary-alt-200 text-brand-secondary-alt-ink-800 hover:bg-brand-secondary-alt-surface-50 dark:border-brand-secondary-alt-800 dark:text-brand-secondary-alt-ink-200 dark:hover:bg-brand-secondary-alt-surface-950/40" onClick={() => beginRestock(item)} disabled={startRestock.isPending}><PackagePlus className="h-4 w-4" /> Start restocking</Button>}
               {canPend && <Button variant="outline" className="min-h-11 gap-2" onClick={() => openDecision(item, 'pending')}><Clock3 className="h-4 w-4" /> Put on pending</Button>}
               {canDecline && <Button variant="outline" className="min-h-11 gap-2 border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-200 dark:hover:bg-rose-950/40" onClick={() => openDecision(item, 'decline')}><XCircle className="h-4 w-4" /> Decline</Button>}
             </div>

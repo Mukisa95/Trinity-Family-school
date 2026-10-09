@@ -319,7 +319,7 @@ export default function StaffPayrollDetailPage({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <CalendarClock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <CalendarClock className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
                   Upcoming payment
                 </CardTitle>
                 <CardDescription>
@@ -412,7 +412,7 @@ export default function StaffPayrollDetailPage({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <History className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <History className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
                   Payment history
                 </CardTitle>
               </CardHeader>

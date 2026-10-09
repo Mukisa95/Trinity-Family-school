@@ -295,7 +295,7 @@ export function AssignmentTimeManagementForm({
                         {isCurrentYear && (
                           <Badge
                             variant="outline"
-                            className="shrink-0 border-indigo-200 bg-indigo-50 text-[10px] text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-950/40 dark:text-indigo-300"
+                            className="shrink-0 border-brand-alt-200 bg-brand-alt-surface-50 text-[10px] text-brand-alt-ink-700 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300"
                           >
                             Current year
                           </Badge>
@@ -323,7 +323,7 @@ export function AssignmentTimeManagementForm({
                         return (
                           <div
                             key={term.id}
-                            className={`flex items-center space-x-2 rounded-md py-1 pl-1 pr-0.5 ${isCurrentTerm && isChecked ? 'bg-indigo-50 dark:bg-indigo-950/40' : ''}`}
+                            className={`flex items-center space-x-2 rounded-md py-1 pl-1 pr-0.5 ${isCurrentTerm && isChecked ? 'bg-brand-alt-surface-50 dark:bg-brand-alt-surface-950/40' : ''}`}
                           >
                             <Checkbox
                               id={checkboxId}
@@ -340,11 +340,11 @@ export function AssignmentTimeManagementForm({
                             />
                             <Label
                               htmlFor={checkboxId}
-                              className={`text-sm ${isCurrentTerm ? 'font-medium text-indigo-800 dark:text-indigo-200' : ''}`}
+                              className={`text-sm ${isCurrentTerm ? 'font-medium text-brand-alt-ink-800 dark:text-brand-alt-ink-200' : ''}`}
                             >
                               {term.name}
                               {isCurrentTerm && (
-                                <span className="ml-1.5 text-[10px] font-normal text-indigo-600 dark:text-indigo-400">
+                                <span className="ml-1.5 text-[10px] font-normal text-brand-alt-ink-600 dark:text-brand-alt-ink-400">
                                   (current)
                                 </span>
                               )}

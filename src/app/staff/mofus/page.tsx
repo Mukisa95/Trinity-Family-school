@@ -106,7 +106,7 @@ export default function MofusPage() {
       <div className="p-4 sm:p-6 space-y-6">
         <PageHeader title="Mofus" description="Manage staff-pupil assignments and fees holidays" />
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand-ink-600 dark:text-brand-ink-400" />
           <span className="ml-2 text-gray-600 dark:text-slate-300">Loading...</span>
         </div>
       </div>
@@ -158,11 +158,11 @@ export default function MofusPage() {
             const assignedPupils = staffPupilsMap.get(staff.id) || [];
             return (
               <Card key={staff.id} className="overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b dark:from-blue-950/40 dark:to-indigo-950/40">
+                <CardHeader className="bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 border-b dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-medium">
+                        <AvatarFallback className="bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 text-white font-medium">
                           {staff.firstName[0]}{staff.lastName[0]}
                         </AvatarFallback>
                       </Avatar>
@@ -170,7 +170,7 @@ export default function MofusPage() {
                         <CardTitle className="text-lg">
                           <Link
                             href={`/staff/${staff.id}`}
-                            className="hover:text-blue-600 hover:underline transition-colors dark:hover:text-blue-400"
+                            className="hover:text-brand-ink-600 hover:underline transition-colors dark:hover:text-brand-ink-400"
                           >
                             {staff.firstName} {staff.lastName}
                           </Link>
@@ -234,7 +234,7 @@ export default function MofusPage() {
                                   <div className="flex items-center gap-2">
                                     <Link
                                       href={`/pupil-detail?id=${pupil.id}`}
-                                      className="font-medium text-gray-900 hover:text-blue-600 hover:underline transition-colors dark:text-slate-100 dark:hover:text-blue-400"
+                                      className="font-medium text-gray-900 hover:text-brand-ink-600 hover:underline transition-colors dark:text-slate-100 dark:hover:text-brand-ink-400"
                                     >
                                       {formatPupilDisplayName(pupil)}
                                     </Link>
@@ -242,7 +242,7 @@ export default function MofusPage() {
                                       {pupil.status}
                                     </Badge>
                                     {activeHoliday && (
-                                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">
+                                      <Badge variant="outline" className="bg-brand-surface-50 text-brand-ink-700 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60">
                                         <Calendar className="h-3 w-3 mr-1" />
                                         Fees Holiday Active
                                       </Badge>
@@ -260,7 +260,7 @@ export default function MofusPage() {
                                     <span>{pupil.section}</span>
                                   </div>
                                   {activeHoliday && (
-                                    <div className="mt-2 text-xs text-blue-700 bg-blue-50 p-2 rounded border border-blue-200 dark:text-blue-300 dark:bg-blue-950/40 dark:border-blue-800/60">
+                                    <div className="mt-2 text-xs text-brand-ink-700 bg-brand-surface-50 p-2 rounded border border-brand-200 dark:text-brand-ink-300 dark:bg-brand-surface-950/40 dark:border-brand-800/60">
                                       <p className="font-medium">
                                         {/* Handle both old format (single category) and new format (array) */}
                                         {(() => {
@@ -283,7 +283,7 @@ export default function MofusPage() {
                                         discount
                                       </p>
                                       {activeHoliday.reason && (
-                                        <p className="text-blue-600 mt-1 dark:text-blue-400">Reason: {activeHoliday.reason}</p>
+                                        <p className="text-brand-ink-600 mt-1 dark:text-brand-ink-400">Reason: {activeHoliday.reason}</p>
                                       )}
                                     </div>
                                   )}

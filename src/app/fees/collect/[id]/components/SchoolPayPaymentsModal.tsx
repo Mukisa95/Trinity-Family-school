@@ -134,7 +134,7 @@ export function SchoolPayPaymentsModal({
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden dark:bg-slate-900">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-violet-600 to-purple-700 px-6 py-4 flex items-center justify-between text-white">
+        <div className="bg-gradient-to-r from-brand-secondary-alt-surface-600 to-brand-secondary-surface-700 px-6 py-4 flex items-center justify-between text-white">
           <div className="flex items-center gap-3">
             <span className="text-2xl">⚡</span>
             <div>
@@ -143,7 +143,7 @@ export function SchoolPayPaymentsModal({
                 {isLoading && <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin dark:border-slate-700/40" />}
                 {!isLoading && <span className="text-[10px] bg-green-400/30 border border-green-400/50 text-green-100 rounded-full px-2 py-0.5">● Live</span>}
               </div>
-              <p className="text-xs text-violet-200">
+              <p className="text-xs text-brand-secondary-alt-ink-200">
                 {transactions.length} transaction{transactions.length !== 1 ? 's' : ''} · {fmt(totalReceived)} total received
               </p>
             </div>
@@ -155,7 +155,7 @@ export function SchoolPayPaymentsModal({
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <span className="w-8 h-8 border-3 border-violet-200 border-t-violet-600 rounded-full animate-spin dark:border-violet-800/60" />
+              <span className="w-8 h-8 border-3 border-brand-secondary-alt-200 border-t-violet-600 rounded-full animate-spin dark:border-brand-secondary-alt-800/60" />
               <p className="text-sm text-gray-400 dark:text-slate-400">Loading SchoolPay payments…</p>
             </div>
           ) : transactions.length === 0 ? (
@@ -168,18 +168,18 @@ export function SchoolPayPaymentsModal({
             transactions.map((tx) => {
               const hasUnmatched = tx.payments.some((p: any) => p.feeStructureId === 'schoolpay-general');
               return (
-                <div key={tx.key} className="bg-violet-50/60 border border-violet-200 rounded-xl overflow-hidden dark:bg-violet-950/60 dark:border-violet-800/60">
+                <div key={tx.key} className="bg-brand-secondary-alt-surface-50/60 border border-brand-secondary-alt-200 rounded-xl overflow-hidden dark:bg-brand-secondary-alt-surface-950/60 dark:border-brand-secondary-alt-800/60">
                   {/* Transaction header */}
-                  <div className="bg-gradient-to-r from-violet-100 to-purple-50 px-4 py-3 flex items-start justify-between gap-3 dark:from-violet-950/40 dark:to-purple-950/40">
+                  <div className="bg-gradient-to-r from-brand-secondary-alt-surface-100 to-brand-secondary-surface-50 px-4 py-3 flex items-start justify-between gap-3 dark:from-brand-secondary-alt-surface-950/40 dark:to-brand-secondary-surface-950/40">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-violet-900 text-base dark:text-violet-200">{fmt(tx.totalAmount)}</span>
-                        <span className="text-xs bg-violet-200 text-violet-800 rounded-full px-2 py-0.5 font-mono dark:bg-violet-900/40 dark:text-violet-200">via SchoolPay</span>
-                        {tx.paymentMethod && <span className="text-xs bg-white border border-violet-200 text-violet-700 rounded-full px-2 py-0.5 dark:bg-slate-900 dark:border-violet-800/60 dark:text-violet-300">{tx.paymentMethod}</span>}
+                        <span className="font-bold text-brand-secondary-alt-ink-900 text-base dark:text-brand-secondary-alt-ink-200">{fmt(tx.totalAmount)}</span>
+                        <span className="text-xs bg-brand-secondary-alt-surface-200 text-brand-secondary-alt-ink-800 rounded-full px-2 py-0.5 font-mono dark:bg-brand-secondary-alt-surface-900/40 dark:text-brand-secondary-alt-ink-200">via SchoolPay</span>
+                        {tx.paymentMethod && <span className="text-xs bg-white border border-brand-secondary-alt-200 text-brand-secondary-alt-ink-700 rounded-full px-2 py-0.5 dark:bg-slate-900 dark:border-brand-secondary-alt-800/60 dark:text-brand-secondary-alt-ink-300">{tx.paymentMethod}</span>}
                         {tx.termGroups.length > 1 && <span className="text-xs bg-fuchsia-100 text-fuchsia-700 rounded-full px-2 py-0.5">Split across {tx.termGroups.length} terms</span>}
                         {hasUnmatched && <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 font-medium dark:bg-amber-950/40 dark:text-amber-300">⚠ Needs matching</span>}
                       </div>
-                      <p className="text-xs text-violet-600 mt-1 dark:text-violet-400">{fmtDate(tx.paymentDate)}</p>
+                      <p className="text-xs text-brand-secondary-alt-ink-600 mt-1 dark:text-brand-secondary-alt-ink-400">{fmtDate(tx.paymentDate)}</p>
                     </div>
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
                       <p className="text-xs text-gray-600 font-medium dark:text-slate-300">{tx.payerName !== '—' ? tx.payerName : ''}</p>
@@ -187,7 +187,7 @@ export function SchoolPayPaymentsModal({
                       {/* Redistribute button — always available here */}
                       <button
                         onClick={() => onRedistribute(tx)}
-                        className="text-xs px-3 py-1 bg-violet-600 hover:bg-violet-700 text-white rounded-full font-semibold transition-colors shadow-sm"
+                        className="text-xs px-3 py-1 bg-brand-secondary-alt-surface-600 hover:bg-brand-secondary-alt-surface-700 text-white rounded-full font-semibold transition-colors shadow-sm"
                       >
                         ⚡ Redistribute
                       </button>
@@ -201,17 +201,17 @@ export function SchoolPayPaymentsModal({
                         <div className="flex items-center gap-1.5 mb-1.5">
                           {group.isPushed
                             ? <span className="text-[10px] font-semibold text-fuchsia-600 bg-fuchsia-50 border border-fuchsia-200 rounded-full px-2 py-0.5">→ Pushed to {group.termLabel}</span>
-                            : <span className="text-[10px] font-semibold text-violet-600 bg-violet-50 border border-violet-200 rounded-full px-2 py-0.5 dark:text-violet-400 dark:bg-violet-950/40 dark:border-violet-800/60">{group.termLabel}</span>}
-                          <span className="text-[10px] text-violet-500 font-medium dark:text-violet-400">{fmt(group.subTotal)}</span>
+                            : <span className="text-[10px] font-semibold text-brand-secondary-alt-ink-600 bg-brand-secondary-alt-surface-50 border border-brand-secondary-alt-200 rounded-full px-2 py-0.5 dark:text-brand-secondary-alt-ink-400 dark:bg-brand-secondary-alt-surface-950/40 dark:border-brand-secondary-alt-800/60">{group.termLabel}</span>}
+                          <span className="text-[10px] text-brand-secondary-alt-ink-500 font-medium dark:text-brand-secondary-alt-ink-400">{fmt(group.subTotal)}</span>
                         </div>
                         <div className="space-y-1">
                           {group.payments.map((p: any, i: number) => (
-                            <div key={p.id || i} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-violet-100 text-sm dark:bg-slate-900 dark:border-violet-800/60">
+                            <div key={p.id || i} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-brand-secondary-alt-100 text-sm dark:bg-slate-900 dark:border-brand-secondary-alt-800/60">
                               <div className="min-w-0 flex-1">
                                 <p className="font-medium text-gray-800 truncate text-sm dark:text-slate-100">{getFeeName(p.feeStructureId)}</p>
                                 {p.feeStructureId === 'schoolpay-general' && <p className="text-[10px] text-amber-600 dark:text-amber-400">Use Redistribute to allocate this amount</p>}
                               </div>
-                              <span className="ml-3 font-bold text-violet-800 shrink-0 dark:text-violet-200">{fmt(p.amount)}</span>
+                              <span className="ml-3 font-bold text-brand-secondary-alt-ink-800 shrink-0 dark:text-brand-secondary-alt-ink-200">{fmt(p.amount)}</span>
                             </div>
                           ))}
                         </div>
@@ -228,7 +228,7 @@ export function SchoolPayPaymentsModal({
 
         {/* Footer */}
         <div className="border-t px-6 py-3 bg-gray-50 flex justify-end dark:bg-slate-900">
-          <button onClick={onClose} className="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-semibold transition-colors">Close</button>
+          <button onClick={onClose} className="px-5 py-2 bg-brand-secondary-alt-surface-600 hover:bg-brand-secondary-alt-surface-700 text-white rounded-full text-sm font-semibold transition-colors">Close</button>
         </div>
       </div>
     </div>

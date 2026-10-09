@@ -63,7 +63,7 @@ export function ExamSignatureDisplay({
 
   return (
     <div className={`flex items-center gap-1 ${className}`}>
-      <GraduationCap className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+      <GraduationCap className="w-3 h-3 text-brand-ink-600 dark:text-brand-ink-400" />
       <DigitalSignatureDisplay
         signature={creationSignature.signature}
         action="Created"

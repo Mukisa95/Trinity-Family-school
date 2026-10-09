@@ -110,7 +110,7 @@ export function ClassRequirementsOverviewModal({
       <ModernDialogContent size="full" className="max-h-[95vh] overflow-hidden flex flex-col">
         <ModernDialogHeader>
           <ModernDialogTitle className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-brand-surface-500 to-brand-alt-surface-600 rounded-full flex items-center justify-center">
               <FileText className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -139,7 +139,7 @@ export function ClassRequirementsOverviewModal({
                     const currentTerm = year?.terms.find(t => t.isCurrent);
                     setSelectedTermId(currentTerm?.id || year?.terms[0]?.id || '');
                   }}
-                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700"
+                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-alt-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700"
                   style={{ width: 'auto', minWidth: 'fit-content' }}
                 >
                   <option value="">Select Year</option>
@@ -154,7 +154,7 @@ export function ClassRequirementsOverviewModal({
                   value={selectedTermId}
                   onChange={(e) => setSelectedTermId(e.target.value)}
                   disabled={!selectedAcademicYearId}
-                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700 dark:disabled:bg-slate-900 dark:disabled:text-slate-400"
+                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-alt-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700 dark:disabled:bg-slate-900 dark:disabled:text-slate-400"
                   style={{ width: 'auto', minWidth: 'fit-content' }}
                 >
                   {selectedAcademicYearId && (() => {

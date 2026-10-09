@@ -194,7 +194,7 @@ const MobilePupilCard = React.memo(function MobilePupilCard({
   return (
     <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-3 shadow-sm border border-gray-200 dark:border-gray-700 space-y-3">
       <div className="flex items-center space-x-2">
-        <span className="w-5 h-5 bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xs font-bold rounded-full flex items-center justify-center flex-shrink-0">
+        <span className="w-5 h-5 bg-gradient-to-br from-brand-alt-surface-500 to-brand-secondary-surface-600 text-white text-xs font-bold rounded-full flex items-center justify-center flex-shrink-0">
           {index + 1}
         </span>
         <div className="flex-1 min-w-0">
@@ -843,8 +843,8 @@ export default function RecordAttendancePage() {
       case "Present": return "bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200";
       case "Absent": return "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200";
       case "Late": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200";
-      case "Excused": return "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200";
-      case "Delayed": return "bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-200";
+      case "Excused": return "bg-brand-surface-100 text-brand-ink-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-200";
+      case "Delayed": return "bg-brand-secondary-surface-100 text-brand-secondary-ink-800 dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-200";
       default: return "bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100";
     }
   };
@@ -889,7 +889,7 @@ export default function RecordAttendancePage() {
         backLabel="Back to Attendance Hub"
         className={selectedClass ? "mb-1.5" : "mb-4"}
         meta={
-          <span className="whitespace-nowrap rounded-full border border-indigo-100/80 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:border-indigo-800/80 dark:bg-indigo-950/40 dark:text-indigo-300">
+          <span className="whitespace-nowrap rounded-full border border-brand-alt-100/80 bg-brand-alt-surface-50 px-2 py-0.5 text-[10px] font-bold text-brand-alt-ink-700 dark:border-brand-alt-800/80 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300">
             {format(today, "MMM d")}
           </span>
         }
@@ -902,7 +902,7 @@ export default function RecordAttendancePage() {
               size="sm"
               showIcon={false}
               className="shrink-0"
-              triggerClassName="h-[34px] min-w-[104px] max-w-[140px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
+              triggerClassName="h-[34px] min-w-[104px] max-w-[140px] rounded-full border-brand-200/60 bg-white/90 px-3 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
               includeAllOption={false}
             />
           </div>
@@ -916,7 +916,7 @@ export default function RecordAttendancePage() {
               size="sm"
               showIcon={false}
               className="shrink-0"
-              triggerClassName="h-[34px] min-w-[120px] max-w-[160px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
+              triggerClassName="h-[34px] min-w-[120px] max-w-[160px] rounded-full border-brand-200/60 bg-white/90 px-3 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
               includeAllOption={false}
             />
             {selectedClassId && (
@@ -947,9 +947,9 @@ export default function RecordAttendancePage() {
                 className="attendance-autosave-indicator text-[9px] sm:text-[10px]"
               />
             )}
-            <div className="flex h-[34px] items-center gap-1 rounded-full border border-blue-200/60 bg-white/90 px-3 shadow-sm dark:border-blue-800/60 dark:bg-slate-900/90">
-              <Clock className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
-              <span className="font-mono text-[10px] font-bold text-blue-700 sm:text-xs dark:text-blue-300">
+            <div className="flex h-[34px] items-center gap-1 rounded-full border border-brand-200/60 bg-white/90 px-3 shadow-sm dark:border-brand-800/60 dark:bg-slate-900/90">
+              <Clock className="h-3.5 w-3.5 text-brand-ink-500 dark:text-brand-ink-400" />
+              <span className="font-mono text-[10px] font-bold text-brand-ink-700 sm:text-xs dark:text-brand-ink-300">
                 {currentTime}
               </span>
             </div>
@@ -963,7 +963,7 @@ export default function RecordAttendancePage() {
           left={
             <>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+                <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
                   {selectedClass.name}
                 </span>
                 <span className="text-xs text-gray-300 font-medium">•</span>
@@ -996,13 +996,13 @@ export default function RecordAttendancePage() {
                 <span className="font-bold text-yellow-600 dark:text-yellow-400">{attendanceStats.late}</span>
                 <span className="text-yellow-700/85 dark:text-green-300 font-medium">Late</span>
               </div>
-              <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="font-bold text-blue-600 dark:text-blue-400">{attendanceStats.excused}</span>
-                <span className="text-blue-700/85 dark:text-green-300 font-medium">Excused</span>
+              <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-brand-ink-600 dark:text-brand-ink-400">{attendanceStats.excused}</span>
+                <span className="text-brand-ink-700/85 dark:text-green-300 font-medium">Excused</span>
               </div>
-              <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="font-bold text-purple-600 dark:text-purple-400">{attendanceStats.delayed}</span>
-                <span className="text-purple-700/85 dark:text-green-300 font-medium">Delayed</span>
+              <div className="flex items-center gap-1 bg-brand-secondary-surface-50/80 dark:bg-brand-secondary-surface-950/20 border border-brand-secondary-100/50 dark:border-brand-secondary-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">{attendanceStats.delayed}</span>
+                <span className="text-brand-secondary-ink-700/85 dark:text-green-300 font-medium">Delayed</span>
               </div>
               <div className="flex items-center gap-1 bg-gray-50/80 dark:bg-gray-800/30 border border-gray-100/50 dark:border-gray-700/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
                 <span className="font-bold text-gray-600 dark:text-gray-400">{attendanceStats.notMarked}</span>

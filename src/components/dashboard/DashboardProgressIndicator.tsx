@@ -50,14 +50,14 @@ export function DashboardProgressIndicator({
       exit={{ opacity: 0, y: -20 }}
       className="mb-6"
     >
-      <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 dark:border-blue-800/60 dark:from-blue-950/40 dark:to-indigo-950/40">
+      <Card className="border-brand-200 bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 dark:border-brand-800/60 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
               {error ? (
                 <AlertCircle className="h-5 w-5 text-red-500 dark:text-red-400" />
               ) : isProcessing ? (
-                <Loader2 className="h-5 w-5 text-blue-500 animate-spin dark:text-blue-400" />
+                <Loader2 className="h-5 w-5 text-brand-ink-500 animate-spin dark:text-brand-ink-400" />
               ) : (
                 <CheckCircle className="h-5 w-5 text-green-500 dark:text-green-400" />
               )}
@@ -71,7 +71,7 @@ export function DashboardProgressIndicator({
                 onClick={onRetry}
                 size="sm"
                 variant="outline"
-                className="text-blue-600 border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-800/60 dark:hover:bg-blue-950/40"
+                className="text-brand-ink-600 border-brand-300 hover:bg-brand-surface-50 dark:text-brand-ink-400 dark:border-brand-800/60 dark:hover:bg-brand-surface-950/40"
               >
                 <RotateCcw className="h-4 w-4 mr-1" />
                 Retry
@@ -106,7 +106,7 @@ export function DashboardProgressIndicator({
                         ${isCompleted 
                           ? 'bg-green-100 text-green-800 border border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60'
                           : isCurrent 
-                            ? 'bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60'
+                            ? 'bg-brand-surface-100 text-brand-ink-800 border border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60'
                             : 'bg-gray-100 text-gray-600 border border-gray-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700'
                         }
                       `}
@@ -117,7 +117,7 @@ export function DashboardProgressIndicator({
                         <CheckCircle className="h-4 w-4 text-green-600 ml-auto dark:text-green-400" />
                       )}
                       {isCurrent && (
-                        <Loader2 className="h-4 w-4 text-blue-600 animate-spin ml-auto dark:text-blue-400" />
+                        <Loader2 className="h-4 w-4 text-brand-ink-600 animate-spin ml-auto dark:text-brand-ink-400" />
                       )}
                     </div>
                   );

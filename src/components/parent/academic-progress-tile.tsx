@@ -57,16 +57,16 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
 
   if (isLoading) {
     return (
-      <Card className={`bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200  dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800/60 ${className}`}>
+      <Card className={`bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 border-brand-200  dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40 dark:border-brand-800/60 ${className}`}>
         <CardContent className="p-2.5">
           <div className="animate-pulse">
-            <div className="h-3 bg-blue-200 rounded mb-1.5 dark:bg-blue-900/40"></div>
-            <div className="h-2 bg-blue-200 rounded mb-1.5 dark:bg-blue-900/40"></div>
-            <div className="h-1.5 bg-blue-200 rounded mb-2 dark:bg-blue-900/40"></div>
+            <div className="h-3 bg-brand-surface-200 rounded mb-1.5 dark:bg-brand-surface-900/40"></div>
+            <div className="h-2 bg-brand-surface-200 rounded mb-1.5 dark:bg-brand-surface-900/40"></div>
+            <div className="h-1.5 bg-brand-surface-200 rounded mb-2 dark:bg-brand-surface-900/40"></div>
             <div className="grid grid-cols-3 gap-1.5">
-              <div className="h-8 bg-blue-200 rounded dark:bg-blue-900/40"></div>
-              <div className="h-8 bg-blue-200 rounded dark:bg-blue-900/40"></div>
-              <div className="h-8 bg-blue-200 rounded dark:bg-blue-900/40"></div>
+              <div className="h-8 bg-brand-surface-200 rounded dark:bg-brand-surface-900/40"></div>
+              <div className="h-8 bg-brand-surface-200 rounded dark:bg-brand-surface-900/40"></div>
+              <div className="h-8 bg-brand-surface-200 rounded dark:bg-brand-surface-900/40"></div>
             </div>
           </div>
         </CardContent>
@@ -100,12 +100,12 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className={`bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all duration-300 ${className}`}>
+      <Card className={`bg-gradient-to-br from-brand-surface-50 to-brand-alt-surface-100 dark:from-brand-surface-900/20 dark:to-brand-alt-surface-900/20 border-brand-200 dark:border-brand-800 hover:shadow-lg transition-all duration-300 ${className}`}>
         <CardContent className="p-2.5">
           {/* Compact Header with Toggle Button */}
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-1.5">
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-1 rounded-md">
+              <div className="bg-gradient-to-r from-brand-surface-500 to-brand-alt-surface-600 p-1 rounded-md">
                 <GraduationCap className="h-3 w-3 text-white" />
               </div>
               <div className="flex items-center gap-2">
@@ -113,7 +113,7 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
                   {activeYear.name}
                 </h3>
                 <span className="text-gray-400 dark:text-slate-400">•</span>
-                <span className="text-xs text-blue-600 dark:text-blue-400 leading-none">
+                <span className="text-xs text-brand-ink-600 dark:text-brand-ink-400 leading-none">
                   Term {progress.termNumber}
                 </span>
                 {isRecessMode ? (
@@ -126,7 +126,7 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
                 ) : (
                   <Badge 
                     variant="secondary" 
-                    className="bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/50 dark:text-blue-300 text-xs px-1.5 py-0 h-4 dark:border-blue-800/60"
+                    className="bg-brand-surface-100 text-brand-ink-700 border-brand-300 dark:bg-brand-surface-900/50 dark:text-brand-ink-300 text-xs px-1.5 py-0 h-4 dark:border-brand-800/60"
                   >
                     Active
                   </Badge>
@@ -139,12 +139,12 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
               variant="ghost"
               size="sm"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="h-6 w-6 p-0 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+              className="h-6 w-6 p-0 hover:bg-brand-surface-100 dark:hover:bg-brand-surface-900/30"
             >
               {isExpanded ? (
-                <ChevronUp className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                <ChevronUp className="h-3 w-3 text-brand-ink-600 dark:text-brand-ink-400" />
               ) : (
-                <ChevronDown className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                <ChevronDown className="h-3 w-3 text-brand-ink-600 dark:text-brand-ink-400" />
               )}
             </Button>
           </div>
@@ -157,7 +157,7 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
                   {isRecessMode ? effectiveTerm.term?.name || 'Previous term' : progress.currentTerm.name}
                 </span>
                 <span className="text-gray-400 dark:text-slate-400">•</span>
-                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                <span className="text-xs font-medium text-brand-ink-600 dark:text-brand-ink-400">
                   {isRecessMode ? 'Recess period' : `${Math.round(progress.progressPercentage)}% complete`}
                 </span>
               </div>
@@ -165,7 +165,7 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
             {!isRecessMode && (
               <Progress 
                 value={progress.progressPercentage} 
-                className="h-1.5 bg-blue-100 dark:bg-blue-900/30" 
+                className="h-1.5 bg-brand-surface-100 dark:bg-brand-surface-900/30"
               />
             )}
             {isRecessMode && (
@@ -213,7 +213,7 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
                   
                   <div className="text-center bg-white/60 dark:bg-gray-800/40 rounded-md p-1">
                     <div className="flex items-center justify-center gap-1">
-                      <Calendar className="h-2 w-2 text-blue-500 dark:text-blue-400" />
+                      <Calendar className="h-2 w-2 text-brand-ink-500 dark:text-brand-ink-400" />
                       <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
                         {progress.totalDays}
                       </div>
@@ -225,7 +225,7 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
                 </div>
 
                 {/* Date Range */}
-                <div className="pt-1.5 border-t border-blue-200/50 dark:border-blue-800/50">
+                <div className="pt-1.5 border-t border-brand-200/50 dark:border-brand-800/50">
                   <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
                     <div className="flex items-center gap-1">
                       <span className="text-gray-400 dark:text-slate-400">📅</span>
@@ -255,4 +255,4 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
       </Card>
     </motion.div>
   );
-} 
+}

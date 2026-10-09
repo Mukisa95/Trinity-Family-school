@@ -36,7 +36,7 @@ export function DigitalSignatureDisplay({
       case 'admin':
         return 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950/40';
       case 'staff':
-        return 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950/40';
+        return 'text-brand-ink-600 bg-brand-surface-50 dark:text-brand-ink-400 dark:bg-brand-surface-950/40';
       case 'parent':
         return 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950/40';
       default:
@@ -76,7 +76,7 @@ export function DigitalSignatureDisplay({
       <div className={cn("border rounded-lg p-3 bg-muted/20", className)}>
         <div className="flex items-start gap-3">
           <div className="p-1.5 rounded-full bg-primary/10">
-            <Shield className="w-4 h-4 text-primary" />
+            <Shield className="w-4 h-4 text-link" />
           </div>
           <div className="flex-1 space-y-2">
             <div className="flex items-center justify-between">

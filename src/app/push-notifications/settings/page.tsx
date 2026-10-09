@@ -50,8 +50,8 @@ function ToggleRow({
   icon: ReactNode;
 }) {
   return (
-    <label className={`flex items-center gap-3 rounded-2xl border p-4 transition ${disabled ? 'border-slate-100 bg-slate-50 opacity-65 dark:border-slate-700 dark:bg-slate-900' : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/30 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-800/60 dark:hover:bg-blue-950/30'}`}>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">{icon}</span>
+    <label className={`flex items-center gap-3 rounded-2xl border p-4 transition ${disabled ? 'border-slate-100 bg-slate-50 opacity-65 dark:border-slate-700 dark:bg-slate-900' : 'border-slate-200 bg-white hover:border-brand-200 hover:bg-brand-surface-50/30 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-brand-800/60 dark:hover:bg-brand-surface-950/30'}`}>
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-surface-50 text-brand-ink-600 dark:bg-brand-surface-950/40 dark:text-brand-ink-400">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-bold text-slate-800 dark:text-slate-100">{title}</span>
         <span className="mt-0.5 block text-xs leading-5 text-slate-500 dark:text-slate-400">{description}</span>
@@ -225,9 +225,9 @@ export default function NotificationSettingsPage() {
           </div>
         ) : (
           <div className="mt-5 space-y-5">
-            <section className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm dark:border-blue-800/60 dark:from-blue-950/40 dark:to-slate-900">
+            <section className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-surface-50 to-white p-5 shadow-sm dark:border-brand-800/60 dark:from-brand-surface-950/40 dark:to-slate-900">
               <div className="flex items-start gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-200"><BellRing className="h-5 w-5" /></span>
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-surface-600 text-white shadow-lg shadow-brand-200"><BellRing className="h-5 w-5" /></span>
                 <div>
                   <h2 className="font-bold text-slate-900 dark:text-slate-100">Automated alerts</h2>
                   <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">These controls affect new pushes only. Manual notifications still work normally, and automated alerts do not appear in the notification inbox.</p>
@@ -266,7 +266,7 @@ export default function NotificationSettingsPage() {
                       onChange={event => setRecipientSearch(event.target.value)}
                       placeholder="Search users"
                       aria-label="Search notification recipients"
-                      className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:bg-slate-900 dark:focus:ring-blue-800/60"
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm outline-none transition focus:border-brand-400 focus:bg-white focus:ring-4 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:bg-slate-900 dark:focus:ring-brand-800/60"
                     />
                   </label>
 
@@ -324,19 +324,19 @@ export default function NotificationSettingsPage() {
 
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 dark:border-slate-700 dark:bg-slate-900">
               <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400"><Clock3 className="h-5 w-5" /></span>
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-secondary-alt-surface-50 text-brand-secondary-alt-ink-600 dark:bg-brand-secondary-alt-surface-950/40 dark:text-brand-secondary-alt-ink-400"><Clock3 className="h-5 w-5" /></span>
                 <div className="min-w-0 flex-1"><h2 className="font-bold text-slate-900 dark:text-slate-100">Attendance reminder times</h2><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{nextReminder} · {settings.attendanceReminders.timezone}</p></div>
               </div>
 
               <div className="mt-5 space-y-2">
                 {settings.attendanceReminders.times.map((time, index) => (
                   <div key={`${time}-${index}`} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-900">
-                    <input type="time" value={time} onChange={event => updateTime(index, event.target.value)} className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-blue-800/60" />
+                    <input type="time" value={time} onChange={event => updateTime(index, event.target.value)} className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-brand-800/60" />
                     <button type="button" onClick={() => removeTime(index)} disabled={settings.attendanceReminders.times.length === 1} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-35 dark:text-slate-400 dark:hover:bg-red-950/40 dark:hover:text-red-400" title="Remove reminder time" aria-label={`Remove ${time} reminder`}><Trash2 className="h-4 w-4" /></button>
                   </div>
                 ))}
               </div>
-              <button type="button" onClick={addTime} disabled={settings.attendanceReminders.times.length >= 8} className="mt-3 inline-flex h-10 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 text-sm font-bold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/40"><Plus className="h-4 w-4" /> Add reminder time</button>
+              <button type="button" onClick={addTime} disabled={settings.attendanceReminders.times.length >= 8} className="mt-3 inline-flex h-10 items-center gap-2 rounded-xl border border-brand-200 bg-brand-surface-50 px-3.5 text-sm font-bold text-brand-ink-700 transition hover:bg-brand-surface-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-brand-800/60 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:hover:bg-brand-surface-950/40"><Plus className="h-4 w-4" /> Add reminder time</button>
               <div className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-700"><ToggleRow title="School days only" description="Skip reminders on excluded dates and outside the active academic year." checked={settings.attendanceReminders.schoolDaysOnly} onCheckedChange={value => update(current => ({ ...current, attendanceReminders: { ...current.attendanceReminders, schoolDaysOnly: value } }))} icon={<CalendarClock className="h-5 w-5" />} /></div>
             </section>
           </div>

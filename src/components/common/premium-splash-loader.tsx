@@ -77,7 +77,7 @@ export function BrandedAuthScreen({
           </div>
           <div ref={blockClusterRef} className="relative h-12 w-12" aria-hidden="true">
             <span className="startup-block startup-block-one absolute left-0 top-0 h-4 w-4 rounded bg-sky-300 shadow-[0_0_16px_rgba(125,211,252,0.65)]" />
-            <span className="startup-block startup-block-two absolute left-6 top-0 h-4 w-4 rounded bg-indigo-300 shadow-[0_0_16px_rgba(165,180,252,0.6)]" />
+            <span className="startup-block startup-block-two absolute left-6 top-0 h-4 w-4 rounded bg-brand-alt-surface-300 shadow-[0_0_16px_rgb(var(--brand-alt-300)/0.6)]" />
             <span className="startup-block startup-block-three absolute left-3 top-6 h-4 w-4 rounded bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.55)]" />
           </div>
         </div>

@@ -146,7 +146,7 @@ export default function PayrollPage() {
           }
           right={
             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-              <span className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-200">
+              <span className="rounded-lg border border-brand-100 bg-brand-surface-50 px-3 py-2 text-xs text-brand-ink-800 dark:border-brand-800/60 dark:bg-brand-surface-950/40 dark:text-brand-ink-200">
                 <Users className="mr-1 inline h-3.5 w-3.5" />
                 {totals.active} active
               </span>
@@ -201,7 +201,7 @@ export default function PayrollPage() {
                   href={`/payroll/staff/${row.staffId}`}
                   className="group"
                 >
-                  <Card className="transition-colors group-hover:border-blue-200 dark:group-hover:border-blue-800/60">
+                  <Card className="transition-colors group-hover:border-brand-200 dark:group-hover:border-brand-800/60">
                     <CardContent className="space-y-3 p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>

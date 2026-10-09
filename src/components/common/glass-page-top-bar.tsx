@@ -45,11 +45,11 @@ function useSmallScreen() {
 }
 
 const actionToneClasses: Record<GlassActionTone, string> = {
-  blue: "text-blue-600 sm:border-blue-400 sm:hover:from-blue-400 sm:hover:via-blue-500 sm:hover:to-blue-600 dark:text-blue-400",
+  blue: "text-brand-ink-600 sm:border-brand-400 sm:hover:from-brand-surface-400 sm:hover:via-brand-surface-500 sm:hover:to-brand-surface-600 dark:text-brand-ink-400",
   emerald: "text-emerald-600 sm:border-emerald-400 sm:hover:from-emerald-400 sm:hover:via-emerald-500 sm:hover:to-emerald-600 dark:text-emerald-400",
-  purple: "text-purple-600 sm:border-purple-400 sm:hover:from-purple-400 sm:hover:via-violet-500 sm:hover:to-purple-600 dark:text-purple-400",
+  purple: "text-brand-secondary-ink-600 sm:border-brand-secondary-400 sm:hover:from-brand-secondary-surface-400 sm:hover:via-brand-secondary-alt-surface-500 sm:hover:to-brand-secondary-surface-600 dark:text-brand-secondary-ink-400",
   orange: "text-orange-600 sm:border-orange-400 sm:hover:from-orange-400 sm:hover:via-amber-500 sm:hover:to-orange-600 dark:text-orange-400",
-  violet: "text-violet-600 sm:border-violet-400 sm:hover:from-violet-500 sm:hover:via-purple-500 sm:hover:to-violet-600 dark:text-violet-400",
+  violet: "text-brand-secondary-alt-ink-600 sm:border-brand-secondary-alt-400 sm:hover:from-brand-secondary-alt-surface-500 sm:hover:via-brand-secondary-surface-500 sm:hover:to-brand-secondary-alt-surface-600 dark:text-brand-secondary-alt-ink-400",
   rose: "text-rose-600 sm:border-rose-400 sm:hover:from-rose-400 sm:hover:via-pink-500 sm:hover:to-rose-600 dark:text-rose-400",
   slate: "text-slate-600 sm:border-slate-300 sm:hover:from-slate-400 sm:hover:via-slate-500 sm:hover:to-slate-600 dark:text-slate-300 dark:sm:border-slate-700",
 };
@@ -132,7 +132,7 @@ export function GlassPageTopBar({
     };
   }, [hasMobileUtilityControls, isSmallScreen]);
 
-  const backClassName = "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-blue-300/65 bg-white/[0.72] text-blue-600 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-blue-200/45 backdrop-blur-[20px] transition-all duration-200 after:absolute after:-inset-1 after:content-[''] hover:scale-[1.03] hover:bg-white/90 hover:text-blue-700 active:scale-95 dark:border-blue-800/65 dark:bg-slate-900/[0.72] dark:text-blue-400 dark:ring-blue-800/45 dark:hover:bg-slate-900/90 dark:hover:text-blue-300";
+  const backClassName = "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-brand-300/65 bg-white/[0.72] text-brand-ink-600 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-brand-200/45 backdrop-blur-[20px] transition-all duration-200 after:absolute after:-inset-1 after:content-[''] hover:scale-[1.03] hover:bg-white/90 hover:text-brand-ink-700 active:scale-95 dark:border-brand-800/65 dark:bg-slate-900/[0.72] dark:text-brand-ink-400 dark:ring-brand-800/45 dark:hover:bg-slate-900/90 dark:hover:text-brand-ink-300";
   const backControl = backHref ? (backMode === "href" ? (
     <Link href={backHref} aria-label={backLabel} title={backLabel} className={backClassName}>
       <ArrowLeft className="h-4 w-4" />
@@ -160,7 +160,7 @@ export function GlassPageTopBar({
         )}
       </div>
       {titleControls && (
-        <div className="pointer-events-auto flex w-fit max-w-full shrink-0 items-center gap-1.5 rounded-full border border-indigo-300/65 bg-white/[0.72] p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/45 backdrop-blur-[20px] [&>select]:!border-white/45 [&>select]:!bg-transparent [&>select]:!shadow-none dark:border-indigo-800/65 dark:bg-slate-900/[0.72] dark:ring-indigo-800/45 dark:[&>select]:!border-slate-600/45 dark:shadow-[0_4px_20px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <div className="pointer-events-auto flex w-fit max-w-full shrink-0 items-center gap-1.5 rounded-full border border-brand-alt-300/65 bg-white/[0.72] p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-brand-alt-200/45 backdrop-blur-[20px] [&>select]:!border-white/45 [&>select]:!bg-transparent [&>select]:!shadow-none dark:border-brand-alt-800/65 dark:bg-slate-900/[0.72] dark:ring-brand-alt-800/45 dark:[&>select]:!border-slate-600/45 dark:shadow-[0_4px_20px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.04)]">
           {titleControls}
         </div>
       )}
@@ -177,7 +177,7 @@ export function GlassPageTopBar({
           className
         )}
       >
-        <div className="h-px bg-gradient-to-r from-transparent via-blue-200/60 to-transparent dark:via-blue-900/60" />
+        <div className="h-px bg-gradient-to-r from-transparent via-brand-surface-200/60 to-transparent dark:via-brand-surface-900/60" />
         <div className={cn("w-full px-4 py-2.5 sm:px-6 lg:px-8", contentClassName)}>
           <div className={cn(
             inlineActions ? "flex items-center gap-2.5" : "flex flex-col gap-2.5 lg:flex-row lg:items-center",
@@ -193,12 +193,12 @@ export function GlassPageTopBar({
 
               <div className="min-w-0 flex-1">
                 {eyebrow && (
-                  <div className="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-500 dark:text-blue-400">
+                  <div className="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-ink-500 dark:text-brand-ink-400">
                     {eyebrow}
                   </div>
                 )}
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <h1 className="truncate text-base font-bold leading-tight text-indigo-900 sm:text-lg dark:text-indigo-200">
+                  <h1 className="truncate text-base font-bold leading-tight text-brand-alt-ink-900 sm:text-lg dark:text-brand-alt-ink-200">
                     {title}
                   </h1>
                   {meta}
@@ -260,7 +260,7 @@ export function GlassPageTopBar({
                     transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
                     className="flex min-h-9 min-w-0 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   >
-                    <div className="pointer-events-auto flex w-fit max-w-full shrink-0 items-center gap-1.5 rounded-full border border-indigo-300/65 bg-white/[0.72] p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/45 backdrop-blur-[20px] [&>select]:!border-white/45 [&>select]:!bg-transparent [&>select]:!shadow-none dark:border-indigo-800/65 dark:bg-slate-900/[0.72] dark:ring-indigo-800/45 dark:[&>select]:!border-slate-600/45 dark:shadow-[0_4px_20px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.04)]">
+                    <div className="pointer-events-auto flex w-fit max-w-full shrink-0 items-center gap-1.5 rounded-full border border-brand-alt-300/65 bg-white/[0.72] p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-brand-alt-200/45 backdrop-blur-[20px] [&>select]:!border-white/45 [&>select]:!bg-transparent [&>select]:!shadow-none dark:border-brand-alt-800/65 dark:bg-slate-900/[0.72] dark:ring-brand-alt-800/45 dark:[&>select]:!border-slate-600/45 dark:shadow-[0_4px_20px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.04)]">
                       {titleControls}
                     </div>
                   </motion.div>
@@ -338,7 +338,7 @@ export function GlassPageSearchInput({
       } : undefined}
     >
       <div className={cn(
-        "pointer-events-none absolute inset-y-0 z-10 flex items-center text-blue-500/80 transition-all duration-200 group-hover:text-blue-600 dark:text-blue-400/80 dark:group-hover:text-blue-400",
+        "pointer-events-none absolute inset-y-0 z-10 flex items-center text-brand-ink-500/80 transition-all duration-200 group-hover:text-brand-ink-600 dark:text-brand-ink-400/80 dark:group-hover:text-brand-ink-400",
         isSmallScreen && !isMobileExpanded ? "inset-x-0 justify-center pl-0" : "left-0 pl-2.5",
       )}>
         <Search className="h-3.5 w-3.5 transition-all duration-300 group-hover:scale-110" />
@@ -352,7 +352,7 @@ export function GlassPageSearchInput({
         placeholder={placeholder}
         style={{ boxShadow: "0 1px 4px rgba(59, 130, 246, 0.05)" }}
         className={cn(
-          "h-[34px] rounded-full border border-blue-200/60 bg-white/90 text-xs shadow-sm transition-all duration-200 ease-out placeholder:text-gray-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:placeholder:text-slate-400",
+          "h-[34px] rounded-full border border-brand-200/60 bg-white/90 text-xs shadow-sm transition-all duration-200 ease-out placeholder:text-gray-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:placeholder:text-slate-400",
           isSmallScreen
             ? (isMobileExpanded ? "w-full pl-7 pr-3" : "w-full px-0 placeholder:text-transparent")
             : (hasValue
@@ -406,7 +406,7 @@ export function GlassActionDock({ children, className, accessory }: GlassActionD
   const dock = (
     <div
       className={cn(
-        "glass-action-island flex max-w-full flex-nowrap items-center justify-center gap-0 overflow-x-auto rounded-full border border-indigo-300/65 bg-white/[0.72] p-1 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/55 backdrop-blur-[20px] sm:w-auto sm:flex-wrap sm:justify-start sm:gap-1 sm:border-indigo-300/60 sm:bg-white/[0.72] sm:px-2 sm:py-1 sm:shadow-[0_4px_20px_rgba(0,0,0,0.06)] sm:ring-1 sm:ring-indigo-200/45 dark:border-indigo-800/65 dark:bg-slate-900/[0.72] dark:ring-indigo-800/55 dark:sm:border-indigo-800/60 dark:sm:bg-slate-900/[0.72] dark:sm:ring-indigo-800/45",
+        "glass-action-island flex max-w-full flex-nowrap items-center justify-center gap-0 overflow-x-auto rounded-full border border-brand-alt-300/65 bg-white/[0.72] p-1 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-brand-alt-200/55 backdrop-blur-[20px] sm:w-auto sm:flex-wrap sm:justify-start sm:gap-1 sm:border-brand-alt-300/60 sm:bg-white/[0.72] sm:px-2 sm:py-1 sm:shadow-[0_4px_20px_rgba(0,0,0,0.06)] sm:ring-1 sm:ring-brand-alt-200/45 dark:border-brand-alt-800/65 dark:bg-slate-900/[0.72] dark:ring-brand-alt-800/55 dark:sm:border-brand-alt-800/60 dark:sm:bg-slate-900/[0.72] dark:sm:ring-brand-alt-800/45",
         className
       )}
       style={isSmallScreen ? { width: compactWidth } : undefined}
@@ -461,7 +461,7 @@ export const GlassActionButton = forwardRef<HTMLButtonElement, GlassActionButton
   const content = (
     <>
       {badge && (
-        <span className="absolute -right-1 -top-1 z-10 flex h-4 min-w-4 items-center justify-center rounded-full border border-white bg-violet-600 px-1 text-[9px] font-bold text-white dark:border-slate-700">
+        <span className="absolute -right-1 -top-1 z-10 flex h-4 min-w-4 items-center justify-center rounded-full border border-white bg-brand-secondary-alt-surface-600 px-1 text-[9px] font-bold text-white dark:border-slate-700">
           {badge}
         </span>
       )}
@@ -471,7 +471,7 @@ export const GlassActionButton = forwardRef<HTMLButtonElement, GlassActionButton
   );
 
   const classes = cn(
-    "relative flex h-11 min-w-11 max-w-[58px] flex-1 basis-0 flex-col items-center justify-center rounded-[18px] border border-transparent bg-transparent px-1 shadow-none transition-[color,background-color,box-shadow,transform] duration-200 hover:scale-[1.01] hover:bg-white/60 active:scale-95 active:bg-white/75 focus-visible:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:h-11 sm:w-11 sm:max-w-none sm:flex-none sm:rounded-full sm:border sm:bg-white sm:px-0 sm:shadow-sm sm:hover:scale-105 sm:hover:bg-gradient-to-br sm:hover:text-white sm:hover:shadow-md dark:hover:bg-slate-900/60 dark:active:bg-slate-900/75 dark:focus-visible:bg-slate-900/70 dark:sm:bg-slate-900",
+    "relative flex h-11 min-w-11 max-w-[58px] flex-1 basis-0 flex-col items-center justify-center rounded-[18px] border border-transparent bg-transparent px-1 shadow-none transition-[color,background-color,box-shadow,transform] duration-200 hover:scale-[1.01] hover:bg-white/60 active:scale-95 active:bg-white/75 focus-visible:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 sm:h-11 sm:w-11 sm:max-w-none sm:flex-none sm:rounded-full sm:border sm:bg-white sm:px-0 sm:shadow-sm sm:hover:scale-105 sm:hover:bg-gradient-to-br sm:hover:text-white sm:hover:shadow-md dark:hover:bg-slate-900/60 dark:active:bg-slate-900/75 dark:focus-visible:bg-slate-900/70 dark:sm:bg-slate-900",
     actionToneClasses[tone],
     disabled && "pointer-events-none opacity-50",
     className

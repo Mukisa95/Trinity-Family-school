@@ -125,12 +125,12 @@ export function EventFilters({
       <CardHeader className="pb-3 px-3 sm:px-4 border-b border-slate-100/50 mb-3 bg-white/40 rounded-t-2xl dark:border-slate-700/50 dark:bg-slate-900/40">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-bold flex items-center gap-2 bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-            <div className="w-6 h-6 rounded-lg bg-blue-100/50 flex items-center justify-center dark:bg-blue-950/50">
-              <Filter className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+            <div className="w-6 h-6 rounded-lg bg-brand-surface-100/50 flex items-center justify-center dark:bg-brand-surface-950/50">
+              <Filter className="h-3 w-3 text-brand-ink-600 dark:text-brand-ink-400" />
             </div>
             Filters
             {activeFiltersCount > 0 && (
-              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0 bg-blue-100 hover:bg-blue-200 text-blue-700 border-0 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 dark:text-blue-300">
+              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0 bg-brand-surface-100 hover:bg-brand-surface-200 text-brand-ink-700 border-0 dark:bg-brand-surface-950/40 dark:hover:bg-brand-surface-900/40 dark:text-brand-ink-300">
                 {activeFiltersCount}
               </Badge>
             )}
@@ -191,8 +191,8 @@ export function EventFilters({
                     <span className="text-slate-400 dark:text-slate-400">All Event Types</span>
                   ) : filters.types.length === 1 ? (
                     <div className="flex items-center gap-2 font-medium">
-                      {filters.types[0] === 'Academic' && <BookOpen className="h-4 w-4 text-blue-500 dark:text-blue-400" />}
-                      {filters.types[0] === 'Co-curricular' && <Users className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />}
+                      {filters.types[0] === 'Academic' && <BookOpen className="h-4 w-4 text-brand-ink-500 dark:text-brand-ink-400" />}
+                      {filters.types[0] === 'Co-curricular' && <Users className="h-4 w-4 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />}
                       {filters.types[0] === 'Administrative' && <Building className="h-4 w-4 text-slate-500 dark:text-slate-400" />}
                       {filters.types[0] === 'Holiday' && <Calendar className="h-4 w-4 text-amber-500 dark:text-amber-400" />}
                       {filters.types[0]}
@@ -206,7 +206,7 @@ export function EventFilters({
                 <SelectItem value="all" className="font-medium rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 flex items-center justify-center">
-                      {!filters.types?.length && <div className="w-2 h-2 bg-blue-600 rounded-full" />}
+                      {!filters.types?.length && <div className="w-2 h-2 bg-brand-surface-600 rounded-full" />}
                     </div>
                     All Event Types
                   </div>
@@ -216,10 +216,10 @@ export function EventFilters({
                   <SelectItem key={type} value={type} className="rounded-lg">
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 flex items-center justify-center">
-                        {filters.types?.includes(type) && <div className="w-2 h-2 bg-blue-600 rounded-full" />}
+                        {filters.types?.includes(type) && <div className="w-2 h-2 bg-brand-surface-600 rounded-full" />}
                       </div>
-                      {type === 'Academic' && <BookOpen className="h-4 w-4 text-blue-500 dark:text-blue-400" />}
-                      {type === 'Co-curricular' && <Users className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />}
+                      {type === 'Academic' && <BookOpen className="h-4 w-4 text-brand-ink-500 dark:text-brand-ink-400" />}
+                      {type === 'Co-curricular' && <Users className="h-4 w-4 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />}
                       {type === 'Administrative' && <Building className="h-4 w-4 text-slate-500 dark:text-slate-400" />}
                       {type === 'Holiday' && <Calendar className="h-4 w-4 text-amber-500 dark:text-amber-400" />}
                       {type}
@@ -275,7 +275,7 @@ export function EventFilters({
                     <span className="text-slate-400 dark:text-slate-400">All Statuses</span>
                   ) : filters.statuses.length === 1 ? (
                     <div className="flex items-center gap-2 font-medium">
-                      <div className={`w-2.5 h-2.5 rounded-full ${filters.statuses[0] === 'Scheduled' ? 'bg-blue-500' :
+                      <div className={`w-2.5 h-2.5 rounded-full ${filters.statuses[0] === 'Scheduled' ? 'bg-brand-surface-500' :
                         filters.statuses[0] === 'Ongoing' ? 'bg-emerald-500' :
                           filters.statuses[0] === 'Completed' ? 'bg-slate-400' : 'bg-slate-300 dark:bg-slate-700'
                         }`} />
@@ -290,7 +290,7 @@ export function EventFilters({
                 <SelectItem value="all" className="font-medium rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 flex items-center justify-center">
-                      {!filters.statuses?.length && <div className="w-2 h-2 bg-blue-600 rounded-full" />}
+                      {!filters.statuses?.length && <div className="w-2 h-2 bg-brand-surface-600 rounded-full" />}
                     </div>
                     All Statuses
                   </div>
@@ -300,9 +300,9 @@ export function EventFilters({
                   <SelectItem key={status} value={status} className="rounded-lg">
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 flex items-center justify-center">
-                        {filters.statuses?.includes(status) && <div className="w-2 h-2 bg-blue-600 rounded-full" />}
+                        {filters.statuses?.includes(status) && <div className="w-2 h-2 bg-brand-surface-600 rounded-full" />}
                       </div>
-                      <div className={`w-2 h-2 rounded-full ${status === 'Scheduled' ? 'bg-blue-500' :
+                      <div className={`w-2 h-2 rounded-full ${status === 'Scheduled' ? 'bg-brand-surface-500' :
                         status === 'Ongoing' ? 'bg-emerald-500' :
                           status === 'Completed' ? 'bg-slate-400' : 'bg-slate-300 dark:bg-slate-700'
                         }`} />
@@ -323,7 +323,7 @@ export function EventFilters({
                   className="text-xs px-2.5 py-1 cursor-pointer bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 transition-all shadow-sm rounded-lg flex items-center gap-1.5 group dark:bg-slate-900 dark:hover:bg-slate-900 dark:border-slate-700 dark:text-slate-200"
                   onClick={() => toggleArrayFilter('statuses', status, filters.statuses)}
                 >
-                  <div className={`w-1.5 h-1.5 rounded-full ${status === 'Scheduled' ? 'bg-blue-500' :
+                  <div className={`w-1.5 h-1.5 rounded-full ${status === 'Scheduled' ? 'bg-brand-surface-500' :
                     status === 'Ongoing' ? 'bg-emerald-500' :
                       status === 'Completed' ? 'bg-slate-400' : 'bg-slate-300 dark:bg-slate-700'
                     }`} />
@@ -394,7 +394,7 @@ export function EventFilters({
               <SelectValue placeholder="All Academic Years" />
             </SelectTrigger>
             <SelectContent className="rounded-lg max-h-80">
-              <SelectItem value="all" className="rounded-lg font-medium text-blue-700 dark:text-blue-300">All Academic Contexts</SelectItem>
+              <SelectItem value="all" className="rounded-lg font-medium text-brand-ink-700 dark:text-brand-ink-300">All Academic Contexts</SelectItem>
 
               {academicYears.map((year: any) => {
                 const isCurrent = year.id === currentAcademicYearId;
@@ -459,7 +459,7 @@ export function EventFilters({
                   <SelectItem key={cls.id} value={cls.id} className="rounded-lg">
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 flex items-center justify-center">
-                        {filters.classIds?.includes(cls.id) && <div className="w-2 h-2 bg-blue-600 rounded-full" />}
+                        {filters.classIds?.includes(cls.id) && <div className="w-2 h-2 bg-brand-surface-600 rounded-full" />}
                       </div>
                       <span className="truncate">{cls.code || cls.name}</span>
                     </div>
@@ -497,7 +497,7 @@ export function EventFilters({
                   <SelectItem key={sub.id} value={sub.id} className="rounded-lg">
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 flex items-center justify-center">
-                        {filters.subjectIds?.includes(sub.id) && <div className="w-2 h-2 bg-blue-600 rounded-full" />}
+                        {filters.subjectIds?.includes(sub.id) && <div className="w-2 h-2 bg-brand-surface-600 rounded-full" />}
                       </div>
                       <span className="truncate">{sub.code || sub.name}</span>
                     </div>
@@ -515,11 +515,11 @@ export function EventFilters({
           <Label className="text-[10px] font-semibold text-slate-700 uppercase tracking-wider dark:text-slate-200">Special</Label>
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center space-x-2 group cursor-pointer" onClick={() => updateFilter('isExamEvent', filters.isExamEvent ? undefined : true)}>
-              <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${filters.isExamEvent ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-slate-300 group-hover:border-indigo-400 dark:bg-slate-900 dark:border-slate-700'}`}>
+              <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${filters.isExamEvent ? 'bg-brand-alt-surface-600 border-brand-alt-600' : 'bg-white border-slate-300 group-hover:border-brand-alt-400 dark:bg-slate-900 dark:border-slate-700'}`}>
                 {filters.isExamEvent && <div className="w-1.5 h-1.5 bg-white rounded-sm dark:bg-slate-900" />}
               </div>
               <Label className="text-[10px] font-medium text-slate-600 group-hover:text-slate-900 cursor-pointer flex items-center gap-1.5 uppercase tracking-wider dark:text-slate-300 dark:group-hover:text-slate-100">
-                <GraduationCap className="h-3 w-3 text-indigo-500 dark:text-indigo-400" />
+                <GraduationCap className="h-3 w-3 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />
                 EXAMS
               </Label>
             </div>

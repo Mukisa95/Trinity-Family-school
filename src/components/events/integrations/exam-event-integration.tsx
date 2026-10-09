@@ -97,15 +97,15 @@ export function ExamEventIntegration({
   }
 
   return (
-    <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/40 dark:border-blue-800/60">
-      <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full dark:bg-blue-950/40">
-        <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+    <div className="flex items-center gap-3 p-3 bg-brand-surface-50 border border-brand-200 rounded-lg dark:bg-brand-surface-950/40 dark:border-brand-800/60">
+      <div className="flex items-center justify-center w-8 h-8 bg-brand-surface-100 rounded-full dark:bg-brand-surface-950/40">
+        <AlertCircle className="h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
       </div>
       <div className="flex-1">
-        <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
+        <p className="text-sm font-medium text-brand-ink-900 dark:text-brand-ink-200">
           Create Calendar Event
         </p>
-        <p className="text-xs text-blue-700 dark:text-blue-300">
+        <p className="text-xs text-brand-ink-700 dark:text-brand-ink-300">
           Add this exam to the school calendar with automatic reminders
         </p>
       </div>
@@ -113,7 +113,7 @@ export function ExamEventIntegration({
         onClick={handleCreateEvent}
         disabled={createEventFromExamMutation.isPending}
         size="sm"
-        className="bg-blue-600 hover:bg-blue-700"
+        className="bg-brand-surface-600 hover:bg-brand-surface-700"
       >
         <GraduationCap className="h-4 w-4 mr-1" />
         Create Event

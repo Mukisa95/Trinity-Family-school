@@ -124,7 +124,7 @@ export function BulkSMSModal({ isOpen, onClose, pupils, currentUser }: BulkSMSMo
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
-            <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <MessageSquare className="w-4 h-4 text-brand-ink-600 dark:text-brand-ink-400" />
             SMS Communication
           </DialogTitle>
         </DialogHeader>
@@ -132,13 +132,13 @@ export function BulkSMSModal({ isOpen, onClose, pupils, currentUser }: BulkSMSMo
         <div className="space-y-3 py-4">
           <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={formValidation.focusField} />
           {/* Info Card - Compact */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-2.5 dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800/60">
+          <div className="bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 border border-brand-200 rounded-lg p-2.5 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40 dark:border-brand-800/60">
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-3.5 h-3.5 text-blue-600 flex-shrink-0 dark:text-blue-400" />
-              <div className="text-xs text-blue-900 dark:text-blue-200">
+              <AlertCircle className="w-3.5 h-3.5 text-brand-ink-600 flex-shrink-0 dark:text-brand-ink-400" />
+              <div className="text-xs text-brand-ink-900 dark:text-brand-ink-200">
                 <span className="font-semibold">{pupils.length} pupils</span>
-                <span className="text-blue-700 mx-1 dark:text-blue-300">•</span>
-                <span className="text-blue-700 dark:text-blue-300">Based on active filters</span>
+                <span className="text-brand-ink-700 mx-1 dark:text-brand-ink-300">•</span>
+                <span className="text-brand-ink-700 dark:text-brand-ink-300">Based on active filters</span>
               </div>
             </div>
           </div>
@@ -152,20 +152,20 @@ export function BulkSMSModal({ isOpen, onClose, pupils, currentUser }: BulkSMSMo
                   onClick={() => setParentSelection('first')}
                   className={`relative cursor-pointer rounded-lg border-2 p-2.5 transition-all ${
                     parentSelection === 'first' 
-                      ? 'border-blue-500 bg-blue-50 shadow-sm dark:bg-blue-950/40'
-                      : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50 dark:border-slate-700 dark:hover:border-blue-800/60 dark:hover:bg-slate-900'
+                      ? 'border-brand-500 bg-brand-surface-50 shadow-sm dark:bg-brand-surface-950/40'
+                      : 'border-gray-200 hover:border-brand-300 hover:bg-gray-50 dark:border-slate-700 dark:hover:border-brand-800/60 dark:hover:bg-slate-900'
                   }`}
                 >
                   <RadioGroupItem value="first" id="first" className="sr-only" />
                   <div className="text-center">
                     <div className="text-xs font-semibold text-gray-700 mb-1 dark:text-slate-200">First Parent</div>
-                    <div className={`text-lg font-bold ${parentSelection === 'first' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-slate-100'}`}>
+                    <div className={`text-lg font-bold ${parentSelection === 'first' ? 'text-brand-ink-600 dark:text-brand-ink-400' : 'text-gray-900 dark:text-slate-100'}`}>
                       {pupils.filter(p => p.guardians?.[0]?.phone).length}
                     </div>
                     <div className="text-[10px] text-gray-500 dark:text-slate-400">recipients</div>
                   </div>
                   {parentSelection === 'first' && (
-                    <div className="absolute top-1 right-1 w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
+                    <div className="absolute top-1 right-1 w-4 h-4 bg-brand-surface-600 rounded-full flex items-center justify-center">
                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
@@ -177,20 +177,20 @@ export function BulkSMSModal({ isOpen, onClose, pupils, currentUser }: BulkSMSMo
                   onClick={() => setParentSelection('second')}
                   className={`relative cursor-pointer rounded-lg border-2 p-2.5 transition-all ${
                     parentSelection === 'second' 
-                      ? 'border-purple-500 bg-purple-50 shadow-sm dark:bg-purple-950/40'
-                      : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50 dark:border-slate-700 dark:hover:border-purple-800/60 dark:hover:bg-slate-900'
+                      ? 'border-brand-secondary-500 bg-brand-secondary-surface-50 shadow-sm dark:bg-brand-secondary-surface-950/40'
+                      : 'border-gray-200 hover:border-brand-secondary-300 hover:bg-gray-50 dark:border-slate-700 dark:hover:border-brand-secondary-800/60 dark:hover:bg-slate-900'
                   }`}
                 >
                   <RadioGroupItem value="second" id="second" className="sr-only" />
                   <div className="text-center">
                     <div className="text-xs font-semibold text-gray-700 mb-1 dark:text-slate-200">Second Parent</div>
-                    <div className={`text-lg font-bold ${parentSelection === 'second' ? 'text-purple-600 dark:text-purple-400' : 'text-gray-900 dark:text-slate-100'}`}>
+                    <div className={`text-lg font-bold ${parentSelection === 'second' ? 'text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400' : 'text-gray-900 dark:text-slate-100'}`}>
                       {pupils.filter(p => p.guardians?.[1]?.phone).length}
                     </div>
                     <div className="text-[10px] text-gray-500 dark:text-slate-400">recipients</div>
                   </div>
                   {parentSelection === 'second' && (
-                    <div className="absolute top-1 right-1 w-4 h-4 bg-purple-600 rounded-full flex items-center justify-center">
+                    <div className="absolute top-1 right-1 w-4 h-4 bg-brand-secondary-surface-600 rounded-full flex items-center justify-center">
                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
@@ -267,7 +267,7 @@ export function BulkSMSModal({ isOpen, onClose, pupils, currentUser }: BulkSMSMo
           <Button 
             onClick={handleSend} 
             disabled={isSending || recipients.length === 0}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            className="bg-gradient-to-r from-brand-surface-600 to-brand-alt-surface-600 hover:from-brand-surface-700 hover:to-brand-alt-surface-700"
             size="sm"
           >
             {isSending ? (

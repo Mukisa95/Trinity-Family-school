@@ -117,13 +117,13 @@ export default function SessionResumeModal({
         className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl motion-reduce:transition-none dark:border-slate-700 dark:bg-slate-900"
       >
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-950/40">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-surface-100 dark:bg-brand-surface-950/40">
             {mode === 'switch' ? (
-              <UserSwitch size={24} className="text-blue-700 dark:text-blue-300" weight="duotone" />
+              <UserSwitch size={24} className="text-brand-ink-700 dark:text-brand-ink-300" weight="duotone" />
             ) : (
               requiresDeviceUnlock
-                ? <Fingerprint size={24} className="text-blue-700 dark:text-blue-300" weight="duotone" />
-                : <Lock size={24} className="text-blue-700 dark:text-blue-300" weight="duotone" />
+                ? <Fingerprint size={24} className="text-brand-ink-700 dark:text-brand-ink-300" weight="duotone" />
+                : <Lock size={24} className="text-brand-ink-700 dark:text-brand-ink-300" weight="duotone" />
             )}
           </div>
           <h2 id="session-resume-title" className="text-lg font-semibold text-slate-950 dark:text-slate-100">
@@ -150,7 +150,7 @@ export default function SessionResumeModal({
               type="button"
               onClick={handleResume}
               disabled={isLoading}
-              className="flex w-full items-center justify-center rounded-full bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-full items-center justify-center rounded-full bg-brand-surface-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-surface-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoading ? (
                 <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent dark:border-slate-700" />
@@ -179,7 +179,7 @@ export default function SessionResumeModal({
                 id="switch-username"
                 value={switchUsername}
                 onChange={event => setSwitchUsername(event.target.value)}
-                className="w-full rounded-full border border-slate-300 px-4 py-2.5 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-600 dark:border-slate-700"
+                className="w-full rounded-full border border-slate-300 px-4 py-2.5 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-600 dark:border-slate-700"
                 placeholder="Enter username"
                 autoComplete="username"
                 autoFocus
@@ -198,7 +198,7 @@ export default function SessionResumeModal({
                   id="switch-password"
                   value={password}
                   onChange={event => setPassword(event.target.value)}
-                  className="w-full rounded-full border border-slate-300 px-4 py-2.5 pr-11 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-600 dark:border-slate-700"
+                  className="w-full rounded-full border border-slate-300 px-4 py-2.5 pr-11 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-600 dark:border-slate-700"
                   placeholder="Enter password"
                   autoComplete="current-password"
                   disabled={isLoading}
@@ -208,7 +208,7 @@ export default function SessionResumeModal({
                 <button
                   type="button"
                   onClick={() => setShowPassword(current => !current)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 dark:text-slate-400 dark:hover:text-slate-200"
+                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-slate-400 dark:hover:text-slate-200"
                   disabled={isLoading}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
@@ -220,7 +220,7 @@ export default function SessionResumeModal({
             <button
               type="submit"
               disabled={isLoading || !password || !switchUsername.trim()}
-              className="flex w-full items-center justify-center rounded-full bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-full items-center justify-center rounded-full bg-brand-surface-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-surface-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <UserSwitch size={18} className="mr-2" weight="duotone" />
               {isLoading ? 'Signing in…' : 'Sign in as another user'}
@@ -246,7 +246,7 @@ export default function SessionResumeModal({
                 type="button"
                 onClick={toggleMode}
                 disabled={isLoading}
-                className="flex items-center justify-center rounded-full bg-slate-100 px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50 sm:text-sm dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                className="flex items-center justify-center rounded-full bg-slate-100 px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 disabled:opacity-50 sm:text-sm dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
               >
                 {mode === 'switch' ? (
                   <ArrowCounterClockwise size={17} className="mr-1.5" />

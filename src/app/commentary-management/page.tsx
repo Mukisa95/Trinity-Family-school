@@ -108,8 +108,8 @@ const performanceStatuses = [
   { key: 'good', label: 'Good', color: 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200' },
   { key: 'fair', label: 'Fair', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200' },
   { key: 'weak', label: 'Weak', color: 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200' },
-  { key: 'young', label: 'Young', color: 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200' },
-  { key: 'irregular', label: 'Irregular', color: 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-200' },
+  { key: 'young', label: 'Young', color: 'bg-brand-surface-100 text-brand-ink-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-200' },
+  { key: 'irregular', label: 'Irregular', color: 'bg-brand-secondary-surface-100 text-brand-secondary-ink-800 dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-200' },
 ];
 
 const statusLabels = {
@@ -124,8 +124,8 @@ const statusColors = {
   good: 'bg-green-500',
   fair: 'bg-yellow-500',
   weak: 'bg-red-500',
-  young: 'bg-blue-500',
-  irregular: 'bg-purple-500'
+  young: 'bg-brand-surface-500',
+  irregular: 'bg-brand-secondary-surface-500'
 };
 
 export default function CommentaryManagementPage() {
@@ -700,7 +700,7 @@ export default function CommentaryManagementPage() {
                 <CardContent className="p-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <h4 className="font-semibold mb-2 text-blue-700 dark:text-blue-300">Class Teacher Comments</h4>
+                      <h4 className="font-semibold mb-2 text-brand-ink-700 dark:text-brand-ink-300">Class Teacher Comments</h4>
                       {statusData?.classTeacherComments?.length > 0 ? (
                         statusData.classTeacherComments.map((comment) => (
                           <CommentCard key={comment.id} comment={comment} />
@@ -730,7 +730,7 @@ export default function CommentaryManagementPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-purple-500" />
+              <div className="w-3 h-3 rounded-full bg-brand-secondary-surface-500" />
               Subject-Based Comments
             </CardTitle>
           </CardHeader>
@@ -771,11 +771,11 @@ export default function CommentaryManagementPage() {
             </div>
             {/* Push toolbar */}
             {selectedIds.size > 0 && (
-              <div className="flex items-center justify-between bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 mb-4 dark:bg-purple-950/40 dark:border-purple-800/60">
-                <span className="text-sm font-medium text-purple-700 dark:text-purple-300">{selectedIds.size} comment{selectedIds.size !== 1 ? 's' : ''} selected</span>
+              <div className="flex items-center justify-between bg-brand-secondary-surface-50 border border-brand-secondary-200 rounded-lg px-3 py-2 mb-4 dark:bg-brand-secondary-surface-950/40 dark:border-brand-secondary-800/60">
+                <span className="text-sm font-medium text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">{selectedIds.size} comment{selectedIds.size !== 1 ? 's' : ''} selected</span>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())} className="text-xs">Clear</Button>
-                  <Button size="sm" onClick={() => setIsPushModalOpen(true)} className="gap-1.5 text-xs bg-purple-600 hover:bg-purple-700">
+                  <Button size="sm" onClick={() => setIsPushModalOpen(true)} className="gap-1.5 text-xs bg-brand-secondary-surface-600 hover:bg-brand-secondary-surface-700">
                     <Send className="h-3.5 w-3.5" /> Push to…
                   </Button>
                 </div>
@@ -804,7 +804,7 @@ export default function CommentaryManagementPage() {
                       disabled={allSubjectVisibleIds.length === 0}
                       className="shrink-0"
                     />
-                    <h4 className="font-semibold text-purple-700 dark:text-purple-300">{subject.label}</h4>
+                    <h4 className="font-semibold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">{subject.label}</h4>
                     {allSubjectVisibleIds.length > 0 && (
                       <span className="text-xs text-gray-400 dark:text-slate-400">
                         {allSubjectVisibleIds.filter(id => selectedIds.has(id)).length}/{allSubjectVisibleIds.length} selected
@@ -886,7 +886,7 @@ export default function CommentaryManagementPage() {
                                       type="button"
                                       variant="ghost"
                                       size="sm"
-                                      className="mt-1 h-7 px-1.5 text-xs text-violet-700 hover:text-violet-900 dark:text-violet-300 dark:hover:text-violet-200"
+                                      className="mt-1 h-7 px-1.5 text-xs text-brand-secondary-alt-ink-700 hover:text-brand-secondary-alt-ink-900 dark:text-brand-secondary-alt-ink-300 dark:hover:text-brand-secondary-alt-ink-200"
                                       onClick={() => toggleSubjectCommentGroup(`${subjectKey}_${classKey}`)}
                                     >
                                       {expandedSubjectCommentGroups.has(`${subjectKey}_${classKey}`) ? (
@@ -1193,7 +1193,7 @@ export default function CommentaryManagementPage() {
         <ModernDialogContent open={isPushModalOpen} onOpenChange={(open) => { if (!open) setIsPushModalOpen(false); }}>
           <ModernDialogHeader>
             <ModernDialogTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <Send className="h-5 w-5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
               Push {selectedIds.size} Comment{selectedIds.size !== 1 ? 's' : ''} To…
             </ModernDialogTitle>
           </ModernDialogHeader>
@@ -1245,7 +1245,7 @@ export default function CommentaryManagementPage() {
               <Button
                 onClick={handlePush}
                 disabled={isPushing}
-                className="gap-2 bg-purple-600 hover:bg-purple-700"
+                className="gap-2 bg-brand-secondary-surface-600 hover:bg-brand-secondary-surface-700"
               >
                 {isPushing ? 'Pushing…' : <><Send className="h-4 w-4" /> Push Comments</>}
               </Button>

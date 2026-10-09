@@ -688,7 +688,7 @@ export function PupilRequirementsModal({
             <ModernDialogTitle>Loading Pupil Information...</ModernDialogTitle>
           </ModernDialogHeader>
           <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent mb-4"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-brand-600 border-t-transparent mb-4"></div>
             <p className="text-sm text-gray-600 dark:text-slate-300">Loading pupil data...</p>
           </div>
         </ModernDialogContent>
@@ -715,7 +715,7 @@ export function PupilRequirementsModal({
         <ModernDialogContent size="xl" open={isOpen} onOpenChange={onClose} className="max-h-[90vh] overflow-hidden flex flex-col">
           <ModernDialogHeader>
             <ModernDialogTitle className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-brand-surface-500 to-brand-alt-surface-600 rounded-full flex items-center justify-center">
                 <FileText className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1">
@@ -750,7 +750,7 @@ export function PupilRequirementsModal({
                     const currentTerm = year?.terms.find(t => t.isCurrent);
                     setSelectedTermId(currentTerm?.id || year?.terms[0]?.id || '');
                   }}
-                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700"
+                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-alt-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700"
                   style={{ width: 'auto', minWidth: 'fit-content' }}
                 >
                   <option value="">Select Year</option>
@@ -765,7 +765,7 @@ export function PupilRequirementsModal({
                   value={selectedTermId}
                   onChange={(e) => setSelectedTermId(e.target.value)}
                   disabled={!selectedAcademicYearId}
-                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700 dark:disabled:bg-slate-900 dark:disabled:text-slate-400"
+                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-alt-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700 dark:disabled:bg-slate-900 dark:disabled:text-slate-400"
                   style={{ width: 'auto', minWidth: 'fit-content' }}
                 >
                   {selectedYearTerms.map((term) => (
@@ -781,9 +781,9 @@ export function PupilRequirementsModal({
 
             {/* Auto-assignment status */}
             {isAutoAssigning && (
-              <Alert className="mb-4 border-blue-200 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/40">
+              <Alert className="mb-4 border-brand-200 bg-brand-surface-50 dark:border-brand-800/60 dark:bg-brand-surface-950/40">
                 <RefreshCw className="w-3 h-3 animate-spin" />
-                <AlertDescription className="text-blue-800 text-xs dark:text-blue-200">
+                <AlertDescription className="text-brand-ink-800 text-xs dark:text-brand-ink-200">
                   Automatically assigning eligible requirements to this pupil...
                 </AlertDescription>
               </Alert>
@@ -792,7 +792,7 @@ export function PupilRequirementsModal({
             {/* Requirements List */}
             {trackingLoading || isAutoAssigning ? (
               <div className="text-center py-8">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent mb-4"></div>
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-brand-600 border-t-transparent mb-4"></div>
                 <p className="text-sm text-gray-600 dark:text-slate-300">
                   {isAutoAssigning ? 'Checking and assigning requirements...' : 'Loading requirements...'}
                 </p>
@@ -871,7 +871,7 @@ export function PupilRequirementsModal({
                                     <div className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-700">
                                       <div className="text-xs text-gray-700 font-medium mb-1 text-center dark:text-slate-200">Payment Records</div>
                                       <div className="space-y-1">
-                                        <div className="text-xs bg-blue-50 rounded p-2 border border-blue-100 dark:bg-blue-950/40 dark:border-blue-800/60">
+                                        <div className="text-xs bg-brand-surface-50 rounded p-2 border border-brand-100 dark:bg-brand-surface-950/40 dark:border-brand-800/60">
                                           <div className="flex items-center justify-between mb-1">
                                             <div className="flex items-center gap-1">
                                               <DollarSign className="w-3 h-3 text-green-600 flex-shrink-0 dark:text-green-400" />
@@ -880,7 +880,7 @@ export function PupilRequirementsModal({
                                               </div>
                                             </div>
                                             <div className="text-right">
-                                              <div className="font-medium text-blue-700 dark:text-blue-300">
+                                              <div className="font-medium text-brand-ink-700 dark:text-brand-ink-300">
                                                 Total: {formatCurrency(record.paidAmount)}
                                               </div>
                                             </div>
@@ -919,7 +919,7 @@ export function PupilRequirementsModal({
                                     <div className="text-xs text-gray-700 font-medium mb-1 text-center dark:text-slate-200">Payment Records</div>
                                     <div className="space-y-1 max-h-32 overflow-y-auto">
                                       {paymentHistory.map((entry, index) => (
-                                        <div key={index} className="text-xs bg-blue-50 rounded p-2 border border-blue-100 dark:bg-blue-950/40 dark:border-blue-800/60">
+                                        <div key={index} className="text-xs bg-brand-surface-50 rounded p-2 border border-brand-100 dark:bg-brand-surface-950/40 dark:border-brand-800/60">
                                           <div className="flex items-center justify-between mb-1">
                                             <div className="flex items-center gap-1">
                                               <DollarSign className="w-3 h-3 text-green-600 flex-shrink-0 dark:text-green-400" />
@@ -933,7 +933,7 @@ export function PupilRequirementsModal({
                                               )}
                                             </div>
                                             <div className="text-right">
-                                              <div className="font-medium text-blue-700 dark:text-blue-300">
+                                              <div className="font-medium text-brand-ink-700 dark:text-brand-ink-300">
                                                 Total: {formatCurrency(entry.runningTotal)}
                                               </div>
                                             </div>
@@ -1021,7 +1021,7 @@ export function PupilRequirementsModal({
                                 <div className="mt-2 pt-1 border-t border-gray-200 dark:border-slate-700">
                                   <div className="text-xs text-center space-y-1">
                                     {received.receivedFromOffice > 0 && (
-                                      <div className="text-blue-600 dark:text-blue-400">
+                                      <div className="text-brand-ink-600 dark:text-brand-ink-400">
                                         From Office: <span className="font-medium">{received.receivedFromOffice}</span>
                                       </div>
                                     )}
@@ -1050,13 +1050,13 @@ export function PupilRequirementsModal({
                                         <div className="text-xs bg-green-50 rounded p-2 border border-green-100 dark:bg-green-950/40 dark:border-green-800/60">
                                           <div className="flex items-center justify-between mb-1">
                                             <div className="flex items-center gap-1">
-                                              <Package className="w-3 h-3 text-blue-600 flex-shrink-0 dark:text-blue-400" />
-                                              <div className="font-medium text-blue-700 dark:text-blue-300">
+                                              <Package className="w-3 h-3 text-brand-ink-600 flex-shrink-0 dark:text-brand-ink-400" />
+                                              <div className="font-medium text-brand-ink-700 dark:text-brand-ink-300">
                                                 +{totalReceived} items
                                               </div>
                                             </div>
                                             <div className="text-right">
-                                              <div className="font-medium text-purple-700 dark:text-purple-300">
+                                              <div className="font-medium text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">
                                                 Total: {totalReceived} items
                                               </div>
                                             </div>
@@ -1088,15 +1088,15 @@ export function PupilRequirementsModal({
                                         <div key={index} className="text-xs bg-green-50 rounded p-2 border border-green-100 dark:bg-green-950/40 dark:border-green-800/60">
                                           <div className="flex items-center justify-between mb-1">
                                             <div className="flex items-center gap-1">
-                                              <Package className="w-3 h-3 text-blue-600 flex-shrink-0 dark:text-blue-400" />
-                                              <div className="font-medium text-blue-700 dark:text-blue-300">
+                                              <Package className="w-3 h-3 text-brand-ink-600 flex-shrink-0 dark:text-brand-ink-400" />
+                                              <div className="font-medium text-brand-ink-700 dark:text-brand-ink-300">
                                                 +{entry.itemQuantity} items
                                               </div>
                                               <Badge 
                                                 variant="outline" 
                                                 className={`text-xs px-1 py-0 ${
                                                   entry.source === 'office' 
-                                                    ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60'
+                                                    ? 'bg-brand-surface-50 text-brand-ink-700 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60'
                                                     : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/60'
                                                 }`}
                                               >
@@ -1104,7 +1104,7 @@ export function PupilRequirementsModal({
                                               </Badge>
                                             </div>
                                             <div className="text-right">
-                                              <div className="font-medium text-purple-700 dark:text-purple-300">
+                                              <div className="font-medium text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">
                                                 Total: {entry.runningTotal} items
                                               </div>
                                             </div>

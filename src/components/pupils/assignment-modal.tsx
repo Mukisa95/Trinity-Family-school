@@ -665,8 +665,8 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
         <ModernDialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <div className="flex justify-between items-start mb-3 -mt-4 -ml-2 relative">
             <ModernDialogHeader className="text-left space-y-0.5 m-0 p-0">
-              <ModernDialogTitle className="flex items-center gap-1.5 text-sm font-bold leading-none text-indigo-900 dark:text-indigo-200">
-                <Tag className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <ModernDialogTitle className="flex items-center gap-1.5 text-sm font-bold leading-none text-brand-alt-ink-900 dark:text-brand-alt-ink-200">
+                <Tag className="h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                 Manage Fee Assignments & Discounts
               </ModernDialogTitle>
               <ModernDialogDescription className="text-[11px] font-medium text-gray-500 leading-tight dark:text-slate-400">
@@ -675,12 +675,12 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
             </ModernDialogHeader>
             <div className="flex items-center gap-1.5 pt-0.5 pr-8">
               {!isAddingNew && (
-                <Button variant="outline" size="sm" onClick={() => setIsAddingNew(true)} className="rounded-full h-6 px-2.5 text-[10px] font-medium flex items-center gap-1 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">
+                <Button variant="outline" size="sm" onClick={() => setIsAddingNew(true)} className="rounded-full h-6 px-2.5 text-[10px] font-medium flex items-center gap-1 border-brand-alt-200 text-brand-alt-ink-700 hover:bg-brand-alt-surface-50 dark:border-brand-alt-800/60 dark:text-brand-alt-ink-300 dark:hover:bg-brand-alt-surface-950/40">
                   <Plus className="h-3 w-3" />
                   Add New
                 </Button>
               )}
-              <Button size="sm" onClick={handleSave} disabled={isSaving} className="rounded-full h-6 px-3 text-[10px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white">
+              <Button size="sm" onClick={handleSave} disabled={isSaving} className="rounded-full h-6 px-3 text-[10px] font-semibold bg-brand-alt-surface-600 hover:bg-brand-alt-surface-700 text-white">
                 {isSaving ? 'Saving...' : 'Save'}
               </Button>
             </div>
@@ -753,7 +753,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                                     </span>
                                   </div>
                                   {feeStructure.category === 'Discount' && (feeStructure.linkedFeeId || (feeStructure.linkedFeeIds && feeStructure.linkedFeeIds.length > 0)) && (
-                                    <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                                    <div className="flex items-center gap-1 text-brand-ink-600 dark:text-brand-ink-400">
                                       <span className="font-medium">Linked:</span>
                                       <span className="truncate max-w-[200px]" title={
                                         (feeStructure.linkedFeeIds && feeStructure.linkedFeeIds.length > 0)
@@ -793,7 +793,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-7 w-7 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:text-indigo-300 dark:hover:bg-indigo-950/40"
+                                      className="h-7 w-7 text-brand-alt-ink-600 hover:text-brand-alt-ink-700 hover:bg-brand-alt-surface-50 dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-300 dark:hover:bg-brand-alt-surface-950/40"
                                       title="Push / Fetch to another term"
                                       onClick={() => handleOpenPushFetch(assignment.id)}
                                     >
@@ -805,7 +805,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/40"
+                                  className="h-7 w-7 text-brand-ink-600 hover:text-brand-ink-700 hover:bg-brand-surface-50 dark:text-brand-ink-400 dark:hover:text-brand-ink-300 dark:hover:bg-brand-surface-950/40"
                                   title="Edit Time Settings"
                                   onClick={() => handleEditTimeSettings(assignment.id)}
                                 >
@@ -904,14 +904,14 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                       <div className="flex bg-slate-100 p-1 rounded-md w-max dark:bg-slate-900">
                         <button 
                           type="button"
-                          className={cn("px-4 py-1.5 text-sm font-medium rounded-sm transition-colors", addMode === 'assign' ? "bg-white shadow-sm text-indigo-900 dark:bg-slate-900 dark:text-indigo-200" : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100")}
+                          className={cn("px-4 py-1.5 text-sm font-medium rounded-sm transition-colors", addMode === 'assign' ? "bg-white shadow-sm text-brand-alt-ink-900 dark:bg-slate-900 dark:text-brand-alt-ink-200" : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100")}
                           onClick={() => { setAddMode('assign'); setSelectedFeeId(''); setDirectFeeId(''); }}
                         >
                           Assign Mode
                         </button>
                         <button 
                           type="button"
-                          className={cn("px-4 py-1.5 text-sm font-medium rounded-sm transition-colors", addMode === 'direct' ? "bg-white shadow-sm text-indigo-900 dark:bg-slate-900 dark:text-indigo-200" : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100")}
+                          className={cn("px-4 py-1.5 text-sm font-medium rounded-sm transition-colors", addMode === 'direct' ? "bg-white shadow-sm text-brand-alt-ink-900 dark:bg-slate-900 dark:text-brand-alt-ink-200" : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100")}
                           onClick={() => { setAddMode('direct'); setSelectedFeeId(''); }}
                         >
                           Direct Mode
@@ -1108,7 +1108,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
             <Button onClick={() => {
               setShowUnsavedWarning(false);
               handleSave();
-            }} disabled={isSaving} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+            }} disabled={isSaving} className="bg-brand-alt-surface-600 hover:bg-brand-alt-surface-700 text-white">
               {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
@@ -1120,7 +1120,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
         <ModernDialogContent size="lg">
           <ModernDialogHeader>
             <ModernDialogTitle className="flex items-center">
-              <Clock className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <Clock className="mr-2 h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
               Edit Time Settings
             </ModernDialogTitle>
             <ModernDialogDescription>
@@ -1145,7 +1145,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
             </Button>
             <Button
               onClick={confirmTimeSettingsEdit}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-brand-surface-600 hover:bg-brand-surface-700"
             >
               <Save className="mr-2 h-4 w-4" />
               Save Changes

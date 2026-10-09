@@ -32,7 +32,7 @@ const statusLabel: Record<ItemCatalogMatchStatus, string> = {
 const statusTone: Record<ItemCatalogMatchStatus, string> = {
   linked: 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-200',
   'catalog-link-conflict': 'border-red-200 bg-red-50 text-red-900 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-200',
-  'exact-match': 'border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900/70 dark:bg-blue-950/30 dark:text-blue-200',
+  'exact-match': 'border-brand-200 bg-brand-surface-50 text-brand-ink-800 dark:border-brand-900/70 dark:bg-brand-surface-950/30 dark:text-brand-ink-200',
   'unit-conflict': 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200',
   'unmatched-procurement': 'border-slate-200 bg-slate-50 text-slate-800 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-200',
   'unmatched-inventory': 'border-slate-200 bg-slate-50 text-slate-800 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-200',
@@ -141,11 +141,11 @@ export function CatalogAuditPanel({ procurementItems, onProcurementItemsLinked }
   };
 
   return (
-    <Card className="border-blue-100 bg-gradient-to-br from-white to-blue-50/60 shadow-sm dark:border-blue-950 dark:from-slate-950 dark:to-blue-950/20">
+    <Card className="border-brand-100 bg-gradient-to-br from-white to-brand-surface-50/60 shadow-sm dark:border-brand-950 dark:from-slate-950 dark:to-brand-surface-950/20">
       <CardHeader className="gap-3 pb-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2 text-base">
-            <PackageSearch className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+            <PackageSearch className="h-4 w-4 text-brand-ink-700 dark:text-brand-ink-300" />
             Shared item catalogue audit
           </CardTitle>
           <CardDescription>

@@ -83,7 +83,7 @@ export function PasskeySettings() {
   return (
     <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3 dark:bg-slate-900 dark:border-slate-700">
       <div className="flex items-start gap-3">
-        <span className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 dark:bg-indigo-950 dark:text-indigo-300"><Fingerprint className="w-5 h-5" /></span>
+        <span className="w-9 h-9 rounded-full bg-brand-alt-surface-100 text-brand-alt-ink-700 flex items-center justify-center shrink-0 dark:bg-brand-alt-surface-950 dark:text-brand-alt-ink-300"><Fingerprint className="w-5 h-5" /></span>
         <div>
           <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Biometric / device unlock</h2>
           <p className="text-xs text-gray-500 dark:text-slate-400">Use your phone or computer’s fingerprint, face unlock, or screen PIN to sign in. Your account password remains available.</p>
@@ -112,7 +112,7 @@ export function PasskeySettings() {
       <input id="passkey-current-password" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)}
         className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm dark:border-slate-700" placeholder="Required to add or remove a device" />
       <button type="button" disabled={busy || checking || supported !== true || !password} onClick={() => void register()}
-        className="w-full min-h-11 rounded-lg bg-indigo-600 text-white text-sm font-semibold disabled:opacity-50">
+        className="w-full min-h-11 rounded-lg bg-brand-alt-surface-600 text-white text-sm font-semibold disabled:opacity-50">
         {busy ? 'Working…' : 'Enable on this device'}
       </button>
       {message && <p role="status" className="text-xs text-gray-700 dark:text-slate-200">{message}</p>}

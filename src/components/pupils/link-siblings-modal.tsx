@@ -144,12 +144,12 @@ export function LinkSiblingsModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-5 py-3 border-b bg-gradient-to-r from-blue-50 to-indigo-50 sticky top-0 z-10 space-y-3 dark:from-blue-950/40 dark:to-indigo-950/40">
+        <DialogHeader className="px-5 py-3 border-b bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 sticky top-0 z-10 space-y-3 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
           {/* Title and Action Buttons */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-blue-100 rounded-lg dark:bg-blue-950/40">
-                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <div className="p-1.5 bg-brand-surface-100 rounded-lg dark:bg-brand-surface-950/40">
+                <Users className="h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
               </div>
               <div>
                 <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-slate-100">
@@ -174,7 +174,7 @@ export function LinkSiblingsModal({
               <Button
                 onClick={handleLinkSiblings}
                 disabled={selectedPupilIds.length === 0 || isLinking}
-                className={`px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 ${
+                className={`px-4 py-2 text-sm bg-gradient-to-r from-brand-surface-600 to-brand-alt-surface-600 hover:from-brand-surface-700 hover:to-brand-alt-surface-700 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 ${
                   selectedPupilIds.length === 0 ? 'opacity-50' : ''
                 }`}
                 size="sm"
@@ -205,18 +205,18 @@ export function LinkSiblingsModal({
               placeholder="Search by name, admission number, class..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-3 py-2 text-sm border border-gray-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded-lg transition-all duration-200 bg-white dark:border-slate-700 dark:focus:ring-blue-800/60 dark:bg-slate-900"
+              className="pl-10 pr-3 py-2 text-sm border border-gray-200 focus:border-brand-400 focus:ring-1 focus:ring-brand-100 rounded-lg transition-all duration-200 bg-white dark:border-slate-700 dark:focus:ring-brand-800/60 dark:bg-slate-900"
             />
           </div>
 
           {/* Selected Count */}
           {selectedPupilIds.length > 0 && (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 shadow-sm dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800/60">
+            <div className="bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 border border-brand-200 rounded-lg p-3 shadow-sm dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40 dark:border-brand-800/60">
               <div className="flex items-center gap-2">
-                <div className="p-1 bg-blue-100 rounded-full dark:bg-blue-950/40">
-                  <CheckCircle2 className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                <div className="p-1 bg-brand-surface-100 rounded-full dark:bg-brand-surface-950/40">
+                  <CheckCircle2 className="h-3 w-3 text-brand-ink-600 dark:text-brand-ink-400" />
                 </div>
-                <div className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                <div className="text-sm font-medium text-brand-ink-900 dark:text-brand-ink-200">
                   {selectedPupilIds.length} pupil{selectedPupilIds.length === 1 ? '' : 's'} selected
                 </div>
               </div>
@@ -231,9 +231,9 @@ export function LinkSiblingsModal({
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
                   <div className="relative">
-                    <div className="animate-spin rounded-full h-8 w-8 border-3 border-blue-200 border-t-blue-600 mx-auto dark:border-blue-800/60"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-3 border-brand-200 border-t-blue-600 mx-auto dark:border-brand-800/60"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Users className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                      <Users className="h-3 w-3 text-brand-ink-600 dark:text-brand-ink-400" />
                     </div>
                   </div>
                   <p className="mt-3 text-sm text-gray-600 font-medium dark:text-slate-300">Loading pupils...</p>
@@ -272,7 +272,7 @@ export function LinkSiblingsModal({
                       key={pupil.id}
                       className={`group relative p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-sm ${
                         isSelected 
-                          ? 'border-blue-300 bg-blue-50/50 shadow-sm dark:border-blue-800/60 dark:bg-blue-950/50'
+                          ? 'border-brand-300 bg-brand-surface-50/50 shadow-sm dark:border-brand-800/60 dark:bg-brand-surface-950/50'
                           : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50/50 dark:border-slate-700 dark:hover:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-900/50'
                       }`}
                       onClick={() => handlePupilSelect(pupil.id, !isSelected)}
@@ -283,7 +283,7 @@ export function LinkSiblingsModal({
                           onCheckedChange={(checked) => 
                             handlePupilSelect(pupil.id, checked as boolean)
                           }
-                          className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                          className="data-[state=checked]:bg-brand-surface-600 data-[state=checked]:border-brand-600"
                         />
                         
                         <Avatar className="h-10 w-10 border border-gray-200 group-hover:border-gray-300 transition-colors dark:border-slate-700 dark:group-hover:border-slate-700">
@@ -293,7 +293,7 @@ export function LinkSiblingsModal({
                               alt={`${formatPupilDisplayName(pupil)}`}
                             />
                           ) : null}
-                          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-sm">
+                          <AvatarFallback className="bg-gradient-to-br from-brand-surface-500 to-brand-alt-surface-600 text-white font-bold text-sm">
                             {pupil.firstName.charAt(0)}{pupil.lastName.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
@@ -323,8 +323,8 @@ export function LinkSiblingsModal({
                             
                             {isSelected && (
                               <div className="ml-2">
-                                <div className="p-1 bg-blue-100 rounded-full dark:bg-blue-950/40">
-                                  <CheckCircle2 className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                                <div className="p-1 bg-brand-surface-100 rounded-full dark:bg-brand-surface-950/40">
+                                  <CheckCircle2 className="h-3 w-3 text-brand-ink-600 dark:text-brand-ink-400" />
                                 </div>
                               </div>
                             )}

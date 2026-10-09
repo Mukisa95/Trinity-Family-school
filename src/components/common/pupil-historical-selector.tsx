@@ -136,14 +136,14 @@ export function PupilHistoricalSelector({
 
   const getDataSourceIcon = (pupil: PupilWithSnapshot) => {
     if (pupil.dataSource === 'snapshot') {
-      return <Camera className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
+      return <Camera className="h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />;
     }
     return <Database className="h-4 w-4 text-green-600 dark:text-green-400" />;
   };
 
   const getDataSourceBadge = (pupil: PupilWithSnapshot) => {
     if (pupil.dataSource === 'snapshot') {
-      return <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">Historical</Badge>;
+      return <Badge variant="outline" className="text-xs bg-brand-surface-50 text-brand-ink-700 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60">Historical</Badge>;
     }
     return <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/60">Live</Badge>;
   };
@@ -176,7 +176,7 @@ export function PupilHistoricalSelector({
         <CardDescription>
           {description}
           {termStatus === 'past' && (
-            <div className="flex items-center gap-1 mt-1 text-blue-600 dark:text-blue-400">
+            <div className="flex items-center gap-1 mt-1 text-brand-ink-600 dark:text-brand-ink-400">
               <Camera className="h-3 w-3" />
               <span className="text-xs">Using historical snapshots for accurate data</span>
             </div>
@@ -265,7 +265,7 @@ export function PupilHistoricalSelector({
                           {pupil.admissionNumber} • {pupilClass?.name || 'Unknown Class'} • {pupil.section}
                         </div>
                         {pupil.isHistorical && pupil.snapshotData && (
-                          <div className="text-xs text-blue-600 dark:text-blue-400">
+                          <div className="text-xs text-brand-ink-600 dark:text-brand-ink-400">
                             Snapshot from {new Date(pupil.snapshotData.snapshotDate).toLocaleDateString()}
                           </div>
                         )}

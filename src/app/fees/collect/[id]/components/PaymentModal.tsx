@@ -94,9 +94,9 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="!flex !w-full !max-w-md !flex-col !gap-0 !overflow-hidden !rounded-2xl !border-slate-200 !bg-white !p-0 sm:!max-w-lg dark:!border-slate-700 dark:!bg-slate-900">
-        <DialogHeader className="flex-none border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white px-4 py-3.5 pr-12 sm:px-6 sm:py-4 dark:border-slate-700 dark:from-indigo-950/40 dark:to-slate-900">
+        <DialogHeader className="flex-none border-b border-slate-100 bg-gradient-to-r from-brand-alt-surface-50 to-white px-4 py-3.5 pr-12 sm:px-6 sm:py-4 dark:border-slate-700 dark:from-brand-alt-surface-950/40 dark:to-slate-900">
           <DialogTitle className="flex items-center gap-2.5 text-base font-semibold text-slate-900 sm:text-lg dark:text-slate-100">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white shadow-sm">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-alt-surface-600 text-white shadow-sm">
               <CurrencyCircleDollar className="h-5 w-5" weight="bold" aria-hidden="true" />
             </span>
             Record Payment
@@ -105,23 +105,23 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
         
         <div className="min-h-0 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
           {/* Fee Information */}
-          <section className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50/70 p-3 sm:p-4 dark:border-indigo-800/60 dark:bg-indigo-950/70" aria-label="Fee payment summary">
-            <h3 className="mb-3 break-words text-sm font-semibold leading-5 text-indigo-950 sm:text-base dark:text-indigo-100">{fee.name}</h3>
+          <section className="mb-4 rounded-xl border border-brand-alt-100 bg-brand-alt-surface-50/70 p-3 sm:p-4 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/70" aria-label="Fee payment summary">
+            <h3 className="mb-3 break-words text-sm font-semibold leading-5 text-brand-alt-ink-950 sm:text-base dark:text-brand-alt-ink-100">{fee.name}</h3>
             <div className="grid grid-cols-3 gap-2">
-              <div className="min-w-0 rounded-lg bg-white/80 px-2.5 py-2 shadow-sm ring-1 ring-inset ring-indigo-100 dark:bg-slate-900/80 dark:ring-indigo-800/60">
-                <span className="block text-[10px] font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Total</span>
-                <span className="mt-0.5 block break-words text-xs font-semibold tabular-nums text-indigo-950 sm:text-sm dark:text-indigo-100">
+              <div className="min-w-0 rounded-lg bg-white/80 px-2.5 py-2 shadow-sm ring-1 ring-inset ring-brand-alt-100 dark:bg-slate-900/80 dark:ring-brand-alt-800/60">
+                <span className="block text-[10px] font-semibold uppercase tracking-wide text-brand-alt-ink-700 dark:text-brand-alt-ink-300">Total</span>
+                <span className="mt-0.5 block break-words text-xs font-semibold tabular-nums text-brand-alt-ink-950 sm:text-sm dark:text-brand-alt-ink-100">
                   {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(fee.amount)}
                 </span>
               </div>
-              <div className="min-w-0 rounded-lg bg-white/80 px-2.5 py-2 shadow-sm ring-1 ring-inset ring-indigo-100 dark:bg-slate-900/80 dark:ring-indigo-800/60">
-                <span className="block text-[10px] font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Paid</span>
+              <div className="min-w-0 rounded-lg bg-white/80 px-2.5 py-2 shadow-sm ring-1 ring-inset ring-brand-alt-100 dark:bg-slate-900/80 dark:ring-brand-alt-800/60">
+                <span className="block text-[10px] font-semibold uppercase tracking-wide text-brand-alt-ink-700 dark:text-brand-alt-ink-300">Paid</span>
                 <span className="mt-0.5 block break-words text-xs font-semibold tabular-nums text-emerald-700 sm:text-sm dark:text-emerald-300">
                   {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(fee.amountPaid)}
                 </span>
               </div>
-              <div className="min-w-0 rounded-lg bg-white/80 px-2.5 py-2 shadow-sm ring-1 ring-inset ring-indigo-100 dark:bg-slate-900/80 dark:ring-indigo-800/60">
-                <span className="block text-[10px] font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Balance</span>
+              <div className="min-w-0 rounded-lg bg-white/80 px-2.5 py-2 shadow-sm ring-1 ring-inset ring-brand-alt-100 dark:bg-slate-900/80 dark:ring-brand-alt-800/60">
+                <span className="block text-[10px] font-semibold uppercase tracking-wide text-brand-alt-ink-700 dark:text-brand-alt-ink-300">Balance</span>
                 <span className="mt-0.5 block break-words text-xs font-bold tabular-nums text-rose-700 sm:text-sm dark:text-rose-300">
                   {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(balance)}
                 </span>
@@ -145,7 +145,7 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
                 inputMode="numeric"
                 autoFocus
                 {...formValidation.getFieldProps('paymentAmount')}
-                className={`min-h-11 w-full rounded-xl border px-3.5 py-2.5 text-base tabular-nums shadow-sm outline-none transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 aria-[invalid=true]:border-red-600 aria-[invalid=true]:bg-red-50/70 aria-[invalid=true]:ring-red-200  dark:aria-[invalid=true]:bg-red-950/70 dark:aria-[invalid=true]:ring-red-800 ${
+                className={`min-h-11 w-full rounded-xl border px-3.5 py-2.5 text-base tabular-nums shadow-sm outline-none transition-colors focus:ring-2 focus:ring-brand-alt-500 focus:ring-offset-1 aria-[invalid=true]:border-red-600 aria-[invalid=true]:bg-red-50/70 aria-[invalid=true]:ring-red-200  dark:aria-[invalid=true]:bg-red-950/70 dark:aria-[invalid=true]:ring-red-800 ${
                   formValidation.getFieldError('paymentAmount') ? 'border-red-600' : 'border-slate-300 dark:border-slate-700'
                 }`}
                 disabled={isProcessing}
@@ -165,11 +165,11 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
                       key={suggestion.label}
                       type="button"
                       onClick={() => handleAmountChange(formatMoneyInput(suggestion.value.toString()))}
-                      className="min-h-11 rounded-xl border border-indigo-200 bg-white px-2 py-1.5 text-center text-xs transition-colors hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 dark:border-indigo-800/60 dark:bg-slate-900 dark:hover:bg-indigo-950/40"
+                      className="min-h-11 rounded-xl border border-brand-alt-200 bg-white px-2 py-1.5 text-center text-xs transition-colors hover:bg-brand-alt-surface-50 focus:outline-none focus:ring-2 focus:ring-brand-alt-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 dark:border-brand-alt-800/60 dark:bg-slate-900 dark:hover:bg-brand-alt-surface-950/40"
                       disabled={isProcessing}
                       aria-label={`Use ${suggestion.label.toLowerCase()} payment amount of ${new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(suggestion.value)}`}
                     >
-                      <span className="block font-semibold text-indigo-950 dark:text-indigo-100">{suggestion.label}</span>
+                      <span className="block font-semibold text-brand-alt-ink-950 dark:text-brand-alt-ink-100">{suggestion.label}</span>
                       <span className="mt-0.5 block break-words text-[10px] leading-3 tabular-nums text-slate-500 dark:text-slate-400">
                         {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(suggestion.value)}
                       </span>

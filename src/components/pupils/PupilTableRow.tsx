@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { Pupil, Class } from '@/types';
 import { getPupilClassDisplay } from '@/lib/utils/class-streams';
+import { getPupilRowTheme } from './pupil-row-theme';
 
 interface PupilTableRowProps {
   pupil: Pupil;
@@ -75,7 +76,7 @@ export function PupilTableRow({
   }
 
   return (
-    <tr key={pupil.id} className={`hover:bg-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-50 transition-colors`}>
+    <tr key={pupil.id} className={getPupilRowTheme(pupil.gender).row}>
       <td className="px-2 sm:px-4 py-2 sm:py-3">
         <div className="flex items-center space-x-2 sm:space-x-3">
           <div className="relative flex-shrink-0">
@@ -101,7 +102,7 @@ export function PupilTableRow({
           <div className="min-w-0 flex-1">
             <Link 
               href={`/pupil-detail?id=${pupil.id}`}
-              className={`text-xs sm:text-sm font-medium text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-800 transition-colors block truncate`}
+              className={`text-xs sm:text-sm font-medium ${getPupilRowTheme(pupil.gender).name} transition-colors block truncate`}
             >
               {formatPupilDisplayName(pupil)}
             </Link>
@@ -128,7 +129,7 @@ export function PupilTableRow({
             : pupil.status === 'Inactive'
             ? 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200'
             : pupil.status === 'Graduated'
-            ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200'
+            ? 'bg-brand-surface-100 text-brand-ink-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-200'
             : 'bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100'
         }`}>
           {pupil.status}
@@ -148,8 +149,8 @@ export function PupilTableRow({
           </span>
           <span className={`text-xs px-1.5 py-0.5 rounded-full ${
             pupil.section === 'Boarding' 
-              ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300'
-              : 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
+              ? 'bg-brand-secondary-surface-100 text-brand-secondary-ink-700 dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-300'
+              : 'bg-brand-surface-100 text-brand-ink-700 dark:bg-brand-surface-950/40 dark:text-brand-ink-300'
           }`}>
             {pupil.section === 'Boarding' ? 'Boarding' : 'Day'}
           </span>
@@ -158,7 +159,7 @@ export function PupilTableRow({
       <td className="hidden md:table-cell px-4 py-3">
         <div className="text-sm text-gray-900 dark:text-slate-100">
           {siblings.length > 0 ? (
-            <span className="text-indigo-600 font-medium dark:text-indigo-400">
+            <span className="text-brand-alt-ink-600 font-medium dark:text-brand-alt-ink-400">
               {siblings.length} sibling{siblings.length !== 1 ? 's' : ''}
             </span>
           ) : (

@@ -57,9 +57,9 @@ export function LoadingAvatar({
             />
             {isLoading && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="h-full w-full rounded-full bg-gradient-to-br from-blue-200 via-indigo-200 to-purple-200 animate-pulse opacity-50 dark:from-blue-900/40 dark:via-indigo-900/40 dark:to-purple-900/40" />
+                <div className="h-full w-full rounded-full bg-gradient-to-br from-brand-surface-200 via-brand-alt-surface-200 to-brand-secondary-surface-200 animate-pulse opacity-50 dark:from-brand-surface-900/40 dark:via-brand-alt-surface-900/40 dark:to-brand-secondary-surface-900/40" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="h-3 w-3 rounded-full bg-blue-400 animate-ping" />
+                  <div className="h-3 w-3 rounded-full bg-brand-surface-400 animate-ping" />
                 </div>
               </div>
             )}
@@ -69,15 +69,15 @@ export function LoadingAvatar({
           className={cn(
             'transition-all duration-300',
             isLoading 
-              ? 'bg-gradient-to-br from-blue-200 via-indigo-200 to-purple-200 animate-pulse text-gray-400 dark:from-blue-900/40 dark:via-indigo-900/40 dark:to-purple-900/40 dark:text-slate-400'
-              : 'bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 text-gray-600 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40 dark:text-slate-300'
+              ? 'bg-gradient-to-br from-brand-surface-200 via-brand-alt-surface-200 to-brand-secondary-surface-200 animate-pulse text-gray-400 dark:from-brand-surface-900/40 dark:via-brand-alt-surface-900/40 dark:to-brand-secondary-surface-900/40 dark:text-slate-400'
+              : 'bg-gradient-to-br from-brand-surface-100 via-brand-alt-surface-100 to-brand-secondary-surface-100 text-gray-600 dark:from-brand-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-secondary-surface-950/40 dark:text-slate-300'
           )}
         >
           {fallback || '?'}
         </AvatarFallback>
       </Avatar>
       {isLoading && (
-        <div className="absolute -inset-1 rounded-full border-2 border-blue-400 border-dashed animate-spin opacity-50" 
+        <div className="absolute -inset-1 rounded-full border-2 border-brand-400 border-dashed animate-spin opacity-50"
              style={{ animationDuration: '2s' }} />
       )}
     </div>

@@ -1028,10 +1028,10 @@ export function UniformTrackingModal({
                   </div>
 
                   {formData.hasDiscount && (
-                    <Card className="p-4 space-y-4 border-blue-200 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/40">
+                    <Card className="p-4 space-y-4 border-brand-200 bg-brand-surface-50 dark:border-brand-800/60 dark:bg-brand-surface-950/40">
                       <div className="flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                        <span className="text-sm font-medium text-blue-800 dark:text-blue-200">Discount Configuration</span>
+                        <AlertCircle className="h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
+                        <span className="text-sm font-medium text-brand-ink-800 dark:text-brand-ink-200">Discount Configuration</span>
                       </div>
 
                       {/* Discount Type */}

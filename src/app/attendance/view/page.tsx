@@ -1289,14 +1289,14 @@ export default function ViewAttendanceReportsPage() {
         backLabel="Back to Attendance Hub"
         className={reportType === "school" && trendPeriod === "daily" && schoolAttendanceData.length > 0 ? "mb-1.5" : "mb-4"}
         meta={
-          <span className="whitespace-nowrap rounded-full border border-indigo-100/80 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:border-indigo-800/80 dark:bg-indigo-950/40 dark:text-indigo-300">
+          <span className="whitespace-nowrap rounded-full border border-brand-alt-100/80 bg-brand-alt-surface-50 px-2 py-0.5 text-[10px] font-bold text-brand-alt-ink-700 dark:border-brand-alt-800/80 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300">
             {trendPeriod}
           </span>
         }
         titleControls={
           <button
             onClick={() => setIsPrintModalOpen(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-blue-200/60 bg-white/90 text-blue-600 shadow-sm transition-all hover:scale-105 hover:bg-blue-50 active:scale-95 lg:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-400 dark:hover:bg-blue-950/40"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-brand-200/60 bg-white/90 text-brand-ink-600 shadow-sm transition-all hover:scale-105 hover:bg-brand-surface-50 active:scale-95 lg:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-400 dark:hover:bg-brand-surface-950/40"
             title="Print PDF"
             type="button"
             aria-label="Print PDF"
@@ -1307,7 +1307,7 @@ export default function ViewAttendanceReportsPage() {
         center={
           <>
             <Select value={selectedAcademicYearId} onValueChange={setSelectedAcademicYearId}>
-              <SelectTrigger className="h-[34px] w-[82px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+              <SelectTrigger className="h-[34px] w-[82px] rounded-full border-brand-200/60 bg-white/90 px-3 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -1329,7 +1329,7 @@ export default function ViewAttendanceReportsPage() {
             </Select>
 
             <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
-              <SelectTrigger className="h-[34px] w-[96px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+              <SelectTrigger className="h-[34px] w-[96px] rounded-full border-brand-200/60 bg-white/90 px-3 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -1342,7 +1342,7 @@ export default function ViewAttendanceReportsPage() {
             </Select>
 
             <Select defaultValue="day" onValueChange={(value) => setQuickDateRange(value as "day" | "week" | "month" | "term" | "year")}>
-              <SelectTrigger className="h-[34px] w-[90px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+              <SelectTrigger className="h-[34px] w-[90px] rounded-full border-brand-200/60 bg-white/90 px-3 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                 <SelectValue placeholder="Range" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -1355,7 +1355,7 @@ export default function ViewAttendanceReportsPage() {
             </Select>
 
             {startDate && (
-              <div className="flex h-[34px] items-center gap-0.5 rounded-full border border-blue-200/60 bg-white/90 px-1 shadow-sm dark:border-blue-800/60 dark:bg-slate-900/90">
+              <div className="flex h-[34px] items-center gap-0.5 rounded-full border border-brand-200/60 bg-white/90 px-1 shadow-sm dark:border-brand-800/60 dark:bg-slate-900/90">
                 <button
                   onClick={() => {
                     if (!startDate) return;
@@ -1405,7 +1405,7 @@ export default function ViewAttendanceReportsPage() {
                       setEndDate(format(newEndDate, "yyyy-MM-dd"));
                     } catch (e) { console.warn(e); }
                   }}
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-brand-surface-50 hover:text-brand-ink-700 dark:text-slate-300 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-300"
                   type="button"
                 >
                   <ChevronLeft className="h-3 w-3" />
@@ -1442,7 +1442,7 @@ export default function ViewAttendanceReportsPage() {
                     setStartDate(format(newStartDate, "yyyy-MM-dd"));
                     setEndDate(format(newEndDate, "yyyy-MM-dd"));
                   }}
-                  className="h-7 px-2 text-[10px] font-semibold text-gray-700 transition-all hover:text-blue-700 dark:text-slate-200 dark:hover:text-blue-300"
+                  className="h-7 px-2 text-[10px] font-semibold text-gray-700 transition-all hover:text-brand-ink-700 dark:text-slate-200 dark:hover:text-brand-ink-300"
                   type="button"
                 >
                   {(() => {
@@ -1525,7 +1525,7 @@ export default function ViewAttendanceReportsPage() {
                       setEndDate(format(newEndDate, "yyyy-MM-dd"));
                     } catch (e) { console.warn(e); }
                   }}
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-brand-surface-50 hover:text-brand-ink-700 dark:text-slate-300 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-300"
                   type="button"
                 >
                   <ChevronRight className="h-3 w-3" />
@@ -1535,7 +1535,7 @@ export default function ViewAttendanceReportsPage() {
 
             {trendPeriod === "daily" ? (
               <Select value={startDate || ''} onValueChange={(v) => { if (v) { setStartDate(v); setEndDate(v); } }}>
-                <SelectTrigger className="h-[34px] w-[132px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+                <SelectTrigger className="h-[34px] w-[132px] rounded-full border-brand-200/60 bg-white/90 px-3 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                   <SelectValue placeholder="Select day" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -1555,7 +1555,7 @@ export default function ViewAttendanceReportsPage() {
               </Select>
             ) : trendPeriod === "weekly" ? (
               <Select value={startDate && endDate ? `${startDate}_${endDate}` : ''} onValueChange={(v) => { if (v) { const [s, e] = v.split('_'); setStartDate(s); setEndDate(e); } }}>
-                <SelectTrigger className="h-[34px] w-[140px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+                <SelectTrigger className="h-[34px] w-[140px] rounded-full border-brand-200/60 bg-white/90 px-3 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                   <SelectValue placeholder="Select week" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -1574,7 +1574,7 @@ export default function ViewAttendanceReportsPage() {
               </Select>
             ) : trendPeriod === "monthly" ? (
               <Select value={`${startDate?.slice(0, 7) || ''}`} onValueChange={(v) => { if (v) { const [y, m] = v.split('-'); const ms = new Date(parseInt(y), parseInt(m) - 1, 1); const me = new Date(parseInt(y), parseInt(m), 0); setStartDate(format(ms, "yyyy-MM-dd")); setEndDate(format(me, "yyyy-MM-dd")); } }}>
-                <SelectTrigger className="h-[34px] w-[120px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+                <SelectTrigger className="h-[34px] w-[120px] rounded-full border-brand-200/60 bg-white/90 px-3 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                   <SelectValue placeholder="Month" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -1583,7 +1583,7 @@ export default function ViewAttendanceReportsPage() {
               </Select>
             ) : (
               <Select value={selectedTermId} onValueChange={setSelectedTermId}>
-                <SelectTrigger className="h-[34px] w-[120px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+                <SelectTrigger className="h-[34px] w-[120px] rounded-full border-brand-200/60 bg-white/90 px-3 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                   <SelectValue placeholder="Term" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -1617,7 +1617,7 @@ export default function ViewAttendanceReportsPage() {
           <div className="space-y-2">
             <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible lg:pb-0">
               <Select value={selectedAcademicYearId} onValueChange={setSelectedAcademicYearId}>
-                <SelectTrigger className="h-[30px] w-[72px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+                <SelectTrigger className="h-[30px] w-[72px] shrink-0 rounded-full border-brand-200/60 bg-white/90 px-2 text-[10px] font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 lg:hidden [&>svg]:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                   <SelectValue placeholder="Year" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -1639,7 +1639,7 @@ export default function ViewAttendanceReportsPage() {
               </Select>
 
               <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
-                <SelectTrigger className="h-[30px] w-[74px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+                <SelectTrigger className="h-[30px] w-[74px] shrink-0 rounded-full border-brand-200/60 bg-white/90 px-2 text-[10px] font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 lg:hidden [&>svg]:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -1652,7 +1652,7 @@ export default function ViewAttendanceReportsPage() {
               </Select>
 
               <Select defaultValue="day" onValueChange={(value) => setQuickDateRange(value as "day" | "week" | "month" | "term" | "year")}>
-                <SelectTrigger className="h-[30px] w-[72px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+                <SelectTrigger className="h-[30px] w-[72px] shrink-0 rounded-full border-brand-200/60 bg-white/90 px-2 text-[10px] font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 lg:hidden [&>svg]:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                   <SelectValue placeholder="Range" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -1665,7 +1665,7 @@ export default function ViewAttendanceReportsPage() {
               </Select>
 
               {startDate && (
-                <div className="flex h-[34px] items-center gap-0.5 rounded-full border border-blue-200/60 bg-white/90 px-1 shadow-sm lg:hidden dark:border-blue-800/60 dark:bg-slate-900/90">
+                <div className="flex h-[34px] items-center gap-0.5 rounded-full border border-brand-200/60 bg-white/90 px-1 shadow-sm lg:hidden dark:border-brand-800/60 dark:bg-slate-900/90">
                   <button
                     onClick={() => {
                       if (!startDate) return;
@@ -1715,7 +1715,7 @@ export default function ViewAttendanceReportsPage() {
                         setEndDate(format(newEndDate, "yyyy-MM-dd"));
                       } catch (e) { console.warn(e); }
                     }}
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-brand-surface-50 hover:text-brand-ink-700 dark:text-slate-300 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-300"
                     type="button"
                   >
                     <ChevronLeft className="h-3 w-3" />
@@ -1752,7 +1752,7 @@ export default function ViewAttendanceReportsPage() {
                       setStartDate(format(newStartDate, "yyyy-MM-dd"));
                       setEndDate(format(newEndDate, "yyyy-MM-dd"));
                     }}
-                    className="h-7 px-2 text-[10px] font-semibold text-gray-700 transition-all hover:text-blue-700 dark:text-slate-200 dark:hover:text-blue-300"
+                    className="h-7 px-2 text-[10px] font-semibold text-gray-700 transition-all hover:text-brand-ink-700 dark:text-slate-200 dark:hover:text-brand-ink-300"
                     type="button"
                   >
                     {(() => {
@@ -1835,7 +1835,7 @@ export default function ViewAttendanceReportsPage() {
                         setEndDate(format(newEndDate, "yyyy-MM-dd"));
                       } catch (e) { console.warn(e); }
                     }}
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-brand-surface-50 hover:text-brand-ink-700 dark:text-slate-300 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-300"
                     type="button"
                   >
                     <ChevronRight className="h-3 w-3" />
@@ -1845,7 +1845,7 @@ export default function ViewAttendanceReportsPage() {
 
               {trendPeriod === "daily" ? (
                 <Select value={startDate || ''} onValueChange={(v) => { if (v) { setStartDate(v); setEndDate(v); } }}>
-                <SelectTrigger className="h-[30px] w-[112px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+                <SelectTrigger className="h-[30px] w-[112px] shrink-0 rounded-full border-brand-200/60 bg-white/90 px-2 text-[10px] font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 lg:hidden [&>svg]:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                     <SelectValue placeholder="Select day" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -1865,7 +1865,7 @@ export default function ViewAttendanceReportsPage() {
                 </Select>
               ) : trendPeriod === "weekly" ? (
                 <Select value={startDate && endDate ? `${startDate}_${endDate}` : ''} onValueChange={(v) => { if (v) { const [s, e] = v.split('_'); setStartDate(s); setEndDate(e); } }}>
-                <SelectTrigger className="h-[30px] w-[122px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+                <SelectTrigger className="h-[30px] w-[122px] shrink-0 rounded-full border-brand-200/60 bg-white/90 px-2 text-[10px] font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 lg:hidden [&>svg]:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                     <SelectValue placeholder="Select week" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -1884,7 +1884,7 @@ export default function ViewAttendanceReportsPage() {
                 </Select>
               ) : trendPeriod === "monthly" ? (
                 <Select value={`${startDate?.slice(0, 7) || ''}`} onValueChange={(v) => { if (v) { const [y, m] = v.split('-'); const ms = new Date(parseInt(y), parseInt(m) - 1, 1); const me = new Date(parseInt(y), parseInt(m), 0); setStartDate(format(ms, "yyyy-MM-dd")); setEndDate(format(me, "yyyy-MM-dd")); } }}>
-                <SelectTrigger className="h-[30px] w-[102px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+                <SelectTrigger className="h-[30px] w-[102px] shrink-0 rounded-full border-brand-200/60 bg-white/90 px-2 text-[10px] font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 lg:hidden [&>svg]:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                     <SelectValue placeholder="Month" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -1893,7 +1893,7 @@ export default function ViewAttendanceReportsPage() {
                 </Select>
               ) : (
                 <Select value={selectedTermId} onValueChange={setSelectedTermId}>
-                <SelectTrigger className="h-[30px] w-[102px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+                <SelectTrigger className="h-[30px] w-[102px] shrink-0 rounded-full border-brand-200/60 bg-white/90 px-2 text-[10px] font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 lg:hidden [&>svg]:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                     <SelectValue placeholder="Term" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -1912,7 +1912,7 @@ export default function ViewAttendanceReportsPage() {
 
               {!(trendPeriod === "daily" && reportType === "school") && (
                 <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                  <SelectTrigger className="h-[34px] w-[110px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+                  <SelectTrigger className="h-[34px] w-[110px] rounded-full border-brand-200/60 bg-white/90 px-3 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                     <SelectValue placeholder="Class" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -1926,7 +1926,7 @@ export default function ViewAttendanceReportsPage() {
 
               {reportType === "pupil" && (
                 <Select value={selectedPupilId} onValueChange={setSelectedPupilId}>
-                  <SelectTrigger className="h-[34px] w-[150px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+                  <SelectTrigger className="h-[34px] w-[150px] rounded-full border-brand-200/60 bg-white/90 px-3 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                     <SelectValue placeholder="Pupil" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -1976,7 +1976,7 @@ export default function ViewAttendanceReportsPage() {
         <GlassSummaryBar
           left={
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+              <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
                 School Attendance - {startDate ? format(parseISO(startDate), "MMM dd, yyyy") : "Select Date"}
               </span>
               <span className="text-xs text-gray-300 font-medium">•</span>
@@ -2009,17 +2009,17 @@ export default function ViewAttendanceReportsPage() {
                 </span>
                 <span className="text-yellow-700/85 dark:text-green-300 font-medium">Late</span>
               </div>
-              <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="font-bold text-blue-600 dark:text-blue-400">
+              <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-brand-ink-600 dark:text-brand-ink-400">
                   {schoolAttendanceData.reduce((sum, cls) => sum + cls.excused, 0)}
                 </span>
-                <span className="text-blue-700/85 dark:text-blue-300 font-medium">Excused</span>
+                <span className="text-brand-ink-700/85 dark:text-brand-ink-300 font-medium">Excused</span>
               </div>
-              <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="font-bold text-purple-600 dark:text-purple-400">
+              <div className="flex items-center gap-1 bg-brand-secondary-surface-50/80 dark:bg-brand-secondary-surface-950/20 border border-brand-secondary-100/50 dark:border-brand-secondary-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">
                   {schoolAttendanceData.reduce((sum, cls) => sum + cls.delayed, 0)}
                 </span>
-                <span className="text-purple-700/85 dark:text-purple-300 font-medium">Delayed</span>
+                <span className="text-brand-secondary-ink-700/85 dark:text-brand-secondary-ink-300 font-medium">Delayed</span>
               </div>
               <div className="flex items-center gap-1 bg-gray-50/80 dark:bg-gray-800/30 border border-gray-100/50 dark:border-gray-700/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
                 <span className="font-bold text-gray-600 dark:text-gray-400">
@@ -2035,7 +2035,7 @@ export default function ViewAttendanceReportsPage() {
       {/* Unified frosted-glass sticky header */}
       {false && (
       <div className="hidden">
-        <div className="h-px bg-gradient-to-r from-transparent via-blue-200/60 to-transparent dark:via-blue-900/60" />
+        <div className="h-px bg-gradient-to-r from-transparent via-brand-surface-200/60 to-transparent dark:via-brand-surface-900/60" />
         <div className="max-w-7xl mx-auto py-1">
           {/* Wrapped row of controls on small screens */}
           <div className="flex flex-row flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-2 w-full">
@@ -2043,14 +2043,14 @@ export default function ViewAttendanceReportsPage() {
             {/* Back button */}
             <SmartBackButton
               fallbackHref="/attendance"
-              className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-50/80 border border-blue-200/60 text-blue-600 shadow-sm flex-shrink-0 hover:bg-blue-100 transition-colors dark:bg-blue-950/80 dark:border-blue-800/60 dark:text-blue-400 dark:hover:bg-blue-950/40"
+              className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-surface-50/80 border border-brand-200/60 text-brand-ink-600 shadow-sm flex-shrink-0 hover:bg-brand-surface-100 transition-colors dark:bg-brand-surface-950/80 dark:border-brand-800/60 dark:text-brand-ink-400 dark:hover:bg-brand-surface-950/40"
               title="Back to Attendance Hub"
             >
               <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </SmartBackButton>
 
             {/* Title */}
-            <h1 className="text-xs sm:text-sm font-bold text-indigo-900 leading-tight flex-shrink-0 mr-1 dark:text-indigo-200">
+            <h1 className="text-xs sm:text-sm font-bold text-brand-alt-ink-900 leading-tight flex-shrink-0 mr-1 dark:text-brand-alt-ink-200">
               Attendance
             </h1>
 
@@ -2058,7 +2058,7 @@ export default function ViewAttendanceReportsPage() {
 
             {/* Academic Year */}
             <Select value={selectedAcademicYearId} onValueChange={setSelectedAcademicYearId}>
-              <SelectTrigger className="h-7 w-[90px] sm:w-[110px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
+              <SelectTrigger className="h-7 w-[90px] sm:w-[110px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-brand-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -2082,7 +2082,7 @@ export default function ViewAttendanceReportsPage() {
 
             {/* Report Type */}
             <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
-              <SelectTrigger className="h-7 w-[80px] sm:w-[100px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
+              <SelectTrigger className="h-7 w-[80px] sm:w-[100px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-brand-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -2096,9 +2096,9 @@ export default function ViewAttendanceReportsPage() {
 
             {/* Quick Range */}
             <Select defaultValue="day" onValueChange={(value) => setQuickDateRange(value as "day" | "week" | "month" | "term" | "year")}>
-              <SelectTrigger className="h-7 w-[75px] sm:w-[90px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
+              <SelectTrigger className="h-7 w-[75px] sm:w-[90px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-brand-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                 <div className="flex items-center gap-1">
-                  <div className="w-1 h-1 bg-indigo-500 rounded-full animate-pulse flex-shrink-0" />
+                  <div className="w-1 h-1 bg-brand-alt-surface-500 rounded-full animate-pulse flex-shrink-0" />
                   <SelectValue placeholder="Range" />
                 </div>
               </SelectTrigger>
@@ -2163,7 +2163,7 @@ export default function ViewAttendanceReportsPage() {
                       setEndDate(format(newEndDate, "yyyy-MM-dd"));
                     } catch (e) { console.warn(e); }
                   }}
-                  className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-600 dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-blue-950/40 dark:text-slate-300"
+                  className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/80 border border-gray-200 hover:border-brand-400 hover:bg-brand-surface-50 transition-all text-gray-600 dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-brand-surface-950/40 dark:text-slate-300"
                 >
                   <ChevronLeft className="h-3 w-3" />
                 </button>
@@ -2199,7 +2199,7 @@ export default function ViewAttendanceReportsPage() {
                     setStartDate(format(newStartDate, "yyyy-MM-dd"));
                     setEndDate(format(newEndDate, "yyyy-MM-dd"));
                   }}
-                  className="h-6 sm:h-7 px-2 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-[9px] sm:text-[10px] font-medium text-gray-700 whitespace-nowrap dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-blue-950/40 dark:text-slate-200"
+                  className="h-6 sm:h-7 px-2 rounded-full bg-white/80 border border-gray-200 hover:border-brand-400 hover:bg-brand-surface-50 transition-all text-[9px] sm:text-[10px] font-medium text-gray-700 whitespace-nowrap dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-brand-surface-950/40 dark:text-slate-200"
                 >
                   {(() => {
                     if (!startDate) return "Now";
@@ -2281,7 +2281,7 @@ export default function ViewAttendanceReportsPage() {
                       setEndDate(format(newEndDate, "yyyy-MM-dd"));
                     } catch (e) { console.warn(e); }
                   }}
-                  className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-600 dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-blue-950/40 dark:text-slate-300"
+                  className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/80 border border-gray-200 hover:border-brand-400 hover:bg-brand-surface-50 transition-all text-gray-600 dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-brand-surface-950/40 dark:text-slate-300"
                 >
                   <ChevronRight className="h-3 w-3" />
                 </button>
@@ -2292,7 +2292,7 @@ export default function ViewAttendanceReportsPage() {
             <div className="flex-shrink-0">
               {trendPeriod === "daily" ? (
                 <Select value={startDate || ''} onValueChange={(v) => { if (v) { setStartDate(v); setEndDate(v); } }}>
-                  <SelectTrigger className="h-7 w-[110px] sm:w-[140px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
+                  <SelectTrigger className="h-7 w-[110px] sm:w-[140px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-brand-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                     <SelectValue placeholder="Select day" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -2312,7 +2312,7 @@ export default function ViewAttendanceReportsPage() {
                 </Select>
               ) : trendPeriod === "weekly" ? (
                 <Select value={startDate && endDate ? `${startDate}_${endDate}` : ''} onValueChange={(v) => { if (v) { const [s, e] = v.split('_'); setStartDate(s); setEndDate(e); } }}>
-                  <SelectTrigger className="h-7 w-[110px] sm:w-[140px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
+                  <SelectTrigger className="h-7 w-[110px] sm:w-[140px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-brand-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                     <SelectValue placeholder="Select week" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -2331,7 +2331,7 @@ export default function ViewAttendanceReportsPage() {
                 </Select>
               ) : trendPeriod === "monthly" ? (
                 <Select value={`${startDate?.slice(0, 7) || ''}`} onValueChange={(v) => { if (v) { const [y, m] = v.split('-'); const ms = new Date(parseInt(y), parseInt(m) - 1, 1); const me = new Date(parseInt(y), parseInt(m), 0); setStartDate(format(ms, "yyyy-MM-dd")); setEndDate(format(me, "yyyy-MM-dd")); } }}>
-                  <SelectTrigger className="h-7 w-[100px] sm:w-[120px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
+                  <SelectTrigger className="h-7 w-[100px] sm:w-[120px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-brand-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                     <SelectValue placeholder="Month" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -2340,7 +2340,7 @@ export default function ViewAttendanceReportsPage() {
                 </Select>
               ) : (
                 <Select value={selectedTermId} onValueChange={setSelectedTermId}>
-                  <SelectTrigger className="h-7 w-[100px] sm:w-[120px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
+                  <SelectTrigger className="h-7 w-[100px] sm:w-[120px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-brand-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                     <SelectValue placeholder="Term" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -2361,7 +2361,7 @@ export default function ViewAttendanceReportsPage() {
             {/* Class Selector */}
             {!(trendPeriod === "daily" && reportType === "school") && (
               <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                <SelectTrigger className="h-7 w-[80px] sm:w-[110px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
+                <SelectTrigger className="h-7 w-[80px] sm:w-[110px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-brand-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                   <SelectValue placeholder="Class" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -2376,7 +2376,7 @@ export default function ViewAttendanceReportsPage() {
             {/* Pupil Selector */}
             {reportType === "pupil" && (
               <Select value={selectedPupilId} onValueChange={setSelectedPupilId}>
-                <SelectTrigger className="h-7 w-[120px] sm:w-[150px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
+                <SelectTrigger className="h-7 w-[120px] sm:w-[150px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-brand-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                   <SelectValue placeholder="Pupil" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -2403,7 +2403,7 @@ export default function ViewAttendanceReportsPage() {
             {/* Print Button */}
             <button
               onClick={() => setIsPrintModalOpen(true)}
-              className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all flex-shrink-0 text-blue-600 dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-blue-950/40 dark:text-blue-400"
+              className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/80 border border-gray-200 hover:border-brand-400 hover:bg-brand-surface-50 transition-all flex-shrink-0 text-brand-ink-600 dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-brand-surface-950/40 dark:text-brand-ink-400"
               title="Print PDF"
             >
               <Printer className="h-3.5 w-3.5" />
@@ -2503,7 +2503,7 @@ export default function ViewAttendanceReportsPage() {
                                   </div>
                                 </TableHead>
                                 <TableHead
-                                  className="cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-xs sm:text-sm"
+                                  className="cursor-pointer hover:bg-brand-surface-50 dark:hover:bg-brand-surface-900/20 transition-colors text-xs sm:text-sm"
                                   onClick={() => toggleExpandAllStatus('excused')}
                                 >
                                   <div className="flex items-center gap-1">
@@ -2512,7 +2512,7 @@ export default function ViewAttendanceReportsPage() {
                                   </div>
                                 </TableHead>
                                 <TableHead
-                                  className="cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors text-xs sm:text-sm"
+                                  className="cursor-pointer hover:bg-brand-secondary-surface-50 dark:hover:bg-brand-secondary-surface-900/20 transition-colors text-xs sm:text-sm"
                                   onClick={() => toggleExpandAllStatus('delayed')}
                                 >
                                   <div className="flex items-center gap-1">
@@ -2581,22 +2581,22 @@ export default function ViewAttendanceReportsPage() {
                                     <TableCell>
                                       <button
                                         onClick={() => toggleClassStatusExpansion(classData.classId, 'excused')}
-                                        className="flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-1 rounded transition-colors"
+                                        className="flex items-center gap-2 hover:bg-brand-surface-50 dark:hover:bg-brand-surface-900/20 p-1 rounded transition-colors"
                                       >
-                                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:hover:bg-blue-900/40">{classData.excused}</Badge>
+                                        <Badge className="bg-brand-surface-100 text-brand-ink-800 hover:bg-brand-surface-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:hover:bg-brand-surface-900/40">{classData.excused}</Badge>
                                         {expandedStatuses.has(`${classData.classId}-excused`) && classData.pupils.excused.length > 0 && (
-                                          <span className="text-xs text-blue-600 dark:text-blue-400">↓</span>
+                                          <span className="text-xs text-brand-ink-600 dark:text-brand-ink-400">↓</span>
                                         )}
                                       </button>
                                     </TableCell>
                                     <TableCell>
                                       <button
                                         onClick={() => toggleClassStatusExpansion(classData.classId, 'delayed')}
-                                        className="flex items-center gap-2 hover:bg-purple-50 dark:hover:bg-purple-900/20 p-1 rounded transition-colors"
+                                        className="flex items-center gap-2 hover:bg-brand-secondary-surface-50 dark:hover:bg-brand-secondary-surface-900/20 p-1 rounded transition-colors"
                                       >
-                                        <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-950/40 dark:text-purple-200 dark:hover:bg-purple-900/40">{classData.delayed}</Badge>
+                                        <Badge className="bg-brand-secondary-surface-100 text-brand-secondary-ink-800 hover:bg-brand-secondary-surface-200 dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-200 dark:hover:bg-brand-secondary-surface-900/40">{classData.delayed}</Badge>
                                         {expandedStatuses.has(`${classData.classId}-delayed`) && classData.pupils.delayed.length > 0 && (
-                                          <span className="text-xs text-purple-600 dark:text-purple-400">↓</span>
+                                          <span className="text-xs text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">↓</span>
                                         )}
                                       </button>
                                     </TableCell>
@@ -2655,8 +2655,8 @@ export default function ViewAttendanceReportsPage() {
                                                 <div className={`w-2 h-2 rounded-full ${status === 'present' ? 'bg-green-500' :
                                                   status === 'absent' ? 'bg-red-500' :
                                                     status === 'late' ? 'bg-yellow-500' :
-                                                      status === 'excused' ? 'bg-blue-500' :
-                                                        status === 'delayed' ? 'bg-purple-500' :
+                                                      status === 'excused' ? 'bg-brand-surface-500' :
+                                                        status === 'delayed' ? 'bg-brand-secondary-surface-500' :
                                                           'bg-gray-500'
                                                   }`} />
                                                 <div>
@@ -2698,11 +2698,11 @@ export default function ViewAttendanceReportsPage() {
                                           const currentRecordingData = recordingData[pupil.id] || { status: 'Present', remarks: '' };
 
                                           rows.push(
-                                            <TableRow key={`${classData.classId}-${status}-${pupil.id}-recording`} className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400">
+                                            <TableRow key={`${classData.classId}-${status}-${pupil.id}-recording`} className="bg-brand-surface-50 dark:bg-brand-surface-900/20 border-l-4 border-brand-400">
                                               <TableCell colSpan={8} className="p-4">
                                                 <div className="space-y-3">
                                                   <div className="flex items-center gap-4">
-                                                    <div className="font-medium text-blue-900 dark:text-blue-100">
+                                                    <div className="font-medium text-brand-ink-900 dark:text-brand-ink-100">
                                                       Recording attendance for {pupil.name} - {startDate ? format(parseISO(startDate), "EEEE, MMMM dd, yyyy") : "Selected Date"}
                                                     </div>
                                                   </div>
@@ -2801,7 +2801,7 @@ export default function ViewAttendanceReportsPage() {
                           </p>
                           <Button
                             onClick={() => handleTrendPeriodChange("daily")}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            className="bg-brand-surface-600 hover:bg-brand-surface-700 text-white"
                           >
                             Switch to Daily View
                           </Button>
@@ -2812,8 +2812,8 @@ export default function ViewAttendanceReportsPage() {
                       <div className="space-y-4">
                         {/* Period Information Summary */}
                         {classPupilTrendData.length > 0 && classPupilTrendData[0].periods.length > 0 && (
-                          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3">
+                          <div className="bg-brand-surface-50 dark:bg-brand-surface-900/20 rounded-lg p-4 border border-brand-200 dark:border-brand-800">
+                            <h4 className="font-semibold text-brand-ink-900 dark:text-brand-ink-100 mb-3">
                               Period Analysis
                             </h4>
                             <div className="space-y-2">
@@ -2850,7 +2850,7 @@ export default function ViewAttendanceReportsPage() {
                                 return (
                                   <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
                                     <div className="flex items-center gap-6 text-sm">
-                                      <div className="font-semibold text-blue-800 dark:text-blue-200 min-w-[120px]">
+                                      <div className="font-semibold text-brand-ink-800 dark:text-brand-ink-200 min-w-[120px]">
                                         {period.period}
                                       </div>
                                       <div className="font-medium">
@@ -2865,7 +2865,7 @@ export default function ViewAttendanceReportsPage() {
                                       <div className="ml-auto">
                                         {excludedDays > 0 ? (
                                           <details className="group">
-                                            <summary className="cursor-pointer text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 flex items-center gap-1">
+                                            <summary className="cursor-pointer text-sm text-brand-ink-600 dark:text-brand-ink-400 hover:text-brand-ink-800 dark:hover:text-brand-ink-200 flex items-center gap-1">
                                               <span className="group-open:rotate-90 transition-transform">▶</span>
                                               Details
                                             </summary>
@@ -2936,7 +2936,7 @@ export default function ViewAttendanceReportsPage() {
                                         <div className={isYearView ? "space-y-0.5" : ""}>
                                           <button
                                             onClick={() => handlePupilClick(pupilData.pupilId)}
-                                            className="font-medium text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:underline transition-colors text-left"
+                                            className="font-medium text-sm text-brand-ink-600 dark:text-brand-ink-400 hover:text-brand-ink-800 dark:hover:text-brand-ink-200 hover:underline transition-colors text-left"
                                           >
                                             {pupilData.pupilName}
                                           </button>
@@ -2964,10 +2964,10 @@ export default function ViewAttendanceReportsPage() {
                                       <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200`}>{period.late}</Badge>
                                     </TableCell>
                                     <TableCell className={isYearView ? "py-1" : ""}>
-                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200`}>{period.excused}</Badge>
+                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-brand-surface-100 text-brand-ink-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-200`}>{period.excused}</Badge>
                                     </TableCell>
                                     <TableCell className={isYearView ? "py-1" : ""}>
-                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-200`}>{period.delayed}</Badge>
+                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-brand-secondary-surface-100 text-brand-secondary-ink-800 dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-200`}>{period.delayed}</Badge>
                                     </TableCell>
                                     <TableCell className={isYearView ? "py-1" : ""}>
                                       <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100`}>{period.notRecorded}</Badge>
@@ -2977,7 +2977,7 @@ export default function ViewAttendanceReportsPage() {
                                         <span className={`font-medium ${isYearView ? "text-sm" : ""}`}>{period.attendanceRate.toFixed(1)}%</span>
                                         <div className={`ml-2 bg-gray-200 rounded-full  dark:bg-slate-800 ${isYearView ? "w-12 h-1.5" : "w-16 h-2"}`}>
                                           <div
-                                            className={`bg-blue-600 rounded-full ${isYearView ? "h-1.5" : "h-2"}`}
+                                            className={`bg-brand-surface-600 rounded-full ${isYearView ? "h-1.5" : "h-2"}`}
                                             style={{ width: `${Math.min(period.attendanceRate, 100)}%` }}
                                           />
                                         </div>
@@ -2990,13 +2990,13 @@ export default function ViewAttendanceReportsPage() {
                                 // Add total row if there are multiple periods (year view)
                                 if (isYearView) {
                                   periodRows.push(
-                                    <TableRow key={`${pupilData.pupilId}-total`} className="bg-blue-50 dark:bg-blue-900/20 border-t border-blue-200 dark:border-blue-700 h-10">
+                                    <TableRow key={`${pupilData.pupilId}-total`} className="bg-brand-surface-50 dark:bg-brand-surface-900/20 border-t border-brand-200 dark:border-brand-700 h-10">
                                       <TableCell className="py-1">
                                         <div className="h-8"></div>
                                       </TableCell>
                                       {/* Only show Period column for year view */}
                                       {isYearView && (
-                                        <TableCell className="py-1 font-bold text-sm text-blue-900 dark:text-blue-100">
+                                        <TableCell className="py-1 font-bold text-sm text-brand-ink-900 dark:text-brand-ink-100">
                                           Total
                                         </TableCell>
                                       )}
@@ -3010,27 +3010,27 @@ export default function ViewAttendanceReportsPage() {
                                         <Badge className="bg-yellow-300 text-yellow-900 font-bold text-xs px-2 py-0.5 dark:text-yellow-200">{totalLate}</Badge>
                                       </TableCell>
                                       <TableCell className="py-1">
-                                        <Badge className="bg-blue-300 text-blue-900 font-bold text-xs px-2 py-0.5 dark:text-blue-200">{totalExcused}</Badge>
+                                        <Badge className="bg-brand-surface-300 text-brand-ink-900 font-bold text-xs px-2 py-0.5 dark:text-brand-ink-200">{totalExcused}</Badge>
                                       </TableCell>
                                       <TableCell className="py-1">
-                                        <Badge className="bg-purple-300 text-purple-900 font-bold text-xs px-2 py-0.5 dark:text-purple-200">{totalDelayed}</Badge>
+                                        <Badge className="bg-brand-secondary-surface-300 text-brand-secondary-ink-900 font-bold text-xs px-2 py-0.5 dark:text-brand-secondary-ink-200">{totalDelayed}</Badge>
                                       </TableCell>
                                       <TableCell className="py-1">
                                         <Badge className="bg-gray-300 text-gray-900 font-bold text-xs px-2 py-0.5 dark:text-slate-100 dark:bg-slate-700">{totalNotRecorded}</Badge>
                                       </TableCell>
                                       <TableCell className="py-1">
                                         <div className="flex items-center">
-                                          <span className="font-bold text-sm text-blue-900 dark:text-blue-100">{totalAttendanceRate.toFixed(1)}%</span>
-                                          <div className="ml-2 w-12 bg-blue-200 dark:bg-blue-800 rounded-full h-2">
+                                          <span className="font-bold text-sm text-brand-ink-900 dark:text-brand-ink-100">{totalAttendanceRate.toFixed(1)}%</span>
+                                          <div className="ml-2 w-12 bg-brand-surface-200 dark:bg-brand-surface-800 rounded-full h-2">
                                             <div
-                                              className="bg-blue-700 dark:bg-blue-400 h-2 rounded-full"
+                                              className="bg-brand-surface-700 dark:bg-brand-surface-400 h-2 rounded-full"
                                               style={{ width: `${Math.min(totalAttendanceRate, 100)}%` }}
                                             />
                                           </div>
                                         </div>
                                       </TableCell>
                                       <TableCell className="py-1">
-                                        <span className="text-blue-600 dark:text-blue-400 text-sm">—</span>
+                                        <span className="text-brand-ink-600 dark:text-brand-ink-400 text-sm">—</span>
                                       </TableCell>
                                     </TableRow>
                                   );
@@ -3053,21 +3053,21 @@ export default function ViewAttendanceReportsPage() {
                       <div className="space-y-6">
                         {/* Pupil Attendance Summary */}
                         {reportType === "pupil" && pupilTrendData.length > 0 && (
-                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
+                          <div className="bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 dark:from-brand-surface-900/20 dark:to-brand-alt-surface-900/20 rounded-lg p-6 border border-brand-200 dark:border-brand-800">
                             <div className="flex items-center justify-between mb-4">
                               <div>
-                                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">
+                                <h3 className="text-lg font-semibold text-brand-ink-900 dark:text-brand-ink-100">
                                   {pupilTrendData[0]?.pupilName || 'Pupil'} - Attendance Summary
                                 </h3>
-                                <p className="text-sm text-blue-700 dark:text-blue-300">
+                                <p className="text-sm text-brand-ink-700 dark:text-brand-ink-300">
                                   Admission Number: {pupilTrendData[0]?.admissionNumber || 'N/A'}
                                 </p>
-                                <p className="text-sm text-blue-600 dark:text-blue-400">
+                                <p className="text-sm text-brand-ink-600 dark:text-brand-ink-400">
                                   Period: {startDate ? format(parseISO(startDate), "MMM dd, yyyy") : "Start Date"} - {endDate ? format(parseISO(endDate), "MMM dd, yyyy") : "End Date"}
                                 </p>
                               </div>
                               <div className="text-right">
-                                <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                                <div className="text-2xl font-bold text-brand-ink-900 dark:text-brand-ink-100">
                                   {(() => {
                                     const totalPresent = pupilTrendData.reduce((sum, day) => sum + day.present, 0);
                                     const totalSchoolDays = pupilTrendData.reduce((sum, day) => sum + day.schoolDays, 0);
@@ -3075,7 +3075,7 @@ export default function ViewAttendanceReportsPage() {
                                     return overallRate.toFixed(1);
                                   })()}%
                                 </div>
-                                <div className="text-sm text-blue-700 dark:text-blue-300">Overall Rate</div>
+                                <div className="text-sm text-brand-ink-700 dark:text-brand-ink-300">Overall Rate</div>
                               </div>
                             </div>
 
@@ -3123,12 +3123,12 @@ export default function ViewAttendanceReportsPage() {
                                 </div>
                               </div>
 
-                              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+                              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-brand-200 dark:border-brand-700">
                                 <div className="flex items-center">
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                                  <div className="w-2 h-2 bg-brand-surface-500 rounded-full mr-2"></div>
                                   <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Excused</span>
                                 </div>
-                                <div className="text-2xl font-bold text-blue-700 dark:text-blue-400 mt-1">
+                                <div className="text-2xl font-bold text-brand-ink-700 dark:text-brand-ink-400 mt-1">
                                   {pupilTrendData.reduce((sum, day) => sum + day.excused, 0)}
                                 </div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -3138,12 +3138,12 @@ export default function ViewAttendanceReportsPage() {
                                 </div>
                               </div>
 
-                              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
+                              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-brand-secondary-200 dark:border-brand-secondary-700">
                                 <div className="flex items-center">
-                                  <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                                  <div className="w-2 h-2 bg-brand-secondary-surface-500 rounded-full mr-2"></div>
                                   <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Delayed</span>
                                 </div>
-                                <div className="text-2xl font-bold text-purple-700 dark:text-purple-400 mt-1">
+                                <div className="text-2xl font-bold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-400 mt-1">
                                   {pupilTrendData.reduce((sum, day) => sum + day.delayed, 0)}
                                 </div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -3164,7 +3164,7 @@ export default function ViewAttendanceReportsPage() {
                               </div>
                               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                                 <div
-                                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300"
+                                  className="bg-gradient-to-r from-brand-surface-500 to-brand-surface-600 h-3 rounded-full transition-all duration-300"
                                   style={{
                                     width: `${Math.min(
                                       pupilTrendData.reduce((sum, day) => sum + day.schoolDays, 0) > 0
@@ -3199,8 +3199,8 @@ export default function ViewAttendanceReportsPage() {
                                       <div className={`w-2.5 h-2.5 rounded-full ${attendanceStatus === 'present' ? 'bg-green-500' :
                                         attendanceStatus === 'absent' ? 'bg-red-500' :
                                           attendanceStatus === 'late' ? 'bg-yellow-500' :
-                                            attendanceStatus === 'excused' ? 'bg-blue-500' :
-                                              attendanceStatus === 'delayed' ? 'bg-purple-500' : 'bg-gray-400'
+                                            attendanceStatus === 'excused' ? 'bg-brand-surface-500' :
+                                              attendanceStatus === 'delayed' ? 'bg-brand-secondary-surface-500' : 'bg-gray-400'
                                         }`}></div>
 
                                       <div>
@@ -3238,13 +3238,13 @@ export default function ViewAttendanceReportsPage() {
                                         {row.excused > 0 && (
                                           <div className="flex items-center space-x-1">
                                             <span className="text-gray-500 dark:text-gray-400">E:</span>
-                                            <span className="font-medium text-blue-600 dark:text-blue-400">{row.excused}</span>
+                                            <span className="font-medium text-brand-ink-600 dark:text-brand-ink-400">{row.excused}</span>
                                           </div>
                                         )}
                                         {row.delayed > 0 && (
                                           <div className="flex items-center space-x-1">
                                             <span className="text-gray-500 dark:text-gray-400">D:</span>
-                                            <span className="font-medium text-purple-600 dark:text-purple-400">{row.delayed}</span>
+                                            <span className="font-medium text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">{row.delayed}</span>
                                           </div>
                                         )}
                                       </div>

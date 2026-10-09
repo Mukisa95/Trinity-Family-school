@@ -51,7 +51,7 @@ function RecipientSelector({ id, value, onChange, users, loading, error }: {
         : error ? <p role="alert" className="p-2 text-sm text-red-700 dark:text-red-300">{error}</p>
           : !users.length ? <p className="p-2 text-sm text-slate-600 dark:text-slate-300">No active users with Fees access are available.</p>
             : users.map(user => <label key={user.id} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-900">
-              <input type="checkbox" checked={value.includes(user.id)} className="h-5 w-5 accent-indigo-600" onChange={event =>
+              <input type="checkbox" checked={value.includes(user.id)} className="h-5 w-5 accent-brand-alt-600" onChange={event =>
                 onChange(event.target.checked ? [...value.filter(item => item !== user.id), user.id] : value.filter(item => item !== user.id))} />
               <span>{user.name} <span className="text-xs text-slate-500 dark:text-slate-400">· {user.role}</span></span>
             </label>)}
@@ -77,7 +77,7 @@ function FeePromiseCard({ note, payments, now, canCancel, cancelling, onCancel, 
   const cancelled = note.reminderStatus === 'cancelled';
   const fulfilled = !custom && settlement.status === 'paid';
   const tone = cancelled ? 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900' : fulfilled ? 'border-emerald-200 bg-emerald-50/70 dark:border-emerald-800/60 dark:bg-emerald-950/70'
-    : progress.overdue ? 'border-amber-200 bg-amber-50/70 dark:border-amber-800/60 dark:bg-amber-950/70' : 'border-blue-200 bg-blue-50/50 dark:border-blue-800/60 dark:bg-blue-950/50';
+    : progress.overdue ? 'border-amber-200 bg-amber-50/70 dark:border-amber-800/60 dark:bg-amber-950/70' : 'border-brand-200 bg-brand-surface-50/50 dark:border-brand-800/60 dark:bg-brand-surface-950/50';
   const status = cancelled ? 'Cancelled' : custom ? note.reminderStatus === 'sent' ? 'Sent' : note.reminderStatus === 'not_triggered' ? 'Condition not met' : note.customDeliveryPending ? 'Sending' : 'Active' : fulfilled ? 'Promise paid' : progress.status === 'partial' ? 'Partly paid' : 'No payment yet';
   return (
     <article className={`rounded-2xl border p-4 ${tone}`}>
@@ -299,7 +299,7 @@ export function FeeNotesModal({ open, onOpenChange, pupil, fees, payments, acade
   return (
     <Dialog open={open} onOpenChange={value => { if (!featureSwitch.isPending && !create.isPending && !cancel.isPending && !updateRecipients.isPending) onOpenChange(value); }}>
       <DialogContent className="max-w-2xl gap-4 p-4 sm:p-6">
-        <DialogTitle className="flex items-center gap-2 pr-8"><StickyNote className="h-5 w-5 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />Notes · {formatPupilDisplayName(pupil)}</DialogTitle>
+        <DialogTitle className="flex items-center gap-2 pr-8"><StickyNote className="h-5 w-5 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" aria-hidden="true" />Notes · {formatPupilDisplayName(pupil)}</DialogTitle>
         <DialogDescription>Control Notes and reminders for this pupil.</DialogDescription>
         <div className="flex min-h-20 items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
           <div className="min-w-0"><Label htmlFor="pupil-fee-notes-switch" className="text-sm font-semibold text-slate-900 dark:text-slate-100">Notes and reminders</Label>
@@ -355,8 +355,8 @@ export function FeeNotesModal({ open, onOpenChange, pupil, fees, payments, acade
               <RecipientSelector id="fee-note-recipients" value={recipientIds} onChange={setRecipientIds}
                 users={recipients.data || []} loading={recipients.isLoading} error={recipients.error?.message} />
             </fieldset>
-            <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4 dark:border-indigo-800/60 dark:bg-indigo-950/70" aria-live="polite">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Your note</p>
+            <div className="rounded-2xl border border-brand-alt-200 bg-brand-alt-surface-50/70 p-4 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/70" aria-live="polite">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-alt-ink-700 dark:text-brand-alt-ink-300">Your note</p>
               <p className="break-words text-sm leading-6 text-slate-800 dark:text-slate-100">{preview}</p>
               {additionalNote.trim() && <p className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-700 dark:text-slate-200">{additionalNote.trim()}</p>}
               {phone.trim() && <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">Contact: {phone}</p>}
@@ -372,7 +372,7 @@ export function FeeNotesModal({ open, onOpenChange, pupil, fees, payments, acade
           <div className="space-y-4">
             {notes.isLoading ? <p className="flex items-center gap-2 py-5 text-sm text-slate-600 dark:text-slate-300"><Loader2 className="h-4 w-4 animate-spin" />Loading notes…</p>
               : notes.isError ? <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-300"><p>{notes.error.message}</p><Button variant="outline" className="mt-2 min-h-11" onClick={() => void notes.refetch()}>Try again</Button></div>
-                : !noteList.length ? <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center dark:border-slate-700"><StickyNote className="mx-auto h-7 w-7 text-indigo-500 dark:text-indigo-400" aria-hidden="true" /><h3 className="mt-3 font-semibold text-slate-900 dark:text-slate-100">No notes yet</h3><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Create a Promise or a custom note to notify the fees team.</p>{canManage && <Button className="mt-4 min-h-11 rounded-full" onClick={() => setView('create')}><Plus className="mr-1 h-4 w-4" />Promise</Button>}</div>
+                : !noteList.length ? <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center dark:border-slate-700"><StickyNote className="mx-auto h-7 w-7 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" aria-hidden="true" /><h3 className="mt-3 font-semibold text-slate-900 dark:text-slate-100">No notes yet</h3><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Create a Promise or a custom note to notify the fees team.</p>{canManage && <Button className="mt-4 min-h-11 rounded-full" onClick={() => setView('create')}><Plus className="mr-1 h-4 w-4" />Promise</Button>}</div>
                   : <>
                     <p className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">{isPaymentDataLoading ? <Clock className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />} {isPaymentDataLoading ? 'Checking the latest payments…' : 'Payment status updates automatically. Reversed payments are excluded.'}</p>
                     {!isPaymentDataLoading && <>

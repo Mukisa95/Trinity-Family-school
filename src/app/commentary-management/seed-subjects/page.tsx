@@ -228,7 +228,7 @@ export default function SeedSubjectsPage() {
             {selectedClassIds.length === 0 ? (
               <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">→ Saving as General (All Nursery Classes)</p>
             ) : (
-              <p className="text-xs text-purple-600 mt-1 dark:text-purple-400">
+              <p className="text-xs text-brand-secondary-ink-600 mt-1 dark:text-brand-secondary-ink-400">
                 → Saving for {selectedClassIds.length} class{selectedClassIds.length !== 1 ? 'es' : ''}: {selectedClassIds.map(id => nurseryClasses.find(c => c.id === id)?.name).filter(Boolean).join(', ')}
               </p>
             )}

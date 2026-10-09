@@ -240,7 +240,7 @@ const DetailItem = React.memo(function DetailItem({
           )}
         </div>
       ) : (
-        <span className={`min-w-0 ${stackContent ? 'mt-0.5 ml-0 text-left sm:ml-4 sm:text-right' : 'ml-4 flex-1 text-right'} ${highlight ? 'font-semibold text-primary' : 'text-foreground'} ${compact ? 'text-[11px]' : ''}`}>
+        <span className={`min-w-0 ${stackContent ? 'mt-0.5 ml-0 text-left sm:ml-4 sm:text-right' : 'ml-4 flex-1 text-right'} ${highlight ? 'font-semibold text-link' : 'text-foreground'} ${compact ? 'text-[11px]' : ''}`}>
           {value}
         </span>
       )}
@@ -2654,7 +2654,7 @@ function PupilDetailContent() {
         }}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-              <Printer className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <Printer className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
               Print Reports
             </DialogTitle>
             <DialogDescription>
@@ -2665,18 +2665,18 @@ function PupilDetailContent() {
           {isGenerating ? (
             <div className="py-4">
               <div className="text-center">
-                <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto mb-4 animate-spin dark:border-blue-800/60"></div>
+                <div className="w-12 h-12 border-4 border-brand-200 border-t-blue-600 rounded-full mx-auto mb-4 animate-spin dark:border-brand-800/60"></div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2 dark:text-slate-100">Generating Report</h3>
-                <p className="text-sm text-blue-600 font-medium mb-4 dark:text-blue-400">{generationStatus}</p>
+                <p className="text-sm text-brand-ink-600 font-medium mb-4 dark:text-brand-ink-400">{generationStatus}</p>
                 <div className="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden border dark:bg-slate-900">
                   <div
-                    className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-brand-surface-500 to-brand-surface-600 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${generationProgress}%` }}
                   />
                 </div>
                 <div className="flex justify-between items-center mb-4 text-sm">
                   <span className="font-semibold text-gray-800 dark:text-slate-100">{generationProgress}% Complete</span>
-                  <span className="text-blue-600 font-medium dark:text-blue-400">{eta}</span>
+                  <span className="text-brand-ink-600 font-medium dark:text-brand-ink-400">{eta}</span>
                 </div>
                 <p className="text-xs text-gray-500 mt-2 dark:text-slate-400">💡 Report will download automatically when ready</p>
               </div>
@@ -3851,7 +3851,7 @@ function PupilDetailContent() {
             pupil?.status === 'Active' ? 'bg-green-100 text-green-800 border-green-300 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60' :
             pupil?.status === 'Inactive' ? 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700' :
             pupil?.status === 'Graduated' ? 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60' :
-            'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60'
+            'bg-brand-surface-100 text-brand-ink-800 border-brand-300 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60'
           }`}>
             {pupil?.status || 'Active'}
           </Badge>
@@ -3893,7 +3893,7 @@ function PupilDetailContent() {
                   onClick={() => {
                     window.location.href = `/pupils/edit?id=${pupil.id}`;
                   }}
-                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-blue-400"
+                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-brand-ink-600 border border-brand-400 shadow-sm hover:bg-gradient-to-br hover:from-brand-surface-400 hover:via-brand-alt-surface-500 hover:to-brand-surface-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-brand-ink-400"
                   aria-label="Open Edit Form"
                 >
                   <FileText className="w-4 h-4 mb-0.5" />
@@ -3937,7 +3937,7 @@ function PupilDetailContent() {
                 <ActionGuard module="pupils" page="detail" action="manage_assignments">
                   <button
                     onClick={() => setIsAssignmentModalOpen(true)}
-                    className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-purple-600 border border-purple-400 shadow-sm hover:bg-gradient-to-br hover:from-purple-400 hover:via-violet-500 hover:to-purple-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-purple-400"
+                    className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-brand-secondary-ink-600 border border-brand-secondary-400 shadow-sm hover:bg-gradient-to-br hover:from-brand-secondary-surface-400 hover:via-brand-secondary-alt-surface-500 hover:to-brand-secondary-surface-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-brand-secondary-ink-400"
                     aria-label="Assign"
                   >
                     <Tag className="w-4 h-4 mb-0.5" />
@@ -3949,7 +3949,7 @@ function PupilDetailContent() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-blue-400"
+                      className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-brand-ink-600 border border-brand-400 shadow-sm hover:bg-gradient-to-br hover:from-brand-surface-400 hover:via-brand-alt-surface-500 hover:to-brand-surface-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-brand-ink-400"
                       aria-label="Tracking Options"
                     >
                       <BarChart3 className="w-4 h-4 mb-0.5" />
@@ -3961,13 +3961,13 @@ function PupilDetailContent() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link href={`/uniform-tracking?id=${pupil.id}`} className="cursor-pointer">
-                        <Shirt className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <Shirt className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                         Uniform Tracking
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href={`/requirement-tracking?id=${pupil.id}`} className="cursor-pointer">
-                        <BookOpen className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" />
+                        <BookOpen className="mr-2 h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                         Requirements Tracking
                       </Link>
                     </DropdownMenuItem>
@@ -4058,7 +4058,7 @@ function PupilDetailContent() {
                             : [{ id: `g-${Date.now()}`, firstName: '', lastName: '', relationship: '', phone: '', secondaryPhone: '', email: '', occupation: '', address: '', nationalId: '' }]
                         );
                       }}>
-                        <Edit className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <Edit className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                         Edit Pupil Details
                       </DropdownMenuItem>
                     </ActionGuard>
@@ -4084,7 +4084,7 @@ function PupilDetailContent() {
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => setIsLinkedAccountOpen(true)}>
-                          <UserPlus className="mr-2 h-4 w-4 text-violet-600 dark:text-violet-400" />
+                          <UserPlus className="mr-2 h-4 w-4 text-brand-secondary-alt-ink-600 dark:text-brand-secondary-alt-ink-400" />
                           Parent Account
                         </DropdownMenuItem>
                       </>
@@ -4099,7 +4099,7 @@ function PupilDetailContent() {
                         });
                         router.push(`/pupils/new?${siblingParams.toString()}`);
                       }}>
-                        <UserPlus className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                        <UserPlus className="mr-2 h-4 w-4 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" />
                         Add Sibling
                       </DropdownMenuItem>
                     </ActionGuard>
@@ -4190,7 +4190,7 @@ function PupilDetailContent() {
                       <span>{getSchoolPayCode(pupil) ? 'Pay Code' : 'Pay Code (not available)'}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setSelectedPupilSmsTemplate('custom')}>
-                      <Edit className="mr-2 h-4 w-4 text-violet-600 dark:text-violet-400" />
+                      <Edit className="mr-2 h-4 w-4 text-brand-secondary-alt-ink-600 dark:text-brand-secondary-alt-ink-400" />
                       <span>Custom</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -4322,7 +4322,7 @@ function PupilDetailContent() {
                     <div className="flex flex-wrap gap-2 items-center">
                       <Badge
                         variant="outline"
-                        className="text-xs bg-purple-50 text-purple-700 border-purple-300 hover:bg-purple-100 cursor-pointer transition-colors dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/60 dark:hover:bg-purple-950/40"
+                        className="text-xs bg-brand-secondary-surface-50 text-brand-secondary-ink-700 border-brand-secondary-300 hover:bg-brand-secondary-surface-100 cursor-pointer transition-colors dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-300 dark:border-brand-secondary-800/60 dark:hover:bg-brand-secondary-surface-950/40"
                         onClick={() => setShowPLEDialog(!showPLEDialog)}
                       >
                         <BookOpen className="mr-1 h-3 w-3" />
@@ -4371,31 +4371,31 @@ function PupilDetailContent() {
             {/* PLE Results Card - Inline, appears when badge is clicked */}
             {showPLEDialog && (
               <Card
-                className="shadow-lg border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 overflow-hidden transition-all duration-500 ease-out dark:border-purple-800/60 dark:from-purple-950/40 dark:to-indigo-950/40"
+                className="shadow-lg border-brand-secondary-200 bg-gradient-to-br from-brand-secondary-surface-50 to-brand-alt-surface-50 overflow-hidden transition-all duration-500 ease-out dark:border-brand-secondary-800/60 dark:from-brand-secondary-surface-950/40 dark:to-brand-alt-surface-950/40"
                 style={{
                   animation: 'slideDown 0.5s ease-out'
                 }}
               >
-                <CardHeader className="pb-3 border-b border-purple-200 dark:border-purple-800/60">
+                <CardHeader className="pb-3 border-b border-brand-secondary-200 dark:border-brand-secondary-800/60">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center text-lg lg:text-xl text-purple-900 dark:text-purple-200">
-                      <BookOpen className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-purple-600 dark:text-purple-400" />
+                    <CardTitle className="flex items-center text-lg lg:text-xl text-brand-secondary-ink-900 dark:text-brand-secondary-ink-200">
+                      <BookOpen className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                       PLE Results - {formatPupilDisplayName(pupil)}
                     </CardTitle>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowPLEDialog(false)}
-                      className="h-8 w-8 p-0 hover:bg-purple-100 dark:hover:bg-purple-950/40"
+                      className="h-8 w-8 p-0 hover:bg-brand-secondary-surface-100 dark:hover:bg-brand-secondary-surface-950/40"
                     >
-                      <X className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                      <X className="h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-4">
                   {isLoadingPLEResults ? (
                     <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-purple-600 mr-2 dark:text-purple-400" />
+                      <Loader2 className="h-6 w-6 animate-spin text-brand-secondary-ink-600 mr-2 dark:text-brand-secondary-ink-400" />
                       <span className="text-sm text-gray-600 dark:text-slate-300">Loading PLE results...</span>
                     </div>
                   ) : pupilPLEResults.length === 0 ? (
@@ -4409,7 +4409,7 @@ function PupilDetailContent() {
                         const getDivisionColor = (division: string) => {
                           switch (division) {
                             case 'I': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
-                            case 'II': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+                            case 'II': return 'bg-brand-surface-100 text-brand-ink-800 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60';
                             case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
                             case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60';
                             case 'U': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60';
@@ -4421,16 +4421,16 @@ function PupilDetailContent() {
                           if (!aggregate) return 'bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100';
                           const aggregateStr = String(aggregate);
                           if (aggregateStr.startsWith('D')) return 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200';
-                          if (aggregateStr.startsWith('C')) return 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200';
+                          if (aggregateStr.startsWith('C')) return 'bg-brand-surface-100 text-brand-ink-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-200';
                           if (aggregateStr.startsWith('P')) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200';
                           return 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200';
                         };
 
                         return (
-                          <div key={pleRecord.id} className="bg-white rounded-lg p-4 border border-purple-200 shadow-sm dark:bg-slate-900 dark:border-purple-800/60">
+                          <div key={pleRecord.id} className="bg-white rounded-lg p-4 border border-brand-secondary-200 shadow-sm dark:bg-slate-900 dark:border-brand-secondary-800/60">
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-2">
-                                <Award className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                <Award className="h-5 w-5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                                 <h3 className="font-semibold text-lg text-gray-900 dark:text-slate-100">PLE {pleRecord.year}</h3>
                               </div>
                               <Button
@@ -4439,7 +4439,7 @@ function PupilDetailContent() {
                                 onClick={() => {
                                   router.push(`/exams/ple-results/pupil/${pupilResult.pupilId}/${pleRecord.id}`);
                                 }}
-                                className="border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800/60 dark:text-purple-300 dark:hover:bg-purple-950/40"
+                                className="border-brand-secondary-200 text-brand-secondary-ink-700 hover:bg-brand-secondary-surface-50 dark:border-brand-secondary-800/60 dark:text-brand-secondary-ink-300 dark:hover:bg-brand-secondary-surface-950/40"
                               >
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Details
@@ -4480,9 +4480,9 @@ function PupilDetailContent() {
                                           'social_studies': 'SST'
                                         };
                                         return (
-                                          <div key={subject} className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-md p-2 border border-purple-100 dark:from-purple-950/40 dark:to-indigo-950/40 dark:border-purple-800/60">
+                                          <div key={subject} className="bg-gradient-to-br from-brand-secondary-surface-50 to-brand-alt-surface-50 rounded-md p-2 border border-brand-secondary-100 dark:from-brand-secondary-surface-950/40 dark:to-brand-alt-surface-950/40 dark:border-brand-secondary-800/60">
                                             <p className="text-xs text-gray-600 font-medium dark:text-slate-300">{subjectCodes[subject] || subject.toUpperCase()}</p>
-                                            <p className="text-sm font-bold text-purple-700 dark:text-purple-300">{grade}</p>
+                                            <p className="text-sm font-bold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">{grade}</p>
                                           </div>
                                         );
                                       })}
@@ -4503,10 +4503,10 @@ function PupilDetailContent() {
             <Card className="shadow-lg" style={{ borderLeft: currentHouse?.themeColor ? `4px solid ${currentHouse.themeColor}` : undefined }}>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center text-lg lg:text-xl">
-                  <UserSquare className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-primary" />
+                  <UserSquare className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-link" />
                   Personal Details
                   {isEditMode && (
-                    <Badge variant="outline" className="ml-2 text-xs bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/60">
+                    <Badge variant="outline" className="ml-2 text-xs bg-brand-surface-50 text-brand-ink-600 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-400 dark:border-brand-800/60">
                       <Edit className="mr-1 h-3 w-3" />
                       Editing
                     </Badge>
@@ -4529,7 +4529,7 @@ function PupilDetailContent() {
                             onClick={() => setShowDateOfBirth(!showDateOfBirth)}
                             aria-label={showDateOfBirth ? 'Show age' : 'Show date of birth'}
                             title={showDateOfBirth ? 'Show age' : 'Show date of birth'}
-                            className="inline-flex h-6 w-6 flex-none items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                            className="inline-flex h-6 w-6 flex-none items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                           >
                             <Eye className="h-3.5 w-3.5" />
                           </button>
@@ -4568,7 +4568,7 @@ function PupilDetailContent() {
                   value={
                     <button
                       onClick={() => setIsHouseChangeOpen(true)}
-                      className="inline-flex items-center gap-2 text-foreground hover:text-primary hover:underline"
+                      className="inline-flex items-center gap-2 text-foreground hover:text-link hover:underline"
                       title="Click to change house"
                     >
                       {currentHouse ? (
@@ -4631,7 +4631,7 @@ function PupilDetailContent() {
                 {(isEditMode || pupil.medicalConditions || pupil.allergies || pupil.medications || pupil.bloodType) && (
                   <div className="mt-4 pt-4 border-t border-border/50">
                     <h4 className="font-semibold text-sm mb-3 flex items-center">
-                      <HeartPulse className="mr-2 h-4 w-4 text-primary" />
+                      <HeartPulse className="mr-2 h-4 w-4 text-link" />
                       Medical Information
                     </h4>
                     <DetailItem
@@ -4700,7 +4700,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
             {pupil.familyId && actualSiblings.length > 0 && (
               <Card className="shadow-lg" style={{ borderLeft: currentHouse?.themeColor ? `4px solid ${currentHouse.themeColor}` : undefined }}>
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center text-lg lg:text-xl"><GuardianIconLucide className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-primary" /> {formatPupilDisplayName(pupil)}'s Siblings</CardTitle>
+                  <CardTitle className="flex items-center text-lg lg:text-xl"><GuardianIconLucide className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-link" /> {formatPupilDisplayName(pupil)}'s Siblings</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   <div>
@@ -4711,7 +4711,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                             <div className="flex-1">
                               <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
                                 <div className="flex items-center gap-2">
-                                  <Link href={`/pupil-detail?id=${sibling.id}`} className="text-primary hover:underline font-medium">
+                                  <Link href={`/pupil-detail?id=${sibling.id}`} className="text-link hover:underline font-medium">
                                     {formatPupilDisplayName(sibling)}
                                   </Link>
                                   <Badge variant={sibling.status === 'Active' ? 'default' : 'secondary'} className="text-[10px] py-0 px-1.5 h-4">
@@ -4734,7 +4734,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                                     asChild
                                     size="sm"
                                     variant="outline"
-                                    className="h-6 rounded-full px-2 text-[10px] font-semibold border-indigo-300 text-indigo-700 hover:bg-indigo-50 shrink-0 dark:border-indigo-800/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
+                                    className="h-6 rounded-full px-2 text-[10px] font-semibold border-brand-alt-300 text-brand-alt-ink-700 hover:bg-brand-alt-surface-50 shrink-0 dark:border-brand-alt-800/60 dark:text-brand-alt-ink-300 dark:hover:bg-brand-alt-surface-950/40"
                                   >
                                     <Link href={`/pupil-detail?id=${sibling.id}#exams-card`}>
                                       <BookOpen className="h-2.5 w-2.5 mr-0.5" />
@@ -4756,7 +4756,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem asChild>
                                         <Link href={`/pupil-detail?id=${sibling.id}`} className="flex items-center cursor-pointer">
-                                          <Eye className="mr-2 h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                                          <Eye className="mr-2 h-3.5 w-3.5 text-brand-ink-600 dark:text-brand-ink-400" />
                                           View Profile
                                         </Link>
                                       </DropdownMenuItem>
@@ -4790,7 +4790,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                                   {sibling.classId ? (
                                     <Link
                                       href={`/class-detail?id=${sibling.classId}`}
-                                      className="text-primary hover:underline cursor-pointer"
+                                      className="text-link hover:underline cursor-pointer"
                                     >
                                       {getClassCode(sibling.classId, classes)}
                                     </Link>
@@ -4901,25 +4901,25 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
               <Card className="shadow-lg" style={{ borderLeft: currentHouse?.themeColor ? `4px solid ${currentHouse.themeColor}` : undefined }}>
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center text-base">
-                    <Briefcase className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" /> Staff Relative
+                    <Briefcase className="mr-2 h-4 w-4 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" /> Staff Relative
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-1.5 text-xs">
                   <div className="flex items-center gap-2 py-1">
                     {assignedStaff.photo && (
-                      <Avatar className="h-8 w-8 border border-indigo-200 dark:border-indigo-800/60">
+                      <Avatar className="h-8 w-8 border border-brand-alt-200 dark:border-brand-alt-800/60">
                         <AvatarImage
                           src={assignedStaff.photo && assignedStaff.photo.trim() !== '' ? assignedStaff.photo : undefined}
                           alt={`${assignedStaff.firstName} ${assignedStaff.lastName}`}
                         />
-                        <AvatarFallback className="text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
+                        <AvatarFallback className="text-xs bg-brand-alt-surface-100 text-brand-alt-ink-700 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300">
                           {assignedStaff.firstName?.[0] || 'S'}{assignedStaff.lastName?.[0] || 'S'}
                         </AvatarFallback>
                       </Avatar>
                     )}
                     <div className="flex-1 min-w-0">
                       <span className="text-muted-foreground">Assigned: </span>
-                      <Link href={`/staff/${pupil.assignedStaffId}`} className="text-primary hover:underline font-medium">
+                      <Link href={`/staff/${pupil.assignedStaffId}`} className="text-link hover:underline font-medium">
                         {assignedStaff.firstName} {assignedStaff.lastName}
                       </Link>
                       {assignedStaff.role && (
@@ -4945,7 +4945,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                     {assignedStaff.email && (
                       <div className="col-span-2 truncate">
                         <span className="text-muted-foreground">Email: </span>
-                        <a href={`mailto:${assignedStaff.email}`} className="text-primary hover:underline truncate">
+                        <a href={`mailto:${assignedStaff.email}`} className="text-link hover:underline truncate">
                           {assignedStaff.email}
                         </a>
                       </div>
@@ -4953,7 +4953,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                     {assignedStaff.phone && (
                       <div>
                         <span className="text-muted-foreground">Phone: </span>
-                        <a href={`tel:${assignedStaff.phone}`} className="text-primary hover:underline">
+                        <a href={`tel:${assignedStaff.phone}`} className="text-link hover:underline">
                           {assignedStaff.phone}
                         </a>
                       </div>
@@ -4968,13 +4968,13 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="flex items-center text-base lg:text-lg">
-                    <BookOpen className="mr-2 h-4 w-4 text-primary" /> Exams
+                    <BookOpen className="mr-2 h-4 w-4 text-link" /> Exams
                   </CardTitle>
                   {!shouldLoadExams && (
                     <Button
                       onClick={() => setShouldLoadExams(true)}
                       size="sm"
-                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-full h-7 px-3 text-xs font-semibold"
+                      className="bg-brand-surface-600 hover:bg-brand-surface-700 text-white rounded-full h-7 px-3 text-xs font-semibold"
                     >
                       <BookOpen className="h-3.5 w-3.5 mr-1" />
                       Show
@@ -5155,7 +5155,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                                   href={`/exams/${examData.id}/pupil-results/${pupilId}?classId=${examData.classId}`}
                                   className="flex-1"
                                 >
-                                  <h4 className="font-medium text-primary text-sm">{examData.name}</h4>
+                                  <h4 className="font-medium text-link text-sm">{examData.name}</h4>
                                 </Link>
                                 <Button
                                   variant="outline"
@@ -5191,7 +5191,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                                   <span className="text-xs">Total: {totalMarks}</span>
                                   <span className="text-xs">Avg: {averageMarks}%</span>
                                   <span className={`text-xs px-2 py-0.5 rounded font-medium ${division === "DIV I" ? "bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200" :
-                                    division === "DIV II" ? "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200" :
+                                    division === "DIV II" ? "bg-brand-surface-100 text-brand-ink-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-200" :
                                       division === "DIV III" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200" :
                                         division === "DIV IV" ? "bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-200" :
                                           "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200"
@@ -5368,7 +5368,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                               </AvatarFallback>
                             </Avatar>
                             <div className="text-left">
-                              <p className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">
+                              <p className="font-medium text-sm text-foreground group-hover:text-link transition-colors">
                                 {formatPupilDisplayName(sibling)}
                               </p>
                               <p className="text-xs text-muted-foreground font-mono">
@@ -5396,7 +5396,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
           <div className="xl:col-span-2 space-y-4 lg:space-y-6">
             <Card className="shadow-lg" style={{ borderLeft: currentHouse?.themeColor ? `4px solid ${currentHouse.themeColor}` : undefined }}>
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-lg lg:text-xl"><AcademicIcon className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-primary" /> {academicInformationTitle}</CardTitle>
+                <CardTitle className="flex items-center text-lg lg:text-xl"><AcademicIcon className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-link" /> {academicInformationTitle}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-1 text-sm">
                 <DetailItem
@@ -5405,14 +5405,14 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                   value={
                     isGraduatedPupil ? (
                       graduationDisplay?.href ? (
-                        <Link href={graduationDisplay.href} className="text-primary hover:underline font-medium text-right">
+                        <Link href={graduationDisplay.href} className="text-link hover:underline font-medium text-right">
                           {profileClassName}
                         </Link>
                       ) : profileClassName
                     ) : !isEditMode && pupil.classId ? (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="text-primary hover:underline font-medium cursor-pointer text-right">
+                          <button className="text-link hover:underline font-medium cursor-pointer text-right">
                             {pupilWithClass?.className || getClassNameMemo(pupil.classId)}
                           </button>
                         </DropdownMenuTrigger>
@@ -5420,7 +5420,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                           <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Class Options</DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => router.push(`/class-detail?id=${pupil.classId}`)}>
-                            <Settings className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            <Settings className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                             View Class Details
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={handlePupilClassChange}>
@@ -5488,10 +5488,10 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center justify-between text-lg lg:text-xl">
                   <span className="flex items-center">
-                    <GuardianIconLucide className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-primary" />
+                    <GuardianIconLucide className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-link" />
                     Guardian Information
                     {isEditMode && (
-                      <Badge variant="outline" className="ml-2 text-xs bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/60">
+                      <Badge variant="outline" className="ml-2 text-xs bg-brand-surface-50 text-brand-ink-600 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-400 dark:border-brand-800/60">
                         <Edit className="mr-1 h-3 w-3" />
                         Editing
                       </Badge>
@@ -5575,7 +5575,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                           value={isEditMode ? (editableGuardians[index]?.phone || '') : (guardian.phone ? (
                             <a
                               href={`tel:${guardian.phone}`}
-                              className="text-primary hover:underline font-medium cursor-pointer"
+                              className="text-link hover:underline font-medium cursor-pointer"
                             >
                               {guardian.phone}
                             </a>
@@ -5596,7 +5596,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                           value={isEditMode ? (editableGuardians[index]?.secondaryPhone || '') : (guardian.secondaryPhone ? (
                             <a
                               href={`tel:${guardian.secondaryPhone}`}
-                              className="text-primary hover:underline font-medium cursor-pointer"
+                              className="text-link hover:underline font-medium cursor-pointer"
                             >
                               {guardian.secondaryPhone}
                             </a>
@@ -5731,7 +5731,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
             {(emergencyContactGuardian || pupil.bloodType || pupil.medicalConditions || pupil.allergies || pupil.medications) && (
               <Card className="shadow-lg" style={{ borderLeft: currentHouse?.themeColor ? `4px solid ${currentHouse.themeColor}` : undefined }}>
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center text-lg lg:text-xl"><HeartPulse className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-primary" /> Medical Information</CardTitle>
+                  <CardTitle className="flex items-center text-lg lg:text-xl"><HeartPulse className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-link" /> Medical Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-0.5 text-xs">
                   {emergencyContactGuardian && (
@@ -5744,7 +5744,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                             emergencyContactGuardian.phone ? (
                               <a
                                 href={`tel:${emergencyContactGuardian.phone}`}
-                                className="text-primary hover:underline font-medium cursor-pointer"
+                                className="text-link hover:underline font-medium cursor-pointer"
                               >
                                 {emergencyContactGuardian.phone}
                               </a>
@@ -5810,7 +5810,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
               <Card className="shadow-lg" style={{ borderLeft: currentHouse?.themeColor ? `4px solid ${currentHouse.themeColor}` : undefined }}>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center text-lg lg:text-xl">
-                    <GraduationCap className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-blue-600 dark:text-blue-400" />
+                    <GraduationCap className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-brand-ink-600 dark:text-brand-ink-400" />
                     Class Changes & Promotions
                   </CardTitle>
                 </CardHeader>
@@ -5818,19 +5818,19 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                   {pupil.promotionHistory
                     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                     .map((entry, index) => (
-                      <div key={index} className="p-2 px-3 rounded-md border bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 text-xs">
+                      <div key={index} className="p-2 px-3 rounded-md border bg-brand-surface-50 dark:bg-brand-surface-950/20 border-brand-200 dark:border-brand-800 text-xs">
                         <div className="flex flex-row items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
                           <div className="flex items-center gap-2 shrink-0">
                             <div className="flex items-center">
                               {entry.type === 'Promotion' && <TrendingUp className="mr-1 h-3 w-3 text-green-600 dark:text-green-400" />}
                               {entry.type === 'Demotion' && <TrendingDown className="mr-1 h-3 w-3 text-red-600 dark:text-red-400" />}
                               {entry.type === 'Graduation' && <GraduationCap className="mr-1 h-3 w-3 text-yellow-600 dark:text-yellow-400" />}
-                              {(entry.type === 'Transfer' || entry.type === 'Initial Placement') && <ArrowRight className="mr-1 h-3 w-3 text-blue-600 dark:text-blue-400" />}
+                              {(entry.type === 'Transfer' || entry.type === 'Initial Placement') && <ArrowRight className="mr-1 h-3 w-3 text-brand-ink-600 dark:text-brand-ink-400" />}
                               <Badge variant="outline" className={`text-[10px] py-0 px-1.5 ${
                                 entry.type === 'Promotion' ? 'bg-green-100 text-green-800 border-green-300 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60' :
                                 entry.type === 'Demotion' ? 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60' :
                                 entry.type === 'Graduation' ? 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60' :
-                                'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60'
+                                'bg-brand-surface-100 text-brand-ink-800 border-brand-300 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60'
                               }`}>
                                 {entry.type}
                               </Badge>
@@ -6111,7 +6111,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
             <div className="text-sm text-muted-foreground">
               <p>Current Class: <span className="font-medium text-foreground">{pupilWithClass?.className || getClassNameMemo(pupil.classId)}</span></p>
               {selectedNewClassId && selectedNewClassId !== pupil.classId && (
-                <p className="mt-1">New Class: <span className="font-medium text-primary">{getClassNameMemo(selectedNewClassId)}</span></p>
+                <p className="mt-1">New Class: <span className="font-medium text-link">{getClassNameMemo(selectedNewClassId)}</span></p>
               )}
             </div>
           </div>
@@ -6364,8 +6364,8 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
               className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors dark:border-slate-700 dark:hover:bg-slate-900"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/40">
-                  <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div className="p-2 bg-brand-surface-100 rounded-lg dark:bg-brand-surface-950/40">
+                  <BarChart3 className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-slate-100">Grading Scale</h3>
@@ -6803,7 +6803,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
 
           {isLoadingComparisonExams ? (
             <div className="py-8 text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600 mb-2 dark:text-blue-400" />
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-brand-ink-600 mb-2 dark:text-brand-ink-400" />
               <p className="text-sm text-gray-600 dark:text-slate-300">Loading available exams...</p>
             </div>
           ) : availableComparisonExams.length === 0 ? (
@@ -6834,7 +6834,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                       }
                     }}
                     className={`w-full p-3 border rounded-lg text-left transition-colors cursor-pointer ${isSelected
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40'
+                      ? 'border-brand-500 bg-brand-surface-50 dark:bg-brand-surface-950/40'
                       : canSelect
                         ? 'border-gray-200 hover:bg-gray-50 dark:border-slate-700 dark:hover:bg-slate-900'
                         : 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed dark:border-slate-700 dark:bg-slate-900'
@@ -6864,7 +6864,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                         </div>
                       </div>
                       {isSelected && (
-                        <div className="ml-2 text-blue-600 dark:text-blue-400">
+                        <div className="ml-2 text-brand-ink-600 dark:text-brand-ink-400">
                           <Check className="h-5 w-5" />
                         </div>
                       )}
@@ -6877,11 +6877,11 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
 
           {selectedComparisonExams.length > 0 && (
             <div className="mt-4 space-y-3">
-              <div className="p-3 bg-blue-50 rounded-lg dark:bg-blue-950/40">
-                <p className="text-sm text-blue-800 mb-3 dark:text-blue-200">
+              <div className="p-3 bg-brand-surface-50 rounded-lg dark:bg-brand-surface-950/40">
+                <p className="text-sm text-brand-ink-800 mb-3 dark:text-brand-ink-200">
                   <span className="font-semibold">{selectedComparisonExams.length}</span> of 2 exams selected
                 </p>
-                <p className="text-xs text-blue-700 mb-2 dark:text-blue-300">Customize exam names (optional):</p>
+                <p className="text-xs text-brand-ink-700 mb-2 dark:text-brand-ink-300">Customize exam names (optional):</p>
                 <div className="space-y-2">
                   {selectedComparisonExams.map((examId, index) => {
                     const exam = availableComparisonExams.find(e => e.id === examId);

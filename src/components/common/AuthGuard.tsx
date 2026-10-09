@@ -55,9 +55,9 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       <>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center dark:bg-slate-900">
           <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4 dark:bg-blue-950/40">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-brand-surface-100 mb-4 dark:bg-brand-surface-950/40">
               <svg
-                className="h-8 w-8 text-blue-600 dark:text-blue-400"
+                className="h-8 w-8 text-brand-ink-600 dark:text-brand-ink-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -78,7 +78,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
             </p>
             <button
               onClick={() => setShowUnlockModal(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-brand-surface-600 text-white rounded-lg hover:bg-brand-surface-700 transition-colors"
             >
               Resume Session
             </button>

@@ -555,7 +555,7 @@ function NewPupilContent() {
   const validGuardiansForEmergencyContactSelection = guardians.filter(g => g.firstName && g.lastName && g.relationship && g.phone && g.id);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-secondary-surface-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <GlassPageTopBar
         title={addingSibling ? 'Add Sibling' : 'Register New Pupil'}
         recordDetails={addingSibling && !isLoadingOriginalPupil
@@ -635,7 +635,7 @@ function NewPupilContent() {
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Admission Number</p>
                     {admissionNumber ? (
-                      <Badge variant="outline" className="text-sm font-mono bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300">
+                      <Badge variant="outline" className="text-sm font-mono bg-brand-surface-50 dark:bg-brand-surface-900/20 border-brand-200 dark:border-brand-700 text-brand-ink-700 dark:text-brand-ink-300">
                         {admissionNumber}
                       </Badge>
                     ) : (
@@ -675,7 +675,7 @@ function NewPupilContent() {
             <Card className="shadow-lg border-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
-                  <User className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  <User className="h-6 w-6 text-brand-ink-600 dark:text-brand-ink-400" />
                   Personal Information
                 </CardTitle>
               </CardHeader>
@@ -718,7 +718,7 @@ function NewPupilContent() {
                       />
                       <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                         {isNameSearching ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border border-blue-500 border-t-transparent" />
+                          <div className="animate-spin rounded-full h-4 w-4 border border-brand-500 border-t-transparent" />
                         ) : (
                           nameSearchResults.length > 0 && (
                             <AlertTriangle className="h-4 w-4 text-amber-500 dark:text-amber-400" />
@@ -745,7 +745,7 @@ function NewPupilContent() {
                         {nameSearchResults.map((pupil) => (
                           <div
                             key={pupil.id}
-                            className="px-3 py-3 border-b last:border-b-0 hover:bg-blue-50/80 transition-all duration-200 dark:hover:bg-blue-950/80"
+                            className="px-3 py-3 border-b last:border-b-0 hover:bg-brand-surface-50/80 transition-all duration-200 dark:hover:bg-brand-surface-950/80"
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
@@ -782,7 +782,7 @@ function NewPupilContent() {
                                 )}
                               </div>
                               <div className="text-right">
-                                <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full dark:text-blue-400 dark:bg-blue-950/40">
+                                <span className="text-xs font-medium text-brand-ink-600 bg-brand-surface-50 px-2 py-1 rounded-full dark:text-brand-ink-400 dark:bg-brand-surface-950/40">
                                   {pupil.className || pupil.classId}
                                 </span>
                               </div>
@@ -969,7 +969,7 @@ function NewPupilContent() {
             <Card className="shadow-lg border-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
-                  <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                  <Users className="h-6 w-6 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                   Guardian Information
                 </CardTitle>
               </CardHeader>
@@ -1145,7 +1145,7 @@ function NewPupilContent() {
                     type="button"
                     variant="outline"
                     onClick={addGuardian}
-                    className="w-full border-dashed border-2 hover:bg-purple-50 dark:hover:bg-purple-950/20"
+                    className="w-full border-dashed border-2 hover:bg-brand-secondary-surface-50 dark:hover:bg-brand-secondary-surface-950/20"
                   >
                     <Users className="mr-2 h-4 w-4" />
                     Add Another Guardian
@@ -1252,7 +1252,7 @@ function NewPupilContent() {
 export default function NewPupilPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-secondary-surface-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <GlassPageTopBar
           title="Loading..."
           subtitle="Preparing pupil registration form"

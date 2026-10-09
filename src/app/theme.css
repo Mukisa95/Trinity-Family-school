@@ -7,6 +7,8 @@
   --sidebar-accent: 214 32% 94%;
   --sidebar-border: 214 32% 91%;
   --theme-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --night-dim-top: 0.32;
+  --night-dim-bottom: 0.42;
 }
 
 .dark {
@@ -150,11 +152,11 @@ html[data-theme-reveal]::view-transition-new(theme-switch-moon) { animation-dura
 .dark [data-sidebar="menu-button"]:hover,
 .dark .dashboard-bg-wrapper [data-sidebar="menu-button"]:hover,
 .dark [data-sidebar="menu-button"][data-active="true"] {
-  background: linear-gradient(135deg, rgb(37 99 235 / 0.24), rgb(99 102 241 / 0.18)) !important;
-  border-color: rgb(96 165 250 / 0.38) !important;
+  background: linear-gradient(135deg, rgb(var(--brand-600) / 0.24), rgb(var(--brand-alt-500) / 0.18)) !important;
+  border-color: rgb(var(--brand-400) / 0.38) !important;
 }
 /* Keep both illustrations ready; only the night layer fades, below the scroll blur. */
-.dashboard-bg-wrapper { isolation: isolate; }
+.dashboard-bg-wrapper { isolation: isolate; background-color: hsl(var(--background)); }
 .dashboard-bg-wrapper::after {
   content: '';
   position: fixed;
@@ -162,7 +164,7 @@ html[data-theme-reveal]::view-transition-new(theme-switch-moon) { animation-dura
   z-index: -1;
   pointer-events: none;
   background-color: #0b1120;
-  background-image: linear-gradient(rgb(11 17 32 / 0.32), rgb(11 17 32 / 0.42)), linear-gradient(to top, #0b1120, transparent 25%), url('/images/Night%20Background.png');
+  background-image: linear-gradient(rgb(11 17 32 / var(--night-dim-top)), rgb(11 17 32 / var(--night-dim-bottom))), linear-gradient(to top, #0b1120, transparent 25%), url('/images/Night%20Background.png');
   /* Fit the illustration to the screen width so portrait screens keep a small school. */
   /* Match the bottom fade to the original 1672 x 941 artwork for a seamless edge. */
   background-size: 100% 100%, 100% calc(100vw * 941 / 1672), 100% auto;
@@ -172,6 +174,8 @@ html[data-theme-reveal]::view-transition-new(theme-switch-moon) { animation-dura
 }
 .dark .dashboard-bg-wrapper { background-color: hsl(var(--background)); }
 .dark .dashboard-bg-wrapper::after { opacity: 1; }
+[data-app-background="plain"] .dashboard-bg-wrapper,
+[data-app-background="plain"] .dashboard-bg-wrapper::after { background-image: none; }
 html:not([data-theme-reveal]) .dashboard-bg-wrapper::after {
   transition: opacity 280ms var(--theme-ease-out) !important;
 }
@@ -267,6 +271,7 @@ html[data-theme-reveal] .dashboard-bg-wrapper::after { transition: none !importa
   background: rgb(255 255 255 / 0.75) !important;
 }
 @media print {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
   :root, .dark {
     color-scheme: light !important;
     --background: 0 0% 100%; --foreground: 222 47% 11%;

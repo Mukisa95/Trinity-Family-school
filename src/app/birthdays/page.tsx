@@ -336,14 +336,14 @@ export default function BirthdaysPage() {
         backLabel="Back to pupils"
         className="mb-1.5"
         meta={
-          <span className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100/80 whitespace-nowrap dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/80">
+          <span className="bg-brand-alt-surface-50 text-brand-alt-ink-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-brand-alt-100/80 whitespace-nowrap dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300 dark:border-brand-alt-800/80">
             {birthdaysInPeriod.length} matches
           </span>
         }
         titleControls={
           <div className="flex items-center gap-1.5 lg:hidden">
             <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="h-[34px] min-w-[80px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+              <SelectTrigger className="h-[34px] min-w-[80px] max-w-[110px] rounded-full border-brand-200/60 bg-white/90 px-2 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden shrink-0 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                 <SelectValue placeholder="Class" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -357,7 +357,7 @@ export default function BirthdaysPage() {
             </Select>
 
             <Select value={viewMode} onValueChange={(val: BirthdayViewMode) => setViewMode(val)}>
-              <SelectTrigger className="h-[34px] min-w-[75px] max-w-[100px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+              <SelectTrigger className="h-[34px] min-w-[75px] max-w-[100px] rounded-full border-brand-200/60 bg-white/90 px-2 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden shrink-0 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                 <SelectValue placeholder="View" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -371,7 +371,7 @@ export default function BirthdaysPage() {
         center={
           <div className="hidden lg:flex items-center gap-2">
             <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="h-[34px] min-w-[90px] max-w-[125px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+              <SelectTrigger className="h-[34px] min-w-[90px] max-w-[125px] rounded-full border-brand-200/60 bg-white/90 px-2.5 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden shrink-0 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                 <SelectValue placeholder="Class" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -385,7 +385,7 @@ export default function BirthdaysPage() {
             </Select>
 
             <Select value={viewMode} onValueChange={(val: BirthdayViewMode) => setViewMode(val)}>
-              <SelectTrigger className="h-[34px] min-w-[85px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
+              <SelectTrigger className="h-[34px] min-w-[85px] max-w-[110px] rounded-full border-brand-200/60 bg-white/90 px-2.5 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden shrink-0 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
                 <SelectValue placeholder="View" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -401,7 +401,7 @@ export default function BirthdaysPage() {
             <div className="flex items-center gap-0.5 flex-shrink-0">
               <button
                 onClick={goToPreviousPeriod}
-                className="flex items-center justify-center w-7 h-7 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-600 shadow-sm dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-blue-950/40 dark:text-slate-300"
+                className="flex items-center justify-center w-7 h-7 rounded-full bg-white/80 border border-gray-200 hover:border-brand-400 hover:bg-brand-surface-50 transition-all text-gray-600 shadow-sm dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-brand-surface-950/40 dark:text-slate-300"
                 title="Previous Period"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
@@ -409,14 +409,14 @@ export default function BirthdaysPage() {
 
               <button
                 onClick={resetToCurrentPeriod}
-                className="h-7 px-2.5 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-[10px] font-medium text-gray-700 whitespace-nowrap shadow-sm dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-blue-950/40 dark:text-slate-200"
+                className="h-7 px-2.5 rounded-full bg-white/80 border border-gray-200 hover:border-brand-400 hover:bg-brand-surface-50 transition-all text-[10px] font-medium text-gray-700 whitespace-nowrap shadow-sm dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-brand-surface-950/40 dark:text-slate-200"
               >
                 {viewMode === "day" ? "Today" : viewMode === "week" ? "This Week" : "This Month"}
               </button>
 
               <button
                 onClick={goToNextPeriod}
-                className="flex items-center justify-center w-7 h-7 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-600 shadow-sm dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-blue-950/40 dark:text-slate-300"
+                className="flex items-center justify-center w-7 h-7 rounded-full bg-white/80 border border-gray-200 hover:border-brand-400 hover:bg-brand-surface-50 transition-all text-gray-600 shadow-sm dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-brand-surface-950/40 dark:text-slate-300"
                 title="Next Period"
               >
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -432,14 +432,14 @@ export default function BirthdaysPage() {
                     setAnchorDate(`${event.target.value}-01`);
                   }
                 }}
-                className="h-7 w-[110px] sm:w-[130px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs py-0 px-2 shadow-sm dark:bg-slate-900/80 dark:border-slate-700"
+                className="h-7 w-[110px] sm:w-[130px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-brand-400 transition-all rounded-full text-[10px] sm:text-xs py-0 px-2 shadow-sm dark:bg-slate-900/80 dark:border-slate-700"
               />
             ) : (
               <Input
                 type="date"
                 value={anchorDate}
                 onChange={(event) => setAnchorDate(event.target.value)}
-                className="h-7 w-[120px] sm:w-[140px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs py-0 px-2 shadow-sm dark:bg-slate-900/80 dark:border-slate-700"
+                className="h-7 w-[120px] sm:w-[140px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-brand-400 transition-all rounded-full text-[10px] sm:text-xs py-0 px-2 shadow-sm dark:bg-slate-900/80 dark:border-slate-700"
               />
             )}
           </div>
@@ -449,24 +449,24 @@ export default function BirthdaysPage() {
       <GlassSummaryBar
         left={
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+            <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
               Birthday Summary
             </span>
           </div>
         }
         right={
           <>
-            <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="font-bold text-blue-600 dark:text-blue-400">{birthdaysInPeriod.length}</span>
-              <span className="text-blue-700/85 dark:text-blue-300 font-medium">Selected Period</span>
+            <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-brand-ink-600 dark:text-brand-ink-400">{birthdaysInPeriod.length}</span>
+              <span className="text-brand-ink-700/85 dark:text-brand-ink-300 font-medium">Selected Period</span>
             </div>
             <div className="flex items-center gap-1 bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="font-bold text-emerald-600 dark:text-emerald-400">{todayCount}</span>
               <span className="text-emerald-700/85 dark:text-emerald-300 font-medium">Today</span>
             </div>
-            <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="font-bold text-purple-600 dark:text-purple-400">{weekCount}</span>
-              <span className="text-purple-700/85 dark:text-purple-300 font-medium">This Week</span>
+            <div className="flex items-center gap-1 bg-brand-secondary-surface-50/80 dark:bg-brand-secondary-surface-950/20 border border-brand-secondary-100/50 dark:border-brand-secondary-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400">{weekCount}</span>
+              <span className="text-brand-secondary-ink-700/85 dark:text-brand-secondary-ink-300 font-medium">This Week</span>
             </div>
             {nearestUpcomingBirthday && (
               <div className="flex items-center gap-1 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-100/50 dark:border-amber-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
@@ -489,13 +489,13 @@ export default function BirthdaysPage() {
           <CardContent className="p-4 sm:p-6">
             {isLoading ? (
               <div className="py-12 text-center">
-                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"></div>
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-r-transparent"></div>
                 <p className="mt-4 text-sm text-gray-600 dark:text-slate-300">Loading cached pupil birthdays...</p>
               </div>
             ) : birthdaysInPeriod.length === 0 ? (
               <div className="py-12 text-center">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-950/40">
-                  <CalendarDays className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand-surface-100 dark:bg-brand-surface-950/40">
+                  <CalendarDays className="h-6 w-6 text-brand-ink-600 dark:text-brand-ink-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">No birthdays in this period</h3>
                 <p className="mt-2 text-sm text-gray-600 dark:text-slate-300">
@@ -520,7 +520,7 @@ export default function BirthdaysPage() {
                       {birthdaysInPeriod.map((birthday) => {
                         const isBirthdayToday = isSameDay(birthday.birthdayDate, today);
                         return (
-                          <TableRow key={birthday.id} className="hover:bg-blue-50/40 dark:hover:bg-blue-950/40">
+                          <TableRow key={birthday.id} className="hover:bg-brand-surface-50/40 dark:hover:bg-brand-surface-950/40">
                             <TableCell className="p-2 sm:p-4">
                               <div className="font-medium text-gray-900 text-xs sm:text-sm dark:text-slate-100">
                                 {format(birthday.birthdayDate, "EEE, MMM dd")}
@@ -538,12 +538,12 @@ export default function BirthdaysPage() {
                               </div>
                             </TableCell>
                             <TableCell className="p-2 sm:p-4">
-                              <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 text-[10px] sm:text-xs dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300">
+                              <Badge variant="outline" className="border-brand-200 bg-brand-surface-50 text-brand-ink-700 text-[10px] sm:text-xs dark:border-brand-800/60 dark:bg-brand-surface-950/40 dark:text-brand-ink-300">
                                 {birthday.className}
                               </Badge>
                             </TableCell>
                             <TableCell className="p-2 sm:p-4 text-right sm:text-left text-xs sm:text-sm">
-                              <span className="font-semibold text-violet-700 whitespace-nowrap dark:text-violet-300">Turns {birthday.turningAge}</span>
+                              <span className="font-semibold text-brand-secondary-alt-ink-700 whitespace-nowrap dark:text-brand-secondary-alt-ink-300">Turns {birthday.turningAge}</span>
                             </TableCell>
                             <TableCell className="p-2 sm:p-4 hidden md:table-cell text-xs sm:text-sm">
                               <Badge
@@ -588,7 +588,7 @@ export default function BirthdaysPage() {
                             </div>
                             <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-gray-500 dark:text-slate-400">
                               <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3 text-blue-500 dark:text-blue-400" />
+                                <Calendar className="w-3 h-3 text-brand-ink-500 dark:text-brand-ink-400" />
                                 {format(birthday.birthdayDate, "EEE, MMM dd")}
                               </span>
                               <span className="text-gray-300">•</span>
@@ -598,7 +598,7 @@ export default function BirthdaysPage() {
 
                           {/* Right Section: Age Info */}
                           <div className="text-right">
-                            <span className="text-[10px] sm:text-xs font-bold bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-full border border-violet-100 dark:border-violet-900/50 whitespace-nowrap">
+                            <span className="text-[10px] sm:text-xs font-bold bg-brand-secondary-alt-surface-50 dark:bg-brand-secondary-alt-surface-950/30 text-brand-secondary-alt-ink-700 dark:text-brand-secondary-alt-ink-300 px-2 py-0.5 rounded-full border border-brand-secondary-alt-100 dark:border-brand-secondary-alt-900/50 whitespace-nowrap">
                               Turns {birthday.turningAge}
                             </span>
                           </div>
@@ -607,7 +607,7 @@ export default function BirthdaysPage() {
                         {/* Bottom Section: Class */}
                         <div className="mt-3 pt-2.5 border-t border-gray-100/50 dark:border-gray-800/50 flex items-center gap-1.5 text-[10px]">
                           <span className="text-gray-400 dark:text-slate-400">Class:</span>
-                          <Badge variant="outline" className="border-blue-100 bg-blue-50/50 text-blue-700 text-[9px] font-medium py-0 px-1.5 dark:border-blue-800/60 dark:bg-blue-950/50 dark:text-blue-300">
+                          <Badge variant="outline" className="border-brand-100 bg-brand-surface-50/50 text-brand-ink-700 text-[9px] font-medium py-0 px-1.5 dark:border-brand-800/60 dark:bg-brand-surface-950/50 dark:text-brand-ink-300">
                             {birthday.className}
                           </Badge>
                         </div>

@@ -75,7 +75,7 @@ const BatchReportGenerator = () => {
             Select Exam
           </label>
           <select
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-700"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-alt-500 focus:border-brand-alt-500 dark:border-slate-700"
             value={selectedExam}
             onChange={(e) => setSelectedExam(e.target.value)}
             disabled={examsLoading || isGenerating}
@@ -95,7 +95,7 @@ const BatchReportGenerator = () => {
             Select Class
           </label>
           <select
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-700"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-alt-500 focus:border-brand-alt-500 dark:border-slate-700"
             value={selectedClass}
             onChange={(e) => setSelectedClass(e.target.value)}
             disabled={classesLoading || isGenerating}
@@ -115,8 +115,8 @@ const BatchReportGenerator = () => {
         <button
           className={`px-4 py-2 rounded-md text-white font-medium ${
             isGenerating || !selectedExam || !selectedClass
-              ? 'bg-blue-300 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-700'
+              ? 'bg-brand-surface-300 cursor-not-allowed'
+              : 'bg-brand-surface-600 hover:bg-brand-surface-700'
           }`}
           onClick={handleGenerateReports}
           disabled={isGenerating || !selectedExam || !selectedClass}
@@ -136,8 +136,8 @@ const BatchReportGenerator = () => {
       </div>
       
       {isGenerating && (
-        <div className="mt-4 p-4 bg-blue-50 rounded-md dark:bg-blue-950/40">
-          <p className="text-blue-800 dark:text-blue-200">Generating report cards, please wait...</p>
+        <div className="mt-4 p-4 bg-brand-surface-50 rounded-md dark:bg-brand-surface-950/40">
+          <p className="text-brand-ink-800 dark:text-brand-ink-200">Generating report cards, please wait...</p>
         </div>
       )}
       

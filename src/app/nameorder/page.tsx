@@ -327,7 +327,7 @@ export default function NameOrderPage() {
           description="Loading pupil data..."
         />
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
         </div>
       </div>
     );
@@ -444,7 +444,7 @@ export default function NameOrderPage() {
           <CardContent className="pt-6">
             <div className="flex items-center space-x-4 text-sm">
               {changesCount > 0 && (
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">
+                <Badge variant="outline" className="bg-brand-surface-50 text-brand-ink-700 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-300 dark:border-brand-800/60">
                   <AlertTriangle className="h-3 w-3 mr-1" />
                   {changesCount} changes pending
                 </Badge>
@@ -474,7 +474,7 @@ export default function NameOrderPage() {
                            pupilState.currentData.lastName.length < 2;
 
           return (
-            <Card key={pupil.id} className={`${pupilState.hasChanges ? 'border-blue-200 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/40' : ''} ${hasIssues ? 'border-red-200 bg-red-50 dark:border-red-800/60 dark:bg-red-950/40' : ''}`}>
+            <Card key={pupil.id} className={`${pupilState.hasChanges ? 'border-brand-200 bg-brand-surface-50 dark:border-brand-800/60 dark:bg-brand-surface-950/40' : ''} ${hasIssues ? 'border-red-200 bg-red-50 dark:border-red-800/60 dark:bg-red-950/40' : ''}`}>
               <CardContent className="pt-6">
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
                   {/* Pupil Info */}

@@ -314,7 +314,7 @@ export function ManageIdCodesModal({
           <Button variant="outline" onClick={handleModalClose}>
             Close
           </Button>
-          <Button onClick={handleSaveAll} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={handleSaveAll} className="bg-brand-surface-600 hover:bg-brand-surface-700">
             Save All Changes
           </Button>
         </ModernDialogFooter>

@@ -89,8 +89,8 @@ function FetchTemplatePanel({
     const selectedProfile = srcProfiles.find(p => p.id === selTimetableId);
 
     return (
-        <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4 space-y-3 dark:border-blue-800/60 dark:bg-blue-950/60">
-            <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wide flex items-center gap-1.5 dark:text-blue-300">
+        <div className="rounded-xl border border-brand-200 bg-brand-surface-50/60 p-4 space-y-3 dark:border-brand-800/60 dark:bg-brand-surface-950/60">
+            <h4 className="text-xs font-bold text-brand-ink-700 uppercase tracking-wide flex items-center gap-1.5 dark:text-brand-ink-300">
                 <Download className="w-3.5 h-3.5" /> Fetch Template from Past Term
             </h4>
 
@@ -100,7 +100,7 @@ function FetchTemplatePanel({
                 <>
                     {/* Term selector */}
                     <select
-                        className="w-full border border-blue-200 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-300 dark:border-blue-800/60 dark:bg-slate-900 dark:focus:ring-blue-800/60"
+                        className="w-full border border-brand-200 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-brand-300 dark:border-brand-800/60 dark:bg-slate-900 dark:focus:ring-brand-800/60"
                         value={`${selYearId}|${selTermId}`}
                         onChange={e => {
                             const [y, t] = e.target.value.split('|');
@@ -119,14 +119,14 @@ function FetchTemplatePanel({
                     {/* Timetable selector */}
                     {selYearId && selTermId && (
                         loadingProfiles ? (
-                            <div className="flex items-center gap-2 text-xs text-blue-500 dark:text-blue-400">
+                            <div className="flex items-center gap-2 text-xs text-brand-ink-500 dark:text-brand-ink-400">
                                 <Loader2 className="w-3 h-3 animate-spin" /> Loading timetables…
                             </div>
                         ) : srcProfiles.length === 0 ? (
                             <p className="text-xs text-gray-400 italic dark:text-slate-400">No timetables in this term.</p>
                         ) : (
                             <select
-                                className="w-full border border-blue-200 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-300 dark:border-blue-800/60 dark:bg-slate-900 dark:focus:ring-blue-800/60"
+                                className="w-full border border-brand-200 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-brand-300 dark:border-brand-800/60 dark:bg-slate-900 dark:focus:ring-brand-800/60"
                                 value={selTimetableId}
                                 onChange={e => setSelTimetableId(e.target.value)}
                             >
@@ -141,14 +141,14 @@ function FetchTemplatePanel({
                     {/* Import buttons */}
                     {selTimetableId && selectedProfile && (
                         <div className="space-y-2">
-                            <p className="text-[11px] text-blue-600 font-medium dark:text-blue-400">
+                            <p className="text-[11px] text-brand-ink-600 font-medium dark:text-brand-ink-400">
                                 Choose how to import "{selectedProfile.name}":
                             </p>
                             <div className="flex gap-2">
                                 <button
                                     type="button"
                                     onClick={() => onLoadEmpty(selYearId, selTermId, selTimetableId, selectedProfile.name)}
-                                    className="flex-1 bg-white border border-blue-300 text-blue-700 text-xs font-semibold py-2 rounded-lg hover:bg-blue-50 transition-all dark:bg-slate-900 dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                                    className="flex-1 bg-white border border-brand-300 text-brand-ink-700 text-xs font-semibold py-2 rounded-lg hover:bg-brand-surface-50 transition-all dark:bg-slate-900 dark:border-brand-800/60 dark:text-brand-ink-300 dark:hover:bg-brand-surface-950/40"
                                 >
                                     📋 Empty Grid
                                     <span className="block text-[10px] font-normal text-gray-500 dark:text-slate-400">Structure only, no lessons</span>
@@ -156,10 +156,10 @@ function FetchTemplatePanel({
                                 <button
                                     type="button"
                                     onClick={() => onLoadPopulated(selYearId, selTermId, selTimetableId, selectedProfile.name)}
-                                    className="flex-1 bg-blue-600 border border-blue-600 text-white text-xs font-semibold py-2 rounded-lg hover:bg-blue-700 transition-all"
+                                    className="flex-1 bg-brand-surface-600 border border-brand-600 text-white text-xs font-semibold py-2 rounded-lg hover:bg-brand-surface-700 transition-all"
                                 >
                                     ✅ Populated
-                                    <span className="block text-[10px] font-normal text-blue-200">Copy all lesson assignments</span>
+                                    <span className="block text-[10px] font-normal text-brand-ink-200">Copy all lesson assignments</span>
                                 </button>
                             </div>
                         </div>
@@ -442,7 +442,7 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
             <ModernDialogContent size="lg" className="w-[95vw] max-w-4xl max-h-[90vh] overflow-hidden relative">
                 <ModernDialogHeader className="p-4 border-b">
                     <div className="flex items-center gap-2">
-                        <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-sm">
+                        <div className="p-2 bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 rounded-lg shadow-sm">
                             <CalendarRange className="h-5 w-5 text-white" />
                         </div>
                         <div>
@@ -497,7 +497,7 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
                                     <select
                                         value={targetYearId}
                                         onChange={e => { setTargetYearId(e.target.value); setTargetTermId(''); }}
-                                        className="mt-1.5 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white dark:border-slate-700 dark:focus:ring-blue-800/60 dark:bg-slate-900"
+                                        className="mt-1.5 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white dark:border-slate-700 dark:focus:ring-brand-800/60 dark:bg-slate-900"
                                     >
                                         <option value="">— Select Year —</option>
                                         {allYears.map(y => (
@@ -512,7 +512,7 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
                                     <select
                                         value={targetTermId}
                                         onChange={e => setTargetTermId(e.target.value)}
-                                        className="mt-1.5 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white dark:border-slate-700 dark:focus:ring-blue-800/60 dark:bg-slate-900"
+                                        className="mt-1.5 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white dark:border-slate-700 dark:focus:ring-brand-800/60 dark:bg-slate-900"
                                         disabled={!targetYearId}
                                     >
                                         <option value="">— Select Term —</option>
@@ -543,14 +543,14 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
                             <Label className="text-xs font-semibold mb-2 block">Classes in this Timetable</Label>
                             <div className="border border-gray-200 rounded-xl p-3 bg-white max-h-40 overflow-y-auto custom-scrollbar grid grid-cols-2 gap-2 dark:border-slate-700 dark:bg-slate-900">
                                 {classes.map(cls => (
-                                    <label key={cls.id} className="flex items-center gap-2 cursor-pointer hover:text-blue-600 text-sm dark:hover:text-blue-400">
+                                    <label key={cls.id} className="flex items-center gap-2 cursor-pointer hover:text-brand-ink-600 text-sm dark:hover:text-brand-ink-400">
                                         <input
                                             type="checkbox"
                                             checked={selectedClasses.includes(cls.id)}
                                             onChange={() => setSelectedClasses(prev =>
                                                 prev.includes(cls.id) ? prev.filter(id => id !== cls.id) : [...prev, cls.id]
                                             )}
-                                            className="rounded border-gray-300 text-blue-600 dark:border-slate-700 dark:text-blue-400"
+                                            className="rounded border-gray-300 text-brand-ink-600 dark:border-slate-700 dark:text-brand-ink-400"
                                         />
                                         {cls.name}
                                     </label>
@@ -560,10 +560,10 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
                                 const schoolClass = classes.find(item => item.id === classId);
                                 return schoolClass && getActiveClassStreams(schoolClass, targetYearId).length > 1;
                             }) && (
-                                <div className="mt-3 space-y-2 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3 dark:border-indigo-800/60 dark:bg-indigo-950/50">
+                                <div className="mt-3 space-y-2 rounded-xl border border-brand-alt-100 bg-brand-alt-surface-50/50 p-3 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/50">
                                     <div>
-                                        <p className="text-xs font-bold text-indigo-900 dark:text-indigo-200">Stream lesson layout</p>
-                                        <p className="text-[11px] leading-4 text-indigo-700/80 dark:text-indigo-300/80">
+                                        <p className="text-xs font-bold text-brand-alt-ink-900 dark:text-brand-alt-ink-200">Stream lesson layout</p>
+                                        <p className="text-[11px] leading-4 text-brand-alt-ink-700/80 dark:text-brand-alt-ink-300/80">
                                             Choose the starting layout. You can still change a whole day or one lesson while managing the timetable.
                                         </p>
                                     </div>
@@ -574,7 +574,7 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
                                         if (activeStreams.length < 2) return null;
                                         const mode = streamLayouts[classId]?.defaultMode || 'consolidated';
                                         return (
-                                            <fieldset key={classId} className="rounded-lg border border-indigo-100 bg-white p-2 dark:border-indigo-800/60 dark:bg-slate-900">
+                                            <fieldset key={classId} className="rounded-lg border border-brand-alt-100 bg-white p-2 dark:border-brand-alt-800/60 dark:bg-slate-900">
                                                 <legend className="px-1 text-[11px] font-bold text-gray-800 dark:text-slate-100">{schoolClass.name}</legend>
                                                 <p className="mb-2 text-[10px] text-gray-500 dark:text-slate-400">
                                                     {activeStreams.map(stream => stream.name).join(' · ')}
@@ -597,12 +597,12 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
                                                             }))}
                                                             className={`min-h-11 rounded-lg border px-2 py-1.5 text-left transition-colors ${
                                                                 mode === value
-                                                                    ? 'border-indigo-500 bg-indigo-600 text-white shadow-sm'
-                                                                    : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-800/60 dark:hover:bg-indigo-950/40'
+                                                                    ? 'border-brand-alt-500 bg-brand-alt-surface-600 text-white shadow-sm'
+                                                                    : 'border-gray-200 bg-white text-gray-700 hover:border-brand-alt-300 hover:bg-brand-alt-surface-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-brand-alt-800/60 dark:hover:bg-brand-alt-surface-950/40'
                                                             }`}
                                                         >
                                                             <span className="block text-[11px] font-bold">{label}</span>
-                                                            <span className={`block text-[9px] leading-3 ${mode === value ? 'text-indigo-100' : 'text-gray-500 dark:text-slate-400'}`}>{description}</span>
+                                                            <span className={`block text-[9px] leading-3 ${mode === value ? 'text-brand-alt-ink-100' : 'text-gray-500 dark:text-slate-400'}`}>{description}</span>
                                                         </button>
                                                     ))}
                                                 </div>
@@ -627,8 +627,8 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
                                             title={day.long}
                                             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border
                                                 ${active
-                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                                                    : 'bg-white text-gray-400 border-gray-200 hover:border-blue-300 hover:text-blue-500 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700 dark:hover:border-blue-800/60 dark:hover:text-blue-400'
+                                                    ? 'bg-brand-surface-600 text-white border-brand-600 shadow-sm'
+                                                    : 'bg-white text-gray-400 border-gray-200 hover:border-brand-300 hover:text-brand-ink-500 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700 dark:hover:border-brand-800/60 dark:hover:text-brand-ink-400'
                                                 }
                                                 ${day.num === 7 ? 'opacity-60' : ''}
                                             `}
@@ -655,7 +655,7 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
                                     <div key={block.id} className="border border-gray-200 rounded-xl bg-white overflow-hidden dark:border-slate-700 dark:bg-slate-900">
                                         {/* Block header row */}
                                         <div className="flex items-center gap-2 p-2">
-                                            <div className={`w-2 h-6 rounded-full flex-shrink-0 ${block.type === 'lessons' ? 'bg-blue-500' : 'bg-amber-400'}`} />
+                                            <div className={`w-2 h-6 rounded-full flex-shrink-0 ${block.type === 'lessons' ? 'bg-brand-surface-500' : 'bg-amber-400'}`} />
                                             {block.type === 'lessons' ? (
                                                 <>
                                                     <span className="text-xs text-gray-500 w-[3rem] font-medium dark:text-slate-400">Lessons</span>
@@ -704,7 +704,7 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
                                                                     : block.individualDurations,
                                                             });
                                                         }}
-                                                        className="ml-auto text-[11px] text-blue-500 hover:text-blue-700 border border-blue-200 rounded-md px-2 py-1 hover:bg-blue-50 transition dark:text-blue-400 dark:hover:text-blue-300 dark:border-blue-800/60 dark:hover:bg-blue-950/40"
+                                                        className="ml-auto text-[11px] text-brand-ink-500 hover:text-brand-ink-700 border border-brand-200 rounded-md px-2 py-1 hover:bg-brand-surface-50 transition dark:text-brand-ink-400 dark:hover:text-brand-ink-300 dark:border-brand-800/60 dark:hover:bg-brand-surface-950/40"
                                                     >
                                                         {block.expanded ? '▲' : '▼'}
                                                     </button>
@@ -733,11 +733,11 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
 
                                         {/* Per-lesson expanded rows */}
                                         {block.type === 'lessons' && block.expanded && (
-                                            <div className="border-t border-blue-100 bg-blue-50/50 px-3 py-2 space-y-1.5 dark:border-blue-800/60 dark:bg-blue-950/50">
-                                                <p className="text-[10px] text-blue-600 font-semibold uppercase tracking-wide mb-1 dark:text-blue-400">Individual Lesson Durations</p>
+                                            <div className="border-t border-brand-100 bg-brand-surface-50/50 px-3 py-2 space-y-1.5 dark:border-brand-800/60 dark:bg-brand-surface-950/50">
+                                                <p className="text-[10px] text-brand-ink-600 font-semibold uppercase tracking-wide mb-1 dark:text-brand-ink-400">Individual Lesson Durations</p>
                                                 {Array.from({ length: block.count || 1 }, (_, i) => (
                                                     <div key={i} className="flex items-center gap-2">
-                                                        <span className="text-[11px] text-blue-500 w-16 dark:text-blue-400">Lesson {i + 1}</span>
+                                                        <span className="text-[11px] text-brand-ink-500 w-16 dark:text-brand-ink-400">Lesson {i + 1}</span>
                                                         <Input
                                                             type="number" min={5} max={300}
                                                             value={block.individualDurations?.[i] ?? (block.blockDuration || lessonDuration)}
@@ -757,7 +757,7 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
                                 ))}
                             </div>
                             <div className="flex gap-2 mt-2">
-                                <button onClick={() => addBlock('lessons')} className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 border border-blue-200 rounded-lg px-3 py-1.5 hover:bg-blue-50 transition dark:text-blue-400 dark:hover:text-blue-300 dark:border-blue-800/60 dark:hover:bg-blue-950/40">
+                                <button onClick={() => addBlock('lessons')} className="flex items-center gap-1 text-xs text-brand-ink-600 hover:text-brand-ink-700 border border-brand-200 rounded-lg px-3 py-1.5 hover:bg-brand-surface-50 transition dark:text-brand-ink-400 dark:hover:text-brand-ink-300 dark:border-brand-800/60 dark:hover:bg-brand-surface-950/40">
                                     <Plus className="w-3.5 h-3.5" /> Add Lessons
                                 </button>
                                 <button onClick={() => addBlock('break')} className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 border border-amber-200 rounded-lg px-3 py-1.5 hover:bg-amber-50 transition dark:text-amber-400 dark:hover:text-amber-300 dark:border-amber-800/60 dark:hover:bg-amber-950/40">
@@ -772,7 +772,7 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
                                 <button
                                     type="button"
                                     onClick={() => setShowFetchPanel(p => !p)}
-                                    className="flex items-center gap-1.5 text-xs text-blue-600 font-semibold hover:underline dark:text-blue-400"
+                                    className="flex items-center gap-1.5 text-xs text-brand-ink-600 font-semibold hover:underline dark:text-brand-ink-400"
                                 >
                                     <Download className="w-3.5 h-3.5" />
                                     {showFetchPanel ? 'Hide' : 'Fetch Template from Past Term'}
@@ -816,9 +816,9 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
                                 {periodPreview.map((period, i) => {
                                     const isBreak = period.type !== 'lesson';
                                     return (
-                                        <div key={i} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${isBreak ? 'bg-amber-50 border border-amber-100 dark:bg-amber-950/40 dark:border-amber-800/60' : 'bg-blue-50 border border-blue-100 dark:bg-blue-950/40 dark:border-blue-800/60'}`}>
-                                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isBreak ? 'bg-amber-400' : 'bg-blue-500'}`} />
-                                            <span className={`text-xs font-semibold flex-1 ${isBreak ? 'text-amber-700 dark:text-amber-300' : 'text-blue-700 dark:text-blue-300'}`}>
+                                        <div key={i} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${isBreak ? 'bg-amber-50 border border-amber-100 dark:bg-amber-950/40 dark:border-amber-800/60' : 'bg-brand-surface-50 border border-brand-100 dark:bg-brand-surface-950/40 dark:border-brand-800/60'}`}>
+                                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isBreak ? 'bg-amber-400' : 'bg-brand-surface-500'}`} />
+                                            <span className={`text-xs font-semibold flex-1 ${isBreak ? 'text-amber-700 dark:text-amber-300' : 'text-brand-ink-700 dark:text-brand-ink-300'}`}>
                                                 {isBreak ? (period.customLabel || period.type) : `Lesson ${period.periodNumber}`}
                                             </span>
                                             <span className="text-xs text-gray-400 font-mono dark:text-slate-400">{formatDisplayTime(period.startTime, timeFormat)} – {formatDisplayTime(period.endTime, timeFormat)}</span>
@@ -834,7 +834,7 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
                             <Button
                                 onClick={handleGenerate}
                                 disabled={isPending}
-                                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700"
+                                className="bg-gradient-to-r from-brand-surface-600 to-brand-alt-surface-600 text-white hover:from-brand-surface-700 hover:to-brand-alt-surface-700"
                             >
                                 {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
                                 {isEditing ? 'Save Changes' : 'Generate & Save'}

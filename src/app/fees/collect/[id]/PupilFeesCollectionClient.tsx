@@ -2181,7 +2181,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     if (isFinancialDataLoading) {
       return (
         <div role="status" aria-live="polite" className="space-y-3">
-          <p className="text-sm text-indigo-700 dark:text-indigo-300">Verifying fee amounts and payment history…</p>
+          <p className="text-sm text-brand-alt-ink-700 dark:text-brand-alt-ink-300">Verifying fee amounts and payment history…</p>
           {Array.from({ length: 2 }).map((_, index) => (
             <div key={index} aria-hidden="true" className="rounded-xl border-2 border-slate-200 bg-white p-3 sm:p-4 dark:border-slate-700 dark:bg-slate-900">
               <div className="h-5 w-40 max-w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
@@ -2222,9 +2222,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     return (
       <div className="space-y-4">
         {isPaymentDataLoading && (
-          <div className="flex items-center justify-center p-3 mb-4 bg-indigo-50 border border-indigo-100 rounded-lg animate-pulse dark:bg-indigo-950/40 dark:border-indigo-800/60">
-            <div className="w-4 h-4 mr-2 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
+          <div className="flex items-center justify-center p-3 mb-4 bg-brand-alt-surface-50 border border-brand-alt-100 rounded-lg animate-pulse dark:bg-brand-alt-surface-950/40 dark:border-brand-alt-800/60">
+            <div className="w-4 h-4 mr-2 border-2 border-brand-alt-500 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-medium text-brand-alt-ink-700 dark:text-brand-alt-ink-300">
               Checking for previous terms balance...
             </span>
           </div>
@@ -2254,26 +2254,26 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
         {/* SchoolPay unmatched payments — shown when a payment could not be matched automatically */}
         {schoolPayGeneralPayments.length > 0 && (
-          <div className="rounded-xl border border-violet-200 bg-violet-50/60 p-4 shadow-sm dark:border-violet-800/60 dark:bg-violet-950/60">
+          <div className="rounded-xl border border-brand-secondary-alt-200 bg-brand-secondary-alt-surface-50/60 p-4 shadow-sm dark:border-brand-secondary-alt-800/60 dark:bg-brand-secondary-alt-surface-950/60">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-base">💜</span>
-                    <span className="font-semibold text-violet-800 text-sm dark:text-violet-200">SchoolPay Payments (Unmatched)</span>
-              <span className="ml-auto text-xs text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full border border-violet-200 dark:text-violet-400 dark:bg-violet-950/40 dark:border-violet-800/60">
+                    <span className="font-semibold text-brand-secondary-alt-ink-800 text-sm dark:text-brand-secondary-alt-ink-200">SchoolPay Payments (Unmatched)</span>
+              <span className="ml-auto text-xs text-brand-secondary-alt-ink-600 bg-brand-secondary-alt-surface-100 px-2 py-0.5 rounded-full border border-brand-secondary-alt-200 dark:text-brand-secondary-alt-ink-400 dark:bg-brand-secondary-alt-surface-950/40 dark:border-brand-secondary-alt-800/60">
                 {schoolPayGeneralPayments.length} payment{schoolPayGeneralPayments.length !== 1 ? 's' : ''}
               </span>
             </div>
-            <p className="text-xs text-violet-600 mb-3 dark:text-violet-400">
+            <p className="text-xs text-brand-secondary-alt-ink-600 mb-3 dark:text-brand-secondary-alt-ink-400">
                     These payments were received via SchoolPay but could not be automatically matched to a specific fee. The money has been received — please manually record it against the correct fee above or contact support.
             </p>
             <div className="space-y-2">
               {schoolPayGeneralPayments.map((payment: any) => (
-                <div key={payment.id} className="flex items-center justify-between bg-white/70 rounded-lg px-3 py-2 border border-violet-100 text-sm dark:bg-slate-900/70 dark:border-violet-800/60">
+                <div key={payment.id} className="flex items-center justify-between bg-white/70 rounded-lg px-3 py-2 border border-brand-secondary-alt-100 text-sm dark:bg-slate-900/70 dark:border-brand-secondary-alt-800/60">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-violet-900 dark:text-violet-200">
+                      <span className="font-medium text-brand-secondary-alt-ink-900 dark:text-brand-secondary-alt-ink-200">
                         {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', minimumFractionDigits: 0 }).format(payment.amount)}
                       </span>
-                          <span className="text-xs text-violet-500 font-mono dark:text-violet-400">via SchoolPay</span>
+                          <span className="text-xs text-brand-secondary-alt-ink-500 font-mono dark:text-brand-secondary-alt-ink-400">via SchoolPay</span>
                     </div>
                     <p className="text-xs text-gray-500 mt-0.5 truncate dark:text-slate-400">
                           {payment.notes?.split('|')[0]?.trim() || 'SchoolPay Payment'} ·{' '}
@@ -2286,7 +2286,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                 </div>
               ))}
             </div>
-            <p className="text-xs text-violet-500 mt-2 dark:text-violet-400">
+            <p className="text-xs text-brand-secondary-alt-ink-500 mt-2 dark:text-brand-secondary-alt-ink-400">
               Total unmatched: <span className="font-semibold">{new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', minimumFractionDigits: 0 }).format(schoolPayGeneralPayments.reduce((s: number, p: any) => s + (p.amount || 0), 0))}</span>
             </p>
           </div>
@@ -2332,7 +2332,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           pupil ? (
             <Link
               href={`/pupil-detail?id=${pupil.id}`}
-              className="text-indigo-900 hover:text-indigo-700 hover:underline transition-all duration-300 dark:text-indigo-200 dark:hover:text-indigo-300"
+              className="text-brand-alt-ink-900 hover:text-brand-alt-ink-700 hover:underline transition-all duration-300 dark:text-brand-alt-ink-200 dark:hover:text-brand-alt-ink-300"
             >
               {formatPupilDisplayName(pupil)}
             </Link>
@@ -2372,7 +2372,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="text-blue-600 text-xs hover:text-blue-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded dark:text-blue-400 dark:hover:text-blue-200"
+                    className="text-brand-ink-600 text-xs hover:text-brand-ink-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 rounded dark:text-brand-ink-400 dark:hover:text-brand-ink-200"
                     title={historicalPupilInfo.termHasEnded && historicalPupilInfo.isRealSnapshot ? `Historical snapshot (Term ended) - Click to recapture` : `Current class: ${pupil?.classCode || pupil?.className} - Click to recapture`}
                   ><ArrowCounterClockwise className="inline w-3 h-3" /></button>
                 </DropdownMenuTrigger>
@@ -2394,7 +2394,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="text-blue-600 text-xs hover:text-blue-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded dark:text-blue-400 dark:hover:text-blue-200"
+                    className="text-brand-ink-600 text-xs hover:text-brand-ink-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 rounded dark:text-brand-ink-400 dark:hover:text-brand-ink-200"
                     title={historicalPupilInfo.termHasEnded && historicalPupilInfo.isRealSnapshot ? `Historical snapshot (Term ended) - Click to recapture` : `Current section: ${pupil?.section} - Click to recapture`}
                   ><ArrowCounterClockwise className="inline w-3 h-3" /></button>
                 </DropdownMenuTrigger>
@@ -2415,7 +2415,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               let pillStyles = '';
               if (!isActive) pillStyles = 'bg-gray-100 text-gray-400 border-gray-200 opacity-60 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700';
               else if (isDiscount) pillStyles = 'bg-pink-100 text-pink-850 border-pink-250 hover:bg-pink-150/70 dark:bg-pink-950/40';
-              else pillStyles = 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-200 dark:border-purple-800/60';
+              else pillStyles = 'bg-brand-secondary-surface-100 text-brand-secondary-ink-800 border-brand-secondary-200 dark:bg-brand-secondary-surface-950/40 dark:text-brand-secondary-ink-200 dark:border-brand-secondary-800/60';
               if (isDiscount) {
                 const discountValue = assignment.structure ? (assignment.structure.amount || 0) : 0;
                 const displayAmount = `-${new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(Math.abs(discountValue))}`;
@@ -2472,13 +2472,13 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                     ? 'bg-green-100 text-green-800 border-green-300 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60'
                     : record.isPartiallyCollected
                     ? 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60'
-                    : 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60'
+                    : 'bg-brand-surface-100 text-brand-ink-800 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60'
                 )}
               >
                 <span
                   className={cn(
                     'font-semibold',
-                    record.isFullyCollected ? 'text-green-900 dark:text-green-200' : 'text-blue-900 dark:text-blue-200'
+                    record.isFullyCollected ? 'text-green-900 dark:text-green-200' : 'text-brand-ink-900 dark:text-brand-ink-200'
                   )}
                 >
                   {record.isFullyCollected
@@ -2496,7 +2496,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                         item.isPartiallyCollected && 'text-amber-800 font-semibold dark:text-amber-200'
                       )}
                     >
-                      {item.name}{itemIdx < record.items.length - 1 && <span className="no-underline ml-0.5 opacity-100 text-blue-400">,</span>}
+                      {item.name}{itemIdx < record.items.length - 1 && <span className="no-underline ml-0.5 opacity-100 text-brand-ink-400">,</span>}
                     </span>
                   ))}
                 </span>
@@ -2589,15 +2589,15 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                       disabled={!pupil?.id || isFinancialDataLoading}
                     />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" sideOffset={8} className="w-64 p-3 bg-white/95 backdrop-blur-xl border border-violet-100 shadow-2xl rounded-2xl dark:bg-slate-900/95 dark:border-violet-800/60">
-                    <div className="mb-3 pb-2 border-b border-violet-100 dark:border-violet-800/60">
-                      <p className="text-[11px] font-bold text-violet-700 uppercase tracking-wider flex items-center gap-1.5 dark:text-violet-300">
+                  <DropdownMenuContent align="end" sideOffset={8} className="w-64 p-3 bg-white/95 backdrop-blur-xl border border-brand-secondary-alt-100 shadow-2xl rounded-2xl dark:bg-slate-900/95 dark:border-brand-secondary-alt-800/60">
+                    <div className="mb-3 pb-2 border-b border-brand-secondary-alt-100 dark:border-brand-secondary-alt-800/60">
+                      <p className="text-[11px] font-bold text-brand-secondary-alt-ink-700 uppercase tracking-wider flex items-center gap-1.5 dark:text-brand-secondary-alt-ink-300">
                         <Zap className="w-3 h-3" />Wire &amp; Payment Options
                       </p>
                     </div>
-                    <div role="menuitem" className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-violet-50 transition-all duration-200 group mb-1 dark:hover:bg-violet-950/40" onClick={() => { setIsWirePopupOpen(false); setIsSchoolPayModalOpen(true); }}>
-                      <div className="relative flex items-center justify-center w-9 h-9 rounded-full bg-violet-50 border border-violet-200 text-violet-600 group-hover:bg-violet-500 group-hover:text-white group-hover:border-violet-500 transition-all duration-200 flex-shrink-0 dark:bg-violet-950/40 dark:border-violet-800/60 dark:text-violet-400">
-                        {schoolPayCount > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-violet-600 text-white text-[8px] font-bold rounded-full flex items-center justify-center border border-white dark:border-slate-700">{schoolPayCount > 9 ? '9+' : schoolPayCount}</span>}
+                    <div role="menuitem" className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-brand-secondary-alt-surface-50 transition-all duration-200 group mb-1 dark:hover:bg-brand-secondary-alt-surface-950/40" onClick={() => { setIsWirePopupOpen(false); setIsSchoolPayModalOpen(true); }}>
+                      <div className="relative flex items-center justify-center w-9 h-9 rounded-full bg-brand-secondary-alt-surface-50 border border-brand-secondary-alt-200 text-brand-secondary-alt-ink-600 group-hover:bg-brand-secondary-alt-surface-500 group-hover:text-white group-hover:border-brand-secondary-alt-500 transition-all duration-200 flex-shrink-0 dark:bg-brand-secondary-alt-surface-950/40 dark:border-brand-secondary-alt-800/60 dark:text-brand-secondary-alt-ink-400">
+                        {schoolPayCount > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-brand-secondary-alt-surface-600 text-white text-[8px] font-bold rounded-full flex items-center justify-center border border-white dark:border-slate-700">{schoolPayCount > 9 ? '9+' : schoolPayCount}</span>}
                         <Zap className="w-4 h-4" />
                       </div>
                       <div className="min-w-0"><p className="text-[12px] font-semibold text-gray-800 leading-tight dark:text-slate-100">SchoolPay Wire</p><p className="text-[10px] text-gray-500 leading-tight mt-0.5 dark:text-slate-400">View mobile money payments</p></div>
@@ -2606,8 +2606,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                       <div className="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-500 transition-all duration-200 flex-shrink-0 dark:bg-emerald-950/40 dark:border-emerald-800/60 dark:text-emerald-400"><Tag className="w-4 h-4" /></div>
                       <div className="min-w-0"><p className="text-[12px] font-semibold text-gray-800 leading-tight dark:text-slate-100">Pay Code</p><p className="text-[10px] text-gray-500 leading-tight mt-0.5 dark:text-slate-400">Manage SchoolPay payment code</p></div>
                     </div>
-                    <div role="menuitem" className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-blue-50 transition-all duration-200 group dark:hover:bg-blue-950/40" onClick={() => { setIsWirePopupOpen(false); handleGeneratePaymentID(); }}>
-                      <div className="flex items-center justify-center w-9 h-9 rounded-full bg-blue-50 border border-blue-200 text-blue-600 group-hover:bg-blue-500 group-hover:text-white group-hover:border-blue-500 transition-all duration-200 flex-shrink-0 dark:bg-blue-950/40 dark:border-blue-800/60 dark:text-blue-400"><IdentificationCard className="w-4 h-4" weight="bold" /></div>
+                    <div role="menuitem" className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-brand-surface-50 transition-all duration-200 group dark:hover:bg-brand-surface-950/40" onClick={() => { setIsWirePopupOpen(false); handleGeneratePaymentID(); }}>
+                      <div className="flex items-center justify-center w-9 h-9 rounded-full bg-brand-surface-50 border border-brand-200 text-brand-ink-600 group-hover:bg-brand-surface-500 group-hover:text-white group-hover:border-brand-500 transition-all duration-200 flex-shrink-0 dark:bg-brand-surface-950/40 dark:border-brand-800/60 dark:text-brand-ink-400"><IdentificationCard className="w-4 h-4" weight="bold" /></div>
                       <div className="min-w-0"><p className="text-[12px] font-semibold text-gray-800 leading-tight dark:text-slate-100">Pay ID Card</p><p className="text-[10px] text-gray-500 leading-tight mt-0.5 dark:text-slate-400">Print payment ID card (PDF)</p></div>
                     </div>
                   </DropdownMenuContent>
@@ -2626,10 +2626,10 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem onClick={() => setIsUniformTrackingModalOpen(true)} disabled={isFinancialDataLoading} className="cursor-pointer">
-                  <ClipboardText className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" weight="bold" />Add Uniform
+                  <ClipboardText className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" weight="bold" />Add Uniform
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => { if (pupil?.id) router.push(`/requirement-tracking?id=${pupil.id}`); }} className="cursor-pointer">
-                  <ClipboardText className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" weight="bold" />Requirements
+                  <ClipboardText className="mr-2 h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" weight="bold" />Requirements
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -2681,7 +2681,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                       )[0];
                     setSelectedTermId(defaultTerm?.id || '');
                   }}
-                  className="bg-white rounded-full px-2 py-1 sm:px-3 sm:py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-semibold hover:border-gray-300 transition-colors text-[10px] shadow-sm min-w-[90px] sm:min-w-[140px] max-w-[110px] sm:max-w-none dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700"
+                  className="bg-white rounded-full px-2 py-1 sm:px-3 sm:py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-alt-500 appearance-none text-gray-700 font-semibold hover:border-gray-300 transition-colors text-[10px] shadow-sm min-w-[90px] sm:min-w-[140px] max-w-[110px] sm:max-w-none dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700"
                   disabled={isLoadingAcademicYears}
                 >
                   <option value="">Select Year</option>
@@ -2732,13 +2732,13 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           }
           right={
             <>
-              <div className="flex items-center gap-1 bg-indigo-50/80 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="text-indigo-700/85 dark:text-indigo-350 font-medium">
+              <div className="flex items-center gap-1 bg-brand-alt-surface-50/80 dark:bg-brand-alt-surface-950/20 border border-brand-alt-100/50 dark:border-brand-alt-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="text-brand-alt-ink-700/85 dark:text-brand-alt-ink-300 font-medium">
                   <span className="sm:hidden">Total</span>
                   <span className="hidden sm:inline">Total Fees:</span>
                 </span>
-                <span className="inline-flex min-w-[5.5rem] justify-end font-bold tabular-nums text-indigo-600 dark:text-indigo-400">
-                  {hasTermSelectionError ? '—' : isFinancialDataLoading ? <span className="inline-block h-3 w-16 animate-pulse rounded bg-indigo-200 align-middle dark:bg-indigo-900/40" role="status" aria-label="Verifying total fees" /> : new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalFees)}
+                <span className="inline-flex min-w-[5.5rem] justify-end font-bold tabular-nums text-brand-alt-ink-600 dark:text-brand-alt-ink-400">
+                  {hasTermSelectionError ? '—' : isFinancialDataLoading ? <span className="inline-block h-3 w-16 animate-pulse rounded bg-brand-alt-surface-200 align-middle dark:bg-brand-alt-surface-900/40" role="status" aria-label="Verifying total fees" /> : new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalFees)}
                 </span>
               </div>
               <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
@@ -2764,7 +2764,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         />
 
         <div className="max-w-none px-4 sm:px-6 lg:px-8 py-4">
-          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden dark:bg-slate-900 dark:border-indigo-800/60">
+          <div className="bg-white rounded-xl shadow-sm border border-brand-alt-100 overflow-hidden dark:bg-slate-900 dark:border-brand-alt-800/60">
             {/* Term content or empty state */}
             {hasTermSelectionError ? (
               <div role="alert" className="m-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:m-6 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">

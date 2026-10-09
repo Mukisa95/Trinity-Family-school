@@ -230,8 +230,8 @@ const SinglePupilReportPage: React.FC<SinglePupilReportPageProps> = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="p-4 bg-blue-50 rounded-lg dark:bg-blue-950/40">
-          <p className="text-blue-800 font-semibold dark:text-blue-200">Loading pupil report...</p>
+        <div className="p-4 bg-brand-surface-50 rounded-lg dark:bg-brand-surface-950/40">
+          <p className="text-brand-ink-800 font-semibold dark:text-brand-ink-200">Loading pupil report...</p>
         </div>
       </div>
     );

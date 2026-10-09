@@ -148,7 +148,7 @@ export function PaymentModal({
 
           {/* Payment Preview */}
           {paymentAmount && (
-            <Card className="bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60">
+            <Card className="bg-brand-surface-50 border-brand-200 dark:bg-brand-surface-950/40 dark:border-brand-800/60">
               <CardContent className="pt-4">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">

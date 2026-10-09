@@ -770,14 +770,14 @@ export default function UsersPage() {
       <GlassSummaryBar
         left={
           <div className="flex flex-wrap items-center gap-2">
-            <Users className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 uppercase mr-2 dark:text-indigo-200">
+            <Users className="h-4 w-4 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />
+            <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 uppercase mr-2 dark:text-brand-alt-ink-200">
               Users Overview
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
-              <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-blue-950/80 dark:border-blue-800/50">
-                <span className="font-bold text-blue-700 dark:text-blue-300">{availableStaff.length}</span>
-                <span className="text-blue-700/85 font-medium dark:text-blue-300/85">staff without accounts</span>
+              <div className="flex items-center gap-1 bg-brand-surface-50/80 border border-brand-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-brand-surface-950/80 dark:border-brand-800/50">
+                <span className="font-bold text-brand-ink-700 dark:text-brand-ink-300">{availableStaff.length}</span>
+                <span className="text-brand-ink-700/85 font-medium dark:text-brand-ink-300/85">staff without accounts</span>
               </div>
               <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-amber-950/80 dark:border-amber-800/50">
                 <span className="font-bold text-amber-700 dark:text-amber-300">{availablePupils.length}</span>
@@ -807,7 +807,7 @@ export default function UsersPage() {
                   className={cn(
                     "rounded-full px-3 py-1 text-xs font-semibold transition-all duration-300",
                     isActive
-                      ? "bg-white text-indigo-700 shadow-sm dark:bg-slate-900 dark:text-indigo-300"
+                      ? "bg-white text-brand-alt-ink-700 shadow-sm dark:bg-slate-900 dark:text-brand-alt-ink-300"
                       : "text-gray-600 hover:text-gray-900 hover:bg-white/50 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-900/50"
                   )}
                 >
@@ -849,16 +849,16 @@ export default function UsersPage() {
 
           {/* Results Summary */}
           {(searchTerm || permissionFilter !== 'all' || moduleFilter !== 'all') && (
-            <Card className="border-blue-200 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/40">
+            <Card className="border-brand-200 bg-brand-surface-50 dark:border-brand-800/60 dark:bg-brand-surface-950/40">
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm text-blue-700 dark:text-blue-300">
+                  <div className="text-sm text-brand-ink-700 dark:text-brand-ink-300">
                     <span className="font-medium">Showing {filteredUsers.length} of {users.length} users</span>
                     {searchTerm && (
                       <span className="ml-2">matching "{searchTerm}"</span>
                     )}
                   </div>
-                  <Button variant="outline" size="sm" onClick={clearFilters} className="border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40">
+                  <Button variant="outline" size="sm" onClick={clearFilters} className="border-brand-300 text-brand-ink-700 hover:bg-brand-surface-100 dark:border-brand-800/60 dark:text-brand-ink-300 dark:hover:bg-brand-surface-950/40">
                     <X className="h-4 w-4 mr-2" />
                     Clear Filters
                   </Button>
@@ -1141,8 +1141,8 @@ export default function UsersPage() {
       >
         <ModernDialogContent size="md">
           <ModernDialogHeader>
-            <ModernDialogTitle className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200">
-              <Filter className="h-5 w-5 text-indigo-600 animate-[pulse_2s_infinite] dark:text-indigo-400" />
+            <ModernDialogTitle className="flex items-center gap-2 text-brand-alt-ink-900 dark:text-brand-alt-ink-200">
+              <Filter className="h-5 w-5 text-brand-alt-ink-600 animate-[pulse_2s_infinite] dark:text-brand-alt-ink-400" />
               Filter Users
             </ModernDialogTitle>
             <ModernDialogDescription className="text-gray-500 dark:text-slate-400">
@@ -1154,7 +1154,7 @@ export default function UsersPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
             {/* Permission Level Filter */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-indigo-950 dark:text-indigo-100">Permission Level</label>
+              <label className="block text-xs font-semibold text-brand-alt-ink-950 dark:text-brand-alt-ink-100">Permission Level</label>
               <Select value={permissionFilter} onValueChange={setPermissionFilter}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="All Permissions" />
@@ -1170,7 +1170,7 @@ export default function UsersPage() {
 
             {/* Module Access Filter */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-indigo-950 dark:text-indigo-100">Module Access</label>
+              <label className="block text-xs font-semibold text-brand-alt-ink-950 dark:text-brand-alt-ink-100">Module Access</label>
               <Select value={moduleFilter} onValueChange={setModuleFilter}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="All Modules" />
@@ -1206,7 +1206,7 @@ export default function UsersPage() {
             )}
             <Button
               onClick={() => setIsFilterPopupOpen(false)}
-              className="inline-flex items-center justify-center h-8 px-4 rounded-full font-semibold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all duration-200"
+              className="inline-flex items-center justify-center h-8 px-4 rounded-full font-semibold text-xs bg-brand-alt-surface-600 hover:bg-brand-alt-surface-700 text-white shadow-sm transition-all duration-200"
             >
               Done
             </Button>
@@ -1229,7 +1229,7 @@ export default function UsersPage() {
           </ModernDialogHeader>
           
           {/* Academic Context Banner */}
-          <div className="mx-1 sm:mx-2 mt-1 sm:mt-2 p-1 border rounded-md text-[0.6rem] bg-indigo-50 border-indigo-200 dark:bg-indigo-950/40 dark:border-indigo-800/60">
+          <div className="mx-1 sm:mx-2 mt-1 sm:mt-2 p-1 border rounded-md text-[0.6rem] bg-brand-alt-surface-50 border-brand-alt-200 dark:bg-brand-alt-surface-950/40 dark:border-brand-alt-800/60">
             <div className="flex flex-wrap gap-1 items-center">
               <div className="flex items-center gap-0.5">
                 <Users className="h-2.5 w-2.5 text-muted-foreground" />
@@ -1238,7 +1238,7 @@ export default function UsersPage() {
               <div>
                 <strong>Date:</strong> {format(new Date(), "MMM dd, yyyy")}
               </div>
-              <div className="text-[0.5rem] px-1 py-0.5 rounded ml-auto text-indigo-700 bg-indigo-100 dark:text-indigo-300 dark:bg-indigo-950/40">
+              <div className="text-[0.5rem] px-1 py-0.5 rounded ml-auto text-brand-alt-ink-700 bg-brand-alt-surface-100 dark:text-brand-alt-ink-300 dark:bg-brand-alt-surface-950/40">
                 Create Mode
               </div>
             </div>
@@ -1329,7 +1329,7 @@ export default function UsersPage() {
                   )}
                 </div>
 
-                <section className="rounded-xl border border-violet-200 bg-violet-50/60 p-4 dark:border-violet-800/60 dark:bg-violet-950/60">
+                <section className="rounded-xl border border-brand-secondary-alt-200 bg-brand-secondary-alt-surface-50/60 p-4 dark:border-brand-secondary-alt-800/60 dark:bg-brand-secondary-alt-surface-950/60">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <Label className="text-base font-semibold text-slate-900 dark:text-slate-100">Morph permissions</Label>
@@ -1338,7 +1338,7 @@ export default function UsersPage() {
                     <Button
                       type="button"
                       variant={isMorphOpen ? "secondary" : "outline"}
-                      className="gap-2 border-violet-200 bg-white text-violet-700 hover:bg-violet-100 dark:border-violet-800/60 dark:bg-slate-900 dark:text-violet-300 dark:hover:bg-violet-950/40"
+                      className="gap-2 border-brand-secondary-alt-200 bg-white text-brand-secondary-alt-ink-700 hover:bg-brand-secondary-alt-surface-100 dark:border-brand-secondary-alt-800/60 dark:bg-slate-900 dark:text-brand-secondary-alt-ink-300 dark:hover:bg-brand-secondary-alt-surface-950/40"
                       onClick={() => setIsMorphOpen((open) => !open)}
                     >
                       <Copy className="h-4 w-4" /> {isMorphOpen ? 'Hide morph' : 'Morph'}
@@ -1346,7 +1346,7 @@ export default function UsersPage() {
                   </div>
 
                   {isMorphOpen && (
-                    <div className="mt-4 space-y-2 border-t border-violet-200 pt-4 dark:border-violet-800/60">
+                    <div className="mt-4 space-y-2 border-t border-brand-secondary-alt-200 pt-4 dark:border-brand-secondary-alt-800/60">
                       <Label htmlFor="morph-permissions">Copy permissions from</Label>
                       <Select value={morphUserId || 'none'} onValueChange={handleMorphPermissions}>
                         <SelectTrigger id="morph-permissions" className="bg-white dark:bg-slate-900">
@@ -1362,7 +1362,7 @@ export default function UsersPage() {
                         </SelectContent>
                       </Select>
                       {morphUserId && morphUserId !== 'none' && (
-                        <p className="text-sm text-violet-800 dark:text-violet-200">Permissions copied. Continue below to review or make changes before creating the account.</p>
+                        <p className="text-sm text-brand-secondary-alt-ink-800 dark:text-brand-secondary-alt-ink-200">Permissions copied. Continue below to review or make changes before creating the account.</p>
                       )}
                     </div>
                   )}
@@ -1428,7 +1428,7 @@ export default function UsersPage() {
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <p className="text-xs text-muted-foreground mb-1">Generated Username</p>
-                              <p className="font-mono text-lg font-bold text-blue-600 dark:text-blue-400">{username}</p>
+                              <p className="font-mono text-lg font-bold text-brand-ink-600 dark:text-brand-ink-400">{username}</p>
                               <p className="text-xs text-muted-foreground">
                                 {selectedPupil.lastName.substring(0, 3).toUpperCase()} (surname) + {selectedPupil.dateOfBirth ? new Date(selectedPupil.dateOfBirth).getFullYear().toString().slice(-2) : new Date().getFullYear().toString().slice(-2)} (birth year)
                               </p>
@@ -1440,12 +1440,12 @@ export default function UsersPage() {
                             </div>
                           </div>
                           
-                          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded text-xs dark:bg-blue-950/40 dark:border-blue-800/60">
-                            <p className="font-medium text-blue-800 mb-2 dark:text-blue-200">🎯 Simple Parent Login</p>
-                            <div className="space-y-1 text-blue-700 dark:text-blue-300">
+                          <div className="mt-3 p-3 bg-brand-surface-50 border border-brand-200 rounded text-xs dark:bg-brand-surface-950/40 dark:border-brand-800/60">
+                            <p className="font-medium text-brand-ink-800 mb-2 dark:text-brand-ink-200">🎯 Simple Parent Login</p>
+                            <div className="space-y-1 text-brand-ink-700 dark:text-brand-ink-300">
                               <p><strong>Username:</strong> {username} (short & memorable!)</p>
                               <p><strong>Password:</strong> {selectedPupil.admissionNumber}</p>
-                              <p className="mt-2 text-blue-600 dark:text-blue-400">
+                              <p className="mt-2 text-brand-ink-600 dark:text-brand-ink-400">
                                 ✨ Parents can also use the pupil's full name as username - the system will automatically find the correct account!
                               </p>
                             </div>
@@ -1464,9 +1464,9 @@ export default function UsersPage() {
 
             <TabsContent value="bulk" className="space-y-4">
               <div className="space-y-4">
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/40 dark:border-blue-800/60">
-                  <h4 className="font-medium text-blue-900 mb-2 dark:text-blue-200">🚀 Bulk Parent Account Creation</h4>
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                <div className="p-4 bg-brand-surface-50 border border-brand-200 rounded-lg dark:bg-brand-surface-950/40 dark:border-brand-800/60">
+                  <h4 className="font-medium text-brand-ink-900 mb-2 dark:text-brand-ink-200">🚀 Bulk Parent Account Creation</h4>
+                  <p className="text-sm text-brand-ink-700 dark:text-brand-ink-300">
                     Create multiple parent accounts at once by selecting individual pupils or entire classes. 
                     Each parent will get a unique username and password based on their child's information.
                   </p>
@@ -1651,7 +1651,7 @@ export default function UsersPage() {
         <ModernDialogContent size="responsive">
           <ModernDialogHeader>
             <ModernDialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> Permissions
+              <Shield className="h-5 w-5 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" /> Permissions
             </ModernDialogTitle>
             <ModernDialogDescription>
               Review what this user can do, then change or revoke access here without opening their account editor.
@@ -1660,7 +1660,7 @@ export default function UsersPage() {
 
           {permissionsUser && (
             <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-1">
-              <section className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 dark:border-indigo-800/60 dark:bg-indigo-950/60">
+              <section className="rounded-xl border border-brand-alt-100 bg-brand-alt-surface-50/60 p-4 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/60">
                 <p className="font-semibold text-slate-900 dark:text-slate-100">{getUserDisplayName(permissionsUser)}</p>
                 <p className="mt-0.5 text-sm text-muted-foreground">{permissionsUser.username} · {permissionsUser.role}</p>
               </section>

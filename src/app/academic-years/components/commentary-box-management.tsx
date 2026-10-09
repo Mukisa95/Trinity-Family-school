@@ -67,9 +67,9 @@ const GRADE_CATEGORIES = [
     value: 'aggregate_5_6', 
     label: 'Aggregate 5-6', 
     description: 'Good Performance',
-    color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60',
+    color: 'bg-brand-surface-100 text-brand-ink-800 border-brand-200 dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60',
     icon: TrendingUp,
-    bgGradient: 'from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40'
+    bgGradient: 'from-brand-surface-50 to-brand-alt-surface-50 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40'
   },
   { 
     value: 'aggregate_7_12', 
@@ -320,7 +320,7 @@ export function CommentaryBoxManagement({ addTrigger }: CommentaryBoxManagementP
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand-alt-ink-600 dark:text-brand-alt-ink-400" />
         <span className="ml-2">Loading commentary box data...</span>
       </div>
     );
@@ -375,7 +375,7 @@ export function CommentaryBoxManagement({ addTrigger }: CommentaryBoxManagementP
                     {categoryComments.map((comment) => (
                       <div 
                         key={comment.id} 
-                        className="group flex flex-col justify-between p-3 rounded-xl border border-slate-100 bg-white shadow-sm hover:shadow-md hover:border-indigo-100 transition-all duration-300 relative dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-800/60"
+                        className="group flex flex-col justify-between p-3 rounded-xl border border-slate-100 bg-white shadow-sm hover:shadow-md hover:border-brand-alt-100 transition-all duration-300 relative dark:border-slate-700 dark:bg-slate-900 dark:hover:border-brand-alt-800/60"
                       >
                         <p className="text-xs text-slate-700 leading-relaxed pr-8 dark:text-slate-200">{comment.text}</p>
                         
@@ -388,7 +388,7 @@ export function CommentaryBoxManagement({ addTrigger }: CommentaryBoxManagementP
                               variant="ghost" 
                               size="sm" 
                               onClick={() => handleCopyToClipboard(comment.text)}
-                              className="h-6 w-6 p-0 text-slate-400 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400"
+                              className="h-6 w-6 p-0 text-slate-400 hover:text-brand-alt-ink-600 dark:text-slate-400 dark:hover:text-brand-alt-ink-400"
                               title="Copy"
                             >
                               <Copy className="h-3 w-3" />
@@ -399,7 +399,7 @@ export function CommentaryBoxManagement({ addTrigger }: CommentaryBoxManagementP
                                   variant="ghost" 
                                   size="sm" 
                                   onClick={() => handleOpenEditDialog(comment)}
-                                  className="h-6 w-6 p-0 text-slate-400 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
+                                  className="h-6 w-6 p-0 text-slate-400 hover:text-brand-ink-600 dark:text-slate-400 dark:hover:text-brand-ink-400"
                                   title="Edit"
                                 >
                                   <Edit3 className="h-3 w-3" />

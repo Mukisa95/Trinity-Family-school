@@ -51,7 +51,7 @@ export default function AttendanceHubPage() {
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <CardTitle className="flex items-center text-xl">
-              <Edit3 className="mr-3 h-6 w-6 text-primary" />
+              <Edit3 className="mr-3 h-6 w-6 text-link" />
               Record Attendance
             </CardTitle>
           </CardHeader>
@@ -68,7 +68,7 @@ export default function AttendanceHubPage() {
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <CardTitle className="flex items-center text-xl">
-              <Eye className="mr-3 h-6 w-6 text-primary" />
+              <Eye className="mr-3 h-6 w-6 text-link" />
               View Attendance Reports
             </CardTitle>
           </CardHeader>
@@ -85,7 +85,7 @@ export default function AttendanceHubPage() {
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <CardTitle className="flex items-center text-xl">
-              <CalendarClock className="mr-3 h-6 w-6 text-primary" />
+              <CalendarClock className="mr-3 h-6 w-6 text-link" />
               Manage Excluded Days
             </CardTitle>
           </CardHeader>

@@ -491,14 +491,14 @@ export default function FamilyFeesCollection() {
 
   if (familyPupils.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 pb-20 dark:from-blue-950/40 dark:via-slate-900 dark:to-indigo-950/40">
+      <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-alt-surface-50 pb-20 dark:from-brand-surface-950/40 dark:via-slate-900 dark:to-brand-alt-surface-950/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-6 text-center dark:bg-slate-900 dark:border-indigo-800/60">
+          <div className="bg-white rounded-xl shadow-sm border border-brand-alt-100 p-6 text-center dark:bg-slate-900 dark:border-brand-alt-800/60">
             <h2 className="text-xl font-semibold text-gray-900 mb-2 dark:text-slate-100">No Family Information</h2>
             <p className="text-gray-600 mb-4 dark:text-slate-300">No pupils found for family ID: <code className="bg-gray-100 px-2 py-1 rounded dark:bg-slate-900">{familyId}</code></p>
             <Link
               href="/fees/collection"
-              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              className="inline-flex items-center gap-2 text-brand-ink-600 hover:text-brand-ink-700 dark:text-brand-ink-400 dark:hover:text-brand-ink-300"
             >
               <ArrowCircleLeft className="w-5 h-5" />
               <span>Back to Fees Collection</span>
@@ -511,19 +511,19 @@ export default function FamilyFeesCollection() {
 
   if (feesInfoError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/40">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand-surface-50 to-brand-alt-surface-50 p-4 dark:from-slate-900 dark:via-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
         <div role="alert" className="mx-auto mt-10 max-w-xl rounded-xl border border-red-200 bg-white p-6 shadow-sm dark:border-red-800/60 dark:bg-slate-900">
           <h2 className="text-lg font-semibold text-red-800 dark:text-red-200">Family fee totals are unavailable</h2>
           <p className="mt-2 text-sm text-gray-700 dark:text-slate-200">A payment, fee, uniform, holiday, or historical record could not be verified. No balance or payment option is shown until the data is corrected or reloaded.</p>
           <p className="mt-2 text-xs text-gray-500 dark:text-slate-400">{feesInfoError.message}</p>
-          <Link href="/fees/collection" className="mt-4 inline-block text-sm font-semibold text-blue-700 dark:text-blue-300">Back to Fees Collection</Link>
+          <Link href="/fees/collection" className="mt-4 inline-block text-sm font-semibold text-brand-ink-700 dark:text-brand-ink-300">Back to Fees Collection</Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/40">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand-surface-50 to-brand-alt-surface-50 pb-12 dark:from-slate-900 dark:via-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
       {(() => {
         const hasFeeSummary = familyPupils.every((pupil) => !!feesInfo[pupil.id]);
         const totalFees = familyPupils.reduce((sum, pupil) => {
@@ -552,7 +552,7 @@ export default function FamilyFeesCollection() {
                 value={selectedYear && selectedTermId ? `${selectedYear}::${selectedTermId}` : ''}
                 onChange={(event) => handleAcademicPeriodChange(event.target.value)}
                 aria-label="Select academic year and term"
-                className="h-8 max-w-[48vw] rounded-full border border-indigo-200/80 bg-white/95 px-2.5 text-[10px] font-bold text-indigo-700 shadow-sm outline-none transition-colors hover:bg-indigo-50 focus:ring-2 focus:ring-indigo-400/60 lg:hidden dark:border-indigo-800/80 dark:bg-slate-900/95 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
+                className="h-8 max-w-[48vw] rounded-full border border-brand-alt-200/80 bg-white/95 px-2.5 text-[10px] font-bold text-brand-alt-ink-700 shadow-sm outline-none transition-colors hover:bg-brand-alt-surface-50 focus:ring-2 focus:ring-brand-alt-400/60 lg:hidden dark:border-brand-alt-800/80 dark:bg-slate-900/95 dark:text-brand-alt-ink-300 dark:hover:bg-brand-alt-surface-950/40"
               >
                 <option value="" disabled>Year · Term</option>
                 {academicYears.map((year) => (
@@ -570,7 +570,7 @@ export default function FamilyFeesCollection() {
               <div className="flex items-center gap-1.5 flex-wrap">
                 {hasFeeSummary ? (
                   <>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/60">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-brand-alt-surface-50 text-brand-alt-ink-700 border border-brand-alt-100 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300 dark:border-brand-alt-800/60">
                       Total: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(totalFees)}
                     </span>
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60">
@@ -599,7 +599,7 @@ export default function FamilyFeesCollection() {
                       setSelectedTermId(getCurrentTerm(year as any)?.id || year?.terms[0]?.id || '');
                       setSelectedAcademicYear(year || null);
                     }}
-                    className="h-8 appearance-none rounded-full border border-gray-200 bg-white/80 px-3 py-1 text-[11px] font-semibold text-gray-700 shadow-sm backdrop-blur-md transition-all hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:border-slate-700"
+                    className="h-8 appearance-none rounded-full border border-gray-200 bg-white/80 px-3 py-1 text-[11px] font-semibold text-gray-700 shadow-sm backdrop-blur-md transition-all hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-alt-500 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:border-slate-700"
                   >
                     <option value="">Select Year</option>
                     {[...academicYears].reverse().map((year) => {
@@ -625,7 +625,7 @@ export default function FamilyFeesCollection() {
                     value={selectedTermId}
                     onChange={(e) => setSelectedTermId(e.target.value)}
                     disabled={!selectedYear}
-                    className="h-8 appearance-none rounded-full border border-gray-200 bg-white/80 px-3 py-1 text-[11px] font-semibold text-gray-700 shadow-sm backdrop-blur-md transition-all hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:border-slate-700"
+                    className="h-8 appearance-none rounded-full border border-gray-200 bg-white/80 px-3 py-1 text-[11px] font-semibold text-gray-700 shadow-sm backdrop-blur-md transition-all hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-alt-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:border-slate-700"
                   >
                     {selectedYearTerms.map((term) => (
                       <option key={term.id} value={term.id}>
@@ -672,12 +672,12 @@ export default function FamilyFeesCollection() {
             const summary = feesInfo[pupil.id];
             const money = new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' });
             return (
-              <div key={pupil.id} className="bg-white rounded-xl shadow-sm border border-indigo-100 p-4 sm:p-6 dark:bg-slate-900 dark:border-indigo-800/60">
+              <div key={pupil.id} className="bg-white rounded-xl shadow-sm border border-brand-alt-100 p-4 sm:p-6 dark:bg-slate-900 dark:border-brand-alt-800/60">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4 mb-4">
                   <div className="min-w-0 flex-1">
                     <Link
                       href={`/pupil-detail?id=${pupil.id}`}
-                      className="text-lg sm:text-xl font-semibold text-gray-900 hover:text-blue-600 hover:underline truncate leading-tight block transition-colors dark:text-slate-100 dark:hover:text-blue-400"
+                      className="text-lg sm:text-xl font-semibold text-gray-900 hover:text-brand-ink-600 hover:underline truncate leading-tight block transition-colors dark:text-slate-100 dark:hover:text-brand-ink-400"
                     >
                       {formatPupilDisplayName(pupil)}
                     </Link>
@@ -687,7 +687,7 @@ export default function FamilyFeesCollection() {
                   </div>
                   <Link
                     href={`/fees/collect?pupilId=${pupil.id}`}
-                    className="text-sm sm:text-base text-blue-600 hover:text-blue-700 hover:underline self-start sm:self-auto whitespace-nowrap dark:text-blue-400 dark:hover:text-blue-300"
+                    className="text-sm sm:text-base text-brand-ink-600 hover:text-brand-ink-700 hover:underline self-start sm:self-auto whitespace-nowrap dark:text-brand-ink-400 dark:hover:text-brand-ink-300"
                   >
                     View Details
                   </Link>
@@ -725,7 +725,7 @@ export default function FamilyFeesCollection() {
                         <h4 className="text-sm sm:text-base font-medium text-gray-900 dark:text-slate-100">Fee Breakdown</h4>
                         <button
                           onClick={() => togglePupilExpansion(pupil.id)}
-                          className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-violet-400 via-purple-500 to-purple-600 hover:from-violet-500 hover:via-purple-600 hover:to-purple-700 text-white transition-all duration-300 hover:scale-110 shadow-xl hover:shadow-2xl backdrop-blur-lg relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/40 before:via-white/25 before:to-transparent before:opacity-0 hover:before:opacity-100 after:absolute after:inset-0 after:bg-gradient-to-tr after:from-transparent after:via-white/15 after:to-white/35 after:opacity-0 hover:after:opacity-100 border-2 border-purple-300/60 dark:border-purple-800/60"
+                          className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-brand-secondary-alt-surface-400 via-brand-secondary-surface-500 to-brand-secondary-surface-600 hover:from-brand-secondary-alt-surface-500 hover:via-brand-secondary-surface-600 hover:to-brand-secondary-surface-700 text-white transition-all duration-300 hover:scale-110 shadow-xl hover:shadow-2xl backdrop-blur-lg relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/40 before:via-white/25 before:to-transparent before:opacity-0 hover:before:opacity-100 after:absolute after:inset-0 after:bg-gradient-to-tr after:from-transparent after:via-white/15 after:to-white/35 after:opacity-0 hover:after:opacity-100 border-2 border-brand-secondary-300/60 dark:border-brand-secondary-800/60"
                           title={expandedPupils.has(pupil.id) ? "Collapse" : "Expand"}
                         >
                           {expandedPupils.has(pupil.id) ? (
@@ -752,13 +752,13 @@ export default function FamilyFeesCollection() {
                                   <div className="min-w-0 flex-1">
                                     <span className="text-gray-600 leading-tight dark:text-slate-300">{fee.name}</span>
                                     {fee.feeStructureId.startsWith('uniform') && (
-                                      <span className="ml-2 text-purple-600 font-medium dark:text-purple-400">👕 Uniform</span>
+                                      <span className="ml-2 text-brand-secondary-ink-600 font-medium dark:text-brand-secondary-ink-400">👕 Uniform</span>
                                     )}
                                     {fee.isCarryForward && (
                                       <span className="ml-2 text-orange-600 font-medium dark:text-orange-400">(Carry Forward - {termName}{feeYear?.name ? `, ${feeYear.name}` : ''})</span>
                                     )}
                                     {fee.isCurrentTerm && (
-                                      <span className="ml-2 text-blue-600 font-medium dark:text-blue-400">({termName})</span>
+                                      <span className="ml-2 text-brand-ink-600 font-medium dark:text-brand-ink-400">({termName})</span>
                                     )}
                                   </div>
                                   <span className="font-medium text-gray-900 whitespace-nowrap dark:text-slate-100">
@@ -766,7 +766,7 @@ export default function FamilyFeesCollection() {
                                   </span>
                                 </div>
                                 {fee.discount && (
-                                  <div className="ml-2 sm:ml-4 text-sm text-purple-600 mt-1 dark:text-purple-400">
+                                  <div className="ml-2 sm:ml-4 text-sm text-brand-secondary-ink-600 mt-1 dark:text-brand-secondary-ink-400">
                                     <div>Original: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(fee.originalAmount)}</div>
                                     <div className="truncate">Discount: {fee.discount.name} ({fee.discount.type === 'percentage' ? `${fee.discount.amount}%` : new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(fee.discount.amount)})</div>
                                   </div>

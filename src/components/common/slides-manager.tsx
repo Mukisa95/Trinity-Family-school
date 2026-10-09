@@ -389,7 +389,7 @@ export function SlidesManager() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto mb-4" />
+          <Loader2 className="h-16 w-16 animate-spin text-link mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">Loading photos...</p>
         </div>
       </div>
@@ -532,7 +532,7 @@ export function SlidesManager() {
 
               {/* Bulk Metadata (when bulk mode is selected) */}
               {uploadMode === 'bulk' && selectedFiles.length > 0 && (
-                <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="space-y-4 p-4 bg-brand-surface-50 dark:bg-brand-surface-950 rounded-lg border border-brand-200 dark:border-brand-800">
                   <div className="flex items-center justify-between">
                     <Label className="text-base font-medium">Bulk Metadata Settings</Label>
                     <Button

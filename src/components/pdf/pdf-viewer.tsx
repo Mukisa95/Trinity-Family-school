@@ -185,7 +185,7 @@ function LegacyPDFViewer({
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent 
         side={isMobile ? "bottom" : "right"}
-        className="pdf-legacy-chrome w-full sm:w-[90vw] md:w-[85vw] lg:w-[80vw] xl:w-[75vw] p-0 flex flex-col !overflow-hidden !max-w-none border-0 shadow-2xl [&+div>div]:!bg-gradient-to-br [&+div>div]:!from-blue-500/20 [&+div>div]:!via-purple-500/20 [&+div>div]:!to-pink-500/20 [&+div>div]:!backdrop-blur-xl [&+div>div]:!backdrop-saturate-150"
+        className="pdf-legacy-chrome w-full sm:w-[90vw] md:w-[85vw] lg:w-[80vw] xl:w-[75vw] p-0 flex flex-col !overflow-hidden !max-w-none border-0 shadow-2xl [&+div>div]:!bg-gradient-to-br [&+div>div]:!from-brand-surface-500/20 [&+div>div]:!via-brand-secondary-surface-500/20 [&+div>div]:!to-pink-500/20 [&+div>div]:!backdrop-blur-xl [&+div>div]:!backdrop-saturate-150"
         style={{ 
           padding: 0, 
           maxWidth: 'none',
@@ -210,11 +210,11 @@ function LegacyPDFViewer({
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 shadow-lg">
                 <FileText className="h-5 w-5 text-white" />
               </div>
               <div>
-                <SheetTitle className="text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <SheetTitle className="text-xl font-bold bg-gradient-to-r from-brand-ink-600 via-brand-secondary-ink-600 to-pink-600 bg-clip-text text-transparent">
                   {title}
                 </SheetTitle>
                 {fileName && (
@@ -231,7 +231,7 @@ function LegacyPDFViewer({
                   size="sm"
                   onClick={handleOpenInNewTab}
                   disabled={!pdfUrl || isLoading}
-                  className="gap-2 border-gray-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md dark:border-slate-700 dark:hover:from-blue-950/40 dark:hover:to-purple-950/40 dark:hover:border-blue-800/60"
+                  className="gap-2 border-gray-200 hover:bg-gradient-to-r hover:from-brand-surface-50 hover:to-brand-secondary-surface-50 hover:border-brand-300 transition-all duration-200 shadow-sm hover:shadow-md dark:border-slate-700 dark:hover:from-brand-surface-950/40 dark:hover:to-brand-secondary-surface-950/40 dark:hover:border-brand-800/60"
                   title="Open in new tab"
                 >
                   <FileText className="h-4 w-4" />
@@ -244,7 +244,7 @@ function LegacyPDFViewer({
                   size="sm"
                   onClick={handlePrint}
                   disabled={!pdfUrl || isLoading}
-                  className="gap-2 border-gray-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md dark:border-slate-700 dark:hover:from-blue-950/40 dark:hover:to-purple-950/40 dark:hover:border-blue-800/60"
+                  className="gap-2 border-gray-200 hover:bg-gradient-to-r hover:from-brand-surface-50 hover:to-brand-secondary-surface-50 hover:border-brand-300 transition-all duration-200 shadow-sm hover:shadow-md dark:border-slate-700 dark:hover:from-brand-surface-950/40 dark:hover:to-brand-secondary-surface-950/40 dark:hover:border-brand-800/60"
                   title="Open your device print settings"
                 >
                   <Printer className="h-4 w-4" />
@@ -297,8 +297,8 @@ function LegacyPDFViewer({
             >
               <div className="flex flex-col items-center gap-4 p-8 rounded-2xl bg-white/80 shadow-xl border border-gray-200/50 dark:bg-slate-900/80 dark:border-slate-700/50">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full blur-xl opacity-30 animate-pulse" />
-                  <Loader2 className="h-10 w-10 animate-spin text-blue-600 relative z-10 dark:text-blue-400" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-brand-surface-500 to-brand-secondary-surface-600 rounded-full blur-xl opacity-30 animate-pulse" />
+                  <Loader2 className="h-10 w-10 animate-spin text-brand-ink-600 relative z-10 dark:text-brand-ink-400" />
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-medium text-gray-700 dark:text-slate-200">Loading PDF</p>

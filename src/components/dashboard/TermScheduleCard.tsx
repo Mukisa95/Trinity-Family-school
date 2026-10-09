@@ -33,7 +33,7 @@ function getEventRelativeStatus(event: any) {
         const diff = differenceInDays(startDate, today);
         if (diff === 0) return { text: 'Today', color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-950/40', border: 'border-emerald-200 dark:border-emerald-800/60' };
         if (diff === 1) return { text: 'Tomorrow', color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-950/40', border: 'border-emerald-200 dark:border-emerald-800/60' };
-        return { text: `In ${diff} days`, color: 'text-blue-700 dark:text-blue-300', bg: 'bg-blue-50 dark:bg-blue-950/40', border: 'border-blue-200 dark:border-blue-800/60' };
+        return { text: `In ${diff} days`, color: 'text-brand-ink-700 dark:text-brand-ink-300', bg: 'bg-brand-surface-50 dark:bg-brand-surface-950/40', border: 'border-brand-200 dark:border-brand-800/60' };
     }
 
     if (now > endDate) {
@@ -138,12 +138,12 @@ export function TermScheduleCard() {
                 <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
                 {/* Decorative gradient accent */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 rounded-t-xl opacity-60" />
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-secondary-alt-surface-500 via-brand-secondary-surface-500 to-pink-500 rounded-t-xl opacity-60" />
 
                 <CardHeader className="pb-2 pt-3 relative z-20 shrink-0">
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent whitespace-nowrap dark:from-indigo-400 dark:to-purple-400">
+                            <CardTitle className="text-xl font-bold bg-gradient-to-r from-brand-alt-ink-600 to-brand-secondary-ink-600 bg-clip-text text-transparent whitespace-nowrap dark:from-brand-alt-ink-400 dark:to-brand-secondary-ink-400">
                                 This Term
                             </CardTitle>
                         </div>
@@ -151,7 +151,7 @@ export function TermScheduleCard() {
                             variant="ghost"
                             size="sm"
                             onClick={() => router.push('/events')}
-                            className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 p-1 h-auto dark:text-indigo-400 dark:hover:text-indigo-300 dark:hover:bg-indigo-950/40"
+                            className="text-brand-alt-ink-600 hover:text-brand-alt-ink-700 hover:bg-brand-alt-surface-50 p-1 h-auto dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-300 dark:hover:bg-brand-alt-surface-950/40"
                         >
                             <ChevronRight className="w-4 h-4" />
                         </Button>
@@ -160,7 +160,7 @@ export function TermScheduleCard() {
                 <CardContent className="relative z-20 px-2 pb-2 pt-0 flex-1 min-h-0">
                     {isLoading ? (
                         <div className="h-[290px] flex items-center justify-center">
-                            <Loader2 className="h-6 w-6 animate-spin text-indigo-600 dark:text-indigo-400" />
+                            <Loader2 className="h-6 w-6 animate-spin text-brand-alt-ink-600 dark:text-brand-alt-ink-400" />
                         </div>
                     ) : termFilteredEvents.length === 0 ? (
                         <div className="h-[290px] flex flex-col items-center justify-center text-center px-4 bg-slate-50/50 rounded-xl border-2 border-dashed border-slate-200 mx-2 mt-2 dark:bg-slate-900/50 dark:border-slate-700">
@@ -180,7 +180,7 @@ export function TermScheduleCard() {
                                         className={`px-2.5 py-1.5 rounded-lg border ${status.border} ${status.bg} hover:shadow-sm transition-all cursor-pointer flex justify-between items-center group`}
                                     >
                                         <div className="flex flex-col overflow-hidden flex-1 mr-2">
-                                            <h4 className="text-[13px] font-semibold text-slate-800 truncate group-hover:text-indigo-600 transition-colors leading-tight dark:text-slate-100 dark:group-hover:text-indigo-400">{event.title}</h4>
+                                            <h4 className="text-[13px] font-semibold text-slate-800 truncate group-hover:text-brand-alt-ink-600 transition-colors leading-tight dark:text-slate-100 dark:group-hover:text-brand-alt-ink-400">{event.title}</h4>
                                             <p className="text-[11px] text-slate-500 flex items-center gap-1 font-medium mt-0.5 dark:text-slate-400">
                                                 <CalendarIcon className="w-[10px] h-[10px]" />
                                                 {format(new Date(event.startDate), 'MMM d, yyyy')}

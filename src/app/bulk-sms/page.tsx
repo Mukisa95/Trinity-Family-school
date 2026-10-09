@@ -724,11 +724,11 @@ const BulkSMS: React.FC = () => {
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">SMS Tools</DropdownMenuLabel>
                 <DropdownMenuSeparator className="my-1 border-gray-100 dark:border-slate-700" />
                 <DropdownMenuItem onClick={() => router.push('/sms-templates')} className="cursor-pointer py-2.5">
-                  <FileText className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <FileText className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                   <span>Message Templates</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowWizaDashboard(true)} className="cursor-pointer py-2.5">
-                  <Monitor className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  <Monitor className="mr-2 h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
                   <span>Wiza SMS Dashboard</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="my-1 border-gray-100 dark:border-slate-700" />
@@ -972,7 +972,7 @@ const BulkSMS: React.FC = () => {
                                 type="checkbox"
                                 checked={selectedPupilIds.includes(pupil.id)}
                                 onChange={() => handlePupilSelect(pupil.id)}
-                                className="rounded border-gray-300 text-primary focus:ring-primary w-3.5 h-3.5 dark:border-slate-700"
+                                className="rounded border-gray-300 text-link focus:ring-primary w-3.5 h-3.5 dark:border-slate-700"
                               />
                               <span className="flex-1 text-sm">{formatPupilDisplayName(pupil)}</span>
                               <div className="flex flex-col items-end">
@@ -1117,11 +1117,11 @@ const BulkSMS: React.FC = () => {
                       <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">SMS Scheduling</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => setShowSchedule(true)} className="cursor-pointer">
-                        <Calendar className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <Calendar className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                         Schedule SMS
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setShowScheduleList(true)} className="cursor-pointer">
-                        <Settings className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                        <Settings className="mr-2 h-4 w-4 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" />
                         Schedule List
                       </DropdownMenuItem>
                     </DropdownMenuContent>

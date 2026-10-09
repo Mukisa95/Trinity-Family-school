@@ -310,7 +310,7 @@ export default function PayrollAccountingPage() {
               </Card>
               <Card>
                 <CardContent className="p-5">
-                  <BarChart3 className="mb-3 h-5 w-5 text-blue-700 dark:text-blue-300" />
+                  <BarChart3 className="mb-3 h-5 w-5 text-brand-ink-700 dark:text-brand-ink-300" />
                   <p className="text-xs font-medium text-muted-foreground">
                     Payments recorded
                   </p>
@@ -321,7 +321,7 @@ export default function PayrollAccountingPage() {
               </Card>
               <Card>
                 <CardContent className="p-5">
-                  <Users className="mb-3 h-5 w-5 text-violet-700 dark:text-violet-300" />
+                  <Users className="mb-3 h-5 w-5 text-brand-secondary-alt-ink-700 dark:text-brand-secondary-alt-ink-300" />
                   <p className="text-xs font-medium text-muted-foreground">
                     Staff paid
                   </p>

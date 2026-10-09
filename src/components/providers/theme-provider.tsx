@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { flushSync } from "react-dom";
 import { ThemeProvider as NextThemeProvider, useTheme } from "next-themes";
 import { androidOfflineRequest, hasAndroidOfflineBridge } from "@/lib/offline/android-bridge";
+import { applyLookAndFeel, DEFAULT_LOOK_AND_FEEL, LOOK_AND_FEEL_BOOTSTRAP, LOOK_AND_FEEL_STORAGE_KEY, parseLookAndFeel, type LookAndFeelSettings } from "@/lib/theme/appearance-settings";
 
 export type ThemePreference = "light" | "dark" | "system";
 type ThemeTransition = { ready: Promise<void>; finished: Promise<void>; skipTransition: () => void };
@@ -14,16 +15,36 @@ const AppearanceContext = createContext<{
   dark: boolean;
   preference: ThemePreference;
   changing: boolean;
+  lookAndFeel: LookAndFeelSettings;
+  storageAvailable: boolean;
   changeTheme: (theme: ThemePreference, origin: HTMLElement) => Promise<void>;
+  changeLookAndFeel: (settings: Partial<LookAndFeelSettings>, origin?: HTMLElement) => Promise<void>;
 } | null>(null);
 
 function AppearanceProvider({ children }: { children: ReactNode }) {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [ready, setReady] = useState(false);
   const [changing, setChanging] = useState(false);
+  const [lookAndFeel, setLookAndFeel] = useState(DEFAULT_LOOK_AND_FEEL);
+  const settingsRef = useRef(DEFAULT_LOOK_AND_FEEL);
+  const [storageAvailable, setStorageAvailable] = useState(true);
   const active = useRef(false);
 
-  useEffect(() => setReady(true), []);
+  useEffect(() => {
+    const load = () => {
+      let settings = DEFAULT_LOOK_AND_FEEL;
+      try { settings = parseLookAndFeel(JSON.parse(localStorage.getItem(LOOK_AND_FEEL_STORAGE_KEY) || "{}")); }
+      catch { /* Corrupt or unavailable storage falls back to a usable theme. */ }
+      settingsRef.current = settings;
+      setLookAndFeel(settings);
+      applyLookAndFeel(settings);
+    };
+    load();
+    setReady(true);
+    const sync = (event: StorageEvent) => { if (event.key === LOOK_AND_FEEL_STORAGE_KEY || event.key === null) load(); };
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
   useEffect(() => {
     if (!theme || !resolvedTheme || !hasAndroidOfflineBridge()) return;
     // Persist preference even when changing it leaves the visible palette unchanged.
@@ -46,15 +67,8 @@ function AppearanceProvider({ children }: { children: ReactNode }) {
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", resolvedTheme === "dark" ? "#0b1120" : "#f1f7ff");
   }, [resolvedTheme]);
 
-  const changeTheme = async (preference: ThemePreference, origin: HTMLElement) => {
+  const transitionAppearance = async (apply: () => void, origin: HTMLElement) => {
     if (active.current) return;
-    const dark = preference === "system"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-      : preference === "dark";
-    const apply = () => flushSync(() => setTheme(preference));
-    // Changing the saved preference need not animate when the visible palette is unchanged.
-    if (dark === (resolvedTheme === "dark")) { apply(); return; }
-
     active.current = true;
     setChanging(true);
     const root = document.documentElement;
@@ -108,12 +122,38 @@ function AppearanceProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  return <AppearanceContext.Provider value={{ ready, dark: resolvedTheme === "dark", preference: (theme || "system") as ThemePreference, changing, changeTheme }}>{children}</AppearanceContext.Provider>;
+  const changeTheme = async (preference: ThemePreference, origin: HTMLElement) => {
+    if (active.current) return;
+    const dark = preference === "system" ? window.matchMedia("(prefers-color-scheme: dark)").matches : preference === "dark";
+    const apply = () => flushSync(() => setTheme(preference));
+    // Remembering a preference does not need motion when its visible appearance is unchanged.
+    if (dark === (resolvedTheme === "dark")) { apply(); return; }
+    await transitionAppearance(apply, origin);
+  };
+
+  const changeLookAndFeel = async (patch: Partial<LookAndFeelSettings>, origin?: HTMLElement) => {
+    if (active.current) return;
+    const next = parseLookAndFeel({ ...settingsRef.current, ...patch });
+    const previous = settingsRef.current;
+    const apply = () => {
+      settingsRef.current = next;
+      applyLookAndFeel(next);
+      flushSync(() => setLookAndFeel(next));
+      try { localStorage.setItem(LOOK_AND_FEEL_STORAGE_KEY, JSON.stringify(next)); setStorageAvailable(true); }
+      catch { setStorageAvailable(false); }
+    };
+    if (origin && (next.preset !== previous.preset || next.background !== previous.background)) {
+      await transitionAppearance(apply, origin);
+    } else apply();
+  };
+
+  return <AppearanceContext.Provider value={{ ready, dark: resolvedTheme === "dark", preference: (theme || "system") as ThemePreference, changing, changeTheme, lookAndFeel, storageAvailable, changeLookAndFeel }}>{children}</AppearanceContext.Provider>;
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   return (
     <NextThemeProvider attribute="class" defaultTheme="system" enableSystem enableColorScheme disableTransitionOnChange storageKey="trinity-appearance">
+      <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: LOOK_AND_FEEL_BOOTSTRAP }} />
       <AppearanceProvider>{children}</AppearanceProvider>
     </NextThemeProvider>
   );

@@ -102,7 +102,7 @@ export function FeeAssignmentPicker({
         }}
         className={cn(
           'flex w-full items-center justify-between gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-900',
-          isSelected && 'bg-indigo-50 ring-1 ring-indigo-200 dark:bg-indigo-950/40 dark:ring-indigo-800/60'
+          isSelected && 'bg-brand-alt-surface-50 ring-1 ring-brand-alt-200 dark:bg-brand-alt-surface-950/40 dark:ring-brand-alt-800/60'
         )}
       >
         <span className="min-w-0 flex-1 truncate font-medium">{fee.name}</span>
@@ -120,7 +120,7 @@ export function FeeAssignmentPicker({
           <span
             className={cn(
               'whitespace-nowrap text-xs font-semibold',
-              kind === 'assignment' ? 'text-blue-700 dark:text-blue-300' : 'text-green-700 dark:text-green-300'
+              kind === 'assignment' ? 'text-brand-ink-700 dark:text-brand-ink-300' : 'text-green-700 dark:text-green-300'
             )}
           >
             {kind === 'discount' && fee.amount < 0
@@ -157,21 +157,21 @@ export function FeeAssignmentPicker({
         <div
           className={cn(
             'overflow-hidden rounded-md border',
-            isAssignment ? 'border-blue-100 bg-blue-50/40 dark:border-blue-800/60 dark:bg-blue-950/40' : 'border-green-100 bg-green-50/40 dark:border-green-800/60 dark:bg-green-950/40'
+            isAssignment ? 'border-brand-100 bg-brand-surface-50/40 dark:border-brand-800/60 dark:bg-brand-surface-950/40' : 'border-green-100 bg-green-50/40 dark:border-green-800/60 dark:bg-green-950/40'
           )}
         >
           <CollapsibleTrigger className="flex w-full items-center gap-2 px-2.5 py-2 text-left">
             <span
               className={cn(
                 'text-xs font-bold uppercase tracking-wide',
-                isAssignment ? 'text-blue-900 dark:text-blue-200' : 'text-green-900 dark:text-green-200'
+                isAssignment ? 'text-brand-ink-900 dark:text-brand-ink-200' : 'text-green-900 dark:text-green-200'
               )}
             >
               {isAssignment ? 'Assignment fees' : 'Discounts'}
               <span
                 className={cn(
                   'ml-1.5 font-normal normal-case',
-                  isAssignment ? 'text-blue-700/80 dark:text-blue-300/80' : 'text-green-700/80 dark:text-green-300/80'
+                  isAssignment ? 'text-brand-ink-700/80 dark:text-brand-ink-300/80' : 'text-green-700/80 dark:text-green-300/80'
                 )}
               >
                 ({options.length})
@@ -180,7 +180,7 @@ export function FeeAssignmentPicker({
             <ChevronDown
               className={cn(
                 'ml-auto h-4 w-4 shrink-0 transition-transform duration-200',
-                isAssignment ? 'text-blue-700 dark:text-blue-300' : 'text-green-700 dark:text-green-300',
+                isAssignment ? 'text-brand-ink-700 dark:text-brand-ink-300' : 'text-green-700 dark:text-green-300',
                 (expanded || search.length > 0) && 'rotate-180'
               )}
             />
@@ -188,7 +188,7 @@ export function FeeAssignmentPicker({
           <CollapsibleContent
             className={cn(
               'border-t bg-white px-2 pb-2 pt-1.5 dark:bg-slate-900',
-              isAssignment ? 'border-blue-100 dark:border-blue-800/60' : 'border-green-100 dark:border-green-800/60'
+              isAssignment ? 'border-brand-100 dark:border-brand-800/60' : 'border-green-100 dark:border-green-800/60'
             )}
           >
             <div className="relative mb-2">
@@ -208,7 +208,7 @@ export function FeeAssignmentPicker({
                   onPivotRequest();
                   handleOpenChange(false);
                 }}
-                className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 px-2 py-1.5 text-center text-xs font-semibold text-indigo-700 transition-colors mb-2 dark:border-indigo-800/60 dark:bg-indigo-950/50 dark:hover:bg-indigo-950/40 dark:text-indigo-300"
+                className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-brand-alt-200 bg-brand-alt-surface-50/50 hover:bg-brand-alt-surface-50 px-2 py-1.5 text-center text-xs font-semibold text-brand-alt-ink-700 transition-colors mb-2 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/50 dark:hover:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Pivot Discount (Custom)

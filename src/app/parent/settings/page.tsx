@@ -98,15 +98,15 @@ export default function ParentSettingsPage() {
     : 'Parent';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-blue-950/40 dark:via-slate-900 dark:to-indigo-950/40">
+    <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-alt-surface-50 dark:from-brand-surface-950/40 dark:via-slate-900 dark:to-brand-alt-surface-950/40">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-blue-100 shadow-sm dark:bg-slate-900/80 dark:border-blue-800/60">
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-brand-100 shadow-sm dark:bg-slate-900/80 dark:border-brand-800/60">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => goBack('/parent')}
-            className="w-8 h-8 rounded-full bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors dark:bg-blue-950/40 dark:hover:bg-blue-950/40"
+            className="w-8 h-8 rounded-full bg-brand-surface-50 hover:bg-brand-surface-100 flex items-center justify-center transition-colors dark:bg-brand-surface-950/40 dark:hover:bg-brand-surface-950/40"
           >
-            <ChevronLeft className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <ChevronLeft className="w-4 h-4 text-brand-ink-600 dark:text-brand-ink-400" />
           </button>
           <h1 className="text-base font-semibold text-gray-900 dark:text-slate-100">Settings</h1>
         </div>
@@ -117,7 +117,7 @@ export default function ParentSettingsPage() {
         {/* Profile Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 dark:bg-slate-900 dark:border-slate-700">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg flex-shrink-0">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-brand-surface-500 to-brand-alt-surface-600 flex items-center justify-center shadow-lg flex-shrink-0">
               <span className="text-xl font-bold text-white">
                 {displayName.charAt(0).toUpperCase()}
               </span>
@@ -128,7 +128,7 @@ export default function ParentSettingsPage() {
                 <Mail className="w-3 h-3 text-gray-400 flex-shrink-0 dark:text-slate-400" />
                 <p className="text-sm text-gray-500 truncate dark:text-slate-400">{user?.email || '—'}</p>
               </div>
-              <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-medium dark:bg-blue-950/40 dark:text-blue-400">
+              <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-brand-surface-50 text-brand-ink-600 text-xs font-medium dark:bg-brand-surface-950/40 dark:text-brand-ink-400">
                 <Shield className="w-3 h-3" />
                 Parent Account
               </span>
@@ -166,8 +166,8 @@ export default function ParentSettingsPage() {
             onClick={() => { setShowPasswordForm(prev => !prev); setMessage(null); }}
             className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 transition-colors text-left dark:hover:bg-slate-900"
           >
-            <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 dark:bg-indigo-950/40">
-              <Lock className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <div className="w-9 h-9 rounded-full bg-brand-alt-surface-100 flex items-center justify-center flex-shrink-0 dark:bg-brand-alt-surface-950/40">
+              <Lock className="w-4 h-4 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" />
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-800 dark:text-slate-100">Change Password</p>
@@ -189,7 +189,7 @@ export default function ParentSettingsPage() {
                     onChange={e => setCurrentPassword(e.target.value)}
                     required
                     placeholder="Enter current password"
-                    className="w-full px-3 py-2.5 pr-9 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent dark:border-slate-700 dark:focus:ring-blue-800/60"
+                    className="w-full px-3 py-2.5 pr-9 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-transparent dark:border-slate-700 dark:focus:ring-brand-800/60"
                   />
                   <button type="button" onClick={() => setShowCurrent(p => !p)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-300">
                     {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -206,7 +206,7 @@ export default function ParentSettingsPage() {
                     onChange={e => setNewPassword(e.target.value)}
                     required
                     placeholder="Min. 6 characters"
-                    className="w-full px-3 py-2.5 pr-9 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent dark:border-slate-700 dark:focus:ring-blue-800/60"
+                    className="w-full px-3 py-2.5 pr-9 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-transparent dark:border-slate-700 dark:focus:ring-brand-800/60"
                   />
                   <button type="button" onClick={() => setShowNew(p => !p)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-300">
                     {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -223,7 +223,7 @@ export default function ParentSettingsPage() {
                     onChange={e => setConfirmPassword(e.target.value)}
                     required
                     placeholder="Re-enter new password"
-                    className="w-full px-3 py-2.5 pr-9 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent dark:border-slate-700 dark:focus:ring-blue-800/60"
+                    className="w-full px-3 py-2.5 pr-9 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-transparent dark:border-slate-700 dark:focus:ring-brand-800/60"
                   />
                   <button type="button" onClick={() => setShowConfirm(p => !p)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-300">
                     {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -233,7 +233,7 @@ export default function ParentSettingsPage() {
               <button
                 type="submit"
                 disabled={isUpdating}
-                className="w-full py-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="w-full py-2.5 rounded-lg bg-gradient-to-r from-brand-surface-500 to-brand-alt-surface-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {isUpdating ? 'Updating…' : 'Update Password'}
               </button>
