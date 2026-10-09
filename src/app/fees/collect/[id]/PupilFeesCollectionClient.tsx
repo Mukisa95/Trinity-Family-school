@@ -196,9 +196,9 @@ interface SelectedFee {
 
 /** Neon outline + fill per term tab (cycles if more than three terms) */
 const TERM_TAB_NEON_STYLES = [
-  'border-cyan-400 text-cyan-700 shadow-[0_0_4px_rgba(34,211,238,0.55)] data-[state=active]:border-cyan-400 data-[state=active]:bg-cyan-400 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(34,211,238,0.8)] dark:text-cyan-300',
-  'border-fuchsia-400 text-fuchsia-700 shadow-[0_0_4px_rgba(232,121,249,0.55)] data-[state=active]:border-fuchsia-400 data-[state=active]:bg-fuchsia-500 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(232,121,249,0.8)]',
-  'border-lime-400 text-lime-800 shadow-[0_0_4px_rgba(163,230,53,0.55)] data-[state=active]:border-lime-400 data-[state=active]:bg-lime-400 data-[state=active]:text-lime-950 data-[state=active]:shadow-[0_0_10px_rgba(163,230,53,0.8)]',
+  'border-cyan-400 text-cyan-700 shadow-[0_0_4px_rgba(34,211,238,0.55)] data-[state=active]:border-cyan-400 data-[state=active]:bg-cyan-400 data-[state=active]:text-cyan-950 data-[state=active]:shadow-[0_0_10px_rgba(34,211,238,0.8)] dark:text-cyan-300 dark:data-[state=active]:bg-cyan-400 dark:data-[state=active]:text-cyan-950',
+  'border-fuchsia-400 text-fuchsia-700 shadow-[0_0_4px_rgba(232,121,249,0.55)] data-[state=active]:border-fuchsia-400 data-[state=active]:bg-fuchsia-700 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(232,121,249,0.8)] dark:text-fuchsia-300 dark:data-[state=active]:bg-fuchsia-700 dark:data-[state=active]:text-white',
+  'border-lime-400 text-lime-800 shadow-[0_0_4px_rgba(163,230,53,0.55)] data-[state=active]:border-lime-400 data-[state=active]:bg-lime-400 data-[state=active]:text-lime-950 data-[state=active]:shadow-[0_0_10px_rgba(163,230,53,0.8)] dark:text-lime-300 dark:data-[state=active]:bg-lime-400 dark:data-[state=active]:text-lime-950',
 ] as const;
 
 export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pupilId?: string }) {
@@ -2721,7 +2721,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                     <TabsTrigger
                       key={term.id}
                       value={term.id}
-                      className={`h-6 sm:h-7 shrink-0 rounded-full border-2 bg-white/90 px-2 sm:px-3 py-0 text-[10px] sm:text-[11px] font-bold leading-none transition-all duration-200 ease-out hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 data-[state=inactive]:bg-white/90 whitespace-nowrap  dark:bg-slate-900/90 ${TERM_TAB_NEON_STYLES[index % TERM_TAB_NEON_STYLES.length]}`}
+                      className={`h-6 sm:h-7 shrink-0 rounded-full border-2 bg-white/90 px-2 sm:px-3 py-0 text-[10px] sm:text-[11px] font-bold leading-none transition-all duration-200 ease-out hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 data-[state=inactive]:bg-white/90 whitespace-nowrap dark:bg-slate-900/90 dark:data-[state=inactive]:bg-slate-900/90 ${TERM_TAB_NEON_STYLES[index % TERM_TAB_NEON_STYLES.length]}`}
                     >
                       {term.name}
                     </TabsTrigger>
@@ -2733,7 +2733,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           right={
             <>
               <div className="flex items-center gap-1 bg-brand-alt-surface-50/80 dark:bg-brand-alt-surface-950/20 border border-brand-alt-100/50 dark:border-brand-alt-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="text-brand-alt-ink-700/85 dark:text-brand-alt-ink-300 font-medium">
+                <span className="text-brand-alt-ink-700 dark:text-brand-alt-ink-300 font-medium">
                   <span className="sm:hidden">Total</span>
                   <span className="hidden sm:inline">Total Fees:</span>
                 </span>
@@ -2742,20 +2742,20 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                 </span>
               </div>
               <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="text-green-700/85 dark:text-green-350 font-medium">
+                <span className="text-green-700 dark:text-green-300 font-medium">
                   <span className="sm:hidden">Paid</span>
                   <span className="hidden sm:inline">Total Paid:</span>
                 </span>
-                <span className="inline-flex min-w-[5.5rem] justify-end font-bold tabular-nums text-green-600 dark:text-green-400">
+                <span className="inline-flex min-w-[5.5rem] justify-end font-bold tabular-nums text-green-700 dark:text-green-400">
                   {hasTermSelectionError ? '—' : isFinancialDataLoading ? <span className="inline-block h-3 w-16 animate-pulse rounded bg-green-200 align-middle dark:bg-green-900/40" role="status" aria-label="Verifying total paid" /> : new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalPaid)}
                 </span>
               </div>
               <div className="flex items-center gap-1 bg-red-50/80 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="text-red-700/85 dark:text-red-350 font-medium">
+                <span className="text-red-700 dark:text-red-300 font-medium">
                   <span className="sm:hidden">Bal</span>
                   <span className="hidden sm:inline">Balance:</span>
                 </span>
-                <span className="inline-flex min-w-[5.5rem] justify-end font-bold tabular-nums text-red-650 dark:text-red-400">
+                <span className="inline-flex min-w-[5.5rem] justify-end font-bold tabular-nums text-red-700 dark:text-red-400">
                   {hasTermSelectionError ? '—' : isFinancialDataLoading ? <span className="inline-block h-3 w-16 animate-pulse rounded bg-red-200 align-middle dark:bg-red-900/40" role="status" aria-label="Verifying balance" /> : new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalBalance)}
                 </span>
               </div>

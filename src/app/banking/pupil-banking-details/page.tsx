@@ -321,15 +321,15 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
               <span className="font-bold font-tabular-nums">{formatCurrency(account.balance)}</span>
             </div>
             <div className="flex items-center gap-1 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-100/50 dark:border-amber-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-amber-700/85 dark:text-amber-350 font-medium">Loans:</span>
+              <span className="text-amber-700 dark:text-amber-300 font-medium">Loans:</span>
               <span className="font-bold text-amber-700 dark:text-amber-400">{activeLoans.length}</span>
             </div>
             <div className="flex items-center gap-1 bg-red-50/80 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-red-700/85 dark:text-red-350 font-medium">Outstanding:</span>
-              <span className="font-bold text-red-650 dark:text-red-400 font-tabular-nums">{formatCurrency(totalOutstanding)}</span>
+              <span className="text-red-700 dark:text-red-300 font-medium">Outstanding:</span>
+              <span className="font-bold text-red-700 dark:text-red-400 font-tabular-nums">{formatCurrency(totalOutstanding)}</span>
             </div>
             <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-brand-ink-700/85 dark:text-brand-ink-300 font-medium">Transactions:</span>
+              <span className="text-brand-ink-700 dark:text-brand-ink-300 font-medium">Transactions:</span>
               <span className="font-bold text-brand-ink-700 dark:text-brand-ink-400">{transactions.length}</span>
             </div>
           </>

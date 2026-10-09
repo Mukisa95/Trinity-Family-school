@@ -315,3 +315,25 @@ html[data-theme-reveal] .dashboard-bg-wrapper::after { transition: none !importa
   outline: 2px solid rgb(var(--lesson-ink));
   outline-offset: 2px;
 }
+
+/* Stable glass contrast even over the brightest part of the background artwork. */
+.glass-summary-bar {
+  color: hsl(var(--foreground));
+  background-color: rgb(var(--glass-surface) / .88);
+  border-color: rgb(var(--glass-edge) / .45);
+}
+@media screen {
+  .dark .glass-summary-bar {
+    background-color: rgb(var(--glass-surface) / .94);
+    border-color: rgb(var(--glass-edge) / .32);
+    box-shadow: 0 4px 20px rgb(var(--glass-shadow) / .2), inset 0 1px 0 rgb(255 255 255 / .04);
+  }
+}
+@media print {
+  .glass-summary-bar {
+    color: #0f172a;
+    background-color: #fff;
+    border-color: #e2e8f0;
+    box-shadow: none;
+  }
+}

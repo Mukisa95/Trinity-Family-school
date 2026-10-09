@@ -181,19 +181,19 @@ export default function BankingListPage() {
         right={
           <>
             <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-brand-ink-700/85 dark:text-brand-ink-300 font-medium">Total Accounts:</span>
+              <span className="text-brand-ink-700 dark:text-brand-ink-300 font-medium">Total Accounts:</span>
               <span className="font-bold text-brand-ink-700 dark:text-brand-ink-400">{accounts.length}</span>
             </div>
             <div className="flex items-center gap-1 bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-emerald-700/85 dark:text-emerald-350 font-medium">Active:</span>
+              <span className="text-emerald-700 dark:text-emerald-300 font-medium">Active:</span>
               <span className="font-bold text-emerald-700 dark:text-emerald-400">{getActiveAccounts().length}</span>
             </div>
             <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-green-700/85 dark:text-green-300 font-medium">Positive:</span>
-              <span className="font-bold text-green-750 dark:text-green-400">{getPositiveBalances().length}</span>
+              <span className="text-green-700 dark:text-green-300 font-medium">Positive:</span>
+              <span className="font-bold text-green-700 dark:text-green-400">{getPositiveBalances().length}</span>
             </div>
             <div className="flex items-center gap-1 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-100/50 dark:border-amber-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-amber-700/85 dark:text-amber-350 font-medium">Total Balance:</span>
+              <span className="text-amber-700 dark:text-amber-300 font-medium">Total Balance:</span>
               <span className="font-bold text-amber-700 dark:text-amber-400 font-tabular-nums">{formatCurrency(getTotalBalance())}</span>
             </div>
           </>

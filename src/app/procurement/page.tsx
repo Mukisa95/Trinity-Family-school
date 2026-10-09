@@ -602,23 +602,23 @@ export default function ProcurementPage() {
         right={
           <>
             <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-green-700/85 dark:text-green-300 font-medium">Purchases:</span>
+              <span className="text-green-700 dark:text-green-300 font-medium">Purchases:</span>
               <span className="font-bold text-green-700 dark:text-green-400">{summary.totalPurchases}</span>
             </div>
             <div className="flex items-center gap-1 bg-brand-secondary-surface-50/80 dark:bg-brand-secondary-surface-950/20 border border-brand-secondary-100/50 dark:border-brand-secondary-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-brand-secondary-ink-700/85 dark:text-brand-secondary-ink-300 font-medium">Total Spent:</span>
+              <span className="text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300 font-medium">Total Spent:</span>
               <span className="font-bold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-400 font-tabular-nums">{formatCurrency(summary.totalAmountSpent)}</span>
             </div>
             <div className="flex items-center gap-1 bg-orange-50/80 dark:bg-orange-950/20 border border-orange-100/50 dark:border-orange-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-orange-700/85 dark:text-orange-300 font-medium">Budgets:</span>
+              <span className="text-orange-700 dark:text-orange-300 font-medium">Budgets:</span>
               <span className="font-bold text-orange-700 dark:text-orange-400">{stats.totalBudgets}</span>
             </div>
             <div className="flex items-center gap-1 bg-pink-50/80 dark:bg-pink-950/20 border border-pink-100/50 dark:border-pink-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-pink-700/85 dark:text-pink-300 font-medium">Active Budgets:</span>
+              <span className="text-pink-700 dark:text-pink-300 font-medium">Active Budgets:</span>
               <span className="font-bold text-pink-700 dark:text-pink-400">{stats.activeBudgets}</span>
             </div>
             <div className="flex items-center gap-1 bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-              <span className="text-emerald-700/85 dark:text-emerald-350 font-medium">Utilization:</span>
+              <span className="text-emerald-700 dark:text-emerald-300 font-medium">Utilization:</span>
               <span className="font-bold text-emerald-700 dark:text-emerald-400 font-tabular-nums">
                 {stats.totalBudgetedAmount > 0
                   ? Math.round((stats.totalSpent / stats.totalBudgetedAmount) * 100)

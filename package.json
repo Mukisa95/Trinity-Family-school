@@ -118,6 +118,7 @@
     "test:pdf-theme-browser": "node scripts/test-pdf-theme-browser.cjs",
     "test:theme-coverage": "node scripts/check-theme-coverage.cjs",
     "test:dashboard-theme-browser": "node scripts/test-dashboard-theme-browser.cjs",
+    "test:summary-theme-browser": "node scripts/test-summary-theme-browser.cjs",
     "test:pupil-theme-browser": "node scripts/test-pupil-theme-browser.cjs"
   },
   "dependencies": {

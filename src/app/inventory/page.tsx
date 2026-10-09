@@ -383,7 +383,7 @@ export default function InventoryPage() {
                 right={
                     <>
                         <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                            <span className="text-brand-ink-700/85 dark:text-brand-ink-300 font-medium">Total Items:</span>
+                            <span className="text-brand-ink-700 dark:text-brand-ink-300 font-medium">Total Items:</span>
                             <span className="font-bold text-brand-ink-700 dark:text-brand-ink-400">{summary?.totalItems || 0}</span>
                         </div>
                         <div className={cn(
@@ -396,12 +396,12 @@ export default function InventoryPage() {
                             <span className="font-bold">{summary?.lowStockCount || 0}</span>
                         </div>
                         <div className="flex items-center gap-1 bg-brand-secondary-surface-50/80 dark:bg-brand-secondary-surface-950/20 border border-brand-secondary-100/50 dark:border-brand-secondary-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                            <span className="text-brand-secondary-ink-700/85 dark:text-brand-secondary-ink-300 font-medium">Items Issued:</span>
+                            <span className="text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300 font-medium">Items Issued:</span>
                             <span className="font-bold text-brand-secondary-ink-700 dark:text-brand-secondary-ink-400">{issuedItems?.length || 0}</span>
                         </div>
                         <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                            <span className="text-green-700/85 dark:text-green-300 font-medium">Total Value:</span>
-                            <span className="font-bold text-green-750 dark:text-green-400 font-tabular-nums">{formatCurrency(summary?.totalValue || 0)}</span>
+                            <span className="text-green-700 dark:text-green-300 font-medium">Total Value:</span>
+                            <span className="font-bold text-green-700 dark:text-green-400 font-tabular-nums">{formatCurrency(summary?.totalValue || 0)}</span>
                         </div>
                     </>
                 }

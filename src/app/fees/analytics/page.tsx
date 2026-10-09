@@ -630,20 +630,20 @@ export default function CollectionAnalyticsPage() {
           isDataReady && stats ? (
             <>
               <div className="flex items-center gap-1 bg-brand-surface-50/80 dark:bg-brand-surface-950/20 border border-brand-100/50 dark:border-brand-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="text-brand-ink-700/85 dark:text-brand-ink-300 font-medium">Expected:</span>
+                <span className="text-brand-ink-700 dark:text-brand-ink-300 font-medium">Expected:</span>
                 <span className="font-bold text-brand-ink-700 dark:text-brand-ink-400">
                   {formatCurrency(stats.totalExpected)} ({stats.totalPupils} pupils)
                 </span>
               </div>
               <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="text-green-700/85 dark:text-green-300 font-medium">Collected:</span>
+                <span className="text-green-700 dark:text-green-300 font-medium">Collected:</span>
                 <span className="font-bold text-green-700 dark:text-green-400 font-tabular-nums">
                   {formatCurrency(stats.totalCollected)} ({stats.collectionRate.toFixed(1)}%)
                 </span>
               </div>
               <div className="flex items-center gap-1 bg-red-50/80 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="text-red-700/85 dark:text-red-350 font-medium">Outstanding:</span>
-                <span className="font-bold text-red-650 dark:text-red-400 font-tabular-nums">
+                <span className="text-red-700 dark:text-red-300 font-medium">Outstanding:</span>
+                <span className="font-bold text-red-700 dark:text-red-400 font-tabular-nums">
                   {formatCurrency(stats.outstanding)} ({stats.unpaidPupils} unpaid)
                 </span>
               </div>
