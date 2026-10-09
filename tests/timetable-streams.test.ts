@@ -184,9 +184,9 @@ test('mobile view and filter controls live in the action island while weekdays r
   const source = readFileSync('src/components/timetable/TimetableViewPanel.tsx', 'utf8');
 
   assert.match(source, /createPortal/);
-  assert.match(source, /timetable-mobile-view-control/);
-  assert.match(source, /timetable-mobile-filter-control/);
-  assert.match(source, /timetable-mobile-filter-value-control/);
+  assert.match(source, /mobileControlTargets\?\.view/);
+  assert.match(source, /mobileControlTargets\?\.filter/);
+  assert.match(source, /mobileControlTargets\?\.filterValue/);
   assert.match(source, /<option value="day">Day<\/option>/);
   assert.match(source, /<option value="week">Week<\/option>/);
   assert.match(source, /mobileLabel: "Classes"/);
@@ -230,7 +230,10 @@ test('the PDF action opens class selection before mounting the printable timetab
   const panel = readFileSync('src/components/timetable/TimetableViewPanel.tsx', 'utf8');
   const dialog = readFileSync('src/components/timetable/TimetablePrintClassDialog.tsx', 'utf8');
 
-  assert.match(panel, /setIsPrintSelectorOpen\(true\)/);
+  const page = readFileSync('src/app/timetable/page.tsx', 'utf8');
+  assert.match(page, /onClick=\{\(\) => setIsPrintSelectorOpen\(true\)\}/);
+  assert.match(page, /printSelectorOpen=\{isPrintSelectorOpen\}/);
+  assert.doesNotMatch(page + panel, /hidden-print-btn/);
   assert.match(panel, /classes=\{printableData\.classes\}/);
   assert.match(panel, /entries=\{printableData\.entries\}/);
   assert.match(dialog, /Choose classes to print/);

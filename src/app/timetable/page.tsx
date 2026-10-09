@@ -137,6 +137,17 @@ export default function TimetablePage() {
     const [editingProfileForConfig, setEditingProfileForConfig] = React.useState<typeof profiles[0] | null>(null);
     const [viewMode, setViewMode] = React.useState<'single' | 'all'>('single');
     const [zoom, setZoom] = React.useState(1);
+    const [isPrintSelectorOpen, setIsPrintSelectorOpen] = React.useState(false);
+    const [mobileViewTarget, setMobileViewTarget] = React.useState<HTMLDivElement | null>(null);
+    const [mobileFilterTarget, setMobileFilterTarget] = React.useState<HTMLDivElement | null>(null);
+    const [mobileFilterValueTarget, setMobileFilterValueTarget] = React.useState<HTMLDivElement | null>(null);
+    const [mobileEditTarget, setMobileEditTarget] = React.useState<HTMLDivElement | null>(null);
+    const mobileControlTargets = React.useMemo(() => ({
+        view: mobileViewTarget,
+        filter: mobileFilterTarget,
+        filterValue: mobileFilterValueTarget,
+        edit: mobileEditTarget,
+    }), [mobileViewTarget, mobileFilterTarget, mobileFilterValueTarget, mobileEditTarget]);
 
     const isLoading = yearsLoading;
     const selectedTerm = viewTerms.find(term => term.id === termId);
@@ -303,7 +314,9 @@ export default function TimetablePage() {
                 actionsLeading={mobileHeaderSelectors}
                 actions={
                     yearId && termId && profiles.length > 0 ? (
-                        <GlassActionDock>
+                        <GlassActionDock accessory={activeProfile && viewMode === 'single' ? (
+                            <div ref={setMobileEditTarget} id="timetable-mobile-edit-control" className="flex shrink-0 items-center sm:hidden" />
+                        ) : undefined}>
                             {profiles.length > 1 && (
                                 <div data-mobile-action-hidden className="hidden sm:contents">
                                     <GlassActionButton
@@ -316,9 +329,9 @@ export default function TimetablePage() {
                             )}
                             {activeProfile && viewMode === 'single' && (
                                 <>
-                                    <div id="timetable-mobile-view-control" className="flex shrink-0 items-center sm:hidden" />
-                                    <div id="timetable-mobile-filter-control" className="flex shrink-0 items-center sm:hidden" />
-                                    <div id="timetable-mobile-filter-value-control" className="flex shrink-0 items-center sm:hidden" />
+                                    <div ref={setMobileViewTarget} id="timetable-mobile-view-control" className="flex shrink-0 items-center sm:hidden" />
+                                    <div ref={setMobileFilterTarget} id="timetable-mobile-filter-control" className="flex shrink-0 items-center sm:hidden" />
+                                    <div ref={setMobileFilterValueTarget} id="timetable-mobile-filter-value-control" className="flex shrink-0 items-center sm:hidden" />
                                     <div data-mobile-action-hidden className="hidden sm:contents">
                                         <GlassActionButton
                                             label="Zoom -"
@@ -338,9 +351,10 @@ export default function TimetablePage() {
                                     </div>
                                     <GlassActionButton
                                         label="PDF"
+                                        aria-label="Print timetable"
                                         icon={<Printer className="h-4 w-4" />}
                                         tone="blue"
-                                        onClick={() => document.getElementById('hidden-print-btn')?.click()}
+                                        onClick={() => setIsPrintSelectorOpen(true)}
                                     />
                                 </>
                             )}
@@ -468,6 +482,9 @@ export default function TimetablePage() {
                                         profileName={activeProfile.name || "Main Timetable"}
                                         externalZoom={zoom}
                                         setExternalZoom={setZoom}
+                                        mobileControlTargets={mobileControlTargets}
+                                        printSelectorOpen={isPrintSelectorOpen}
+                                        onPrintSelectorOpenChange={setIsPrintSelectorOpen}
                                     />
                                 </div>
                             </>

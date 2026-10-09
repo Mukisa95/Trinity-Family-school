@@ -16,8 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff, ClassStream, TimetableProfile } from "@/types";
 import { getActiveClassStreams } from "@/lib/utils/class-streams";
 import { classUsesStreamRowsForDay, findTimetableEntryForRow, getTimetableClassColumnWidth, getTimetableStreamMode, type TimetableStreamMode } from "@/lib/utils/timetable-streams";
-
-const BASE_PX_PER_MIN = 1.8; // base: 60min = 108px — compact default
+import { useTimetableDensity } from "@/lib/hooks/use-timetable-density";
+import { getTimetablePeriodWidth } from "@/lib/utils/timetable-density";
 
 function parseTimeStr(timeStr: string): number {
     if (!timeStr) return 0;
@@ -188,7 +188,10 @@ export function TimetableGrid({
     const [activeCell, setActiveCell] = React.useState<{ classId: string; periodId: string; streamId?: string } | null>(null);
     const [editingPeriod, setEditingPeriod] = React.useState<{ id: string, newStartTime: string, newEndTime: string } | null>(null);
     const [currentTime, setCurrentTime] = React.useState(new Date());
-    const pxPerMin = BASE_PX_PER_MIN * zoom;
+    const compact = useTimetableDensity();
+    const periodWidth = (period: GeneratedPeriod) => getTimetablePeriodWidth(
+        parseTimeStr(period.endTime) - parseTimeStr(period.startTime), zoom, compact,
+    );
 
     const activeColRef = React.useRef<HTMLTableCellElement>(null);
     const tableRef = React.useRef<HTMLTableElement>(null);
@@ -598,7 +601,11 @@ export function TimetableGrid({
                 ref={scrollContainerRef}
                 className="overflow-x-auto overflow-y-auto overscroll-x-contain flex-1 min-h-[500px] min-w-0 max-w-full h-full w-full border border-gray-200 rounded-xl bg-white shadow-sm custom-scrollbar relative touch-pan-x touch-pan-y"
             >
-                <table ref={tableRef} className="w-full text-sm text-left border-collapse min-w-[max-content]">
+                <table
+                    ref={tableRef}
+                    className="table-fixed text-sm text-left border-collapse"
+                    style={{ width: classColumnWidth + dayPeriods.reduce((sum, period) => sum + periodWidth(period), 0) }}
+                >
                     <thead>
                         <tr className="bg-slate-50 border-b border-gray-200">
                             <th
@@ -608,12 +615,7 @@ export function TimetableGrid({
                                 CLASS
                             </th>
                             {dayPeriods.map(period => {
-                                const pStartMins = parseTimeStr(period.startTime);
-                                const pEndMins = parseTimeStr(period.endTime);
-                                let durationMinutes = pEndMins - pStartMins;
-                                if (durationMinutes <= 0 || isNaN(durationMinutes)) durationMinutes = 40;
-
-                                const cellWidth = Math.max(40, Math.round(durationMinutes * pxPerMin));
+                                const cellWidth = periodWidth(period);
 
                                 const todayDayOfWeek = currentTime.getDay() || 7;
                                 const activeStr = format(currentTime, "HH:mm");
@@ -632,7 +634,7 @@ export function TimetableGrid({
                                     <th
                                         key={period.id}
                                         ref={isCurrentActivePeriod ? activeColRef : null}
-                                        className={`p-2 border-r text-center align-top relative group overflow-visible sticky top-0 z-30 shadow-[0_1px_0_0_#e5e7eb] ${isCurrentActivePeriod ? 'bg-amber-50' : 'bg-slate-50'}`}
+                                        className={`p-0.5 sm:p-2 border-r text-center align-top relative group overflow-visible sticky top-0 z-30 shadow-[0_1px_0_0_#e5e7eb] ${isCurrentActivePeriod ? 'bg-amber-50' : 'bg-slate-50'}`}
                                         style={{ width: cellWidth, minWidth: cellWidth, maxWidth: cellWidth }}
                                     >
                                         {/* In-cell red timeline line — physically inside this column, cannot overshoot */}
@@ -829,7 +831,7 @@ export function TimetableGrid({
                                                             rowSpan={sharedAct.rowSpan}
                                                             colSpan={sharedAct.colSpan || 1}
                                                             className="border-r align-middle text-center p-0 relative"
-                                                            style={{ minWidth: Math.round((parseTimeStr(period.endTime) - parseTimeStr(period.startTime)) * pxPerMin) }}
+                                                            style={{ minWidth: periodWidth(period) }}
                                                         >
                                                             {isEditing ? (
                                                                 <Popover

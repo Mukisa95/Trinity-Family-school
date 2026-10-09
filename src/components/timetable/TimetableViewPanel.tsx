@@ -6,7 +6,10 @@ import { useTimetablePeriods, useTimetableEntries, useTimetableProfiles } from "
 import { useClasses } from "@/lib/hooks/use-classes";
 import { useSubjects } from "@/lib/hooks/use-subjects";
 import { useStaff } from "@/lib/hooks/use-staff";
-import { Loader2, CalendarDays, AlignJustify } from "lucide-react";
+import { Loader2, CalendarDays, AlignJustify, Pencil, Check } from "lucide-react";
+import { GlassActionButton } from "@/components/common/glass-page-top-bar";
+import { useTimetableDensity } from "@/lib/hooks/use-timetable-density";
+import { getTimetablePeriodWidth } from "@/lib/utils/timetable-density";
 import { format, parse } from "date-fns";
 import { TimetableGrid } from "@/components/timetable/TimetableGrid";
 import { PrintableTimetable } from "@/components/timetable/PrintableTimetable";
@@ -24,8 +27,6 @@ const DAYS = [
     { id: 5, label: "FRI", full: "Friday" },
     { id: 6, label: "SAT", full: "Saturday" },
 ];
-
-const PIXELS_PER_MINUTE = 1.8;
 
 function parseTimeStr(t: string): number {
     const parts = (t || "").split(":");
@@ -84,6 +85,14 @@ interface TimetableViewPanelProps {
     profileName?: string;
     externalZoom?: number;
     setExternalZoom?: React.Dispatch<React.SetStateAction<number>>;
+    mobileControlTargets?: {
+        view: HTMLElement | null;
+        filter: HTMLElement | null;
+        filterValue: HTMLElement | null;
+        edit: HTMLElement | null;
+    };
+    printSelectorOpen?: boolean;
+    onPrintSelectorOpenChange?: (open: boolean) => void;
 }
 
 // ─── Week Grid View ───────────────────────────────────────────────────────────
@@ -100,7 +109,10 @@ function WeekGridView({
     profile?: Pick<TimetableProfile, 'streamLayouts'>;
 }) {
     const zoom = externalZoom ?? 1;
-    const pxPerMin = PIXELS_PER_MINUTE * zoom;
+    const compact = useTimetableDensity();
+    const periodWidth = (period: GeneratedPeriod) => getTimetablePeriodWidth(
+        parseTimeStr(period.endTime) - parseTimeStr(period.startTime), zoom, compact,
+    );
 
     const fmt = (t: string) => {
         if (!t) return '';
@@ -217,8 +229,7 @@ function WeekGridView({
         for (const p of templatePeriods) {
             const pStartSecs = parseTimeStr(p.startTime) * 60;
             const pEndSecs = parseTimeStr(p.endTime) * 60;
-            const pDurMins = Math.max((pEndSecs - pStartSecs) / 60, 0);
-            const colWidth = Math.max(40, Math.round(pDurMins * pxPerMin));
+            const colWidth = periodWidth(p);
 
             if (currentSecs >= pEndSecs) {
                 offset += colWidth;
@@ -250,7 +261,7 @@ function WeekGridView({
     return (
         <div className="flex-1 min-h-0 flex flex-col pt-1">
             <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-220px)] sm:max-h-[calc(100vh-200px)] custom-scrollbar rounded-xl border border-gray-200 relative mb-4">
-                <table ref={tableRef} className="text-sm border-separate border-spacing-0 min-w-[max-content]">
+                <table ref={tableRef} className="table-fixed text-sm border-separate border-spacing-0" style={{ width: stickyOffset + templatePeriods.reduce((sum, period) => sum + periodWidth(period), 0) }}>
                     <thead>
                         <tr className="bg-slate-50 border-b border-gray-200">
                             {/* Day column — sticky left-0 */}
@@ -266,8 +277,7 @@ function WeekGridView({
                             )}
                             {/* Period columns */}
                             {templatePeriods.map(p => {
-                                const dur = Math.max(parseTimeStr(p.endTime) - parseTimeStr(p.startTime), 20);
-                                const w = Math.max(40, Math.round(dur * pxPerMin));
+                                const w = periodWidth(p);
                                 const isBreak = p.type === "break" || p.type === "lunch" || p.type === "assembly";
 
                                 // Auto-scroll ref target (matches current time regardless of break status)
@@ -595,11 +605,13 @@ function WeekGridView({
 }
 
 // ─── Main Panel ──────────────────────────────────────────────────────────────
-export function TimetableViewPanel({ yearId, termId, profileId, profileName, externalZoom, setExternalZoom }: TimetableViewPanelProps) {
+export function TimetableViewPanel({ yearId, termId, profileId, profileName, externalZoom, setExternalZoom, mobileControlTargets, printSelectorOpen, onPrintSelectorOpenChange }: TimetableViewPanelProps) {
     const [viewMode, setViewMode] = React.useState<ViewMode>("day");
     const [filterMode, setFilterMode] = React.useState<FilterMode>("all");
     const [filterId, setFilterId] = React.useState<string>("");
-    const [isPrintSelectorOpen, setIsPrintSelectorOpen] = React.useState(false);
+    const [internalPrintSelectorOpen, setInternalPrintSelectorOpen] = React.useState(false);
+    const isPrintSelectorOpen = printSelectorOpen ?? internalPrintSelectorOpen;
+    const setIsPrintSelectorOpen = onPrintSelectorOpenChange ?? setInternalPrintSelectorOpen;
     const [printClassIds, setPrintClassIds] = React.useState<string[]>([]);
     const [isPrinting, setIsPrinting] = React.useState(false);
 
@@ -716,21 +728,6 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
     const [isEditing, setIsEditing] = React.useState(false);
     const [selectedDay, setSelectedDay] = React.useState<number>(new Date().getDay() || 7);
     const [isFabOpen, setIsFabOpen] = React.useState(false);
-    const [mobileControlTargets, setMobileControlTargets] = React.useState<{
-        view: HTMLElement;
-        filter: HTMLElement;
-        filterValue: HTMLElement;
-    } | null>(null);
-
-    React.useEffect(() => {
-        const frame = window.requestAnimationFrame(() => {
-            const view = document.getElementById("timetable-mobile-view-control");
-            const filter = document.getElementById("timetable-mobile-filter-control");
-            const filterValue = document.getElementById("timetable-mobile-filter-value-control");
-            if (view && filter && filterValue) setMobileControlTargets({ view, filter, filterValue });
-        });
-        return () => window.cancelAnimationFrame(frame);
-    }, []);
 
     // Close FAB when disabling edit mode
     React.useEffect(() => {
@@ -742,7 +739,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
     return (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-5 min-w-0 flex flex-col gap-3 h-[calc(100vh-170px)] overflow-hidden">
 
-            {mobileControlTargets && createPortal(
+            {mobileControlTargets?.view && createPortal(
                 <select
                     value={viewMode}
                     onChange={(event) => setViewMode(event.target.value as ViewMode)}
@@ -755,7 +752,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                 mobileControlTargets.view,
             )}
 
-            {mobileControlTargets && createPortal(
+            {mobileControlTargets?.filter && createPortal(
                 <select
                     value={filterMode}
                     onChange={event => setFilterMode(event.target.value as FilterMode)}
@@ -769,7 +766,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                 mobileControlTargets.filter,
             )}
 
-            {mobileControlTargets && filterMode !== "all" && createPortal(
+            {mobileControlTargets?.filterValue && filterMode !== "all" && createPortal(
                 <select
                     value={filterId}
                     onChange={event => setFilterId(event.target.value)}
@@ -788,6 +785,19 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                     ))}
                 </select>,
                 mobileControlTargets.filterValue,
+            )}
+
+            {mobileControlTargets?.edit && createPortal(
+                <GlassActionButton
+                    label={isEditing ? "Done" : "Edit"}
+                    aria-label={isEditing ? "Done editing" : "Edit lessons"}
+                    aria-pressed={isEditing}
+                    icon={isEditing ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+                    tone={isEditing ? "emerald" : "blue"}
+                    onClick={() => { setViewMode("day"); setIsEditing(!isEditing); }}
+                    className="h-[54px] w-[54px] min-w-[54px] flex-none rounded-full border-indigo-300/65 bg-white/72 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/55 backdrop-blur-[20px] sm:hidden"
+                />,
+                mobileControlTargets.edit,
             )}
 
             <TimetablePrintClassDialog
@@ -814,8 +824,6 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                     onClose={() => setIsPrinting(false)}
                 />
             )}
-
-            <button id="hidden-print-btn" className="hidden" onClick={() => setIsPrintSelectorOpen(true)} />
 
             {/* ── Unified Control Toolbar ── */}
             <div className={`flex-shrink-0 bg-gray-50/80 p-1.5 sm:p-2 rounded-full sm:rounded-xl border border-gray-100 overflow-hidden ${viewMode === "week" ? "hidden sm:flex" : "flex"}`}>
@@ -965,9 +973,9 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
 
             {/* ── Floating Quick Actions (Day View) ── */}
             {viewMode === "day" && (
-                <div className="fixed sm:absolute bottom-6 sm:bottom-6 right-6 sm:right-6 z-50 flex flex-col items-end gap-2 group">
+                <div className="pointer-events-none absolute bottom-6 right-6 z-50 hidden flex-col items-end gap-2 sm:flex">
                     {/* Expanded Actions */}
-                    <div className={`flex flex-col items-end gap-2 transition-all duration-300 origin-bottom-right ${isFabOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'}`}>
+                    {isFabOpen && <div className="pointer-events-auto flex flex-col items-end gap-2">
                         {/* Auto Arrange (Placeholder) */}
                         <button
                             className="bg-white hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-full shadow-lg border border-gray-200 flex items-center gap-2 text-sm font-semibold transition-all hover:-translate-y-0.5"
@@ -983,7 +991,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                         >
                             <span>➕</span> Add / Manage Lessons
                         </button>
-                    </div>
+                    </div>}
 
                     {/* Primary FAB Toggle */}
                     <button
@@ -994,7 +1002,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                                 setIsFabOpen(!isFabOpen);
                             }
                         }}
-                        className={`flex items-center justify-center w-14 h-14 rounded-full shadow-xl text-white transition-all duration-300 hover:scale-105 active:scale-95 ${isEditing
+                        className={`pointer-events-auto flex items-center justify-center w-14 h-14 rounded-full shadow-xl text-white transition-all duration-300 hover:scale-105 active:scale-95 ${isEditing
                             ? 'bg-amber-500 hover:bg-amber-600 border-2 border-amber-300'
                             : isFabOpen
                                 ? 'bg-gray-800 hover:bg-gray-900 border-2 border-gray-700'

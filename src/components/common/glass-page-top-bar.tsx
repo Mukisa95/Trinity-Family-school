@@ -377,6 +377,8 @@ export function GlassPageSearchInput({
 interface GlassActionDockProps {
   children: ReactNode;
   className?: string;
+  /** A separate mobile control aligned alongside the action island. */
+  accessory?: ReactNode;
 }
 
 function getVisibleMobileActionChildren(children: ReactNode): ReactNode[] {
@@ -396,7 +398,7 @@ function getVisibleMobileActionChildren(children: ReactNode): ReactNode[] {
   });
 }
 
-export function GlassActionDock({ children, className }: GlassActionDockProps) {
+export function GlassActionDock({ children, className, accessory }: GlassActionDockProps) {
   const isSmallScreen = useSmallScreen();
   const actionCount = Math.max(1, getVisibleMobileActionChildren(children).length);
   const compactWidth = actionCount > 1 ? Math.min(360, actionCount * 58 + 8) : undefined;
@@ -416,7 +418,10 @@ export function GlassActionDock({ children, className }: GlassActionDockProps) {
   if (isSmallScreen) {
     return createPortal(
       <div className="pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-30 flex justify-center sm:hidden">
-        <div className="pointer-events-auto max-w-full">{dock}</div>
+        <div className={cn("pointer-events-auto max-w-full", accessory && "flex min-w-0 items-center gap-2")}>
+          <div className="min-w-0">{dock}</div>
+          {accessory}
+        </div>
       </div>,
       document.body
     );
