@@ -359,7 +359,8 @@ export function GlassPageSearchInput({
         data-1p-ignore="true"
         data-lpignore="true"
         data-form-type="other"
-        placeholder={placeholder}
+        placeholder={isMobileExpanded ? placeholder : ""}
+        aria-label={inputProps["aria-label"] || placeholder}
         style={{ boxShadow: "0 1px 4px rgba(59, 130, 246, 0.05)" }}
         className={cn(
           "h-[34px] rounded-full border border-brand-200/60 bg-white/90 text-xs shadow-sm transition-all duration-200 ease-out placeholder:text-gray-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:placeholder:text-slate-400",
