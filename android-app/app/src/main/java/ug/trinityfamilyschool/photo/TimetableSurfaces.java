@@ -1,9 +1,7 @@
 package ug.trinityfamilyschool.photo;
-import android.Manifest;
 import android.app.*;
 import android.appwidget.*;
 import android.content.*;
-import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.SizeF;
 import android.view.View;
@@ -43,17 +41,20 @@ final class TimetableSurfaces {
     private static PendingIntent action(Context context, String action, int code) {
         return PendingIntent.getBroadcast(context, code, new Intent(context, TimetableReceiver.class).setAction("ug.trinity.timetable." + action), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
-    static void hideCard(Context context) { prefs(context).edit().putBoolean("card", false).apply(); ((NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(CARD_ID); }
-    static void clear(Context context) {
+    static synchronized void hideCard(Context context) {
+        prefs(context).edit().putBoolean("card", false).apply(); ((NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(CARD_ID);
+        if (!TimetableRefresh.hasWidgets(context)) TimetableRefresh.cancel(context); else TimetableRefresh.request(context);
+    }
+    static synchronized void clear(Context context) {
         prefs(context).edit().clear().apply();
-        ((AlarmManager) context.getSystemService(Context.ALARM_SERVICE)).cancel(action(context, "UPDATE", 72));
+        TimetableRefresh.cancel(context);
         ((NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(CARD_ID);
         renderEmptyWidgets(context);
     }
     static void refresh(Context context, OfflineStore store) {
         refresh(context, store, null);
     }
-    static void refresh(Context context, OfflineStore store, Integer surfaceId) {
+    static synchronized void refresh(Context context, OfflineStore store, Integer surfaceId) {
         try {
             JSONObject envelope = store.timetableAvailable();
             if (envelope == null || !envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable")) { clear(context); return; }
@@ -65,23 +66,34 @@ final class TimetableSurfaces {
             TimetableSchedule.Frame frame = feed(context, envelope, AppWidgetManager.INVALID_APPWIDGET_ID, now);
             NotificationManager notifications = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             notifications.createNotificationChannel(new NotificationChannel("timetable", "School timetables", NotificationManager.IMPORTANCE_LOW));
-            if (surfaceId == null || surfaceId == AppWidgetManager.INVALID_APPWIDGET_ID) {
-                if (!frame.profiles.isEmpty() && prefs(context).getBoolean("card", true) && (Build.VERSION.SDK_INT < 33 || context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)) notifications.notify(CARD_ID, card(context, new JSONObject(), frame, 0));
-                else notifications.cancel(CARD_ID);
-            }
-            long next = frame.boundary; boolean progress = frame.active && prefs(context).getBoolean("card", true);
+            boolean cardVisible = !frame.profiles.isEmpty() && prefs(context).getBoolean("card", true) && LessonReminders.notificationsAllowed(context);
+            long next = frame.boundary; boolean progress = frame.active && cardVisible && prefs(context).getBoolean("progress", true);
+            Map<Integer, TimetableSchedule.Frame> widgets = new LinkedHashMap<>(); Map<Integer, Boolean> bars = new HashMap<>();
             AppWidgetManager manager = AppWidgetManager.getInstance(context);
             for (Class<?> provider : new Class<?>[]{TimetableWidget.class, TimetableProgressWidget.class}) for (int id : manager.getAppWidgetIds(new ComponentName(context, provider))) {
                 boolean bar = prefs(context).getBoolean(prefix(id) + "progress", provider == TimetableProgressWidget.class);
                 TimetableSchedule.Frame widgetFrame = feed(context, envelope, id, now);
                 next = Math.min(next, widgetFrame.boundary);
-                if (surfaceId == null || surfaceId == id) renderWidget(context, manager, id, widgetFrame, bar);
+                widgets.put(id, widgetFrame); bars.put(id, bar);
                 progress |= bar && widgetFrame.active;
             }
-            long millis = System.currentTimeMillis(); next = Math.min(next, OfflineStore.timestamp(session.optString("expiresAt")));
-            if (progress) next = Math.min(next, (millis / 60000 + 1) * 60000);
-            ((AlarmManager) context.getSystemService(Context.ALARM_SERVICE)).setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, Math.max(millis + 1000, next), action(context, "UPDATE", 72));
-        } catch (Exception error) { ((NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(CARD_ID); renderEmptyWidgets(context); }
+            long expires = OfflineStore.timestamp(session.optString("expiresAt")), millis = System.currentTimeMillis();
+            if (expires <= millis) { clear(context); return; }
+            TimetableRefresh.schedule(context, new TimetableRefreshPlan(millis, next,
+                expires, cardVisible || !widgets.isEmpty(), progress, TimetableRefresh.interactive(context)));
+            // Arm recovery before publishing. One failed host must not stop the other displays.
+            if (surfaceId == null || surfaceId == AppWidgetManager.INVALID_APPWIDGET_ID) try {
+                if (cardVisible) notifications.notify(CARD_ID, card(context, new JSONObject(), frame, 0)); else notifications.cancel(CARD_ID);
+            } catch (RuntimeException error) { android.util.Log.w("TrinityTimetable", "Notification refresh will retry", error); }
+            for (Map.Entry<Integer, TimetableSchedule.Frame> widget : widgets.entrySet()) if (surfaceId == null || surfaceId.equals(widget.getKey())) try {
+                renderWidget(context, manager, widget.getKey(), widget.getValue(), bars.get(widget.getKey()));
+            } catch (RuntimeException error) { android.util.Log.w("TrinityTimetable", "Widget refresh will retry", error); }
+            prefs(context).edit().putLong("lastRefreshAt", System.currentTimeMillis()).apply();
+        } catch (Exception error) {
+            android.util.Log.w("TrinityTimetable", "Timetable refresh will retry", error);
+            try { ((NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(CARD_ID); renderEmptyWidgets(context); }
+            finally { TimetableRefresh.retry(context); }
+        }
     }
     static TimetableSchedule.Frame feed(Context context, JSONObject envelope, int scope, ZonedDateTime now) throws Exception {
         TimetableSchedule.Frame frame = TimetableSchedule.feed(envelope.getJSONObject("snapshot").getJSONObject("datasets"), now, TimetableInteractions.offsets(context, scope, now));

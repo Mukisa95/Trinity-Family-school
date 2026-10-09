@@ -4,9 +4,9 @@
   "applicationId": "ug.trinityfamilyschool.live",
   "websiteOrigin": "https://trinityfamilyschool.vercel.app",
   "firebaseProjectId": "trinity-family-schools",
-  "versionCode": 17,
-  "versionName": "1.15",
-  "releaseNotes": "Restore dismissed timetable notifications from app settings. Timetable and reminder shortcuts now open this school's app.",
+  "versionCode": 18,
+  "versionName": "1.16",
+  "releaseNotes": "Keep timetable widgets and notifications updating with independent lesson alarms and automatic background recovery. Accurate timetable timing can be enabled in timetable card settings.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {

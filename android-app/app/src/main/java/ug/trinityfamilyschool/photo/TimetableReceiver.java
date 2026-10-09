@@ -17,11 +17,12 @@ public final class TimetableReceiver extends BroadcastReceiver {
             if (interaction) TimetableInteractions.apply(context, store, intent);
             long applied = android.os.SystemClock.elapsedRealtime();
             if (interaction) TimetableSurfaces.refresh(context, store, intent.getIntExtra("surfaceId", android.appwidget.AppWidgetManager.INVALID_APPWIDGET_ID));
+            else if ("ug.trinity.timetable.UPDATE".equals(intent.getAction()) || "ug.trinity.timetable.TICK".equals(intent.getAction())) TimetableSurfaces.refresh(context, store);
             else TimetableUpdates.refresh(context, store);
             if ((context.getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0 && interaction) android.util.Log.i("TrinityTimetable", intent.getStringExtra("operation")
                 + " queue_ms=" + (started-received) + " apply_ms=" + (applied-started)
                 + " publish_ms=" + (android.os.SystemClock.elapsedRealtime()-applied));
-        } catch (Exception ignored) { TimetableUpdates.refresh(context, new OfflineStore(context)); }
+        } catch (Exception ignored) { TimetableRefresh.retry(context); }
         finally { pending.finish(); } });
     }
 }

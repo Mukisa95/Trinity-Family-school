@@ -259,7 +259,7 @@ final class OfflineController {
     void resume() {
         handler.post(this::publishConnectivity);
         handler.post(() -> { if (PhotoPolicy.trusted(web.getUrl())) web.evaluateJavascript("window.dispatchEvent(new Event('trinity-android-notifications-change'))", null); });
-        io.execute(() -> LessonReminders.refresh(activity, store));
+        io.execute(() -> TimetableUpdates.refresh(activity, store));
     }
     void pause() { if (!unlockOpen) lock(); }
     void destroy() {

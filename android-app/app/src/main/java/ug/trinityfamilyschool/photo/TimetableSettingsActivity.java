@@ -18,7 +18,7 @@ public final class TimetableSettingsActivity extends Activity {
     private LinearLayout content; private Switch progress, notificationCard;
     private final List<String> tableIds = new ArrayList<>();
     private final Map<String, CheckBox> visibility = new LinkedHashMap<>(); private Set<String> hidden;
-    private TextView message; private Button apply;
+    private TextView message, timing; private Button apply;
     @Override public void onCreate(Bundle state) {
         boolean dark = (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
         setTheme(dark ? android.R.style.Theme_Material_NoActionBar : android.R.style.Theme_Material_Light_NoActionBar);
@@ -64,6 +64,11 @@ public final class TimetableSettingsActivity extends Activity {
             }
             Button showAll = button("Show all timetables"); showAll.setOnClickListener(view -> { for (CheckBox check : visibility.values()) check.setChecked(true); });
             label("Display choices do not change lesson reminder subscriptions.");
+            timing = label(""); updateTiming();
+            button("Allow accurate timetable timing").setOnClickListener(view -> {
+                if (android.os.Build.VERSION.SDK_INT >= 31) startActivity(new Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, android.net.Uri.parse("package:" + getPackageName())));
+                else Toast.makeText(this, "Accurate timing is available on this phone.", Toast.LENGTH_SHORT).show();
+            });
             if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
                 notificationCard = new Switch(this); notificationCard.setText("Show notification card"); notificationCard.setMinHeight(dp(48));
                 notificationCard.setChecked(TimetableSurfaces.prefs(this).getBoolean("card", true)); content.addView(notificationCard);
@@ -108,6 +113,12 @@ public final class TimetableSettingsActivity extends Activity {
             if (results.length > 0 && results[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) apply();
             else { message.setVisibility(View.VISIBLE); message.setText("Allow notifications in your phone's app settings to show the card, or turn Show notification card off."); }
         }
+    }
+    private void updateTiming() {
+        if (timing != null) timing.setText(LessonReminders.exactAllowed(this) ? "Accurate timetable timing is allowed." : "Allow accurate timetable timing to reduce Android delays when the app is closed.");
+    }
+    @Override protected void onResume() {
+        super.onResume(); updateTiming(); TimetableRefresh.request(this);
     }
     @Override protected void onDestroy() { io.shutdown(); super.onDestroy(); }
 }
