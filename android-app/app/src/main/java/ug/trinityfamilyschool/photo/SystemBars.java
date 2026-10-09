@@ -11,7 +11,7 @@ import androidx.core.view.WindowInsetsCompat;
 final class SystemBars {
     static void install(Activity activity, View root) {
         WindowCompat.setDecorFitsSystemWindows(activity.getWindow(), false);
-        apply(activity, root, false);
+        apply(activity, root, (activity.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES);
         ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
             androidx.core.graphics.Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
             int bottom = Math.max(bars.bottom, insets.getInsets(WindowInsetsCompat.Type.ime()).bottom);

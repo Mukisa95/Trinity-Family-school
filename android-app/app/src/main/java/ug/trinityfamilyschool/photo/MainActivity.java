@@ -306,6 +306,21 @@ public final class MainActivity extends Activity {
         if (request == 73) new Thread(() -> TimetableUpdates.refresh(this, new OfflineStore(this))).start();
     }
     public void checkForAppUpdates() { if (updater != null) updater.check(true); }
+    @Override public void onConfigurationChanged(android.content.res.Configuration configuration) {
+        super.onConfigurationChanged(configuration);
+        // Re-resolve night-qualified theme attributes before WebView updates its media queries.
+        // Handling uiMode here preserves the current page, form input and offline reader.
+        getTheme().applyStyle(R.style.TrinityTheme, true);
+        if (web != null) {
+            web.dispatchConfigurationChanged(configuration);
+            if (OfflinePolicy.local(web.getUrl())) {
+                android.view.ViewGroup content = findViewById(android.R.id.content);
+                if (content.getChildCount() > 0) SystemBars.apply(this, content.getChildAt(0),
+                    (configuration.uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES);
+            }
+        }
+    }
+
     @Override protected void onPause() { if (updater != null) updater.pause(); if (offline != null) offline.pause(); super.onPause(); }
     @Override protected void onResume() { super.onResume(); if (offline != null) offline.resume(); if (updater != null) updater.resume(); }
     @Override protected void onDestroy() {
