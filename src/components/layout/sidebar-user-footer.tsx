@@ -97,7 +97,7 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
             </button>
           </DropdownMenuTrigger>
 
-          <ThemeToggle compact={isCollapsed} />
+          {!isCollapsed && <ThemeToggle />}
 
           {/* Sidebar Collapse button (only when expanded and not mobile) */}
           {!isCollapsed && !isMobile && (

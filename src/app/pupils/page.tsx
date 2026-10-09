@@ -52,6 +52,7 @@ import { ManageIdCodesModal } from '@/components/pupils/manage-id-codes-modal';
 import { ManagePayCodeModal } from '@/components/pupils/manage-pay-code-modal';
 import { LinkSiblingsModal } from '@/components/pupils/link-siblings-modal';
 import { ActionGuard } from "@/components/auth/action-guard";
+import { getPupilRowTheme } from '@/components/pupils/pupil-row-theme';
 import { PupilTableRowSkeleton } from '@/components/pupils/PupilTableRowSkeleton';
 import { usePermissions } from "@/lib/hooks/use-permissions";
 import dynamic from 'next/dynamic';
@@ -3214,7 +3215,7 @@ function PupilsContent() {
           <div className="text-sm">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className={`text-${rowPupil.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:text-${rowPupil.gender === 'Female' ? 'pink' : 'indigo'}-600 text-left font-medium transition-colors hover:underline`}>
+                <button className={`text-left font-medium transition-colors hover:underline ${getPupilRowTheme(rowPupil.gender).detail}`}>
                   {getPupilClass(rowPupil).code || getPupilClass(rowPupil).name || 'N/A'}
                 </button>
               </DropdownMenuTrigger>
@@ -3369,7 +3370,7 @@ function PupilsContent() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className={`group inline-flex items-center justify-center rounded-lg p-1.5 text-${rowPupil.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:text-${rowPupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:bg-${rowPupil.gender === 'Female' ? 'pink' : 'indigo'}-50/50 transition-all duration-200`}
+                className={`group inline-flex items-center justify-center rounded-lg p-1.5 transition-all duration-200 ${getPupilRowTheme(rowPupil.gender).action}`}
                 title="Actions"
                 aria-label={`Actions for ${formatPupilDisplayName(rowPupil)}`}
               >
@@ -3803,7 +3804,7 @@ function PupilsContent() {
                               delay: isTransitioning ? 0 : index * 0.02,
                               ease: "easeOut"
                             }}
-                            className={`hover:bg-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-50 transition-colors`}
+                            className={`transition-colors ${getPupilRowTheme(pupil.gender).row}`}
                           >
                           <td className="px-2 sm:px-4 py-2 sm:py-3">
                             <div className="flex items-center space-x-2 sm:space-x-3">
@@ -3837,7 +3838,7 @@ function PupilsContent() {
                                   )}
                                   <Link
                                     href={`/pupil-detail?id=${pupil.id}`}
-                                    className={`min-w-0 truncate text-xs font-medium transition-colors sm:text-sm text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-800`}
+                                    className={`min-w-0 truncate text-xs font-medium transition-colors sm:text-sm ${getPupilRowTheme(pupil.gender).name}`}
                                   >
                                     {formatPupilDisplayName(pupil)}
                                   </Link>
@@ -3892,7 +3893,7 @@ function PupilsContent() {
                                   <div className="flex flex-wrap items-center gap-2">
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
-                                        <button className={`text-xs text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:underline transition-colors font-medium text-left`}>
+                                        <button className={`text-xs hover:underline transition-colors font-medium text-left ${getPupilRowTheme(pupil.gender).detail}`}>
                                           {getPupilClass(pupil).code || getPupilClass(pupil).name || 'N/A'}
                                         </button>
                                       </DropdownMenuTrigger>
@@ -3914,7 +3915,7 @@ function PupilsContent() {
                                     <span className="text-xs text-gray-400 dark:text-slate-400">•</span>
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
-                                        <button className={`text-xs text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:underline transition-colors font-medium text-left`}>
+                                        <button className={`text-xs hover:underline transition-colors font-medium text-left ${getPupilRowTheme(pupil.gender).detail}`}>
                                           {pupil.section}
                                         </button>
                                       </DropdownMenuTrigger>
@@ -3946,7 +3947,7 @@ function PupilsContent() {
                                     <span className="text-xs text-gray-400 dark:text-slate-400">•</span>
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
-                                        <button className={`text-xs text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:underline transition-colors font-medium text-left`}>
+                                        <button className={`text-xs hover:underline transition-colors font-medium text-left ${getPupilRowTheme(pupil.gender).detail}`}>
                                           Family
                                         </button>
                                       </DropdownMenuTrigger>
@@ -4017,7 +4018,7 @@ function PupilsContent() {
                             <div className="text-sm">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <button className={`text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:underline transition-colors font-medium text-left`}>
+                                  <button className={`hover:underline transition-colors font-medium text-left ${getPupilRowTheme(pupil.gender).detail}`}>
                                     {getPupilClass(pupil).code || getPupilClass(pupil).name || 'N/A'}
                                   </button>
                                 </DropdownMenuTrigger>
@@ -4187,7 +4188,7 @@ function PupilsContent() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button 
-                                  className={`p-1.5 rounded-lg text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:bg-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-50/50 transition-all duration-200 inline-flex items-center justify-center group`}
+                                  className={`p-1.5 rounded-lg transition-all duration-200 inline-flex items-center justify-center group ${getPupilRowTheme(pupil.gender).action}`}
                                   title="Actions"
                                   aria-label="Actions"
                                 >
@@ -4278,7 +4279,7 @@ function PupilsContent() {
                                       <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                                         <Link
                                           href={`/pupil-detail?id=${sibling.id}`}
-                                          className={`min-w-0 truncate text-xs font-semibold transition-colors sm:text-sm text-${sibling.gender === 'Female' ? 'pink' : 'indigo'}-700 hover:text-${sibling.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:underline`}
+                                          className={`min-w-0 truncate text-xs font-semibold transition-colors sm:text-sm hover:underline ${getPupilRowTheme(sibling.gender).sibling}`}
                                         >
                                           {formatPupilDisplayName(sibling)}
                                         </Link>

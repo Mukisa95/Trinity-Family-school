@@ -63,6 +63,7 @@ function AppearanceProvider({ children }: { children: ReactNode }) {
     try {
       if (doc.startViewTransition && !reduced) {
         root.dataset.themeReveal = "true";
+        origin.dataset.themeControl = "active";
         const transition = doc.startViewTransition(apply);
         // A hidden tab or an overlapping browser transition can skip snapshot capture.
         // The update still runs; falling back should never undo the saved preference.
@@ -94,18 +95,19 @@ function AppearanceProvider({ children }: { children: ReactNode }) {
       apply();
     } finally {
       delete root.dataset.themeReveal;
+      delete origin.dataset.themeControl;
       fades.forEach(animation => animation.cancel());
       active.current = false;
       setChanging(false);
     }
   };
 
-  return <AppearanceContext.Provider value={{ ready, dark: resolvedTheme === "dark", preference: (theme || "light") as ThemePreference, changing, changeTheme }}>{children}</AppearanceContext.Provider>;
+  return <AppearanceContext.Provider value={{ ready, dark: resolvedTheme === "dark", preference: (theme || "system") as ThemePreference, changing, changeTheme }}>{children}</AppearanceContext.Provider>;
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   return (
-    <NextThemeProvider attribute="class" defaultTheme="light" enableSystem enableColorScheme disableTransitionOnChange storageKey="trinity-appearance">
+    <NextThemeProvider attribute="class" defaultTheme="system" enableSystem enableColorScheme disableTransitionOnChange storageKey="trinity-appearance">
       <AppearanceProvider>{children}</AppearanceProvider>
     </NextThemeProvider>
   );

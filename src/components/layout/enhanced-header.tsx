@@ -1,6 +1,6 @@
 "use client";
 
-import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { HeaderThemeToggle } from '@/components/ui/theme-toggle';
 
 import {
   MagnifyingGlass,
@@ -1444,7 +1444,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
               )}
 
               {/* Network Strength Indicator */}
-              <ThemeToggle className="md:hidden" compact />
+              <HeaderThemeToggle />
               <NetworkStrengthIndicator />
 
               {/* SchoolPay Live Feed Icon + Badge */}

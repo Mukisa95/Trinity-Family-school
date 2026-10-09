@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "incremental": false },
-  "include": ["next-env.d.ts", "src/components/providers/theme-provider.tsx", "src/components/ui/theme-toggle.tsx", "src/components/pdf/pdf-workspace.tsx", "src/components/pdf/pdf-document-viewer.tsx", "src/components/pdf/pdf-viewer.tsx"],
+  "include": ["next-env.d.ts", "src/components/providers/theme-provider.tsx", "src/components/ui/theme-toggle.tsx", "src/components/pupils/pupil-row-theme.ts", "src/components/pdf/pdf-workspace.tsx", "src/components/pdf/pdf-document-viewer.tsx", "src/components/pdf/pdf-viewer.tsx"],
   "exclude": ["node_modules", "functions", ".next"]
 }

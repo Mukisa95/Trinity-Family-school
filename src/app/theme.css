@@ -85,14 +85,51 @@ html[data-theme-reveal]::view-transition-group(root) { animation: none; }
 html[data-theme-reveal]::view-transition-old(root) { z-index: 1; }
 html[data-theme-reveal]::view-transition-new(root) { z-index: 2; }
 
-.theme-toggle-thumb { transition: transform 220ms var(--theme-ease-out); }
-.theme-toggle-track { transition: background-color 180ms ease, border-color 180ms ease; }
+.theme-toggle-thumb { transform: translateX(0); }
+.dark .theme-toggle-thumb { transform: translateX(28px); }
+/* Only the control opts into colour/motion transitions; other surfaces stay still. */
+html:not([data-theme-reveal]) .theme-toggle-thumb {
+  transition: transform 220ms var(--theme-ease-out), background-color 180ms ease !important;
+}
+html:not([data-theme-reveal]) .theme-toggle-track {
+  transition: background-color 180ms ease, border-color 180ms ease, transform 160ms var(--theme-ease-out) !important;
+}
+html:not([data-theme-reveal]) .theme-toggle-icon {
+  transition: color 180ms ease, opacity 180ms ease, transform 220ms var(--theme-ease-out) !important;
+}
+.theme-toggle-compact .theme-toggle-thumb,
+.dark .theme-toggle-compact .theme-toggle-thumb { transform: translateX(0); }
+.theme-toggle-compact .theme-toggle-icon { position: absolute; left: 7px; }
+.theme-toggle-compact .theme-toggle-sun { opacity: 1; transform: rotate(0deg) scale(1); }
+.theme-toggle-compact .theme-toggle-moon { opacity: 0; transform: rotate(-35deg) scale(0.9); }
+.dark .theme-toggle-compact .theme-toggle-sun { opacity: 0; transform: rotate(35deg) scale(0.9); }
+.dark .theme-toggle-compact .theme-toggle-moon { opacity: 1; transform: rotate(0deg) scale(1); }
+/* Named snapshots animate the thumb independently while the page opens around it. */
+.theme-toggle[data-theme-control="active"] .theme-toggle-track { view-transition-name: theme-switch-track; }
+.theme-toggle[data-theme-control="active"] .theme-toggle-thumb { view-transition-name: theme-switch-thumb; }
+.theme-toggle[data-theme-control="active"] .theme-toggle-sun { view-transition-name: theme-switch-sun; }
+.theme-toggle[data-theme-control="active"] .theme-toggle-moon { view-transition-name: theme-switch-moon; }
+html[data-theme-reveal] .theme-toggle :is(.theme-toggle-track, .theme-toggle-thumb, .theme-toggle-icon) { transition: none !important; }
+html[data-theme-reveal]::view-transition-group(theme-switch-track) { z-index: 3; animation-duration: 180ms; }
+html[data-theme-reveal]::view-transition-group(theme-switch-thumb) { z-index: 4; animation-duration: 220ms; animation-timing-function: var(--theme-ease-out); }
+html[data-theme-reveal]::view-transition-group(theme-switch-sun),
+html[data-theme-reveal]::view-transition-group(theme-switch-moon) { z-index: 5; animation-duration: 180ms; }
+html[data-theme-reveal]::view-transition-old(theme-switch-track),
+html[data-theme-reveal]::view-transition-new(theme-switch-track),
+html[data-theme-reveal]::view-transition-old(theme-switch-thumb),
+html[data-theme-reveal]::view-transition-new(theme-switch-thumb) { animation-duration: 180ms; mix-blend-mode: normal; }
+html[data-theme-reveal]::view-transition-old(theme-switch-sun),
+html[data-theme-reveal]::view-transition-new(theme-switch-sun),
+html[data-theme-reveal]::view-transition-old(theme-switch-moon),
+html[data-theme-reveal]::view-transition-new(theme-switch-moon) { animation-duration: 180ms; mix-blend-mode: normal; }
 .theme-toggle:active .theme-toggle-track { transform: scale(0.96); }
 @media (hover: hover) and (pointer: fine) {
   .theme-toggle:hover .theme-toggle-track { border-color: hsl(var(--ring)); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .theme-toggle-thumb { transition: none; }
+  html:not([data-theme-reveal]) .theme-toggle-thumb { transition: background-color 80ms ease !important; }
+  html:not([data-theme-reveal]) .theme-toggle-icon { transition: color 80ms ease, opacity 80ms ease !important; }
+  html:not([data-theme-reveal]) .theme-toggle-track { transition: background-color 80ms ease, border-color 80ms ease !important; }
   .theme-toggle:active .theme-toggle-track { transform: none; }
 }
 
