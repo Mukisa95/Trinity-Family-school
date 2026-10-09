@@ -66,7 +66,7 @@ export function buildTimetablePrintDayCells(
 
 export type PrintTextMeasurement = { width: number; height: number };
 
-/** Maximise each label within 75% of its box, using real font metrics at 100px. */
+/** Fit the full line box inside 75% of the cell, with a minimum border clearance. */
 export function fitTimetablePrintText(
     lines: string[], width: number, height: number,
     measure: (line: string) => PrintTextMeasurement,
@@ -75,10 +75,12 @@ export function fitTimetablePrintText(
     const measured = lines.map(measure);
     const textWidth = Math.max(1, ...measured.map(size => size.width));
     const glyphHeight = Math.max(1, ...measured.map(size => size.height));
-    const availableWidth = (direction === 'rotated' ? height : width) * 0.75;
-    const availableHeight = (direction === 'rotated' ? width : height) * 0.75;
+    const boxWidth = direction === 'rotated' ? height : width;
+    const boxHeight = direction === 'rotated' ? width : height;
+    const availableWidth = Math.max(1, boxWidth - 2 * Math.max(3, boxWidth * 0.125));
+    const availableHeight = Math.max(1, boxHeight - 2 * Math.max(2, boxHeight * 0.125));
     const lineCount = Math.max(1, lines.length);
-    const heightAt100 = direction === 'vertical' ? lineCount * 100 : (lineCount - 1) * 100 + glyphHeight;
+    const heightAt100 = lineCount * Math.max(direction === 'vertical' ? 100 : 115, glyphHeight);
     return Math.max(1, Math.floor(Math.min(availableWidth / textWidth, availableHeight / heightAt100) * 100 * 2) / 2);
 }
 

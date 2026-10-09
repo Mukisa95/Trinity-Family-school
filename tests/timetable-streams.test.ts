@@ -127,7 +127,7 @@ test('printable headers and break labels keep balanced spacing', () => {
   assert.match(source, /rowSpan=\{2\}/);
   assert.doesNotMatch(source, /flex: "1 1 50%"/);
   const label = readFileSync('src/components/timetable/TimetablePrintLabel.tsx', 'utf8');
-  assert.match(label, /justifyContent: 'space-evenly'/);
+  assert.match(label, /data-printable-label-canvas="true"/);
   assert.match(source, /data-printable-break-cell="true"/);
   assert.match(source, /data-printable-break-label="true"/);
   assert.match(source, /position: "absolute"/);

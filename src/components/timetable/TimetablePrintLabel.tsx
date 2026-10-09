@@ -9,47 +9,69 @@ type Props = {
     weight?: number;
 };
 
-/** Absolute label sizing does not change row heights or create wider table columns. */
+/** The preview and html2canvas export share these exact pixels and glyph positions. */
 export function TimetablePrintLabel({ text, direction = 'horizontal', weight = 700 }: Props) {
     const boxRef = React.useRef<HTMLDivElement>(null);
-    const [layout, setLayout] = React.useState({ lines: [text], fontSize: 10 });
-    const lines = React.useMemo(() => direction === 'vertical' ? Array.from(text.toUpperCase()) : [text], [direction, text]);
+    const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
     React.useLayoutEffect(() => {
         const box = boxRef.current;
-        if (!box) return;
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        if (!context) return;
-        context.font = `${weight} 100px Arial, Helvetica, sans-serif`;
+        const canvas = canvasRef.current;
+        const context = canvas?.getContext('2d');
+        if (!box || !canvas || !context) return;
         let active = true;
         const update = () => {
             if (!active) return;
+            const width = box.clientWidth;
+            const height = box.clientHeight;
+            if (!width || !height) return;
+            // Fixed resolution keeps even a scaled mobile preview sharp in the PDF.
+            canvas.width = width * 2;
+            canvas.height = height * 2;
+            context.scale(2, 2);
+            context.font = `${weight} 100px Arial, Helvetica, sans-serif`;
             const measure = (line: string) => {
-                const measured = context.measureText(line || ' ');
-                return { width: measured.width, height: (measured.actualBoundingBoxAscent || 72) + (measured.actualBoundingBoxDescent || 0) };
+                const metrics = context.measureText(line || ' ');
+                return { width: metrics.width, height: (metrics.actualBoundingBoxAscent || 72) + (metrics.actualBoundingBoxDescent || 0) };
             };
-            setLayout(direction === 'horizontal'
-                ? layoutTimetablePrintText(text, box.clientWidth, box.clientHeight, measure)
-                : { lines, fontSize: fitTimetablePrintText(lines, box.clientWidth, box.clientHeight, measure, direction) });
+            const letters = Array.from(text.toUpperCase());
+            const layout = direction === 'horizontal'
+                ? layoutTimetablePrintText(text, width, height, measure)
+                : { lines: direction === 'vertical' ? letters : [text], fontSize: fitTimetablePrintText(direction === 'vertical' ? letters : [text], width, height, measure, direction) };
+            context.font = `${weight} ${layout.fontSize}px Arial, Helvetica, sans-serif`;
+            context.fillStyle = getComputedStyle(box).color;
+            context.textAlign = 'center';
+            context.textBaseline = 'alphabetic';
+            canvas.dataset.fontSize = String(layout.fontSize);
+            canvas.dataset.lineCount = String(layout.lines.length);
+            const drawCentered = (line: string, x: number, y: number) => {
+                const metrics = context.measureText(line);
+                // Center the actual ink, including descenders, rather than the CSS line box.
+                const ascent = metrics.actualBoundingBoxAscent;
+                const descent = metrics.actualBoundingBoxDescent;
+                context.fillText(line, x, y + (ascent - descent) / 2);
+            };
+            if (direction === 'vertical') {
+                const inset = height * 0.08;
+                const step = (height - inset * 2) / Math.max(1, letters.length);
+                letters.forEach((letter, index) => drawCentered(letter, width / 2, inset + step * (index + 0.5)));
+            } else {
+                context.translate(width / 2, height / 2);
+                if (direction === 'rotated') context.rotate(-Math.PI / 2);
+                const step = layout.fontSize * 1.15;
+                layout.lines.forEach((line, index) => drawCentered(line, 0, (index - (layout.lines.length - 1) / 2) * step));
+            }
         };
         update();
         const observer = new ResizeObserver(update);
         observer.observe(box);
-        // Font loading must settle before the html2canvas capture.
         void document.fonts.ready.then(update);
         return () => { active = false; observer.disconnect(); };
-    }, [direction, lines, text, weight]);
+    }, [direction, text, weight]);
 
     return (
-        <div ref={boxRef} data-printable-fit-box="true" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            {direction === 'vertical' ? (
-                <div data-printable-fit-text="true" aria-label={text} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', width: '100%', height: '100%', padding: '6% 0', boxSizing: 'border-box', fontSize: layout.fontSize, fontWeight: weight, lineHeight: 1 }}>
-                    {lines.map((letter, index) => <span key={index} aria-hidden="true">{letter === ' ' ? '\u00a0' : letter}</span>)}
-                </div>
-            ) : (
-                <span data-printable-fit-text="true" aria-label={text} style={{ display: 'block', whiteSpace: 'nowrap', textAlign: 'center', fontSize: layout.fontSize, fontWeight: weight, lineHeight: 1, transform: direction === 'rotated' ? 'rotate(-90deg)' : undefined }}>{layout.lines.map((line, index) => <span key={index} style={{ display: 'block' }}>{line}</span>)}</span>
-            )}
+        <div ref={boxRef} data-printable-fit-box="true" style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 1 }}>
+            <canvas ref={canvasRef} data-printable-fit-text="true" data-printable-label-canvas="true" role="img" aria-label={text} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }} />
         </div>
     );
 }

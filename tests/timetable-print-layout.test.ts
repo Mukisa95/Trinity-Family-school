@@ -75,13 +75,22 @@ test('long labels use spare height while staying within the cell text bounds', (
 });
 test('each label fits its own dimensions with one quarter reserved as whitespace', () => {
     const short = fitTimetablePrintText(['SCI'], 90, 30, measure);
-    assert.equal(short, 30);
+    assert.equal(short, 19.5);
     const long = fitTimetablePrintText(['INTEGRATED SCIENCE'], 90, 30, measure);
     assert.ok(long < short);
     const activity = fitTimetablePrintText(['PRAYERS'], 180, 60, measure);
     assert.ok(activity > short, 'Merged activity grows independently of ordinary lessons');
     assert.ok(activity * measure('PRAYERS').width / 100 <= 180 * 0.75);
     assert.ok(activity * measure('PRAYERS').height / 100 <= 60 * 0.75);
+});
+
+test('dense rows reserve clearance for the complete line box rather than only capital-letter ink', () => {
+    for (const height of [10, 12, 27, 54]) {
+        const fontSize = fitTimetablePrintText(['SCI'], 90, height, measure);
+        const lineHeight = fontSize * 1.15;
+        assert.ok(lineHeight <= height - 2 * Math.max(2, height * 0.125));
+        assert.ok((height - lineHeight) / 2 >= 2);
+    }
 });
 
 test('rotated day labels and stacked breaks fit their respective axes', () => {
