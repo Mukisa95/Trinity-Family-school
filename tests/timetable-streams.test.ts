@@ -115,7 +115,7 @@ test('printable stream labels use a capture-safe layout without text ellipsis', 
   assert.doesNotMatch(source, /gridTemplateColumns: "1\.05fr 0\.8fr"/);
   assert.match(source, /const CLASS_COLUMN_WIDTH = 118/);
   assert.match(source, /flex: "0 0 67%"/);
-  assert.match(source, /overflowWrap: "anywhere"/);
+  assert.match(source, /<TimetablePrintLabel text=\{cls.code \|\| cls.name\}/);
 });
 
 test('printable headers and break labels keep balanced spacing', () => {
@@ -126,7 +126,8 @@ test('printable headers and break labels keep balanced spacing', () => {
   assert.match(source, /data-printable-time-cell="end"/);
   assert.match(source, /rowSpan=\{2\}/);
   assert.doesNotMatch(source, /flex: "1 1 50%"/);
-  assert.match(source, /justifyContent: "space-evenly"/);
+  const label = readFileSync('src/components/timetable/TimetablePrintLabel.tsx', 'utf8');
+  assert.match(label, /justifyContent: 'space-evenly'/);
   assert.match(source, /data-printable-break-cell="true"/);
   assert.match(source, /data-printable-break-label="true"/);
   assert.match(source, /position: "absolute"/);
@@ -203,8 +204,8 @@ test('ordinary printable class labels avoid percentage-height wrappers that html
   const source = readFileSync('src/components/timetable/PrintableTimetable.tsx', 'utf8');
 
   assert.match(source, /data-printable-class-label="true"/);
-  assert.match(source, /lineHeight: 1\.25/);
-  assert.match(source, /padding: row\.stream \? 0 : "2px 3px"/);
+  assert.match(source, /<TimetablePrintLabel text=\{cls.code \|\| cls.name\}/);
+  assert.doesNotMatch(source, /minHeight: row\.streamCount \* 24/);
 });
 
 test('print selection keeps only the chosen classes and their lessons in profile order', () => {
