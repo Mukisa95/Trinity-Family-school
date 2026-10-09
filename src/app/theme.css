@@ -153,9 +153,30 @@ html[data-theme-reveal]::view-transition-new(theme-switch-moon) { animation-dura
   background: linear-gradient(135deg, rgb(37 99 235 / 0.24), rgb(99 102 241 / 0.18)) !important;
   border-color: rgb(96 165 250 / 0.38) !important;
 }
-.dark .dashboard-bg-wrapper {
-  background-color: hsl(var(--background));
-  background-image: linear-gradient(rgb(11 17 32 / 0.91), rgb(11 17 32 / 0.97)), url('/images/D.B%20background.png?v=1.1');
+/* Keep both illustrations ready; only the night layer fades, below the scroll blur. */
+.dashboard-bg-wrapper { isolation: isolate; }
+.dashboard-bg-wrapper::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: #0b1120;
+  background-image: linear-gradient(rgb(11 17 32 / 0.08), rgb(11 17 32 / 0.18)), url('/images/Night%20Background.png');
+  background-size: cover;
+  background-position: right top 40px;
+  background-repeat: no-repeat;
+  opacity: 0;
+}
+.dark .dashboard-bg-wrapper { background-color: hsl(var(--background)); }
+.dark .dashboard-bg-wrapper::after { opacity: 1; }
+html:not([data-theme-reveal]) .dashboard-bg-wrapper::after {
+  transition: opacity 280ms var(--theme-ease-out) !important;
+}
+/* Capture the final illustration in the reveal instead of a half-blended image. */
+html[data-theme-reveal] .dashboard-bg-wrapper::after { transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-theme-reveal]) .dashboard-bg-wrapper::after { transition: opacity 80ms ease !important; }
 }
 .dark .dashboard-bg-wrapper [data-sidebar="inset"] .min-h-screen :is(h1, p) { text-shadow: none; }
 .dark .card-glass { background: rgb(var(--glass-surface) / 0.72); border-color: rgb(var(--glass-edge) / 0.25); }
@@ -272,4 +293,5 @@ html[data-theme-reveal]::view-transition-new(theme-switch-moon) { animation-dura
   }
   .theme-toggle { display: none !important; }
   .dashboard-bg-wrapper { background-image: none !important; }
+  .dashboard-bg-wrapper::after { display: none !important; }
 }

@@ -53,7 +53,7 @@ async function run() {
     const file = req.url.split('?')[0];
     if(file==='/fixture.js'||file==='/fixture.css'||file==='/hydration.js') {res.setHeader('Content-Type',file.endsWith('js')?'text/javascript':'text/css');res.end(fs.readFileSync(path.join(output,file.slice(1))));}
     else if(file==='/hydration') {res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><head><meta name="theme-color" content="#f1f7ff"><link rel="stylesheet" href="/fixture.css"></head><body><div id="app">'+fs.readFileSync(path.join(output,'hydration.html'),'utf8')+'</div><script src="/hydration.js"></script></body></html>');}
-    else if(file.startsWith('/images/')) {res.setHeader('Content-Type','image/png');res.end(fs.readFileSync(path.join(root,'public/images/D.B background.png')));}
+    else if(file.startsWith('/images/')) {const asset=path.resolve(root,'public','.'+decodeURIComponent(file));if(asset.startsWith(path.join(root,'public')+path.sep)&&fs.existsSync(asset)){res.setHeader('Content-Type','image/png');res.end(fs.readFileSync(asset));}else{res.statusCode=404;res.end();}}
     else {res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><head><meta name="theme-color" content="#f1f7ff"><link rel="stylesheet" href="/fixture.css"></head><body style="font-family:Arial,sans-serif"><div id="app"></div><script src="/fixture.js"></script></body></html>');}
   });
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -70,6 +70,8 @@ async function run() {
   try {
     await page.goto(url);const toggle=page.getByRole('switch',{name:'Dark theme'}).filter({visible:true}).first();
     await toggle.waitFor();await page.waitForFunction(()=>!document.querySelector('[role="switch"]').disabled);
+    await page.waitForFunction(()=>performance.getEntriesByType('resource').some(entry=>entry.name.includes('Night%20Background.png')&&entry.responseEnd>0));
+    assert.equal(await page.locator('.dashboard-bg-wrapper').evaluate(el=>getComputedStyle(el,'::after').opacity),'0','Light appearance keeps the day illustration');
     await page.screenshot({path:path.join(output,'desktop-light.png')});
     const adjacent=await toggle.evaluate(el=>el.parentElement.querySelector('button:not([role="switch"])')?.textContent);assert.match(adjacent,/Amina/);
     await toggle.click();await page.waitForFunction(()=>window.themeAnimation);
@@ -84,6 +86,8 @@ async function run() {
     await page.waitForFunction(()=>!document.documentElement.dataset.themeReveal);
     console.log('Circular reveal verified.');
     assert.equal(await toggle.getAttribute('aria-checked'),'true');
+    const night=await page.locator('.dashboard-bg-wrapper').evaluate(el=>({image:getComputedStyle(el,'::after').backgroundImage,opacity:getComputedStyle(el,'::after').opacity}));assert.ok(night.image.includes('Night%20Background.png'));assert.equal(night.opacity,'1');
+    await page.locator('.dashboard-bg-wrapper').evaluate(el=>el.style.setProperty('--scroll-blur','6px'));await page.waitForFunction(()=>getComputedStyle(document.querySelector('.dashboard-bg-wrapper'),'::before').backdropFilter==='blur(6px)');await page.locator('.dashboard-bg-wrapper').evaluate(el=>el.style.setProperty('--scroll-blur','0px'));await page.waitForFunction(()=>getComputedStyle(document.querySelector('.dashboard-bg-wrapper'),'::before').backdropFilter==='blur(0px)');
     assert.equal(await page.evaluate(()=>localStorage.getItem('trinity-appearance')),'dark');
     const paper=await page.locator('[data-theme-surface="paper"]').evaluate(el=>getComputedStyle(el).backgroundColor);assert.equal(paper,'rgb(255, 255, 255)');
     const header=await page.locator('th').first().evaluate(el=>getComputedStyle(el).backgroundImage);assert.ok(!header.includes('255, 255, 255'),header);
@@ -92,11 +96,17 @@ async function run() {
     await page.screenshot({path:path.join(output,'dark-dialog.png')});await page.getByRole('button',{name:'Close',exact:true}).click();
     await page.reload();await toggle.waitFor();assert.equal(await toggle.getAttribute('aria-checked'),'true');await page.emulateMedia({colorScheme:'light'});assert.equal(await toggle.getAttribute('aria-checked'),'true');
     await page.getByRole('button',{name:/Amina Test/}).click();await page.getByRole('menuitemradio',{name:'Use device setting'}).click();await page.keyboard.press('Escape');
+    await page.waitForFunction(()=>!document.documentElement.dataset.themeReveal);
     await page.emulateMedia({colorScheme:'dark'});await page.waitForFunction(()=>document.documentElement.classList.contains('dark'));
+    await page.waitForFunction(()=>getComputedStyle(document.querySelector('.dashboard-bg-wrapper'),'::after').opacity==='1');
+    await page.evaluate(()=>{const observer=new MutationObserver(()=>{if(document.documentElement.classList.contains('dark'))return;const wrapper=document.querySelector('.dashboard-bg-wrapper');const animation=wrapper.getAnimations({subtree:true}).find(a=>a.transitionProperty==='opacity');window.backgroundAnimationDetails=wrapper.getAnimations({subtree:true}).map(a=>({property:a.transitionProperty,pseudo:a.effect.pseudoElement,target:a.effect.target?.tagName}));if(animation){animation.pause();animation.currentTime=140;window.backgroundBlendAnimation=animation;}observer.disconnect();});observer.observe(document.documentElement,{attributes:true,attributeFilter:['class']});});
     await page.emulateMedia({colorScheme:'light'});await page.waitForFunction(()=>!document.documentElement.classList.contains('dark'));
+    assert.ok(await page.evaluate(()=>!!window.backgroundBlendAnimation),JSON.stringify(await page.evaluate(()=>window.backgroundAnimationDetails)));
+    const blendOpacity=await page.locator('.dashboard-bg-wrapper').evaluate(el=>Number(getComputedStyle(el,'::after').opacity));assert.ok(blendOpacity>0&&blendOpacity<1,'Device theme changes crossfade the actual night illustration');await page.screenshot({path:path.join(output,'device-background-blend.png')});await page.evaluate(()=>window.backgroundBlendAnimation.play());await page.waitForFunction(()=>getComputedStyle(document.querySelector('.dashboard-bg-wrapper'),'::after').opacity==='0');
     await toggle.click();await page.waitForFunction(()=>!document.documentElement.dataset.themeReveal);
     await page.evaluate(()=>window.dispatchEvent(new Event('beforeprint')));await page.emulateMedia({media:'print'});
     assert.equal(await page.evaluate(()=>document.documentElement.classList.contains('dark')),false);
+    assert.equal(await page.locator('.dashboard-bg-wrapper').evaluate(el=>getComputedStyle(el,'::after').display),'none','Print omits the decorative night layer');
     await page.screenshot({path:path.join(output,'print-from-dark.png')});
     await page.pdf({path:path.join(output,'print-from-dark.pdf'),printBackground:true});
     await page.emulateMedia({media:'screen'});await page.evaluate(()=>window.dispatchEvent(new Event('afterprint')));

@@ -1,0 +1,9 @@
+# Night background — 9 October 2026
+
+Dark appearance uses the supplied `public/images/Night Background.png` unchanged (SHA-256 `5c732655d8bbbae35a3a2b20acc9267564a7ec48e43a6b54918fa4c1d428383e`). A light tint preserves its blue landscape and warm windows. Cover sizing preserves the illustration's proportions across desktop and mobile, with the school anchored on the right. Light appearance keeps the existing day image.
+
+The occasional theme change indicates state without moving content: the night layer crossfades using CSS opacity, the existing ease-out token and 280 ms duration. Manual switching captures the final illustration inside the existing circular reveal; it does not capture a partly faded background. Reduced motion uses an 80 ms opacity transition. Keeping the layer in the document allows the browser to load it before a first manual switch. The existing scroll-blur layer stays above it, and print hides the decorative layer.
+
+Verification uses real header/sidebar/theme components with synthetic data and no school-account writes. The browser suite checks the night asset loading before switching, correct light/dark layer visibility, an intermediate frame of the device-theme crossfade, scroll-blur completion, circular reveal, mobile controls, saved preferences, reduced motion, dialogs and print restoration. Desktop/mobile screenshots are inspected locally in `output/theme-qa`. The PDF suite confirms unchanged page/thumbnail pixels, PNG exports, PDF download and original print source. UI syntax coverage and diff whitespace checks pass.
+
+Re-run `npm.cmd run test:theme-browser`, `npm.cmd run test:pdf-theme-browser` and `npm.cmd run test:theme-coverage`. Browser checks require Playwright (or `PLAYWRIGHT_MODULE`) and Microsoft Edge. These local results do not establish a production hosting deployment.
