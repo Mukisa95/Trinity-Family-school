@@ -37,7 +37,7 @@ final class OfflineController {
     private volatile String role = "";
     private boolean unlockOpen;
     private ConnectivityManager.NetworkCallback network;
-    private android.content.BroadcastReceiver pushChanges;
+    private android.content.BroadcastReceiver pushChanges, appearanceChanges;
     private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
     private final Runnable relock = this::lock;
     OfflineController(Activity activity, WebView web) {
@@ -55,6 +55,10 @@ final class OfflineController {
             if(PhotoPolicy.trusted(web.getUrl()))web.evaluateJavascript("window.dispatchEvent(new Event('trinity-android-notifications-change'));"+(intent.getBooleanExtra("parentScope",false)?"window.dispatchEvent(new Event('trinity-parent-scope-changed'));":""),null);
         }};
         androidx.core.content.ContextCompat.registerReceiver(activity,pushChanges,new android.content.IntentFilter(NativePush.EVENT),androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);
+        appearanceChanges=new android.content.BroadcastReceiver(){@Override public void onReceive(Context context,Intent intent){
+            if(PhotoPolicy.trusted(web.getUrl()))web.evaluateJavascript("window.dispatchEvent(new Event('trinity-android-colors-change'));",null);
+        }};
+        androidx.core.content.ContextCompat.registerReceiver(activity,appearanceChanges,new android.content.IntentFilter(DeviceColors.EVENT),androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             WebViewCompat.addWebMessageListener(web, "TrinityOffline", new java.util.HashSet<>(java.util.Arrays.asList(PhotoPolicy.ORIGIN, OfflinePolicy.LOCAL_ORIGIN)), (view, message, origin, mainFrame, reply) -> {
                 if (!mainFrame) return;
@@ -143,8 +147,15 @@ final class OfflineController {
             reply(reply, id, true, null, null); return;
         }
         if ("checkAppUpdate".equals(action)) { ((MainActivity)activity).checkForAppUpdates(); reply(reply,id,true,null,null); return; }
+        if ("deviceColors".equals(action)) {
+            try { reply(reply,id,true,null,new JSONObject().put("palette",DeviceColors.status(activity))); }
+            catch(Exception unavailable){reply(reply,id,false,"Device colours are unavailable.",null);}
+            return;
+        }
         if (!local && "appearance".equals(action)) {
             if (input.has("preference")) AppAppearance.save(activity, input.optString("preference"));
+            if(input.has("deviceColors"))AppAppearance.saveDeviceColors(activity,input.optBoolean("deviceColors"));
+            DeviceColors.applyNative(activity);
             // Also colour the inset-owning frame, which covers transparent system bars.
             android.view.ViewGroup content = activity.findViewById(android.R.id.content);
             if (content.getChildCount() > 0) SystemBars.apply(activity, content.getChildAt(0), input.optBoolean("dark"));
@@ -259,11 +270,13 @@ final class OfflineController {
     }
     void resume() {
         handler.post(this::publishConnectivity);
+        handler.post(()->{if(PhotoPolicy.trusted(web.getUrl()))web.evaluateJavascript("window.dispatchEvent(new Event('trinity-android-colors-change'));",null);});
         handler.post(() -> { if (PhotoPolicy.trusted(web.getUrl())) web.evaluateJavascript("window.dispatchEvent(new Event('trinity-android-notifications-change'))", null); });
         io.execute(() -> TimetableUpdates.refresh(activity, store));
     }
     void pause() { if (!unlockOpen) lock(); }
     void destroy() {
+        if(appearanceChanges!=null){try{activity.unregisterReceiver(appearanceChanges);}catch(Exception ignored){}appearanceChanges=null;}
         if(pushChanges!=null){try{activity.unregisterReceiver(pushChanges);}catch(Exception ignored){}pushChanges=null;}
         handler.removeCallbacksAndMessages(null);
         if (network != null) try { ((ConnectivityManager) activity.getSystemService(Context.CONNECTIVITY_SERVICE)).unregisterNetworkCallback(network); } catch (Exception ignored) { }

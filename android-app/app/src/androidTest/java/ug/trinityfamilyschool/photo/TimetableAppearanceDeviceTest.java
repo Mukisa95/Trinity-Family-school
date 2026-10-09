@@ -27,9 +27,10 @@ public class TimetableAppearanceDeviceTest {
         TimetableSchedule.Pill pill=new TimetableSchedule.Pill();pill.id="one";pill.classCode="P4";pill.className="Primary Four";pill.subjectCode="ENG";pill.subjectName="English";pill.teacher="Test teacher";pill.time=row.time;row.pills.add(pill);
         return row;
     }
+    private int expected(Context context,String role,boolean dark,int original) {DeviceColors colors=AppAppearance.deviceColorsEnabled(context)?DeviceColors.read(context):null;return colors==null?original:colors.role(role,dark);}
     private void verifyRow(Context context, RemoteViews remote, boolean dark) {
         View view=remote.apply(context,new FrameLayout(context));remote.reapply(context,view);
-        assertEquals(dark?0xffe2e8f0:0xff1f2937,((TextView)view.findViewById(R.id.current_lesson)).getCurrentTextColor());
+        assertEquals(expected(context,"foreground",dark,dark?0xffe2e8f0:0xff1f2937),((TextView)view.findViewById(R.id.current_lesson)).getCurrentTextColor());
         assertEquals(dark?0xff86efac:0xff15803d,((TextView)view.findViewById(R.id.lesson_pill)).getCurrentTextColor());
         assertEquals(dark?0xff6ee7b7:0xff047857,((TextView)view.findViewById(R.id.period_badge)).getCurrentTextColor());
         assertTrue(view.findViewById(R.id.next_period).isEnabled());
@@ -38,10 +39,12 @@ public class TimetableAppearanceDeviceTest {
     @Test public void widgetAndBothNotificationSizesFollowAppPreferenceAndHostTheme() throws Exception {
         Context base=ApplicationProvider.getApplicationContext();android.content.SharedPreferences prefs=AppAppearance.prefs(base);
         boolean had=prefs.contains("preference");String original=AppAppearance.preference(base);
+        boolean hadDeviceColors=prefs.contains("deviceColors"),originalDeviceColors=AppAppearance.deviceColorsEnabled(base);
         java.util.concurrent.atomic.AtomicReference<Throwable> failure=new java.util.concurrent.atomic.AtomicReference<>();
         try {
             InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{try{
-                for(String preference:new String[]{"light","dark","system"}) {
+                for(boolean deviceColors:new boolean[]{false,true})for(String preference:new String[]{"light","dark","system"}) {
+                    prefs.edit().putBoolean("deviceColors",deviceColors).commit();
                     prefs.edit().putString("preference",preference).commit();
                     Context light=mode(base,false);TimetableSchedule.Frame row=row();
                     // Reapply the SAME RemoteViews under a changed host configuration, without re-rendering in the app.
@@ -56,21 +59,21 @@ public class TimetableAppearanceDeviceTest {
                             android.appwidget.AppWidgetProviderInfo info=android.appwidget.AppWidgetManager.getInstance(context).getInstalledProviders().stream().filter(provider->provider.provider.equals(new android.content.ComponentName(context,TimetableWidget.class))).findFirst().orElseThrow();
                             host.setAppWidget(987690,info);
                             View widget=TimetableSurfaces.widgetView(context,987690,new JSONObject(),feed,true,layout).apply(context,host);
-                            assertEquals(dark?0xff111c2d:0xffffffff,((GradientDrawable)widget.getBackground()).getColor().getDefaultColor());
-                            assertEquals(dark?0xffa5b4fc:0xff4f46e5,((TextView)widget.findViewById(R.id.widget_title)).getCurrentTextColor());
+                            assertEquals(expected(context,"surface",dark,dark?0xff111c2d:0xffffffff),((GradientDrawable)widget.getBackground()).getColor().getDefaultColor());
+                            assertEquals(expected(context,"primary",dark,dark?0xffa5b4fc:0xff4f46e5),((TextView)widget.findViewById(R.id.widget_title)).getCurrentTextColor());
                         }
                         android.app.Notification card=TimetableSurfaces.card(context,new JSONObject(),feed,987690);
                         View small=card.contentView.apply(context,new FrameLayout(context));
-                        assertEquals(dark?0xffe2e8f0:0xff1f2937,((TextView)small.findViewById(R.id.mini_label)).getCurrentTextColor());
-                        assertEquals(dark?0xff111c2d:0xffffffff,((GradientDrawable)small.getBackground()).getColor().getDefaultColor());
+                        assertEquals(expected(context,"foreground",dark,dark?0xffe2e8f0:0xff1f2937),((TextView)small.findViewById(R.id.mini_label)).getCurrentTextColor());
+                        assertEquals(expected(context,"surface",dark,dark?0xff111c2d:0xffffffff),((GradientDrawable)small.getBackground()).getColor().getDefaultColor());
                         feed.profiles.add(row);feed.profiles.add(row);
                         View big=TimetableSurfaces.card(context,new JSONObject(),feed,987690).bigContentView.apply(context,new FrameLayout(context));
-                        assertEquals(dark?0xffe2e8f0:0xff1f2937,((TextView)big.findViewById(R.id.current_lesson)).getCurrentTextColor());
+                        assertEquals(expected(context,"foreground",dark,dark?0xffe2e8f0:0xff1f2937),((TextView)big.findViewById(R.id.current_lesson)).getCurrentTextColor());
                         assertEquals(dark?0xff6ee7b7:0xff047857,((TextView)big.findViewById(R.id.period_countdown)).getCurrentTextColor());
                     }
                 }
             }catch(Throwable error){failure.set(error);}});
             if(failure.get()!=null)throw new AssertionError(failure.get());
-        } finally { if(had)prefs.edit().putString("preference",original).commit();else prefs.edit().remove("preference").commit(); }
+        } finally { if(had)prefs.edit().putString("preference",original).commit();else prefs.edit().remove("preference").commit();if(hadDeviceColors)prefs.edit().putBoolean("deviceColors",originalDeviceColors).commit();else prefs.edit().remove("deviceColors").commit(); }
     }
 }

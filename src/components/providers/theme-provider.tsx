@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import { ThemeProvider as NextThemeProvider, useTheme } from "next-themes";
 import { androidOfflineRequest, hasAndroidOfflineBridge } from "@/lib/offline/android-bridge";
 import { applyLookAndFeel, DEFAULT_LOOK_AND_FEEL, LOOK_AND_FEEL_BOOTSTRAP, LOOK_AND_FEEL_STORAGE_KEY, parseLookAndFeel, type LookAndFeelSettings } from "@/lib/theme/appearance-settings";
+import { applyDevicePalette, DEVICE_COLORS_BOOTSTRAP, DEVICE_COLORS_STORAGE_KEY, parseDevicePalette, type DevicePalette } from "@/lib/theme/device-colors";
 
 export type ThemePreference = "light" | "dark" | "system";
 type ThemeTransition = { ready: Promise<void>; finished: Promise<void>; skipTransition: () => void };
@@ -17,6 +18,7 @@ const AppearanceContext = createContext<{
   changing: boolean;
   lookAndFeel: LookAndFeelSettings;
   storageAvailable: boolean;
+  deviceColorsSupported: boolean;
   changeTheme: (theme: ThemePreference, origin: HTMLElement) => Promise<void>;
   changeLookAndFeel: (settings: Partial<LookAndFeelSettings>, origin?: HTMLElement) => Promise<void>;
 } | null>(null);
@@ -28,6 +30,8 @@ function AppearanceProvider({ children }: { children: ReactNode }) {
   const [lookAndFeel, setLookAndFeel] = useState(DEFAULT_LOOK_AND_FEEL);
   const settingsRef = useRef(DEFAULT_LOOK_AND_FEEL);
   const [storageAvailable, setStorageAvailable] = useState(true);
+  const [devicePalette, setDevicePalette] = useState<DevicePalette | null>(null);
+  const [deviceColorsSupported, setDeviceColorsSupported] = useState(false);
   const active = useRef(false);
 
   useEffect(() => {
@@ -40,16 +44,42 @@ function AppearanceProvider({ children }: { children: ReactNode }) {
       applyLookAndFeel(settings);
     };
     load();
+    if (hasAndroidOfflineBridge()) {
+      try { setDevicePalette(parseDevicePalette(JSON.parse(localStorage.getItem(DEVICE_COLORS_STORAGE_KEY) || "null"))); } catch {}
+    }
     setReady(true);
     const sync = (event: StorageEvent) => { if (event.key === LOOK_AND_FEEL_STORAGE_KEY || event.key === null) load(); };
     window.addEventListener("storage", sync);
     return () => window.removeEventListener("storage", sync);
   }, []);
   useEffect(() => {
-    if (!theme || !resolvedTheme || !hasAndroidOfflineBridge()) return;
+    if (!hasAndroidOfflineBridge()) return;
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const reply = await androidOfflineRequest("deviceColors");
+        if (cancelled) return;
+        const palette = parseDevicePalette(reply.palette);
+        setDevicePalette(previous => JSON.stringify(previous) === JSON.stringify(palette) ? previous : palette);
+        setDeviceColorsSupported(Boolean(palette));
+        try {
+          if (palette) localStorage.setItem(DEVICE_COLORS_STORAGE_KEY, JSON.stringify(palette));
+          else localStorage.removeItem(DEVICE_COLORS_STORAGE_KEY);
+        } catch { /* In-memory colours remain usable if persistence is unavailable. */ }
+      } catch { if (!cancelled) { setDeviceColorsSupported(false); setDevicePalette(null); } }
+    };
+    const visible = () => { if (document.visibilityState === "visible") void refresh(); };
+    void refresh();
+    window.addEventListener("trinity-android-colors-change", refresh);
+    document.addEventListener("visibilitychange", visible);
+    return () => { cancelled = true; window.removeEventListener("trinity-android-colors-change", refresh); document.removeEventListener("visibilitychange", visible); };
+  }, []);
+  useEffect(() => { applyDevicePalette(devicePalette, lookAndFeel.deviceColors); }, [devicePalette, lookAndFeel.deviceColors]);
+  useEffect(() => {
+    if (!ready || !theme || !resolvedTheme || !hasAndroidOfflineBridge()) return;
     // Persist preference even when changing it leaves the visible palette unchanged.
-    void androidOfflineRequest("appearance", { preference: theme, dark: resolvedTheme === "dark" }).catch(() => {});
-  }, [theme, resolvedTheme]);
+    void androidOfflineRequest("appearance", { preference: theme, dark: resolvedTheme === "dark", deviceColors: lookAndFeel.deviceColors }).catch(() => {});
+  }, [ready, theme, resolvedTheme, lookAndFeel.deviceColors]);
   useEffect(() => {
     const root = document.documentElement;
     let wasDark: boolean | null = null;
@@ -64,8 +94,9 @@ function AppearanceProvider({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => {
     if (!resolvedTheme) return;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", resolvedTheme === "dark" ? "#0b1120" : "#f1f7ff");
-  }, [resolvedTheme]);
+    const color = lookAndFeel.deviceColors && devicePalette ? (resolvedTheme === "dark" ? devicePalette.dark.background : devicePalette.light.background) : resolvedTheme === "dark" ? "#0b1120" : "#f1f7ff";
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", color);
+  }, [resolvedTheme, devicePalette, lookAndFeel.deviceColors]);
 
   const transitionAppearance = async (apply: () => void, origin: HTMLElement) => {
     if (active.current) return;
@@ -138,22 +169,24 @@ function AppearanceProvider({ children }: { children: ReactNode }) {
     const apply = () => {
       settingsRef.current = next;
       applyLookAndFeel(next);
+      applyDevicePalette(devicePalette, next.deviceColors);
       flushSync(() => setLookAndFeel(next));
       try { localStorage.setItem(LOOK_AND_FEEL_STORAGE_KEY, JSON.stringify(next)); setStorageAvailable(true); }
       catch { setStorageAvailable(false); }
     };
-    if (origin && (next.preset !== previous.preset || next.background !== previous.background)) {
+    if (origin && (next.preset !== previous.preset || next.background !== previous.background || next.deviceColors !== previous.deviceColors)) {
       await transitionAppearance(apply, origin);
     } else apply();
   };
 
-  return <AppearanceContext.Provider value={{ ready, dark: resolvedTheme === "dark", preference: (theme || "system") as ThemePreference, changing, changeTheme, lookAndFeel, storageAvailable, changeLookAndFeel }}>{children}</AppearanceContext.Provider>;
+  return <AppearanceContext.Provider value={{ ready, dark: resolvedTheme === "dark", preference: (theme || "system") as ThemePreference, changing, changeTheme, lookAndFeel, storageAvailable, deviceColorsSupported, changeLookAndFeel }}>{children}</AppearanceContext.Provider>;
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   return (
     <NextThemeProvider attribute="class" defaultTheme="system" enableSystem enableColorScheme disableTransitionOnChange storageKey="trinity-appearance">
       <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: LOOK_AND_FEEL_BOOTSTRAP }} />
+      <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: DEVICE_COLORS_BOOTSTRAP }} />
       <AppearanceProvider>{children}</AppearanceProvider>
     </NextThemeProvider>
   );

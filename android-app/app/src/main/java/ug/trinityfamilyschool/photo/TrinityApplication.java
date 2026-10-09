@@ -9,5 +9,6 @@ public final class TrinityApplication extends android.app.Application {
         deviceTheme.applyStyle(R.style.TrinityTheme, true);
         getTheme().setTo(deviceTheme);
         AppAppearance.deviceChanged(this);
+        DeviceColors.changed(this);
     }
 }

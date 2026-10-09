@@ -23,8 +23,9 @@ public final class LessonReminderSettingsActivity extends Activity {
     private String restoredAccount = ""; private volatile int previewVersion;
     private final Map<String, Button> filterControls = new LinkedHashMap<>();
     @Override public void onCreate(Bundle state) {
-        dark = (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+        dark = AppAppearance.palette(this).dark;
         setTheme(dark ? android.R.style.Theme_Material_NoActionBar : android.R.style.Theme_Material_Light_NoActionBar);
+        DeviceColors.applyNative(this);
         super.onCreate(state); store = new OfflineStore(this);
         try { if (state != null) { restored = new JSONObject(state.getString("draft", "{}")); restoredAccount = state.getString("account", ""); } } catch (Exception ignored) { }
         ScrollView scroll = new ScrollView(this); scroll.setFillViewport(true); content = new LinearLayout(this); content.setOrientation(LinearLayout.VERTICAL); content.setPadding(dp(16), dp(12), dp(16), dp(24));

@@ -20,8 +20,9 @@ public final class TimetableSettingsActivity extends Activity {
     private final Map<String, CheckBox> visibility = new LinkedHashMap<>(); private Set<String> hidden;
     private TextView message, timing; private Button apply;
     @Override public void onCreate(Bundle state) {
-        boolean dark = (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+        boolean dark = AppAppearance.palette(this).dark;
         setTheme(dark ? android.R.style.Theme_Material_NoActionBar : android.R.style.Theme_Material_Light_NoActionBar);
+        DeviceColors.applyNative(this);
         super.onCreate(state); setResult(RESULT_CANCELED);
         widgetId = getIntent().getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
         if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {

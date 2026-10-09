@@ -7,6 +7,7 @@ import java.util.concurrent.Executors;
 public final class TimetableReceiver extends BroadcastReceiver {
     private static final java.util.concurrent.ExecutorService interactions = Executors.newSingleThreadExecutor();
     @Override public void onReceive(Context context, Intent intent) {
+        if(Intent.ACTION_WALLPAPER_CHANGED.equals(intent.getAction()))DeviceColors.changed(context);
         if ("ug.trinity.timetable.HIDE".equals(intent.getAction())) { TimetableUpdates.hideCard(context); return; }
         PendingResult pending = goAsync();
         long received = android.os.SystemClock.elapsedRealtime();

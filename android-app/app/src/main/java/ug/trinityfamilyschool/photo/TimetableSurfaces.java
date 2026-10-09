@@ -238,7 +238,7 @@ final class TimetableSurfaces {
             RemoteViews chip = new RemoteViews(context.getPackageName(), R.layout.timetable_pill);
             chip.setTextViewText(R.id.lesson_pill, pill.classCode + " · " + pill.subjectCode);
             chip.setInt(R.id.lesson_pill, "setBackgroundResource", backgrounds[pill.color % 8]);
-            AppAppearance.text(chip,R.id.lesson_pill,palette,AppearancePalette.LIGHT_PILLS[pill.color % 8],AppearancePalette.DARK_PILLS[pill.color % 8]);
+            AppAppearance.lessonText(chip,R.id.lesson_pill,palette,AppearancePalette.LIGHT_PILLS[pill.color % 8],AppearancePalette.DARK_PILLS[pill.color % 8]);
             chip.setContentDescription(R.id.lesson_pill, pill.className + " · " + pill.subjectName + " · " + pill.time + " · " + pill.teacher);
             click(context, chip, R.id.lesson_pill, scope, frame, "DETAIL", pill.id, !notification);
             line.addView(R.id.pill_line, chip); if (pill.id.equals(detail)) selected = pill;

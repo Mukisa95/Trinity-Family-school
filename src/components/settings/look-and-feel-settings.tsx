@@ -6,6 +6,8 @@ import { useAppearance, type ThemePreference } from "@/components/providers/them
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Switch } from "@/components/ui/switch";
+import { hasAndroidOfflineBridge } from "@/lib/offline/android-bridge";
 import { cn } from "@/lib/utils";
 import { DEFAULT_LOOK_AND_FEEL, THEME_PRESETS } from "@/lib/theme/appearance-settings";
 
@@ -19,8 +21,9 @@ const selected = "border-brand-500 bg-brand-surface-50 text-brand-ink-800 dark:b
 const unselected = "border-border bg-card text-card-foreground hover:bg-accent";
 
 export function LookAndFeelSettings() {
-  const { ready, changing, preference, lookAndFeel, storageAvailable, changeTheme, changeLookAndFeel } = useAppearance();
+  const { ready, changing, preference, lookAndFeel, storageAvailable, deviceColorsSupported, changeTheme, changeLookAndFeel } = useAppearance();
   const disabled = !ready || changing;
+  const usingDeviceColors = lookAndFeel.deviceColors && deviceColorsSupported;
   const reset = async (origin: HTMLElement) => {
     await changeLookAndFeel(DEFAULT_LOOK_AND_FEEL, origin);
     await changeTheme("system", origin);
@@ -44,15 +47,21 @@ export function LookAndFeelSettings() {
       <Card><CardContent className="space-y-4 p-5 sm:p-6">
         <h2 className="text-lg font-semibold">Theme</h2>
         <p className="text-sm text-muted-foreground">Both themes include matching light and dark colours.</p>
+        {ready && hasAndroidOfflineBridge() && <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-background p-4">
+          <div className="space-y-1"><label htmlFor="device-colors" className="cursor-pointer text-sm font-semibold">Use device colours</label>
+            <p id="device-colors-description" className="text-xs text-muted-foreground">{deviceColorsSupported ? "Match your wallpaper colours across the app, widgets and timetable notification." : "Available in the updated Android app on Android 12 or later."}</p></div>
+          <Switch id="device-colors" aria-describedby="device-colors-description" checked={usingDeviceColors} disabled={disabled || !deviceColorsSupported}
+            onCheckedChange={deviceColors => void changeLookAndFeel({ deviceColors })} />
+        </div>}
         <div role="group" aria-label="Theme" className="grid gap-3 sm:grid-cols-2">
-          {THEME_PRESETS.map(preset => <button key={preset.id} type="button" aria-pressed={ready && lookAndFeel.preset === preset.id} disabled={disabled}
-            onClick={event => void changeLookAndFeel({ preset: preset.id }, event.currentTarget)}
-            className={cn(choice, "space-y-3 p-4", ready && lookAndFeel.preset === preset.id ? selected : unselected)}>
+          {THEME_PRESETS.map(preset => <button key={preset.id} type="button" aria-pressed={ready && !usingDeviceColors && lookAndFeel.preset === preset.id} disabled={disabled}
+            onClick={event => void changeLookAndFeel({ preset: preset.id, deviceColors: false }, event.currentTarget)}
+            className={cn(choice, "space-y-3 p-4", ready && !usingDeviceColors && lookAndFeel.preset === preset.id ? selected : unselected)}>
             <span data-app-theme={preset.id} aria-hidden="true" className="flex h-24 overflow-hidden rounded-lg border border-border bg-background">
               <span className="flex w-12 flex-col gap-2 bg-brand-surface-950 p-3"><span className="h-4 w-4 rounded-full bg-brand-surface-400" /><span className="h-1 w-5 rounded bg-brand-surface-300" /><span className="h-1 w-5 rounded bg-brand-secondary-surface-300" /></span>
               <span className="flex flex-1 flex-col gap-3 p-3"><span className="h-2 w-20 rounded bg-brand-surface-400" /><span className="flex gap-2"><span className="h-9 flex-1 rounded border border-brand-300 bg-brand-surface-50 dark:bg-brand-surface-950/40" /><span className="h-9 flex-1 rounded bg-brand-secondary-surface-600" /></span></span>
             </span>
-            <span className="flex items-center justify-between gap-2 font-semibold">{preset.name}{ready && lookAndFeel.preset === preset.id && <Check className="h-4 w-4" aria-hidden="true" />}</span>
+            <span className="flex items-center justify-between gap-2 font-semibold">{preset.name}{ready && !usingDeviceColors && lookAndFeel.preset === preset.id && <Check className="h-4 w-4" aria-hidden="true" />}</span>
             <span className="block text-sm text-muted-foreground">{preset.description}</span>
           </button>)}
         </div>

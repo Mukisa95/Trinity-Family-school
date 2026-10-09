@@ -1,0 +1,8 @@
+<resources>
+    <color name="device_timetable_surface">@android:color/system_neutral1_900</color>
+    <color name="device_timetable_edge">@android:color/system_neutral2_700</color>
+    <color name="device_timetable_nav">@android:color/system_neutral2_800</color>
+    <color name="device_timetable_foreground">@android:color/system_neutral1_100</color>
+    <color name="device_timetable_muted">@android:color/system_neutral2_200</color>
+    <color name="device_timetable_accent">@android:color/system_accent1_200</color>
+</resources>

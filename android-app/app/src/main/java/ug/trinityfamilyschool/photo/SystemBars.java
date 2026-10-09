@@ -21,7 +21,8 @@ final class SystemBars {
         ViewCompat.requestApplyInsets(root);
     }
     static void apply(Activity activity, View root, boolean dark) {
-        root.setBackgroundColor(Color.parseColor(dark ? "#020617" : "#F1F7FF"));
+        DeviceColors palette=AppAppearance.deviceColorsEnabled(activity)?DeviceColors.read(activity):null;
+        root.setBackgroundColor(palette==null?Color.parseColor(dark ? "#020617" : "#F1F7FF"):palette.role("background",dark));
         androidx.core.view.WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(activity.getWindow(), root);
         controller.setAppearanceLightStatusBars(!dark);
         controller.setAppearanceLightNavigationBars(!dark);

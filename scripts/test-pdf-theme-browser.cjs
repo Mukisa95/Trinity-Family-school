@@ -51,6 +51,9 @@ async function run() {
   const browser = await chromium.launch({ channel: process.env.THEME_BROWSER_CHANNEL || 'msedge', headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+    await page.addInitScript(palette => {
+      window.TrinityOffline={postMessage(raw){const request=JSON.parse(raw);queueMicrotask(()=>window.TrinityOffline.onmessage?.({data:JSON.stringify({id:request.id,success:true,...(request.action==='deviceColors'?{palette}:{})})}));}};
+    },require('../tests/fixtures/android-device-palette.json'));
     const errors = []; page.on('pageerror', e => errors.push(e.message));
     await page.goto(`http://127.0.0.1:${server.address().port}`);
     await page.waitForFunction(() => window.pdfAPI);
@@ -98,6 +101,14 @@ async function run() {
     assert.equal(hash(await pngDownload('Download current page as PNG')), hash(pngLight), 'Soft Indigo must preserve PNG exports');
     assert.equal(hash(await pngDownload('Download PDF')), hash(fs.readFileSync(path.join(output, 'source.pdf'))), 'Soft Indigo must preserve PDF bytes');
     await page.screenshot({ path: path.join(output, 'soft-indigo-dark.png') });
+    await page.waitForFunction(()=>window.appearance.deviceColorsSupported);
+    await page.evaluate(async()=>window.appearance.changeLookAndFeel({deviceColors:true}));
+    await page.waitForFunction(()=>document.documentElement.dataset.deviceColors==='true');
+    assert.deepEqual(await inspect(),light,'Material You must preserve page and thumbnail pixels');
+    assert.equal(hash(await canvas.screenshot()),pageLight,'Material You must preserve paper appearance');
+    assert.equal(hash(await pngDownload('Download current page as PNG')),hash(pngLight),'Material You must preserve PNG exports');
+    assert.equal(hash(await pngDownload('Download PDF')),hash(fs.readFileSync(path.join(output,'source.pdf'))),'Material You must preserve PDF bytes');
+    await page.screenshot({path:path.join(output,'device-colors-dark.png')});
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole('button', { name: 'Hide page thumbnails' }).click();
     await page.screenshot({ path: path.join(output, 'mobile-dark.png') });

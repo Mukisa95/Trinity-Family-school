@@ -2,6 +2,12 @@
 
 Settings → Look and Feel offers Trinity Classic and Soft Indigo. Appearance is a separate preference: Follow device (the default), Light, or Dark. Staff can also open settings from the user menu; parents have a personal settings route. Preferences are saved on the current device, synchronize between browser tabs, and do not write school or account records.
 
+The Android app also offers **Use device colours** on Android 12 or later. It reads Android's public wallpaper palette locally, without wallpaper access or extra permissions. This option is off by default and independent of Light/Dark/Follow device. Selecting a preset or restoring defaults turns it off. Older Android versions and the PWA retain the existing presets.
+
+`DeviceColors.java` supplies validated paired light/dark roles through the native bridge. `src/lib/theme/device-colors.ts` applies screen-only semantic and accent variables and caches the public palette for offline startup. The provider refreshes colours on native configuration events and foreground entry without reloading the page. Widget and notification RemoteViews use Android colour resources so host reapplication resolves the current palette; saved manual light/dark modes use explicit tone references. Lesson/status/gender colours and paper/export colours retain their meaning. Native settings use the same saved preference.
+
+Run `node --import tsx --test tests/device-colors.test.ts` and `node scripts/test-device-colors-browser.cjs` alongside the theme checks below. `DeviceColorsDeviceTest` checks public Android palette contrast; `TimetableAppearanceDeviceTest` covers widgets and collapsed/expanded notifications with the option enabled and disabled. The browser fixture uses public system colours and synthetic UI data.
+
 ## Colour roles
 
 Use the shared semantic utilities for ordinary UI: `bg-background`, `bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`, `ring-ring`. Primary buttons use `bg-primary text-primary-foreground`; links use `text-link hover:text-link-hover`.

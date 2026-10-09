@@ -80,7 +80,7 @@ async function run(){
   await page.evaluate(()=>window.dispatchEvent(new Event('beforeprint')));assert.ok(await page.evaluate(()=>!document.documentElement.classList.contains('dark')));await page.evaluate(()=>window.dispatchEvent(new Event('afterprint')));assert.ok(await page.evaluate(()=>document.documentElement.classList.contains('dark')));
   await page.setViewportSize({width:390,height:844});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(output,'mobile-soft-indigo-dark.png'),fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   const button=page.getByRole('button',{name:'Light',exact:true});await button.focus();assert.equal(await button.evaluate(el=>document.activeElement===el),true);await page.keyboard.press('Enter');await idle();assert.equal(await button.getAttribute('aria-pressed'),'true');
-  await click('Restore defaults');assert.equal(await page.evaluate(()=>localStorage.getItem('trinity-appearance')),'system');assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('trinity-look-and-feel'))),{preset:'trinity-classic',background:'illustration',dimming:37});
+  await click('Restore defaults');assert.equal(await page.evaluate(()=>localStorage.getItem('trinity-appearance')),'system');assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('trinity-look-and-feel'))),{preset:'trinity-classic',background:'illustration',dimming:37,deviceColors:false});
   await page.waitForFunction(()=>window.nativeAppearanceRequests.at(-1)?.preference==='system');
   await page.emulateMedia({reducedMotion:'reduce'});await page.getByRole('button',{name:/^Soft Indigo/}).click();await idle();assert.equal(await page.evaluate(()=>document.documentElement.dataset.appTheme),'soft-indigo');
   await page.evaluate(()=>{Storage.prototype.setItem=function(){throw new DOMException('Storage blocked','SecurityError')}});await click('Plain');await page.getByRole('status').getByText(/could not save/).waitFor();
@@ -89,4 +89,5 @@ async function run(){
  }catch(error){console.error(error);throw error;}
  finally{await browser.close();await new Promise(r=>server.close(r));}
 }
-run().catch(e=>{console.error(e);process.exitCode=1;});
+module.exports={build};
+if(require.main===module)run().catch(e=>{console.error(e);process.exitCode=1;});

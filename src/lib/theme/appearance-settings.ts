@@ -11,15 +11,17 @@ export interface LookAndFeelSettings {
   preset: ThemePreset;
   background: BackgroundStyle;
   dimming: number;
+  deviceColors: boolean;
 }
 
 export const DEFAULT_LOOK_AND_FEEL: LookAndFeelSettings = {
-  preset: "trinity-classic", background: "illustration", dimming: 37,
+  preset: "trinity-classic", background: "illustration", dimming: 37, deviceColors: false,
 };
 
 export function parseLookAndFeel(value: unknown): LookAndFeelSettings {
   const input = value && typeof value === "object" ? value as Partial<LookAndFeelSettings> : {};
   return {
+    deviceColors: input.deviceColors === true,
     preset: THEME_PRESETS.some(preset => preset.id === input.preset) ? input.preset! : DEFAULT_LOOK_AND_FEEL.preset,
     background: input.background === "plain" ? "plain" : "illustration",
     dimming: typeof input.dimming === "number" && Number.isFinite(input.dimming)

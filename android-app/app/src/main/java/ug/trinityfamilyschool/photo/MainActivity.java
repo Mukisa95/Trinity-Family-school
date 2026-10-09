@@ -62,6 +62,7 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        DeviceColors.applyNative(this);
         exchange = new File(getCacheDir(), "photo-exchange"); exchange.mkdirs();
         // Older exchanges are private cache files, never a permanent pupil store.
         File[] old = exchange.listFiles();
@@ -313,6 +314,7 @@ public final class MainActivity extends Activity {
         android.content.res.Resources.Theme deviceTheme = getResources().newTheme();
         deviceTheme.applyStyle(R.style.TrinityTheme, true);
         getTheme().setTo(deviceTheme);
+        DeviceColors.applyNative(this);
         if (web != null) {
             web.dispatchConfigurationChanged(configuration);
             if (OfflinePolicy.local(web.getUrl())) {
