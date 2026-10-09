@@ -37,6 +37,31 @@ public class TimetableRefreshDeviceTest {
             assertEquals(0, TimetableSurfaces.prefs(context).getLong("nextVisualAt", -1));
         } finally { restored(); }
     }
+    @Test public void upcomingWidgetCountdownRefreshesWithProgressHidden() throws Exception {
+        ready(); assertTrue(TimetableRefresh.interactive(context));
+        android.appwidget.AppWidgetManager widgets = android.appwidget.AppWidgetManager.getInstance(context);
+        java.util.Map<String, Boolean> previous = new java.util.HashMap<>();
+        java.util.Set<String> present = new java.util.HashSet<>();
+        android.content.SharedPreferences prefs = TimetableSurfaces.prefs(context);
+        org.json.JSONObject envelope = new OfflineStore(context).timetableAvailable();
+        java.time.ZonedDateTime now = java.time.ZonedDateTime.now(java.time.ZoneId.of(envelope.getJSONObject("session").optString("timeZone", "Africa/Kampala")));
+        boolean upcoming = TimetableSchedule.feed(envelope.getJSONObject("snapshot").getJSONObject("datasets"), now).profiles.stream().anyMatch(row -> !row.active && row.countdownEnd > System.currentTimeMillis());
+        assertTrue("Run with an upcoming cached lesson", upcoming);
+        try {
+            java.util.List<String> keys = new java.util.ArrayList<>(); keys.add("progress");
+            for (Class<?> provider : new Class<?>[]{TimetableWidget.class, TimetableProgressWidget.class})
+                for (int id : widgets.getAppWidgetIds(new android.content.ComponentName(context, provider))) keys.add(TimetableSurfaces.prefix(id) + "progress");
+            assertTrue("An actual launcher widget is required", keys.size() > 1);
+            android.content.SharedPreferences.Editor edit = prefs.edit();
+            for (String key : keys) { if (prefs.contains(key)) present.add(key); previous.put(key, prefs.getBoolean(key, true)); edit.putBoolean(key, false); }
+            edit.commit(); restored();
+            assertTrue("Countdown fallback runs even when progress bars are hidden", prefs.getLong("nextVisualAt", 0) > System.currentTimeMillis());
+        } finally {
+            android.content.SharedPreferences.Editor edit = prefs.edit();
+            for (java.util.Map.Entry<String, Boolean> entry : previous.entrySet()) if (present.contains(entry.getKey())) edit.putBoolean(entry.getKey(), entry.getValue()); else edit.remove(entry.getKey());
+            edit.commit(); restored();
+        }
+    }
     @Test public void transientReadFailureStillArmsRecoveryWithoutChangingChoices() throws Exception {
         ready(); OfflineStore broken = new OfflineStore(context, "timetable-refresh-test.enc");
         boolean progress = TimetableSurfaces.prefs(context).getBoolean("progress", true), card = TimetableSurfaces.prefs(context).getBoolean("card", true);

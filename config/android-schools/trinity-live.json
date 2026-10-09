@@ -4,9 +4,9 @@
   "applicationId": "ug.trinityfamilyschool.live",
   "websiteOrigin": "https://trinityfamilyschool.vercel.app",
   "firebaseProjectId": "trinity-family-schools",
-  "versionCode": 18,
-  "versionName": "1.16",
-  "releaseNotes": "Keep timetable widgets and notifications updating with independent lesson alarms and automatic background recovery. Accurate timetable timing can be enabled in timetable card settings.",
+  "versionCode": 19,
+  "versionName": "1.17",
+  "releaseNotes": "Repair frozen widget countdowns, including upcoming lessons, and keep timetable widgets and notifications updating with independent lesson alarms and automatic background recovery.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {

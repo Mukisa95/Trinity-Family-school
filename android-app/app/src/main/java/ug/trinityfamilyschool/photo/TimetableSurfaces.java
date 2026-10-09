@@ -67,6 +67,7 @@ final class TimetableSurfaces {
             NotificationManager notifications = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             notifications.createNotificationChannel(new NotificationChannel("timetable", "School timetables", NotificationManager.IMPORTANCE_LOW));
             boolean cardVisible = !frame.profiles.isEmpty() && prefs(context).getBoolean("card", true) && LessonReminders.notificationsAllowed(context);
+            long millis = System.currentTimeMillis();
             long next = frame.boundary; boolean progress = frame.active && cardVisible && prefs(context).getBoolean("progress", true);
             Map<Integer, TimetableSchedule.Frame> widgets = new LinkedHashMap<>(); Map<Integer, Boolean> bars = new HashMap<>();
             AppWidgetManager manager = AppWidgetManager.getInstance(context);
@@ -76,8 +77,9 @@ final class TimetableSurfaces {
                 next = Math.min(next, widgetFrame.boundary);
                 widgets.put(id, widgetFrame); bars.put(id, bar);
                 progress |= bar && widgetFrame.active;
+                for (TimetableSchedule.Frame row : widgetFrame.profiles) progress |= row.countdownEnd > millis;
             }
-            long expires = OfflineStore.timestamp(session.optString("expiresAt")), millis = System.currentTimeMillis();
+            long expires = OfflineStore.timestamp(session.optString("expiresAt")); millis = System.currentTimeMillis();
             if (expires <= millis) { clear(context); return; }
             TimetableRefresh.schedule(context, new TimetableRefreshPlan(millis, next,
                 expires, cardVisible || !widgets.isEmpty(), progress, TimetableRefresh.interactive(context)));
@@ -177,6 +179,7 @@ final class TimetableSurfaces {
         row.removeAllViews(R.id.pills_container);
         row.setViewVisibility(R.id.pills_container, View.VISIBLE); row.setViewVisibility(R.id.pill_details, View.GONE);
         row.setViewVisibility(R.id.period_badge, View.VISIBLE); row.setViewVisibility(R.id.period_countdown, View.GONE);
+        row.setBoolean(R.id.period_countdown, "setStarted", false);
         row.setContentDescription(R.id.current_lesson, frame.tableName + " · " + frame.title);
         row.setTextViewText(R.id.class_label, frame.tableName); row.setTextViewText(R.id.current_lesson, frame.shortLabel.isEmpty() ? frame.title : frame.shortLabel);
         row.setTextViewText(R.id.lesson_time, frame.time); row.setTextViewText(R.id.lesson_agenda, frame.agenda);
@@ -185,11 +188,19 @@ final class TimetableSurfaces {
         row.setTextColor(R.id.period_badge, android.graphics.Color.parseColor(frame.countdownEnd > 0 ? "#B45309" : "#6B7280"));
         if (!frame.hasPeriod) row.setViewVisibility(R.id.period_badge, View.GONE);
         if (frame.countdownEnd > System.currentTimeMillis()) {
+            if (!notification) {
+                // ListView can detach/recycle a Chronometer without restarting it. Render a
+                // minute badge from the current clock; the independent visual alarm refreshes it.
+                row.setTextViewText(R.id.period_badge, TimetableCountdown.label(frame.countdownEnd, System.currentTimeMillis(), frame.active));
+                row.setInt(R.id.period_badge, "setBackgroundResource", frame.active ? R.drawable.badge_background : R.drawable.upcoming_background);
+                row.setTextColor(R.id.period_badge, android.graphics.Color.parseColor(frame.active ? "#047857" : "#B45309"));
+            } else {
             row.setInt(R.id.period_countdown, "setBackgroundResource", frame.active ? R.drawable.badge_background : R.drawable.upcoming_background);
             row.setTextColor(R.id.period_countdown, android.graphics.Color.parseColor(frame.active ? "#047857" : "#B45309"));
             row.setViewVisibility(R.id.period_badge, View.GONE); row.setViewVisibility(R.id.period_countdown, View.VISIBLE);
-            row.setChronometer(R.id.period_countdown, android.os.SystemClock.elapsedRealtime() + frame.countdownEnd - System.currentTimeMillis(), frame.active ? "%s left" : "%s to start", true);
             row.setChronometerCountDown(R.id.period_countdown, true);
+            row.setChronometer(R.id.period_countdown, android.os.SystemClock.elapsedRealtime() + frame.countdownEnd - System.currentTimeMillis(), frame.active ? "%s left" : "%s to start", true);
+            }
         }
         row.setProgressBar(R.id.lesson_progress, 100, frame.progress, false); row.setViewVisibility(R.id.lesson_progress, progress && (frame.hasPeriod || frame.active) ? View.VISIBLE : View.GONE);
         row.setTextViewText(R.id.next_lesson, frame.next); row.setViewVisibility(R.id.next_lesson, View.GONE);
