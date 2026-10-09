@@ -6,6 +6,7 @@ import { useClasses } from "@/lib/hooks/use-classes";
 import { useSubjects } from "@/lib/hooks/use-subjects";
 import { Check, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
+import { formatTimetableCountdown } from "@/lib/utils/timetable-time";
 import { getTimetableStreamInitial } from "@/lib/utils/timetable-streams";
 
 interface LiveTrackerProps {
@@ -51,7 +52,6 @@ export function LiveTracker({
     const [viewOffset, setViewOffset] = React.useState(0);
 
     const currentDayOfWeek = currentTime.getDay() || 7;
-    const currentTimeStr = format(currentTime, "HH:mm");
     const currentTimePeriodStr = format(currentTime, "HH:mm"); // for period boundary comparison
     const currentSecs = currentTime.getHours() * 3600 + currentTime.getMinutes() * 60 + currentTime.getSeconds();
 
@@ -96,7 +96,7 @@ export function LiveTracker({
             }}
             aria-pressed={selected}
             aria-controls="selected-timetable-panel"
-            className={`inline-flex h-8 flex-shrink-0 items-center gap-1 rounded-full border px-2.5 text-[9px] font-extrabold uppercase tracking-wide transition-colors ${selected
+            className={`hidden h-8 flex-shrink-0 items-center gap-1 rounded-full border px-2.5 text-[9px] font-extrabold uppercase tracking-wide transition-colors sm:inline-flex ${selected
                 ? "border-indigo-200 bg-indigo-50 text-indigo-700"
                 : "border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
             }`}
@@ -117,7 +117,7 @@ export function LiveTracker({
         const statusLabel = liveEnabled ? "No active lesson" : "Saved timetable";
         const statusDescription = liveEnabled
             ? nextPeriod
-                ? `Next: ${nextPeriod.type === 'lesson' ? `Lesson ${nextPeriod.periodNumber}` : (nextPeriod.customLabel || nextPeriod.type)} at ${nextPeriod.startTime}`
+                ? `Next: ${nextPeriod.type === 'lesson' ? `L${nextPeriod.periodNumber}` : (nextPeriod.customLabel || nextPeriod.type)} at ${nextPeriod.startTime}`
                 : "All classes finished for today."
             : selected
                 ? "This timetable is shown below."
@@ -140,7 +140,8 @@ export function LiveTracker({
                     </div>
                     <div className="min-w-0 flex-1">
                         <div className="flex min-w-0 flex-wrap items-center gap-2">
-                            <span className="truncate text-sm font-bold text-slate-900">{timetableLabel}</span>
+                            <button type="button" onClick={onSelect} disabled={!onSelect} aria-pressed={selected} aria-controls="selected-timetable-panel"
+                                className="truncate text-left text-sm font-bold text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">{timetableLabel}</button>
                             <span className={`rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ring-1 ring-inset ${liveEnabled
                                 ? "bg-amber-50 text-amber-700 ring-amber-200"
                                 : "bg-indigo-50 text-indigo-700 ring-indigo-200"
@@ -181,19 +182,19 @@ export function LiveTracker({
             return (ai === -1 ? 9999 : ai) - (bi === -1 ? 9999 : bi);
         });
     const periodLabel = activePeriod.type === 'lesson'
-        ? `Lesson ${activePeriod.periodNumber}`
+        ? `L${activePeriod.periodNumber}`
         : activePeriod.customLabel || activePeriod.type;
 
     // Countdown
     let countdownStr = "";
     if (currentSecs < startSecs) {
         const diff = startSecs - currentSecs;
-        countdownStr = `Starts in ${Math.floor(diff / 60)}m ${String(diff % 60).padStart(2, '0')}s`;
+        countdownStr = `${formatTimetableCountdown(diff)} to start`;
     } else if (currentSecs >= endSecs) {
         countdownStr = "Ended";
     } else {
         const remainingSecs = Math.max(totalSecs - elapsedSecs, 0);
-        countdownStr = `${Math.floor(remainingSecs / 60)}m ${String(remainingSecs % 60).padStart(2, '0')}s`;
+        countdownStr = `${formatTimetableCountdown(remainingSecs)} left`;
     }
 
     const activeSubjectCards = activeEntries.map(e => {
@@ -215,61 +216,53 @@ export function LiveTracker({
     return (
         <article
             onClick={handleCardSelect}
-            className={`relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border bg-white p-2.5 pl-3.5 text-slate-800 transition-all sm:p-3 sm:pl-4 ${selected
+            className={`relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border bg-white p-2 pl-3 text-slate-800 transition-all sm:p-3 sm:pl-4 ${selected
                 ? "border-indigo-200 shadow-[0_12px_34px_rgba(79,70,229,0.12)]"
                 : "border-slate-200/90 shadow-[0_8px_24px_rgba(15,23,42,0.06)] hover:border-indigo-200 hover:shadow-[0_10px_30px_rgba(79,70,229,0.10)]"
             } ${!selected && onSelect ? "cursor-pointer" : ""}`}
         >
             <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-indigo-500 via-violet-500 to-purple-500" />
 
-            {/* Compact identity, status and navigation row */}
-            <div className="flex min-w-0 items-start gap-2">
-                <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-indigo-50 ring-1 ring-inset ring-indigo-200">
-                    <span className={`h-2 w-2 rounded-full bg-indigo-600 ${isLive ? "animate-pulse" : "opacity-35"}`} />
-                </div>
+            <div className="flex min-w-0 items-center gap-1.5">
+                <span className={`h-2 w-2 shrink-0 rounded-full bg-indigo-600 ${isLive ? "animate-pulse" : "opacity-35"}`} />
+                {onSelect ? (
+                    <button type="button" onClick={onSelect} aria-pressed={selected} aria-controls="selected-timetable-panel"
+                        className="min-w-0 flex-1 truncate text-left text-[10px] font-extrabold uppercase tracking-wide text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                        {timetableLabel}
+                    </button>
+                ) : <span className="min-w-0 flex-1 truncate text-[10px] font-extrabold uppercase tracking-wide text-indigo-600">{timetableLabel}</span>}
+                <span className="shrink-0 text-xs font-bold text-slate-900">{periodLabel}</span>
+                {selectionControl}
+            </div>
 
-                <div className="min-w-0 flex-1">
-                    <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
-                        {profileName && (
-                            <span className="max-w-[150px] truncate text-[10px] font-extrabold uppercase tracking-[0.12em] text-indigo-600 sm:max-w-[220px]">
-                                {profileName}
-                            </span>
-                        )}
-                        {profileName && <span className="text-slate-300" aria-hidden="true">/</span>}
-                        <span className="text-sm font-bold leading-none text-slate-900">{periodLabel}</span>
-                        <span className={`rounded-full px-2 py-1 text-[9px] font-extrabold uppercase leading-none tracking-wide ring-1 ring-inset ${
-                            currentSecs < startSecs
-                                ? "bg-amber-50 text-amber-700 ring-amber-200"
-                                : currentSecs >= endSecs
-                                    ? "bg-slate-100 text-slate-500 ring-slate-200"
-                                    : "bg-emerald-50 text-emerald-700 ring-emerald-200"
-                        }`}>
-                            {countdownStr}
-                        </span>
-                    </div>
+            <div className="mt-1 flex items-center justify-between gap-2 whitespace-nowrap text-[10px] font-semibold">
+                <span className="font-mono tabular-nums text-slate-500">{activePeriod.startTime}–{activePeriod.endTime}</span>
+                <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold leading-none tabular-nums ring-1 ring-inset ${
+                    currentSecs < startSecs ? "bg-amber-50 text-amber-700 ring-amber-200"
+                        : currentSecs >= endSecs ? "bg-slate-100 text-slate-500 ring-slate-200"
+                            : "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                }`}>{countdownStr}</span>
+            </div>
 
-                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-semibold text-slate-500">
-                        <span className="inline-flex items-center gap-1 font-mono tabular-nums">
-                            <Clock className="h-3 w-3 text-slate-400" />
-                            {activePeriod.startTime}–{activePeriod.endTime}
-                        </span>
-                        <span className="text-slate-300" aria-hidden="true">·</span>
-                        <span className="font-mono tabular-nums text-slate-600">Now {currentTimeStr}</span>
-                    </div>
-                </div>
-
-                <div className="ml-auto flex flex-shrink-0 items-center gap-0.5 rounded-full border border-slate-200 bg-slate-50 p-0.5 shadow-sm">
+            <div className="mt-1 flex items-center gap-2">
                     <button
+                        type="button"
                         onClick={handlePrev}
                         disabled={!prevPeriod}
-                        className="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-white hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-30"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-30"
                         title="Previous Period"
                         aria-label="Show previous period"
                     >
                         <ChevronLeft className="h-3.5 w-3.5" />
                     </button>
+                    <div role="progressbar" aria-label={`${timetableLabel} lesson progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progressPct)}
+                        className="relative h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100 shadow-inner">
+                        <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 transition-all duration-1000 ease-linear"
+                            style={{ width: `${clampedPct}%` }} />
+                    </div>
                     {viewOffset !== 0 && (
                         <button
+                            type="button"
                             onClick={handleLive}
                             className="h-7 rounded-full bg-indigo-600 px-2 text-[8px] font-extrabold uppercase tracking-wide text-white transition-colors hover:bg-indigo-700"
                             title="Return to Live Time"
@@ -278,34 +271,25 @@ export function LiveTracker({
                         </button>
                     )}
                     <button
+                        type="button"
                         onClick={handleNext}
                         disabled={!nextPeriod}
-                        className="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-white hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-30"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-30"
                         title="Next Period"
                         aria-label="Show next period"
                     >
                         <ChevronRight className="h-3.5 w-3.5" />
                     </button>
-                </div>
-                {selectionControl}
-            </div>
-
-            {/* Slim progress line */}
-            <div className="relative mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-100 shadow-inner">
-                <div
-                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 transition-all duration-1000 ease-linear"
-                    style={{ width: `${clampedPct}%` }}
-                />
             </div>
 
             {/* Compact class and subject list */}
-            <div className="mt-2 flex min-h-6 flex-wrap items-center gap-1.5 border-t border-slate-100 pt-2">
+            <div className="mt-1 flex min-h-5 flex-wrap items-center gap-1 border-t border-slate-100 pt-1 sm:mt-2 sm:gap-1.5 sm:pt-2">
                 {activeSubjectCards.length > 0 ? (
                     <>
                     {activeSubjectCards.map((sc, idx) => (
                         <div 
                             key={`${sc.id}-${idx}`} 
-                            className="inline-flex min-h-6 items-center gap-1 rounded-lg border border-indigo-100 bg-indigo-50/70 px-2 py-0.5 text-[10px] font-bold tracking-tight text-slate-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50"
+                            className="inline-flex min-h-5 items-center gap-1 rounded-lg border border-indigo-100 bg-indigo-50/70 px-1.5 py-0.5 text-[10px] font-bold tracking-tight text-slate-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50 sm:min-h-6 sm:px-2"
                         >
                             <span className="text-indigo-700">{sc.classCode}</span>
                             <span className="select-none text-indigo-300">·</span>

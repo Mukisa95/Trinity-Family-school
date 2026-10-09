@@ -169,11 +169,12 @@ test('screen timetable views use dynamic class widths and floating mobile header
 
   assert.match(dayGrid, /getTimetableClassColumnWidth\(hasVisibleStreamRows\)/);
   assert.match(weekGrid, /getTimetableClassColumnWidth\(hasVisibleStreamRows\)/);
-  assert.match(page, /meta=\{desktopHeaderSelectors\}/);
+  assert.match(page, /meta=\{<>\{desktopHeaderSelectors\}<TimetableClock \/><\/>\}/);
   assert.match(page, /actionsLeading=\{mobileHeaderSelectors\}/);
   assert.doesNotMatch(page, /titleControls=\{/);
-  assert.match(page, /max-w-\[31vw\]/);
-  assert.match(page, /max-w-\[26vw\]/);
+  assert.doesNotMatch(page, /max-w-\[31vw\]/);
+  assert.match(page, /whitespace-nowrap">\{selectedPeriodLabel\}/);
+  assert.match(page, /max-w-\[22vw\]/);
   assert.match(page, /id="timetable-mobile-view-control"/);
   assert.match(page, /id="timetable-mobile-filter-control"/);
   assert.match(page, /id="timetable-mobile-filter-value-control"/);
@@ -243,7 +244,8 @@ test('timetable live-feed cards stay compact and form two columns on wide screen
   const page = readFileSync('src/app/timetable/page.tsx', 'utf8');
 
   assert.match(tracker, /getTimetableStreamInitial\(e, cls\)/);
-  assert.match(tracker, /Now \{currentTimeStr\}/);
+  assert.doesNotMatch(tracker, /Now \{currentTimeStr\}/);
+  assert.match(page, /<TimetableClock \/>/);
   assert.match(tracker, /No lessons assigned for this period/);
   assert.match(tracker, /Show previous period/);
   assert.match(tracker, /Show next period/);

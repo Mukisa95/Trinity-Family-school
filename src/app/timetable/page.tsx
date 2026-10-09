@@ -2,13 +2,14 @@
 import { androidOfflineRequest, hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
 
 import * as React from "react";
-import { CalendarRange, Check, ChevronDown, PlusCircle, TableProperties, X } from "lucide-react";
+import { Check, ChevronDown, PlusCircle, TableProperties, X } from "lucide-react";
 import { useAcademicYears } from "@/lib/hooks/use-academic-years";
 import { getEffectiveTermForDataDisplay } from "@/lib/utils/term-status-utils";
 import { useClearTimetableOptionalSubjects, useTimetableProfiles } from "@/lib/hooks/use-timetable";
 import { Loader2 } from "lucide-react";
 import { StructureGenerator } from "@/components/timetable/StructureGenerator";
 import { LiveTracker } from "@/components/timetable/LiveTracker";
+import { TimetableClock } from "@/components/timetable/TimetableClock";
 import { Eraser, Trash2, Settings, PencilRuler, Type, Printer } from "lucide-react";
 import {
     DropdownMenu,
@@ -148,17 +149,15 @@ export default function TimetablePage() {
 
     const mobileHeaderSelectors = (
         <div className="flex min-w-0 items-center gap-1 sm:hidden">
-            <div className="min-w-0 flex-[1.15]">
+            <div className="shrink-0">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <button
                             type="button"
-                            className="flex h-9 w-full max-w-[31vw] items-center gap-1 rounded-full border border-blue-200/70 bg-white/95 px-2 text-[9px] font-bold text-blue-700 shadow-sm transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                            className="flex h-8 w-auto items-center rounded-full border border-blue-200/70 bg-white/95 px-2 text-[10px] font-bold text-blue-700 shadow-sm transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                             aria-label={`Select academic year and term. Current selection: ${selectedPeriodLabel}`}
                         >
-                            <CalendarRange className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">{selectedPeriodLabel}</span>
-                            <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
+                            <span className="whitespace-nowrap">{selectedPeriodLabel}</span>
                         </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="max-h-[70vh] w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto">
@@ -200,7 +199,7 @@ export default function TimetablePage() {
                         <DropdownMenuTrigger asChild>
                             <button
                                 type="button"
-                                className="flex h-9 w-full max-w-[26vw] items-center gap-1 rounded-full border border-violet-200/70 bg-white/95 px-2 text-[9px] font-bold text-violet-700 shadow-sm transition-colors hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+                                className="flex h-8 w-full max-w-[22vw] items-center gap-1 rounded-full border border-violet-200/70 bg-white/95 px-1.5 text-[9px] font-bold text-violet-700 shadow-sm transition-colors hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
                                 aria-label={`Choose timetable. Current selection: ${selectedTimetableLabel}`}
                             >
                                 <TableProperties className="h-3.5 w-3.5 shrink-0" />
@@ -300,7 +299,7 @@ export default function TimetablePage() {
                 subtitle="Manage class schedules and teacher assignments"
                 backHref="/dashboard"
                 backLabel="Dashboard"
-                meta={desktopHeaderSelectors}
+                meta={<>{desktopHeaderSelectors}<TimetableClock /></>}
                 actionsLeading={mobileHeaderSelectors}
                 actions={
                     yearId && termId && profiles.length > 0 ? (
