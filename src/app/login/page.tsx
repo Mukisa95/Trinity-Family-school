@@ -294,16 +294,16 @@ export default function LoginPage() {
         }
 
         .dark .trinity-portal-landing {
-          --trinity-navy:   #0f172a;
+          --trinity-navy:   hsl(var(--background));
           --trinity-green:  #22c55e;
           --trinity-green2: #4ade80;
           --trinity-gold:   #eab308;
           --trinity-gold2:  #facc15;
-          --trinity-text:   #f8fafc;
-          --trinity-muted:  #94a3b8;
-          --trinity-light:  #1e293b;
-          --trinity-white:  #0f172a;
-          --trinity-border: #334155;
+          --trinity-text:   hsl(var(--foreground));
+          --trinity-muted:  hsl(var(--muted-foreground));
+          --trinity-light:  hsl(var(--muted));
+          --trinity-white:  hsl(var(--background));
+          --trinity-border: hsl(var(--border));
         }
 
         .trinity-portal-landing h1, 
@@ -321,7 +321,7 @@ export default function LoginPage() {
           background: #f0f2ff;
         }
         .dark .trinity-portal-landing ::-webkit-scrollbar-track {
-          background: #1e293b;
+          background: hsl(var(--muted));
         }
         .trinity-portal-landing ::-webkit-scrollbar-thumb {
           background: var(--trinity-navy);
@@ -597,7 +597,7 @@ export default function LoginPage() {
           min-width:180px;
         }
         .dark .trinity-portal-landing .hero-card {
-          background:#1e293b;
+          background:hsl(var(--card));
         }
         .trinity-portal-landing .hero-card-icon { font-size:26px; }
         .trinity-portal-landing .hero-card-text strong { display:block; font-size:14px; font-weight:700; color:var(--trinity-navy); }
@@ -773,7 +773,7 @@ export default function LoginPage() {
         }
         .trinity-portal-landing .gallery-overlay {
           position:absolute; inset:0;
-          background:linear-gradient(to top, rgba(26,35,64,0.85) 0%, rgba(26,35,64,0.2) 60%, transparent 100%);
+          background:linear-gradient(to top, rgb(var(--ui-neutral-slate-900, 26 35 64) / 0.85) 0%, rgb(var(--ui-neutral-slate-900, 26 35 64) / 0.2) 60%, transparent 100%);
           z-index:2;
         }
         .trinity-portal-landing .gallery-card-content {
@@ -792,7 +792,7 @@ export default function LoginPage() {
           overflow:hidden;
           backdrop-filter:blur(10px);
           -webkit-backdrop-filter:blur(10px);
-          background:rgba(15,23,42,0.65);
+          background:rgb(var(--ui-neutral-slate-900, 15 23 42) / 0.65);
         }
         .trinity-portal-landing .modal-overlay.open { opacity:1; pointer-events:auto; }
         
@@ -817,7 +817,7 @@ export default function LoginPage() {
           position:relative; z-index:5;
           width:min(420px,92vw); margin:20px;
           padding:32px; border-radius:28px;
-          background:rgba(15,23,42,0.55);
+          background:rgb(var(--ui-neutral-slate-900, 15 23 42) / 0.55);
           border:1px solid rgba(255,255,255,.15);
           backdrop-filter:blur(24px) saturate(180%);
           -webkit-backdrop-filter:blur(24px) saturate(180%);

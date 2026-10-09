@@ -1,4 +1,13 @@
 import type { Config } from "tailwindcss";
+import * as colors from "tailwindcss/colors";
+
+// Legacy neutral utilities resolve through the active surface palette, with exact
+// Tailwind fallbacks when device colours are off or inside a paper surface.
+const neutralPalette = (name: "slate" | "gray" | "zinc" | "neutral" | "stone") =>
+  Object.fromEntries(Object.entries(colors[name]).map(([shade, hex]) => {
+    const fallback = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(" ");
+    return [shade, `rgb(var(--ui-neutral-${name}-${shade}, ${fallback}) / <alpha-value>)`];
+  }));
 
 const brandShades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
 const brandPalette = (name: string) => ({
@@ -18,6 +27,11 @@ export default {
 	theme: {
 		extend: {
 			colors: {
+                slate: neutralPalette('slate'),
+                gray: neutralPalette('gray'),
+                zinc: neutralPalette('zinc'),
+                neutral: neutralPalette('neutral'),
+                stone: neutralPalette('stone'),
                 brand: brandPalette('brand'),
                 'brand-alt': brandPalette('brand-alt'),
                 'brand-secondary': brandPalette('brand-secondary'),

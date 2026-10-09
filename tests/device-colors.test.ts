@@ -26,3 +26,13 @@ test('wallpaper roles are screen-only, preserve status colours, and produce pair
   assert.ok(css.includes('--lesson-indigo-ink:165 180 252;'));
   assert.ok(css.includes('--lesson-violet-ink:109 40 217;'));
 });
+
+test('device palettes reach legacy neutral surfaces and all their opacity/gradient variants',()=>{
+  const palette=parseDevicePalette(fixture())!;
+  for(const family of ['slate','gray','zinc','neutral','stone'])for(const shade of [50,100,200,300,400,500,600,700,800,900,950]){
+    assert.ok(devicePaletteCss(palette).includes(`--ui-neutral-${family}-${shade}:`));
+  }
+  const css=devicePaletteCss(palette);
+  for(const role of ['calendar-text','calendar-hover','calendar-control-bg','chart-thumb-top','chart-thumb-middle','chart-thumb-edge','schedule-empty-bg','night-background','scrollbar-track'])assert.ok(css.includes(`--${role}:`),role);
+  assert.ok(css.includes('--ui-neutral-slate-950:171 205 239;'),'darkest legacy surface uses the device background');
+});

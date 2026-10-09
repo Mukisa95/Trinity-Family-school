@@ -145,8 +145,8 @@ html[data-theme-reveal]::view-transition-new(theme-switch-moon) { animation-dura
 }
 .dark [data-sidebar="menu-button"],
 .dark .dashboard-bg-wrapper [data-sidebar="menu-button"] {
-  background: linear-gradient(135deg, rgb(30 41 59 / 0.8), rgb(15 23 42 / 0.65)) !important;
-  border-color: rgb(100 116 139 / 0.2) !important;
+  background: linear-gradient(135deg, rgb(var(--ui-neutral-slate-800, 30 41 59) / 0.8), rgb(var(--ui-neutral-slate-900, 15 23 42) / 0.65)) !important;
+  border-color: rgb(var(--ui-neutral-slate-500, 100 116 139) / 0.2) !important;
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
 }
 .dark [data-sidebar="menu-button"]:hover,
@@ -163,8 +163,8 @@ html[data-theme-reveal]::view-transition-new(theme-switch-moon) { animation-dura
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-color: #0b1120;
-  background-image: linear-gradient(rgb(11 17 32 / var(--night-dim-top)), rgb(11 17 32 / var(--night-dim-bottom))), linear-gradient(to top, #0b1120, transparent 25%), url('/images/Night%20Background.png');
+  background-color: rgb(var(--night-background, 11 17 32));
+  background-image: linear-gradient(rgb(var(--night-background, 11 17 32) / var(--night-dim-top)), rgb(var(--night-background, 11 17 32) / var(--night-dim-bottom))), linear-gradient(to top, rgb(var(--night-background, 11 17 32)), transparent 25%), url('/images/Night%20Background.png');
   /* Fit the illustration to the screen width so portrait screens keep a small school. */
   /* Match the bottom fade to the original 1672 x 941 artwork for a seamless edge. */
   background-size: 100% 100%, 100% calc(100vw * 941 / 1672), 100% auto;
@@ -190,7 +190,7 @@ html[data-theme-reveal] .dashboard-bg-wrapper::after { transition: none !importa
 .dark .theme-dashboard-surface {
   background: linear-gradient(135deg, hsl(var(--card)), hsl(var(--background))) !important;
   border-color: hsl(var(--border));
-  box-shadow: 0 10px 28px rgb(2 6 23 / 0.24), inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
+  box-shadow: 0 10px 28px rgb(var(--ui-neutral-slate-950, 2 6 23) / 0.24), inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
 }
 /* Share the live timetable frame; its roles also follow Android device colours. */
 :root {
@@ -240,12 +240,12 @@ html[data-theme-reveal] .dashboard-bg-wrapper::after { transition: none !importa
 .dark .recharts-legend-item-text { color: hsl(var(--muted-foreground)) !important; }
 .dark .recharts-label,
 .dark .recharts-label-list text { fill: var(--chart-value); }
-.dark .recharts-tooltip-cursor { fill: rgb(148 163 184 / 0.12); }
+.dark .recharts-tooltip-cursor { fill: rgb(var(--ui-neutral-slate-400, 148 163 184) / 0.12); }
 .dark .recharts-bar-background-rectangle { fill: var(--chart-track); }
-.dark .custom-scrollbar::-webkit-scrollbar-track { background: rgb(148 163 184 / 0.05); }
-.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgb(148 163 184 / 0.35); }
-.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgb(148 163 184 / 0.55); }
-.dark { scrollbar-color: #415372 #101a2e; }
+.dark .custom-scrollbar::-webkit-scrollbar-track { background: rgb(var(--ui-neutral-slate-400, 148 163 184) / 0.05); }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgb(var(--ui-neutral-slate-400, 148 163 184) / 0.35); }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgb(var(--ui-neutral-slate-400, 148 163 184) / 0.55); }
+.dark { scrollbar-color: var(--scrollbar-thumb, #415372) var(--scrollbar-track, #101a2e); }
 
 /* Parent subject colours remain accents; neutral surfaces follow appearance. */
 .dark .parent-theme-surface { background: hsl(var(--background)) !important; }
@@ -257,7 +257,7 @@ html[data-theme-reveal] .dashboard-bg-wrapper::after { transition: none !importa
   border-color: hsl(var(--border)) !important;
 }
 .dark [style*="--theme-primary"] :is(.bg-blue-50, .bg-green-50, .bg-yellow-50, .bg-purple-50, .bg-red-50, .bg-orange-50) {
-  background: rgb(30 41 59 / 0.8) !important;
+  background: rgb(var(--ui-neutral-slate-800, 30 41 59) / 0.8) !important;
 }
 .dark [style*="--theme-primary"] .theme-text-primary { color: hsl(var(--foreground)) !important; }
 .dark .attendance-autosave-indicator.saving { color: #fbbf24; background-color: rgb(217 119 6 / 0.15); border-color: rgb(252 211 77 / 0.3); }

@@ -120,6 +120,7 @@
     "test:dashboard-theme-browser": "node scripts/test-dashboard-theme-browser.cjs",
     "test:mobile-dashboard-theme-browser": "node scripts/test-mobile-dashboard-theme-browser.cjs",
     "test:summary-theme-browser": "node scripts/test-summary-theme-browser.cjs",
+    "test:device-surfaces-browser": "node scripts/test-device-surfaces-browser.cjs",
     "test:pupil-theme-browser": "node scripts/test-pupil-theme-browser.cjs"
   },
   "dependencies": {

@@ -45,9 +45,9 @@ const AlertDialogContent = React.forwardRef<
     >
       <div
         className={cn(
-          "pointer-events-auto relative grid w-full max-w-lg gap-4 overflow-y-auto rounded-2xl border border-white/60 bg-white/90 p-5 text-foreground shadow-[0_24px_80px_rgba(15,23,42,0.28),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-2xl dark:border-slate-700/60 dark:bg-slate-900/90",
+          "pointer-events-auto relative grid w-full max-w-lg gap-4 overflow-y-auto rounded-2xl border border-border bg-popover/95 p-5 text-popover-foreground shadow-[0_24px_80px_rgba(15,23,42,0.28),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-2xl",
           "max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] md:max-h-[calc(100dvh-3rem)]",
-          "dark:border-slate-700/70 dark:bg-slate-950/90 dark:shadow-[0_24px_80px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)]",
+          "dark:shadow-[0_24px_80px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)]",
           "data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",

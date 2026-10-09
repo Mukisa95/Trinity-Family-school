@@ -338,8 +338,8 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
       className="min-h-screen parent-theme-surface"
       style={{
         '--theme-primary': dark ? darkAccent : currentTheme.primaryRgb,
-        '--theme-light': dark ? 'rgb(30 41 59)' : currentTheme.lightRgb,
-        '--theme-border': dark ? 'rgb(51 65 85)' : currentTheme.borderRgb,
+        '--theme-light': dark ? 'hsl(var(--card))' : currentTheme.lightRgb,
+        '--theme-border': dark ? 'hsl(var(--border))' : currentTheme.borderRgb,
         '--theme-shadow': currentTheme.shadowRgb,
         '--theme-accent': currentTheme.accentRgb,
         background: `linear-gradient(135deg, ${currentTheme.lightRgb.replace('rgb(', 'rgba(').replace(')', ', 0.15)')}, rgba(255, 255, 255, 0.95), ${currentTheme.lightRgb.replace('rgb(', 'rgba(').replace(')', ', 0.08)')})`

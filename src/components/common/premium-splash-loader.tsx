@@ -61,7 +61,7 @@ export function BrandedAuthScreen({
     <main
       aria-busy="true"
       aria-live="polite"
-      className={`fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center bg-[#111827] px-6 text-center text-white transition-opacity duration-300 ease-out motion-reduce:transition-none ${isExiting ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
+      className={`fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center bg-gray-900 px-6 text-center text-white transition-opacity duration-300 ease-out motion-reduce:transition-none ${isExiting ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
     >
       <section className="flex w-full max-w-sm flex-col items-center">
         <div className="flex items-center justify-center gap-4" aria-hidden="true">

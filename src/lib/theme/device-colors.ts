@@ -48,6 +48,16 @@ export function devicePaletteCss(palette: DevicePalette): string {
     const colors = dark ? palette.dark : palette.light;
     const declarations: string[] = [];
     const add = (name: string, value: string) => declarations.push(`--${name}:${value};`);
+    // Many existing screens use neutral utilities rather than semantic roles.
+    // Adapt their shared primitives so every utility, gradient and opacity variant
+    // follows the wallpaper hue without hundreds of page-specific overrides.
+    const neutralTones: Record<number, number> = { 50: 10, 100: 50, 200: 100, 300: 200, 400: 400, 500: 600, 600: 700, 700: 700, 800: 800, 900: 900, 950: 1000 };
+    for (const family of ["slate", "gray", "zinc", "neutral", "stone"]) {
+      for (const shade of shades) {
+        const value = dark && shade === 950 ? colors.background : palette.palettes.neutral[neutralTones[shade]];
+        add(`ui-neutral-${family}-${shade}`, channels(value));
+      }
+    }
     for (const [family, source] of Object.entries(families)) {
       const tones = palette.palettes[source];
       for (const shade of shades) {
@@ -64,11 +74,18 @@ export function devicePaletteCss(palette: DevicePalette): string {
     const map: Record<string, string> = { background: "background", foreground: "foreground", card: "surface", "card-foreground": "foreground", popover: "muted", "popover-foreground": "foreground", primary: "primary", "primary-foreground": "onPrimary", secondary: "secondaryContainer", "secondary-foreground": "onSecondaryContainer", muted: "muted", "muted-foreground": "mutedForeground", accent: "primaryContainer", "accent-foreground": "onPrimaryContainer", border: "outline", input: "outline", ring: "primary", "sidebar-background": "surface", "sidebar-foreground": "foreground", "sidebar-accent": "primaryContainer", "sidebar-accent-foreground": "onPrimaryContainer", "sidebar-border": "outline", "sidebar-primary": "primary", "sidebar-primary-foreground": "onPrimary", "sidebar-ring": "primary" };
     for (const [variable, role] of Object.entries(map)) add(variable, hsl(colors[role]));
     add("glass-surface", channels(colors.surface)); add("glass-edge", channels(colors.outline));
+    add("night-background", channels(colors.background));
     add("link", channels(colors.primary)); add("link-hover", channels(colors.foreground));
     add("brand-fill", channels(palette.palettes.primary[600])); add("brand-fill-hover", channels(palette.palettes.primary[700])); add("brand-on-fill", channels(palette.palettes.primary[0]));
     add("calendar-today", colors.primary); add("calendar-control", colors.primary); add("dashboard-tracker-border", colors.outline);
     add("chart-axis", colors.mutedForeground); add("chart-axis-strong", colors.foreground); add("chart-grid", colors.outline); add("chart-track", colors.muted); add("chart-value", colors.foreground);
+    add("chart-thumb-top", palette.palettes.neutral[dark ? 600 : 0]);
+    add("chart-thumb-middle", colors.muted); add("chart-thumb-edge", colors.surface); add("chart-thumb-label", colors.foreground); add("chart-thumb-label-shadow", "none");
+    add("calendar-text", colors.foreground); add("calendar-muted", colors.mutedForeground); add("calendar-hover", colors.muted); add("calendar-control-bg", colors.surface);
+    add("calendar-border", `rgb(${channels(colors.outline)} / .3)`);
+    add("scrollbar-thumb", colors.outline); add("scrollbar-track", colors.background);
     add("schedule-bg", colors.surface); add("schedule-neutral-bg", colors.muted); add("schedule-border", colors.outline); add("schedule-muted", colors.mutedForeground);
+    add("schedule-empty-bg", colors.surface);
     // These lesson roles normally reference brand accents; keep their subject identity under device colours.
     const lessonTones = { indigo: { 50: "#EEF2FF", 100: "#E0E7FF", 200: "#C7D2FE", 300: "#A5B4FC", 700: "#4338CA", 900: "#312E81", 950: "#1E1B4B" }, violet: { 50: "#F5F3FF", 100: "#EDE9FE", 200: "#DDD6FE", 300: "#C4B5FD", 700: "#6D28D9", 900: "#4C1D95", 950: "#2E1065" } };
     for (const [hue, tones] of Object.entries(lessonTones)) {

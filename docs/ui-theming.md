@@ -12,6 +12,12 @@ Run `node --import tsx --test tests/device-colors.test.ts` and `node scripts/tes
 
 Use the shared semantic utilities for ordinary UI: `bg-background`, `bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`, `ring-ring`. Primary buttons use `bg-primary text-primary-foreground`; links use `text-link hover:text-link-hover`.
 
+Dialog contents use `bg-popover text-popover-foreground border-border`. Device colours also supply `--ui-neutral-{slate|gray|zinc|neutral|stone}-{shade}`: Tailwind's existing neutral utilities (including opacity, borders, gradients, hover and disabled states) resolve through these variables. Their fallbacks preserve the original preset colours when device colours are disabled. This compatibility layer prevents older cards and dialog sections from retaining navy backgrounds under a warm wallpaper palette; new components should still use semantic roles.
+
+Calendar, chart thumb, scrollbar, sidebar and night-background materials follow the same device neutrals. Subject/status/gender accents remain independent. Paper scopes invalidate the neutral compatibility variables, restoring their exact original Tailwind values, and device variables apply only in screen media.
+
+`npm run test:device-surfaces-browser` exercises warm and cool device palettes through the real provider, shared dialogs, alert dialogs, sheets, popovers, menus, selects, legacy neutral utility variants, cards and table rows. It also checks live wallpaper changes with a dialog open, input retention, exact restoration when disabled, and paper/print isolation.
+
 For coloured sections, use these preset-aware families:
 
 | Family | Trinity Classic | Soft Indigo |
