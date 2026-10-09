@@ -69,11 +69,11 @@ import type {
 
 // Performance status options
 const PERFORMANCE_STATUS_OPTIONS = [
-  { value: 'good', label: 'Good', color: 'bg-green-100 text-green-800' },
-  { value: 'fair', label: 'Fair', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'weak', label: 'Weak', color: 'bg-orange-100 text-orange-800' },
-  { value: 'young', label: 'Young', color: 'bg-purple-100 text-purple-800' },
-  { value: 'irregular', label: 'Irregular Performance', color: 'bg-red-100 text-red-800' }
+  { value: 'good', label: 'Good', color: 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200' },
+  { value: 'fair', label: 'Fair', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200' },
+  { value: 'weak', label: 'Weak', color: 'bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-200' },
+  { value: 'young', label: 'Young', color: 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-200' },
+  { value: 'irregular', label: 'Irregular Performance', color: 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200' }
 ];
 
 const getDefaultSubjectStatusForPerformance = (status: string): SubjectStatus => {
@@ -1821,14 +1821,14 @@ export default function RemarkReportPage() {
 
   if (classesLoading || pupilsLoading || academicYearsLoading || settingsLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
         <GlassPageTopBar
           title="Pupil Performance Report"
           backHref="/"
         />
         <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
           <div className="text-center space-y-4">
-            <RefreshCw className="h-8 w-8 animate-spin text-indigo-600 mx-auto" />
+            <RefreshCw className="h-8 w-8 animate-spin text-indigo-600 mx-auto dark:text-indigo-400" />
             <p className="text-muted-foreground font-medium">Loading data...</p>
           </div>
         </div>
@@ -1837,7 +1837,7 @@ export default function RemarkReportPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animate-in fade-in duration-500 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
       <GlassPageTopBar
         title="Pupil Performance Report"
         subtitle="Manage and track pupil performance status for nursery classes. Select subject-based statuses for detailed assessment reports."
@@ -1952,7 +1952,7 @@ export default function RemarkReportPage() {
                     Print Report
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handlePrintPlayfulReport} className="cursor-pointer">
-                    <FileText className="mr-2 h-4 w-4 text-emerald-600" />
+                    <FileText className="mr-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                     Playful Report
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -1968,21 +1968,21 @@ export default function RemarkReportPage() {
 
         {/* Batch Report Progress Indicator */}
         {batchProgress.isGenerating && (
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6 border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6 border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 dark:bg-slate-900 dark:border-blue-800/60 dark:from-blue-950/40 dark:to-indigo-950/40">
             <div className="flex items-center space-x-4">
               <div className="flex-shrink-0">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
                     Generating Batch Report
                   </h3>
-                  <span className="text-sm font-medium text-gray-600">
+                  <span className="text-sm font-medium text-gray-600 dark:text-slate-300">
                     {batchProgress.progress}/{batchProgress.total}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 mb-3">
+                <p className="text-sm text-gray-600 mb-3 dark:text-slate-300">
                   {batchProgress.currentStep}
                 </p>
                 <Progress
@@ -1995,7 +1995,7 @@ export default function RemarkReportPage() {
                   })()}
                   className="w-full h-2"
                 />
-                <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                <div className="flex items-center justify-between mt-2 text-xs text-gray-500 dark:text-slate-400">
                   <span>Please wait while we generate your reports...</span>
                   <span>
                     {(() => {
@@ -2014,11 +2014,11 @@ export default function RemarkReportPage() {
 
         {/* Collapsible Filter Panel */}
         {showFilters && (
-          <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-200 animate-in slide-in-from-top-2 duration-300">
+          <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-200 animate-in slide-in-from-top-2 duration-300 dark:bg-slate-900 dark:border-slate-700">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
               {/* Status Filter */}
               <div className="w-full">
-                <Label htmlFor="statusFilter" className="text-sm font-medium text-gray-700 mb-1">
+                <Label htmlFor="statusFilter" className="text-sm font-medium text-gray-700 mb-1 dark:text-slate-200">
                   Filter by Status
                 </Label>
                 <Select value={selectedStatusFilter} onValueChange={setSelectedStatusFilter}>
@@ -2043,11 +2043,11 @@ export default function RemarkReportPage() {
                   checked={showPayCode}
                   onCheckedChange={setShowPayCode}
                 />
-                <Label htmlFor="showPayCode" className="text-sm font-medium text-gray-700 cursor-pointer select-none">
+                <Label htmlFor="showPayCode" className="text-sm font-medium text-gray-700 cursor-pointer select-none dark:text-slate-200">
                   Show School Pay Code on Reports
                 </Label>
                 {showPayCode && (
-                  <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-0.5">
+                  <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-0.5 dark:text-amber-400 dark:bg-amber-950/40 dark:border-amber-800/60">
                     Only shown for pupils with code
                   </span>
                 )}
@@ -2061,19 +2061,19 @@ export default function RemarkReportPage() {
           <div
             className={`mb-6 flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
               autoSaveState === 'error'
-                ? 'border-red-300 bg-red-50 text-red-900'
-                : 'border-indigo-200 bg-indigo-50/80 text-indigo-950'
+                ? 'border-red-300 bg-red-50 text-red-900 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200'
+                : 'border-indigo-200 bg-indigo-50/80 text-indigo-950 dark:border-indigo-800/60 dark:bg-indigo-950/80 dark:text-indigo-100'
             }`}
             role="status"
             aria-live="polite"
           >
             <div className="flex items-start gap-3">
               {autoSaveState === 'saving' || autoSaveState === 'waiting' ? (
-                <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-indigo-600" />
+                <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-indigo-600 dark:text-indigo-400" />
               ) : autoSaveState === 'error' ? (
-                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600 dark:text-red-400" />
               ) : (
-                <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
               )}
               <div>
                 <p className="text-sm font-semibold">
@@ -2114,11 +2114,11 @@ export default function RemarkReportPage() {
         )}
 
         {/* Pupil List */}
-        <div className="bg-white shadow overflow-hidden rounded-lg">
+        <div className="bg-white shadow overflow-hidden rounded-lg dark:bg-slate-900">
           {selectedClass ? (
             filteredPupils.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                   <thead className="border-b-2 border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/30 sticky top-0 z-10 backdrop-blur-sm">
                     <tr>
                       <th className="w-12 px-3 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
@@ -2128,7 +2128,7 @@ export default function RemarkReportPage() {
                           size="sm"
                           onClick={() => setIsBatchSubjectEditorOpen(true)}
                           disabled={isSaving || !selectedTermId || filteredPupils.length === 0}
-                          className="h-11 w-11 rounded-full p-0 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-900"
+                          className="h-11 w-11 rounded-full p-0 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-900 dark:text-indigo-300 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-200"
                           aria-label={`Batch edit subject statuses for ${filteredPupils.length} visible pupils`}
                           title="Batch edit subject statuses"
                         >
@@ -2172,7 +2172,7 @@ export default function RemarkReportPage() {
                           className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-wider text-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <span>Tie</span>
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] ${bulkTieEnabled ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] ${bulkTieEnabled ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300' : 'bg-gray-100 text-gray-600 dark:bg-slate-900 dark:text-slate-300'}`}>
                             {bulkTieEnabled ? 'All On' : 'All Off'}
                           </span>
                         </button>
@@ -2182,7 +2182,7 @@ export default function RemarkReportPage() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-gray-200 dark:bg-slate-900 dark:divide-slate-700">
                     {filteredPupils.map((pupil: Pupil) => {
                       const isExpanded = expandedPupils.has(pupil.id);
                       const currentPerformanceStatus = updatedPupils[pupil.id]?.[selectedTermId]
@@ -2198,7 +2198,7 @@ export default function RemarkReportPage() {
 
                       return (
                         <React.Fragment key={pupil.id}>
-                          <tr className="hover:bg-gray-50">
+                          <tr className="hover:bg-gray-50 dark:hover:bg-slate-900">
                             <td className="w-12 px-3 py-4 whitespace-nowrap">
                               <Button
                                 variant="ghost"
@@ -2219,18 +2219,18 @@ export default function RemarkReportPage() {
                                   {pupil.photo ? (
                                     <img className="h-10 w-10 rounded-full object-cover" src={pupil.photo} alt="" />
                                   ) : (
-                                    <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                      <span className="text-gray-500 font-medium">
+                                    <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center dark:bg-slate-800">
+                                      <span className="text-gray-500 font-medium dark:text-slate-400">
                                         {pupil.lastName?.[0]}{pupil.firstName?.[0]}
                                       </span>
                                     </div>
                                   )}
                                 </div>
                                 <div className="ml-4">
-                                  <Link href={`/pupils/${pupil.id}`} className="text-sm font-medium text-indigo-600 hover:text-indigo-900 hover:underline">
+                                  <Link href={`/pupils/${pupil.id}`} className="text-sm font-medium text-indigo-600 hover:text-indigo-900 hover:underline dark:text-indigo-400 dark:hover:text-indigo-200">
                                     {formatPupilDisplayName(pupil)}
                                   </Link>
-                                  <p className="text-xs text-gray-500">{pupil.admissionNumber || pupil.learnerIdentificationNumber || 'No Reg No.'}</p>
+                                  <p className="text-xs text-gray-500 dark:text-slate-400">{pupil.admissionNumber || pupil.learnerIdentificationNumber || 'No Reg No.'}</p>
                                 </div>
                               </div>
                             </td>
@@ -2240,7 +2240,7 @@ export default function RemarkReportPage() {
                                   variant="secondary"
                                   className={`text-xs ${currentPerformanceStatus && PERFORMANCE_STATUS_OPTIONS.find(opt => opt.value === currentPerformanceStatus)
                                     ? PERFORMANCE_STATUS_OPTIONS.find(opt => opt.value === currentPerformanceStatus)?.color
-                                    : 'bg-gray-100 text-gray-800'
+                                    : 'bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100'
                                   }`}
                                 >
                                   {currentPerformanceStatus && PERFORMANCE_STATUS_OPTIONS.find(opt => opt.value === currentPerformanceStatus)
@@ -2255,8 +2255,8 @@ export default function RemarkReportPage() {
                                   disabled={!selectedTermId}
                                   className={`h-9 min-w-[96px] justify-center px-3 text-xs font-semibold tabular-nums ${
                                     subjectCoverage.completed === subjectCoverage.total
-                                      ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
-                                      : 'border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
+                                      ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-950/40'
+                                      : 'border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-950/40'
                                   }`}
                                   aria-label={`${subjectCoverage.completed} of ${subjectCoverage.total} subjects have statuses for ${formatPupilDisplayName(pupil)}. Open missing subjects.`}
                                 >
@@ -2290,7 +2290,7 @@ export default function RemarkReportPage() {
                                     disabled={isSaving || !selectedTermId}
                                     aria-label={`Tie subject statuses to main status for ${formatPupilDisplayName(pupil)}`}
                                   />
-                                  <span className="text-xs text-gray-600">
+                                  <span className="text-xs text-gray-600 dark:text-slate-300">
                                     {isTied ? 'On' : 'Off'}
                                   </span>
                                 </div>
@@ -2302,7 +2302,7 @@ export default function RemarkReportPage() {
                                     variant="outline"
                                     size="sm"
                                     disabled={batchProgress.isGenerating || isSaving}
-                                    className="h-8 w-8 p-0 text-green-600 border-green-600 hover:bg-green-50"
+                                    className="h-8 w-8 p-0 text-green-600 border-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/40"
                                     aria-label={`Choose a report to print for ${formatPupilDisplayName(pupil)}`}
                                     title="Choose Report"
                                   >
@@ -2323,7 +2323,7 @@ export default function RemarkReportPage() {
                                     onClick={() => handlePrintReportLight('playful', [pupil])}
                                     className="cursor-pointer"
                                   >
-                                    <FileText className="mr-2 h-4 w-4 text-emerald-600" />
+                                    <FileText className="mr-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                                     Playful Report
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -2332,12 +2332,12 @@ export default function RemarkReportPage() {
                           </tr>
                           {isExpanded && (
                             <tr>
-                              <td colSpan={6} className="px-6 py-4 bg-gray-50">
+                              <td colSpan={6} className="px-6 py-4 bg-gray-50 dark:bg-slate-900">
                                 <div className="space-y-4">
                                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                     <div>
-                                      <h4 className="text-sm font-semibold text-gray-800">Subject-Based Statuses</h4>
-                                      <p className="mt-1 text-xs text-gray-600">
+                                      <h4 className="text-sm font-semibold text-gray-800 dark:text-slate-100">Subject-Based Statuses</h4>
+                                      <p className="mt-1 text-xs text-gray-600 dark:text-slate-300">
                                         {isSubjectSelectionMode
                                           ? 'Choose multiple subjects, then assign one status to the selection.'
                                           : 'Edit one subject or select several for a one-time group change.'}
@@ -2354,7 +2354,7 @@ export default function RemarkReportPage() {
                                           disabled={isSaving || !selectedTermId}
                                         >
                                           <SelectTrigger
-                                            className="h-11 min-w-[190px] border-indigo-300 bg-white text-indigo-800"
+                                            className="h-11 min-w-[190px] border-indigo-300 bg-white text-indigo-800 dark:border-indigo-800/60 dark:bg-slate-900 dark:text-indigo-200"
                                             aria-label={`Set a status for ${selectedSubjects.length} selected subjects`}
                                           >
                                             <SelectValue placeholder={`Set status for ${selectedSubjects.length}`} />
@@ -2409,8 +2409,8 @@ export default function RemarkReportPage() {
                                           key={subject.value}
                                           className={`space-y-2 rounded-xl border p-3 transition-colors ${
                                             isSelected
-                                              ? 'border-indigo-400 bg-indigo-50/80'
-                                              : 'border-gray-200 bg-white'
+                                              ? 'border-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/80'
+                                              : 'border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900'
                                           }`}
                                         >
                                           <div className="flex min-h-6 items-center gap-2">
@@ -2426,7 +2426,7 @@ export default function RemarkReportPage() {
                                             )}
                                             <Label
                                               htmlFor={isSubjectSelectionMode ? checkboxId : undefined}
-                                              className={`text-xs font-medium text-gray-700 ${
+                                              className={`text-xs font-medium text-gray-700  dark:text-slate-200${
                                                 isSubjectSelectionMode ? 'cursor-pointer' : ''
                                               }`}
                                             >
@@ -2473,7 +2473,7 @@ export default function RemarkReportPage() {
               </div>
             ) : (
               <div className="px-4 py-5 text-center">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-slate-400">
                   {searchTerm
                     ? "No pupils match the current filters."
                     : "No pupils found in this class."
@@ -2483,7 +2483,7 @@ export default function RemarkReportPage() {
             )
           ) : (
             <div className="px-4 py-5 text-center">
-              <p className="text-sm text-gray-500">Select a class to view pupils.</p>
+              <p className="text-sm text-gray-500 dark:text-slate-400">Select a class to view pupils.</p>
             </div>
           )}
         </div>
@@ -2494,7 +2494,7 @@ export default function RemarkReportPage() {
           <DialogHeader className="pr-10">
             <div className="flex flex-wrap items-center gap-2">
               <DialogTitle>Batch edit subject statuses</DialogTitle>
-              <Badge variant="secondary" className="bg-indigo-100 text-indigo-800">
+              <Badge variant="secondary" className="bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200">
                 {filteredPupils.length} visible pupil{filteredPupils.length === 1 ? '' : 's'}
               </Badge>
             </div>
@@ -2504,7 +2504,7 @@ export default function RemarkReportPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-200">
             These are ordinary individual pupil changes. They are not linked after applying, and they
             are progressively saved for each pupil shortly after you make them.
           </div>
@@ -2516,11 +2516,11 @@ export default function RemarkReportPage() {
               return (
                 <div
                   key={subject.value}
-                  className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm"
+                  className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900"
                 >
                   <Label
                     htmlFor={`batch-subject-${subject.value}`}
-                    className="mb-2 block text-sm font-medium text-gray-800"
+                    className="mb-2 block text-sm font-medium text-gray-800 dark:text-slate-100"
                   >
                     {subject.label}
                   </Label>
@@ -2592,13 +2592,13 @@ export default function RemarkReportPage() {
             const coverage = getSubjectCoverage(coveragePupil.id);
             return (
               <div className="space-y-4">
-                <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-800/60 dark:bg-indigo-950/40">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold text-indigo-950">
+                      <p className="text-sm font-semibold text-indigo-950 dark:text-indigo-100">
                         {coverage.completed} of {coverage.total} subjects complete
                       </p>
-                      <p className="mt-1 text-xs text-indigo-800">
+                      <p className="mt-1 text-xs text-indigo-800 dark:text-indigo-200">
                         Changes made here use the same progressive autosave as the main table.
                       </p>
                     </div>
@@ -2610,7 +2610,7 @@ export default function RemarkReportPage() {
                 </div>
 
                 {coverage.missing.length === 0 ? (
-                  <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
+                  <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-200">
                     <CheckCircle className="mt-0.5 h-5 w-5 shrink-0" />
                     <div>
                       <p className="font-semibold">All subjects have statuses</p>
@@ -2619,7 +2619,7 @@ export default function RemarkReportPage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-amber-900">
+                    <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
                       <AlertTriangle className="h-5 w-5" />
                       <p className="text-sm font-semibold">
                         {coverage.missing.length} subject{coverage.missing.length === 1 ? '' : 's'} still need a status
@@ -2628,11 +2628,11 @@ export default function RemarkReportPage() {
                     {coverage.missing.map(subject => (
                       <div
                         key={subject.value}
-                        className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+                        className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700 dark:bg-slate-900"
                       >
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{subject.label}</p>
-                          <p className="mt-1 text-xs text-gray-500">Choose a status to add it now.</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-slate-100">{subject.label}</p>
+                          <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">Choose a status to add it now.</p>
                         </div>
                         <Select
                           onValueChange={(value) => handleSubjectStatusChange(
@@ -2683,21 +2683,21 @@ export default function RemarkReportPage() {
       >
         <DialogContent className="max-h-[88vh] max-w-2xl overflow-y-auto">
           <DialogHeader className="pr-10">
-            <div className="flex items-center gap-2 text-amber-800">
+            <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
               <AlertTriangle className="h-5 w-5 shrink-0" />
               <DialogTitle>Comments required before assigning status</DialogTitle>
             </div>
             <DialogDescription>
-              <span className="font-medium text-gray-800">{currentMissingCommentSubject?.label}</span>
+              <span className="font-medium text-gray-800 dark:text-slate-100">{currentMissingCommentSubject?.label}</span>
               {' '}does not have any active{' '}
-              <span className="font-medium text-gray-800">{currentMissingCommentStatus?.label}</span>
+              <span className="font-medium text-gray-800 dark:text-slate-100">{currentMissingCommentStatus?.label}</span>
               {' '}comments for {selectedClassData?.name || 'this class'} and {selectedTerm?.name || 'this term'}.
               Add one or more comments below; they will also be available in the main comment box.
             </DialogDescription>
           </DialogHeader>
 
           {currentDeferredAssignment && currentDeferredAssignment.missing.length > 1 && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
               Missing comment set {currentDeferredAssignment.index + 1} of {currentDeferredAssignment.missing.length}.
               The status change will be applied after all missing comment sets are added.
             </div>
@@ -2705,7 +2705,7 @@ export default function RemarkReportPage() {
 
           <div className="space-y-4">
             {newSubjectComments.map((comment, index) => (
-              <div key={index} className="rounded-xl border border-gray-200 bg-gray-50/70 p-3">
+              <div key={index} className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 dark:border-slate-700 dark:bg-slate-900/70">
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <Label htmlFor={`new-subject-comment-${index}`} className="text-sm font-medium">
                     Comment {index + 1}
@@ -2717,7 +2717,7 @@ export default function RemarkReportPage() {
                       size="sm"
                       onClick={() => setNewSubjectComments(current => current.filter((_, itemIndex) => itemIndex !== index))}
                       disabled={isAddingSubjectComments}
-                      className="h-9 text-red-700 hover:bg-red-50 hover:text-red-800"
+                      className="h-9 text-red-700 hover:bg-red-50 hover:text-red-800 dark:text-red-300 dark:hover:bg-red-950/40 dark:hover:text-red-200"
                       aria-label={`Remove comment ${index + 1}`}
                     >
                       <Trash2 className="mr-1.5 h-4 w-4" />Remove
@@ -2734,7 +2734,7 @@ export default function RemarkReportPage() {
                   }}
                   disabled={isAddingSubjectComments}
                   rows={3}
-                  className={commentGuardError ? 'border-red-500 ring-1 ring-red-200' : ''}
+                  className={commentGuardError ? 'border-red-500 ring-1 ring-red-200 dark:ring-red-800/60' : ''}
                   aria-invalid={Boolean(commentGuardError)}
                   aria-describedby={commentGuardError ? 'subject-comment-guard-error' : undefined}
                   placeholder="Enter a comment that can be used on the pupil report"
@@ -2743,7 +2743,7 @@ export default function RemarkReportPage() {
             ))}
 
             {commentGuardError && (
-              <div id="subject-comment-guard-error" role="alert" className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+              <div id="subject-comment-guard-error" role="alert" className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{commentGuardError}</span>
               </div>

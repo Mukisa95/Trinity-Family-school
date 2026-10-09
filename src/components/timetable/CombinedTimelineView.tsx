@@ -114,7 +114,7 @@ function ProfileLane({
     if (pl || el) {
         return (
             <tr>
-                <td className="text-xs text-gray-400 px-3 py-2" style={{ width: LEFT_LABEL_WIDTH }}>
+                <td className="text-xs text-gray-400 px-3 py-2 dark:text-slate-400" style={{ width: LEFT_LABEL_WIDTH }}>
                     Loading {profile.name}…
                 </td>
                 <td><Loader2 className="w-4 h-4 animate-spin text-blue-300 m-2" /></td>
@@ -125,7 +125,7 @@ function ProfileLane({
     if (dayPeriods.length === 0) {
         return (
             <tr>
-                <td className="text-xs text-gray-400 italic px-3 py-3 font-medium" style={{ width: LEFT_LABEL_WIDTH }}>
+                <td className="text-xs text-gray-400 italic px-3 py-3 font-medium dark:text-slate-400" style={{ width: LEFT_LABEL_WIDTH }}>
                     {profile.name || "Timetable"}
                 </td>
                 <td className="text-xs text-gray-300 italic py-3">No periods on this day</td>
@@ -136,7 +136,7 @@ function ProfileLane({
     if (profileClasses.length === 0) {
         return (
             <tr>
-                <td className="text-xs text-gray-400 italic px-3 py-3 font-medium" style={{ width: LEFT_LABEL_WIDTH }}>
+                <td className="text-xs text-gray-400 italic px-3 py-3 font-medium dark:text-slate-400" style={{ width: LEFT_LABEL_WIDTH }}>
                     {profile.name || "Timetable"}
                 </td>
                 <td className="text-xs text-gray-300 italic py-3">No entries yet</td>
@@ -147,20 +147,20 @@ function ProfileLane({
     return (
         <>
             {/* Profile header row */}
-            <tr className="bg-gradient-to-r from-indigo-50 to-blue-50 border-t-2 border-indigo-200">
+            <tr className="bg-gradient-to-r from-indigo-50 to-blue-50 border-t-2 border-indigo-200 dark:from-indigo-950/40 dark:to-blue-950/40 dark:border-indigo-800/60">
                 <td
                     colSpan={2}
-                    className="px-3 py-1.5 text-xs font-bold text-indigo-700 uppercase tracking-wide"
+                    className="px-3 py-1.5 text-xs font-bold text-indigo-700 uppercase tracking-wide dark:text-indigo-300"
                 >
                     {profile.name || "Main Timetable"}
                 </td>
             </tr>
 
             {profileClasses.map((cls, clsIdx) => (
-                <tr key={cls.id} className={clsIdx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                <tr key={cls.id} className={clsIdx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50/50 dark:bg-slate-900/50"}>
                     {/* Class label */}
                     <td
-                        className="px-2 py-1 text-[10px] font-semibold text-gray-600 border-r border-gray-100 whitespace-nowrap"
+                        className="px-2 py-1 text-[10px] font-semibold text-gray-600 border-r border-gray-100 whitespace-nowrap dark:text-slate-300 dark:border-slate-700"
                         style={{ width: LEFT_LABEL_WIDTH, minWidth: LEFT_LABEL_WIDTH }}
                     >
                         {cls.code || cls.name}
@@ -181,10 +181,10 @@ function ProfileLane({
                                     return (
                                         <div
                                             key={period.id}
-                                            className="absolute top-0 bottom-0 flex items-center justify-center bg-gray-100/80 border-x border-gray-200"
+                                            className="absolute top-0 bottom-0 flex items-center justify-center bg-gray-100/80 border-x border-gray-200 dark:bg-slate-900/80 dark:border-slate-700"
                                             style={{ left, width }}
                                         >
-                                            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider"
+                                            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider dark:text-slate-400"
                                                 style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
                                                 {period.customLabel || period.type}
                                             </span>
@@ -277,13 +277,13 @@ export function CombinedTimelineView({ yearId, termId }: CombinedTimelineViewPro
         return (
             <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
-                <span className="ml-2 text-gray-500 text-sm">Loading profiles…</span>
+                <span className="ml-2 text-gray-500 text-sm dark:text-slate-400">Loading profiles…</span>
             </div>
         );
     }
 
     if (profiles.length === 0) return (
-        <p className="text-gray-400 text-sm text-center py-10">No timetable profiles found.</p>
+        <p className="text-gray-400 text-sm text-center py-10 dark:text-slate-400">No timetable profiles found.</p>
     );
 
     // For the ruler we need a time range. We use a reasonable school day range,
@@ -316,7 +316,7 @@ export function CombinedTimelineView({ yearId, termId }: CombinedTimelineViewPro
                             onClick={() => setSelectedDay(dayId)}
                             className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all whitespace-nowrap ${selectedDay === dayId
                                 ? "bg-blue-600 text-white border-blue-600 shadow-md"
-                                : "bg-white text-gray-600 border-gray-200 hover:bg-blue-50 hover:border-blue-300"
+                                : "bg-white text-gray-600 border-gray-200 hover:bg-blue-50 hover:border-blue-300 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-blue-950/40 dark:hover:border-blue-800/60"
                                 }`}
                         >
                             {day}
@@ -329,19 +329,19 @@ export function CombinedTimelineView({ yearId, termId }: CombinedTimelineViewPro
             </div>
 
             {/* Timeline grid */}
-            <div className="overflow-x-auto rounded-xl border border-gray-200 custom-scrollbar bg-white">
+            <div className="overflow-x-auto rounded-xl border border-gray-200 custom-scrollbar bg-white dark:border-slate-700 dark:bg-slate-900">
                 <table className="border-collapse" style={{ minWidth: LEFT_LABEL_WIDTH + totalWidth + 32 }}>
                     <thead>
                         <tr style={{ height: RULER_HEIGHT }}>
                             {/* Label column header */}
                             <th
-                                className="bg-slate-50 border-b border-r border-gray-200 text-xs font-semibold text-gray-500 px-3 text-left sticky left-0 z-20"
+                                className="bg-slate-50 border-b border-r border-gray-200 text-xs font-semibold text-gray-500 px-3 text-left sticky left-0 z-20 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400"
                                 style={{ width: LEFT_LABEL_WIDTH, minWidth: LEFT_LABEL_WIDTH }}
                             >
                                 Profile / Class
                             </th>
                             {/* Ruler cell */}
-                            <th className="bg-slate-50 border-b border-gray-200 p-0 relative">
+                            <th className="bg-slate-50 border-b border-gray-200 p-0 relative dark:bg-slate-900 dark:border-slate-700">
                                 <div className="relative" style={{ width: totalWidth, height: RULER_HEIGHT }}>
                                     {hourTicks.map(tick => {
                                         const x = (tick - RULER_START) * PIXELS_PER_MINUTE;
@@ -352,7 +352,7 @@ export function CombinedTimelineView({ yearId, termId }: CombinedTimelineViewPro
                                                 style={{ left: x }}
                                             >
                                                 <div className="w-px h-3 bg-gray-300 mx-auto mb-0.5" />
-                                                <span className="text-[10px] text-gray-400 font-semibold -translate-x-1/2 relative left-0">
+                                                <span className="text-[10px] text-gray-400 font-semibold -translate-x-1/2 relative left-0 dark:text-slate-400">
                                                     {formatHHMM(tick)}
                                                 </span>
                                             </div>
@@ -407,7 +407,7 @@ export function CombinedTimelineView({ yearId, termId }: CombinedTimelineViewPro
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-4 text-[11px] text-gray-500">
+            <div className="flex flex-wrap gap-4 text-[11px] text-gray-500 dark:text-slate-400">
                 <div className="flex items-center gap-1.5">
                     <div className="w-4 h-3 rounded" style={{ background: 'hsl(210,55%,86%)' }} />
                     Upcoming lesson

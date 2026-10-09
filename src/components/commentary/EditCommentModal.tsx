@@ -134,7 +134,7 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment, termScope }
       <ModernDialogContent open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
         <ModernDialogHeader>
           <ModernDialogTitle className="flex items-center gap-2">
-            <Edit className="h-5 w-5 text-blue-600" />
+            <Edit className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             Edit Comment Template
           </ModernDialogTitle>
         </ModernDialogHeader>
@@ -143,7 +143,7 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment, termScope }
           {/* Performance Status — only for non-subject comments */}
           {editedComment.type !== 'subject' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Performance Status</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-200">Performance Status</label>
               <Select
                 value={editedComment.status}
                 onValueChange={(value: any) =>
@@ -165,7 +165,7 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment, termScope }
           {/* Subject Status — only for subject comments */}
           {editedComment.type === 'subject' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Subject Status</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-200">Subject Status</label>
               <Select
                 value={editedComment.subjectStatus || ''}
                 onValueChange={(value: any) =>
@@ -186,7 +186,7 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment, termScope }
 
           {/* Comment Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Comment Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-200">Comment Type</label>
             <Select
               value={editedComment.type}
               onValueChange={(value: any) =>
@@ -201,9 +201,9 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment, termScope }
                   <SelectItem key={value} value={value}>
                     <div className="flex items-center gap-2">
                       {value === 'class_teacher' ? (
-                        <Users className="h-4 w-4 text-blue-600" />
+                        <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       ) : value === 'head_teacher' ? (
-                        <GraduationCap className="h-4 w-4 text-purple-600" />
+                        <GraduationCap className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                       ) : null}
                       {label}
                     </div>
@@ -218,7 +218,7 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment, termScope }
             <>
               {/* Subject */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-200">Subject</label>
                 <Select
                   value={editedComment.subject || ''}
                   onValueChange={(value: any) =>
@@ -238,12 +238,12 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment, termScope }
 
               {/* Multi-class selector */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Classes <span className="text-gray-400 font-normal text-xs">(leave all unchecked for All Nursery Classes)</span>
+                <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-200">
+                  Classes <span className="text-gray-400 font-normal text-xs dark:text-slate-400">(leave all unchecked for All Nursery Classes)</span>
                 </label>
                 <div className="border rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
                   {nurseryClasses.length === 0 ? (
-                    <p className="text-sm text-gray-400">No nursery classes found</p>
+                    <p className="text-sm text-gray-400 dark:text-slate-400">No nursery classes found</p>
                   ) : (
                     nurseryClasses.map((cls) => (
                       <label key={cls.id} className="flex items-center gap-2 cursor-pointer select-none">
@@ -257,23 +257,23 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment, termScope }
                   )}
                 </div>
                 {targetClassIds.length === 0 ? (
-                  <p className="text-xs text-gray-500 mt-1">→ Applies to All Nursery Classes</p>
+                  <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">→ Applies to All Nursery Classes</p>
                 ) : targetClassIds.length > 1 ? (
-                  <p className="text-xs text-blue-600 mt-1">→ Will create copies for {targetClassIds.length} classes</p>
+                  <p className="text-xs text-blue-600 mt-1 dark:text-blue-400">→ Will create copies for {targetClassIds.length} classes</p>
                 ) : (
-                  <p className="text-xs text-gray-500 mt-1">→ {nurseryClasses.find(c => c.id === targetClassIds[0])?.name}</p>
+                  <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">→ {nurseryClasses.find(c => c.id === targetClassIds[0])?.name}</p>
                 )}
               </div>
 
               {/* Applicable Terms */}
               {termScope ? (
-                <div className="rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-800">
+                <div className="rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-800 dark:border-violet-800/60 dark:bg-violet-950/40 dark:text-violet-200">
                   This edit applies only to {TERM_OPTIONS.find((term) => term.value === termScope)?.label || termScope}. Other terms will keep their current comment.
                 </div>
               ) : (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Applicable Terms</label>
-                  <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-200">Applicable Terms</label>
+                  <div className="bg-gray-50 p-3 rounded-md border border-gray-200 dark:bg-slate-900 dark:border-slate-700">
                     <div className="flex flex-wrap gap-4">
                       {TERM_OPTIONS.map((t) => (
                         <label key={t.value} className="flex items-center gap-2 cursor-pointer select-none">
@@ -298,7 +298,7 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment, termScope }
 
           {/* Comment Text */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Comment Text</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-200">Comment Text</label>
             <Textarea
               value={editedComment.comment}
               onChange={(e) =>
@@ -312,7 +312,7 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment, termScope }
 
           {/* Active toggle */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Status:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-slate-200">Status:</label>
             <Badge variant={editedComment.isActive ? 'default' : 'secondary'}>
               {editedComment.isActive ? 'Active' : 'Disabled'}
             </Badge>

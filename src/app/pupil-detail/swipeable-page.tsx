@@ -138,7 +138,7 @@ function SwipeablePupilDetailContent() {
         <PageHeader title="Error Loading Pupil" />
         <Card>
           <CardContent className="text-center py-8">
-            <p className="text-red-600">Failed to load pupil details. Please try again.</p>
+            <p className="text-red-600 dark:text-red-400">Failed to load pupil details. Please try again.</p>
             <Button onClick={() => goBack('/pupils')} className="mt-4">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Go Back
@@ -219,10 +219,10 @@ function SwipeablePupilDetailContent() {
               </Avatar>
               
               <div className="flex-1 text-center sm:text-left">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2 dark:text-slate-100">
                   {formatPupilDisplayName(pupil)}
                 </h1>
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-sm text-gray-600">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-sm text-gray-600 dark:text-slate-300">
                   <Badge variant="outline">{pupil.status}</Badge>
                   <Badge variant="outline">{pupil.section}</Badge>
                   <Badge variant="outline">

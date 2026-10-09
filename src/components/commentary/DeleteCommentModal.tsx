@@ -15,11 +15,11 @@ interface DeleteCommentModalProps {
 }
 
 const statusColors = {
-  good: 'bg-green-100 text-green-800',
-  fair: 'bg-yellow-100 text-yellow-800',
-  weak: 'bg-red-100 text-red-800',
-  young: 'bg-blue-100 text-blue-800',
-  irregular: 'bg-purple-100 text-purple-800',
+  good: 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200',
+  fair: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200',
+  weak: 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200',
+  young: 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200',
+  irregular: 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-200',
 };
 
 const statusLabels = {
@@ -38,7 +38,7 @@ const typeLabels = {
 export function DeleteCommentModal({ isOpen, onClose, onConfirm, comment }: DeleteCommentModalProps) {
   if (!comment) return null;
 
-  const statusColor = statusColors[comment.status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800';
+  const statusColor = statusColors[comment.status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100';
   const statusLabel = statusLabels[comment.status as keyof typeof statusLabels] || comment.status;
   const typeLabel = typeLabels[comment.type as keyof typeof typeLabels] || comment.type;
 
@@ -46,7 +46,7 @@ export function DeleteCommentModal({ isOpen, onClose, onConfirm, comment }: Dele
     <ModernDialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <ModernDialogContent open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
         <ModernDialogHeader>
-          <ModernDialogTitle className="flex items-center gap-2 text-red-600">
+          <ModernDialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
             <Trash2 className="h-5 w-5" />
             Delete Comment Template
           </ModernDialogTitle>
@@ -54,11 +54,11 @@ export function DeleteCommentModal({ isOpen, onClose, onConfirm, comment }: Dele
 
         <div className="space-y-6">
           {/* Warning */}
-          <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+          <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg dark:bg-red-950/40 dark:border-red-800/60">
+            <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0 dark:text-red-400" />
             <div>
-              <h4 className="font-medium text-red-800">Permanent Deletion</h4>
-              <p className="text-sm text-red-700 mt-1">
+              <h4 className="font-medium text-red-800 dark:text-red-200">Permanent Deletion</h4>
+              <p className="text-sm text-red-700 mt-1 dark:text-red-300">
                 This action cannot be undone. The comment template will be permanently removed from the database.
               </p>
             </div>
@@ -66,24 +66,24 @@ export function DeleteCommentModal({ isOpen, onClose, onConfirm, comment }: Dele
 
           {/* Comment Preview */}
           <div className="space-y-4">
-            <h4 className="font-medium text-gray-900">Comment to be deleted:</h4>
+            <h4 className="font-medium text-gray-900 dark:text-slate-100">Comment to be deleted:</h4>
             
-            <div className="bg-gray-50 border rounded-lg p-4 space-y-3">
+            <div className="bg-gray-50 border rounded-lg p-4 space-y-3 dark:bg-slate-900">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-600">Status:</span>
+                  <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Status:</span>
                   <Badge className={statusColor} variant="secondary">
                     {statusLabel}
                   </Badge>
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-600">Type:</span>
+                  <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Type:</span>
                   <div className="flex items-center gap-1">
                     {comment.type === 'class_teacher' ? (
-                      <Users className="h-4 w-4 text-blue-600" />
+                      <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     ) : (
-                      <GraduationCap className="h-4 w-4 text-purple-600" />
+                      <GraduationCap className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                     )}
                     <Badge variant="outline">
                       {typeLabel}
@@ -93,13 +93,13 @@ export function DeleteCommentModal({ isOpen, onClose, onConfirm, comment }: Dele
               </div>
 
               <div className="space-y-2">
-                <span className="text-sm font-medium text-gray-600">Comment:</span>
-                <p className="text-gray-900 text-sm leading-relaxed bg-white border rounded p-3">
+                <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Comment:</span>
+                <p className="text-gray-900 text-sm leading-relaxed bg-white border rounded p-3 dark:text-slate-100 dark:bg-slate-900">
                   {comment.comment}
                 </p>
               </div>
 
-              <div className="flex items-center gap-4 text-xs text-gray-500">
+              <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-slate-400">
                 <span>ID: {comment.id}</span>
                 <span>•</span>
                 <span>Status: {comment.isActive ? 'Active' : 'Disabled'}</span>

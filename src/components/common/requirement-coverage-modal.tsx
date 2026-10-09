@@ -112,8 +112,8 @@ export function RequirementCoverageModal({
 
         <div className="space-y-4">
           {/* Requirements Summary */}
-          <div className="p-3 bg-gray-50 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-900 mb-2">Requirements</h4>
+          <div className="p-3 bg-gray-50 rounded-lg dark:bg-slate-900">
+            <h4 className="text-sm font-medium text-gray-900 mb-2 dark:text-slate-100">Requirements</h4>
             <div className="space-y-1">
               {requirements.map((req) => (
                 <div key={req.id} className="flex justify-between items-center text-sm">
@@ -129,13 +129,13 @@ export function RequirementCoverageModal({
                 </div>
               ))}
             </div>
-            <div className="mt-2 pt-2 border-t border-gray-200">
+            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-700">
               <div className="flex justify-between items-center text-sm font-medium">
                 <span>Balance Due:</span>
-                <span className="text-red-600">{formatCurrency(balance)}</span>
+                <span className="text-red-600 dark:text-red-400">{formatCurrency(balance)}</span>
               </div>
               {hasQuantityRequirements && (
-                <div className="flex justify-between items-center text-xs text-gray-600 mt-1">
+                <div className="flex justify-between items-center text-xs text-gray-600 mt-1 dark:text-slate-300">
                   <span>Items Remaining:</span>
                   <span>{remainingQuantity} of {calculatedTotalQuantity}</span>
                 </div>
@@ -154,7 +154,7 @@ export function RequirementCoverageModal({
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="cash" id="cash" />
                 <Label htmlFor="cash" className="flex items-center gap-2 cursor-pointer">
-                  <DollarSign className="w-4 h-4 text-green-600" />
+                  <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
                   Cash Payment
                 </Label>
               </div>
@@ -162,7 +162,7 @@ export function RequirementCoverageModal({
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="item" id="item" />
                   <Label htmlFor="item" className="flex items-center gap-2 cursor-pointer">
-                    <Package className="w-4 h-4 text-blue-600" />
+                    <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     Provide Items
                   </Label>
                 </div>
@@ -187,7 +187,7 @@ export function RequirementCoverageModal({
                 placeholder="Enter amount"
               />
               {parseFloat(cashAmount) > balance && (
-                <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                <p className="text-xs text-red-600 mt-1 flex items-center gap-1 dark:text-red-400">
                   <AlertCircle className="w-3 h-3" />
                   Amount cannot exceed balance due
                 </p>
@@ -212,7 +212,7 @@ export function RequirementCoverageModal({
                 placeholder="Enter quantity"
               />
               <div className="mt-2 space-y-1">
-                <div className="flex items-center justify-between text-xs text-gray-600">
+                <div className="flex items-center justify-between text-xs text-gray-600 dark:text-slate-300">
                   <span>Price per item:</span>
                   <span>{formatCurrency(pricePerItem)}</span>
                 </div>
@@ -222,14 +222,14 @@ export function RequirementCoverageModal({
                       <Calculator className="w-3 h-3" />
                       Cash equivalent:
                     </span>
-                    <span className="text-green-600">
+                    <span className="text-green-600 dark:text-green-400">
                       {formatCurrency(calculateCashEquivalent())}
                     </span>
                   </div>
                 )}
               </div>
               {parseInt(itemQuantity) > remainingQuantity && (
-                <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                <p className="text-xs text-red-600 mt-1 flex items-center gap-1 dark:text-red-400">
                   <AlertCircle className="w-3 h-3" />
                   Quantity cannot exceed remaining items needed
                 </p>
@@ -239,8 +239,8 @@ export function RequirementCoverageModal({
 
           {/* Item mode not available message */}
           {coverageMode === 'item' && !hasQuantityRequirements && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm text-amber-700 flex items-center gap-2">
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-950/40 dark:border-amber-800/60">
+              <p className="text-sm text-amber-700 flex items-center gap-2 dark:text-amber-300">
                 <AlertCircle className="w-4 h-4" />
                 Item provision is not available for these requirements
               </p>

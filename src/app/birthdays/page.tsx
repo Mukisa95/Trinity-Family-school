@@ -311,13 +311,13 @@ export default function BirthdaysPage() {
           backLabel="Back to pupils"
         />
         <div className="max-w-7xl mx-auto px-4 py-8">
-          <Card className="border-rose-200 bg-white/90 shadow-lg">
+          <Card className="border-rose-200 bg-white/90 shadow-lg dark:border-rose-800/60 dark:bg-slate-900/90">
             <CardContent className="py-12 text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-rose-100">
-                <Users className="h-6 w-6 text-rose-600" />
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-950/40">
+                <Users className="h-6 w-6 text-rose-600 dark:text-rose-400" />
               </div>
-              <h2 className="text-xl font-semibold text-gray-900">Access restricted</h2>
-              <p className="mt-2 text-sm text-gray-600">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100">Access restricted</h2>
+              <p className="mt-2 text-sm text-gray-600 dark:text-slate-300">
                 Your account does not currently have permission to view the birthdays page.
               </p>
             </CardContent>
@@ -336,7 +336,7 @@ export default function BirthdaysPage() {
         backLabel="Back to pupils"
         className="mb-1.5"
         meta={
-          <span className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100/80 whitespace-nowrap">
+          <span className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100/80 whitespace-nowrap dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/80">
             {birthdaysInPeriod.length} matches
           </span>
         }
@@ -401,7 +401,7 @@ export default function BirthdaysPage() {
             <div className="flex items-center gap-0.5 flex-shrink-0">
               <button
                 onClick={goToPreviousPeriod}
-                className="flex items-center justify-center w-7 h-7 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-600 shadow-sm"
+                className="flex items-center justify-center w-7 h-7 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-600 shadow-sm dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-blue-950/40 dark:text-slate-300"
                 title="Previous Period"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
@@ -409,14 +409,14 @@ export default function BirthdaysPage() {
 
               <button
                 onClick={resetToCurrentPeriod}
-                className="h-7 px-2.5 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-[10px] font-medium text-gray-700 whitespace-nowrap shadow-sm"
+                className="h-7 px-2.5 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-[10px] font-medium text-gray-700 whitespace-nowrap shadow-sm dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-blue-950/40 dark:text-slate-200"
               >
                 {viewMode === "day" ? "Today" : viewMode === "week" ? "This Week" : "This Month"}
               </button>
 
               <button
                 onClick={goToNextPeriod}
-                className="flex items-center justify-center w-7 h-7 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-600 shadow-sm"
+                className="flex items-center justify-center w-7 h-7 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-600 shadow-sm dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-blue-950/40 dark:text-slate-300"
                 title="Next Period"
               >
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -432,14 +432,14 @@ export default function BirthdaysPage() {
                     setAnchorDate(`${event.target.value}-01`);
                   }
                 }}
-                className="h-7 w-[110px] sm:w-[130px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs py-0 px-2 shadow-sm"
+                className="h-7 w-[110px] sm:w-[130px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs py-0 px-2 shadow-sm dark:bg-slate-900/80 dark:border-slate-700"
               />
             ) : (
               <Input
                 type="date"
                 value={anchorDate}
                 onChange={(event) => setAnchorDate(event.target.value)}
-                className="h-7 w-[120px] sm:w-[140px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs py-0 px-2 shadow-sm"
+                className="h-7 w-[120px] sm:w-[140px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs py-0 px-2 shadow-sm dark:bg-slate-900/80 dark:border-slate-700"
               />
             )}
           </div>
@@ -474,7 +474,7 @@ export default function BirthdaysPage() {
                 <span className="font-bold text-amber-600 dark:text-amber-400">
                   {nearestUpcomingBirthday.fullName}
                 </span>
-                <span className="text-amber-500/85 text-[9px] sm:text-[10px]">
+                <span className="text-amber-500/85 text-[9px] sm:text-[10px] dark:text-amber-400/85">
                   ({format(nearestUpcomingBirthday.birthdayDate, "MMM dd")} – {nearestUpcomingBirthday.daysAway === 0 ? "today" : `${nearestUpcomingBirthday.daysAway}d`})
                 </span>
               </div>
@@ -485,20 +485,20 @@ export default function BirthdaysPage() {
 
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
 
-        <Card className="border-white/20 bg-white/85 shadow-lg backdrop-blur-sm">
+        <Card className="border-white/20 bg-white/85 shadow-lg backdrop-blur-sm dark:border-slate-700/20 dark:bg-slate-900/85">
           <CardContent className="p-4 sm:p-6">
             {isLoading ? (
               <div className="py-12 text-center">
                 <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"></div>
-                <p className="mt-4 text-sm text-gray-600">Loading cached pupil birthdays...</p>
+                <p className="mt-4 text-sm text-gray-600 dark:text-slate-300">Loading cached pupil birthdays...</p>
               </div>
             ) : birthdaysInPeriod.length === 0 ? (
               <div className="py-12 text-center">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
-                  <CalendarDays className="h-6 w-6 text-blue-600" />
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-950/40">
+                  <CalendarDays className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">No birthdays in this period</h3>
-                <p className="mt-2 text-sm text-gray-600">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">No birthdays in this period</h3>
+                <p className="mt-2 text-sm text-gray-600 dark:text-slate-300">
                   Try a different {viewMode}, date, or class filter to explore more birthdays.
                 </p>
               </div>
@@ -508,7 +508,7 @@ export default function BirthdaysPage() {
                 <div className="hidden sm:block overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-gray-50/80">
+                      <TableRow className="bg-gray-50/80 dark:bg-slate-900/80">
                         <TableHead className="text-xs sm:text-sm">Birthday</TableHead>
                         <TableHead className="text-xs sm:text-sm">Pupil</TableHead>
                         <TableHead className="text-xs sm:text-sm">Class</TableHead>
@@ -520,35 +520,35 @@ export default function BirthdaysPage() {
                       {birthdaysInPeriod.map((birthday) => {
                         const isBirthdayToday = isSameDay(birthday.birthdayDate, today);
                         return (
-                          <TableRow key={birthday.id} className="hover:bg-blue-50/40">
+                          <TableRow key={birthday.id} className="hover:bg-blue-50/40 dark:hover:bg-blue-950/40">
                             <TableCell className="p-2 sm:p-4">
-                              <div className="font-medium text-gray-900 text-xs sm:text-sm">
+                              <div className="font-medium text-gray-900 text-xs sm:text-sm dark:text-slate-100">
                                 {format(birthday.birthdayDate, "EEE, MMM dd")}
                               </div>
-                              <div className="text-[10px] text-gray-500">DOB: {birthday.birthdayLabel}</div>
+                              <div className="text-[10px] text-gray-500 dark:text-slate-400">DOB: {birthday.birthdayLabel}</div>
                             </TableCell>
                             <TableCell className="p-2 sm:p-4">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-medium text-gray-900 text-xs sm:text-sm">{birthday.fullName}</span>
+                                <span className="font-medium text-gray-900 text-xs sm:text-sm dark:text-slate-100">{birthday.fullName}</span>
                                 {isBirthdayToday && (
-                                  <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] px-1.5 py-0.5 rounded-full whitespace-nowrap animate-pulse">
+                                  <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] px-1.5 py-0.5 rounded-full whitespace-nowrap animate-pulse dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800/60">
                                     Today! 🎉
                                   </Badge>
                                 )}
                               </div>
                             </TableCell>
                             <TableCell className="p-2 sm:p-4">
-                              <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 text-[10px] sm:text-xs">
+                              <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 text-[10px] sm:text-xs dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300">
                                 {birthday.className}
                               </Badge>
                             </TableCell>
                             <TableCell className="p-2 sm:p-4 text-right sm:text-left text-xs sm:text-sm">
-                              <span className="font-semibold text-violet-700 whitespace-nowrap">Turns {birthday.turningAge}</span>
+                              <span className="font-semibold text-violet-700 whitespace-nowrap dark:text-violet-300">Turns {birthday.turningAge}</span>
                             </TableCell>
                             <TableCell className="p-2 sm:p-4 hidden md:table-cell text-xs sm:text-sm">
                               <Badge
                                 variant="outline"
-                                className={isBirthdayToday ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-700"}
+                                className={isBirthdayToday ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300" : "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"}
                               >
                                 {isBirthdayToday ? "Today" : viewMode === "day" ? "Selected day" : viewMode === "week" ? "Selected week" : "Selected month"}
                               </Badge>
@@ -569,7 +569,7 @@ export default function BirthdaysPage() {
                         key={birthday.id} 
                         className={`p-3.5 rounded-xl border backdrop-blur-sm transition-all duration-300 ${
                           isBirthdayToday 
-                            ? "bg-emerald-50/70 dark:bg-emerald-950/10 border-emerald-200/80 shadow-[0_4px_12px_rgba(16,185,129,0.08)]" 
+                            ? "bg-emerald-50/70 dark:bg-emerald-950/10 border-emerald-200/80 shadow-[0_4px_12px_rgba(16,185,129,0.08)] dark:border-emerald-800/80"
                             : "bg-white/80 dark:bg-gray-900/80 border-gray-100 dark:border-gray-800 shadow-sm"
                         }`}
                       >
@@ -581,14 +581,14 @@ export default function BirthdaysPage() {
                                 {birthday.fullName}
                               </span>
                               {isBirthdayToday && (
-                                <Badge className="bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-200/50 text-[9px] px-1.5 py-0.5 rounded-full whitespace-nowrap animate-pulse">
+                                <Badge className="bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-200/50 text-[9px] px-1.5 py-0.5 rounded-full whitespace-nowrap animate-pulse dark:border-emerald-800/50">
                                   Today! 🎉
                                 </Badge>
                               )}
                             </div>
-                            <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-gray-500">
+                            <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-gray-500 dark:text-slate-400">
                               <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3 text-blue-500" />
+                                <Calendar className="w-3 h-3 text-blue-500 dark:text-blue-400" />
                                 {format(birthday.birthdayDate, "EEE, MMM dd")}
                               </span>
                               <span className="text-gray-300">•</span>
@@ -606,8 +606,8 @@ export default function BirthdaysPage() {
 
                         {/* Bottom Section: Class */}
                         <div className="mt-3 pt-2.5 border-t border-gray-100/50 dark:border-gray-800/50 flex items-center gap-1.5 text-[10px]">
-                          <span className="text-gray-400">Class:</span>
-                          <Badge variant="outline" className="border-blue-100 bg-blue-50/50 text-blue-700 text-[9px] font-medium py-0 px-1.5">
+                          <span className="text-gray-400 dark:text-slate-400">Class:</span>
+                          <Badge variant="outline" className="border-blue-100 bg-blue-50/50 text-blue-700 text-[9px] font-medium py-0 px-1.5 dark:border-blue-800/60 dark:bg-blue-950/50 dark:text-blue-300">
                             {birthday.className}
                           </Badge>
                         </div>

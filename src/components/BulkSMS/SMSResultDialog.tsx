@@ -85,21 +85,21 @@ const SMSResultDialog: React.FC<SMSResultDialogProps> = ({
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
       case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
+        return <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />;
       case 'failed':
-        return <XCircle className="h-4 w-4 text-red-600" />;
+        return <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />;
       default:
-        return <Clock className="h-4 w-4 text-yellow-600" />;
+        return <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />;
     }
   };
 
   const getNetworkStatusColor = (network: string, failed: number, total: number) => {
     if (network === 'MTN' && failed > 0) {
-      return 'border-red-200 bg-red-50';
+      return 'border-red-200 bg-red-50 dark:border-red-800/60 dark:bg-red-950/40';
     } else if (failed === 0) {
-      return 'border-green-200 bg-green-50';
+      return 'border-green-200 bg-green-50 dark:border-green-800/60 dark:bg-green-950/40';
     } else {
-      return 'border-yellow-200 bg-yellow-50';
+      return 'border-yellow-200 bg-yellow-50 dark:border-yellow-800/60 dark:bg-yellow-950/40';
     }
   };
 
@@ -109,9 +109,9 @@ const SMSResultDialog: React.FC<SMSResultDialogProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {result.success ? (
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
             ) : (
-              <XCircle className="h-5 w-5 text-red-600" />
+              <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
             )}
             SMS Sending Results
           </DialogTitle>
@@ -133,10 +133,10 @@ const SMSResultDialog: React.FC<SMSResultDialogProps> = ({
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 text-blue-600" />
+                    <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     <div>
-                      <p className="text-xs font-medium text-blue-900">Total</p>
-                      <p className="text-lg font-bold text-blue-600">{result.details?.total}</p>
+                      <p className="text-xs font-medium text-blue-900 dark:text-blue-200">Total</p>
+                      <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{result.details?.total}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -145,10 +145,10 @@ const SMSResultDialog: React.FC<SMSResultDialogProps> = ({
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                     <div>
-                      <p className="text-xs font-medium text-green-900">Sent</p>
-                      <p className="text-lg font-bold text-green-600">{result.details?.successful}</p>
+                      <p className="text-xs font-medium text-green-900 dark:text-green-200">Sent</p>
+                      <p className="text-lg font-bold text-green-600 dark:text-green-400">{result.details?.successful}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -157,10 +157,10 @@ const SMSResultDialog: React.FC<SMSResultDialogProps> = ({
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <XCircle className="h-4 w-4 text-red-600" />
+                    <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                     <div>
-                      <p className="text-xs font-medium text-red-900">Failed</p>
-                      <p className="text-lg font-bold text-red-600">{result.details?.failed}</p>
+                      <p className="text-xs font-medium text-red-900 dark:text-red-200">Failed</p>
+                      <p className="text-lg font-bold text-red-600 dark:text-red-400">{result.details?.failed}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -169,10 +169,10 @@ const SMSResultDialog: React.FC<SMSResultDialogProps> = ({
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-purple-600" />
+                    <DollarSign className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                     <div>
-                      <p className="text-xs font-medium text-purple-900">Cost</p>
-                      <p className="text-lg font-bold text-purple-600">{result.cost}</p>
+                      <p className="text-xs font-medium text-purple-900 dark:text-purple-200">Cost</p>
+                      <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{result.cost}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -210,13 +210,13 @@ const SMSResultDialog: React.FC<SMSResultDialogProps> = ({
                   }) : [];
                 
                 return mtnNumbers.length > 0 ? (
-                  <Alert variant="default" className="border-green-200 bg-green-50">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  <Alert variant="default" className="border-green-200 bg-green-50 dark:border-green-800/60 dark:bg-green-950/40">
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                     <AlertDescription>
                       <div className="space-y-2">
-                        <p className="font-medium text-green-800">MTN Numbers Successfully Sent</p>
-                        <p className="text-green-700">{mtnNumbers.length} MTN numbers were successfully sent via Wiza SMS provider.</p>
-                        <p className="text-sm text-green-600">Wiza SMS provides reliable delivery to MTN numbers in Uganda.</p>
+                        <p className="font-medium text-green-800 dark:text-green-200">MTN Numbers Successfully Sent</p>
+                        <p className="text-green-700 dark:text-green-300">{mtnNumbers.length} MTN numbers were successfully sent via Wiza SMS provider.</p>
+                        <p className="text-sm text-green-600 dark:text-green-400">Wiza SMS provides reliable delivery to MTN numbers in Uganda.</p>
                       </div>
                     </AlertDescription>
                   </Alert>
@@ -229,7 +229,7 @@ const SMSResultDialog: React.FC<SMSResultDialogProps> = ({
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                    <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
                     Blocked Recipients
                   </CardTitle>
                   <CardDescription>
@@ -239,19 +239,19 @@ const SMSResultDialog: React.FC<SMSResultDialogProps> = ({
                 <CardContent>
                   <div className="space-y-2 max-h-40 overflow-y-auto">
                     {result.details.blockedRecipients.map((recipient, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-red-50 rounded text-sm border border-red-200">
+                      <div key={index} className="flex items-center justify-between p-2 bg-red-50 rounded text-sm border border-red-200 dark:bg-red-950/40 dark:border-red-800/60">
                         <span className="font-mono">{recipient.phoneNumber}</span>
                         <div className="flex items-center gap-2">
                           <Badge variant="destructive">
                             {recipient.network}
                           </Badge>
-                          <span className="text-red-600 text-xs">{recipient.status}</span>
+                          <span className="text-red-600 text-xs dark:text-red-400">{recipient.status}</span>
                         </div>
                       </div>
                     ))}
                   </div>
-                  <div className="mt-3 p-3 bg-amber-50 rounded border border-amber-200">
-                    <p className="text-sm text-amber-800">
+                  <div className="mt-3 p-3 bg-amber-50 rounded border border-amber-200 dark:bg-amber-950/40 dark:border-amber-800/60">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
                       <strong>Alternative Communication:</strong> Consider using WhatsApp, email, or direct calls to reach these MTN recipients.
                     </p>
                   </div>
@@ -278,15 +278,15 @@ const SMSResultDialog: React.FC<SMSResultDialogProps> = ({
                     <CardContent className="space-y-2">
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div>
-                          <span className="text-gray-600 block">Sent</span>
-                          <span className="font-medium text-green-600">{network.sent}</span>
+                          <span className="text-gray-600 block dark:text-slate-300">Sent</span>
+                          <span className="font-medium text-green-600 dark:text-green-400">{network.sent}</span>
                         </div>
                         <div>
-                          <span className="text-gray-600 block">Failed</span>
-                          <span className="font-medium text-red-600">{network.failed}</span>
+                          <span className="text-gray-600 block dark:text-slate-300">Failed</span>
+                          <span className="font-medium text-red-600 dark:text-red-400">{network.failed}</span>
                         </div>
                         <div>
-                          <span className="text-gray-600 block">{network.blocked ? 'Blocked' : 'Cost'}</span>
+                          <span className="text-gray-600 block dark:text-slate-300">{network.blocked ? 'Blocked' : 'Cost'}</span>
                           <span className="font-medium">
                             {network.blocked ? network.blocked : `UGX ${network.cost?.toFixed(4) || 'N/A'}`}
                           </span>
@@ -328,11 +328,11 @@ const SMSResultDialog: React.FC<SMSResultDialogProps> = ({
           <TabsContent value="details" className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Message ID:</span>
+                <span className="text-gray-600 dark:text-slate-300">Message ID:</span>
                 <span className="font-mono text-xs">{result.messageId}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Success Rate:</span>
+                <span className="text-gray-600 dark:text-slate-300">Success Rate:</span>
                 <span className="font-medium">
                   {result.details?.successful && result.details?.total ? 
                     ((result.details.successful / result.details.total) * 100).toFixed(1) : '0.0'}%
@@ -340,7 +340,7 @@ const SMSResultDialog: React.FC<SMSResultDialogProps> = ({
               </div>
               {result.details?.retryAttempt !== undefined && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Retry Attempt:</span>
+                  <span className="text-gray-600 dark:text-slate-300">Retry Attempt:</span>
                   <span className="font-medium">{result.details.retryAttempt}</span>
                 </div>
               )}
@@ -357,13 +357,13 @@ const SMSResultDialog: React.FC<SMSResultDialogProps> = ({
                 <CardContent>
                   <div className="space-y-2 max-h-40 overflow-y-auto">
                     {result.details.failedRecipients.map((recipient, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
+                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm dark:bg-slate-900">
                         <span className="font-mono">{recipient.number}</span>
                         <div className="flex items-center gap-2">
                           <Badge variant={recipient.network === 'MTN' ? 'destructive' : 'secondary'}>
                             {recipient.network}
                           </Badge>
-                          <span className="text-gray-600">{recipient.status}</span>
+                          <span className="text-gray-600 dark:text-slate-300">{recipient.status}</span>
                         </div>
                       </div>
                     ))}

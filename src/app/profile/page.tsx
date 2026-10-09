@@ -107,7 +107,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/40">
       <GlassPageTopBar
         title="My Profile"
         subtitle="View and manage your account details and permissions"
@@ -117,18 +117,18 @@ export default function ProfilePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="space-y-6">
           {/* Hero Profile Section */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-100/50 shadow-lg">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-100/50 shadow-lg dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40 dark:border-blue-800/50">
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-0" />
         <div className="relative p-6 sm:p-8 lg:p-10">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
             {/* Avatar */}
             <div className={`relative ${getRoleColor()} rounded-full p-1 shadow-xl`}>
-              <div className="bg-white rounded-full p-4 sm:p-6">
+              <div className="bg-white rounded-full p-4 sm:p-6 dark:bg-slate-900">
                 <div className={`${getRoleColor()} rounded-full p-6 sm:p-8 flex items-center justify-center`}>
                   <User className="h-12 w-12 sm:h-16 sm:w-16 text-white" />
                 </div>
               </div>
-              <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-1.5 shadow-lg border-2 border-blue-50">
+              <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-1.5 shadow-lg border-2 border-blue-50 dark:bg-slate-900 dark:border-blue-800/60">
                 <div className={`w-4 h-4 rounded-full ${user.isActive ? 'bg-green-500' : 'bg-gray-400'}`} />
               </div>
             </div>
@@ -136,10 +136,10 @@ export default function ProfilePage() {
             {/* Profile Info */}
             <div className="flex-1 space-y-3">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 dark:text-slate-100">
                   {getUserDisplayName()}
                 </h1>
-                <p className="text-sm sm:text-base text-gray-600 font-mono">
+                <p className="text-sm sm:text-base text-gray-600 font-mono dark:text-slate-300">
                   @{user.username}
                 </p>
               </div>
@@ -158,7 +158,7 @@ export default function ProfilePage() {
               </div>
 
               {user.email && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
                   <Mail className="h-4 w-4" />
                   <span>{user.email}</span>
                 </div>
@@ -184,10 +184,10 @@ export default function ProfilePage() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Basic Information Card */}
         <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b dark:from-blue-950/40 dark:to-indigo-950/40">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <User className="h-5 w-5 text-blue-600" />
+              <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/40">
+                <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               Basic Information
             </CardTitle>
@@ -197,33 +197,33 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent className="pt-6 space-y-4">
             <div className="space-y-4">
-              <div className="flex items-start justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+              <div className="flex items-start justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
                 <div className="flex-1">
                   <p className="text-xs font-medium text-muted-foreground mb-1">Display Name</p>
-                  <p className="text-base font-semibold text-gray-900">{getUserDisplayName()}</p>
+                  <p className="text-base font-semibold text-gray-900 dark:text-slate-100">{getUserDisplayName()}</p>
                 </div>
               </div>
               
-              <div className="flex items-start justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+              <div className="flex items-start justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
                 <div className="flex-1">
                   <p className="text-xs font-medium text-muted-foreground mb-1">Username</p>
-                  <p className="text-sm font-mono text-gray-900 bg-white px-2 py-1 rounded border">{user.username}</p>
+                  <p className="text-sm font-mono text-gray-900 bg-white px-2 py-1 rounded border dark:text-slate-100 dark:bg-slate-900">{user.username}</p>
                 </div>
               </div>
 
               {user.email && (
-                <div className="flex items-start justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                <div className="flex items-start justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
                   <div className="flex-1">
                     <p className="text-xs font-medium text-muted-foreground mb-1">Email Address</p>
                     <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-gray-400" />
-                      <p className="text-sm text-gray-900">{user.email}</p>
+                      <Mail className="h-4 w-4 text-gray-400 dark:text-slate-400" />
+                      <p className="text-sm text-gray-900 dark:text-slate-100">{user.email}</p>
                     </div>
                   </div>
                 </div>
               )}
 
-              <div className="flex items-start justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+              <div className="flex items-start justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
                 <div className="flex-1">
                   <p className="text-xs font-medium text-muted-foreground mb-1">Account Status</p>
                   <Badge variant={user.isActive ? 'default' : 'destructive'} className="mt-1">
@@ -237,10 +237,10 @@ export default function ProfilePage() {
 
         {/* Permissions & Access Card */}
         <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow lg:col-span-2">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b">
+          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b dark:from-purple-950/40 dark:to-pink-950/40">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Shield className="h-5 w-5 text-purple-600" />
+              <div className="p-2 bg-purple-100 rounded-lg dark:bg-purple-950/40">
+                <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
               Permissions & Access
             </CardTitle>
@@ -254,17 +254,17 @@ export default function ProfilePage() {
                 {getPermissionSummary().map((permission, index) => (
                   <div 
                     key={index} 
-                    className="flex items-start gap-3 p-4 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 hover:shadow-md transition-all"
+                    className="flex items-start gap-3 p-4 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 hover:shadow-md transition-all dark:from-green-950/40 dark:to-emerald-950/40 dark:border-green-800/60"
                   >
-                    <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm font-medium text-gray-900 leading-relaxed">{permission}</p>
+                    <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0 dark:text-green-400" />
+                    <p className="text-sm font-medium text-gray-900 leading-relaxed dark:text-slate-100">{permission}</p>
                   </div>
                 ))}
               </div>
 
               {user.role === 'Staff' && user.granularPermissions && user.granularPermissions.length > 0 && (
                 <div className="mt-6 pt-6 border-t">
-                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 dark:text-slate-100">
                     <Shield className="h-4 w-4" />
                     Detailed Module Access
                   </h4>
@@ -272,10 +272,10 @@ export default function ProfilePage() {
                     {user.granularPermissions.map((gp) => (
                       <div 
                         key={gp.moduleId} 
-                        className="p-4 rounded-lg border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 hover:border-blue-300 hover:shadow-md transition-all"
+                        className="p-4 rounded-lg border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 hover:border-blue-300 hover:shadow-md transition-all dark:border-blue-800/60 dark:from-blue-950/40 dark:to-indigo-950/40 dark:hover:border-blue-800/60"
                       >
-                        <div className="font-semibold text-sm text-gray-900 mb-1">{gp.moduleId}</div>
-                        <div className="text-xs text-gray-600">
+                        <div className="font-semibold text-sm text-gray-900 mb-1 dark:text-slate-100">{gp.moduleId}</div>
+                        <div className="text-xs text-gray-600 dark:text-slate-300">
                           {gp.pages.length} page{gp.pages.length > 1 ? 's' : ''} accessible
                         </div>
                       </div>

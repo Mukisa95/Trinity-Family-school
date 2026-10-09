@@ -146,7 +146,7 @@ export function AdvancedRecipientPicker({
                         <Badge
                             key={`${r.type}-${r.id}`}
                             variant="secondary"
-                            className="cursor-pointer hover:bg-red-100"
+                            className="cursor-pointer hover:bg-red-100 dark:hover:bg-red-950/40"
                             onClick={() => toggleRecipient(r)}
                         >
                             {r.name} ×
@@ -159,7 +159,7 @@ export function AdvancedRecipientPicker({
             )}
 
             {/* User Stats */}
-            <div className="flex gap-4 text-sm text-gray-600 bg-gray-50 rounded-lg p-2">
+            <div className="flex gap-4 text-sm text-gray-600 bg-gray-50 rounded-lg p-2 dark:text-slate-300 dark:bg-slate-900">
                 <span className="flex items-center gap-1">
                     <Users className="w-4 h-4" />
                     {allUsers.length} total users
@@ -181,8 +181,8 @@ export function AdvancedRecipientPicker({
                     className={cn(
                         "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
                         activeGroup === 'quick'
-                            ? "border-blue-500 text-blue-600"
-                            : "border-transparent text-gray-500 hover:text-gray-700"
+                            ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                            : "border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
                     )}
                 >
                     <Users className="w-4 h-4 inline mr-2" />
@@ -193,8 +193,8 @@ export function AdvancedRecipientPicker({
                     className={cn(
                         "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
                         activeGroup === 'parents'
-                            ? "border-blue-500 text-blue-600"
-                            : "border-transparent text-gray-500 hover:text-gray-700"
+                            ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                            : "border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
                     )}
                 >
                     <GraduationCap className="w-4 h-4 inline mr-2" />
@@ -205,8 +205,8 @@ export function AdvancedRecipientPicker({
                     className={cn(
                         "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
                         activeGroup === 'staff'
-                            ? "border-blue-500 text-blue-600"
-                            : "border-transparent text-gray-500 hover:text-gray-700"
+                            ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                            : "border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
                     )}
                 >
                     <Briefcase className="w-4 h-4 inline mr-2" />
@@ -218,8 +218,8 @@ export function AdvancedRecipientPicker({
             <div className="min-h-[300px]">
                 {isLoadingUsers ? (
                     <div className="flex flex-col justify-center items-center py-12">
-                        <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-2" />
-                        <p className="text-gray-500">Loading users...</p>
+                        <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-2 dark:text-blue-400" />
+                        <p className="text-gray-500 dark:text-slate-400">Loading users...</p>
                     </div>
                 ) : (
                     <>
@@ -234,13 +234,13 @@ export function AdvancedRecipientPicker({
                                             "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
                                             isSelected(option.id, option.type)
                                                 ? "border-blue-500 bg-blue-50 dark:bg-blue-950"
-                                                : "border-gray-200 hover:border-gray-300"
+                                                : "border-gray-200 hover:border-gray-300 dark:border-slate-700 dark:hover:border-slate-700"
                                         )}
                                     >
                                         <Checkbox checked={isSelected(option.id, option.type)} />
                                         <div>
                                             <p className="font-medium">{option.name}</p>
-                                            <p className="text-xs text-gray-500">
+                                            <p className="text-xs text-gray-500 dark:text-slate-400">
                                                 {option.id === 'all_users' && `${allUsers.length} users`}
                                                 {option.id === 'all_staff' && `${staffUsers.length} staff`}
                                                 {option.id === 'all_parents' && `${parentUsers.length} parents`}
@@ -257,7 +257,7 @@ export function AdvancedRecipientPicker({
                             <div className="space-y-3">
                                 <div className="flex gap-2 items-center">
                                     <div className="relative flex-1">
-                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-400" />
                                         <Input
                                             placeholder="Search parents..."
                                             value={searchQuery}
@@ -291,7 +291,7 @@ export function AdvancedRecipientPicker({
 
                                 <div className="max-h-[400px] overflow-y-auto space-y-2">
                                     {filteredParents.length === 0 ? (
-                                        <p className="text-center text-gray-500 py-8">No parents found</p>
+                                        <p className="text-center text-gray-500 py-8 dark:text-slate-400">No parents found</p>
                                     ) : (
                                         filteredParents.map(user => (
                                             <div
@@ -305,13 +305,13 @@ export function AdvancedRecipientPicker({
                                                     "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
                                                     isSelected(user.id, 'user')
                                                         ? "border-blue-500 bg-blue-50 dark:bg-blue-950"
-                                                        : "border-gray-200 hover:border-gray-300"
+                                                        : "border-gray-200 hover:border-gray-300 dark:border-slate-700 dark:hover:border-slate-700"
                                                 )}
                                             >
                                                 <Checkbox checked={isSelected(user.id, 'user')} />
                                                 <div className="flex-1">
                                                     <p className="font-medium">{getUserDisplayName(user)}</p>
-                                                    <p className="text-xs text-gray-500">
+                                                    <p className="text-xs text-gray-500 dark:text-slate-400">
                                                         {user.email || user.username || 'No contact'}
                                                     </p>
                                                 </div>
@@ -327,7 +327,7 @@ export function AdvancedRecipientPicker({
                             <div className="space-y-3">
                                 <div className="flex gap-2 items-center">
                                     <div className="relative flex-1">
-                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-400" />
                                         <Input
                                             placeholder="Search staff..."
                                             value={searchQuery}
@@ -361,7 +361,7 @@ export function AdvancedRecipientPicker({
 
                                 <div className="max-h-[400px] overflow-y-auto space-y-2">
                                     {filteredStaff.length === 0 ? (
-                                        <p className="text-center text-gray-500 py-8">No staff found</p>
+                                        <p className="text-center text-gray-500 py-8 dark:text-slate-400">No staff found</p>
                                     ) : (
                                         filteredStaff.map(user => (
                                             <div
@@ -375,13 +375,13 @@ export function AdvancedRecipientPicker({
                                                     "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
                                                     isSelected(user.id, 'user')
                                                         ? "border-blue-500 bg-blue-50 dark:bg-blue-950"
-                                                        : "border-gray-200 hover:border-gray-300"
+                                                        : "border-gray-200 hover:border-gray-300 dark:border-slate-700 dark:hover:border-slate-700"
                                                 )}
                                             >
                                                 <Checkbox checked={isSelected(user.id, 'user')} />
                                                 <div className="flex-1">
                                                     <p className="font-medium">{getUserDisplayName(user)}</p>
-                                                    <p className="text-xs text-gray-500">
+                                                    <p className="text-xs text-gray-500 dark:text-slate-400">
                                                         {user.email || user.username || user.role}
                                                     </p>
                                                 </div>

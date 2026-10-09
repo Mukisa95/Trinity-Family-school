@@ -277,7 +277,7 @@ export function NotificationBubble({
                             <span className={cn(
                                 "inline-block mt-2 px-2 py-1 rounded-full text-[11px] font-semibold",
                                 isSender
-                                    ? "bg-white/20 text-white"
+                                    ? "bg-white/20 text-white dark:bg-slate-900/20"
                                     : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
                             )}>
                                 🔴 Urgent
@@ -335,7 +335,7 @@ export function NotificationBubble({
                             <>
                                 <button
                                     onClick={handleResend}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/40"
                                     title="Resend notification"
                                 >
                                     <Send className="w-4 h-4" />
@@ -345,7 +345,7 @@ export function NotificationBubble({
                                 <div className="relative">
                                     <button
                                         onClick={handleDeleteClick}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors dark:text-red-400 dark:hover:text-red-300"
                                         title="Delete notification"
                                     >
                                         <Trash2 className="w-4 h-4" />
@@ -376,7 +376,7 @@ export function NotificationBubble({
                             <>
                                 <button
                                     onClick={handleDeleteClick}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors dark:text-red-400 dark:hover:text-red-300"
                                     title="Delete notification"
                                 >
                                     <Trash2 className="w-4 h-4" />
@@ -386,7 +386,7 @@ export function NotificationBubble({
                                 <div className="relative">
                                     <button
                                         onClick={handleRemindClick}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-md transition-colors"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-md transition-colors dark:text-amber-400 dark:hover:text-amber-300"
                                         title="Set reminder"
                                     >
                                         <Clock className="w-4 h-4" />

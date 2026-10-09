@@ -87,19 +87,19 @@ import { createStaffNameMap } from '@/lib/utils/staff-names';
 
 // Utility functions for results calculation
 const getGradeColor = (grade: string): string => {
-  if (grade.startsWith('D')) return 'bg-green-100 text-green-800 border-green-200';
-  if (grade.startsWith('C')) return 'bg-blue-100 text-blue-800 border-blue-200';
-  if (grade.startsWith('P')) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-  return 'bg-red-100 text-red-800 border-red-200'; // For F9
+  if (grade.startsWith('D')) return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
+  if (grade.startsWith('C')) return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+  if (grade.startsWith('P')) return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
+  return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60'; // For F9
 };
 
 const getDivisionColor = (division: string): string => {
   switch (division) {
-    case 'I': return 'bg-green-100 text-green-800 border-green-200';
-    case 'II': return 'bg-blue-100 text-blue-800 border-blue-200';
-    case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200';
-    default: return 'bg-red-100 text-red-800 border-red-200'; // For 'U'
+    case 'I': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
+    case 'II': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+    case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
+    case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60';
+    default: return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60'; // For 'U'
   }
 };
 
@@ -153,7 +153,7 @@ const PrintModal = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-            <Printer className="h-5 w-5 text-blue-600" />
+            <Printer className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             Print Reports
           </DialogTitle>
           <DialogDescription>
@@ -164,12 +164,12 @@ const PrintModal = ({
         {isGenerating ? (
           <div className="py-4">
             <div className="text-center">
-              <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto mb-4 animate-spin"></div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Generating Report</h3>
-              <p className="text-sm text-blue-600 font-medium mb-4">{generationStatus}</p>
+              <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto mb-4 animate-spin dark:border-blue-800/60"></div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2 dark:text-slate-100">Generating Report</h3>
+              <p className="text-sm text-blue-600 font-medium mb-4 dark:text-blue-400">{generationStatus}</p>
 
               {/* Compact Progress Bar */}
-              <div className="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden border">
+              <div className="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden border dark:bg-slate-900">
                 <div
                   className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${generationProgress}%` }}
@@ -178,13 +178,13 @@ const PrintModal = ({
 
               {/* Progress and ETA */}
               <div className="flex justify-between items-center mb-4 text-sm">
-                <span className="font-semibold text-gray-800">{generationProgress}% Complete</span>
-                <span className="text-blue-600 font-medium">{eta}</span>
+                <span className="font-semibold text-gray-800 dark:text-slate-100">{generationProgress}% Complete</span>
+                <span className="text-blue-600 font-medium dark:text-blue-400">{eta}</span>
               </div>
 
               {/* Compact Tip */}
-              <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
-                <div className="text-xs text-blue-800">
+              <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60">
+                <div className="text-xs text-blue-800 dark:text-blue-200">
                   <span className="font-semibold">💡</span> Report will download automatically when ready
                 </div>
               </div>
@@ -194,15 +194,15 @@ const PrintModal = ({
           <div className="space-y-3">
             <button
               onClick={onPrintTrans}
-              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors dark:border-slate-700 dark:hover:bg-slate-900"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <FileTextIcon className="h-5 w-5 text-orange-600" />
+                <div className="p-2 bg-orange-100 rounded-lg dark:bg-orange-950/40">
+                  <FileTextIcon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">TRANS</h3>
-                  <p className="text-sm text-gray-600">Individual pupil reports (Enhanced design)</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-slate-100">TRANS</h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-300">Individual pupil reports (Enhanced design)</p>
                 </div>
               </div>
             </button>
@@ -1371,14 +1371,14 @@ export default function PupilResultsClient() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
         <GlassPageTopBar
           title="Individual Results"
           backHref={examId ? `/exams/${examId}/view-results` : '/exams'}
         />
         <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
           <div className="text-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" />
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto dark:text-indigo-400" />
             <p className="text-muted-foreground font-medium">Loading pupil results...</p>
           </div>
         </div>
@@ -1388,15 +1388,15 @@ export default function PupilResultsClient() {
 
   if (examResultError || !pupilDetails || !pupilResults) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
         <GlassPageTopBar
           title="Individual Results"
           backHref={examId ? `/exams/${examId}/view-results` : '/exams'}
         />
         <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
           <div className="text-center space-y-4">
-            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto" />
-            <h2 className="text-xl font-semibold text-gray-900">Error loading results</h2>
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto dark:text-red-400" />
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100">Error loading results</h2>
             <p className="text-muted-foreground">Unable to load pupil results. Please try again.</p>
             <Button
               onClick={() => goBack(examId ? `/exams/${examId}/view-results` : '/exams')}
@@ -1418,7 +1418,7 @@ export default function PupilResultsClient() {
   const weakestSubject = subjectsByMarks[subjectsByMarks.length - 1];
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animate-in fade-in duration-500">
+    <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animate-in fade-in duration-500 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
       <GlassPageTopBar
         title="Individual Results"
         className="mb-3 sm:mb-4"
@@ -1445,56 +1445,56 @@ export default function PupilResultsClient() {
       />
 
       <div className="mx-auto max-w-7xl pb-4 sm:pb-6">
-        <section aria-label="Pupil and results summary" className="mb-3 overflow-hidden rounded-xl border border-indigo-100 bg-white shadow-sm sm:mb-4">
+        <section aria-label="Pupil and results summary" className="mb-3 overflow-hidden rounded-xl border border-indigo-100 bg-white shadow-sm sm:mb-4 dark:border-indigo-800/60 dark:bg-slate-900">
           <div className="flex items-start gap-3 px-3 py-3 sm:px-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600" aria-hidden="true">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400" aria-hidden="true">
               <User className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="break-words text-base font-bold leading-snug text-gray-900 sm:text-lg">{pupilDetails.name}</h2>
-              <dl className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 sm:text-sm">
-                <div className="flex min-w-0 gap-1"><dt>Admission:</dt><dd className="break-all font-medium text-gray-900">{pupilDetails.admissionNumber}</dd></div>
-                <div className="flex gap-1"><dt>Class:</dt><dd className="font-medium text-gray-900">{classSnap?.name}</dd></div>
-                <div className="flex items-center gap-1"><dt>Position:</dt><dd className="font-semibold text-indigo-700">{position}</dd></div>
+              <h2 className="break-words text-base font-bold leading-snug text-gray-900 sm:text-lg dark:text-slate-100">{pupilDetails.name}</h2>
+              <dl className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 sm:text-sm dark:text-slate-300">
+                <div className="flex min-w-0 gap-1"><dt>Admission:</dt><dd className="break-all font-medium text-gray-900 dark:text-slate-100">{pupilDetails.admissionNumber}</dd></div>
+                <div className="flex gap-1"><dt>Class:</dt><dd className="font-medium text-gray-900 dark:text-slate-100">{classSnap?.name}</dd></div>
+                <div className="flex items-center gap-1"><dt>Position:</dt><dd className="font-semibold text-indigo-700 dark:text-indigo-300">{position}</dd></div>
               </dl>
             </div>
           </div>
 
-          <dl className="grid grid-cols-2 border-t border-indigo-100 bg-indigo-50/40 sm:grid-cols-4">
-            <div className="min-w-0 border-r border-indigo-100 px-3 py-2.5 sm:px-4">
-              <dt className="text-xs font-medium text-gray-600">Total marks</dt>
+          <dl className="grid grid-cols-2 border-t border-indigo-100 bg-indigo-50/40 sm:grid-cols-4 dark:border-indigo-800/60 dark:bg-indigo-950/40">
+            <div className="min-w-0 border-r border-indigo-100 px-3 py-2.5 sm:px-4 dark:border-indigo-800/60">
+              <dt className="text-xs font-medium text-gray-600 dark:text-slate-300">Total marks</dt>
               <dd className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="text-2xl font-bold leading-tight tabular-nums text-blue-700">{pupilResults.totalMarks}</span>
-                <span className="text-xs text-gray-600">Avg. {pupilResults.averageMarks.toFixed(1)}%</span>
+                <span className="text-2xl font-bold leading-tight tabular-nums text-blue-700 dark:text-blue-300">{pupilResults.totalMarks}</span>
+                <span className="text-xs text-gray-600 dark:text-slate-300">Avg. {pupilResults.averageMarks.toFixed(1)}%</span>
               </dd>
             </div>
-            <div className="min-w-0 border-indigo-100 px-3 py-2.5 sm:border-r sm:px-4">
-              <dt className="text-xs font-medium text-gray-600">Aggregates <span className="font-normal">/ {subjectSnaps.length * 9}</span></dt>
+            <div className="min-w-0 border-indigo-100 px-3 py-2.5 sm:border-r sm:px-4 dark:border-indigo-800/60">
+              <dt className="text-xs font-medium text-gray-600 dark:text-slate-300">Aggregates <span className="font-normal">/ {subjectSnaps.length * 9}</span></dt>
               <dd className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <span className="text-2xl font-bold leading-tight tabular-nums text-purple-700">{pupilResults.totalAggregates}</span>
+                <span className="text-2xl font-bold leading-tight tabular-nums text-purple-700 dark:text-purple-300">{pupilResults.totalAggregates}</span>
                 <Badge className={`${getDivisionColor(pupilResults.division)} border-0 px-2 py-0.5 text-xs`}>Division {pupilResults.division}</Badge>
               </dd>
             </div>
-            <div className="min-w-0 border-r border-t border-indigo-100 bg-white px-3 py-2 sm:border-t-0 sm:px-4 sm:py-2.5">
-              <dt className="text-[11px] font-medium text-gray-500 sm:text-xs">Best subject</dt>
+            <div className="min-w-0 border-r border-t border-indigo-100 bg-white px-3 py-2 sm:border-t-0 sm:px-4 sm:py-2.5 dark:border-indigo-800/60 dark:bg-slate-900">
+              <dt className="text-[11px] font-medium text-gray-500 sm:text-xs dark:text-slate-400">Best subject</dt>
               <dd className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs sm:mt-1.5 sm:text-sm">
-                <span className="break-words font-semibold text-green-700">{bestSubject?.code || 'N/A'}</span>
-                {bestSubject && <><span className="tabular-nums text-gray-600">{bestSubject.marks ?? 0}%</span><Badge className={`${getGradeColor(bestSubject.grade || 'F9')} border-0 px-1.5 py-0 text-[11px]`}>{bestSubject.grade || 'F9'}</Badge></>}
+                <span className="break-words font-semibold text-green-700 dark:text-green-300">{bestSubject?.code || 'N/A'}</span>
+                {bestSubject && <><span className="tabular-nums text-gray-600 dark:text-slate-300">{bestSubject.marks ?? 0}%</span><Badge className={`${getGradeColor(bestSubject.grade || 'F9')} border-0 px-1.5 py-0 text-[11px]`}>{bestSubject.grade || 'F9'}</Badge></>}
               </dd>
             </div>
-            <div className="min-w-0 border-t border-indigo-100 bg-white px-3 py-2 sm:border-t-0 sm:px-4 sm:py-2.5">
-              <dt className="text-[11px] font-medium text-gray-500 sm:text-xs">Needs focus</dt>
+            <div className="min-w-0 border-t border-indigo-100 bg-white px-3 py-2 sm:border-t-0 sm:px-4 sm:py-2.5 dark:border-indigo-800/60 dark:bg-slate-900">
+              <dt className="text-[11px] font-medium text-gray-500 sm:text-xs dark:text-slate-400">Needs focus</dt>
               <dd className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs sm:mt-1.5 sm:text-sm">
-                <span className="break-words font-semibold text-orange-700">{weakestSubject?.code || 'N/A'}</span>
-                {weakestSubject && <><span className="tabular-nums text-gray-600">{weakestSubject.marks ?? 0}%</span><Badge className={`${getGradeColor(weakestSubject.grade || 'F9')} border-0 px-1.5 py-0 text-[11px]`}>{weakestSubject.grade || 'F9'}</Badge></>}
+                <span className="break-words font-semibold text-orange-700 dark:text-orange-300">{weakestSubject?.code || 'N/A'}</span>
+                {weakestSubject && <><span className="tabular-nums text-gray-600 dark:text-slate-300">{weakestSubject.marks ?? 0}%</span><Badge className={`${getGradeColor(weakestSubject.grade || 'F9')} border-0 px-1.5 py-0 text-[11px]`}>{weakestSubject.grade || 'F9'}</Badge></>}
               </dd>
             </div>
           </dl>
         </section>
 
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="border-b border-gray-200 bg-gray-50/80 p-1">
+            <div className="border-b border-gray-200 bg-gray-50/80 p-1 dark:border-slate-700 dark:bg-slate-900/80">
               <TabsList aria-label="Pupil results" className="grid h-auto w-full grid-cols-2 gap-1 bg-transparent p-0">
                 <TabsTrigger value="current" className="min-h-11 min-w-0 gap-1.5 rounded-lg px-2 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm sm:text-sm">
                   <BookOpen className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -1510,7 +1510,7 @@ export default function PupilResultsClient() {
             <TabsContent value="current" className="mt-0 p-0">
               <table className="w-full table-fixed text-sm">
                 <caption className="sr-only">Subject results for {pupilDetails.name}: marks, grade, aggregates and remarks.</caption>
-                <thead className="border-b border-gray-100 bg-gray-50/50 text-xs text-gray-500">
+                <thead className="border-b border-gray-100 bg-gray-50/50 text-xs text-gray-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400">
                   <tr>
                     <th scope="col" className="px-3 py-2 text-left font-medium sm:px-4">Subject</th>
                     <th scope="col" className="w-14 px-1 py-2 text-right font-medium sm:w-20 sm:px-3">Marks</th>
@@ -1518,19 +1518,19 @@ export default function PupilResultsClient() {
                     <th scope="col" className="hidden w-40 px-4 py-2 text-left font-medium md:table-cell">Remarks</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                   {pupilResults.subjectResults.map(subject => (
-                    <tr key={subject.subjectId} className="hover:bg-indigo-50/40">
+                    <tr key={subject.subjectId} className="hover:bg-indigo-50/40 dark:hover:bg-indigo-950/40">
                       <th scope="row" className="px-3 py-2.5 text-left font-normal sm:px-4">
-                        <span className="block break-words font-semibold leading-snug text-gray-900">{subject.name}</span>
-                        <span className="mt-0.5 block break-words text-[11px] leading-snug text-gray-500">{subject.code}<span className="md:hidden"> · {getRemarks(subject.marks || 0)}</span></span>
+                        <span className="block break-words font-semibold leading-snug text-gray-900 dark:text-slate-100">{subject.name}</span>
+                        <span className="mt-0.5 block break-words text-[11px] leading-snug text-gray-500 dark:text-slate-400">{subject.code}<span className="md:hidden"> · {getRemarks(subject.marks || 0)}</span></span>
                       </th>
-                      <td className="px-1 py-2.5 text-right align-middle font-bold tabular-nums text-gray-900 sm:px-3">{subject.marks ?? 0}</td>
+                      <td className="px-1 py-2.5 text-right align-middle font-bold tabular-nums text-gray-900 sm:px-3 dark:text-slate-100">{subject.marks ?? 0}</td>
                       <td className="px-2 py-2.5 text-right align-middle sm:px-4">
                         <Badge className={`${getGradeColor(subject.grade || 'F9')} border-0 px-2 py-0.5 text-xs font-bold`}>{subject.grade || 'F9'}</Badge>
-                        <span className="mt-0.5 block text-[11px] tabular-nums text-gray-500">{subject.aggregates ?? 9}</span>
+                        <span className="mt-0.5 block text-[11px] tabular-nums text-gray-500 dark:text-slate-400">{subject.aggregates ?? 9}</span>
                       </td>
-                      <td className="hidden px-4 py-2.5 text-xs text-gray-600 md:table-cell">{getRemarks(subject.marks || 0)}</td>
+                      <td className="hidden px-4 py-2.5 text-xs text-gray-600 md:table-cell dark:text-slate-300">{getRemarks(subject.marks || 0)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1540,46 +1540,46 @@ export default function PupilResultsClient() {
             <TabsContent value="history" className="mt-0 p-3 sm:p-4">
               {isLoadingHistory ? (
                 <div className="flex items-center justify-center gap-2 py-8" role="status">
-                  <Loader2 className="h-5 w-5 animate-spin text-blue-500" aria-hidden="true" />
-                  <span className="text-sm text-gray-600">Loading exam history...</span>
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-500 dark:text-blue-400" aria-hidden="true" />
+                  <span className="text-sm text-gray-600 dark:text-slate-300">Loading exam history...</span>
                 </div>
               ) : examHistory.length === 0 ? (
                 <div className="py-8 text-center">
                   <History className="mx-auto mb-2 h-8 w-8 text-gray-300" aria-hidden="true" />
-                  <h3 className="text-sm font-semibold text-gray-900">No Exam History</h3>
-                  <p className="mt-1 text-xs text-gray-500">This pupil has no previous exam records.</p>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">No Exam History</h3>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">This pupil has no previous exam records.</p>
                 </div>
               ) : (
                 <div className="grid gap-2.5">
                   {examHistory.map(exam => (
-                    <article key={exam.examId} className="min-w-0 rounded-lg border border-gray-200">
+                    <article key={exam.examId} className="min-w-0 rounded-lg border border-gray-200 dark:border-slate-700">
                       <div className="flex items-start justify-between gap-2 px-3 pt-3">
                         <div className="min-w-0">
-                          <h3 className="break-words text-sm font-semibold leading-snug text-gray-900">{exam.examName}</h3>
-                          <p className="mt-0.5 text-xs text-gray-500">{new Date(exam.examDate).toLocaleDateString()}</p>
+                          <h3 className="break-words text-sm font-semibold leading-snug text-gray-900 dark:text-slate-100">{exam.examName}</h3>
+                          <p className="mt-0.5 text-xs text-gray-500 dark:text-slate-400">{new Date(exam.examDate).toLocaleDateString()}</p>
                         </div>
-                        <span className="shrink-0 rounded-full bg-gray-50 p-1" aria-label={exam.trend === 'up' ? 'Total marks increased' : exam.trend === 'down' ? 'Total marks decreased' : 'Total marks unchanged'}>
-                          {exam.trend === 'up' && <ArrowUpRight className="h-4 w-4 text-green-600" />}
-                          {exam.trend === 'down' && <ArrowDownRight className="h-4 w-4 text-red-600" />}
-                          {exam.trend === 'same' && <Minus className="h-4 w-4 text-gray-500" />}
+                        <span className="shrink-0 rounded-full bg-gray-50 p-1 dark:bg-slate-900" aria-label={exam.trend === 'up' ? 'Total marks increased' : exam.trend === 'down' ? 'Total marks decreased' : 'Total marks unchanged'}>
+                          {exam.trend === 'up' && <ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />}
+                          {exam.trend === 'down' && <ArrowDownRight className="h-4 w-4 text-red-600 dark:text-red-400" />}
+                          {exam.trend === 'same' && <Minus className="h-4 w-4 text-gray-500 dark:text-slate-400" />}
                         </span>
                       </div>
                       <dl className="grid grid-cols-4 gap-1 px-3 py-2.5 text-xs">
-                        <div><dt className="text-[11px] text-gray-500">Total</dt><dd className="mt-0.5 font-bold tabular-nums text-gray-900">{exam.totalMarks}</dd></div>
-                        <div><dt className="text-[11px] text-gray-500">Aggregates</dt><dd className="mt-0.5 font-bold tabular-nums text-gray-900">{exam.totalAggregates}</dd></div>
-                        <div><dt className="text-[11px] text-gray-500">Division</dt><dd className="mt-0.5"><Badge className={`${getDivisionColor(exam.division)} border-0 px-1.5 py-0 text-xs`}>{exam.division}</Badge></dd></div>
-                        <div><dt className="text-[11px] text-gray-500">Position</dt><dd className="mt-0.5 break-words font-medium text-gray-900">{exam.position}</dd></div>
+                        <div><dt className="text-[11px] text-gray-500 dark:text-slate-400">Total</dt><dd className="mt-0.5 font-bold tabular-nums text-gray-900 dark:text-slate-100">{exam.totalMarks}</dd></div>
+                        <div><dt className="text-[11px] text-gray-500 dark:text-slate-400">Aggregates</dt><dd className="mt-0.5 font-bold tabular-nums text-gray-900 dark:text-slate-100">{exam.totalAggregates}</dd></div>
+                        <div><dt className="text-[11px] text-gray-500 dark:text-slate-400">Division</dt><dd className="mt-0.5"><Badge className={`${getDivisionColor(exam.division)} border-0 px-1.5 py-0 text-xs`}>{exam.division}</Badge></dd></div>
+                        <div><dt className="text-[11px] text-gray-500 dark:text-slate-400">Position</dt><dd className="mt-0.5 break-words font-medium text-gray-900 dark:text-slate-100">{exam.position}</dd></div>
                       </dl>
-                      <details className="group border-t border-gray-100">
-                        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 text-xs font-medium text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 [&::-webkit-details-marker]:hidden">
+                      <details className="group border-t border-gray-100 dark:border-slate-700">
+                        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 text-xs font-medium text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 [&::-webkit-details-marker]:hidden dark:text-indigo-300">
                           <span>Subject results ({Object.keys(exam.subjects).length})</span>
                           <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
                         </summary>
                         <div className="flex flex-wrap gap-1.5 px-3 pb-3">
                           {Object.entries(exam.subjects).map(([code, subject]: [string, any]) => (
-                            <div key={code} className="flex items-center gap-1.5 rounded-md bg-gray-50 px-2 py-1 text-xs">
-                              <span className="break-all font-medium text-gray-700">{code}</span>
-                              <span className="tabular-nums text-gray-600">{subject.marks}</span>
+                            <div key={code} className="flex items-center gap-1.5 rounded-md bg-gray-50 px-2 py-1 text-xs dark:bg-slate-900">
+                              <span className="break-all font-medium text-gray-700 dark:text-slate-200">{code}</span>
+                              <span className="tabular-nums text-gray-600 dark:text-slate-300">{subject.marks}</span>
                               <Badge className={`${getGradeColor(subject.grade)} border-0 px-1 py-0 text-[11px]`}>{subject.grade}</Badge>
                             </div>
                           ))}
@@ -1613,7 +1613,7 @@ export default function PupilResultsClient() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-              <FileTextIcon className="h-5 w-5 text-orange-600" />
+              <FileTextIcon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
               Select Full Report Type
             </DialogTitle>
             <DialogDescription>
@@ -1624,30 +1624,30 @@ export default function PupilResultsClient() {
           <div className="space-y-3 py-4">
             <button
               onClick={() => handleTransTypeSelection('grading')}
-              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors dark:border-slate-700 dark:hover:bg-slate-900"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <BarChart3 className="h-5 w-5 text-blue-600" />
+                <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/40">
+                  <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Grading Scale</h3>
-                  <p className="text-sm text-gray-600">Show grading scale on reports</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-slate-100">Grading Scale</h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-300">Show grading scale on reports</p>
                 </div>
               </div>
             </button>
 
             <button
               onClick={() => handleTransTypeSelection('progress')}
-              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors dark:border-slate-700 dark:hover:bg-slate-900"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-green-600" />
+                <div className="p-2 bg-green-100 rounded-lg dark:bg-green-950/40">
+                  <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Progress Assessment</h3>
-                  <p className="text-sm text-gray-600">Compare with previous exam results</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-slate-100">Progress Assessment</h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-300">Compare with previous exam results</p>
                 </div>
               </div>
             </button>
@@ -1666,7 +1666,7 @@ export default function PupilResultsClient() {
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-              <FileTextIcon className="h-5 w-5 text-orange-600" />
+              <FileTextIcon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
               Configure Report Elements
             </DialogTitle>
             <DialogDescription>
@@ -1919,7 +1919,7 @@ export default function PupilResultsClient() {
                   <TableRow>
                     <TableCell colSpan={4} className="pt-0 pb-2">
                       <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-gray-700 w-32">Custom Date:</label>
+                        <label className="text-sm font-medium text-gray-700 w-32 dark:text-slate-200">Custom Date:</label>
                         <DatePicker
                           date={customDates.createdOn ? new Date(customDates.createdOn) : undefined}
                           setDate={(d) => setCustomDates(prev => ({ ...prev, createdOn: d ? format(d, 'yyyy-MM-dd') : '' }))}
@@ -1971,7 +1971,7 @@ export default function PupilResultsClient() {
                   <TableRow>
                     <TableCell colSpan={4} className="pt-0 pb-2">
                       <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-gray-700 w-32">Custom Date:</label>
+                        <label className="text-sm font-medium text-gray-700 w-32 dark:text-slate-200">Custom Date:</label>
                         <DatePicker
                           date={customDates.nextTermBegins ? new Date(customDates.nextTermBegins) : undefined}
                           setDate={(d) => setCustomDates(prev => ({ ...prev, nextTermBegins: d ? format(d, 'yyyy-MM-dd') : '' }))}
@@ -2023,7 +2023,7 @@ export default function PupilResultsClient() {
                   <TableRow>
                     <TableCell colSpan={4} className="pt-0 pb-2">
                       <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-gray-700 w-32">Custom Date:</label>
+                        <label className="text-sm font-medium text-gray-700 w-32 dark:text-slate-200">Custom Date:</label>
                         <DatePicker
                           date={customDates.nextTermEnds ? new Date(customDates.nextTermEnds) : undefined}
                           setDate={(d) => setCustomDates(prev => ({ ...prev, nextTermEnds: d ? format(d, 'yyyy-MM-dd') : '' }))}
@@ -2056,7 +2056,7 @@ export default function PupilResultsClient() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-              <TrendingUp className="h-5 w-5 text-green-600" />
+              <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
               Select Comparison Exams
             </DialogTitle>
             <DialogDescription>
@@ -2066,13 +2066,13 @@ export default function PupilResultsClient() {
 
           {isLoadingComparisonExams ? (
             <div className="py-8 text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600 mb-2" />
-              <p className="text-sm text-gray-600">Loading available exams...</p>
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600 mb-2 dark:text-blue-400" />
+              <p className="text-sm text-gray-600 dark:text-slate-300">Loading available exams...</p>
             </div>
           ) : availableComparisonExams.length === 0 ? (
             <div className="py-8 text-center">
-              <AlertTriangle className="h-8 w-8 mx-auto text-yellow-600 mb-2" />
-              <p className="text-sm text-gray-600">No comparison exams found for this term, class, and academic year.</p>
+              <AlertTriangle className="h-8 w-8 mx-auto text-yellow-600 mb-2 dark:text-yellow-400" />
+              <p className="text-sm text-gray-600 dark:text-slate-300">No comparison exams found for this term, class, and academic year.</p>
             </div>
           ) : (
             <div className="space-y-2 max-h-96 overflow-y-auto py-4">
@@ -2097,10 +2097,10 @@ export default function PupilResultsClient() {
                       }
                     }}
                     className={`w-full p-3 border rounded-lg text-left transition-colors cursor-pointer ${isSelected
-                        ? 'border-blue-500 bg-blue-50'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40'
                         : canSelect
-                          ? 'border-gray-200 hover:bg-gray-50'
-                          : 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed'
+                          ? 'border-gray-200 hover:bg-gray-50 dark:border-slate-700 dark:hover:bg-slate-900'
+                          : 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed dark:border-slate-700 dark:bg-slate-900'
                       }`}
                   >
                     <div className="flex items-center justify-between">
@@ -2120,14 +2120,14 @@ export default function PupilResultsClient() {
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 truncate">{exam.name}</h3>
-                          <p className="text-sm text-gray-600">
+                          <h3 className="font-semibold text-gray-900 truncate dark:text-slate-100">{exam.name}</h3>
+                          <p className="text-sm text-gray-600 dark:text-slate-300">
                             {exam.examTypeName || 'Exam'} • {exam.startDate ? new Date(exam.startDate).toLocaleDateString() : 'No date'}
                           </p>
                         </div>
                       </div>
                       {isSelected && (
-                        <div className="ml-2 text-blue-600">
+                        <div className="ml-2 text-blue-600 dark:text-blue-400">
                           <Check className="h-5 w-5" />
                         </div>
                       )}
@@ -2140,17 +2140,17 @@ export default function PupilResultsClient() {
 
           {selectedComparisonExams.length > 0 && (
             <div className="mt-4 space-y-3">
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800 mb-3">
+              <div className="p-3 bg-blue-50 rounded-lg dark:bg-blue-950/40">
+                <p className="text-sm text-blue-800 mb-3 dark:text-blue-200">
                   <span className="font-semibold">{selectedComparisonExams.length}</span> of 2 exams selected
                 </p>
-                <p className="text-xs text-blue-700 mb-2">Customize exam names (optional):</p>
+                <p className="text-xs text-blue-700 mb-2 dark:text-blue-300">Customize exam names (optional):</p>
                 <div className="space-y-2">
                   {selectedComparisonExams.map((examId, index) => {
                     const exam = availableComparisonExams.find(e => e.id === examId);
                     return (
                       <div key={examId} className="space-y-1">
-                        <label className="text-xs font-medium text-gray-700">
+                        <label className="text-xs font-medium text-gray-700 dark:text-slate-200">
                           Exam {index + 1}:
                         </label>
                         <Input

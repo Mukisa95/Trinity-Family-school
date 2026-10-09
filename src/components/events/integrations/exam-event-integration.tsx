@@ -70,15 +70,15 @@ export function ExamEventIntegration({
 
   if (linkedEventId) {
     return (
-      <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-        <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
-          <CheckCircle className="h-4 w-4 text-green-600" />
+      <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg dark:bg-green-950/40 dark:border-green-800/60">
+        <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full dark:bg-green-950/40">
+          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-medium text-green-900">
+          <p className="text-sm font-medium text-green-900 dark:text-green-200">
             Calendar Event Linked
           </p>
-          <p className="text-xs text-green-700">
+          <p className="text-xs text-green-700 dark:text-green-300">
             This exam is automatically synced with the calendar
           </p>
         </div>
@@ -87,7 +87,7 @@ export function ExamEventIntegration({
           size="sm"
           onClick={handleUpdateEvent}
           disabled={updateEventFromExamMutation.isPending}
-          className="text-green-700 border-green-300 hover:bg-green-100"
+          className="text-green-700 border-green-300 hover:bg-green-100 dark:text-green-300 dark:border-green-800/60 dark:hover:bg-green-950/40"
         >
           <Calendar className="h-4 w-4 mr-1" />
           Update Event
@@ -97,15 +97,15 @@ export function ExamEventIntegration({
   }
 
   return (
-    <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-      <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full">
-        <AlertCircle className="h-4 w-4 text-blue-600" />
+    <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/40 dark:border-blue-800/60">
+      <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full dark:bg-blue-950/40">
+        <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
       </div>
       <div className="flex-1">
-        <p className="text-sm font-medium text-blue-900">
+        <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
           Create Calendar Event
         </p>
-        <p className="text-xs text-blue-700">
+        <p className="text-xs text-blue-700 dark:text-blue-300">
           Add this exam to the school calendar with automatic reminders
         </p>
       </div>

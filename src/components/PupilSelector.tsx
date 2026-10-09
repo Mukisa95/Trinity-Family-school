@@ -38,7 +38,7 @@ export default function PupilSelector({ onSelect, selectedPupilId }: PupilSelect
     return (
       <div className="flex items-center justify-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-gray-600">Loading pupils...</span>
+        <span className="ml-2 text-gray-600 dark:text-slate-300">Loading pupils...</span>
       </div>
     );
   }
@@ -46,7 +46,7 @@ export default function PupilSelector({ onSelect, selectedPupilId }: PupilSelect
   if (error) {
     return (
       <div className="text-center p-8">
-        <div className="text-red-600 mb-4">Failed to load pupils</div>
+        <div className="text-red-600 mb-4 dark:text-red-400">Failed to load pupils</div>
         <Button onClick={() => window.location.reload()} variant="outline">
           Try Again
         </Button>
@@ -58,7 +58,7 @@ export default function PupilSelector({ onSelect, selectedPupilId }: PupilSelect
     <div className="space-y-4">
       {/* Search Input */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 dark:text-slate-400" />
         <Input
           type="text"
           placeholder="Search by name, admission number, or class..."
@@ -69,14 +69,14 @@ export default function PupilSelector({ onSelect, selectedPupilId }: PupilSelect
       </div>
 
       {/* Results Count */}
-      <div className="text-sm text-gray-600">
+      <div className="text-sm text-gray-600 dark:text-slate-300">
         {filteredPupils.length} pupil{filteredPupils.length !== 1 ? 's' : ''} found
       </div>
 
       {/* Pupils List */}
       <div className="grid gap-3 max-h-96 overflow-y-auto">
         {filteredPupils.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-500 dark:text-slate-400">
             <User className="h-12 w-12 mx-auto mb-2 text-gray-300" />
             <p>No pupils found matching your search.</p>
           </div>
@@ -85,7 +85,7 @@ export default function PupilSelector({ onSelect, selectedPupilId }: PupilSelect
             <Card
               key={pupil.id}
               className={`cursor-pointer transition-all hover:shadow-md ${
-                selectedPupilId === pupil.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                selectedPupilId === pupil.id ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/40' : ''
               }`}
               onClick={() => handlePupilSelect(pupil)}
             >
@@ -96,10 +96,10 @@ export default function PupilSelector({ onSelect, selectedPupilId }: PupilSelect
                     <img
                       src={pupil.photo}
                       alt={formatPupilDisplayName(pupil)}
-                      className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                      className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-slate-700"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-semibold text-gray-600">
+                    <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-300">
                       {pupil.firstName[0]}
                     </div>
                   )}
@@ -107,14 +107,14 @@ export default function PupilSelector({ onSelect, selectedPupilId }: PupilSelect
                   {/* Pupil Info */}
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-900">
+                      <h3 className="font-semibold text-gray-900 dark:text-slate-100">
                         {formatPupilDisplayName(pupil)}
                       </h3>
                       <Badge variant={pupil.status === 'Active' ? 'default' : 'secondary'}>
                         {pupil.status}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
+                    <div className="flex items-center gap-4 mt-1 text-sm text-gray-600 dark:text-slate-300">
                       <span>ID: {pupil.admissionNumber}</span>
                       {pupil.className && (
                         <>

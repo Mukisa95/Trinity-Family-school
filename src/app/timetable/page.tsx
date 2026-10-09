@@ -165,20 +165,20 @@ export default function TimetablePage() {
                     <DropdownMenuTrigger asChild>
                         <button
                             type="button"
-                            className="flex h-8 w-auto items-center rounded-full border border-blue-200/70 bg-white/95 px-2 text-[10px] font-bold text-blue-700 shadow-sm transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                            className="flex h-8 w-auto items-center rounded-full border border-blue-200/70 bg-white/95 px-2 text-[10px] font-bold text-blue-700 shadow-sm transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-blue-800/70 dark:bg-slate-900/95 dark:text-blue-300 dark:hover:bg-blue-950/40"
                             aria-label={`Select academic year and term. Current selection: ${selectedPeriodLabel}`}
                         >
                             <span className="whitespace-nowrap">{selectedPeriodLabel}</span>
                         </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="max-h-[70vh] w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto">
-                        <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-slate-500">
+                        <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                             Academic period
                         </DropdownMenuLabel>
                         {years.map((year, yearIndex) => (
                             <React.Fragment key={year.id}>
                                 {yearIndex > 0 && <DropdownMenuSeparator />}
-                                <DropdownMenuLabel className="py-1 text-xs font-bold text-slate-700">
+                                <DropdownMenuLabel className="py-1 text-xs font-bold text-slate-700 dark:text-slate-200">
                                     {year.name}
                                 </DropdownMenuLabel>
                                 {(year.terms || []).map(term => {
@@ -194,7 +194,7 @@ export default function TimetablePage() {
                                             className="cursor-pointer justify-between py-2 text-xs"
                                         >
                                             <span>{term.name}</span>
-                                            {isSelected && <Check className="h-3.5 w-3.5 text-blue-600" />}
+                                            {isSelected && <Check className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />}
                                         </DropdownMenuItem>
                                     );
                                 })}
@@ -210,7 +210,7 @@ export default function TimetablePage() {
                         <DropdownMenuTrigger asChild>
                             <button
                                 type="button"
-                                className="flex h-8 w-full max-w-[22vw] items-center gap-1 rounded-full border border-violet-200/70 bg-white/95 px-1.5 text-[9px] font-bold text-violet-700 shadow-sm transition-colors hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+                                className="flex h-8 w-full max-w-[22vw] items-center gap-1 rounded-full border border-violet-200/70 bg-white/95 px-1.5 text-[9px] font-bold text-violet-700 shadow-sm transition-colors hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:border-violet-800/70 dark:bg-slate-900/95 dark:text-violet-300 dark:hover:bg-violet-950/40"
                                 aria-label={`Choose timetable. Current selection: ${selectedTimetableLabel}`}
                             >
                                 <TableProperties className="h-3.5 w-3.5 shrink-0" />
@@ -219,7 +219,7 @@ export default function TimetablePage() {
                             </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-[min(16rem,calc(100vw-1.5rem))]">
-                            <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-slate-500">
+                            <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                                 Available timetables
                             </DropdownMenuLabel>
                             {profiles.map(profile => {
@@ -234,7 +234,7 @@ export default function TimetablePage() {
                                         className="cursor-pointer justify-between py-2 text-xs"
                                     >
                                         <span className="truncate">{profile.name || "Main Timetable"}</span>
-                                        {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-violet-600" />}
+                                        {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-violet-600 dark:text-violet-400" />}
                                     </DropdownMenuItem>
                                 );
                             })}
@@ -246,7 +246,7 @@ export default function TimetablePage() {
                                         className="cursor-pointer justify-between py-2 text-xs"
                                     >
                                         <span>All Timetables</span>
-                                        {viewMode === "all" && <Check className="h-3.5 w-3.5 text-violet-600" />}
+                                        {viewMode === "all" && <Check className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />}
                                     </DropdownMenuItem>
                                 </>
                             )}
@@ -262,7 +262,7 @@ export default function TimetablePage() {
             <select
                 value={yearId}
                 onChange={(e) => { setYearId(e.target.value); setTermId(''); }}
-                className="h-[30px] cursor-pointer rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+                className="h-[30px] cursor-pointer rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
             >
                 <option value="" disabled>Select Year</option>
                 {years.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
@@ -271,7 +271,7 @@ export default function TimetablePage() {
                 value={termId}
                 onChange={(e) => setTermId(e.target.value)}
                 disabled={!yearId}
-                className="h-[30px] cursor-pointer rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 disabled:opacity-50"
+                className="h-[30px] cursor-pointer rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 disabled:opacity-50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
             >
                 <option value="" disabled>Select Term</option>
                 {viewTerms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -279,7 +279,7 @@ export default function TimetablePage() {
 
             {yearId && termId && profiles.length > 0 && (
                 <>
-                    <div className="mx-0.5 h-5 w-px bg-white/40" />
+                    <div className="mx-0.5 h-5 w-px bg-white/40 dark:bg-slate-900/40" />
                     <div className="flex flex-wrap items-center gap-1">
                         {profiles.map(profile => (
                             <button
@@ -291,7 +291,7 @@ export default function TimetablePage() {
                                 className={`px-3 py-0.5 rounded-full font-bold text-[10px] transition-all whitespace-nowrap flex-shrink-0 border ${
                                     selectedProfileId === profile.id && viewMode === 'single'
                                         ? 'bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-500/20'
-                                        : 'bg-white/80 border-white/60 text-gray-600 hover:bg-blue-50 hover:text-blue-600'
+                                        : 'bg-white/80 border-white/60 text-gray-600 hover:bg-blue-50 hover:text-blue-600 dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-400'
                                 }`}
                             >
                                 {profile.name || "Main Timetable"}
@@ -339,7 +339,7 @@ export default function TimetablePage() {
                                             tone="slate"
                                             onClick={() => setZoom(Math.max(0.5, +(zoom - 0.25).toFixed(2)))}
                                         />
-                                        <div className="flex h-11 w-11 select-none items-center justify-center rounded-full bg-gray-100 px-1 font-mono text-[8px] font-bold text-gray-600">
+                                        <div className="flex h-11 w-11 select-none items-center justify-center rounded-full bg-gray-100 px-1 font-mono text-[8px] font-bold text-gray-600 dark:bg-slate-900 dark:text-slate-300">
                                             {Math.round(zoom * 100)}%
                                         </div>
                                         <GlassActionButton
@@ -370,34 +370,34 @@ export default function TimetablePage() {
                                     {nativeApp && <DropdownMenuItem onClick={() => void androidOfflineRequest('openTimetableSettings').catch(error => toast({ title: 'Could not open timetable controls', description: error.message, variant: 'destructive' }))}>
                                         <Settings className="mr-2 h-4 w-4" /><span>Card and widgets</span>
                                     </DropdownMenuItem>}
-                                    <DropdownMenuItem onClick={() => setIsGeneratorOpen(true)} className="cursor-pointer text-blue-600 focus:text-blue-700 focus:bg-blue-50 py-2.5">
+                                    <DropdownMenuItem onClick={() => setIsGeneratorOpen(true)} className="cursor-pointer text-blue-600 focus:text-blue-700 focus:bg-blue-50 py-2.5 dark:text-blue-400 dark:focus:text-blue-300 dark:focus:bg-blue-950/40">
                                         <PlusCircle className="mr-2 h-4 w-4" />
                                         <span>New Timetable Structure</span>
                                     </DropdownMenuItem>
 
                                     {activeProfile && viewMode === 'single' && (
                                         <>
-                                            <DropdownMenuSeparator className="my-1 border-gray-100" />
+                                            <DropdownMenuSeparator className="my-1 border-gray-100 dark:border-slate-700" />
                                             <DropdownMenuItem onClick={() => { setEditingProfileForConfig(activeProfile); setIsGeneratorOpen(true); }} className="cursor-pointer py-2.5">
-                                                <PencilRuler className="mr-2 h-4 w-4 text-gray-500" />
+                                                <PencilRuler className="mr-2 h-4 w-4 text-gray-500 dark:text-slate-400" />
                                                 <span>Reconfigure {activeProfile.name || 'Timetable'}</span>
                                             </DropdownMenuItem>
                                             <DropdownMenuItem onClick={handleRenameProfile} className="cursor-pointer py-2.5">
-                                                <Type className="mr-2 h-4 w-4 text-gray-500" />
+                                                <Type className="mr-2 h-4 w-4 text-gray-500 dark:text-slate-400" />
                                                 <span>Rename Timetable</span>
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
                                                 disabled={clearOptionalSubjectsMutation.isPending}
                                                 onClick={handleClearOptionalSubjects}
-                                                className="cursor-pointer py-2.5 text-amber-700 focus:bg-amber-50 focus:text-amber-800"
+                                                className="cursor-pointer py-2.5 text-amber-700 focus:bg-amber-50 focus:text-amber-800 dark:text-amber-300 dark:focus:bg-amber-950/40 dark:focus:text-amber-200"
                                             >
                                                 {clearOptionalSubjectsMutation.isPending
                                                     ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                                     : <Eraser className="mr-2 h-4 w-4" />}
                                                 <span>{clearOptionalSubjectsMutation.isPending ? 'Clearing alternatives…' : 'Clear all alternatives'}</span>
                                             </DropdownMenuItem>
-                                            <DropdownMenuSeparator className="my-1 border-gray-100" />
-                                            <DropdownMenuItem onClick={handleDeleteProfile} className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50 py-2.5">
+                                            <DropdownMenuSeparator className="my-1 border-gray-100 dark:border-slate-700" />
+                                            <DropdownMenuItem onClick={handleDeleteProfile} className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50 py-2.5 dark:text-red-400 dark:focus:text-red-300 dark:focus:bg-red-950/40">
                                                 <Trash2 className="mr-2 h-4 w-4" />
                                                 <span>Delete Timetable</span>
                                             </DropdownMenuItem>
@@ -418,16 +418,16 @@ export default function TimetablePage() {
                     <span className="ml-2">Loading timetable data...</span>
                 </div>
             ) : !yearId || !termId ? (
-                <div className="text-center text-amber-600 py-12 bg-amber-50 rounded-xl border border-amber-200">
+                <div className="text-center text-amber-600 py-12 bg-amber-50 rounded-xl border border-amber-200 dark:text-amber-400 dark:bg-amber-950/40 dark:border-amber-800/60">
                     <p>Please select an academic year and term to view or manage timetables.</p>
                 </div>
             ) : profiles.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-xl border border-gray-200 flex flex-col items-center justify-center">
-                    <div className="p-4 bg-blue-50 text-blue-500 rounded-full mb-4">
+                <div className="text-center py-16 bg-white rounded-xl border border-gray-200 flex flex-col items-center justify-center dark:bg-slate-900 dark:border-slate-700">
+                    <div className="p-4 bg-blue-50 text-blue-500 rounded-full mb-4 dark:bg-blue-950/40 dark:text-blue-400">
                         <TableProperties className="h-12 w-12" />
                     </div>
-                    <h2 className="text-xl font-semibold text-gray-800 mb-2">No Timetable Configured</h2>
-                    <p className="text-gray-500 mb-6 max-w-md">You haven't generated a timetable structure for {viewYear?.name || 'this Year'} - {viewTerms.find(t => t.id === termId)?.name || 'this Term'} yet. Create one to get started.</p>
+                    <h2 className="text-xl font-semibold text-gray-800 mb-2 dark:text-slate-100">No Timetable Configured</h2>
+                    <p className="text-gray-500 mb-6 max-w-md dark:text-slate-400">You haven't generated a timetable structure for {viewYear?.name || 'this Year'} - {viewTerms.find(t => t.id === termId)?.name || 'this Term'} yet. Create one to get started.</p>
                     <button
                         onClick={() => setIsGeneratorOpen(true)}
                         className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 transition"
@@ -443,7 +443,7 @@ export default function TimetablePage() {
 
                     {viewMode === 'all' ? (
                         <div className="space-y-4">
-                            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm dark:bg-slate-900 dark:border-slate-700">
                                 <h2 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-5">
                                     All Timetables — Combined Timeline View
                                 </h2>

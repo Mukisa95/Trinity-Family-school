@@ -76,20 +76,20 @@ import {
 
 // Utility functions
 const getGradeColor = (grade: string): string => {
-  if (grade === 'MISSED') return 'bg-orange-100 text-orange-800 border-orange-200';
-  if (grade.startsWith('D')) return 'bg-green-100 text-green-800 border-green-200';
-  if (grade.startsWith('C')) return 'bg-blue-100 text-blue-800 border-blue-200';
-  if (grade.startsWith('P')) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-  return 'bg-red-100 text-red-800 border-red-200'; // For F9
+  if (grade === 'MISSED') return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60';
+  if (grade.startsWith('D')) return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
+  if (grade.startsWith('C')) return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+  if (grade.startsWith('P')) return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
+  return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60'; // For F9
 };
 
 const getDivisionColor = (division: string): string => {
   switch (division) {
-    case 'I': return 'bg-green-100 text-green-800 border-green-200';
-    case 'II': return 'bg-blue-100 text-blue-800 border-blue-200';
-    case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200';
-    default: return 'bg-red-100 text-red-800 border-red-200'; // For 'U'
+    case 'I': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
+    case 'II': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+    case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
+    case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60';
+    default: return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60'; // For 'U'
   }
 };
 
@@ -250,19 +250,19 @@ function GradingScaleModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader className="pb-4 border-b">
-          <DialogTitle className="text-xl font-semibold text-gray-900">Grading Scale Configuration</DialogTitle>
-          <DialogDescription className="text-sm text-gray-600 mt-1">
+          <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-slate-100">Grading Scale Configuration</DialogTitle>
+          <DialogDescription className="text-sm text-gray-600 mt-1 dark:text-slate-300">
             Configure the grading scale for this exam. All changes are validated before saving.
           </DialogDescription>
         </DialogHeader>
         
         <div className="flex-1 flex flex-col min-h-0">
           {/* Header Row */}
-          <div className="grid grid-cols-4 gap-4 px-4 py-3 bg-gray-50 border-b sticky top-0 z-10">
-            <div className="text-sm font-semibold text-gray-700">Minimum Score</div>
-            <div className="text-sm font-semibold text-gray-700">Maximum Score</div>
-            <div className="text-sm font-semibold text-gray-700">Grade</div>
-            <div className="text-sm font-semibold text-gray-700">Aggregates</div>
+          <div className="grid grid-cols-4 gap-4 px-4 py-3 bg-gray-50 border-b sticky top-0 z-10 dark:bg-slate-900">
+            <div className="text-sm font-semibold text-gray-700 dark:text-slate-200">Minimum Score</div>
+            <div className="text-sm font-semibold text-gray-700 dark:text-slate-200">Maximum Score</div>
+            <div className="text-sm font-semibold text-gray-700 dark:text-slate-200">Grade</div>
+            <div className="text-sm font-semibold text-gray-700 dark:text-slate-200">Aggregates</div>
           </div>
           
           {/* Scrollable Content */}
@@ -271,16 +271,16 @@ function GradingScaleModal({
               {localGradingScale.map((scale, index) => (
                 <div key={index} className={`grid grid-cols-4 gap-4 p-4 rounded-lg border transition-all duration-200 ${
                   validationErrors[index] 
-                    ? 'bg-red-50 border-red-300 shadow-sm' 
-                    : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                    ? 'bg-red-50 border-red-300 shadow-sm dark:bg-red-950/40 dark:border-red-800/60'
+                    : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm dark:bg-slate-900 dark:border-slate-700 dark:hover:border-slate-700'
                 }`}>
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-600">Min</label>
+                    <label className="text-xs font-medium text-gray-600 dark:text-slate-300">Min</label>
                     <Input
                       type="number"
                       value={scale.minMark}
                       onChange={(e) => handleLocalChange(index, 'minMark', parseInt(e.target.value) || 0)}
-                      className="h-10 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      className="h-10 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700"
                       min="0"
                       max="100"
                       placeholder="0"
@@ -288,12 +288,12 @@ function GradingScaleModal({
                   </div>
                   
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-600">Max</label>
+                    <label className="text-xs font-medium text-gray-600 dark:text-slate-300">Max</label>
                     <Input
                       type="number"
                       value={scale.maxMark}
                       onChange={(e) => handleLocalChange(index, 'maxMark', parseInt(e.target.value) || 0)}
-                      className="h-10 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      className="h-10 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700"
                       min="0"
                       max="100"
                       placeholder="100"
@@ -301,24 +301,24 @@ function GradingScaleModal({
                   </div>
                   
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-600">Grade</label>
+                    <label className="text-xs font-medium text-gray-600 dark:text-slate-300">Grade</label>
                     <Input
                       type="text"
                       value={scale.grade}
                       onChange={(e) => handleLocalChange(index, 'grade', e.target.value.toUpperCase())}
-                      className="h-10 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 font-semibold"
+                      className="h-10 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 font-semibold dark:border-slate-700"
                       placeholder="A1"
                       maxLength={3}
                     />
                   </div>
                   
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-600">Aggregates</label>
+                    <label className="text-xs font-medium text-gray-600 dark:text-slate-300">Aggregates</label>
                     <Input
                       type="number"
                       value={scale.aggregates ?? ''}
                       onChange={(e) => handleLocalChange(index, 'aggregates', parseInt(e.target.value) || 0)}
-                      className="h-10 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      className="h-10 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700"
                       min="0"
                       max="9"
                       placeholder="1"
@@ -326,12 +326,12 @@ function GradingScaleModal({
                   </div>
                   
                   {validationErrors[index] && (
-                    <div className="col-span-4 mt-3 p-3 bg-red-100 border border-red-300 rounded-md">
+                    <div className="col-span-4 mt-3 p-3 bg-red-100 border border-red-300 rounded-md dark:bg-red-950/40 dark:border-red-800/60">
                       <div className="flex items-start space-x-2">
                         <div className="flex-shrink-0 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
                           <span className="text-white text-xs font-bold">!</span>
                         </div>
-                        <p className="text-sm text-red-700">{validationErrors[index]}</p>
+                        <p className="text-sm text-red-700 dark:text-red-300">{validationErrors[index]}</p>
                       </div>
                     </div>
                   )}
@@ -342,17 +342,17 @@ function GradingScaleModal({
           
           {/* Validation Summary */}
           {!isValid && (
-            <div className="border-t bg-red-50 p-4">
+            <div className="border-t bg-red-50 p-4 dark:bg-red-950/40">
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-bold">!</span>
                 </div>
                 <div className="flex-1">
-                  <h4 className="text-sm font-semibold text-red-800 mb-2">Validation Issues Found</h4>
+                  <h4 className="text-sm font-semibold text-red-800 mb-2 dark:text-red-200">Validation Issues Found</h4>
                   <div className="space-y-1">
                     {Object.entries(validationErrors).map(([index, error]) => (
-                      <div key={index} className="text-sm text-red-700 flex items-start space-x-2">
-                        <span className="text-red-500 font-bold">•</span>
+                      <div key={index} className="text-sm text-red-700 flex items-start space-x-2 dark:text-red-300">
+                        <span className="text-red-500 font-bold dark:text-red-400">•</span>
                         <span>Row {parseInt(index) + 1}: {error}</span>
                       </div>
                     ))}
@@ -364,15 +364,15 @@ function GradingScaleModal({
         </div>
         
         {/* Footer */}
-        <DialogFooter className="border-t bg-gray-50 px-6 py-4 flex justify-between items-center">
-          <div className="text-sm text-gray-600">
+        <DialogFooter className="border-t bg-gray-50 px-6 py-4 flex justify-between items-center dark:bg-slate-900">
+          <div className="text-sm text-gray-600 dark:text-slate-300">
             {isValid ? (
-              <span className="flex items-center space-x-2 text-green-600">
+              <span className="flex items-center space-x-2 text-green-600 dark:text-green-400">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span>All validations passed</span>
               </span>
             ) : (
-              <span className="flex items-center space-x-2 text-red-600">
+              <span className="flex items-center space-x-2 text-red-600 dark:text-red-400">
                 <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                 <span>{Object.keys(validationErrors).length} validation error(s)</span>
               </span>
@@ -383,7 +383,7 @@ function GradingScaleModal({
             <Button 
               variant="outline" 
               onClick={onClose}
-              className="px-6 py-2 border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="px-6 py-2 border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
             >
               Cancel
             </Button>
@@ -393,7 +393,7 @@ function GradingScaleModal({
               className={`px-6 py-2 ${
                 isValid 
                   ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed dark:text-slate-400'
               }`}
             >
               Save Changes
@@ -1367,8 +1367,8 @@ export default function RecordResultsView() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto" />
-          <p className="mt-2 text-sm text-gray-700">Loading exam data...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto dark:text-blue-400" />
+          <p className="mt-2 text-sm text-gray-700 dark:text-slate-200">Loading exam data...</p>
         </div>
       </div>
     );
@@ -1378,9 +1378,9 @@ export default function RecordResultsView() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <X className="h-8 w-8 text-red-500 mx-auto" />
-          <p className="mt-2 text-sm text-red-700">Error loading exam results.</p>
-          <p className="text-xs text-gray-500">{(examResultError as Error)?.message || "Please try again later."}</p>
+          <X className="h-8 w-8 text-red-500 mx-auto dark:text-red-400" />
+          <p className="mt-2 text-sm text-red-700 dark:text-red-300">Error loading exam results.</p>
+          <p className="text-xs text-gray-500 dark:text-slate-400">{(examResultError as Error)?.message || "Please try again later."}</p>
           <Button onClick={() => router.push('/exams')} className="mt-4" size="sm">Back to Exams</Button>
         </div>
       </div>
@@ -1399,9 +1399,9 @@ export default function RecordResultsView() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <X className="h-8 w-8 text-orange-500 mx-auto" />
-          <p className="mt-2 text-sm text-orange-700">Exam Data Not Available</p>
-          <p className="text-xs text-gray-500">{message}</p>
+          <X className="h-8 w-8 text-orange-500 mx-auto dark:text-orange-400" />
+          <p className="mt-2 text-sm text-orange-700 dark:text-orange-300">Exam Data Not Available</p>
+          <p className="text-xs text-gray-500 dark:text-slate-400">{message}</p>
           <Button onClick={() => router.push('/exams')} className="mt-4" size="sm">Back to Exams</Button>
         </div>
       </div>
@@ -1412,9 +1412,9 @@ export default function RecordResultsView() {
     if (isNurseryExam || !showMajorSubjectSelector) return null;
 
     return (
-      <Card className="mb-3 border-blue-100">
+      <Card className="mb-3 border-blue-100 dark:border-blue-800/60">
         <CardHeader className="py-2 px-3">
-          <CardTitle className="text-xs font-medium text-blue-700">
+          <CardTitle className="text-xs font-medium text-blue-700 dark:text-blue-300">
             Select 4 Major Subjects for Aggregates Calculation
           </CardTitle>
         </CardHeader>
@@ -1434,7 +1434,7 @@ export default function RecordResultsView() {
             ))}
           </div>
           {selectedMajorSubjects.length < 4 && showMajorSubjectSelector && (
-            <p className="text-xs text-orange-600 mt-1">
+            <p className="text-xs text-orange-600 mt-1 dark:text-orange-400">
               Select {4 - selectedMajorSubjects.length} more
             </p>
           )}
@@ -1454,11 +1454,11 @@ export default function RecordResultsView() {
         aria-label="Record results table for the selected subject"
         tabIndex={0}
       >
-        <div className="sticky top-0 z-30 flex min-h-11 items-center justify-between border-b bg-blue-50 p-2 shadow-sm">
+        <div className="sticky top-0 z-30 flex min-h-11 items-center justify-between border-b bg-blue-50 p-2 shadow-sm dark:bg-blue-950/40">
           <Button variant="ghost" size="sm" onClick={prevSubject} className="h-7 px-2">
             <ChevronLeft className="h-3 w-3" />
           </Button>
-          <div className="text-xs font-medium text-blue-700">
+          <div className="text-xs font-medium text-blue-700 dark:text-blue-300">
             {currentSubject.code} ({activeSubjectIndex + 1}/{examSubjects.length})
           </div>
           <Button variant="ghost" size="sm" onClick={nextSubject} className="h-7 px-2">
@@ -1466,33 +1466,33 @@ export default function RecordResultsView() {
           </Button>
         </div>
         
-        <table className="w-full divide-y divide-gray-200">
-          <thead className="sticky top-11 z-20 bg-gray-50 shadow-[0_2px_8px_rgba(15,23,42,0.1)]">
+        <table className="w-full divide-y divide-gray-200 dark:divide-slate-700">
+          <thead className="sticky top-11 z-20 bg-gray-50 shadow-[0_2px_8px_rgba(15,23,42,0.1)] dark:bg-slate-900">
             <tr>
-              <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase dark:text-slate-400">
                 <button 
                   onClick={() => handleSort('name')}
-                  className="flex items-center gap-1 hover:text-gray-700"
+                  className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-slate-200"
                 >
                   Pupil
                   {sortField === 'name' && (
-                    <span className="text-blue-600">
+                    <span className="text-blue-600 dark:text-blue-400">
                       {sortDirection === 'asc' ? '↑' : '↓'}
                     </span>
                   )}
                 </button>
               </th>
-              <th className="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase">
+              <th className="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase dark:text-slate-400">
                 {isNurseryExam ? 'Assessment' : 'Mark'}
               </th>
               {!isNurseryExam && (
-                <th className="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase">
+                <th className="px-2 py-1 text-center text-xs font-medium text-gray-500 uppercase dark:text-slate-400">
                   Grade
                 </th>
               )}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-100">
+          <tbody className="bg-white divide-y divide-gray-100 dark:bg-slate-900 dark:divide-slate-700">
             {filteredAndSortedPupils.map((pupil, idx) => {
               const isMissed = missedSubjects[pupil.pupilId]?.[currentSubject.code] || false;
               const marks = isMissed ? 0 : (results[pupil.pupilId]?.[currentSubject.code] ?? 0);
@@ -1502,12 +1502,12 @@ export default function RecordResultsView() {
               const gradeInfo = isRelevantForAggregates ? (isMissed ? { grade: 'F9', aggregates: 9 } : calculateGrade(marks)) : { grade: '', aggregates: 0 };
               
               return (
-                <tr key={pupil.pupilId} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                <tr key={pupil.pupilId} className={idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-gray-50 dark:bg-slate-900'}>
                   <td className="px-2 py-1 whitespace-nowrap">
-                    <div className="text-xs font-medium text-gray-900">
+                    <div className="text-xs font-medium text-gray-900 dark:text-slate-100">
                       {pupil.name}
                     </div>
-                    <div className="text-xs text-gray-500" title={pupil.classNameAtExam}>
+                    <div className="text-xs text-gray-500 dark:text-slate-400" title={pupil.classNameAtExam}>
                       {pupil.admissionNumber} · {pupil.classCodeAtExam || pupil.classNameAtExam}
                     </div>
                   </td>
@@ -1536,7 +1536,7 @@ export default function RecordResultsView() {
                         onChange={(e) => handleMarksChange(pupil.pupilId, currentSubject.code, e.target.value)}
                         disabled={isMissed}
                         placeholder={isMissed ? 'Missed' : ''}
-                        className={`w-12 h-7 text-center mx-auto text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isMissed ? 'bg-red-50 text-red-600 placeholder-red-400' : ''}`}
+                        className={`w-12 h-7 text-center mx-auto text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isMissed ? 'bg-red-50 text-red-600 placeholder-red-400 dark:bg-red-950/40 dark:text-red-400' : ''}`}
                       />
                     )}
                   </td>
@@ -1546,10 +1546,10 @@ export default function RecordResultsView() {
                         onClick={() => handleToggleMissedStatus(pupil.pupilId, currentSubject.code)}
                         className={`text-xs px-1 py-0 border rounded cursor-pointer hover:shadow-sm transition-all ${
                           isMissed 
-                            ? 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200' 
+                            ? 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60 dark:hover:bg-red-900/40'
                             : gradeInfo.grade && gradeInfo.grade !== 'N/A'
                               ? `${getGradeColor(gradeInfo.grade)} hover:opacity-80`
-                              : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+                              : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800'
                         }`}
                         title={isMissed ? 'Click to mark as present' : 'Click to mark as missed'}
                       >
@@ -1563,18 +1563,18 @@ export default function RecordResultsView() {
           </tbody>
         </table>
         
-        {!isNurseryExam && <div className="p-2 border-t bg-gray-50">
+        {!isNurseryExam && <div className="p-2 border-t bg-gray-50 dark:bg-slate-900">
           <div className="grid grid-cols-2 gap-2">
-            <div className="text-center p-1 bg-white rounded border text-xs">
-              <div className="text-gray-500">Avg Marks</div>
+            <div className="text-center p-1 bg-white rounded border text-xs dark:bg-slate-900">
+              <div className="text-gray-500 dark:text-slate-400">Avg Marks</div>
               <div className="font-medium">
                 {Math.round(Object.values(pupilTotals).reduce((sum, pupil) => sum + pupil.total, 0) / (filteredAndSortedPupils.length || 1))}
               </div>
             </div>
             {(examSubjects.length === 4 || 
               (examSubjects.length > 4 && selectedMajorSubjects.length === 4)) && (
-              <div className="text-center p-1 bg-white rounded border text-xs">
-                <div className="text-gray-500">Avg Agg</div>
+              <div className="text-center p-1 bg-white rounded border text-xs dark:bg-slate-900">
+                <div className="text-gray-500 dark:text-slate-400">Avg Agg</div>
                 <div className="font-medium">
                   {Math.round(Object.values(pupilTotals).reduce((sum, pupil) => sum + pupil.aggregates, 0) / (filteredAndSortedPupils.length || 1))}
                 </div>
@@ -1594,37 +1594,37 @@ export default function RecordResultsView() {
         aria-label="Record results table"
         tabIndex={0}
       >
-        <table className="w-full divide-y divide-gray-200">
-          <thead className="sticky top-0 z-30 bg-gray-50 shadow-[0_2px_8px_rgba(15,23,42,0.1)]">
+        <table className="w-full divide-y divide-gray-200 dark:divide-slate-700">
+          <thead className="sticky top-0 z-30 bg-gray-50 shadow-[0_2px_8px_rgba(15,23,42,0.1)] dark:bg-slate-900">
             <tr>
-              <th className="sticky left-0 z-40 border-r bg-gray-50 px-2 py-1 text-left text-xs font-medium uppercase text-gray-500">
+              <th className="sticky left-0 z-40 border-r bg-gray-50 px-2 py-1 text-left text-xs font-medium uppercase text-gray-500 dark:bg-slate-900 dark:text-slate-400">
                 <button 
                   onClick={() => handleSort('name')}
-                  className="flex items-center gap-1 hover:text-gray-700"
+                  className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-slate-200"
                 >
                   Pupil
                   {sortField === 'name' && (
-                    <span className="text-blue-600">
+                    <span className="text-blue-600 dark:text-blue-400">
                       {sortDirection === 'asc' ? '↑' : '↓'}
                     </span>
                   )}
                 </button>
               </th>
               {examSubjects.map(subject => (
-                <th key={subject.code} className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">
+                <th key={subject.code} className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase dark:text-slate-400">
                   <div className="text-center">
                     {subject.code}
                   </div>
                 </th>
               ))}
-              {!isNurseryExam && <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">
+              {!isNurseryExam && <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase dark:text-slate-400">
                 <button 
                   onClick={() => handleSort('totalMarks')}
-                  className="flex items-center gap-1 hover:text-gray-700"
+                  className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-slate-200"
                 >
                   Total
                   {sortField === 'totalMarks' && (
-                    <span className="text-blue-600">
+                    <span className="text-blue-600 dark:text-blue-400">
                       {sortDirection === 'asc' ? '↑' : '↓'}
                     </span>
                   )}
@@ -1633,24 +1633,24 @@ export default function RecordResultsView() {
               {!isNurseryExam && (examSubjects.length === 4 ||
                 (examSubjects.length > 4 && selectedMajorSubjects.length === 4)) && (
                 <>
-                  <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase dark:text-slate-400">
                     Agg
                   </th>
-                  <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase dark:text-slate-400">
                     Div
                   </th>
                 </>
               )}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-100">
+          <tbody className="bg-white divide-y divide-gray-100 dark:bg-slate-900 dark:divide-slate-700">
             {filteredAndSortedPupils.map((pupil, idx) => (
-              <tr key={pupil.pupilId} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+              <tr key={pupil.pupilId} className={idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-gray-50 dark:bg-slate-900'}>
                 <td className="px-2 py-1 whitespace-nowrap sticky left-0 bg-inherit z-10 border-r">
-                  <div className="text-xs font-medium text-gray-900">
+                  <div className="text-xs font-medium text-gray-900 dark:text-slate-100">
                     {pupil.name}
                   </div>
-                  <div className="text-xs text-gray-500" title={pupil.classNameAtExam}>
+                  <div className="text-xs text-gray-500 dark:text-slate-400" title={pupil.classNameAtExam}>
                     {pupil.admissionNumber} · {pupil.classCodeAtExam || pupil.classNameAtExam}
                   </div>
                 </td>
@@ -1688,17 +1688,17 @@ export default function RecordResultsView() {
                           onChange={(e) => handleMarksChange(pupil.pupilId, subject.code, e.target.value)}
                           disabled={isMissed}
                           placeholder={isMissed ? 'Missed' : ''}
-                          className={`w-12 h-7 text-center text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isMissed ? 'bg-red-50 text-red-600 placeholder-red-400' : ''}`}
+                          className={`w-12 h-7 text-center text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isMissed ? 'bg-red-50 text-red-600 placeholder-red-400 dark:bg-red-950/40 dark:text-red-400' : ''}`}
                         />}
                         {!isNurseryExam && isRelevantForAggregates && (
                           <button
                             onClick={() => handleToggleMissedStatus(pupil.pupilId, subject.code)}
                             className={`text-xs px-1 py-0 border rounded cursor-pointer hover:shadow-sm transition-all ${
                               isMissed 
-                                ? 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200' 
+                                ? 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60 dark:hover:bg-red-900/40'
                                 : gradeInfo.grade && gradeInfo.grade !== 'N/A'
                                   ? `${getGradeColor(gradeInfo.grade)} hover:opacity-80`
-                                  : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+                                  : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800'
                             }`}
                             title={isMissed ? 'Click to mark as present' : 'Click to mark as missed'}
                           >
@@ -1710,7 +1710,7 @@ export default function RecordResultsView() {
                   );
                 })}
                 {!isNurseryExam && <td className="px-2 py-1 whitespace-nowrap">
-                  <div className="text-xs font-medium text-gray-900">
+                  <div className="text-xs font-medium text-gray-900 dark:text-slate-100">
                     {pupilTotals[pupil.pupilId]?.total || 0}
                   </div>
                 </td>}
@@ -1718,7 +1718,7 @@ export default function RecordResultsView() {
                   (examSubjects.length > 4 && selectedMajorSubjects.length === 4)) && (
                   <>
                     <td className="px-2 py-1 whitespace-nowrap">
-                      <div className="text-xs font-medium text-gray-900">
+                      <div className="text-xs font-medium text-gray-900 dark:text-slate-100">
                         {pupilTotals[pupil.pupilId]?.aggregates || 0}
                       </div>
                     </td>
@@ -1741,20 +1741,20 @@ export default function RecordResultsView() {
     const editorName = resultLease.holder.lockedByName || 'Another user';
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-        <Card className="w-full max-w-lg border-amber-200 shadow-lg">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 dark:bg-slate-900">
+        <Card className="w-full max-w-lg border-amber-200 shadow-lg dark:border-amber-800/60">
           <CardHeader className="space-y-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-100">
-              <AlertTriangle className="h-5 w-5 text-amber-700" aria-hidden="true" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950/40">
+              <AlertTriangle className="h-5 w-5 text-amber-700 dark:text-amber-300" aria-hidden="true" />
             </div>
             <div className="space-y-1.5">
-              <CardTitle className="text-xl text-slate-900">Marks are being recorded</CardTitle>
-              <CardDescription className="text-sm leading-6 text-slate-600">
+              <CardTitle className="text-xl text-slate-900 dark:text-slate-100">Marks are being recorded</CardTitle>
+              <CardDescription className="text-sm leading-6 text-slate-600 dark:text-slate-300">
                 {editorName} is currently recording marks for this exam. You can continue entering marks. When you save, you will either wait for {editorName} or explicitly override the lock after a final warning.
               </CardDescription>
             </div>
           </CardHeader>
-          <CardFooter className="flex flex-col-reverse gap-2 border-t bg-amber-50/50 p-4 sm:flex-row sm:justify-end">
+          <CardFooter className="flex flex-col-reverse gap-2 border-t bg-amber-50/50 p-4 sm:flex-row sm:justify-end dark:bg-amber-950/50">
             <Button variant="outline" onClick={() => router.push('/exams')} className="w-full sm:w-auto">
               Back to Exams
             </Button>
@@ -1762,7 +1762,7 @@ export default function RecordResultsView() {
               variant="outline"
               onClick={handleNotifyWhenReady}
               disabled={unlockNotificationStatus !== 'idle' || pushSubscription.isLoading}
-              className="w-full border-amber-300 bg-white text-amber-800 hover:bg-amber-100 sm:w-auto"
+              className="w-full border-amber-300 bg-white text-amber-800 hover:bg-amber-100 sm:w-auto dark:border-amber-800/60 dark:bg-slate-900 dark:text-amber-200 dark:hover:bg-amber-950/40"
             >
               {unlockNotificationStatus === 'requesting' || pushSubscription.isLoading
                 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1832,7 +1832,7 @@ export default function RecordResultsView() {
             onClick={requestBackNavigation}
             aria-label="Back to exams"
             title="Back to exams"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-200/60 bg-blue-50/80 text-blue-600 shadow-sm transition-all duration-300 hover:scale-105 hover:bg-blue-100 hover:text-blue-700 active:scale-95"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-200/60 bg-blue-50/80 text-blue-600 shadow-sm transition-all duration-300 hover:scale-105 hover:bg-blue-100 hover:text-blue-700 active:scale-95 dark:border-blue-800/60 dark:bg-blue-950/80 dark:text-blue-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
@@ -1840,14 +1840,14 @@ export default function RecordResultsView() {
         className="mb-1.5"
         meta={
           <div className="flex items-center gap-1.5">
-            <span className="rounded-full border border-blue-200/60 bg-blue-50/80 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+            <span className="rounded-full border border-blue-200/60 bg-blue-50/80 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/80 dark:text-blue-300">
               {filteredAndSortedPupils.length} of {pupilSnaps.length} pupils
             </span>
             {examStreams.length > 1 && (
               <Select value={selectedStreamId} onValueChange={selectStreamScope}>
                 <SelectTrigger
                   aria-label="Choose stream pupils to record"
-                  className="h-7 w-[132px] rounded-full border-indigo-200 bg-indigo-50 px-2 text-[10px] font-semibold text-indigo-700 shadow-none hover:bg-indigo-100"
+                  className="h-7 w-[132px] rounded-full border-indigo-200 bg-indigo-50 px-2 text-[10px] font-semibold text-indigo-700 shadow-none hover:bg-indigo-100 dark:border-indigo-800/60 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
                 >
                   <GitBranch className="mr-1 h-3 w-3 shrink-0" />
                   <SelectValue />
@@ -1863,7 +1863,7 @@ export default function RecordResultsView() {
           </div>
         }
         badges={hasUnsavedChanges ? (
-          <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+          <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-300">
             Unsaved changes
           </span>
         ) : undefined}
@@ -1894,8 +1894,8 @@ export default function RecordResultsView() {
                       aria-label={`Switch ${examSwitcher.label.toLowerCase()}`}
                     />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-64 rounded-xl border border-blue-100 bg-white/95 p-2 shadow-xl backdrop-blur">
-                    <div className="px-2 pb-2 pt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  <DropdownMenuContent align="end" className="w-64 rounded-xl border border-blue-100 bg-white/95 p-2 shadow-xl backdrop-blur dark:border-blue-800/60 dark:bg-slate-900/95">
+                    <div className="px-2 pb-2 pt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       Choose {examSwitcher.label === 'Classes' ? 'class' : 'set'}
                     </div>
                     <div className="grid grid-cols-1 gap-1.5">
@@ -1910,7 +1910,7 @@ export default function RecordResultsView() {
                               className={`flex h-10 items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-semibold transition-colors ${
                                 isCurrentExam
                                   ? 'cursor-default border-blue-600 bg-blue-600 text-white'
-                                  : 'border-blue-100 bg-blue-50/70 text-blue-700 hover:border-blue-300 hover:bg-blue-100'
+                                  : 'border-blue-100 bg-blue-50/70 text-blue-700 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800/60 dark:bg-blue-950/70 dark:text-blue-300 dark:hover:border-blue-800/60 dark:hover:bg-blue-950/40'
                               }`}
                               aria-current={isCurrentExam ? 'page' : undefined}
                             >
@@ -1965,8 +1965,8 @@ export default function RecordResultsView() {
         />
 
       {resultLease.canOverride && acknowledgedBlockedLease === blockedLeaseKey && (
-        <div className="mx-3 mb-2 flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-amber-950 shadow-sm sm:mx-4">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
+        <div className="mx-3 mb-2 flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-amber-950 shadow-sm sm:mx-4 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-100">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" aria-hidden="true" />
           <div className="min-w-0 text-xs leading-5">
             <span className="font-bold">Editing lock active:</span>{' '}
             {resultLease.holder?.lockedByName || 'Another editor'} may have unsaved marks. The Override button will show a final confirmation before taking control and saving this device's version.
@@ -1975,8 +1975,8 @@ export default function RecordResultsView() {
       )}
 
       {remoteUpdateWhileEditing && (
-        <div className="mx-3 mb-2 flex items-start gap-3 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2.5 text-rose-950 shadow-sm sm:mx-4">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-700" aria-hidden="true" />
+        <div className="mx-3 mb-2 flex items-start gap-3 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2.5 text-rose-950 shadow-sm sm:mx-4 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-100">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-700 dark:text-rose-300" aria-hidden="true" />
           <div className="min-w-0 text-xs leading-5">
             <span className="font-bold">Newer saved results arrived:</span>{' '}
             Your unsaved entries were kept instead of being replaced. Review them carefully before saving or overriding the other device.
@@ -1995,7 +1995,7 @@ export default function RecordResultsView() {
         right={
           <div className="flex items-center gap-1.5 overflow-x-auto max-w-full">
             {isNurseryExam ? NURSERY_COMMENTARY_OPTIONS.map(option => (
-              <div key={option} className="border border-emerald-200 bg-emerald-50/80 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold text-emerald-800 whitespace-nowrap">
+              <div key={option} className="border border-emerald-200 bg-emerald-50/80 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold text-emerald-800 whitespace-nowrap dark:border-emerald-800/60 dark:bg-emerald-950/80 dark:text-emerald-200">
                 {option}
               </div>
             )) : [...gradingScaleItems]
@@ -2004,11 +2004,11 @@ export default function RecordResultsView() {
                 <div
                   key={index}
                   className={`border px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold whitespace-nowrap ${
-                    scale.grade === 'MISSED' ? 'bg-orange-50/80 text-orange-700 border-orange-200' :
-                    scale.grade.startsWith('D') ? 'bg-green-50/80 text-green-700 border-green-200' :
-                    scale.grade.startsWith('C') ? 'bg-blue-50/80 text-blue-700 border-blue-200' :
-                    scale.grade.startsWith('P') ? 'bg-yellow-50/80 text-yellow-700 border-yellow-200' :
-                    'bg-red-50/80 text-red-700 border-red-200'
+                    scale.grade === 'MISSED' ? 'bg-orange-50/80 text-orange-700 border-orange-200 dark:bg-orange-950/80 dark:text-orange-300 dark:border-orange-800/60' :
+                    scale.grade.startsWith('D') ? 'bg-green-50/80 text-green-700 border-green-200 dark:bg-green-950/80 dark:text-green-300 dark:border-green-800/60' :
+                    scale.grade.startsWith('C') ? 'bg-blue-50/80 text-blue-700 border-blue-200 dark:bg-blue-950/80 dark:text-blue-300 dark:border-blue-800/60' :
+                    scale.grade.startsWith('P') ? 'bg-yellow-50/80 text-yellow-700 border-yellow-200 dark:bg-yellow-950/80 dark:text-yellow-300 dark:border-yellow-800/60' :
+                    'bg-red-50/80 text-red-700 border-red-200 dark:bg-red-950/80 dark:text-red-300 dark:border-red-800/60'
                   }`}
                 >
                   <span className="opacity-80 font-medium">{scale.grade}:</span> {scale.minMark}-{scale.maxMark}
@@ -2026,7 +2026,7 @@ export default function RecordResultsView() {
           
             {filteredAndSortedPupils.length === 0 ? (
               <div className="p-4 text-center">
-                <p className="text-gray-500 text-sm">
+                <p className="text-gray-500 text-sm dark:text-slate-400">
                   {searchTerm.trim() ? 'No pupils found matching your search.' : 'No pupils found in this class.'}
                 </p>
                 {searchTerm.trim() && (
@@ -2048,8 +2048,8 @@ export default function RecordResultsView() {
           </CardContent>
 
           {/* Compact Footer */}
-          <CardFooter className="p-2 border-t bg-gray-50 flex justify-end">
-            <div className="text-xs text-gray-500">
+          <CardFooter className="p-2 border-t bg-gray-50 flex justify-end dark:bg-slate-900">
+            <div className="text-xs text-gray-500 dark:text-slate-400">
               Updated: {examResultData.lastUpdatedAt ? new Date(examResultData.lastUpdatedAt).toLocaleString() : 'N/A'}
             </div>
           </CardFooter>
@@ -2066,9 +2066,9 @@ export default function RecordResultsView() {
       >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-rose-800">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-100">
-                <AlertTriangle className="h-5 w-5 text-rose-700" aria-hidden="true" />
+            <DialogTitle className="flex items-center gap-2 text-rose-800 dark:text-rose-200">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-950/40">
+                <AlertTriangle className="h-5 w-5 text-rose-700 dark:text-rose-300" aria-hidden="true" />
               </span>
               Override active editing lock?
             </DialogTitle>
@@ -2078,10 +2078,10 @@ export default function RecordResultsView() {
           </DialogHeader>
 
           <div className="space-y-3">
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm leading-6 text-rose-950">
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm leading-6 text-rose-950 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-100">
               Saving with override will take control on this device and replace the currently saved result with the marks shown here. Unsaved work on the other device will not be included, and its next save will be rejected unless it takes control again.
             </div>
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 hover:bg-slate-50">
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-900">
               <Checkbox
                 checked={overrideSaveAcknowledged}
                 onCheckedChange={(checked) => setOverrideSaveAcknowledged(checked === true)}
@@ -2121,8 +2121,8 @@ export default function RecordResultsView() {
       <Dialog open={pendingNavigation !== null} onOpenChange={(open) => !open && !isSubmitting && setPendingNavigation(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-amber-800">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
+            <DialogTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+              <AlertTriangle className="h-5 w-5 text-amber-500 dark:text-amber-400" />
               Unsaved result changes
             </DialogTitle>
             <DialogDescription>
@@ -2134,9 +2134,9 @@ export default function RecordResultsView() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3">
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-amber-800">Current changes</p>
-            <ul className="space-y-1.5 text-sm text-slate-700">
+          <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-800/60 dark:bg-amber-950/70">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-amber-800 dark:text-amber-200">Current changes</p>
+            <ul className="space-y-1.5 text-sm text-slate-700 dark:text-slate-200">
               {(unsavedChangeSummary.length > 0 ? unsavedChangeSummary : ['Result information changed']).map((change) => (
                 <li key={change} className="flex items-start gap-2">
                   <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
@@ -2147,7 +2147,7 @@ export default function RecordResultsView() {
           </div>
 
           {!canSaveDraft && (
-            <p className="text-xs font-medium text-rose-600">
+            <p className="text-xs font-medium text-rose-600 dark:text-rose-400">
               Select exactly four major subjects before these results can be saved. You can still discard the changes or cancel.
             </p>
           )}

@@ -230,11 +230,11 @@ function ClassRequirementsContent() {
 
   const getStatusBadge = (stat: PupilRequirementStats) => {
     if (stat.completionPercentage === 100) {
-      return <Badge className="bg-green-100 text-green-800">Complete</Badge>;
+      return <Badge className="bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200">Complete</Badge>;
     } else if (stat.completionPercentage > 0) {
-      return <Badge className="bg-blue-100 text-blue-800">In Progress</Badge>;
+      return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">In Progress</Badge>;
     } else if (stat.totalRequirements > 0) {
-      return <Badge className="bg-amber-100 text-amber-800">Pending</Badge>;
+      return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">Pending</Badge>;
     } else {
       return <Badge variant="outline">No Requirements</Badge>;
     }
@@ -388,11 +388,11 @@ function ClassRequirementsContent() {
               </div>
             </div>
             {selectedAcademicYearData && selectedTermData && (
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800">
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg dark:bg-blue-950/40">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
                   <strong>Viewing:</strong> {selectedAcademicYearData.name} - {selectedTermData.name}
                 </p>
-                <p className="text-xs text-blue-600 mt-1">
+                <p className="text-xs text-blue-600 mt-1 dark:text-blue-400">
                   {new Date(selectedTermData.startDate).toLocaleDateString()} - {new Date(selectedTermData.endDate).toLocaleDateString()}
                 </p>
               </div>
@@ -405,8 +405,8 @@ function ClassRequirementsContent() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Users className="h-5 w-5 text-blue-600" />
+                <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/40">
+                  <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Pupils</p>
@@ -419,12 +419,12 @@ function ClassRequirementsContent() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+                <div className="p-2 bg-green-100 rounded-lg dark:bg-green-950/40">
+                  <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Completed</p>
-                  <p className="text-2xl font-bold text-green-600">{classStats.completedPupils}</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{classStats.completedPupils}</p>
                 </div>
               </div>
             </CardContent>
@@ -433,12 +433,12 @@ function ClassRequirementsContent() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-amber-100 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-blue-600" />
+                <div className="p-2 bg-amber-100 rounded-lg dark:bg-amber-950/40">
+                  <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">In Progress</p>
-                  <p className="text-2xl font-bold text-blue-600">{classStats.partialPupils}</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{classStats.partialPupils}</p>
                 </div>
               </div>
             </CardContent>
@@ -447,12 +447,12 @@ function ClassRequirementsContent() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-gray-100 rounded-lg">
-                  <Clock className="h-5 w-5 text-amber-600" />
+                <div className="p-2 bg-gray-100 rounded-lg dark:bg-slate-900">
+                  <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Pending</p>
-                  <p className="text-2xl font-bold text-amber-600">{classStats.pendingPupils}</p>
+                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{classStats.pendingPupils}</p>
                 </div>
               </div>
             </CardContent>
@@ -476,7 +476,7 @@ function ClassRequirementsContent() {
               </div>
               <div className="text-center">
                 <p className="text-sm text-muted-foreground">Amount Paid</p>
-                <div className="text-2xl font-bold text-green-600 mt-2">{formatCurrency(classStats.totalPaid)}</div>
+                <div className="text-2xl font-bold text-green-600 mt-2 dark:text-green-400">{formatCurrency(classStats.totalPaid)}</div>
               </div>
             </div>
           </CardContent>
@@ -584,12 +584,12 @@ function ClassRequirementsContent() {
                             {stat.completedRequirements}/{stat.totalRequirements} items
                           </div>
                           {stat.partialRequirements > 0 && (
-                            <div className="text-xs text-blue-600">
+                            <div className="text-xs text-blue-600 dark:text-blue-400">
                               {stat.partialRequirements} partial
                             </div>
                           )}
                           {stat.pendingRequirements > 0 && (
-                            <div className="text-xs text-amber-600">
+                            <div className="text-xs text-amber-600 dark:text-amber-400">
                               {stat.pendingRequirements} pending
                             </div>
                           )}

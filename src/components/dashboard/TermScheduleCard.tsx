@@ -26,24 +26,24 @@ function getEventRelativeStatus(event: any) {
 
     // Check if ongoing
     if (now >= startDate && now <= endDate) {
-        return { text: 'Ongoing', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' };
+        return { text: 'Ongoing', color: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-50 dark:bg-amber-950/40', border: 'border-amber-200 dark:border-amber-800/60' };
     }
 
     if (now < startDate) {
         const diff = differenceInDays(startDate, today);
-        if (diff === 0) return { text: 'Today', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' };
-        if (diff === 1) return { text: 'Tomorrow', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' };
-        return { text: `In ${diff} days`, color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200' };
+        if (diff === 0) return { text: 'Today', color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-950/40', border: 'border-emerald-200 dark:border-emerald-800/60' };
+        if (diff === 1) return { text: 'Tomorrow', color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-950/40', border: 'border-emerald-200 dark:border-emerald-800/60' };
+        return { text: `In ${diff} days`, color: 'text-blue-700 dark:text-blue-300', bg: 'bg-blue-50 dark:bg-blue-950/40', border: 'border-blue-200 dark:border-blue-800/60' };
     }
 
     if (now > endDate) {
         const diff = differenceInDays(today, endDate);
-        if (diff === 0) return { text: 'Ended today', color: 'text-slate-600', bg: 'bg-slate-100', border: 'border-slate-200' };
-        if (diff === 1) return { text: 'Ended yesterday', color: 'text-slate-500', bg: 'bg-slate-50', border: 'border-slate-200' };
-        return { text: `Ended ${diff} days ago`, color: 'text-slate-400', bg: 'bg-slate-50', border: 'border-slate-100' };
+        if (diff === 0) return { text: 'Ended today', color: 'text-slate-600 dark:text-slate-300', bg: 'bg-slate-100 dark:bg-slate-900', border: 'border-slate-200 dark:border-slate-700' };
+        if (diff === 1) return { text: 'Ended yesterday', color: 'text-slate-500 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-900', border: 'border-slate-200 dark:border-slate-700' };
+        return { text: `Ended ${diff} days ago`, color: 'text-slate-400 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-900', border: 'border-slate-100 dark:border-slate-700' };
     }
 
-    return { text: 'Unknown', color: 'text-slate-400', bg: 'bg-slate-50', border: 'border-slate-100' };
+    return { text: 'Unknown', color: 'text-slate-400 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-900', border: 'border-slate-100 dark:border-slate-700' };
 }
 
 export function TermScheduleCard() {
@@ -127,13 +127,13 @@ export function TermScheduleCard() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="h-full"
         >
-            <Card className="h-full rounded-xl transition-all duration-300 relative group overflow-visible flex flex-col" style={{
+            <Card className="theme-dashboard-surface h-full rounded-xl transition-all duration-300 relative group overflow-visible flex flex-col" style={{
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
                 transform: 'translateZ(0)',
                 background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(249, 250, 251, 1) 100%)',
             }}>
                 {/* 3D Depth Effect - Top highlight */}
-                <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10" />
+                <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10 dark:from-slate-900/40" />
                 {/* 3D Depth Effect - Bottom shadow */}
                 <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
@@ -151,7 +151,7 @@ export function TermScheduleCard() {
                             variant="ghost"
                             size="sm"
                             onClick={() => router.push('/events')}
-                            className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 p-1 h-auto"
+                            className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 p-1 h-auto dark:text-indigo-400 dark:hover:text-indigo-300 dark:hover:bg-indigo-950/40"
                         >
                             <ChevronRight className="w-4 h-4" />
                         </Button>
@@ -160,13 +160,13 @@ export function TermScheduleCard() {
                 <CardContent className="relative z-20 px-2 pb-2 pt-0 flex-1 min-h-0">
                     {isLoading ? (
                         <div className="h-[290px] flex items-center justify-center">
-                            <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+                            <Loader2 className="h-6 w-6 animate-spin text-indigo-600 dark:text-indigo-400" />
                         </div>
                     ) : termFilteredEvents.length === 0 ? (
-                        <div className="h-[290px] flex flex-col items-center justify-center text-center px-4 bg-slate-50/50 rounded-xl border-2 border-dashed border-slate-200 mx-2 mt-2">
+                        <div className="h-[290px] flex flex-col items-center justify-center text-center px-4 bg-slate-50/50 rounded-xl border-2 border-dashed border-slate-200 mx-2 mt-2 dark:bg-slate-900/50 dark:border-slate-700">
                             <CalendarIcon className="w-8 h-8 text-slate-300 mb-2" />
-                            <p className="text-sm font-medium text-slate-600">No scheduled events</p>
-                            <p className="text-xs text-slate-500 mt-1">There are no events in the current term.</p>
+                            <p className="text-sm font-medium text-slate-600 dark:text-slate-300">No scheduled events</p>
+                            <p className="text-xs text-slate-500 mt-1 dark:text-slate-400">There are no events in the current term.</p>
                         </div>
                     ) : (
                         <div ref={scrollContainerRef} className="h-[290px] overflow-y-auto px-1 custom-scrollbar space-y-1.5 pb-2 mt-2">
@@ -180,14 +180,14 @@ export function TermScheduleCard() {
                                         className={`px-2.5 py-1.5 rounded-lg border ${status.border} ${status.bg} hover:shadow-sm transition-all cursor-pointer flex justify-between items-center group`}
                                     >
                                         <div className="flex flex-col overflow-hidden flex-1 mr-2">
-                                            <h4 className="text-[13px] font-semibold text-slate-800 truncate group-hover:text-indigo-600 transition-colors leading-tight">{event.title}</h4>
-                                            <p className="text-[11px] text-slate-500 flex items-center gap-1 font-medium mt-0.5">
+                                            <h4 className="text-[13px] font-semibold text-slate-800 truncate group-hover:text-indigo-600 transition-colors leading-tight dark:text-slate-100 dark:group-hover:text-indigo-400">{event.title}</h4>
+                                            <p className="text-[11px] text-slate-500 flex items-center gap-1 font-medium mt-0.5 dark:text-slate-400">
                                                 <CalendarIcon className="w-[10px] h-[10px]" />
                                                 {format(new Date(event.startDate), 'MMM d, yyyy')}
                                             </p>
                                         </div>
                                         <div className="shrink-0 flex items-center">
-                                            <span className={`text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-md bg-white/60 shadow-sm ${status.color}`}>
+                                            <span className={`text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-md bg-white/60 shadow-sm  dark:bg-slate-900/60${status.color}`}>
                                                 {status.text}
                                             </span>
                                         </div>

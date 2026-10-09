@@ -116,27 +116,27 @@ export function PLESubjectReorderModal({
                     {subjects.map((subject, index) => (
                         <div
                             key={subject.id}
-                            className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                            className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:border-slate-700 dark:hover:bg-slate-900"
                         >
                             {/* Drag Handle Visual */}
-                            <div className="text-gray-400">
+                            <div className="text-gray-400 dark:text-slate-400">
                                 <GripVertical className="h-5 w-5" />
                             </div>
 
                             {/* Subject Info */}
                             <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                    <span className="font-mono text-sm font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                    <span className="font-mono text-sm font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded dark:bg-blue-950/40 dark:text-blue-300">
                                         {subject.code}
                                     </span>
-                                    <span className="text-sm font-medium text-gray-700">
+                                    <span className="text-sm font-medium text-gray-700 dark:text-slate-200">
                                         {subject.name}
                                     </span>
                                 </div>
                             </div>
 
                             {/* Order Number */}
-                            <div className="text-xs text-gray-500 font-medium min-w-[60px] text-center">
+                            <div className="text-xs text-gray-500 font-medium min-w-[60px] text-center dark:text-slate-400">
                                 Position {index + 1}
                             </div>
 
@@ -166,13 +166,13 @@ export function PLESubjectReorderModal({
                 </div>
 
                 {/* Preview */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-xs font-medium text-blue-900 mb-2">Table Header Preview:</p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 dark:bg-blue-950/40 dark:border-blue-800/60">
+                    <p className="text-xs font-medium text-blue-900 mb-2 dark:text-blue-200">Table Header Preview:</p>
                     <div className="flex gap-2">
                         {subjects.map(subject => (
                             <div
                                 key={subject.id}
-                                className="bg-white border border-blue-300 rounded px-2 py-1 text-xs font-semibold text-gray-700"
+                                className="bg-white border border-blue-300 rounded px-2 py-1 text-xs font-semibold text-gray-700 dark:bg-slate-900 dark:border-blue-800/60 dark:text-slate-200"
                             >
                                 {subject.code}
                             </div>

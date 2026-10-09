@@ -85,7 +85,7 @@ export function DatePicker({
           {...triggerProps}
           disabled={disabled}
           className={cn(
-            "flex items-center gap-2 w-full border border-gray-200 bg-white shadow-sm hover:border-sky-300 hover:shadow-md transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 disabled:opacity-50 disabled:cursor-not-allowed text-left aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-2 aria-invalid:ring-red-200",
+            "flex items-center gap-2 w-full border border-gray-200 bg-white shadow-sm hover:border-sky-300 hover:shadow-md transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 disabled:opacity-50 disabled:cursor-not-allowed text-left aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-2 aria-invalid:ring-red-200 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-sky-800/60",
             isCompact ? "px-2.5 py-1.5 h-8 rounded-lg" : "px-3 py-2.5 min-h-[52px] rounded-xl",
             className,
             triggerProps?.className
@@ -94,14 +94,14 @@ export function DatePicker({
         >
           <div className="flex flex-col items-start min-w-0 flex-1">
             {label && (
-              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5 dark:text-slate-400">
                 {label}
               </span>
             )}
             <span className={cn(
               "font-semibold truncate",
               isCompact ? "text-xs" : "text-[15px]",
-              date ? "text-gray-800" : "text-gray-400"
+              date ? "text-gray-800 dark:text-slate-100" : "text-gray-400 dark:text-slate-400"
             )}>
               {date ? format(date, isCompact ? "MMM d, yy" : "MMMM d, yyyy") : placeholder}
             </span>
@@ -110,7 +110,7 @@ export function DatePicker({
       </PopoverTrigger>
 
       <PopoverContent
-        className="w-auto p-0 border-0 shadow-2xl rounded-2xl overflow-hidden bg-white"
+        className="w-auto p-0 border-0 shadow-2xl rounded-2xl overflow-hidden bg-white dark:bg-slate-900"
         align="start"
         sideOffset={6}
       >
@@ -137,22 +137,22 @@ export function DatePicker({
         </div>
 
         {/* Footer — selected date display + Cancel / Confirm */}
-        <div className="border-t border-gray-100 bg-gray-50/80 px-4 py-3 flex items-center justify-between gap-4">
-          <span className="text-sm font-semibold text-gray-700 truncate">
-            {pendingDate ? format(pendingDate, "MMMM d, yyyy") : <span className="text-gray-400 font-normal">No date selected</span>}
+        <div className="border-t border-gray-100 bg-gray-50/80 px-4 py-3 flex items-center justify-between gap-4 dark:border-slate-700 dark:bg-slate-900/80">
+          <span className="text-sm font-semibold text-gray-700 truncate dark:text-slate-200">
+            {pendingDate ? format(pendingDate, "MMMM d, yyyy") : <span className="text-gray-400 font-normal dark:text-slate-400">No date selected</span>}
           </span>
           <div className="flex items-center gap-3 flex-shrink-0">
             <button
               type="button"
               onClick={handleCancel}
-              className="text-sm text-gray-400 hover:text-gray-600 transition-colors font-medium"
+              className="text-sm text-gray-400 hover:text-gray-600 transition-colors font-medium dark:text-slate-400 dark:hover:text-slate-300"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleConfirm}
-              className="text-sm font-semibold text-sky-500 hover:text-sky-600 transition-colors"
+              className="text-sm font-semibold text-sky-500 hover:text-sky-600 transition-colors dark:text-sky-400 dark:hover:text-sky-400"
             >
               Confirm
             </button>

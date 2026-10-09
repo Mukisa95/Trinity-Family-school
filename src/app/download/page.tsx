@@ -17,7 +17,7 @@ export default async function AndroidDownloadPage() {
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-slate-800 dark:bg-slate-900">
           {release ? <>
             <div className="flex items-center gap-4">
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-slate-100 bg-white p-2"><Image src={release.iconUrl} alt="School crest" width={64} height={64} /></div>
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-slate-100 bg-white p-2 dark:border-slate-700 dark:bg-slate-900"><Image src={release.iconUrl} alt="School crest" width={64} height={64} /></div>
               <div><p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Your school, on Android</p><h1 className="mt-1 text-3xl font-bold tracking-tight">{release.appName}</h1><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Version {release.versionName} · {(release.bytes / 1_000_000).toFixed(2)} MB · Android {release.minAndroid}+</p></div>
             </div>
             <p className="mt-6 text-base leading-relaxed text-slate-600 dark:text-slate-300">Use your existing school login. Keep your dashboard, timetables and pupil details available offline, with home-screen widgets and lesson reminders.</p>

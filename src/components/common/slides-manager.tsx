@@ -464,7 +464,7 @@ export function SlidesManager() {
                   onChange={handleFileSelect}
                   className="mt-1"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">
                   You can select multiple photos at once. Supported formats: JPG, PNG, WebP
                 </p>
               </div>
@@ -515,7 +515,7 @@ export function SlidesManager() {
                         </Button>
                         <div className="mt-1 text-xs text-center">
                           <p className="font-medium truncate">{photoFile.metadata.title}</p>
-                          <p className="text-gray-500">{formatFileSize(photoFile.file.size)}</p>
+                          <p className="text-gray-500 dark:text-slate-400">{formatFileSize(photoFile.file.size)}</p>
                         </div>
                         {uploadProgress[photoFile.id] !== undefined && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
@@ -732,7 +732,7 @@ export function SlidesManager() {
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 dark:text-slate-400" />
             <Input
               placeholder="Search photos..."
               value={searchTerm}
@@ -782,7 +782,7 @@ export function SlidesManager() {
       {/* Photos Display */}
       {displayPhotos.length === 0 ? (
         <Card className="p-12 text-center">
-          <ImageIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <ImageIcon className="h-16 w-16 text-gray-400 mx-auto mb-4 dark:text-slate-400" />
           <h3 className="text-lg font-semibold mb-2">No photos found</h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             {searchTerm ? 'No photos match your search criteria.' : 'Upload your first photo to get started.'}
@@ -816,7 +816,7 @@ export function SlidesManager() {
                         const container = target.parentElement;
                         if (container && !container.querySelector('.error-placeholder')) {
                           const placeholder = document.createElement('div');
-                          placeholder.className = 'error-placeholder absolute inset-0 flex items-center justify-center text-gray-500';
+                          placeholder.className = 'error-placeholder absolute inset-0 flex items-center justify-center text-gray-500 dark:text-slate-400';
                           placeholder.innerHTML = '<span class="text-sm">Image not available</span>';
                           container.appendChild(placeholder);
                         }
@@ -850,7 +850,7 @@ export function SlidesManager() {
                       )}
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 dark:text-slate-400">
                         {formatFileSize(photo.fileSize)}
                       </span>
                       <div className="flex space-x-1">
@@ -891,7 +891,7 @@ export function SlidesManager() {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
                               onClick={() => handlePermanentDelete(photo.id, photo)}
-                              className="text-red-600 focus:text-red-600"
+                              className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
                             >
                               <AlertTriangle className="h-4 w-4 mr-2" />
                               Permanently Delete
@@ -916,7 +916,7 @@ export function SlidesManager() {
                         const container = target.parentElement;
                         if (container && !container.querySelector('.error-placeholder')) {
                           const placeholder = document.createElement('div');
-                          placeholder.className = 'error-placeholder absolute inset-0 flex items-center justify-center text-gray-500';
+                          placeholder.className = 'error-placeholder absolute inset-0 flex items-center justify-center text-gray-500 dark:text-slate-400';
                           placeholder.innerHTML = '<span class="text-xs">Image not available</span>';
                           container.appendChild(placeholder);
                         }
@@ -948,7 +948,7 @@ export function SlidesManager() {
                             </Badge>
                           ))}
                         </div>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 dark:text-slate-400">
                           {formatFileSize(photo.fileSize)} • {new Date(photo.uploadedAt).toLocaleDateString()}
                         </span>
                       </div>
@@ -990,7 +990,7 @@ export function SlidesManager() {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
                               onClick={() => handlePermanentDelete(photo.id, photo)}
-                              className="text-red-600 focus:text-red-600"
+                              className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
                             >
                               <AlertTriangle className="h-4 w-4 mr-2" />
                               Permanently Delete

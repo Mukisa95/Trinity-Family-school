@@ -353,7 +353,7 @@ export default function NameOrderPage() {
           </CardHeader>
           <CardContent>
             <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400 dark:text-slate-400" />
               <Input
                 placeholder="Search by name or admission number..."
                 value={searchTerm}
@@ -440,17 +440,17 @@ export default function NameOrderPage() {
 
       {/* Status Summary */}
       {(changesCount > 0 || selectedCount > 0) && (
-        <Card className="border-yellow-200 bg-yellow-50">
+        <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-800/60 dark:bg-yellow-950/40">
           <CardContent className="pt-6">
             <div className="flex items-center space-x-4 text-sm">
               {changesCount > 0 && (
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">
                   <AlertTriangle className="h-3 w-3 mr-1" />
                   {changesCount} changes pending
                 </Badge>
               )}
               {selectedCount > 0 && bulkSelectMode && (
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/60">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
                   {selectedCount} selected
                 </Badge>
@@ -474,7 +474,7 @@ export default function NameOrderPage() {
                            pupilState.currentData.lastName.length < 2;
 
           return (
-            <Card key={pupil.id} className={`${pupilState.hasChanges ? 'border-blue-200 bg-blue-50' : ''} ${hasIssues ? 'border-red-200 bg-red-50' : ''}`}>
+            <Card key={pupil.id} className={`${pupilState.hasChanges ? 'border-blue-200 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/40' : ''} ${hasIssues ? 'border-red-200 bg-red-50 dark:border-red-800/60 dark:bg-red-950/40' : ''}`}>
               <CardContent className="pt-6">
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
                   {/* Pupil Info */}
@@ -488,7 +488,7 @@ export default function NameOrderPage() {
                       )}
                       <div>
                         <div className="font-medium text-sm">{pupil.admissionNumber}</div>
-                        <div className="text-xs text-gray-500">{pupil.className}</div>
+                        <div className="text-xs text-gray-500 dark:text-slate-400">{pupil.className}</div>
                         {hasIssues && (
                           <Badge variant="destructive" className="text-xs mt-1">
                             Issues Found
@@ -506,7 +506,7 @@ export default function NameOrderPage() {
                   {/* Name Fields */}
                   <div className="space-y-3">
                     <div>
-                      <Label className="text-xs font-medium text-gray-600">Surname</Label>
+                      <Label className="text-xs font-medium text-gray-600 dark:text-slate-300">Surname</Label>
                       <Input
                         value={pupilState.currentData.lastName}
                         onChange={(e) => updatePupilName(pupil.id, 'lastName', e.target.value.toUpperCase())}
@@ -515,7 +515,7 @@ export default function NameOrderPage() {
                       />
                     </div>
                     <div>
-                      <Label className="text-xs font-medium text-gray-600">First Name</Label>
+                      <Label className="text-xs font-medium text-gray-600 dark:text-slate-300">First Name</Label>
                       <Input
                         value={pupilState.currentData.firstName}
                         onChange={(e) => updatePupilName(pupil.id, 'firstName', e.target.value.toUpperCase())}
@@ -524,7 +524,7 @@ export default function NameOrderPage() {
                       />
                     </div>
                     <div>
-                      <Label className="text-xs font-medium text-gray-600">Other Names</Label>
+                      <Label className="text-xs font-medium text-gray-600 dark:text-slate-300">Other Names</Label>
                       <Input
                         value={pupilState.currentData.otherNames || ''}
                         onChange={(e) => updatePupilName(pupil.id, 'otherNames', e.target.value.toUpperCase())}
@@ -538,14 +538,14 @@ export default function NameOrderPage() {
                   {showPreview && (
                     <div className="space-y-3">
                       <div>
-                        <Label className="text-xs font-medium text-gray-600">Current Display</Label>
-                        <div className="p-2 bg-gray-100 rounded text-sm font-medium">
+                        <Label className="text-xs font-medium text-gray-600 dark:text-slate-300">Current Display</Label>
+                        <div className="p-2 bg-gray-100 rounded text-sm font-medium dark:bg-slate-900">
                           {currentDisplay}
                         </div>
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-gray-600">Correct Format</Label>
-                        <div className="p-2 bg-green-100 rounded text-sm font-medium text-green-800">
+                        <Label className="text-xs font-medium text-gray-600 dark:text-slate-300">Correct Format</Label>
+                        <div className="p-2 bg-green-100 rounded text-sm font-medium text-green-800 dark:bg-green-950/40 dark:text-green-200">
                           {correctDisplay}
                         </div>
                       </div>
@@ -568,7 +568,7 @@ export default function NameOrderPage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => resetPupilChanges(pupil.id)}
-                        className="text-xs text-gray-600"
+                        className="text-xs text-gray-600 dark:text-slate-300"
                       >
                         <RotateCcw className="h-3 w-3 mr-1" />
                         Reset
@@ -584,7 +584,7 @@ export default function NameOrderPage() {
         {filteredPupils.length === 0 && (
           <Card>
             <CardContent className="py-12 text-center">
-              <div className="text-gray-500">
+              <div className="text-gray-500 dark:text-slate-400">
                 {searchTerm ? 'No pupils match your search criteria.' : 'No pupils found.'}
               </div>
             </CardContent>
@@ -601,7 +601,7 @@ export default function NameOrderPage() {
               <div>
                 You are about to save changes for <strong>{changesCount}</strong> pupils.
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 dark:text-slate-300">
                 This will update the database with the corrected name ordering. 
                 The changes cannot be easily undone.
               </div>

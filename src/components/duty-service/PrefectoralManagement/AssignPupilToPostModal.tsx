@@ -135,14 +135,14 @@ export function AssignPupilToPostModal({ post, open, onOpenChange, trigger, sele
 
             {/* Selected Pupil Display */}
             {selectedPupil && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg dark:bg-green-950/40 dark:border-green-800/60">
                 <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-green-600" />
+                  <Users className="h-4 w-4 text-green-600 dark:text-green-400" />
                   <div>
-                    <p className="font-medium text-green-800">
+                    <p className="font-medium text-green-800 dark:text-green-200">
                       {formatPupilDisplayName(selectedPupil)}
                     </p>
-                    <p className="text-sm text-green-600">
+                    <p className="text-sm text-green-600 dark:text-green-400">
                       {selectedPupil.admissionNumber} • {selectedPupil.className}
                     </p>
                   </div>
@@ -183,7 +183,7 @@ export function AssignPupilToPostModal({ post, open, onOpenChange, trigger, sele
                           </p>
                         </div>
                         {selectedPupil?.id === pupil.id && (
-                          <div className="text-green-600">
+                          <div className="text-green-600 dark:text-green-400">
                             <Users className="h-4 w-4" />
                           </div>
                         )}

@@ -44,9 +44,9 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
     return (
       <Card className="shadow-lg">
         <CardContent className="flex flex-col items-center justify-center py-12">
-          <Wallet className="h-16 w-16 text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Banking Account</h3>
-          <p className="text-gray-600 text-center">
+          <Wallet className="h-16 w-16 text-gray-400 mb-4 dark:text-slate-400" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2 dark:text-slate-100">No Banking Account</h3>
+          <p className="text-gray-600 text-center dark:text-slate-300">
             This pupil does not have a banking account yet. Contact the school administration for more information.
           </p>
         </CardContent>
@@ -89,27 +89,27 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
   return (
     <div className="space-y-6">
       {/* Parent Notice */}
-      <Alert className="border-blue-200 bg-blue-50">
-        <Info className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="text-blue-800">
+      <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/40">
+        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+        <AlertDescription className="text-blue-800 dark:text-blue-200">
           <strong>Parent View:</strong> You can view your child's banking information here. 
           For any transactions or changes, please contact the school administration.
         </AlertDescription>
       </Alert>
 
       {/* Account Overview Card */}
-      <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-50 to-indigo-50">
+      <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2">
-              <Wallet className="h-5 w-5 text-blue-600" />
+              <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               Banking Account
             </span>
             <Button
               variant="ghost"
               size="sm"
               onClick={toggleBalanceVisibility}
-              className="text-blue-600 hover:text-blue-700"
+              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               {showBalance ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
@@ -124,33 +124,33 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
           ) : (
             <div className="space-y-4">
               <div className="text-center">
-                <p className="text-sm text-gray-600 mb-1">Current Balance</p>
-                <p className="text-3xl font-bold text-blue-600">
+                <p className="text-sm text-gray-600 mb-1 dark:text-slate-300">Current Balance</p>
+                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                   {showBalance ? formatCurrency(account?.balance || 0) : '****'}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-slate-400">
                   Account: {account?.accountNumber}
                 </p>
               </div>
               
               <div className="grid grid-cols-3 gap-4 pt-4 border-t">
                 <div className="text-center">
-                  <div className="text-lg font-semibold text-green-600">
+                  <div className="text-lg font-semibold text-green-600 dark:text-green-400">
                     {showBalance ? formatCurrency(totalDeposits) : '****'}
                   </div>
-                  <div className="text-xs text-gray-500">Total Deposits</div>
+                  <div className="text-xs text-gray-500 dark:text-slate-400">Total Deposits</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-lg font-semibold text-red-600">
+                  <div className="text-lg font-semibold text-red-600 dark:text-red-400">
                     {showBalance ? formatCurrency(totalWithdrawals) : '****'}
                   </div>
-                  <div className="text-xs text-gray-500">Total Withdrawals</div>
+                  <div className="text-xs text-gray-500 dark:text-slate-400">Total Withdrawals</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-lg font-semibold text-orange-600">
+                  <div className="text-lg font-semibold text-orange-600 dark:text-orange-400">
                     {activeLoanCount}
                   </div>
-                  <div className="text-xs text-gray-500">Active Loans</div>
+                  <div className="text-xs text-gray-500 dark:text-slate-400">Active Loans</div>
                 </div>
               </div>
             </div>
@@ -159,13 +159,13 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
       </Card>
 
       {/* Navigation Tabs */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg dark:bg-slate-900">
         <button
           onClick={() => setSelectedTab('overview')}
           className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
             selectedTab === 'overview'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-400'
+              : 'text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-slate-100'
           }`}
         >
           <DollarSign className="h-4 w-4" />
@@ -175,8 +175,8 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
           onClick={() => setSelectedTab('transactions')}
           className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
             selectedTab === 'transactions'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-400'
+              : 'text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-slate-100'
           }`}
         >
           <History className="h-4 w-4" />
@@ -186,8 +186,8 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
           onClick={() => setSelectedTab('loans')}
           className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
             selectedTab === 'loans'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-400'
+              : 'text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-slate-100'
           }`}
         >
           <CreditCard className="h-4 w-4" />
@@ -213,22 +213,22 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
               ) : recentTransactions.length > 0 ? (
                 <div className="space-y-3">
                   {recentTransactions.map((transaction) => (
-                    <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg dark:bg-slate-900">
                       <div className="flex items-center gap-3">
                         {transaction.type === 'DEPOSIT' ? (
-                          <TrendingUp className="h-4 w-4 text-green-600" />
+                          <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
                         ) : (
-                          <TrendingDown className="h-4 w-4 text-red-600" />
+                          <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
                         )}
                         <div>
                           <p className="font-medium text-sm">{transaction.description}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 dark:text-slate-400">
                             {new Date(transaction.createdAt).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
                       <span className={`font-semibold ${
-                        transaction.type === 'DEPOSIT' ? 'text-green-600' : 'text-red-600'
+                        transaction.type === 'DEPOSIT' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                       }`}>
                         {transaction.type === 'DEPOSIT' ? '+' : '-'}{formatCurrency(transaction.amount)}
                       </span>
@@ -236,7 +236,7 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-4">No transactions yet</p>
+                <p className="text-gray-500 text-center py-4 dark:text-slate-400">No transactions yet</p>
               )}
             </CardContent>
           </Card>
@@ -255,26 +255,26 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
                 </div>
               ) : loans.length > 0 ? (
                 <div className="space-y-3">
-                  <div className="text-center p-4 bg-orange-50 rounded-lg">
-                    <p className="text-2xl font-bold text-orange-600">{formatCurrency(totalLoans)}</p>
-                    <p className="text-sm text-gray-600">Total Loan Amount</p>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg dark:bg-orange-950/40">
+                    <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{formatCurrency(totalLoans)}</p>
+                    <p className="text-sm text-gray-600 dark:text-slate-300">Total Loan Amount</p>
                   </div>
                   {loans.slice(0, 3).map((loan) => (
-                    <div key={loan.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={loan.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg dark:bg-slate-900">
                       <div>
                         <p className="font-medium text-sm">{loan.purpose}</p>
                         <Badge variant={loan.status === 'ACTIVE' ? 'default' : 'secondary'} className="text-xs">
                           {loan.status}
                         </Badge>
                       </div>
-                      <span className="font-semibold text-orange-600">
+                      <span className="font-semibold text-orange-600 dark:text-orange-400">
                         {formatCurrency(loan.amount)}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-4">No loans</p>
+                <p className="text-gray-500 text-center py-4 dark:text-slate-400">No loans</p>
               )}
             </CardContent>
           </Card>
@@ -299,17 +299,17 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
                   <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center gap-4">
                       {transaction.type === 'DEPOSIT' ? (
-                        <div className="p-2 bg-green-100 rounded-full">
-                          <TrendingUp className="h-4 w-4 text-green-600" />
+                        <div className="p-2 bg-green-100 rounded-full dark:bg-green-950/40">
+                          <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
                         </div>
                       ) : (
-                        <div className="p-2 bg-red-100 rounded-full">
-                          <TrendingDown className="h-4 w-4 text-red-600" />
+                        <div className="p-2 bg-red-100 rounded-full dark:bg-red-950/40">
+                          <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
                         </div>
                       )}
                       <div>
                         <p className="font-medium">{transaction.description}</p>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-slate-400">
                           <Calendar className="h-3 w-3" />
                           {new Date(transaction.createdAt).toLocaleDateString()}
                         </div>
@@ -317,11 +317,11 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
                     </div>
                     <div className="text-right">
                       <span className={`font-bold text-lg ${
-                        transaction.type === 'DEPOSIT' ? 'text-green-600' : 'text-red-600'
+                        transaction.type === 'DEPOSIT' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                       }`}>
                         {transaction.type === 'DEPOSIT' ? '+' : '-'}{formatCurrency(transaction.amount)}
                       </span>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-slate-400">
                         Balance: {formatCurrency(transaction.balance)}
                       </p>
                     </div>
@@ -330,8 +330,8 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
               </div>
             ) : (
               <div className="text-center py-8">
-                <History className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No transactions yet</p>
+                <History className="h-12 w-12 text-gray-400 mx-auto mb-4 dark:text-slate-400" />
+                <p className="text-gray-500 dark:text-slate-400">No transactions yet</p>
               </div>
             )}
           </CardContent>
@@ -362,17 +362,17 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                       <div>
-                        <p className="text-gray-500">Amount</p>
+                        <p className="text-gray-500 dark:text-slate-400">Amount</p>
                         <p className="font-semibold">{formatCurrency(loan.amount)}</p>
                       </div>
                       <div>
-                        <p className="text-gray-500">Date Issued</p>
+                        <p className="text-gray-500 dark:text-slate-400">Date Issued</p>
                         <p className="font-semibold">
                           {new Date(loan.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-500">Due Date</p>
+                        <p className="text-gray-500 dark:text-slate-400">Due Date</p>
                         <p className="font-semibold">
                           {loan.repaymentDate ? new Date(loan.repaymentDate).toLocaleDateString() : 'N/A'}
                         </p>
@@ -383,8 +383,8 @@ export function PupilBankingSection({ banking, isLoading = false, error }: Pupil
               </div>
             ) : (
               <div className="text-center py-8">
-                <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No loans</p>
+                <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4 dark:text-slate-400" />
+                <p className="text-gray-500 dark:text-slate-400">No loans</p>
               </div>
             )}
           </CardContent>

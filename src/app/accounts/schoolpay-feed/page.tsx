@@ -92,25 +92,25 @@ const STATUS_CONFIG: Record<TxStatus, {
   labelBg: string;
 }> = {
   new: {
-    border: 'border-orange-300',
-    bg: 'from-orange-50 via-amber-50 to-orange-50',
+    border: 'border-orange-300 dark:border-orange-800/60',
+    bg: 'from-orange-50 via-amber-50 to-orange-50 dark:from-orange-950/40 dark:via-amber-950/40 dark:to-orange-950/40',
     dot: 'bg-orange-500 animate-pulse',
     label: 'New',
-    labelBg: 'bg-orange-100 text-orange-700 border border-orange-200',
+    labelBg: 'bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800/60',
   },
   seen: {
-    border: 'border-blue-300',
-    bg: 'from-blue-50 via-indigo-50 to-blue-50',
+    border: 'border-blue-300 dark:border-blue-800/60',
+    bg: 'from-blue-50 via-indigo-50 to-blue-50 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-blue-950/40',
     dot: 'bg-blue-400',
     label: 'Seen',
-    labelBg: 'bg-blue-100 text-blue-700 border border-blue-200',
+    labelBg: 'bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60',
   },
   clicked: {
-    border: 'border-emerald-300',
-    bg: 'from-emerald-50 via-green-50 to-emerald-50',
+    border: 'border-emerald-300 dark:border-emerald-800/60',
+    bg: 'from-emerald-50 via-green-50 to-emerald-50 dark:from-emerald-950/40 dark:via-green-950/40 dark:to-emerald-950/40',
     dot: 'bg-emerald-500',
     label: 'Viewed',
-    labelBg: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+    labelBg: 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60',
   },
 };
 
@@ -181,38 +181,38 @@ function TransactionCard({
     allTermLabels.get(`${yearId}::${termId}`) || allTermLabels.get(termId) || termId;
 
   return (
-    <div className={`rounded-xl border-l-4 ${cfg.border} border border-gray-100 shadow-sm overflow-hidden bg-white hover:shadow-md transition-shadow`}>
+    <div className={`rounded-xl border-l-4 ${cfg.border} border border-gray-100 shadow-sm overflow-hidden bg-white hover:shadow-md transition-shadow dark:border-slate-700 dark:bg-slate-900`}>
 
       {/* Collapsed / Summary row */}
       <button
         onClick={() => setExpanded(p => !p)}
-        className="w-full text-left px-3 py-2.5 hover:bg-gray-50/60 transition-colors"
+        className="w-full text-left px-3 py-2.5 hover:bg-gray-50/60 transition-colors dark:hover:bg-slate-900/60"
       >
         <div className="grid grid-cols-[auto,minmax(0,1.7fr),minmax(80px,0.65fr),minmax(110px,0.75fr),minmax(120px,0.75fr),auto] items-center gap-2.5 max-lg:grid-cols-[auto,minmax(0,1fr),auto] max-lg:items-start">
           <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cfg.dot}`} />
 
           <div className="min-w-0">
-            <p className="font-extrabold text-gray-900 text-sm leading-snug truncate">{pupilName}</p>
-            <p className="text-[11px] text-gray-400 leading-tight truncate">{tx.payerName && tx.payerName !== '—' ? tx.payerName : 'SchoolPay payer'}</p>
+            <p className="font-extrabold text-gray-900 text-sm leading-snug truncate dark:text-slate-100">{pupilName}</p>
+            <p className="text-[11px] text-gray-400 leading-tight truncate dark:text-slate-400">{tx.payerName && tx.payerName !== '—' ? tx.payerName : 'SchoolPay payer'}</p>
           </div>
 
           <div className="min-w-0 max-lg:col-start-2 max-lg:row-start-2">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Class</p>
-            <p className="text-[11px] font-semibold text-gray-600 truncate">
+            <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400 dark:text-slate-400">Class</p>
+            <p className="text-[11px] font-semibold text-gray-600 truncate dark:text-slate-300">
               {[classLabel, sectionLabel].filter(Boolean).join(' · ') || 'N/A'}
             </p>
           </div>
 
           <div className="min-w-0 max-lg:col-start-2 max-lg:row-start-3">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Pay Code</p>
-            <p className="text-[11px] font-mono font-semibold text-violet-500 truncate">{tx.payCode || 'N/A'}</p>
+            <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400 dark:text-slate-400">Pay Code</p>
+            <p className="text-[11px] font-mono font-semibold text-violet-500 truncate dark:text-violet-400">{tx.payCode || 'N/A'}</p>
           </div>
 
           <div className="min-w-0 max-lg:col-start-2 max-lg:row-start-4">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Amount</p>
+            <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400 dark:text-slate-400">Amount</p>
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-bold text-gray-900 text-sm">{fmt(tx.totalAmount)}</span>
-              <span className="font-bold text-gray-500 text-xs">{fmtTime(tx.paymentDate)}</span>
+              <span className="font-bold text-gray-900 text-sm dark:text-slate-100">{fmt(tx.totalAmount)}</span>
+              <span className="font-bold text-gray-500 text-xs dark:text-slate-400">{fmtTime(tx.paymentDate)}</span>
               {tx.termGroups.length > 1 && (
                 <span className="text-[9px] bg-fuchsia-100 text-fuchsia-700 rounded-full px-1.5 py-0.5 font-semibold">
                   Split·{tx.termGroups.length}t
@@ -233,7 +233,7 @@ function TransactionCard({
                 View <ExternalLink size={10} />
               </button>
             )}
-            <div className="text-gray-400">
+            <div className="text-gray-400 dark:text-slate-400">
               {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             </div>
           </div>
@@ -242,18 +242,18 @@ function TransactionCard({
 
       {/* Expanded details */}
       {expanded && (
-        <div className="border-t border-gray-100">
+        <div className="border-t border-gray-100 dark:border-slate-700">
           {/* Hidden-in-collapsed meta row */}
-          <div className="px-3 py-2 flex flex-wrap items-center gap-1.5 bg-gray-50/50 border-b border-gray-100">
+          <div className="px-3 py-2 flex flex-wrap items-center gap-1.5 bg-gray-50/50 border-b border-gray-100 dark:bg-slate-900/50 dark:border-slate-700">
             <span className={`text-[9px] font-semibold rounded-full px-1.5 py-0.5 ${cfg.labelBg}`}>{cfg.label}</span>
             {tx.paymentMethod && (
-              <span className="text-[10px] bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{tx.paymentMethod}</span>
+              <span className="text-[10px] bg-gray-100 text-gray-600 rounded-full px-2 py-0.5 dark:bg-slate-900 dark:text-slate-300">{tx.paymentMethod}</span>
             )}
             {tx.payerName && tx.payerName !== '—' && (
-              <span className="text-[10px] text-gray-500">Payer: <strong>{tx.payerName}</strong></span>
+              <span className="text-[10px] text-gray-500 dark:text-slate-400">Payer: <strong>{tx.payerName}</strong></span>
             )}
             {tx.txRef && (
-              <span className="text-[9px] font-mono text-gray-400 truncate">Ref: {tx.txRef}</span>
+              <span className="text-[9px] font-mono text-gray-400 truncate dark:text-slate-400">Ref: {tx.txRef}</span>
             )}
           </div>
 
@@ -267,17 +267,17 @@ function TransactionCard({
                       → Pushed to {termLabel(group.termId, group.academicYearId)}
                     </span>
                   ) : (
-                    <span className="text-[9px] font-semibold text-violet-600 bg-violet-50 border border-violet-200 rounded-full px-2 py-0.5">
+                    <span className="text-[9px] font-semibold text-violet-600 bg-violet-50 border border-violet-200 rounded-full px-2 py-0.5 dark:text-violet-400 dark:bg-violet-950/40 dark:border-violet-800/60">
                       {termLabel(group.termId, group.academicYearId)}
                     </span>
                   )}
-                  <span className="text-[9px] text-gray-400 font-medium">{fmt(group.subTotal)}</span>
+                  <span className="text-[9px] text-gray-400 font-medium dark:text-slate-400">{fmt(group.subTotal)}</span>
                 </div>
                 <div className="grid gap-1 sm:grid-cols-2">
                   {group.payments.map(p => (
-                    <div key={p.id} className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5">
-                      <p className="text-[11px] font-medium text-gray-700 truncate">{feeLabel(p)}</p>
-                      <span className="ml-2 font-bold text-violet-800 text-[11px] shrink-0">{fmt(p.amount)}</span>
+                    <div key={p.id} className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5 dark:bg-slate-900 dark:border-slate-700">
+                      <p className="text-[11px] font-medium text-gray-700 truncate dark:text-slate-200">{feeLabel(p)}</p>
+                      <span className="ml-2 font-bold text-violet-800 text-[11px] shrink-0 dark:text-violet-200">{fmt(p.amount)}</span>
                     </div>
                   ))}
                 </div>
@@ -297,13 +297,13 @@ function TransactionCard({
 function AccessDenied() {
   const router = useRouter();
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-violet-50/20 to-purple-50/10">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-violet-50/20 to-purple-50/10 dark:from-slate-900 dark:via-violet-950/20 dark:to-purple-950/10">
       <div className="text-center p-10 max-w-xs mx-auto">
-        <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4">
+        <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4 dark:bg-red-950/40">
           <ShieldAlert size={28} className="text-red-400" />
         </div>
-        <p className="text-gray-700 font-bold text-lg">Access Restricted</p>
-        <p className="text-sm text-gray-400 mt-2 leading-relaxed">
+        <p className="text-gray-700 font-bold text-lg dark:text-slate-200">Access Restricted</p>
+        <p className="text-sm text-gray-400 mt-2 leading-relaxed dark:text-slate-400">
           You don't have permission to view the SchoolPay Live Feed.<br />
           Contact your administrator to request access.
         </p>
@@ -541,7 +541,7 @@ function FeedContent() {
   }, [payments]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/20 to-purple-50/10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/20 to-purple-50/10 dark:from-slate-900 dark:via-violet-950/20 dark:to-purple-950/10">
       <GlassPageTopBar
         title="SchoolPay Live Feed"
         subtitle="Real-time SchoolPay payment transactions"
@@ -551,8 +551,8 @@ function FeedContent() {
           <div className="flex items-center gap-1.5 flex-wrap">
             <div className={`flex-shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
               connectionState === 'live'
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                : 'bg-amber-50 border-amber-200 text-amber-700'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800/60 dark:text-emerald-300'
+                : 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/40 dark:border-amber-800/60 dark:text-amber-300'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${
                 connectionState === 'live' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse'
@@ -564,54 +564,54 @@ function FeedContent() {
               onClick={() => setStatusFilter(prev => prev === 'today' ? 'all' : 'today')}
               className={`rounded-full border transition-all duration-200 active:scale-95 px-2 py-0.5 flex items-center gap-1 text-[10px] ${
                 statusFilter === 'today'
-                  ? 'bg-slate-200 border-slate-400 text-slate-900 font-extrabold ring-2 ring-slate-400/40 shadow-md scale-105'
-                  : 'bg-white/80 border-gray-200/60 shadow-sm hover:bg-gray-100/70'
+                  ? 'bg-slate-200 border-slate-400 text-slate-900 font-extrabold ring-2 ring-slate-400/40 shadow-md scale-105 dark:bg-slate-800 dark:text-slate-100'
+                  : 'bg-white/80 border-gray-200/60 shadow-sm hover:bg-gray-100/70 dark:bg-slate-900/80 dark:border-slate-700/60 dark:hover:bg-slate-900/70'
               }`}
               title={statusFilter === 'today' ? "Click to clear filter" : "Filter by payments received today"}
             >
-              <span className="font-bold text-gray-500 uppercase">Today:</span>
-              <span className="font-bold text-gray-900">{fmt(totalToday)}</span>
+              <span className="font-bold text-gray-500 uppercase dark:text-slate-400">Today:</span>
+              <span className="font-bold text-gray-900 dark:text-slate-100">{fmt(totalToday)}</span>
             </button>
             <button
               onClick={() => setStatusFilter(prev => prev === 'new' ? 'all' : 'new')}
               className={`rounded-full border transition-all duration-200 active:scale-95 px-2 py-0.5 flex items-center gap-1 text-[10px] ${
                 statusFilter === 'new'
-                  ? 'bg-orange-100 border-orange-400 text-orange-900 font-extrabold ring-2 ring-orange-400/40 shadow-md scale-105'
-                  : 'bg-orange-50 border-orange-200/55 shadow-sm hover:bg-orange-100/60'
+                  ? 'bg-orange-100 border-orange-400 text-orange-900 font-extrabold ring-2 ring-orange-400/40 shadow-md scale-105 dark:bg-orange-950/40 dark:text-orange-200'
+                  : 'bg-orange-50 border-orange-200/55 shadow-sm hover:bg-orange-100/60 dark:bg-orange-950/40 dark:border-orange-800/55 dark:hover:bg-orange-950/60'
               }`}
               title={statusFilter === 'new' ? "Click to clear filter" : "Filter by new unread payments"}
             >
-              <span className="font-bold text-orange-500 uppercase">New:</span>
-              <span className="font-bold text-orange-700">{newCount}</span>
+              <span className="font-bold text-orange-500 uppercase dark:text-orange-400">New:</span>
+              <span className="font-bold text-orange-700 dark:text-orange-300">{newCount}</span>
             </button>
             <button
               onClick={() => setStatusFilter(prev => prev === 'seen' ? 'all' : 'seen')}
               className={`rounded-full border transition-all duration-200 active:scale-95 px-2 py-0.5 flex items-center gap-1 text-[10px] ${
                 statusFilter === 'seen'
-                  ? 'bg-blue-100 border-blue-400 text-blue-900 font-extrabold ring-2 ring-blue-400/40 shadow-md scale-105'
-                  : 'bg-blue-50 border-blue-200/55 shadow-sm hover:bg-blue-100/60'
+                  ? 'bg-blue-100 border-blue-400 text-blue-900 font-extrabold ring-2 ring-blue-400/40 shadow-md scale-105 dark:bg-blue-950/40 dark:text-blue-200'
+                  : 'bg-blue-50 border-blue-200/55 shadow-sm hover:bg-blue-100/60 dark:bg-blue-950/40 dark:border-blue-800/55 dark:hover:bg-blue-950/60'
               }`}
               title={statusFilter === 'seen' ? "Click to clear filter" : "Filter by viewed/seen payments"}
             >
-              <span className="font-bold text-blue-500 uppercase">Seen:</span>
-              <span className="font-bold text-blue-700">{seenCount}</span>
+              <span className="font-bold text-blue-500 uppercase dark:text-blue-400">Seen:</span>
+              <span className="font-bold text-blue-700 dark:text-blue-300">{seenCount}</span>
             </button>
             <button
               onClick={() => setStatusFilter(prev => prev === 'clicked' ? 'all' : 'clicked')}
               className={`rounded-full border transition-all duration-200 active:scale-95 px-2 py-0.5 flex items-center gap-1 text-[10px] ${
                 statusFilter === 'clicked'
-                  ? 'bg-emerald-100 border-emerald-400 text-emerald-900 font-extrabold ring-2 ring-emerald-400/40 shadow-md scale-105'
-                  : 'bg-emerald-50 border-emerald-200/55 shadow-sm hover:bg-emerald-100/60'
+                  ? 'bg-emerald-100 border-emerald-400 text-emerald-900 font-extrabold ring-2 ring-emerald-400/40 shadow-md scale-105 dark:bg-emerald-950/40 dark:text-emerald-200'
+                  : 'bg-emerald-50 border-emerald-200/55 shadow-sm hover:bg-emerald-100/60 dark:bg-emerald-950/40 dark:border-emerald-800/55 dark:hover:bg-emerald-950/60'
               }`}
               title={statusFilter === 'clicked' ? "Click to clear filter" : "Filter by processed/viewed fees"}
             >
-              <span className="font-bold text-emerald-500 uppercase">Done:</span>
-              <span className="font-bold text-emerald-700">{clickedCount}</span>
+              <span className="font-bold text-emerald-500 uppercase dark:text-emerald-400">Done:</span>
+              <span className="font-bold text-emerald-700 dark:text-emerald-300">{clickedCount}</span>
             </button>
             {statusFilter !== 'all' && (
               <button
                 onClick={() => setStatusFilter('all')}
-                className="text-[9px] font-bold text-violet-600 hover:text-violet-800 transition-colors uppercase px-1 py-0.5 border border-dashed border-violet-300 rounded hover:bg-violet-50/50"
+                className="text-[9px] font-bold text-violet-600 hover:text-violet-800 transition-colors uppercase px-1 py-0.5 border border-dashed border-violet-300 rounded hover:bg-violet-50/50 dark:text-violet-400 dark:hover:text-violet-200 dark:border-violet-800/60 dark:hover:bg-violet-950/50"
               >
                 Clear Filter
               </button>
@@ -628,8 +628,8 @@ function FeedContent() {
         {unresolvedPayments.length > 0 && (
           <section aria-labelledby="schoolpay-recovery-heading" className="space-y-3">
             <div>
-              <h2 id="schoolpay-recovery-heading" className="font-bold text-slate-950">Payments needing attention ({unresolvedPayments.length})</h2>
-              <p className="text-xs text-slate-500">These receipts were safely received but have not yet been added to pupil fees.</p>
+              <h2 id="schoolpay-recovery-heading" className="font-bold text-slate-950 dark:text-slate-100">Payments needing attention ({unresolvedPayments.length})</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">These receipts were safely received but have not yet been added to pupil fees.</p>
             </div>
             {unresolvedPayments.map(record => <SchoolPayInboxCard key={record.id} record={record} compact />)}
           </section>
@@ -638,11 +638,11 @@ function FeedContent() {
         {/* Feed */}
         {payments.length === 0 && !isLoadingPupils ? (
           <div className="text-center py-16">
-            <div className="w-12 h-12 rounded-2xl bg-violet-100 flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 rounded-2xl bg-violet-100 flex items-center justify-center mx-auto mb-3 dark:bg-violet-950/40">
               <Zap size={22} className="text-violet-400" />
             </div>
-            <p className="text-gray-500 font-medium text-sm">No SchoolPay payments recorded yet</p>
-            <p className="text-xs text-gray-400 mt-1">Payments appear here in real time as they arrive</p>
+            <p className="text-gray-500 font-medium text-sm dark:text-slate-400">No SchoolPay payments recorded yet</p>
+            <p className="text-xs text-gray-400 mt-1 dark:text-slate-400">Payments appear here in real time as they arrive</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -650,11 +650,11 @@ function FeedContent() {
               <section key={day.dateKey}>
                 {/* Date header */}
                 <div className="flex items-center gap-2 mb-2">
-                  <Calendar size={13} className="text-violet-500 flex-shrink-0" />
-                  <span className="font-bold text-gray-800 text-sm">{day.dateLabel}</span>
-                  <div className="flex-1 h-px bg-gray-200" />
-                  <span className="text-[11px] text-gray-500">{day.transactions.length} payment{day.transactions.length !== 1 ? 's' : ''}</span>
-                  <span className="text-[11px] font-bold text-violet-700 bg-violet-100 rounded-full px-2 py-0.5">{fmt(day.dayTotal)}</span>
+                  <Calendar size={13} className="text-violet-500 flex-shrink-0 dark:text-violet-400" />
+                  <span className="font-bold text-gray-800 text-sm dark:text-slate-100">{day.dateLabel}</span>
+                  <div className="flex-1 h-px bg-gray-200 dark:bg-slate-800" />
+                  <span className="text-[11px] text-gray-500 dark:text-slate-400">{day.transactions.length} payment{day.transactions.length !== 1 ? 's' : ''}</span>
+                  <span className="text-[11px] font-bold text-violet-700 bg-violet-100 rounded-full px-2 py-0.5 dark:text-violet-300 dark:bg-violet-950/40">{fmt(day.dayTotal)}</span>
                 </div>
 
                 {/* Transactions */}
@@ -677,7 +677,7 @@ function FeedContent() {
         {/* Loading hint */}
         {isLoadingPupils && payments.length > 0 && (
           <div className="text-center py-3">
-            <div className="inline-flex items-center gap-2 text-xs text-gray-400">
+            <div className="inline-flex items-center gap-2 text-xs text-gray-400 dark:text-slate-400">
               <RefreshCw size={12} className="animate-spin" />
               Loading pupil details…
             </div>

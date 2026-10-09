@@ -234,12 +234,12 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
   if (error) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="bg-white p-8 rounded-2xl shadow-lg border border-red-200 text-center max-w-md w-full">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <XCircle className="w-8 h-8 text-red-500" />
+        <div className="bg-white p-8 rounded-2xl shadow-lg border border-red-200 text-center max-w-md w-full dark:bg-slate-900 dark:border-red-800/60">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-red-950/40">
+            <XCircle className="w-8 h-8 text-red-500 dark:text-red-400" />
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Uniforms</h2>
-          <p className="text-gray-600 mb-6">Failed to load uniforms. Please try again later.</p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2 dark:text-slate-100">Error Loading Uniforms</h2>
+          <p className="text-gray-600 mb-6 dark:text-slate-300">Failed to load uniforms. Please try again later.</p>
           <Button 
             onClick={() => void refetch()}
             disabled={isFetching}
@@ -257,7 +257,7 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
     <div className="space-y-6">
       {/* Filters */}
       {showFilters && (
-        <Card className="border-gray-200">
+        <Card className="border-gray-200 dark:border-slate-700">
           <CardHeader className="py-3 px-4">
             <CardTitle className="text-sm font-semibold">Filter Uniforms</CardTitle>
           </CardHeader>
@@ -265,11 +265,11 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Gender Filter */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-600">Gender</label>
+                <label className="text-sm font-medium text-gray-600 dark:text-slate-300">Gender</label>
                 <select
                   value={filterGender}
                   onChange={(e) => setFilterGender(e.target.value as UniformGender | '')}
-                  className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white dark:border-slate-700 dark:bg-slate-900"
                 >
                   <option value="">All Genders</option>
                   <option value="all">All Students</option>
@@ -280,11 +280,11 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
 
               {/* Class Filter */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-600">Class</label>
+                <label className="text-sm font-medium text-gray-600 dark:text-slate-300">Class</label>
                 <select
                   value={filterClass}
                   onChange={(e) => setFilterClass(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white dark:border-slate-700 dark:bg-slate-900"
                 >
                   <option value="">All Classes</option>
                   {(classes || []).map((cls: Class) => (
@@ -295,11 +295,11 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
 
               {/* Section Filter */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-600">Section</label>
+                <label className="text-sm font-medium text-gray-600 dark:text-slate-300">Section</label>
                 <select
                   value={filterSection}
                   onChange={(e) => setFilterSection(e.target.value as UniformSection | '')}
-                  className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white dark:border-slate-700 dark:bg-slate-900"
                 >
                   <option value="">All Sections</option>
                   <option value="Day">Day Section</option>
@@ -309,11 +309,11 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
 
               {/* Group Filter */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-600">Group</label>
+                <label className="text-sm font-medium text-gray-600 dark:text-slate-300">Group</label>
                 <select
                   value={filterGroup}
                   onChange={(e) => setFilterGroup(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white dark:border-slate-700 dark:bg-slate-900"
                 >
                   <option value="">All Groups</option>
                   {uniqueGroups.map((group) => (
@@ -327,11 +327,11 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
       )}
 
       {/* Uniforms Grid */}
-      <Card className="border-gray-200 shadow-sm">
+      <Card className="border-gray-200 shadow-sm dark:border-slate-700">
         <CardHeader className="py-4 px-6 flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-lg font-semibold text-gray-900">Uniform Items</CardTitle>
-            <p className="text-sm text-gray-600">
+            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-slate-100">Uniform Items</CardTitle>
+            <p className="text-sm text-gray-600 dark:text-slate-300">
               {catalogueLoading ? 'Loading uniforms...' : (
                 <>
                   {filteredUniforms.length} of {totalUniforms} uniforms
@@ -346,7 +346,7 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
             <div className="p-6 space-y-4">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="animate-pulse">
-                  <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-lg dark:bg-slate-900">
                     <div className="space-y-2 flex-1">
                       <Skeleton className="h-4 w-3/4" />
                       <Skeleton className="h-3 w-1/2" />
@@ -362,13 +362,13 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
             </div>
           ) : filteredUniforms.length === 0 ? (
             <div className="text-center py-12 px-4">
-              <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <Shirt className="w-8 h-8 text-gray-400" />
+              <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 dark:bg-slate-900">
+                <Shirt className="w-8 h-8 text-gray-400 dark:text-slate-400" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <h3 className="text-lg font-medium text-gray-900 mb-2 dark:text-slate-100">
                 {uniforms.length === 0 ? 'No uniforms yet' : 'No matching uniforms'}
               </h3>
-              <p className="text-gray-600 mb-6 max-w-sm mx-auto">
+              <p className="text-gray-600 mb-6 max-w-sm mx-auto dark:text-slate-300">
                 {uniforms.length === 0 
                   ? 'Get started by adding the first uniform item for your school.'
                   : 'Try adjusting your filters to see more uniforms.'
@@ -385,24 +385,24 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
               )}
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-gray-100 dark:divide-slate-700">
               {filteredUniforms.map((uniform) => (
-                <div key={uniform.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
+                <div key={uniform.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors dark:hover:bg-slate-900">
                   <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                     {/* Uniform Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-3">
-                        <div className="p-2 bg-purple-100 rounded-lg shrink-0">
-                          <Shirt className="w-5 h-5 text-purple-600" />
+                        <div className="p-2 bg-purple-100 rounded-lg shrink-0 dark:bg-purple-950/40">
+                          <Shirt className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <h3 className="text-base font-semibold text-gray-900 truncate">
+                            <h3 className="text-base font-semibold text-gray-900 truncate dark:text-slate-100">
                               {uniform.name}
                             </h3>
                             <Badge 
                               variant="outline" 
-                              className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                              className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60"
                             >
                               {uniform.group}
                             </Badge>
@@ -414,14 +414,14 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
                             </Badge>
                             <Badge 
                               variant={uniform.isActive ? 'default' : 'outline'}
-                              className={`text-xs ${uniform.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}
+                              className={`text-xs ${uniform.isActive ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200' : 'bg-gray-100 text-gray-600 dark:bg-slate-900 dark:text-slate-300'}`}
                             >
                               {uniform.isActive ? '✅ Active' : '❌ Inactive'}
                             </Badge>
                           </div>
                           
                           {uniform.description && (
-                            <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                            <p className="text-sm text-gray-600 mb-3 line-clamp-2 dark:text-slate-300">
                               {uniform.description}
                             </p>
                           )}
@@ -429,22 +429,22 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
                           {/* Details Grid */}
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                             <div>
-                              <p className="text-gray-500 text-xs">Price</p>
-                              <p className="font-medium text-purple-700">
+                              <p className="text-gray-500 text-xs dark:text-slate-400">Price</p>
+                              <p className="font-medium text-purple-700 dark:text-purple-300">
                                 {formatCurrency(uniform.price)}
                               </p>
                             </div>
                             
                             <div>
-                              <p className="text-gray-500 text-xs">Classes</p>
-                              <p className="font-medium text-gray-900">
+                              <p className="text-gray-500 text-xs dark:text-slate-400">Classes</p>
+                              <p className="font-medium text-gray-900 dark:text-slate-100">
                                 {getClassLabel(uniform.classType, uniform.classIds)}
                               </p>
                             </div>
                             
                             <div>
-                              <p className="text-gray-500 text-xs">Section</p>
-                              <p className="font-medium text-gray-900">
+                              <p className="text-gray-500 text-xs dark:text-slate-400">Section</p>
+                              <p className="font-medium text-gray-900 dark:text-slate-100">
                                 {getSectionLabel(uniform.sectionType, uniform.section)}
                               </p>
                             </div>
@@ -459,7 +459,7 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
                         onClick={() => handleToggleStatus(uniform.id, uniform.isActive)}
                         size="sm"
                         variant="outline"
-                        className={`text-xs ${uniform.isActive ? 'text-orange-600 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`}
+                        className={`text-xs ${uniform.isActive ? 'text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/40' : 'text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/40'}`}
                       >
                         {uniform.isActive ? (
                           <>
@@ -488,7 +488,7 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
                         onClick={() => handleDelete(uniform.id)}
                         variant="outline"
                         size="sm"
-                        className="text-xs text-red-600 hover:bg-red-50"
+                        className="text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
                       >
                         <Trash2 className="w-3 h-3 mr-1" />
                         Delete

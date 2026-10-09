@@ -419,7 +419,7 @@ export function GranularPermissionsEditor({ permissions, onChange, modules }: Gr
                                                       className="mt-0.5"
                                                     />
                                                     <span>
-                                                      <span className="flex items-center gap-1 text-sm font-medium">{action.name}{isAllowed && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}</span>
+                                                      <span className="flex items-center gap-1 text-sm font-medium">{action.name}{isAllowed && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />}</span>
                                                       <span className="block text-xs text-muted-foreground">{action.description}</span>
                                                     </span>
                                                   </label>

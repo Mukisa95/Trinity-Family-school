@@ -56,7 +56,7 @@ export function CustomFeeNoteEditor({pupil, choices, academicYearId, termId, loa
   const schedule = new Date(`${date}T${time}:00+03:00`);
   let preview = message;
   try { if (Number.isFinite(schedule.getTime())) preview = renderCustomNote({custom: spec, pupilName: `${formatPupilDisplayName(pupil)}`.trim()}, previewRows, pupil.className || '', schedule); } catch { /* Partial editor input is allowed. */ }
-  const selectClass = 'min-h-11 min-w-0 max-w-full w-full rounded-xl border border-slate-300 bg-white px-3 text-sm';
+  const selectClass = 'min-h-11 min-w-0 max-w-full w-full rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900';
   function insert(field: CustomNoteField) {
     const same = fields.find(item => JSON.stringify({...item, label: ''}) === JSON.stringify({...field, label: ''}));
     const label = same?.label || (fields.some(item => item.label === field.label) ? `${field.label} ${fields.length + 1}` : field.label);
@@ -101,7 +101,7 @@ export function CustomFeeNoteEditor({pupil, choices, academicYearId, termId, loa
           <input type="checkbox" className="h-5 w-5" checked={selected.includes(item.key)} disabled={loading} onChange={event => changeSelection(item.key, event.target.checked)} />
           <span className="min-w-0 break-words">{item.scope.feeName} · {item.scope.academicYearName} {item.scope.termName} · {reminderAmountLabel(item.balance)} balance</span>
         </label>)}{!choices.length && <p className="p-2 text-sm">No verified fee items are available for this period.</p>}</div>
-        <p className="text-xs text-slate-600">Balances refer to these selected items and terms. Cleared items can be included.</p>
+        <p className="text-xs text-slate-600 dark:text-slate-300">Balances refer to these selected items and terms. Cleared items can be included.</p>
       </fieldset>
       <div className="grid gap-3 sm:grid-cols-2">
         <div><Label htmlFor="custom-note-field">Insert live information</Label><select id="custom-note-field" value={metric} onChange={event => setMetric(event.target.value as CustomMetric)} className={selectClass}>
@@ -112,7 +112,7 @@ export function CustomFeeNoteEditor({pupil, choices, academicYearId, termId, loa
       <Button type="button" variant="outline" className="min-h-11" disabled={!selectedChoices.length && !['pupil_name', 'class', 'date', 'time'].includes(metric) || fields.length >= 50} onClick={() => insert({
         label: `${scopeIndexes ? `${selectedChoices[scopeIndexes[0]]?.scope.feeName} · ` : ''}${CUSTOM_NOTE_METRICS[metric]}`, metric, ...(scopeIndexes ? {scopeIndexes} : {})})}>Insert into note</Button>
       <details className="rounded-xl border p-3"><summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">Insert a calculation</summary>
-        <p className="mb-3 text-xs text-slate-600">Add or subtract fee totals, paid amounts, balances or a number. Uses the fee selection above.</p>
+        <p className="mb-3 text-xs text-slate-600 dark:text-slate-300">Add or subtract fee totals, paid amounts, balances or a number. Uses the fee selection above.</p>
         <div className="grid gap-3 sm:grid-cols-3">
           <div><Label htmlFor="custom-calc-left">First amount</Label><select id="custom-calc-left" className={selectClass} value={left} onChange={event => setLeft(event.target.value as NumericMetric)}>{['fees', 'paid', 'balance', 'paid_since_note', 'remaining_to_target'].map(key => <option key={key} value={key}>{CUSTOM_NOTE_METRICS[key as NumericMetric]}</option>)}</select></div>
           <div><Label htmlFor="custom-calc-operation">Operation</Label><select id="custom-calc-operation" className={selectClass} value={operator} onChange={event => setOperator(event.target.value as '+' | '-')}><option value="-">Subtract</option><option value="+">Add</option></select></div>
@@ -124,14 +124,14 @@ export function CustomFeeNoteEditor({pupil, choices, academicYearId, termId, loa
       </details>
       <div><Label htmlFor="custom-note-condition">When to notify</Label><select id="custom-note-condition" value={condition} onChange={event => setCondition(event.target.value as CustomCondition)} className={selectClass}>{Object.entries(CUSTOM_NOTE_CONDITIONS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div>
       {needsTarget && <div><Label htmlFor="custom-note-target">Target amount (shillings)</Label><Input id="custom-note-target" type="number" required min="1" step="1" value={target} onChange={event => setTarget(event.target.value)} className="min-h-11" /></div>}
-      <p className="text-xs leading-5 text-slate-600">Payment targets count new payments dated from this note’s creation to its deadline, excluding reversals. “Fees cleared” and “target paid” send immediately when met, up to the deadline. Other conditions are checked at the chosen time.</p>
+      <p className="text-xs leading-5 text-slate-600 dark:text-slate-300">Payment targets count new payments dated from this note’s creation to its deadline, excluding reversals. “Fees cleared” and “target paid” send immediately when met, up to the deadline. Other conditions are checked at the chosen time.</p>
       <div className="grid gap-3 sm:grid-cols-2"><div><Label htmlFor="custom-note-date">Notification date / condition deadline</Label><Input id="custom-note-date" type="date" required min={reminderLocalDate()} value={date} onChange={event => setDate(event.target.value)} className="min-h-11" /></div>
         <div><Label htmlFor="custom-note-time">Time (East Africa)</Label><Input id="custom-note-time" type="time" required value={time} onChange={event => setTime(event.target.value)} className="min-h-11" /></div></div>
       {recipients(recipientIds, setRecipientIds)}
     </fieldset>
-    <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4"><p className="text-xs font-medium text-indigo-700">Preview using today’s figures</p><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{preview || 'Your message will appear here.'}</p>
-      <p className="mt-2 text-xs leading-5 text-slate-600">The sent message recalculates fees using the records at that time and payments dated up to the notification date. Future payments are unknown; this preview is not a forecast.</p></div>
-    {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-    <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 border-t bg-white/95 pt-3 pb-[env(safe-area-inset-bottom)]"><Button type="button" variant="outline" className="min-h-11" disabled={saving} onClick={onBack}>Back to notes</Button><Button type="submit" className="min-h-11" disabled={saving || loading}>{saving ? 'Saving…' : 'Save custom note'}</Button></div>
+    <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-800/60 dark:bg-indigo-950/40"><p className="text-xs font-medium text-indigo-700 dark:text-indigo-300">Preview using today’s figures</p><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{preview || 'Your message will appear here.'}</p>
+      <p className="mt-2 text-xs leading-5 text-slate-600 dark:text-slate-300">The sent message recalculates fees using the records at that time and payments dated up to the notification date. Future payments are unknown; this preview is not a forecast.</p></div>
+    {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">{error}</p>}
+    <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 border-t bg-white/95 pt-3 pb-[env(safe-area-inset-bottom)] dark:bg-slate-900/95"><Button type="button" variant="outline" className="min-h-11" disabled={saving} onClick={onBack}>Back to notes</Button><Button type="submit" className="min-h-11" disabled={saving || loading}>{saving ? 'Saving…' : 'Save custom note'}</Button></div>
   </form>;
 }

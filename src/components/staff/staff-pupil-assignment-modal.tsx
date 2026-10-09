@@ -218,7 +218,7 @@ export function StaffPupilAssignmentModal({
               {/* Search and Select All */}
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 dark:text-slate-400" />
                   <Input
                     placeholder="Search pupils by name, admission number, or class..."
                     value={searchTerm}
@@ -237,10 +237,10 @@ export function StaffPupilAssignmentModal({
               </div>
 
               {/* Results Count */}
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 dark:text-slate-300">
                 {filteredPupils.length} pupil{filteredPupils.length !== 1 ? "s" : ""} found
                 {selectedPupilIds.size > 0 && (
-                  <span className="ml-2 text-blue-600 font-medium">
+                  <span className="ml-2 text-blue-600 font-medium dark:text-blue-400">
                     ({selectedPupilIds.size} selected)
                   </span>
                 )}
@@ -250,11 +250,11 @@ export function StaffPupilAssignmentModal({
               <div className="flex-1 overflow-y-auto space-y-2">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                    <span className="ml-2 text-gray-600">Loading pupils...</span>
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
+                    <span className="ml-2 text-gray-600 dark:text-slate-300">Loading pupils...</span>
                   </div>
                 ) : filteredPupils.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
+                  <div className="text-center py-12 text-gray-500 dark:text-slate-400">
                     <User className="h-12 w-12 mx-auto mb-2 text-gray-300" />
                     <p>No pupils found matching your search.</p>
                   </div>
@@ -264,7 +264,7 @@ export function StaffPupilAssignmentModal({
                       key={pupil.id}
                       className={`cursor-pointer transition-all hover:shadow-md ${
                         selectedPupilIds.has(pupil.id)
-                          ? "ring-2 ring-blue-500 bg-blue-50"
+                          ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/40"
                           : ""
                       }`}
                       onClick={() => handleTogglePupil(pupil.id)}
@@ -286,7 +286,7 @@ export function StaffPupilAssignmentModal({
                           </Avatar>
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-gray-900">
+                              <h3 className="font-semibold text-gray-900 dark:text-slate-100">
                                 {formatPupilDisplayName(pupil)}
                               </h3>
                               <Badge variant={pupil.status === "Active" ? "default" : "secondary"}>
@@ -298,7 +298,7 @@ export function StaffPupilAssignmentModal({
                                 </Badge>
                               )}
                             </div>
-                            <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
+                            <div className="flex items-center gap-4 mt-1 text-sm text-gray-600 dark:text-slate-300">
                               <span>ID: {pupil.admissionNumber}</span>
                               {pupil.className && (
                                 <>
@@ -323,7 +323,7 @@ export function StaffPupilAssignmentModal({
             <div className="space-y-4 flex-1 flex flex-col overflow-hidden">
               {/* Search */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 dark:text-slate-400" />
                 <Input
                   placeholder="Search families..."
                   value={searchTerm}
@@ -343,7 +343,7 @@ export function StaffPupilAssignmentModal({
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <Users className="h-5 w-5 text-blue-600" />
+                            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                             <h3 className="font-semibold">
                               {familyId === "no-family" ? "No Family" : `Family ${familyId.slice(0, 8)}`}
                             </h3>
@@ -365,8 +365,8 @@ export function StaffPupilAssignmentModal({
                               key={pupil.id}
                               className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
                                 selectedPupilIds.has(pupil.id)
-                                  ? "bg-blue-50 border border-blue-200"
-                                  : "hover:bg-gray-50"
+                                  ? "bg-blue-50 border border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60"
+                                  : "hover:bg-gray-50 dark:hover:bg-slate-900"
                               }`}
                               onClick={() => handleTogglePupil(pupil.id)}
                             >
@@ -379,7 +379,7 @@ export function StaffPupilAssignmentModal({
                                 {pupil.photo ? (
                                   <AvatarImage src={pupil.photo} alt={formatPupilDisplayName(pupil)} />
                                 ) : null}
-                                <AvatarFallback className="bg-gray-200 text-gray-600 text-xs">
+                                <AvatarFallback className="bg-gray-200 text-gray-600 text-xs dark:bg-slate-800 dark:text-slate-300">
                                   {pupil.firstName[0]}{pupil.lastName[0]}
                                 </AvatarFallback>
                               </Avatar>
@@ -392,7 +392,7 @@ export function StaffPupilAssignmentModal({
                                     {pupil.status}
                                   </Badge>
                                 </div>
-                                <div className="text-xs text-gray-600">
+                                <div className="text-xs text-gray-600 dark:text-slate-300">
                                   {pupil.admissionNumber} • {pupil.className || "No Class"} • {pupil.section}
                                 </div>
                               </div>
@@ -409,13 +409,13 @@ export function StaffPupilAssignmentModal({
 
           <TabsContent value="edit" className="flex-1 flex flex-col overflow-hidden mt-4">
             <div className="space-y-4 flex-1 flex flex-col overflow-hidden">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 dark:text-slate-300">
                 Currently assigned pupils: {assignedPupils.length}
               </div>
 
               <div className="flex-1 overflow-y-auto space-y-2">
                 {assignedPupils.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
+                  <div className="text-center py-12 text-gray-500 dark:text-slate-400">
                     <User className="h-12 w-12 mx-auto mb-2 text-gray-300" />
                     <p>No pupils are currently assigned to this staff member.</p>
                   </div>
@@ -434,14 +434,14 @@ export function StaffPupilAssignmentModal({
                           </Avatar>
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-gray-900">
+                              <h3 className="font-semibold text-gray-900 dark:text-slate-100">
                                 {formatPupilDisplayName(pupil)}
                               </h3>
                               <Badge variant={pupil.status === "Active" ? "default" : "secondary"}>
                                 {pupil.status}
                               </Badge>
                             </div>
-                            <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
+                            <div className="flex items-center gap-4 mt-1 text-sm text-gray-600 dark:text-slate-300">
                               <span>ID: {pupil.admissionNumber}</span>
                               {pupil.className && (
                                 <>
@@ -482,7 +482,7 @@ export function StaffPupilAssignmentModal({
 
         {/* Footer Actions */}
         <div className="flex items-center justify-between pt-4 border-t mt-4">
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-600 dark:text-slate-300">
             {selectedPupilIds.size} pupil{selectedPupilIds.size !== 1 ? "s" : ""} selected
           </div>
           <div className="flex items-center gap-2">

@@ -1,5 +1,7 @@
 "use client";
 
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
@@ -119,6 +121,7 @@ export function ParentBottomNavigation({
         <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg rounded-full shadow-2xl border-2 border-blue-200 dark:border-blue-800 px-1.5 py-1.5">
           {/* Navigation Tabs - Compact Rounded Pill Design */}
           <div className="flex items-center gap-0.5">
+            <ThemeToggle />
             {navigationItems.map((item) => {
               const isActive = item.id === currentView;
               const isSettings = item.id === 'settings';
@@ -173,7 +176,7 @@ export function ParentBottomNavigation({
               <a
                 href="/parent/settings"
                 onClick={() => setIsSettingsOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 transition-colors duration-150"
+                className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 transition-colors duration-150 dark:hover:text-blue-300"
               >
                 <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0">
                   <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />

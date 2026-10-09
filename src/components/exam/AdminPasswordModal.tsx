@@ -67,12 +67,12 @@ export function AdminPasswordModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-red-100 rounded-full">
-              <Shield className="h-4 w-4 text-red-600" />
+            <div className="p-2 bg-red-100 rounded-full dark:bg-red-950/40">
+              <Shield className="h-4 w-4 text-red-600 dark:text-red-400" />
             </div>
             <div>
               <DialogTitle className="text-lg font-semibold">{title}</DialogTitle>
-              <DialogDescription className="text-sm text-gray-600">
+              <DialogDescription className="text-sm text-gray-600 dark:text-slate-300">
                 {description}
               </DialogDescription>
             </div>

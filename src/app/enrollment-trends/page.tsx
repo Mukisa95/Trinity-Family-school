@@ -303,12 +303,12 @@ export default function EnrollmentTrendsPage() {
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center space-y-4">
             <div className="relative">
-              <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
-              <Sparkles className="w-6 h-6 text-blue-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+              <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto dark:border-blue-800/60"></div>
+              <Sparkles className="w-6 h-6 text-blue-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 dark:text-blue-400" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-gray-700">Loading Enrollment Data</h3>
-              <p className="text-sm text-gray-500">
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-slate-200">Loading Enrollment Data</h3>
+              <p className="text-sm text-gray-500 dark:text-slate-400">
                 {pupilsLoading && 'Fetching pupil records... '}
                 {classesLoading && 'Loading class information... '}
               </p>
@@ -330,13 +330,13 @@ export default function EnrollmentTrendsPage() {
           backLabel="Dashboard"
         />
         <div className="max-w-7xl mx-auto px-4 py-8">
-          <Card className="w-full max-w-md bg-white/80 backdrop-blur-sm border-0 shadow-xl mx-auto">
+          <Card className="w-full max-w-md bg-white/80 backdrop-blur-sm border-0 shadow-xl mx-auto dark:bg-slate-900/80">
             <CardContent className="p-8 text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Users className="w-10 h-10 text-blue-600" />
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6 dark:from-blue-950/40 dark:to-indigo-950/40">
+                <Users className="w-10 h-10 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">No Enrollment Data Available</h3>
-              <p className="text-gray-600 mb-6 leading-relaxed">
+              <h3 className="text-xl font-bold text-gray-900 mb-3 dark:text-slate-100">No Enrollment Data Available</h3>
+              <p className="text-gray-600 mb-6 leading-relaxed dark:text-slate-300">
                 Start by adding student records to see comprehensive enrollment trends and analytics.
               </p>
               <Button onClick={() => router.push('/pupils')} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg">
@@ -366,10 +366,10 @@ export default function EnrollmentTrendsPage() {
         className="mb-1.5"
         meta={
           <div className="flex items-center gap-3">
-            <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100/80 whitespace-nowrap">
+            <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100/80 whitespace-nowrap dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/80">
               {stats.total} total
             </span>
-            <span className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-100/80 whitespace-nowrap">
+            <span className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-100/80 whitespace-nowrap dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/80">
               {stats.thisYear} this year
             </span>
           </div>
@@ -432,12 +432,12 @@ export default function EnrollmentTrendsPage() {
 
             {/* Dropdown Filters */}
             {showMobileFilters && (
-              <div className="mt-4 p-4 bg-white/60 rounded-lg border border-white/30 shadow-inner">
+              <div className="mt-4 p-4 bg-white/60 rounded-lg border border-white/30 shadow-inner dark:bg-slate-900/60 dark:border-slate-700/30">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="year-select" className="text-sm font-medium text-gray-700">Academic Year</Label>
+                    <Label htmlFor="year-select" className="text-sm font-medium text-gray-700 dark:text-slate-200">Academic Year</Label>
                     <Select value={selectedYear} onValueChange={setSelectedYear}>
-                      <SelectTrigger id="year-select" className="bg-white border-gray-200">
+                      <SelectTrigger id="year-select" className="bg-white border-gray-200 dark:bg-slate-900 dark:border-slate-700">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -452,9 +452,9 @@ export default function EnrollmentTrendsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="class-select" className="text-sm font-medium text-gray-700">Class Filter</Label>
+                    <Label htmlFor="class-select" className="text-sm font-medium text-gray-700 dark:text-slate-200">Class Filter</Label>
                     <Select value={selectedClass} onValueChange={setSelectedClass}>
-                      <SelectTrigger id="class-select" className="bg-white border-gray-200">
+                      <SelectTrigger id="class-select" className="bg-white border-gray-200 dark:bg-slate-900 dark:border-slate-700">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -469,34 +469,34 @@ export default function EnrollmentTrendsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="search" className="text-sm font-medium text-gray-700">Search Students</Label>
+                    <Label htmlFor="search" className="text-sm font-medium text-gray-700 dark:text-slate-200">Search Students</Label>
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-400" />
                       <Input
                         id="search"
                         placeholder="Name or admission number..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 bg-white border-gray-200 placeholder:text-gray-400"
+                        className="pl-10 bg-white border-gray-200 placeholder:text-gray-400 dark:bg-slate-900 dark:border-slate-700 dark:placeholder:text-slate-400"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">Current Selection</Label>
-                    <div className="bg-gray-50 rounded-md p-3 border border-gray-200">
+                    <Label className="text-sm font-medium text-gray-700 dark:text-slate-200">Current Selection</Label>
+                    <div className="bg-gray-50 rounded-md p-3 border border-gray-200 dark:bg-slate-900 dark:border-slate-700">
                       <div className="text-sm space-y-1">
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Year:</span>
+                          <span className="text-gray-600 dark:text-slate-300">Year:</span>
                           <span className="font-medium">{selectedYear === "all" ? "All" : selectedYear}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Class:</span>
+                          <span className="text-gray-600 dark:text-slate-300">Class:</span>
                           <span className="font-medium">{selectedClass === "all" ? "All" : selectedClass}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Found:</span>
-                          <span className="font-medium text-blue-600">{filteredData.length} records</span>
+                          <span className="text-gray-600 dark:text-slate-300">Found:</span>
+                          <span className="font-medium text-blue-600 dark:text-blue-400">{filteredData.length} records</span>
                         </div>
                       </div>
                     </div>
@@ -504,7 +504,7 @@ export default function EnrollmentTrendsPage() {
                 </div>
 
                 {/* Quick Filter Actions */}
-                <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-200">
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-200 dark:border-slate-700">
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -542,7 +542,7 @@ export default function EnrollmentTrendsPage() {
 
         {/* Compact Main Content Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm shadow-lg h-10">
+          <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm shadow-lg h-10 dark:bg-slate-900/80">
             <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-xs">
               <Eye className="w-3.5 h-3.5 mr-1.5 hidden sm:inline" />
               Overview
@@ -556,13 +556,13 @@ export default function EnrollmentTrendsPage() {
           <TabsContent value="overview" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Monthly Trends Overview */}
-              <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-lg">
+              <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-lg dark:bg-slate-900/80 dark:border-slate-700/20">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <Activity className="w-4 h-4 text-blue-600" />
+                    <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     Monthly Trends
                   </CardTitle>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-slate-400">
                     Enrollment patterns for {selectedYear === "all" ? "all years" : selectedYear}
                   </p>
                 </CardHeader>
@@ -593,9 +593,9 @@ export default function EnrollmentTrendsPage() {
                           content={({ active, payload, label }) => {
                             if (active && payload && payload.length) {
                               return (
-                                <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg p-3 border border-white/20">
-                                  <p className="font-semibold text-gray-900 text-sm">{label}</p>
-                                  <p className="text-xs text-blue-600 font-medium">
+                                <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg p-3 border border-white/20 dark:bg-slate-900/95 dark:border-slate-700/20">
+                                  <p className="font-semibold text-gray-900 text-sm dark:text-slate-100">{label}</p>
+                                  <p className="text-xs text-blue-600 font-medium dark:text-blue-400">
                                     {payload[0].value} enrollments
                                   </p>
                                 </div>
@@ -620,13 +620,13 @@ export default function EnrollmentTrendsPage() {
               </Card>
 
               {/* Class Distribution Overview */}
-              <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-lg flex flex-col">
+              <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-lg flex flex-col dark:bg-slate-900/80 dark:border-slate-700/20">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <BarChart3 className="w-4 h-4 text-purple-600" />
+                    <BarChart3 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                     Class Enrollment
                   </CardTitle>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-slate-400">
                     Distribution across {classDistributionData.length} classes
                   </p>
                 </CardHeader>
@@ -662,8 +662,8 @@ export default function EnrollmentTrendsPage() {
                           content={({ active, payload, label }) => {
                             if (active && payload && payload.length) {
                               return (
-                                <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-lg p-3 border border-white/50 ring-1 ring-black/5">
-                                  <p className="font-semibold text-gray-900 mb-1.5">{label}</p>
+                                <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-lg p-3 border border-white/50 ring-1 ring-black/5 dark:bg-slate-900/95 dark:border-slate-700/50">
+                                  <p className="font-semibold text-gray-900 mb-1.5 dark:text-slate-100">{label}</p>
                                   <div className="flex items-center gap-2">
                                     <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: payload[0].color }}></div>
                                     <p className="text-sm font-medium" style={{ color: payload[0].color }}>
@@ -703,18 +703,18 @@ export default function EnrollmentTrendsPage() {
           </TabsContent>
 
           <TabsContent value="table" className="space-y-4">
-            <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-lg">
+            <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-lg dark:bg-slate-900/80 dark:border-slate-700/20">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <Users className="w-4 h-4 text-green-600" />
+                  <Users className="w-4 h-4 text-green-600 dark:text-green-400" />
                   Enrollment Records ({filteredData.length.toLocaleString()})
                   {totalPages > 1 && (
-                    <span className="text-sm font-normal text-gray-500">
+                    <span className="text-sm font-normal text-gray-500 dark:text-slate-400">
                       - Page {currentPage} of {totalPages}
                     </span>
                   )}
                 </CardTitle>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-slate-400">
                   Detailed records with sorting and filtering
                 </p>
               </CardHeader>
@@ -723,55 +723,55 @@ export default function EnrollmentTrendsPage() {
                   <div className="min-w-full">
                     <Table>
                       <TableHeader>
-                        <TableRow className="border-gray-200">
-                          <TableHead className="bg-gray-50/80 py-2">
+                        <TableRow className="border-gray-200 dark:border-slate-700">
+                          <TableHead className="bg-gray-50/80 py-2 dark:bg-slate-900/80">
                             <Button
                               variant="ghost"
                               onClick={() => handleSort("name")}
-                              className="h-auto p-0 font-semibold hover:bg-transparent text-gray-700 text-xs"
+                              className="h-auto p-0 font-semibold hover:bg-transparent text-gray-700 text-xs dark:text-slate-200"
                             >
                               Student Name
                               <ArrowUpDown className="ml-1 h-3 w-3" />
                             </Button>
                           </TableHead>
-                          <TableHead className="bg-gray-50/80 text-gray-700 font-semibold text-xs py-2">Admission #</TableHead>
-                          <TableHead className="bg-gray-50/80 py-2">
+                          <TableHead className="bg-gray-50/80 text-gray-700 font-semibold text-xs py-2 dark:bg-slate-900/80 dark:text-slate-200">Admission #</TableHead>
+                          <TableHead className="bg-gray-50/80 py-2 dark:bg-slate-900/80">
                             <Button
                               variant="ghost"
                               onClick={() => handleSort("class")}
-                              className="h-auto p-0 font-semibold hover:bg-transparent text-gray-700 text-xs"
+                              className="h-auto p-0 font-semibold hover:bg-transparent text-gray-700 text-xs dark:text-slate-200"
                             >
                               Class
                               <ArrowUpDown className="ml-1 h-3 w-3" />
                             </Button>
                           </TableHead>
-                          <TableHead className="bg-gray-50/80 py-2">
+                          <TableHead className="bg-gray-50/80 py-2 dark:bg-slate-900/80">
                             <Button
                               variant="ghost"
                               onClick={() => handleSort("registrationDate")}
-                              className="h-auto p-0 font-semibold hover:bg-transparent text-gray-700 text-xs"
+                              className="h-auto p-0 font-semibold hover:bg-transparent text-gray-700 text-xs dark:text-slate-200"
                             >
                               Registration Date
                               <ArrowUpDown className="ml-1 h-3 w-3" />
                             </Button>
                           </TableHead>
-                          <TableHead className="bg-gray-50/80 text-gray-700 font-semibold text-xs py-2">Gender</TableHead>
-                          <TableHead className="bg-gray-50/80 text-gray-700 font-semibold text-xs py-2">Status</TableHead>
+                          <TableHead className="bg-gray-50/80 text-gray-700 font-semibold text-xs py-2 dark:bg-slate-900/80 dark:text-slate-200">Gender</TableHead>
+                          <TableHead className="bg-gray-50/80 text-gray-700 font-semibold text-xs py-2 dark:bg-slate-900/80 dark:text-slate-200">Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {currentPageData.map((student) => (
-                          <TableRow key={student.id} className="hover:bg-gray-50/50 border-gray-100">
-                            <TableCell className="font-medium text-gray-900 py-2 text-sm">{student.name}</TableCell>
-                            <TableCell className="text-gray-700 py-2 text-sm">{student.admissionNumber}</TableCell>
+                          <TableRow key={student.id} className="hover:bg-gray-50/50 border-gray-100 dark:hover:bg-slate-900/50 dark:border-slate-700">
+                            <TableCell className="font-medium text-gray-900 py-2 text-sm dark:text-slate-100">{student.name}</TableCell>
+                            <TableCell className="text-gray-700 py-2 text-sm dark:text-slate-200">{student.admissionNumber}</TableCell>
                             <TableCell className="py-2">
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">
                                 {student.class}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-gray-600 py-2 text-sm">{student.formattedDate}</TableCell>
+                            <TableCell className="text-gray-600 py-2 text-sm dark:text-slate-300">{student.formattedDate}</TableCell>
                             <TableCell className="py-2">
-                              <Badge variant="outline" className={`text-xs ${student.gender === 'Male' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-pink-50 text-pink-700 border-pink-200'
+                              <Badge variant="outline" className={`text-xs ${student.gender === 'Male' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60' : 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-950/40 dark:text-pink-300 dark:border-pink-800/60'
                                 }`}>
                                 {student.gender}
                               </Badge>
@@ -788,10 +788,10 @@ export default function EnrollmentTrendsPage() {
 
                     {/* Pagination Controls */}
                     {filteredData.length > 0 && (
-                      <div className="bg-gray-50/50 border-t border-gray-200 p-4 pb-24">
+                      <div className="bg-gray-50/50 border-t border-gray-200 p-4 pb-24 dark:bg-slate-900/50 dark:border-slate-700">
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                           {/* Records Info */}
-                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-slate-300">
                             <div>
                               Showing {startIndex + 1}-{Math.min(endIndex, filteredData.length)} of {filteredData.length} records
                             </div>
@@ -811,7 +811,7 @@ export default function EnrollmentTrendsPage() {
                                   side="top"
                                   align="center"
                                   sideOffset={4}
-                                  className="bg-white border shadow-lg z-[999999]"
+                                  className="bg-white border shadow-lg z-[999999] dark:bg-slate-900"
                                 >
                                   <SelectItem value="25">25</SelectItem>
                                   <SelectItem value="50">50</SelectItem>
@@ -902,9 +902,9 @@ export default function EnrollmentTrendsPage() {
 
                 {filteredData.length === 0 && (
                   <div className="text-center py-8">
-                    <Users className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                    <h3 className="text-base font-semibold text-gray-900 mb-2">No Records Found</h3>
-                    <p className="text-sm text-gray-500">
+                    <Users className="w-10 h-10 text-gray-400 mx-auto mb-3 dark:text-slate-400" />
+                    <h3 className="text-base font-semibold text-gray-900 mb-2 dark:text-slate-100">No Records Found</h3>
+                    <p className="text-sm text-gray-500 dark:text-slate-400">
                       Try adjusting your filters or search terms to find enrollment records.
                     </p>
                   </div>

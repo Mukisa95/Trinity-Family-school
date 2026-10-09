@@ -394,14 +394,14 @@ export function CalendarWrapper({
       {/* Modern Error State */}
       {eventsError && (
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 text-center max-w-md mx-4">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 text-center max-w-md mx-4 dark:bg-slate-900/80 dark:border-slate-700/20">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-red-950/40">
+              <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-2">Unable to Load Events</h3>
-            <p className="text-slate-600 mb-6">
+            <h3 className="text-lg font-semibold text-slate-800 mb-2 dark:text-slate-100">Unable to Load Events</h3>
+            <p className="text-slate-600 mb-6 dark:text-slate-300">
               {eventsError instanceof Error ? eventsError.message : 'Something went wrong while loading your calendar'}
             </p>
             <Button
@@ -424,12 +424,12 @@ export function CalendarWrapper({
             backLabel="Dashboard"
             meta={
               <div className="flex items-center gap-1.5 flex-wrap">
-                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50/80 border border-blue-200/60 text-[10px] font-semibold text-blue-700">
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50/80 border border-blue-200/60 text-[10px] font-semibold text-blue-700 dark:bg-blue-950/80 dark:border-blue-800/60 dark:text-blue-300">
                   <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
                   {allEvents.length} event{allEvents.length !== 1 ? 's' : ''}
                 </div>
                 {ugandaHolidays.data && ugandaHolidays.data.length > 0 && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50/80 border border-amber-200/60 text-[10px] font-semibold text-amber-700">
+                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50/80 border border-amber-200/60 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/80 dark:border-amber-800/60 dark:text-amber-300">
                     <span>🇺🇬</span>
                     {ugandaHolidays.data.length} holiday{ugandaHolidays.data.length !== 1 ? 's' : ''}
                   </div>
@@ -438,13 +438,13 @@ export function CalendarWrapper({
             }
             actionsLeading={
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5 pointer-events-none" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5 pointer-events-none dark:text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search events..."
                   value={filters.searchTerm || ''}
                   onChange={(e) => handleFilterChange({ searchTerm: e.target.value || undefined })}
-                  className="pl-8 pr-3 h-[30px] w-36 sm:w-48 focus:w-56 transition-all duration-200 rounded-full border border-blue-200/60 bg-white/90 text-[11px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 placeholder:text-gray-400"
+                  className="pl-8 pr-3 h-[30px] w-36 sm:w-48 focus:w-56 transition-all duration-200 rounded-full border border-blue-200/60 bg-white/90 text-[11px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 placeholder:text-gray-400 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-slate-200 dark:placeholder:text-slate-400"
                 />
               </div>
             }
@@ -511,7 +511,7 @@ export function CalendarWrapper({
                 className="xl:hidden px-4 sm:px-6 lg:px-8 overflow-hidden"
               >
                 <div className="space-y-4 pb-6">
-                  <div className="bg-white backdrop-blur-xl rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+                  <div className="bg-white backdrop-blur-xl rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden dark:bg-slate-900 dark:border-slate-700/60">
                     <EventFiltersComponent
                       filters={filters}
                       onFiltersChange={handleFilterChange}
@@ -521,7 +521,7 @@ export function CalendarWrapper({
                   </div>
 
                   {showLegend && (
-                    <div className="bg-white backdrop-blur-xl rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+                    <div className="bg-white backdrop-blur-xl rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden dark:bg-slate-900 dark:border-slate-700/60">
                       <ColorLegend colors={EVENT_TYPE_COLORS} />
                     </div>
                   )}
@@ -535,7 +535,7 @@ export function CalendarWrapper({
             {/* Desktop Filters Sidebar */}
             {showFilters && (
               <div className="hidden xl:block xl:col-span-1 space-y-6 animate-in slide-in-from-left-4 duration-500">
-                <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-200/60 overflow-hidden p-1">
+                <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-200/60 overflow-hidden p-1 dark:bg-slate-900/80 dark:border-slate-700/60">
                   <EventFiltersComponent
                     filters={filters}
                     onFiltersChange={handleFilterChange}
@@ -545,7 +545,7 @@ export function CalendarWrapper({
                 </div>
 
                 {showLegend && (
-                  <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-200/60 overflow-hidden p-1">
+                  <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-200/60 overflow-hidden p-1 dark:bg-slate-900/80 dark:border-slate-700/60">
                     <ColorLegend colors={EVENT_TYPE_COLORS} />
                   </div>
                 )}
@@ -557,7 +557,7 @@ export function CalendarWrapper({
               "transition-all duration-300",
               showFilters ? "xl:col-span-4" : "col-span-1 xl:col-span-5"
             )}>
-              <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 relative overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
+              <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 relative overflow-hidden animate-in slide-in-from-bottom-4 duration-500 dark:bg-slate-900 dark:border-slate-700/60">
                 {/* Subtle header flair within the calendar body */}
                 <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-500" />
 
@@ -573,22 +573,22 @@ export function CalendarWrapper({
                       // Term View Content
                       <div className="space-y-6">
                         {!isLoadingAcademicYears && (
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-sm rounded-2xl p-4 sm:p-5 mb-6">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-sm rounded-2xl p-4 sm:p-5 mb-6 dark:bg-slate-900/80 dark:border-slate-700/60">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+                              <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 dark:bg-indigo-950/40 dark:text-indigo-400">
                                 <BookOpen className="w-5 h-5" />
                               </div>
                               <div>
-                                <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight">Academic Timeline</h3>
-                                <p className="text-xs text-slate-500 font-medium">Select a period to view events</p>
+                                <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight dark:text-slate-100">Academic Timeline</h3>
+                                <p className="text-xs text-slate-500 font-medium dark:text-slate-400">Select a period to view events</p>
                               </div>
                             </div>
 
                             {/* Consolidated Divided Pill Selectors */}
-                            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-full p-1 shadow-inner relative z-20 w-full sm:w-auto mt-2 sm:mt-0">
+                            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-full p-1 shadow-inner relative z-20 w-full sm:w-auto mt-2 sm:mt-0 dark:bg-slate-900 dark:border-slate-700">
                               <div className="flex-1 sm:w-[180px]">
                                 <Select value={selectedAcademicYearId} onValueChange={setSelectedAcademicYearId}>
-                                  <SelectTrigger className="w-full h-[42px] border-0 bg-transparent hover:bg-white rounded-full transition-colors shadow-none focus:ring-0 text-sm font-semibold pl-4">
+                                  <SelectTrigger className="w-full h-[42px] border-0 bg-transparent hover:bg-white rounded-full transition-colors shadow-none focus:ring-0 text-sm font-semibold pl-4 dark:hover:bg-slate-900">
                                     <SelectValue placeholder="Year" />
                                   </SelectTrigger>
                                   <SelectContent className="rounded-xl min-w-[200px] z-[100]">
@@ -605,7 +605,7 @@ export function CalendarWrapper({
 
                               <div className="flex-1 sm:w-[160px]">
                                 <Select value={selectedTermId} onValueChange={setSelectedTermId}>
-                                  <SelectTrigger className="w-full h-[42px] border-0 bg-transparent hover:bg-white rounded-full transition-colors shadow-none focus:ring-0 text-sm font-semibold pl-4 pr-3">
+                                  <SelectTrigger className="w-full h-[42px] border-0 bg-transparent hover:bg-white rounded-full transition-colors shadow-none focus:ring-0 text-sm font-semibold pl-4 pr-3 dark:hover:bg-slate-900">
                                     <SelectValue placeholder="Term" />
                                   </SelectTrigger>
                                   <SelectContent className="rounded-xl min-w-[160px] z-[100]">
@@ -628,8 +628,8 @@ export function CalendarWrapper({
 
                           if (!selectedTerm || !selectedYear) {
                             return (
-                              <div className="p-12 text-center bg-slate-50/50 rounded-2xl border border-slate-100">
-                                <p className="text-slate-500 font-medium">Please select an academic year and term to view events.</p>
+                              <div className="p-12 text-center bg-slate-50/50 rounded-2xl border border-slate-100 dark:bg-slate-900/50 dark:border-slate-700">
+                                <p className="text-slate-500 font-medium dark:text-slate-400">Please select an academic year and term to view events.</p>
                               </div>
                             );
                           }
@@ -644,7 +644,7 @@ export function CalendarWrapper({
 
                           if (!isValidStartDate || !isValidEndDate) {
                             return (
-                              <div className="p-8 text-center text-red-600 bg-red-50 rounded-2xl border border-red-100">
+                              <div className="p-8 text-center text-red-600 bg-red-50 rounded-2xl border border-red-100 dark:text-red-400 dark:bg-red-950/40 dark:border-red-800/60">
                                 <p className="font-semibold">Invalid term dates. Please check the term configuration.</p>
                                 <div className="text-sm mt-3 opacity-80">
                                   <p>Start: {selectedTerm.startDate || 'undefined'}</p>
@@ -676,10 +676,10 @@ export function CalendarWrapper({
                                   <div className="relative z-10 h-full flex flex-col justify-between">
                                     <div>
                                       <div className="flex items-center gap-3 mb-2">
-                                        <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-md">
+                                        <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-md dark:bg-slate-900/20 dark:hover:bg-slate-900/30">
                                           {isCurrentTerm ? "Current Term" : today > termEnd ? "Past Term" : "Upcoming Term"}
                                         </Badge>
-                                        <Badge variant="outline" className="border-white/30 text-white/90">
+                                        <Badge variant="outline" className="border-white/30 text-white/90 dark:border-slate-700/30">
                                           {selectedYear.name || selectedYear.id}
                                         </Badge>
                                       </div>
@@ -687,15 +687,15 @@ export function CalendarWrapper({
                                     </div>
 
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-8">
-                                      <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-md border border-white/10">
+                                      <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-md border border-white/10 dark:bg-slate-900/10 dark:border-slate-700/10">
                                         <p className="text-blue-100 text-sm font-medium mb-1">Start Date</p>
                                         <p className="font-bold">{format(termStart, 'MMM d, yyyy')}</p>
                                       </div>
-                                      <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-md border border-white/10">
+                                      <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-md border border-white/10 dark:bg-slate-900/10 dark:border-slate-700/10">
                                         <p className="text-blue-100 text-sm font-medium mb-1">End Date</p>
                                         <p className="font-bold">{format(termEnd, 'MMM d, yyyy')}</p>
                                       </div>
-                                      <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-md border border-white/10 sm:col-span-1 col-span-2">
+                                      <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-md border border-white/10 sm:col-span-1 col-span-2 dark:bg-slate-900/10 dark:border-slate-700/10">
                                         <p className="text-blue-100 text-sm font-medium mb-1">Duration</p>
                                         <p className="font-bold">{Math.ceil((termEnd.getTime() - termStart.getTime()) / (1000 * 60 * 60 * 24))} days</p>
                                       </div>
@@ -704,36 +704,36 @@ export function CalendarWrapper({
                                 </div>
 
                                 {/* Progress/Stats Card */}
-                                <div className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col justify-center">
+                                <div className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col justify-center dark:bg-slate-900 dark:border-slate-700">
                                   {isCurrentTerm ? (
                                     <div className="space-y-6">
                                       <div>
                                         <div className="flex justify-between items-end mb-3">
-                                          <h4 className="text-slate-500 font-medium">Term Progress</h4>
-                                          <span className="text-2xl font-black text-blue-600">{Math.round(termProgress)}%</span>
+                                          <h4 className="text-slate-500 font-medium dark:text-slate-400">Term Progress</h4>
+                                          <span className="text-2xl font-black text-blue-600 dark:text-blue-400">{Math.round(termProgress)}%</span>
                                         </div>
-                                        <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                                        <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden dark:bg-slate-900">
                                           <div
                                             className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-1000 ease-out relative"
                                             style={{ width: `${termProgress}%` }}
                                           >
-                                            <div className="absolute inset-0 bg-white/20 w-full" style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />
+                                            <div className="absolute inset-0 bg-white/20 w-full dark:bg-slate-900/20" style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />
                                           </div>
                                         </div>
                                       </div>
-                                      <div className="pt-6 border-t border-slate-100">
-                                        <p className="text-slate-500 font-medium mb-1">Events This Term</p>
-                                        <p className="text-3xl font-black text-slate-800">{termFilteredEvents.length}</p>
+                                      <div className="pt-6 border-t border-slate-100 dark:border-slate-700">
+                                        <p className="text-slate-500 font-medium mb-1 dark:text-slate-400">Events This Term</p>
+                                        <p className="text-3xl font-black text-slate-800 dark:text-slate-100">{termFilteredEvents.length}</p>
                                       </div>
                                     </div>
                                   ) : (
                                     <div className="text-center space-y-4">
-                                      <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto text-blue-500">
+                                      <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto text-blue-500 dark:bg-blue-950/40 dark:text-blue-400">
                                         <CalendarIcon size={32} />
                                       </div>
                                       <div>
-                                        <p className="text-slate-500 font-medium mb-1">Total Events</p>
-                                        <p className="text-4xl font-black text-slate-800">{termFilteredEvents.length}</p>
+                                        <p className="text-slate-500 font-medium mb-1 dark:text-slate-400">Total Events</p>
+                                        <p className="text-4xl font-black text-slate-800 dark:text-slate-100">{termFilteredEvents.length}</p>
                                       </div>
                                     </div>
                                   )}
@@ -742,18 +742,18 @@ export function CalendarWrapper({
 
                               <div>
                                 <div className="flex items-center justify-between mb-6">
-                                  <h3 className="text-xl font-bold text-slate-800">
+                                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
                                     Term Schedule
                                   </h3>
                                 </div>
 
                                 {termFilteredEvents.length === 0 ? (
-                                  <div className="border-2 border-dashed border-slate-200 rounded-3xl p-12 text-center bg-slate-50/50 mt-4">
-                                    <div className="w-20 h-20 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-4 text-slate-300">
+                                  <div className="border-2 border-dashed border-slate-200 rounded-3xl p-12 text-center bg-slate-50/50 mt-4 dark:border-slate-700 dark:bg-slate-900/50">
+                                    <div className="w-20 h-20 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-4 text-slate-300 dark:bg-slate-900">
                                       <CalendarIcon size={40} />
                                     </div>
-                                    <h4 className="text-lg font-bold text-slate-700 mb-2">No scheduled events</h4>
-                                    <p className="text-slate-500 mb-6 max-w-sm mx-auto">There are currently no events scheduled for this academic term.</p>
+                                    <h4 className="text-lg font-bold text-slate-700 mb-2 dark:text-slate-200">No scheduled events</h4>
+                                    <p className="text-slate-500 mb-6 max-w-sm mx-auto dark:text-slate-400">There are currently no events scheduled for this academic term.</p>
                                     <Button
                                       onClick={handleCreateEvent}
                                       className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20"
@@ -763,7 +763,7 @@ export function CalendarWrapper({
                                     </Button>
                                   </div>
                                 ) : (
-                                  <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                                  <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden dark:bg-slate-900 dark:border-slate-700">
                                     <EventsList
                                       events={termFilteredEvents as Event[]}
                                       isCompact={isCompactView}
@@ -910,19 +910,19 @@ export function CalendarWrapper({
           {/* Delete Confirmation Dialog */}
           {eventToDelete && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 dark:bg-slate-900">
                 <div className="flex items-center mb-4">
                   <div className="flex-shrink-0">
-                    <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <h3 className="text-lg font-medium text-gray-900">Delete Event</h3>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100">Delete Event</h3>
                   </div>
                 </div>
                 <div className="mb-4">
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-slate-400">
                     Are you sure you want to delete "{eventToDelete.title}"? This action cannot be undone.
                   </p>
                 </div>

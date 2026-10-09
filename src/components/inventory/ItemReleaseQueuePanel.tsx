@@ -95,7 +95,7 @@ export function ItemReleaseQueuePanel({ requests, isLoading, focusRequestId }: I
   };
 
   if (!canView) {
-    return <Card><CardContent className="py-10 text-center text-sm text-slate-600">You do not have permission to view release requests.</CardContent></Card>;
+    return <Card><CardContent className="py-10 text-center text-sm text-slate-600 dark:text-slate-300">You do not have permission to view release requests.</CardContent></Card>;
   }
 
   return (
@@ -108,11 +108,11 @@ export function ItemReleaseQueuePanel({ requests, isLoading, focusRequestId }: I
       </Card>
 
       {isLoading ? (
-        <div className="flex min-h-32 items-center justify-center gap-2 text-sm text-slate-500" role="status">
+        <div className="flex min-h-32 items-center justify-center gap-2 text-sm text-slate-500 dark:text-slate-400" role="status">
           <Loader2 className="h-4 w-4 animate-spin" /> Loading the release queue…
         </div>
       ) : orderedRequests.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-sm text-slate-500">There are no active item requests right now.</CardContent></Card>
+        <Card><CardContent className="py-12 text-center text-sm text-slate-500 dark:text-slate-400">There are no active item requests right now.</CardContent></Card>
       ) : orderedRequests.map(item => (
         <Card
           key={item.id}

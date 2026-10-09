@@ -88,22 +88,22 @@ export function EventDetailsModal({
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'Urgent': return 'bg-red-100 text-red-800 border-red-200';
-      case 'High': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'Medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Low': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'Urgent': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60';
+      case 'High': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60';
+      case 'Medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
+      case 'Low': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Scheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'Ongoing': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Completed': return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'Cancelled': return 'bg-red-100 text-red-800 border-red-200';
-      case 'Draft': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'Scheduled': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+      case 'Ongoing': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
+      case 'Completed': return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
+      case 'Cancelled': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60';
+      case 'Draft': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
     }
   };
 
@@ -119,8 +119,8 @@ export function EventDetailsModal({
 
   return (
     <ModernDialog open={isOpen} onOpenChange={onClose}>
-      <ModernDialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden bg-white/95 backdrop-blur-xl border-slate-200/60 shadow-2xl" open={isOpen} onOpenChange={onClose}>
-        <div className="bg-gradient-to-br from-slate-50/90 via-white to-blue-50/30 border-b border-slate-100/50 p-6 sm:px-8">
+      <ModernDialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden bg-white/95 backdrop-blur-xl border-slate-200/60 shadow-2xl dark:bg-slate-900/95 dark:border-slate-700/60" open={isOpen} onOpenChange={onClose}>
+        <div className="bg-gradient-to-br from-slate-50/90 via-white to-blue-50/30 border-b border-slate-100/50 p-6 sm:px-8 dark:from-slate-900/90 dark:via-slate-900 dark:to-blue-950/30 dark:border-slate-700/50">
           <ModernDialogHeader>
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -135,7 +135,7 @@ export function EventDetailsModal({
                     {computedStatus}
                   </Badge>
                   {event.isExamEvent && (
-                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-0 shadow-sm px-2.5 py-0.5 font-medium">
+                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-0 shadow-sm px-2.5 py-0.5 font-medium dark:bg-purple-950/40 dark:text-purple-300">
                       <GraduationCap className="h-3.5 w-3.5 mr-1.5" />
                       Exam Event
                     </Badge>
@@ -150,47 +150,47 @@ export function EventDetailsModal({
           <div className="space-y-8 p-6 sm:px-8">
             {/* Description */}
             {event.description && (
-              <div className="bg-slate-50/50 border border-slate-100/50 rounded-2xl p-5 shadow-sm">
-                <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-3">
-                  <BookOpen className="h-4 w-4 text-slate-400" />
+              <div className="bg-slate-50/50 border border-slate-100/50 rounded-2xl p-5 shadow-sm dark:bg-slate-900/50 dark:border-slate-700/50">
+                <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-3 dark:text-slate-100">
+                  <BookOpen className="h-4 w-4 text-slate-400 dark:text-slate-400" />
                   Description
                 </h4>
-                <p className="text-slate-600 leading-relaxed text-sm">{event.description}</p>
+                <p className="text-slate-600 leading-relaxed text-sm dark:text-slate-300">{event.description}</p>
               </div>
             )}
 
             {/* Event Details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Type */}
-              <div className="flex items-center gap-4 bg-white border border-slate-200/50 shadow-sm rounded-2xl p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-50 text-blue-600 shadow-inner">
+              <div className="flex items-center gap-4 bg-white border border-slate-200/50 shadow-sm rounded-2xl p-4 hover:shadow-md transition-shadow dark:bg-slate-900 dark:border-slate-700/50">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-50 text-blue-600 shadow-inner dark:bg-blue-950/40 dark:text-blue-400">
                   {getTypeIcon(event.type)}
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Event Type</p>
-                  <p className="font-bold text-slate-700">{event.type}</p>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 dark:text-slate-400">Event Type</p>
+                  <p className="font-bold text-slate-700 dark:text-slate-200">{event.type}</p>
                 </div>
               </div>
 
               {/* Date & Time */}
-              <div className="flex items-center gap-4 bg-white border border-slate-200/50 shadow-sm rounded-2xl p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 shadow-inner">
+              <div className="flex items-center gap-4 bg-white border border-slate-200/50 shadow-sm rounded-2xl p-4 hover:shadow-md transition-shadow dark:bg-slate-900 dark:border-slate-700/50">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 shadow-inner dark:bg-emerald-950/40 dark:text-emerald-400">
                   <Calendar className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 dark:text-slate-400">
                     {event.isAllDay ? 'Date' : 'Start Date & Time'}
                   </p>
-                  <p className="font-bold text-slate-700 text-sm">
+                  <p className="font-bold text-slate-700 text-sm dark:text-slate-200">
                     {event.isAllDay ? `${formatDateTime(event.startDate)} - All Day` : formatDateTime(event.startDate, event.startTime)}
                   </p>
                   {!event.isAllDay && event.endDate && (
-                    <p className="text-xs font-medium text-slate-500 mt-0.5">
+                    <p className="text-xs font-medium text-slate-500 mt-0.5 dark:text-slate-400">
                       Ends: {formatDateTime(event.endDate, event.endTime)}
                     </p>
                   )}
                   {event.isAllDay && event.endDate && event.endDate !== event.startDate && (
-                    <p className="text-xs font-medium text-slate-500 mt-0.5">
+                    <p className="text-xs font-medium text-slate-500 mt-0.5 dark:text-slate-400">
                       Ends: {formatDateTime(event.endDate)}
                     </p>
                   )}
@@ -199,26 +199,26 @@ export function EventDetailsModal({
 
               {/* Location - Only show for non-exam events */}
               {!event.isExamEvent && event.location && (
-                <div className="flex items-center gap-4 bg-white border border-slate-200/50 shadow-sm rounded-2xl p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-amber-50 text-amber-600 shadow-inner">
+                <div className="flex items-center gap-4 bg-white border border-slate-200/50 shadow-sm rounded-2xl p-4 hover:shadow-md transition-shadow dark:bg-slate-900 dark:border-slate-700/50">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-amber-50 text-amber-600 shadow-inner dark:bg-amber-950/40 dark:text-amber-400">
                     <MapPin className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Location</p>
-                    <p className="font-bold text-slate-700 text-sm">{event.location}</p>
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 dark:text-slate-400">Location</p>
+                    <p className="font-bold text-slate-700 text-sm dark:text-slate-200">{event.location}</p>
                   </div>
                 </div>
               )}
 
               {/* Duration - Only show for non-exam events */}
               {!event.isExamEvent && !event.isAllDay && event.startTime && event.endTime && (
-                <div className="flex items-center gap-4 bg-white border border-slate-200/50 shadow-sm rounded-2xl p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 shadow-inner">
+                <div className="flex items-center gap-4 bg-white border border-slate-200/50 shadow-sm rounded-2xl p-4 hover:shadow-md transition-shadow dark:bg-slate-900 dark:border-slate-700/50">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 shadow-inner dark:bg-indigo-950/40 dark:text-indigo-400">
                     <Clock className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Duration</p>
-                    <p className="font-bold text-slate-700 text-sm">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 dark:text-slate-400">Duration</p>
+                    <p className="font-bold text-slate-700 text-sm dark:text-slate-200">
                       {event.startTime} - {event.endTime}
                     </p>
                   </div>
@@ -226,18 +226,18 @@ export function EventDetailsModal({
               )}
             </div>
 
-            <div className="h-px bg-gradient-to-r from-transparent via-slate-200/50 to-transparent" />
+            <div className="h-px bg-gradient-to-r from-transparent via-slate-200/50 to-transparent dark:via-slate-800/50" />
 
             {/* Target Audience */}
             {event.targetAudience.length > 0 && (
-              <div className="bg-indigo-50/30 border border-indigo-100/50 rounded-2xl p-5">
-                <h4 className="font-semibold text-indigo-900 flex items-center gap-2 mb-3">
-                  <Users className="h-4 w-4 text-indigo-500" />
+              <div className="bg-indigo-50/30 border border-indigo-100/50 rounded-2xl p-5 dark:bg-indigo-950/30 dark:border-indigo-800/50">
+                <h4 className="font-semibold text-indigo-900 flex items-center gap-2 mb-3 dark:text-indigo-200">
+                  <Users className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
                   Target Audience
                 </h4>
                 <div className="flex flex-wrap gap-2.5">
                   {event.targetAudience.map((audience, index) => (
-                    <Badge key={index} variant="secondary" className="bg-white text-indigo-700 hover:bg-indigo-50 border-0 shadow-sm px-3 py-1">
+                    <Badge key={index} variant="secondary" className="bg-white text-indigo-700 hover:bg-indigo-50 border-0 shadow-sm px-3 py-1 dark:bg-slate-900 dark:text-indigo-300 dark:hover:bg-indigo-950/40">
                       {audience}
                     </Badge>
                   ))}
@@ -247,22 +247,22 @@ export function EventDetailsModal({
 
             {/* Academic Context */}
             {(event.academicYearName || event.termName) && (
-              <div className="bg-slate-50/50 border border-slate-100/50 rounded-2xl p-5 shadow-sm">
-                <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4">
-                  <Calendar className="h-4 w-4 text-slate-400" />
+              <div className="bg-slate-50/50 border border-slate-100/50 rounded-2xl p-5 shadow-sm dark:bg-slate-900/50 dark:border-slate-700/50">
+                <h4 className="font-semibold text-slate-800 flex items-center gap-2 mb-4 dark:text-slate-100">
+                  <Calendar className="h-4 w-4 text-slate-400 dark:text-slate-400" />
                   Academic Context
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {event.academicYearName && (
                     <div>
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Academic Year</p>
-                      <p className="font-bold text-slate-700">{event.academicYearName}</p>
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 dark:text-slate-400">Academic Year</p>
+                      <p className="font-bold text-slate-700 dark:text-slate-200">{event.academicYearName}</p>
                     </div>
                   )}
                   {event.termName && (
                     <div>
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Term</p>
-                      <p className="font-bold text-slate-700">{event.termName}</p>
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 dark:text-slate-400">Term</p>
+                      <p className="font-bold text-slate-700 dark:text-slate-200">{event.termName}</p>
                     </div>
                   )}
                 </div>
@@ -273,21 +273,21 @@ export function EventDetailsModal({
             {event.isExamEvent && (event.examIntegration || (event.customFields && Object.keys(event.customFields).length > 0)) && (
               <div>
                 <Separator className="my-4" />
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5 text-purple-600" />
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 dark:text-slate-100">
+                  <GraduationCap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                   📚 Exam Details
                 </h4>
 
-                <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4 dark:from-purple-950/40 dark:to-blue-950/40 dark:border-purple-800/60">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Exam Type */}
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-100">
-                        <BookOpen className="h-4 w-4 text-purple-600" />
+                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-950/40">
+                        <BookOpen className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Exam Type</p>
-                        <p className="font-medium text-gray-900">
+                        <p className="text-sm text-gray-500 dark:text-slate-400">Exam Type</p>
+                        <p className="font-medium text-gray-900 dark:text-slate-100">
                           {event.customFields?.examType || event.examIntegration?.examType || 'Not specified'}
                         </p>
                       </div>
@@ -295,12 +295,12 @@ export function EventDetailsModal({
 
                     {/* Exam Nature */}
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100">
-                        <AlertCircle className="h-4 w-4 text-blue-600" />
+                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-950/40">
+                        <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Exam Nature</p>
-                        <p className="font-medium text-gray-900">
+                        <p className="text-sm text-gray-500 dark:text-slate-400">Exam Nature</p>
+                        <p className="font-medium text-gray-900 dark:text-slate-100">
                           {event.customFields?.examNature || event.examIntegration?.examNature || 'Not specified'}
                         </p>
                       </div>
@@ -308,12 +308,12 @@ export function EventDetailsModal({
 
                     {/* Maximum Marks */}
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-100">
-                        <span className="text-green-600 font-bold text-sm">💯</span>
+                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-100 dark:bg-green-950/40">
+                        <span className="text-green-600 font-bold text-sm dark:text-green-400">💯</span>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Maximum Marks</p>
-                        <p className="font-medium text-gray-900">
+                        <p className="text-sm text-gray-500 dark:text-slate-400">Maximum Marks</p>
+                        <p className="font-medium text-gray-900 dark:text-slate-100">
                           {event.customFields?.maxMarks || event.examIntegration?.maxMarks || 'Not specified'}
                         </p>
                       </div>
@@ -321,12 +321,12 @@ export function EventDetailsModal({
 
                     {/* Passing Marks */}
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-orange-100">
-                        <span className="text-orange-600 font-bold text-sm">✅</span>
+                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-950/40">
+                        <span className="text-orange-600 font-bold text-sm dark:text-orange-400">✅</span>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Passing Marks</p>
-                        <p className="font-medium text-gray-900">
+                        <p className="text-sm text-gray-500 dark:text-slate-400">Passing Marks</p>
+                        <p className="font-medium text-gray-900 dark:text-slate-100">
                           {event.customFields?.passingMarks || event.examIntegration?.passingMarks || 'Not specified'}
                         </p>
                       </div>
@@ -336,13 +336,13 @@ export function EventDetailsModal({
                   {/* Classes Involved */}
                   {(event.customFields?.classDetails?.length || event.examIntegration?.classIds?.length) && (
                     <div className="mt-4">
-                      <h5 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                      <h5 className="font-medium text-gray-900 mb-2 flex items-center gap-2 dark:text-slate-100">
                         <Users className="h-4 w-4" />
                         Classes Involved ({event.customFields?.classDetails?.length || event.examIntegration?.classIds?.length || 0})
                       </h5>
                       <div className="flex flex-wrap gap-2">
                         {event.customFields?.classDetails?.map((cls: any, index: number) => (
-                          <Badge key={index} variant="outline" className="bg-white border-purple-300 text-purple-700">
+                          <Badge key={index} variant="outline" className="bg-white border-purple-300 text-purple-700 dark:bg-slate-900 dark:border-purple-800/60 dark:text-purple-300">
                             {cls.name || cls.className || 'Unknown Class'}
                           </Badge>
                         )) || event.examIntegration?.classIds?.map((classId: string, index: number) => {
@@ -351,7 +351,7 @@ export function EventDetailsModal({
                             event.customFields?.classDetails?.find((c: any) => c.id === classId)?.className ||
                             classId;
                           return (
-                            <Badge key={index} variant="outline" className="bg-white border-purple-300 text-purple-700">
+                            <Badge key={index} variant="outline" className="bg-white border-purple-300 text-purple-700 dark:bg-slate-900 dark:border-purple-800/60 dark:text-purple-300">
                               {className}
                             </Badge>
                           );
@@ -363,13 +363,13 @@ export function EventDetailsModal({
                   {/* Subjects */}
                   {event.customFields?.subjectDetails && event.customFields.subjectDetails.length > 0 && (
                     <div className="mt-4">
-                      <h5 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                      <h5 className="font-medium text-gray-900 mb-2 flex items-center gap-2 dark:text-slate-100">
                         <BookOpen className="h-4 w-4" />
                         Subjects ({event.customFields.subjectDetails.length})
                       </h5>
                       <div className="flex flex-wrap gap-2">
                         {event.customFields.subjectDetails.map((subject: any, index: number) => (
-                          <Badge key={index} variant="outline" className="bg-white border-blue-300 text-blue-700">
+                          <Badge key={index} variant="outline" className="bg-white border-blue-300 text-blue-700 dark:bg-slate-900 dark:border-blue-800/60 dark:text-blue-300">
                             {subject.name || subject.subjectName || subject.title || subject.id}
                           </Badge>
                         ))}
@@ -380,12 +380,12 @@ export function EventDetailsModal({
                   {/* Instructions */}
                   {event.customFields?.instructions && (
                     <div className="mt-4">
-                      <h5 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                      <h5 className="font-medium text-gray-900 mb-2 flex items-center gap-2 dark:text-slate-100">
                         <AlertCircle className="h-4 w-4" />
                         Instructions
                       </h5>
-                      <div className="bg-white border border-gray-200 rounded-lg p-3">
-                        <p className="text-gray-700 text-sm leading-relaxed">
+                      <div className="bg-white border border-gray-200 rounded-lg p-3 dark:bg-slate-900 dark:border-slate-700">
+                        <p className="text-gray-700 text-sm leading-relaxed dark:text-slate-200">
                           {event.customFields.instructions}
                         </p>
                       </div>
@@ -394,17 +394,17 @@ export function EventDetailsModal({
 
                   {/* Exam Statistics */}
                   <div className="mt-4 grid grid-cols-2 gap-4">
-                    <div className="bg-white border border-gray-200 rounded-lg p-3 text-center">
-                      <p className="text-2xl font-bold text-purple-600">
+                    <div className="bg-white border border-gray-200 rounded-lg p-3 text-center dark:bg-slate-900 dark:border-slate-700">
+                      <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                         {event.customFields?.classDetails?.length || event.examIntegration?.examIds?.length || 0}
                       </p>
-                      <p className="text-sm text-gray-500">Exam Instances</p>
+                      <p className="text-sm text-gray-500 dark:text-slate-400">Exam Instances</p>
                     </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-3 text-center">
-                      <p className="text-2xl font-bold text-blue-600">
+                    <div className="bg-white border border-gray-200 rounded-lg p-3 text-center dark:bg-slate-900 dark:border-slate-700">
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                         {event.customFields?.classDetails?.length || event.examIntegration?.classIds?.length || 0}
                       </p>
-                      <p className="text-sm text-gray-500">Classes</p>
+                      <p className="text-sm text-gray-500 dark:text-slate-400">Classes</p>
                     </div>
                   </div>
                 </div>
@@ -413,16 +413,16 @@ export function EventDetailsModal({
 
             {/* Message for exam events without details */}
             {event.isExamEvent && !event.examIntegration && (!event.customFields || Object.keys(event.customFields).length === 0) && (
-              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <h4 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2">
+              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-950/40 dark:border-yellow-800/60">
+                <h4 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2 dark:text-yellow-200">
                   <AlertCircle className="h-5 w-5" />
                   📝 Exam Event (Legacy)
                 </h4>
-                <p className="text-yellow-700 text-sm">
+                <p className="text-yellow-700 text-sm dark:text-yellow-300">
                   This exam event was created before the enhanced exam details feature.
                   The comprehensive exam information is not available for this event.
                 </p>
-                <p className="text-yellow-600 text-xs mt-2">
+                <p className="text-yellow-600 text-xs mt-2 dark:text-yellow-400">
                   💡 Create a new exam event to see all exam details including classes, subjects, marks, and instructions.
                 </p>
               </div>
@@ -431,11 +431,11 @@ export function EventDetailsModal({
             {/* Classes and Subjects */}
             {(event.classNames?.length || event.subjectNames?.length) && (
               <div>
-                <h4 className="font-semibold text-gray-900 mb-3">Classes & Subjects</h4>
+                <h4 className="font-semibold text-gray-900 mb-3 dark:text-slate-100">Classes & Subjects</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {event.classNames?.length && (
                     <div>
-                      <p className="text-sm text-gray-500">Classes</p>
+                      <p className="text-sm text-gray-500 dark:text-slate-400">Classes</p>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {event.classNames.map((className, index) => (
                           <Badge key={index} variant="outline" className="text-xs">
@@ -447,7 +447,7 @@ export function EventDetailsModal({
                   )}
                   {event.subjectNames?.length && (
                     <div>
-                      <p className="text-sm text-gray-500">Subjects</p>
+                      <p className="text-sm text-gray-500 dark:text-slate-400">Subjects</p>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {event.subjectNames.map((subjectName, index) => (
                           <Badge key={index} variant="outline" className="text-xs">
@@ -464,17 +464,17 @@ export function EventDetailsModal({
             {/* Exam Details */}
             {event.isExamEvent && event.examIntegration && (
               <div>
-                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 dark:text-slate-100">
                   <GraduationCap className="h-4 w-4" />
                   Exam Details
                 </h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-gray-500">Max Marks</p>
+                    <p className="text-gray-500 dark:text-slate-400">Max Marks</p>
                     <p className="font-medium">{event.examIntegration.maxMarks}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Passing Marks</p>
+                    <p className="text-gray-500 dark:text-slate-400">Passing Marks</p>
                     <p className="font-medium">{event.examIntegration.passingMarks}</p>
                   </div>
                 </div>
@@ -484,13 +484,13 @@ export function EventDetailsModal({
             {/* Reminders */}
             {event.sendReminders && event.reminders.length > 0 && (
               <div>
-                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 dark:text-slate-100">
                   <Bell className="h-4 w-4" />
                   Reminders
                 </h4>
                 <div className="space-y-2">
                   {event.reminders.filter(r => r.enabled).map((reminder, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg dark:bg-slate-900">
                       <span className="text-sm font-medium">
                         {reminder.timing.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </span>
@@ -510,11 +510,11 @@ export function EventDetailsModal({
             {/* Attendance */}
             {event.requiresAttendance && (
               <div>
-                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 dark:text-slate-100">
                   <UserCheck className="h-4 w-4" />
                   Attendance Required
                 </h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-slate-300">
                   Attendance tracking is enabled for this event.
                 </p>
               </div>
@@ -523,7 +523,7 @@ export function EventDetailsModal({
             {/* Tags */}
             {event.tags?.length && (
               <div>
-                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 dark:text-slate-100">
                   <Tag className="h-4 w-4" />
                   Tags
                 </h4>
@@ -538,7 +538,7 @@ export function EventDetailsModal({
             )}
 
             {/* Metadata */}
-            <div className="text-xs text-gray-500 pt-4 border-t">
+            <div className="text-xs text-gray-500 pt-4 border-t dark:text-slate-400">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <p>Created by: {event.createdByName || event.createdBy}</p>
                 <p>Created: {safeFormatDate(event.createdAt)}</p>
@@ -553,14 +553,14 @@ export function EventDetailsModal({
           </div>
         </ScrollArea>
 
-        <div className="bg-slate-50/80 border-t border-slate-100/50 p-4 sm:px-8">
+        <div className="bg-slate-50/80 border-t border-slate-100/50 p-4 sm:px-8 dark:bg-slate-900/80 dark:border-slate-700/50">
           <ModernDialogFooter className="flex w-full justify-center sm:justify-center">
-            <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 w-full sm:w-auto overflow-x-auto pb-1 action-buttons-container justify-center mx-auto">
+            <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 w-full sm:w-auto overflow-x-auto pb-1 action-buttons-container justify-center mx-auto dark:bg-slate-900 dark:border-slate-700">
 
               {/* Edit Button */}
               <button
                 onClick={() => onEdit(event)}
-                className="flex flex-col items-center justify-center min-w-[44px] w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 shrink-0"
+                className="flex flex-col items-center justify-center min-w-[44px] w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 shrink-0 dark:bg-slate-900 dark:text-blue-400"
                 aria-label="Edit Event"
               >
                 <Edit className="w-4 h-4 mb-0.5" />
@@ -572,7 +572,7 @@ export function EventDetailsModal({
                   {/* Record Attendance */}
                   <button
                     onClick={() => { window.location.href = `/events/${event.id}/attendance`; }}
-                    className="flex flex-col items-center justify-center min-w-[44px] w-11 h-11 rounded-full bg-white text-emerald-600 border border-emerald-400 shadow-sm hover:bg-gradient-to-br hover:from-emerald-400 hover:via-emerald-500 hover:to-emerald-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 shrink-0"
+                    className="flex flex-col items-center justify-center min-w-[44px] w-11 h-11 rounded-full bg-white text-emerald-600 border border-emerald-400 shadow-sm hover:bg-gradient-to-br hover:from-emerald-400 hover:via-emerald-500 hover:to-emerald-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 shrink-0 dark:bg-slate-900 dark:text-emerald-400"
                     aria-label="Record Attendance"
                   >
                     <UserCheck className="w-4 h-4 mb-0.5" />
@@ -582,7 +582,7 @@ export function EventDetailsModal({
                   {/* View Attendance */}
                   <button
                     onClick={() => { window.location.href = `/events/${event.id}/view-attendance`; }}
-                    className="flex flex-col items-center justify-center min-w-[44px] w-11 h-11 rounded-full bg-white text-purple-600 border border-purple-400 shadow-sm hover:bg-gradient-to-br hover:from-purple-400 hover:via-purple-500 hover:to-purple-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 shrink-0"
+                    className="flex flex-col items-center justify-center min-w-[44px] w-11 h-11 rounded-full bg-white text-purple-600 border border-purple-400 shadow-sm hover:bg-gradient-to-br hover:from-purple-400 hover:via-purple-500 hover:to-purple-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 shrink-0 dark:bg-slate-900 dark:text-purple-400"
                     aria-label="View Attendance"
                   >
                     <Users className="w-4 h-4 mb-0.5" />
@@ -594,7 +594,7 @@ export function EventDetailsModal({
               {onDelete && (
                 <button
                   onClick={() => onDelete(event.id)}
-                  className="flex flex-col items-center justify-center min-w-[44px] w-11 h-11 rounded-full bg-white text-red-600 border border-red-400 shadow-sm hover:bg-gradient-to-br hover:from-red-400 hover:via-pink-500 hover:to-red-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 shrink-0"
+                  className="flex flex-col items-center justify-center min-w-[44px] w-11 h-11 rounded-full bg-white text-red-600 border border-red-400 shadow-sm hover:bg-gradient-to-br hover:from-red-400 hover:via-pink-500 hover:to-red-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 shrink-0 dark:bg-slate-900 dark:text-red-400"
                   aria-label="Delete Event"
                 >
                   <Trash2 className="w-4 h-4 mb-0.5" />
@@ -602,11 +602,11 @@ export function EventDetailsModal({
                 </button>
               )}
 
-              <div className="w-px h-8 bg-gray-200 mx-1 shrink-0"></div>
+              <div className="w-px h-8 bg-gray-200 mx-1 shrink-0 dark:bg-slate-800"></div>
 
               <button
                 onClick={onClose}
-                className="flex flex-col items-center justify-center min-w-[44px] w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 shrink-0"
+                className="flex flex-col items-center justify-center min-w-[44px] w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 shrink-0 dark:bg-slate-900 dark:text-slate-300"
                 aria-label="Close"
               >
                 <AlertCircle className="w-4 h-4 mb-0.5" />

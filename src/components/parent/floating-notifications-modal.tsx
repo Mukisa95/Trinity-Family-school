@@ -185,31 +185,31 @@ export function FloatingNotificationsModal({ isOpen, onClose }: FloatingNotifica
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'announcement':
-        return <Bell className="h-4 w-4 text-blue-500" />;
+        return <Bell className="h-4 w-4 text-blue-500 dark:text-blue-400" />;
       case 'alert':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
+        return <AlertCircle className="h-4 w-4 text-red-500 dark:text-red-400" />;
       case 'reminder':
-        return <Calendar className="h-4 w-4 text-green-500" />;
+        return <Calendar className="h-4 w-4 text-green-500 dark:text-green-400" />;
       case 'flow':
-        return <FileText className="h-4 w-4 text-purple-500" />;
+        return <FileText className="h-4 w-4 text-purple-500 dark:text-purple-400" />;
       default:
-        return <Info className="h-4 w-4 text-gray-500" />;
+        return <Info className="h-4 w-4 text-gray-500 dark:text-slate-400" />;
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60';
       case 'urgent':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60';
       case 'normal':
       case 'medium':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
       case 'low':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
     }
   };
 
@@ -242,7 +242,7 @@ export function FloatingNotificationsModal({ isOpen, onClose }: FloatingNotifica
       {/* Header with Push Notification Button */}
       <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+          <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm dark:bg-slate-900/20">
             <Bell className="h-6 w-6" />
           </div>
           <div>
@@ -260,8 +260,8 @@ export function FloatingNotificationsModal({ isOpen, onClose }: FloatingNotifica
               disabled={isSubscribing || pushPermission === 'denied'}
               className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-200 ${
                 isSubscribed
-                  ? 'bg-white text-blue-600 hover:bg-white/90 shadow-lg'
-                  : 'bg-white/20 text-white hover:bg-white/30 border-2 border-white'
+                  ? 'bg-white text-blue-600 hover:bg-white/90 shadow-lg dark:bg-slate-900 dark:text-blue-400 dark:hover:bg-slate-900/90'
+                  : 'bg-white/20 text-white hover:bg-white/30 border-2 border-white dark:bg-slate-900/20 dark:hover:bg-slate-900/30 dark:border-slate-700'
               }`}
               title={
                 isSubscribed
@@ -287,7 +287,7 @@ export function FloatingNotificationsModal({ isOpen, onClose }: FloatingNotifica
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="h-10 w-10 p-0 hover:bg-white/20 text-white"
+            className="h-10 w-10 p-0 hover:bg-white/20 text-white dark:hover:bg-slate-900/20"
           >
             <X className="h-6 w-6" />
           </Button>
@@ -297,7 +297,7 @@ export function FloatingNotificationsModal({ isOpen, onClose }: FloatingNotifica
       {/* Subscription Banner for Unsubscribed Users */}
       {android.isAndroid && <div className="p-3"><AndroidNotificationStatus /></div>}
       {isPushSupported && !isSubscribed && showSubscriptionBanner && (
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-b-2 border-yellow-300 px-4 py-3">
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-b-2 border-yellow-300 px-4 py-3 dark:border-yellow-800/60">
           <div className="flex items-start gap-3">
             <div className="p-2 bg-yellow-400 rounded-lg flex-shrink-0">
               <Smartphone className="h-5 w-5 text-white" />
@@ -369,7 +369,7 @@ export function FloatingNotificationsModal({ isOpen, onClose }: FloatingNotifica
         ) : notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
             <div className="p-6 bg-gray-100 dark:bg-gray-800 rounded-full mb-4">
-              <Bell className="h-16 w-16 text-gray-400" />
+              <Bell className="h-16 w-16 text-gray-400 dark:text-slate-400" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
               No Notifications Yet
@@ -391,7 +391,7 @@ export function FloatingNotificationsModal({ isOpen, onClose }: FloatingNotifica
                     isExpanded 
                       ? 'border-blue-500 shadow-xl bg-blue-50/50 dark:bg-blue-950/20' 
                       : isUnread
-                        ? 'border-blue-300 bg-blue-50/30 dark:bg-blue-950/10'
+                        ? 'border-blue-300 bg-blue-50/30 dark:bg-blue-950/10 dark:border-blue-800/60'
                         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
@@ -487,11 +487,11 @@ export function FloatingNotificationsModal({ isOpen, onClose }: FloatingNotifica
                                     <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
                                       <div className="p-2 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-lg">
                                         {attachment.type === 'image' ? (
-                                          <ImageIcon className="w-5 h-5 text-green-600" />
+                                          <ImageIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
                                         ) : attachment.type === 'pdf' ? (
-                                          <FileText className="w-5 h-5 text-red-600" />
+                                          <FileText className="w-5 h-5 text-red-600 dark:text-red-400" />
                                         ) : (
-                                          <Paperclip className="w-5 h-5 text-gray-600" />
+                                          <Paperclip className="w-5 h-5 text-gray-600 dark:text-slate-300" />
                                         )}
                                       </div>
                                       <div className="flex-1 min-w-0">
@@ -521,12 +521,12 @@ export function FloatingNotificationsModal({ isOpen, onClose }: FloatingNotifica
                           </h5>
                           <div className="grid grid-cols-2 gap-3 text-xs">
                             <div className="flex items-center gap-2">
-                              <Tag className="h-3 w-3 text-blue-500" />
+                              <Tag className="h-3 w-3 text-blue-500 dark:text-blue-400" />
                               <span className="text-gray-500 dark:text-gray-400">Type:</span>
                               <span className="font-medium capitalize">{notification.type}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Users className="h-3 w-3 text-green-500" />
+                              <Users className="h-3 w-3 text-green-500 dark:text-green-400" />
                               <span className="text-gray-500 dark:text-gray-400">Recipients:</span>
                               <span className="font-medium">{notification.recipients?.length || 0}</span>
                             </div>

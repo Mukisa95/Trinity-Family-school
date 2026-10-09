@@ -81,30 +81,30 @@ const PostCard: React.FC<PostCardProps> = ({
   const getPositionIcon = (position: number) => {
     switch (position) {
       case 1:
-        return <Crown className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-yellow-500`} />;
+        return <Crown className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-yellow-500 dark:text-yellow-400`} />;
       case 2:
-        return <Users className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-blue-500`} />;
+        return <Users className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-blue-500 dark:text-blue-400`} />;
       default:
-        return <Users className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-gray-500`} />;
+        return <Users className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-gray-500 dark:text-slate-400`} />;
     }
   };
 
   const getPositionColor = (position: number, isTop: boolean) => {
     if (isTop) {
-      return 'bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-300 shadow-lg';
+      return 'bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-300 shadow-lg dark:from-yellow-950/40 dark:to-yellow-950/40 dark:border-yellow-800/60';
     }
 
     switch (position) {
       case 1:
-        return 'bg-yellow-50 border-yellow-200 shadow-md';
+        return 'bg-yellow-50 border-yellow-200 shadow-md dark:bg-yellow-950/40 dark:border-yellow-800/60';
       case 2:
-        return 'bg-blue-50 border-blue-200 shadow-md';
+        return 'bg-blue-50 border-blue-200 shadow-md dark:bg-blue-950/40 dark:border-blue-800/60';
       case 3:
-        return 'bg-green-50 border-green-200 shadow-md';
+        return 'bg-green-50 border-green-200 shadow-md dark:bg-green-950/40 dark:border-green-800/60';
       case 4:
-        return 'bg-purple-50 border-purple-200 shadow-md';
+        return 'bg-purple-50 border-purple-200 shadow-md dark:bg-purple-950/40 dark:border-purple-800/60';
       default:
-        return 'bg-gray-50 border-gray-200 shadow-md';
+        return 'bg-gray-50 border-gray-200 shadow-md dark:bg-slate-900 dark:border-slate-700';
     }
   };
 
@@ -149,7 +149,7 @@ const PostCard: React.FC<PostCardProps> = ({
               <DropdownMenuItem
                 onClick={() => onDeletePost(post)}
                 disabled={isDeleting}
-                className="text-red-600"
+                className="text-red-600 dark:text-red-400"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 {isDeleting ? 'Deleting...' : 'Delete Post'}
@@ -175,7 +175,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 </div>
               ) : (
                 <div className="flex items-center justify-center">
-                  <UserX className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-gray-400`} />
+                  <UserX className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-gray-400 dark:text-slate-400`} />
                 </div>
               )}
             </div>
@@ -201,11 +201,11 @@ const PostCard: React.FC<PostCardProps> = ({
             style={{ backgroundImage: `url(${getPupilPhoto(activeAssignment.pupilId)})` }}
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center dark:from-slate-900 dark:to-slate-800">
             {activeAssignment ? (
-              <User className={`${isTopRank ? 'h-12 w-12' : 'h-10 w-10'} text-gray-400`} />
+              <User className={`${isTopRank ? 'h-12 w-12' : 'h-10 w-10'} text-gray-400 dark:text-slate-400`} />
             ) : (
-              <UserX className={`${isTopRank ? 'h-12 w-12' : 'h-10 w-10'} text-gray-400`} />
+              <UserX className={`${isTopRank ? 'h-12 w-12' : 'h-10 w-10'} text-gray-400 dark:text-slate-400`} />
             )}
           </div>
         )}
@@ -241,7 +241,7 @@ const PostCard: React.FC<PostCardProps> = ({
             <DropdownMenuItem
               onClick={() => onDeletePost(post)}
               disabled={isDeleting}
-              className="text-red-600"
+              className="text-red-600 dark:text-red-400"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               {isDeleting ? 'Deleting...' : 'Delete Post'}
@@ -313,9 +313,9 @@ const ListView: React.FC<{
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {post.positionOfHonour === 1 ? (
-                        <Crown className="h-4 w-4 text-yellow-500" />
+                        <Crown className="h-4 w-4 text-yellow-500 dark:text-yellow-400" />
                       ) : (
-                        <Users className="h-4 w-4 text-blue-500" />
+                        <Users className="h-4 w-4 text-blue-500 dark:text-blue-400" />
                       )}
                       <span className="font-medium">{post.positionOfHonour}</span>
                     </div>
@@ -341,7 +341,7 @@ const ListView: React.FC<{
                   </TableCell>
                   <TableCell>
                     {activeAssignment ? (
-                      <Badge variant="default" className="bg-green-100 text-green-800">
+                      <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200">
                         Active
                       </Badge>
                     ) : (
@@ -363,7 +363,7 @@ const ListView: React.FC<{
                         variant="outline"
                         onClick={() => onDeletePost(post)}
                         disabled={isDeleting}
-                        className="text-red-600 hover:text-red-700"
+                        className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -599,7 +599,7 @@ export function PrefectoralManagementView({
       {/* Print View Selection Modal */}
       {showPrintViewModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96">
+          <div className="bg-white rounded-lg p-6 w-96 dark:bg-slate-900">
             <h3 className="text-lg font-semibold mb-4">Select View Type</h3>
             <div className="space-y-3">
               <Button
@@ -641,7 +641,7 @@ export function PrefectoralManagementView({
       {/* Print Size Selection Modal */}
       {showPrintSizeModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-80">
+          <div className="bg-white rounded-lg p-6 w-80 dark:bg-slate-900">
             <h3 className="text-lg font-semibold mb-4">Select Paper Size</h3>
             <div className="space-y-3">
               <Button

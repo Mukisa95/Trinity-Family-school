@@ -69,10 +69,10 @@ function displayDate(value?: string) {
 }
 
 function statusClass(status: PupilStatus) {
-  if (status === 'Active') return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
-  if (status === 'Graduated') return 'bg-sky-50 text-sky-700 ring-sky-200';
-  if (status === 'Pending') return 'bg-amber-50 text-amber-700 ring-amber-200';
-  return 'bg-slate-100 text-slate-700 ring-slate-200';
+  if (status === 'Active') return 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800/60';
+  if (status === 'Graduated') return 'bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:ring-sky-800/60';
+  if (status === 'Pending') return 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-800/60';
+  return 'bg-slate-100 text-slate-700 ring-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-700';
 }
 
 interface HistoricalPupilSeedingWorkspaceProps {
@@ -214,15 +214,15 @@ export function HistoricalPupilSeedingWorkspace({ canCreate }: HistoricalPupilSe
 
   return (
     <div className="space-y-6">
-      <section className="flex flex-col gap-4 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <section className="flex flex-col gap-4 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6 dark:border-emerald-800/60 dark:from-emerald-950/40 dark:via-slate-900 dark:to-sky-950/40">
         <div className="flex gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
             <Sprout className="h-5 w-5" aria-hidden="true" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-emerald-700">Historical pupil records</p>
-            <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-slate-950">Seeding workspace</h1>
-            <p className="mt-1 text-sm text-slate-600">Add only what you know. A pupil name is the only required field.</p>
+            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Historical pupil records</p>
+            <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-slate-950 dark:text-slate-100">Seeding workspace</h1>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Add only what you know. A pupil name is the only required field.</p>
           </div>
         </div>
         {canCreate ? (
@@ -230,12 +230,12 @@ export function HistoricalPupilSeedingWorkspace({ canCreate }: HistoricalPupilSe
             <Plus className="h-4 w-4" /> Add historical pupil
           </Button>
         ) : (
-          <p className="rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-600">View-only access</p>
+          <p className="rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300">View-only access</p>
         )}
       </section>
 
       <Card>
-        <CardHeader className="gap-4 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+        <CardHeader className="gap-4 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700">
           <div>
             <CardTitle>Seeded pupils</CardTitle>
             <CardDescription>These pupils appear as ordinary pupil records everywhere else in the system.</CardDescription>
@@ -251,15 +251,15 @@ export function HistoricalPupilSeedingWorkspace({ canCreate }: HistoricalPupilSe
           ) : seededPupils.length === 0 ? (
             <div className="flex min-h-60 flex-col items-center justify-center px-6 py-10 text-center">
               <UserRoundPlus className="mb-3 h-9 w-9 text-slate-300" aria-hidden="true" />
-              <h2 className="font-semibold text-slate-900">No historical pupils yet</h2>
+              <h2 className="font-semibold text-slate-900 dark:text-slate-100">No historical pupils yet</h2>
               <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">Use the add button to create a pupil and capture the academic years you know.</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-100 dark:divide-slate-700">
               {seededPupils.map(({ record, pupil }) => (
                 <div key={record.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-slate-900">{`${formatPupilDisplayName(pupil)}`.trim()}</p>
+                    <p className="truncate font-semibold text-slate-900 dark:text-slate-100">{`${formatPupilDisplayName(pupil)}`.trim()}</p>
                     <p className="mt-0.5 text-sm text-muted-foreground">Registered: {displayDate(pupil.registrationDate)} · {pupil.className || 'No class recorded'}</p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -286,9 +286,9 @@ export function HistoricalPupilSeedingWorkspace({ canCreate }: HistoricalPupilSe
               submissionError={formValidation.submissionError}
               onSelectError={(fieldId) => void formValidation.focusField(fieldId)}
             />
-            <section className="space-y-4 rounded-xl border border-slate-200 p-4">
+            <section className="space-y-4 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
               <div>
-                <h2 className="font-semibold text-slate-900">Pupil details</h2>
+                <h2 className="font-semibold text-slate-900 dark:text-slate-100">Pupil details</h2>
                 <p className="mt-1 text-sm text-muted-foreground">Leave any unknown details blank.</p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -304,10 +304,10 @@ export function HistoricalPupilSeedingWorkspace({ canCreate }: HistoricalPupilSe
               </div>
             </section>
 
-            <section className="space-y-4 rounded-xl border border-slate-200 p-4">
+            <section className="space-y-4 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <h2 className="font-semibold text-slate-900">Academic history</h2>
+                  <h2 className="font-semibold text-slate-900 dark:text-slate-100">Academic history</h2>
                   <p className="mt-1 text-sm text-muted-foreground">A selected status carries into future years until you choose another one.</p>
                 </div>
                 <Button type="button" variant="outline" size="sm" className="gap-2 self-start" onClick={addHistoryRow} disabled={academicYearsLoading}>
@@ -317,21 +317,21 @@ export function HistoricalPupilSeedingWorkspace({ canCreate }: HistoricalPupilSe
               <FieldError error={formValidation.getFieldError('seed-history')} />
 
               {academicYearsLoading || classesLoading ? (
-                <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading academic years and classes…</div>
+                <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-4 text-sm text-muted-foreground dark:bg-slate-900"><Loader2 className="h-4 w-4 animate-spin" /> Loading academic years and classes…</div>
               ) : draft.history.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50/60 p-5 text-sm text-muted-foreground">No academic years added. This pupil can still be saved with only their name.</div>
+                <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50/60 p-5 text-sm text-muted-foreground dark:border-slate-700 dark:bg-slate-900/60">No academic years added. This pupil can still be saved with only their name.</div>
               ) : (
                 <div className="space-y-3">
                   {draft.history.map((row, index) => {
                     const carriedStatus = draft.history.slice(0, index + 1).reduce<PupilStatus>((status, current) => current.status || status, 'Active');
                     return (
-                      <div key={row.id} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[1.05fr_1.2fr_1fr_1.2fr_auto] md:items-end">
+                      <div key={row.id} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[1.05fr_1.2fr_1fr_1.2fr_auto] md:items-end dark:border-slate-700 dark:bg-slate-900">
                         <div className="space-y-2"><Label htmlFor={`${row.id}-year`}>Academic year</Label><select id={`${row.id}-year`} className={selectClassName} value={row.academicYearId} onChange={(event) => { updateHistoryRow(row.id, { academicYearId: event.target.value }); formValidation.handleFieldChange('seed-history'); }}>{sortedAcademicYears.map((year) => <option key={year.id} value={year.id} disabled={draft.history.some((item) => item.id !== row.id && item.academicYearId === year.id)}>{year.name}</option>)}</select></div>
                         <div className="space-y-2"><Label>Class attended</Label><select className={selectClassName} value={row.classId} onChange={(event) => updateHistoryRow(row.id, { classId: event.target.value })}><option value="">Not recorded</option>{classes.map((schoolClass) => <option key={schoolClass.id} value={schoolClass.id}>{schoolClass.code ? `${schoolClass.code} — ${schoolClass.name}` : schoolClass.name}</option>)}</select></div>
                         <div className="space-y-2"><Label>Status change</Label><select className={selectClassName} value={row.status} onChange={(event) => updateHistoryRow(row.id, { status: event.target.value as DraftHistoryRow['status'] })}><option value="">Carry forward</option>{statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select></div>
                         <div className="space-y-2"><Label>Notes</Label><Input value={row.notes} onChange={(event) => updateHistoryRow(row.id, { notes: event.target.value })} placeholder="Optional" /></div>
                         <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => removeHistoryRow(row.id)} aria-label="Remove academic year"><Trash2 className="h-4 w-4" /></Button>
-                        <div className="md:col-span-5 flex items-center gap-2 text-xs text-slate-500"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Status after this year: <span className="font-semibold text-slate-700">{carriedStatus}</span></div>
+                        <div className="md:col-span-5 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> Status after this year: <span className="font-semibold text-slate-700 dark:text-slate-200">{carriedStatus}</span></div>
                       </div>
                     );
                   })}
@@ -339,7 +339,7 @@ export function HistoricalPupilSeedingWorkspace({ canCreate }: HistoricalPupilSe
               )}
             </section>
 
-            <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
+            <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end dark:border-slate-700">
               <Button type="button" variant="outline" onClick={resetAndCloseForm} disabled={createSeed.isPending}>Cancel</Button>
               <Button type="submit" className="gap-2 bg-emerald-600 hover:bg-emerald-700" disabled={createSeed.isPending}>
                 {createSeed.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CircleAlert className="h-4 w-4" />}

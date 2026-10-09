@@ -46,26 +46,26 @@ const typeConfig: Record<PromotionBatchType, {
 }> = {
     Promotion: {
         icon: TrendingUp,
-        color: "text-green-700",
-        bgColor: "bg-green-50",
+        color: "text-green-700 dark:text-green-300",
+        bgColor: "bg-green-50 dark:bg-green-950/40",
         label: "Promotion"
     },
     Demotion: {
         icon: TrendingDown,
-        color: "text-red-700",
-        bgColor: "bg-red-50",
+        color: "text-red-700 dark:text-red-300",
+        bgColor: "bg-red-50 dark:bg-red-950/40",
         label: "Demotion"
     },
     Transfer: {
         icon: ArrowRight,
-        color: "text-blue-700",
-        bgColor: "bg-blue-50",
+        color: "text-blue-700 dark:text-blue-300",
+        bgColor: "bg-blue-50 dark:bg-blue-950/40",
         label: "Transfer"
     },
     Graduation: {
         icon: GraduationCap,
-        color: "text-purple-700",
-        bgColor: "bg-purple-50",
+        color: "text-purple-700 dark:text-purple-300",
+        bgColor: "bg-purple-50 dark:bg-purple-950/40",
         label: "Graduation"
     }
 };
@@ -170,7 +170,7 @@ export default function PromotionBatchDetailPage() {
 
     if (batchLoading || pupilsLoading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-blue-950/40 dark:via-slate-900 dark:to-purple-950/40">
                 <GlassPageTopBar
                     title="Promotion Batch Details"
                     backHref="/pupils/promote"
@@ -186,7 +186,7 @@ export default function PromotionBatchDetailPage() {
 
     if (batchError || !batch) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-blue-950/40 dark:via-slate-900 dark:to-purple-950/40">
                 <GlassPageTopBar
                     title="Promotion Batch Details"
                     backHref="/pupils/promote"
@@ -216,7 +216,7 @@ export default function PromotionBatchDetailPage() {
     const Icon = config.icon;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-blue-950/40 dark:via-slate-900 dark:to-purple-950/40">
             <GlassPageTopBar
                 title="Promotion Batch Details"
                 subtitle={`View all pupils in this ${batch.type.toLowerCase()} batch`}

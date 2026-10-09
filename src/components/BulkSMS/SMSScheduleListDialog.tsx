@@ -204,15 +204,15 @@ function CountdownCell({ targetDate, onTrigger }: { targetDate: Date; onTrigger?
 
   const { weeks, days, hours, mins, secs } = formatCountdown(ms);
 
-  if (ms <= 0) return <span className="text-xs text-green-600 font-semibold text-center whitespace-nowrap animate-pulse">Sending soon…</span>;
+  if (ms <= 0) return <span className="text-xs text-green-600 font-semibold text-center whitespace-nowrap animate-pulse dark:text-green-400">Sending soon…</span>;
 
   return (
     <div className="flex items-center gap-1 text-xs font-mono">
-      {weeks > 0 && <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-semibold">{weeks}w</span>}
-      {(weeks > 0 || days > 0) && <span className="bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-semibold">{days}d</span>}
-      <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-semibold">{String(hours).padStart(2, '0')}h</span>
-      <span className="bg-pink-100 text-pink-800 px-1.5 py-0.5 rounded font-semibold">{String(mins).padStart(2, '0')}m</span>
-      <span className="bg-red-100 text-red-800 px-1.5 py-0.5 rounded font-semibold">{String(secs).padStart(2, '0')}s</span>
+      {weeks > 0 && <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-semibold dark:bg-blue-950/40 dark:text-blue-200">{weeks}w</span>}
+      {(weeks > 0 || days > 0) && <span className="bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-semibold dark:bg-indigo-950/40 dark:text-indigo-200">{days}d</span>}
+      <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-semibold dark:bg-purple-950/40 dark:text-purple-200">{String(hours).padStart(2, '0')}h</span>
+      <span className="bg-pink-100 text-pink-800 px-1.5 py-0.5 rounded font-semibold dark:bg-pink-950/40 dark:text-pink-200">{String(mins).padStart(2, '0')}m</span>
+      <span className="bg-red-100 text-red-800 px-1.5 py-0.5 rounded font-semibold dark:bg-red-950/40 dark:text-red-200">{String(secs).padStart(2, '0')}s</span>
     </div>
   );
 }
@@ -288,7 +288,7 @@ function JobCard({
   };
 
   return (
-    <div className="bg-white border rounded-xl p-4 space-y-3 shadow-sm transition-colors relative overflow-hidden">
+    <div className="bg-white border rounded-xl p-4 space-y-3 shadow-sm transition-colors relative overflow-hidden dark:bg-slate-900">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Badge variant="outline" className="text-[10px] shrink-0 flex items-center gap-1">
@@ -302,39 +302,39 @@ function JobCard({
           )}
         </div>
         {job.lockedAmount > 0 && !isEditing && (
-          <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5 font-medium whitespace-nowrap">
+          <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5 font-medium whitespace-nowrap dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60">
             🔒 UGX {job.lockedAmount.toLocaleString()} reserved
           </span>
         )}
       </div>
 
-      <p className="text-sm text-gray-700 line-clamp-2">{job.message}</p>
+      <p className="text-sm text-gray-700 line-clamp-2 dark:text-slate-200">{job.message}</p>
 
       {!isEditing ? (
         <>
-          <div className="flex items-center justify-between gap-2 text-xs text-gray-500">
+          <div className="flex items-center justify-between gap-2 text-xs text-gray-500 dark:text-slate-400">
             <span>{recipient > 0 && `${recipient} recipients · `}{job.estimatedSMSCount} SMS · UGX {(job.estimatedCost ?? 0).toLocaleString()}</span>
             <span>Created {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : '—'}</span>
           </div>
 
           {nextRun && (
             <div className="flex items-center gap-2 pb-1">
-              <Clock className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+              <Clock className="h-3.5 w-3.5 text-gray-400 flex-shrink-0 dark:text-slate-400" />
               <CountdownCell targetDate={nextRun} onTrigger={handleTriggerSend} />
             </div>
           )}
 
           <div className="flex justify-end gap-2 pt-1 border-t">
-            <Button size="sm" variant="ghost" className="h-7 text-xs text-blue-600 hover:bg-blue-50" onClick={() => setIsEditing(true)}>
+            <Button size="sm" variant="ghost" className="h-7 text-xs text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40" onClick={() => setIsEditing(true)}>
               <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit Time
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs text-red-600 hover:bg-red-50" onClick={() => onCancel(job.id)}>
+            <Button size="sm" variant="ghost" className="h-7 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40" onClick={() => onCancel(job.id)}>
               <Trash2 className="h-3.5 w-3.5 mr-1" /> Cancel
             </Button>
           </div>
         </>
       ) : (
-        <div className="bg-slate-50 border rounded-lg p-3 space-y-3 animate-in fade-in slide-in-from-top-2">
+        <div className="bg-slate-50 border rounded-lg p-3 space-y-3 animate-in fade-in slide-in-from-top-2 dark:bg-slate-900">
           {job.type === 'once' && (
             <div className="space-y-2">
               <Label className="text-xs">New Date & Time</Label>
@@ -388,7 +388,7 @@ function JobCard({
                   <div key={i} className="flex items-center gap-1.5">
                     <Input type="date" className="h-7 text-xs" value={entry.date} min={todayStr()} onChange={e => setEditDates(prev => prev.map((x, j) => j === i ? { ...x, date: e.target.value } : x))} />
                     <Input type="time" className="h-7 w-20 text-xs" value={entry.time} onChange={e => setEditDates(prev => prev.map((x, j) => j === i ? { ...x, time: e.target.value } : x))} />
-                    <button onClick={() => setEditDates(prev => prev.filter((_, j) => j !== i))} className="text-gray-400 hover:text-red-500 p-1" disabled={editDates.length === 1}>
+                    <button onClick={() => setEditDates(prev => prev.filter((_, j) => j !== i))} className="text-gray-400 hover:text-red-500 p-1 dark:text-slate-400 dark:hover:text-red-400" disabled={editDates.length === 1}>
                       <X className="h-3 w-3" />
                     </button>
                   </div>
@@ -419,19 +419,19 @@ function HistoryCard({ job }: { job: ScheduledJob }) {
   const recipient = job.recipients?.resolvedPhones?.length ?? 0;
 
   return (
-    <div className="bg-white border rounded-xl p-3 space-y-2 shadow-sm">
+    <div className="bg-white border rounded-xl p-3 space-y-2 shadow-sm dark:bg-slate-900">
       <div className="flex items-center justify-between gap-2">
         <Badge variant="outline" className="text-[10px] flex items-center gap-1">
           {typeIcon(job.type)} {typeLabel(job.type)}
         </Badge>
-        <Badge className="bg-green-100 text-green-800 border-green-200 text-[10px]">
+        <Badge className="bg-green-100 text-green-800 border-green-200 text-[10px] dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60">
           <CheckCircle className="h-3 w-3 mr-1" /> Sent
         </Badge>
       </div>
-      <p className="text-sm text-gray-700 line-clamp-2">{job.message}</p>
-      <div className="flex justify-between text-xs text-gray-500">
+      <p className="text-sm text-gray-700 line-clamp-2 dark:text-slate-200">{job.message}</p>
+      <div className="flex justify-between text-xs text-gray-500 dark:text-slate-400">
         <span>{recipient > 0 && `${recipient} recipients · `}{job.estimatedSMSCount} SMS</span>
-        <span className="text-green-700 font-medium">
+        <span className="text-green-700 font-medium dark:text-green-300">
           Sent {sentDate ? new Date(sentDate).toLocaleString() : '—'}
         </span>
       </div>
@@ -527,7 +527,7 @@ export const SMSScheduleListDialog: React.FC<SMSScheduleListDialogProps> = ({ op
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <List className="h-5 w-5 text-blue-600" />
+            <List className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             Scheduled SMS
           </DialogTitle>
         </DialogHeader>
@@ -537,25 +537,25 @@ export const SMSScheduleListDialog: React.FC<SMSScheduleListDialogProps> = ({ op
           <button
             onClick={() => setTab('upcoming')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-              tab === 'upcoming' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              tab === 'upcoming' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             <Calendar className="h-4 w-4" />
             Upcoming
             {upcoming.length > 0 && (
-              <span className="bg-blue-100 text-blue-700 text-xs rounded-full px-1.5">{upcoming.length}</span>
+              <span className="bg-blue-100 text-blue-700 text-xs rounded-full px-1.5 dark:bg-blue-950/40 dark:text-blue-300">{upcoming.length}</span>
             )}
           </button>
           <button
             onClick={() => setTab('history')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-              tab === 'history' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              tab === 'history' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             <History className="h-4 w-4" />
             History
             {history.length > 0 && (
-              <span className="bg-gray-100 text-gray-600 text-xs rounded-full px-1.5">{history.length}</span>
+              <span className="bg-gray-100 text-gray-600 text-xs rounded-full px-1.5 dark:bg-slate-900 dark:text-slate-300">{history.length}</span>
             )}
           </button>
         </div>
@@ -563,13 +563,13 @@ export const SMSScheduleListDialog: React.FC<SMSScheduleListDialogProps> = ({ op
         {/* Content */}
         <div className="flex-1 overflow-y-auto space-y-3 py-3 pr-1">
           {loading ? (
-            <div className="flex items-center justify-center py-12 text-gray-400">
+            <div className="flex items-center justify-center py-12 text-gray-400 dark:text-slate-400">
               <Loader2 className="h-6 w-6 animate-spin mr-2" />
               Loading schedules…
             </div>
           ) : tab === 'upcoming' ? (
             upcoming.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
+              <div className="text-center py-12 text-gray-400 dark:text-slate-400">
                 <Send className="h-10 w-10 mx-auto mb-3 opacity-30" />
                 <p className="text-sm">No scheduled SMS yet.<br />Create one and it will appear here.</p>
               </div>
@@ -582,7 +582,7 @@ export const SMSScheduleListDialog: React.FC<SMSScheduleListDialogProps> = ({ op
             )
           ) : (
             history.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
+              <div className="text-center py-12 text-gray-400 dark:text-slate-400">
                 <History className="h-10 w-10 mx-auto mb-3 opacity-30" />
                 <p className="text-sm">No sent history yet.</p>
               </div>
@@ -596,7 +596,7 @@ export const SMSScheduleListDialog: React.FC<SMSScheduleListDialogProps> = ({ op
 
         {/* Footer */}
         <div className="border-t pt-3 flex items-center justify-between">
-          <div className="text-xs text-gray-400 flex items-center gap-1">
+          <div className="text-xs text-gray-400 flex items-center gap-1 dark:text-slate-400">
             <AlertTriangle className="h-3 w-3" />
             Reserved balances are automatically released when sent or cancelled
           </div>

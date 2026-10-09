@@ -68,7 +68,7 @@ export const QuickActionButton: React.FC<QuickActionButtonProps> = ({
                     }}
                 >
                     {/* Inner Light Ring */}
-                    <div className="w-10 h-10 rounded-full border border-white/40 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full border border-white/40 flex items-center justify-center dark:border-slate-700/40">
                         <Icon className="w-5 h-5 text-white drop-shadow-md" />
                     </div>
                 </div>

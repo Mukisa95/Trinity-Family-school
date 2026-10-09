@@ -155,7 +155,7 @@ const DesktopPupilRow = React.memo(function DesktopPupilRow({
           value={entry.status}
           onValueChange={(value) => onChange(pupil.id, "status", value)}
         >
-          <SelectTrigger className="h-10 border-2 hover:border-emerald-300 focus:border-emerald-500 rounded-xl transition-colors duration-200">
+          <SelectTrigger className="h-10 border-2 hover:border-emerald-300 focus:border-emerald-500 rounded-xl transition-colors duration-200 dark:hover:border-emerald-800/60">
             <SelectValue placeholder="Select status" />
           </SelectTrigger>
           <SelectContent className="rounded-xl shadow-lg">
@@ -172,7 +172,7 @@ const DesktopPupilRow = React.memo(function DesktopPupilRow({
           value={entry.remarks}
           onChange={(e) => onChange(pupil.id, "remarks", e.target.value)}
           placeholder="Optional remarks"
-          className="border-2 hover:border-emerald-300 focus:border-emerald-500 rounded-xl transition-colors duration-200"
+          className="border-2 hover:border-emerald-300 focus:border-emerald-500 rounded-xl transition-colors duration-200 dark:hover:border-emerald-800/60"
         />
       </TableCell>
     </TableRow>
@@ -840,12 +840,12 @@ export default function RecordAttendancePage() {
 
   const getStatusBadgeColor = (status: AttendanceStatus | "") => {
     switch (status) {
-      case "Present": return "bg-green-100 text-green-800";
-      case "Absent": return "bg-red-100 text-red-800";
-      case "Late": return "bg-yellow-100 text-yellow-800";
-      case "Excused": return "bg-blue-100 text-blue-800";
-      case "Delayed": return "bg-purple-100 text-purple-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "Present": return "bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200";
+      case "Absent": return "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200";
+      case "Late": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200";
+      case "Excused": return "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200";
+      case "Delayed": return "bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-200";
+      default: return "bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100";
     }
   };
 
@@ -889,7 +889,7 @@ export default function RecordAttendancePage() {
         backLabel="Back to Attendance Hub"
         className={selectedClass ? "mb-1.5" : "mb-4"}
         meta={
-          <span className="whitespace-nowrap rounded-full border border-indigo-100/80 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+          <span className="whitespace-nowrap rounded-full border border-indigo-100/80 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:border-indigo-800/80 dark:bg-indigo-950/40 dark:text-indigo-300">
             {format(today, "MMM d")}
           </span>
         }
@@ -902,7 +902,7 @@ export default function RecordAttendancePage() {
               size="sm"
               showIcon={false}
               className="shrink-0"
-              triggerClassName="h-[34px] min-w-[104px] max-w-[140px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50"
+              triggerClassName="h-[34px] min-w-[104px] max-w-[140px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
               includeAllOption={false}
             />
           </div>
@@ -916,7 +916,7 @@ export default function RecordAttendancePage() {
               size="sm"
               showIcon={false}
               className="shrink-0"
-              triggerClassName="h-[34px] min-w-[120px] max-w-[160px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50"
+              triggerClassName="h-[34px] min-w-[120px] max-w-[160px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
               includeAllOption={false}
             />
             {selectedClassId && (
@@ -947,9 +947,9 @@ export default function RecordAttendancePage() {
                 className="attendance-autosave-indicator text-[9px] sm:text-[10px]"
               />
             )}
-            <div className="flex h-[34px] items-center gap-1 rounded-full border border-blue-200/60 bg-white/90 px-3 shadow-sm">
-              <Clock className="h-3.5 w-3.5 text-blue-500" />
-              <span className="font-mono text-[10px] font-bold text-blue-700 sm:text-xs">
+            <div className="flex h-[34px] items-center gap-1 rounded-full border border-blue-200/60 bg-white/90 px-3 shadow-sm dark:border-blue-800/60 dark:bg-slate-900/90">
+              <Clock className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
+              <span className="font-mono text-[10px] font-bold text-blue-700 sm:text-xs dark:text-blue-300">
                 {currentTime}
               </span>
             </div>

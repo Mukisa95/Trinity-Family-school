@@ -81,51 +81,51 @@ export function NotificationParticipantsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-1.5rem)] overflow-hidden rounded-2xl p-0 sm:max-w-lg">
-        <div className="border-b border-slate-100 px-5 py-5 pr-12">
-          <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
-            <Users className="h-5 w-5 text-blue-600" />
+        <div className="border-b border-slate-100 px-5 py-5 pr-12 dark:border-slate-700">
+          <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             Recipients
           </DialogTitle>
-          <DialogDescription className="mt-1 text-sm text-slate-500">
+          <DialogDescription className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             {data?.total ? `${data.total} original recipient${data.total === 1 ? '' : 's'}` : 'People who received this notification'}
           </DialogDescription>
         </div>
 
         <div className="max-h-[calc(100dvh-12rem)] overflow-y-auto px-5 py-4">
           {isLoading ? (
-            <div className="flex min-h-40 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-blue-600" /></div>
+            <div className="flex min-h-40 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400" /></div>
           ) : error ? (
-            <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>
+            <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-300">{error}</p>
           ) : data && !data.canViewNames ? (
-            <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+            <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
               Recipient names are private. You can still reply directly to the sender.
             </p>
           ) : data ? (
             <>
               <label className="relative mb-3 block">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-400" />
                 <input
                   value={search}
                   onChange={event => setSearch(event.target.value)}
                   placeholder="Search recipients"
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:bg-slate-900 dark:focus:ring-blue-800/60"
                 />
               </label>
-              <div className="divide-y divide-slate-100 rounded-xl border border-slate-100 bg-white">
+              <div className="divide-y divide-slate-100 rounded-xl border border-slate-100 bg-white dark:divide-slate-700 dark:border-slate-700 dark:bg-slate-900">
                 {filteredRecipients.map(recipient => (
                   <div key={recipient.userId} className="px-3.5 py-3">
-                    <p className="text-sm font-semibold text-slate-800">{recipient.displayName}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">{recipient.contextLabel || recipient.role}</p>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{recipient.displayName}</p>
+                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{recipient.contextLabel || recipient.role}</p>
                   </div>
                 ))}
-                {!filteredRecipients.length && <p className="px-3.5 py-8 text-center text-sm text-slate-500">No matching recipients.</p>}
+                {!filteredRecipients.length && <p className="px-3.5 py-8 text-center text-sm text-slate-500 dark:text-slate-400">No matching recipients.</p>}
               </div>
               {data.nextPage && (
                 <button
                   type="button"
                   onClick={() => void fetchParticipants(data.nextPage!, true)}
                   disabled={isLoadingMore}
-                  className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                  className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
                 >
                   {isLoadingMore ? 'Loading...' : 'Show more recipients'}
                 </button>

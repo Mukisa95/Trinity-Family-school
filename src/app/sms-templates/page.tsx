@@ -121,7 +121,7 @@ const SMSTemplatesPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/40">
             <GlassPageTopBar
                 title="SMS Templates"
                 subtitle="Create and manage reusable message templates for parent communications"
@@ -188,7 +188,7 @@ const SMSTemplatesPage: React.FC = () => {
                                     <CardDescription className="flex gap-2 mt-1">
                                         <Badge variant="secondary" className="text-xs">{chars} chars</Badge>
                                         {msgs > 1 && (
-                                            <Badge variant="outline" className="text-xs text-amber-600 border-amber-400">
+                                            <Badge variant="outline" className="text-xs text-amber-600 border-amber-400 dark:text-amber-400">
                                                 {msgs} SMS
                                             </Badge>
                                         )}
@@ -212,7 +212,7 @@ const SMSTemplatesPage: React.FC = () => {
                     <div className="space-y-4 py-2">
                         <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={formValidation.focusField} />
                         <div className="space-y-2">
-                            <Label htmlFor="tpl-name" className={formValidation.getFieldError('tpl-name') ? 'text-red-700' : undefined}>Template Name <span className="text-red-600">*</span></Label>
+                            <Label htmlFor="tpl-name" className={formValidation.getFieldError('tpl-name') ? 'text-red-700 dark:text-red-300' : undefined}>Template Name <span className="text-red-600 dark:text-red-400">*</span></Label>
                             <Input
                                 id="tpl-name"
                                 placeholder="e.g. Fee Reminder, Meeting Notice…"
@@ -223,7 +223,7 @@ const SMSTemplatesPage: React.FC = () => {
                             <FieldError error={formValidation.getFieldError('tpl-name')} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="tpl-content" className={formValidation.getFieldError('tpl-content') ? 'text-red-700' : undefined}>Message Content <span className="text-red-600">*</span></Label>
+                            <Label htmlFor="tpl-content" className={formValidation.getFieldError('tpl-content') ? 'text-red-700 dark:text-red-300' : undefined}>Message Content <span className="text-red-600 dark:text-red-400">*</span></Label>
                             <Textarea
                                 id="tpl-content"
                                 placeholder="Type your SMS message here…"
@@ -235,7 +235,7 @@ const SMSTemplatesPage: React.FC = () => {
                             />
                             <FieldError error={formValidation.getFieldError('tpl-content')} />
                             <div className="flex justify-between text-xs text-muted-foreground">
-                                <span className={charCount > CHAR_LIMIT ? 'text-amber-600 font-medium' : ''}>
+                                <span className={charCount > CHAR_LIMIT ? 'text-amber-600 font-medium dark:text-amber-400' : ''}>
                                     {charCount} characters
                                     {charCount > CHAR_LIMIT && ` · ${messageCount} SMS messages`}
                                 </span>

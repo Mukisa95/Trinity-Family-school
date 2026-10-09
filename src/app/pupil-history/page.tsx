@@ -372,12 +372,12 @@ export default function PupilHistoryPage() {
 
   const getStatusBadgeColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'active': return 'bg-green-100 text-green-800 border-green-200';
-      case 'graduated': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'inactive': return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'on leave': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'transferred': return 'bg-purple-100 text-purple-800 border-purple-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'active': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
+      case 'graduated': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+      case 'inactive': return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
+      case 'on leave': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
+      case 'transferred': return 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-200 dark:border-purple-800/60';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
     }
   };
 
@@ -439,7 +439,7 @@ export default function PupilHistoryPage() {
         />
         <div className="max-w-7xl mx-auto px-4 py-12 flex flex-col items-center justify-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-          <p className="mt-4 text-gray-600">Loading pupil history data...</p>
+          <p className="mt-4 text-gray-600 dark:text-slate-300">Loading pupil history data...</p>
         </div>
       </div>
     );
@@ -459,7 +459,7 @@ export default function PupilHistoryPage() {
               <SelectTrigger className="h-[34px] min-w-[80px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
                 <SelectValue placeholder="Class" />
               </SelectTrigger>
-              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999]">
+              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999] dark:bg-slate-900">
                 <SelectItem value="all">All Classes</SelectItem>
                 {availableClasses.map(className => (
                   <SelectItem key={className} value={className}>{className}</SelectItem>
@@ -471,7 +471,7 @@ export default function PupilHistoryPage() {
               <SelectTrigger className="h-[34px] min-w-[75px] max-w-[100px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999]">
+              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999] dark:bg-slate-900">
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="graduated">Graduated</SelectItem>
@@ -487,7 +487,7 @@ export default function PupilHistoryPage() {
               <SelectTrigger className="h-[34px] min-w-[90px] max-w-[125px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
                 <SelectValue placeholder="Class" />
               </SelectTrigger>
-              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999]">
+              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999] dark:bg-slate-900">
                 <SelectItem value="all">All Classes</SelectItem>
                 {availableClasses.map(className => (
                   <SelectItem key={className} value={className}>{className}</SelectItem>
@@ -499,7 +499,7 @@ export default function PupilHistoryPage() {
               <SelectTrigger className="h-[34px] min-w-[85px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999]">
+              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999] dark:bg-slate-900">
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="graduated">Graduated</SelectItem>
@@ -573,25 +573,25 @@ export default function PupilHistoryPage() {
 
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
 
-        <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-lg">
+        <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-lg dark:bg-slate-900/80 dark:border-slate-700/20">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-gray-200 bg-gray-50/80">
+                  <TableRow className="border-gray-200 bg-gray-50/80 dark:border-slate-700 dark:bg-slate-900/80">
                     <TableHead className="w-8"></TableHead>
-                    <TableHead className="font-semibold text-gray-700">Personal Information</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Joining Data</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Status History</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Class History</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Guardian</TableHead>
+                    <TableHead className="font-semibold text-gray-700 dark:text-slate-200">Personal Information</TableHead>
+                    <TableHead className="font-semibold text-gray-700 dark:text-slate-200">Joining Data</TableHead>
+                    <TableHead className="font-semibold text-gray-700 dark:text-slate-200">Status History</TableHead>
+                    <TableHead className="font-semibold text-gray-700 dark:text-slate-200">Class History</TableHead>
+                    <TableHead className="font-semibold text-gray-700 dark:text-slate-200">Guardian</TableHead>
 
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredData.map((pupil) => (
                     <React.Fragment key={pupil.id}>
-                      <TableRow className="hover:bg-gray-50/50 border-gray-100">
+                      <TableRow className="hover:bg-gray-50/50 border-gray-100 dark:hover:bg-slate-900/50 dark:border-slate-700">
                         <TableCell>
                           <Button
                             variant="ghost"
@@ -608,13 +608,13 @@ export default function PupilHistoryPage() {
                         
                         <TableCell>
                           <div className="space-y-1">
-                            <div className="font-medium text-gray-900">{pupil.fullName}</div>
-                            <div className="text-sm text-gray-500">{pupil.admissionNumber}</div>
-                            <div className="text-xs text-gray-400">
+                            <div className="font-medium text-gray-900 dark:text-slate-100">{pupil.fullName}</div>
+                            <div className="text-sm text-gray-500 dark:text-slate-400">{pupil.admissionNumber}</div>
+                            <div className="text-xs text-gray-400 dark:text-slate-400">
                               Age: {pupil.age} • {pupil.gender}
                             </div>
                             {pupil.currentClass && (
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">
                                 {pupil.currentClass}
                               </Badge>
                             )}
@@ -626,14 +626,14 @@ export default function PupilHistoryPage() {
                             <div className="text-sm font-medium">
                               Joined: {format(new Date(pupil.joinedDate), "MMM dd, yyyy")}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-gray-500 dark:text-slate-400">
                               {pupil.currentStatus === 'Active' ? 
                                 `Active for ${pupil.totalYearsInSchool}` :
                                 `Stayed for ${pupil.totalYearsInSchool}`
                               }
                             </div>
                             {pupil.leftDate && (
-                              <div className="text-xs text-gray-400">
+                              <div className="text-xs text-gray-400 dark:text-slate-400">
                                 Left: {format(new Date(pupil.leftDate), "MMM dd, yyyy")}
                               </div>
                             )}
@@ -650,18 +650,18 @@ export default function PupilHistoryPage() {
                                     {status.status}
                                   </Badge>
                                   {status.isCurrent && (
-                                    <span className="text-xs text-green-600 font-medium">Current</span>
+                                    <span className="text-xs text-green-600 font-medium dark:text-green-400">Current</span>
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-xs text-gray-600">
+                                  <div className="text-xs text-gray-600 dark:text-slate-300">
                                     {format(new Date(status.startDate), "MMM yyyy")} - {
                                       status.endDate ? format(new Date(status.endDate), "MMM yyyy") : "Present"
                                     }
                                   </div>
-                                  <div className="text-xs text-gray-500">Duration: {status.duration}</div>
+                                  <div className="text-xs text-gray-500 dark:text-slate-400">Duration: {status.duration}</div>
                                   {status.reason && (
-                                    <div className="text-xs text-gray-400 italic">Reason: {status.reason}</div>
+                                    <div className="text-xs text-gray-400 italic dark:text-slate-400">Reason: {status.reason}</div>
                                   )}
                                 </div>
                               </div>
@@ -681,19 +681,19 @@ export default function PupilHistoryPage() {
                                   <div className="flex items-center gap-2 mb-1">
                                     <span className="font-medium text-sm">{history.class}</span>
                                     <Badge variant="outline" className={`text-xs ${
-                                      history.status === 'current' ? 'bg-green-50 text-green-700 border-green-200' :
-                                      history.status === 'completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                      'bg-gray-50 text-gray-700 border-gray-200'
+                                      history.status === 'current' ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/60' :
+                                      history.status === 'completed' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60' :
+                                      'bg-gray-50 text-gray-700 border-gray-200 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-700'
                                     }`}>
                                       {history.status}
                                     </Badge>
                                   </div>
-                                  <div className="text-xs text-gray-600">
+                                  <div className="text-xs text-gray-600 dark:text-slate-300">
                                     {format(new Date(history.startDate), "MMM yyyy")} - {
                                       history.endDate ? format(new Date(history.endDate), "MMM yyyy") : "Present"
                                     }
                                   </div>
-                                  <div className="text-xs text-gray-500">Duration: {history.duration}</div>
+                                  <div className="text-xs text-gray-500 dark:text-slate-400">Duration: {history.duration}</div>
                                 </div>
                               </div>
                             ))}
@@ -703,8 +703,8 @@ export default function PupilHistoryPage() {
                         <TableCell>
                           <div className="space-y-1">
                             <div className="text-sm font-medium">{pupil.guardian.name}</div>
-                            <div className="text-xs text-gray-500">{pupil.guardian.relationship}</div>
-                            <div className="text-xs text-gray-400">{pupil.guardian.phone}</div>
+                            <div className="text-xs text-gray-500 dark:text-slate-400">{pupil.guardian.relationship}</div>
+                            <div className="text-xs text-gray-400 dark:text-slate-400">{pupil.guardian.phone}</div>
                           </div>
                         </TableCell>
 
@@ -714,7 +714,7 @@ export default function PupilHistoryPage() {
                       {/* Expanded Row Content */}
                       {expandedRows.has(pupil.id) && (
                         <TableRow>
-                                                    <TableCell colSpan={6} className="bg-gray-50/30 p-6">
+                                                    <TableCell colSpan={6} className="bg-gray-50/30 p-6 dark:bg-slate-900/30">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                               
                               {/* Left Column - Contact & Fees Information */}
@@ -724,26 +724,26 @@ export default function PupilHistoryPage() {
                                 <Card>
                                   <CardHeader className="pb-3">
                                     <CardTitle className="text-base flex items-center gap-2">
-                                      <Phone className="w-4 h-4 text-green-600" />
+                                      <Phone className="w-4 h-4 text-green-600 dark:text-green-400" />
                                       Contact Info
                                     </CardTitle>
                                   </CardHeader>
                                   <CardContent className="space-y-2">
                                     {pupil.contact.phone && (
                                       <div className="flex items-center gap-2 text-sm">
-                                        <Phone className="w-3 h-3 text-gray-400" />
+                                        <Phone className="w-3 h-3 text-gray-400 dark:text-slate-400" />
                                         {pupil.contact.phone}
                                       </div>
                                     )}
                                     {pupil.contact.email && (
                                       <div className="flex items-center gap-2 text-sm">
-                                        <Mail className="w-3 h-3 text-gray-400" />
+                                        <Mail className="w-3 h-3 text-gray-400 dark:text-slate-400" />
                                         {pupil.contact.email}
                                       </div>
                                     )}
                                     {pupil.contact.address && (
                                       <div className="flex items-start gap-2 text-sm">
-                                        <MapPin className="w-3 h-3 text-gray-400 mt-0.5" />
+                                        <MapPin className="w-3 h-3 text-gray-400 mt-0.5 dark:text-slate-400" />
                                         <span className="text-xs">{pupil.contact.address}</span>
                                       </div>
                                     )}
@@ -754,22 +754,22 @@ export default function PupilHistoryPage() {
                                 <Card>
                                   <CardHeader className="pb-3">
                                     <CardTitle className="text-base flex items-center gap-2">
-                                      <DollarSign className="w-4 h-4 text-green-600" />
+                                      <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
                                       Fees Information
                                     </CardTitle>
                                   </CardHeader>
                                   <CardContent className="space-y-3">
                                     <div className="grid grid-cols-2 gap-4">
                                       <div className="space-y-1">
-                                        <div className="text-xs text-gray-500">Total Paid</div>
-                                        <div className="text-lg font-semibold text-green-600">
+                                        <div className="text-xs text-gray-500 dark:text-slate-400">Total Paid</div>
+                                        <div className="text-lg font-semibold text-green-600 dark:text-green-400">
                                           ₵{pupil.fees.totalPaid.toLocaleString()}
                                         </div>
                                       </div>
                                       <div className="space-y-1">
-                                        <div className="text-xs text-gray-500">Outstanding</div>
+                                        <div className="text-xs text-gray-500 dark:text-slate-400">Outstanding</div>
                                         <div className={`text-lg font-semibold ${
-                                          pupil.fees.outstanding > 0 ? 'text-red-600' : 'text-gray-400'
+                                          pupil.fees.outstanding > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-slate-400'
                                         }`}>
                                           ₵{pupil.fees.outstanding.toLocaleString()}
                                         </div>
@@ -777,19 +777,19 @@ export default function PupilHistoryPage() {
                                     </div>
                                     {pupil.fees.lastPayment && (
                                       <div className="space-y-1">
-                                        <div className="text-xs text-gray-500">Last Payment</div>
-                                        <div className="text-sm text-gray-700">
+                                        <div className="text-xs text-gray-500 dark:text-slate-400">Last Payment</div>
+                                        <div className="text-sm text-gray-700 dark:text-slate-200">
                                           {format(new Date(pupil.fees.lastPayment), "MMM dd, yyyy")}
                                         </div>
                                       </div>
                                     )}
-                                    <div className="pt-2 border-t border-gray-100">
+                                    <div className="pt-2 border-t border-gray-100 dark:border-slate-700">
                                       <div className="flex items-center justify-between text-xs">
-                                        <span className="text-gray-500">Payment Status</span>
+                                        <span className="text-gray-500 dark:text-slate-400">Payment Status</span>
                                         <Badge className={`${
                                           pupil.fees.outstanding === 0 
-                                            ? 'bg-green-50 text-green-700 border-green-200' 
-                                            : 'bg-red-50 text-red-700 border-red-200'
+                                            ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/60'
+                                            : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800/60'
                                         }`}>
                                           {pupil.fees.outstanding === 0 ? 'Paid Up' : 'Outstanding'}
                                         </Badge>
@@ -807,14 +807,14 @@ export default function PupilHistoryPage() {
                                   <Card>
                                     <CardHeader className="pb-3">
                                       <CardTitle className="text-base flex items-center gap-2">
-                                        <Award className="w-4 h-4 text-yellow-600" />
+                                        <Award className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
                                         Achievements
                                       </CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                       <div className="space-y-1">
                                         {pupil.achievements.map((achievement, index) => (
-                                          <div key={index} className="text-xs bg-yellow-50 text-yellow-800 px-2 py-1 rounded">
+                                          <div key={index} className="text-xs bg-yellow-50 text-yellow-800 px-2 py-1 rounded dark:bg-yellow-950/40 dark:text-yellow-200">
                                             {achievement}
                                           </div>
                                         ))}
@@ -825,12 +825,12 @@ export default function PupilHistoryPage() {
                                   <Card>
                                     <CardHeader className="pb-3">
                                       <CardTitle className="text-base flex items-center gap-2">
-                                        <Award className="w-4 h-4 text-gray-400" />
+                                        <Award className="w-4 h-4 text-gray-400 dark:text-slate-400" />
                                         Achievements
                                       </CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                      <div className="text-sm text-gray-500 italic">
+                                      <div className="text-sm text-gray-500 italic dark:text-slate-400">
                                         No achievements recorded yet
                                       </div>
                                     </CardContent>
@@ -841,21 +841,21 @@ export default function PupilHistoryPage() {
                                 <Card>
                                   <CardHeader className="pb-3">
                                     <CardTitle className="text-base flex items-center gap-2">
-                                      <BarChart3 className="w-4 h-4 text-blue-600" />
+                                      <BarChart3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                       Academic Summary
                                     </CardTitle>
                                   </CardHeader>
                                   <CardContent className="space-y-2">
                                     <div className="flex justify-between text-sm">
-                                      <span className="text-gray-500">Total Classes:</span>
+                                      <span className="text-gray-500 dark:text-slate-400">Total Classes:</span>
                                       <span className="font-medium">{pupil.classHistory.length}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                      <span className="text-gray-500">Status Changes:</span>
+                                      <span className="text-gray-500 dark:text-slate-400">Status Changes:</span>
                                       <span className="font-medium">{pupil.statusHistory.length}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                      <span className="text-gray-500">Years in School:</span>
+                                      <span className="text-gray-500 dark:text-slate-400">Years in School:</span>
                                       <span className="font-medium">{pupil.totalYearsInSchool}</span>
                                     </div>
                                   </CardContent>
@@ -873,9 +873,9 @@ export default function PupilHistoryPage() {
 
             {filteredData.length === 0 && (
               <div className="text-center py-12">
-                <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Pupils Found</h3>
-                <p className="text-sm text-gray-500">
+                <Users className="w-12 h-12 text-gray-400 mx-auto mb-4 dark:text-slate-400" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 dark:text-slate-100">No Pupils Found</h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400">
                   Try adjusting your filters to find pupil history records.
                 </p>
               </div>

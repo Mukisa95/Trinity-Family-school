@@ -20,7 +20,7 @@ export function PaymentSignatureDisplay({ payment, className }: PaymentSignature
 
   if (error) {
     return (
-      <div className="text-xs text-red-500">
+      <div className="text-xs text-red-500 dark:text-red-400">
         Signature error
       </div>
     );
@@ -70,7 +70,7 @@ export function PaymentHistorySignatures({
 
   if (error) {
     return (
-      <div className="text-xs text-red-500">
+      <div className="text-xs text-red-500 dark:text-red-400">
         Signature error
       </div>
     );

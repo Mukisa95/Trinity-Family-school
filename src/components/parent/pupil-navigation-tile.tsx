@@ -102,7 +102,7 @@ export function PupilNavigationTile({
           {/* Active Section Indicator */}
           <div className="mt-4 p-3 bg-white/60 dark:bg-gray-800/40 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
-              <Info className="h-4 w-4 text-blue-500 mr-2" />
+              <Info className="h-4 w-4 text-blue-500 mr-2 dark:text-blue-400" />
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 Currently viewing: <span className="font-semibold text-gray-900 dark:text-gray-100">
                   {navigationItems.find(item => item.id === activeView)?.label}

@@ -97,7 +97,7 @@ const FeeYearApplicabilityModal: React.FC<FeeYearApplicabilityModalProps> = ({
                   key={year.id}
                   className={cn(
                     "flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 transition-colors",
-                    isApplicable ? "border-emerald-200 bg-emerald-50/60" : "border-slate-200 bg-slate-50 text-slate-500"
+                    isApplicable ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-800/60 dark:bg-emerald-950/60" : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
                   )}
                 >
                   <div className="flex min-w-0 items-center gap-2">
@@ -109,7 +109,7 @@ const FeeYearApplicabilityModal: React.FC<FeeYearApplicabilityModalProps> = ({
                         aria-label={`${isApplicable ? 'Remove' : 'Add'} ${year.name} applicability`}
                       />
                     ) : (
-                      <CheckCircle2 className={cn("h-4 w-4 shrink-0", isApplicable ? "text-emerald-600" : "text-slate-400")} />
+                      <CheckCircle2 className={cn("h-4 w-4 shrink-0", isApplicable ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-400")} />
                     )}
                     <label
                       htmlFor={isEditing ? checkboxId : undefined}
@@ -118,7 +118,7 @@ const FeeYearApplicabilityModal: React.FC<FeeYearApplicabilityModalProps> = ({
                       {year.name}
                     </label>
                   </div>
-                  <Badge variant={isApplicable ? "default" : "outline"} className={cn(!isApplicable && "text-slate-500")}> 
+                  <Badge variant={isApplicable ? "default" : "outline"} className={cn(!isApplicable && "text-slate-500 dark:text-slate-400")}>
                     {isApplicable ? "Applicable" : "Not applicable"}
                   </Badge>
                 </div>

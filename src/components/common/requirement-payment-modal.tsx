@@ -84,18 +84,18 @@ export function RequirementPaymentModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <FormErrorSummary errors={formValidation.errors} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
           {/* Payment Summary */}
-          <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+          <div className="bg-gray-50 p-4 rounded-lg space-y-2 dark:bg-slate-900">
             <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Total Amount:</span>
+              <span className="text-sm text-gray-600 dark:text-slate-300">Total Amount:</span>
               <span className="font-medium">{formatCurrency(fullAmount)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Already Paid:</span>
+              <span className="text-sm text-gray-600 dark:text-slate-300">Already Paid:</span>
               <span className="font-medium">{formatCurrency(paidAmount)}</span>
             </div>
             <div className="flex justify-between border-t pt-2">
               <span className="text-sm font-medium">Remaining Balance:</span>
-              <span className="font-bold text-red-600">{formatCurrency(balance)}</span>
+              <span className="font-bold text-red-600 dark:text-red-400">{formatCurrency(balance)}</span>
             </div>
           </div>
 
@@ -110,7 +110,7 @@ export function RequirementPaymentModal({
               placeholder="Enter payment amount"
             />
             <FieldError error={formValidation.getFieldError('requirementPaymentAmount')} />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">
               Maximum: {formatCurrency(balance)}
             </p>
           </div>

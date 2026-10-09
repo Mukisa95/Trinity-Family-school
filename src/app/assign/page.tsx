@@ -125,15 +125,15 @@ export default function AssignPage() {
 
   const renderSummaryCards = () => (
     <div className="grid gap-4 md:grid-cols-2">
-      <Card className="border-blue-100 shadow-sm">
+      <Card className="border-blue-100 shadow-sm dark:border-blue-800/60">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div>
-            <CardTitle className="text-base font-semibold text-blue-700">
+            <CardTitle className="text-base font-semibold text-blue-700 dark:text-blue-300">
               Assignment Fees
             </CardTitle>
             <CardDescription>All pupil-specific fee items</CardDescription>
           </div>
-          <div className="rounded-full bg-blue-50 p-3 text-blue-500">
+          <div className="rounded-full bg-blue-50 p-3 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400">
             <Tag className="h-5 w-5" />
           </div>
         </CardHeader>
@@ -145,15 +145,15 @@ export default function AssignPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-amber-100 shadow-sm">
+      <Card className="border-amber-100 shadow-sm dark:border-amber-800/60">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div>
-            <CardTitle className="text-base font-semibold text-amber-700">
+            <CardTitle className="text-base font-semibold text-amber-700 dark:text-amber-300">
               Discounts
             </CardTitle>
             <CardDescription>Automatic reductions linked to fees</CardDescription>
           </div>
-          <div className="rounded-full bg-amber-50 p-3 text-amber-500">
+          <div className="rounded-full bg-amber-50 p-3 text-amber-500 dark:bg-amber-950/40 dark:text-amber-400">
             <Scissors className="h-5 w-5" />
           </div>
         </CardHeader>
@@ -169,7 +169,7 @@ export default function AssignPage() {
 
   if (isLoading || isLoadingAcademicYears) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-blue-950/40 dark:via-slate-900 dark:to-purple-950/40">
         <GlassPageTopBar
           title="Fee Assignments"
           subtitle="Assignment fees & discounts management"
@@ -187,7 +187,7 @@ export default function AssignPage() {
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-blue-950/40 dark:via-slate-900 dark:to-purple-950/40">
         <GlassPageTopBar
           title="Fee Assignments"
           subtitle="Assignment fees & discounts management"
@@ -207,7 +207,7 @@ export default function AssignPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 animate-in fade-in duration-500 dark:from-blue-950/40 dark:via-slate-900 dark:to-purple-950/40">
       <GlassPageTopBar
         title="Fee Assignments"
         subtitle="Assignment fees & discounts management"
@@ -233,20 +233,20 @@ export default function AssignPage() {
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card id="assignment-fees" className="border-blue-100 scroll-mt-24">
+        <Card id="assignment-fees" className="border-blue-100 scroll-mt-24 dark:border-blue-800/60">
           <CardHeader className="py-2">
             <CardTitle className="text-sm">Assignment Fees</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {assignmentFees.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-blue-200 bg-blue-50/60 p-4 text-center text-xs text-muted-foreground">
+              <div className="rounded-lg border border-dashed border-blue-200 bg-blue-50/60 p-4 text-center text-xs text-muted-foreground dark:border-blue-800/60 dark:bg-blue-950/60">
                 No assignment fees have been recorded yet.
               </div>
             ) : (
-              <div className="rounded-xl border border-blue-50 shadow-inner shadow-blue-100/50">
+              <div className="rounded-xl border border-blue-50 shadow-inner shadow-blue-100/50 dark:border-blue-800/60">
                 <Table className="text-sm">
                   <TableHeader>
-                    <TableRow className="bg-blue-50/70">
+                    <TableRow className="bg-blue-50/70 dark:bg-blue-950/70">
                       <TableHead className="py-1.5">Name</TableHead>
                       <TableHead className="py-1.5">Amount</TableHead>
                       <TableHead className="py-1.5">Academic Context</TableHead>
@@ -258,7 +258,7 @@ export default function AssignPage() {
                     {assignmentFees.map((fee) => (
                       <TableRow
                         key={fee.id}
-                        className="cursor-pointer hover:bg-blue-50/60 transition-colors"
+                        className="cursor-pointer hover:bg-blue-50/60 transition-colors dark:hover:bg-blue-950/60"
                         onClick={() => goToDetails(fee)}
                       >
                         <TableCell className="font-medium py-1.5">
@@ -296,20 +296,20 @@ export default function AssignPage() {
           </CardContent>
         </Card>
 
-        <Card id="assignment-discounts" className="border-amber-100 scroll-mt-24">
+        <Card id="assignment-discounts" className="border-amber-100 scroll-mt-24 dark:border-amber-800/60">
           <CardHeader className="py-2">
             <CardTitle className="text-sm">Discounts</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {discounts.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-amber-200 bg-amber-50/60 p-4 text-center text-xs text-muted-foreground">
+              <div className="rounded-lg border border-dashed border-amber-200 bg-amber-50/60 p-4 text-center text-xs text-muted-foreground dark:border-amber-800/60 dark:bg-amber-950/60">
                 No discounts have been configured yet.
               </div>
             ) : (
-              <div className="rounded-xl border border-amber-50 shadow-inner shadow-amber-100/50">
+              <div className="rounded-xl border border-amber-50 shadow-inner shadow-amber-100/50 dark:border-amber-800/60">
                 <Table className="text-sm">
                   <TableHeader>
-                    <TableRow className="bg-amber-50/70">
+                    <TableRow className="bg-amber-50/70 dark:bg-amber-950/70">
                       <TableHead className="py-1.5">Name</TableHead>
                       <TableHead className="py-1.5">Discount</TableHead>
                       <TableHead className="py-1.5">Linked Fee</TableHead>
@@ -326,7 +326,7 @@ export default function AssignPage() {
                       return (
                         <TableRow
                           key={discount.id}
-                          className="cursor-pointer hover:bg-amber-50/60 transition-colors"
+                          className="cursor-pointer hover:bg-amber-50/60 transition-colors dark:hover:bg-amber-950/60"
                           onClick={() => goToDetails(discount)}
                         >
                           <TableCell className="font-medium py-1.5">
@@ -337,7 +337,7 @@ export default function AssignPage() {
                               </div>
                             )}
                           </TableCell>
-                          <TableCell className="text-emerald-600 font-semibold py-1.5">
+                          <TableCell className="text-emerald-600 font-semibold py-1.5 dark:text-emerald-400">
                             -{formatCurrency(Math.abs(discount.amount))}
                           </TableCell>
                           <TableCell className="py-1.5">

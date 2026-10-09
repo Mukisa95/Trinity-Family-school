@@ -218,7 +218,7 @@ export function LinkedUserAccountDialog({
             {account && (
               <div className="flex items-center justify-between rounded-xl border bg-muted/30 px-3 py-2.5 text-sm">
                 <span className="text-muted-foreground">Account status</span>
-                <span className={account.isActive ? 'font-semibold text-emerald-700' : 'font-semibold text-amber-700'}>
+                <span className={account.isActive ? 'font-semibold text-emerald-700 dark:text-emerald-300' : 'font-semibold text-amber-700 dark:text-amber-300'}>
                   {account.isActive ? 'Active' : 'Disabled'}
                 </span>
               </div>

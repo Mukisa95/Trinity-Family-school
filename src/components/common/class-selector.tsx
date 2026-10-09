@@ -66,7 +66,7 @@ export function ClassSelector({
 
   if (error) {
     return (
-      <div className={`flex items-center gap-2 text-red-600 text-sm ${className}`}>
+      <div className={`flex items-center gap-2 text-red-600 text-sm  dark:text-red-400${className}`}>
         <span>Error loading classes</span>
       </div>
     );
@@ -82,23 +82,23 @@ export function ClassSelector({
         <SelectTrigger className={`${getSizeStyles()} ${
           isLoading ? 'opacity-50' : ''
         } ${
-          selectedClass || isAllSelected ? 'border-blue-200 bg-blue-50/50' : ''
+          selectedClass || isAllSelected ? 'border-blue-200 bg-blue-50/50 dark:border-blue-800/60 dark:bg-blue-950/50' : ''
         } ${triggerClassName} [&>svg]:hidden`}>
           <div className="flex items-center gap-2 min-w-0">
             {showIcon && (
               <div className="flex-shrink-0">
                 {isLoading ? (
-                  <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
+                  <Loader2 className="w-3 h-3 animate-spin text-blue-500 dark:text-blue-400" />
                 ) : (
-                  <Users className="w-3 h-3 text-blue-500" />
+                  <Users className="w-3 h-3 text-blue-500 dark:text-blue-400" />
                 )}
               </div>
             )}
             <SelectValue placeholder={placeholder}>
               {isAllSelected ? (
-                <span className="text-blue-700 font-semibold text-xs">{allOptionLabel}</span>
+                <span className="text-blue-700 font-semibold text-xs dark:text-blue-300">{allOptionLabel}</span>
               ) : selectedClass ? (
-                <span className="text-blue-700 font-bold text-xs">
+                <span className="text-blue-700 font-bold text-xs dark:text-blue-300">
                   {selectedClass.code || selectedClass.name}
                 </span>
               ) : (
@@ -112,9 +112,9 @@ export function ClassSelector({
           {includeAllOption && (
             <SelectItem value="all" className="font-medium">
               <div className="flex items-center gap-2">
-                <Users className="w-3 h-3 text-blue-500" />
+                <Users className="w-3 h-3 text-blue-500 dark:text-blue-400" />
                 <span className="text-xs font-semibold">{allOptionLabel}</span>
-                <span className="text-[10px] text-gray-500 bg-blue-50 px-1.5 py-0.5 rounded ml-auto">
+                <span className="text-[10px] text-gray-500 bg-blue-50 px-1.5 py-0.5 rounded ml-auto dark:text-slate-400 dark:bg-blue-950/40">
                   {sortedClasses.length}
                 </span>
               </div>
@@ -125,11 +125,11 @@ export function ClassSelector({
             sortedClasses.map((classItem) => (
               <SelectItem key={classItem.id} value={classItem.id}>
                 <div className="flex items-center justify-between w-full gap-2">
-                  <span className="text-blue-700 font-bold text-xs">
+                  <span className="text-blue-700 font-bold text-xs dark:text-blue-300">
                     {classItem.code || classItem.name}
                   </span>
                   {(classItem as any).pupilCount !== undefined && (
-                    <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded flex-shrink-0">
+                    <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded flex-shrink-0 dark:text-blue-400 dark:bg-blue-950/40">
                       {(classItem as any).pupilCount}
                     </span>
                   )}
@@ -138,7 +138,7 @@ export function ClassSelector({
             ))
           ) : (
             !isLoading && (
-              <div className="px-3 py-2 text-sm text-gray-500 text-center">
+              <div className="px-3 py-2 text-sm text-gray-500 text-center dark:text-slate-400">
                 No classes found
               </div>
             )
@@ -149,7 +149,7 @@ export function ClassSelector({
       {/* Show loading indicator if needed */}
       {isLoading && (
         <div className="absolute right-7 top-1/2 transform -translate-y-1/2">
-          <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
+          <Loader2 className="w-3 h-3 animate-spin text-blue-500 dark:text-blue-400" />
         </div>
       )}
     </div>

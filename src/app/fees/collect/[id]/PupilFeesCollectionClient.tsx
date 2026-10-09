@@ -196,7 +196,7 @@ interface SelectedFee {
 
 /** Neon outline + fill per term tab (cycles if more than three terms) */
 const TERM_TAB_NEON_STYLES = [
-  'border-cyan-400 text-cyan-700 shadow-[0_0_4px_rgba(34,211,238,0.55)] data-[state=active]:border-cyan-400 data-[state=active]:bg-cyan-400 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(34,211,238,0.8)]',
+  'border-cyan-400 text-cyan-700 shadow-[0_0_4px_rgba(34,211,238,0.55)] data-[state=active]:border-cyan-400 data-[state=active]:bg-cyan-400 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(34,211,238,0.8)] dark:text-cyan-300',
   'border-fuchsia-400 text-fuchsia-700 shadow-[0_0_4px_rgba(232,121,249,0.55)] data-[state=active]:border-fuchsia-400 data-[state=active]:bg-fuchsia-500 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(232,121,249,0.8)]',
   'border-lime-400 text-lime-800 shadow-[0_0_4px_rgba(163,230,53,0.55)] data-[state=active]:border-lime-400 data-[state=active]:bg-lime-400 data-[state=active]:text-lime-950 data-[state=active]:shadow-[0_0_10px_rgba(163,230,53,0.8)]',
 ] as const;
@@ -2181,15 +2181,15 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     if (isFinancialDataLoading) {
       return (
         <div role="status" aria-live="polite" className="space-y-3">
-          <p className="text-sm text-indigo-700">Verifying fee amounts and payment history…</p>
+          <p className="text-sm text-indigo-700 dark:text-indigo-300">Verifying fee amounts and payment history…</p>
           {Array.from({ length: 2 }).map((_, index) => (
-            <div key={index} aria-hidden="true" className="rounded-xl border-2 border-slate-200 bg-white p-3 sm:p-4">
-              <div className="h-5 w-40 max-w-full animate-pulse rounded bg-slate-200" />
+            <div key={index} aria-hidden="true" className="rounded-xl border-2 border-slate-200 bg-white p-3 sm:p-4 dark:border-slate-700 dark:bg-slate-900">
+              <div className="h-5 w-40 max-w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
               <div className="mt-4 grid grid-cols-3 gap-1.5 sm:gap-2">
                 {['Total', 'Paid', 'Balance'].map(label => (
-                  <div key={label} className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 sm:px-3">
-                    <p className="text-[9px] font-semibold uppercase tracking-wide text-slate-500 sm:text-xs">{label}</p>
-                    <div className="mt-1 h-4 w-full max-w-24 animate-pulse rounded bg-slate-200" />
+                  <div key={label} className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 sm:px-3 dark:border-slate-700 dark:bg-slate-900">
+                    <p className="text-[9px] font-semibold uppercase tracking-wide text-slate-500 sm:text-xs dark:text-slate-400">{label}</p>
+                    <div className="mt-1 h-4 w-full max-w-24 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
                   </div>
                 ))}
               </div>
@@ -2210,9 +2210,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     if (pupilFees.length === 0 && schoolPayGeneralPayments.length === 0) {
       return (
         <div className="text-center py-8">
-          <div className="mx-auto h-10 w-10 text-gray-400 flex items-center justify-center font-bold text-2xl">Shs.</div>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No fees found</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <div className="mx-auto h-10 w-10 text-gray-400 flex items-center justify-center font-bold text-2xl dark:text-slate-400">Shs.</div>
+          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-slate-100">No fees found</h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
             There are no applicable fees configured for this term and class.
           </p>
         </div>
@@ -2222,9 +2222,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     return (
       <div className="space-y-4">
         {isPaymentDataLoading && (
-          <div className="flex items-center justify-center p-3 mb-4 bg-indigo-50 border border-indigo-100 rounded-lg animate-pulse">
+          <div className="flex items-center justify-center p-3 mb-4 bg-indigo-50 border border-indigo-100 rounded-lg animate-pulse dark:bg-indigo-950/40 dark:border-indigo-800/60">
             <div className="w-4 h-4 mr-2 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-sm font-medium text-indigo-700">
+            <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
               Checking for previous terms balance...
             </span>
           </div>
@@ -2254,39 +2254,39 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
         {/* SchoolPay unmatched payments — shown when a payment could not be matched automatically */}
         {schoolPayGeneralPayments.length > 0 && (
-          <div className="rounded-xl border border-violet-200 bg-violet-50/60 p-4 shadow-sm">
+          <div className="rounded-xl border border-violet-200 bg-violet-50/60 p-4 shadow-sm dark:border-violet-800/60 dark:bg-violet-950/60">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-base">💜</span>
-                    <span className="font-semibold text-violet-800 text-sm">SchoolPay Payments (Unmatched)</span>
-              <span className="ml-auto text-xs text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full border border-violet-200">
+                    <span className="font-semibold text-violet-800 text-sm dark:text-violet-200">SchoolPay Payments (Unmatched)</span>
+              <span className="ml-auto text-xs text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full border border-violet-200 dark:text-violet-400 dark:bg-violet-950/40 dark:border-violet-800/60">
                 {schoolPayGeneralPayments.length} payment{schoolPayGeneralPayments.length !== 1 ? 's' : ''}
               </span>
             </div>
-            <p className="text-xs text-violet-600 mb-3">
+            <p className="text-xs text-violet-600 mb-3 dark:text-violet-400">
                     These payments were received via SchoolPay but could not be automatically matched to a specific fee. The money has been received — please manually record it against the correct fee above or contact support.
             </p>
             <div className="space-y-2">
               {schoolPayGeneralPayments.map((payment: any) => (
-                <div key={payment.id} className="flex items-center justify-between bg-white/70 rounded-lg px-3 py-2 border border-violet-100 text-sm">
+                <div key={payment.id} className="flex items-center justify-between bg-white/70 rounded-lg px-3 py-2 border border-violet-100 text-sm dark:bg-slate-900/70 dark:border-violet-800/60">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-violet-900">
+                      <span className="font-medium text-violet-900 dark:text-violet-200">
                         {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', minimumFractionDigits: 0 }).format(payment.amount)}
                       </span>
-                          <span className="text-xs text-violet-500 font-mono">via SchoolPay</span>
+                          <span className="text-xs text-violet-500 font-mono dark:text-violet-400">via SchoolPay</span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5 truncate">
+                    <p className="text-xs text-gray-500 mt-0.5 truncate dark:text-slate-400">
                           {payment.notes?.split('|')[0]?.trim() || 'SchoolPay Payment'} ·{' '}
                       {new Date(payment.paymentDate).toLocaleDateString('en-UG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Africa/Kampala' })}
                     </p>
                   </div>
-                  <span className="ml-2 text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full border border-amber-200 whitespace-nowrap">
+                  <span className="ml-2 text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full border border-amber-200 whitespace-nowrap dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60">
                     Needs matching
                   </span>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-violet-500 mt-2">
+            <p className="text-xs text-violet-500 mt-2 dark:text-violet-400">
               Total unmatched: <span className="font-semibold">{new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', minimumFractionDigits: 0 }).format(schoolPayGeneralPayments.reduce((s: number, p: any) => s + (p.amount || 0), 0))}</span>
             </p>
           </div>
@@ -2310,10 +2310,10 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     return (
       <div className="min-h-screen pb-24">
         <GlassPageTopBar backHref="/fees/collection" backLabel="Back to Fees" backMode="href" title="Fees Collection" />
-        <div role="alert" className="mx-auto mt-8 max-w-xl rounded-2xl border border-red-200 bg-red-50 p-5 text-red-900">
+        <div role="alert" className="mx-auto mt-8 max-w-xl rounded-2xl border border-red-200 bg-red-50 p-5 text-red-900 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200">
           <h2 className="font-semibold">Fee information could not be verified</h2>
           <p className="mt-2 text-sm">{loadError?.message || 'Pupil information is unavailable.'} Payment actions are unavailable until the data is verified.</p>
-          <button type="button" onClick={() => window.location.reload()} className="mt-3 min-h-11 rounded-lg border border-red-300 px-4 font-medium hover:bg-red-100">
+          <button type="button" onClick={() => window.location.reload()} className="mt-3 min-h-11 rounded-lg border border-red-300 px-4 font-medium hover:bg-red-100 dark:border-red-800/60 dark:hover:bg-red-950/40">
             Retry loading
           </button>
         </div>
@@ -2332,7 +2332,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           pupil ? (
             <Link
               href={`/pupil-detail?id=${pupil.id}`}
-              className="text-indigo-900 hover:text-indigo-700 hover:underline transition-all duration-300"
+              className="text-indigo-900 hover:text-indigo-700 hover:underline transition-all duration-300 dark:text-indigo-200 dark:hover:text-indigo-300"
             >
               {formatPupilDisplayName(pupil)}
             </Link>
@@ -2348,13 +2348,13 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                 onClick={() => setIsManagePayCodeModalOpen(true)}
                 title="SchoolPay Payment Code - click to manage"
               >
-                <span className="font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-px rounded-full font-mono text-[10px] tracking-wide">
+                <span className="font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-px rounded-full font-mono text-[10px] tracking-wide dark:text-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800/60">
                   {payCode}
                 </span>
               </span>
             ) : (
               <button
-                className="text-[10px] text-emerald-600 hover:text-emerald-700 underline underline-offset-2"
+                className="text-[10px] text-emerald-600 hover:text-emerald-700 underline underline-offset-2 dark:text-emerald-400 dark:hover:text-emerald-300"
                 onClick={() => setIsManagePayCodeModalOpen(true)}
                 title="Add SchoolPay payment code"
               >
@@ -2372,7 +2372,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="text-blue-600 text-xs hover:text-blue-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
+                    className="text-blue-600 text-xs hover:text-blue-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded dark:text-blue-400 dark:hover:text-blue-200"
                     title={historicalPupilInfo.termHasEnded && historicalPupilInfo.isRealSnapshot ? `Historical snapshot (Term ended) - Click to recapture` : `Current class: ${pupil?.classCode || pupil?.className} - Click to recapture`}
                   ><ArrowCounterClockwise className="inline w-3 h-3" /></button>
                 </DropdownMenuTrigger>
@@ -2383,7 +2383,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                   <DropdownMenuItem onClick={handleBatchRecapture} className="cursor-pointer">
                     <span className="flex items-center gap-2"><ArrowCounterClockwise className="w-3.5 h-3.5" /><span>Batch Recapture</span></span>
                   </DropdownMenuItem>
-                  {!historicalPupilInfo.isRealSnapshot && <p className="px-2 py-1 text-xs text-gray-500">Single recapture only for ended terms with snapshots</p>}
+                  {!historicalPupilInfo.isRealSnapshot && <p className="px-2 py-1 text-xs text-gray-500 dark:text-slate-400">Single recapture only for ended terms with snapshots</p>}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -2394,7 +2394,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="text-blue-600 text-xs hover:text-blue-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
+                    className="text-blue-600 text-xs hover:text-blue-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded dark:text-blue-400 dark:hover:text-blue-200"
                     title={historicalPupilInfo.termHasEnded && historicalPupilInfo.isRealSnapshot ? `Historical snapshot (Term ended) - Click to recapture` : `Current section: ${pupil?.section} - Click to recapture`}
                   ><ArrowCounterClockwise className="inline w-3 h-3" /></button>
                 </DropdownMenuTrigger>
@@ -2405,7 +2405,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                   <DropdownMenuItem onClick={handleBatchRecapture} className="cursor-pointer">
                     <span className="flex items-center gap-2"><ArrowCounterClockwise className="w-3.5 h-3.5" /><span>Batch Recapture</span></span>
                   </DropdownMenuItem>
-                  {!historicalPupilInfo.isRealSnapshot && <p className="px-2 py-1 text-xs text-gray-500">Single recapture only for ended terms with snapshots</p>}
+                  {!historicalPupilInfo.isRealSnapshot && <p className="px-2 py-1 text-xs text-gray-500 dark:text-slate-400">Single recapture only for ended terms with snapshots</p>}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -2413,9 +2413,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               const isDiscount = assignment.category === 'Discount';
               const isActive = assignment.isActiveForCurrentTerm;
               let pillStyles = '';
-              if (!isActive) pillStyles = 'bg-gray-100 text-gray-400 border-gray-200 opacity-60';
-              else if (isDiscount) pillStyles = 'bg-pink-100 text-pink-850 border-pink-250 hover:bg-pink-150/70';
-              else pillStyles = 'bg-purple-100 text-purple-800 border-purple-200';
+              if (!isActive) pillStyles = 'bg-gray-100 text-gray-400 border-gray-200 opacity-60 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700';
+              else if (isDiscount) pillStyles = 'bg-pink-100 text-pink-850 border-pink-250 hover:bg-pink-150/70 dark:bg-pink-950/40';
+              else pillStyles = 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-200 dark:border-purple-800/60';
               if (isDiscount) {
                 const discountValue = assignment.structure ? (assignment.structure.amount || 0) : 0;
                 const displayAmount = `-${new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(Math.abs(discountValue))}`;
@@ -2434,22 +2434,22 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                           {displayAmount}{!isActive && ' (Inactive)'}
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent side="bottom" sideOffset={6} className="p-3 bg-white text-gray-900 border border-pink-200 shadow-xl rounded-lg max-w-xs z-[60]">
+                      <TooltipContent side="bottom" sideOffset={6} className="p-3 bg-white text-gray-900 border border-pink-200 shadow-xl rounded-lg max-w-xs z-[60] dark:bg-slate-900 dark:text-slate-100 dark:border-pink-800/60">
                         <div className="space-y-1.5">
-                          <div className="flex items-center justify-between border-b border-pink-100 pb-1.5 mb-1.5">
-                            <span className="font-bold text-xs uppercase tracking-wider text-pink-700 bg-pink-50 border border-pink-200/50 px-1.5 py-0.5 rounded truncate max-w-[140px]" title={assignment.name}>{assignment.name}</span>
-                            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">Active Discount</span>
+                          <div className="flex items-center justify-between border-b border-pink-100 pb-1.5 mb-1.5 dark:border-pink-800/60">
+                            <span className="font-bold text-xs uppercase tracking-wider text-pink-700 bg-pink-50 border border-pink-200/50 px-1.5 py-0.5 rounded truncate max-w-[140px] dark:text-pink-300 dark:bg-pink-950/40 dark:border-pink-800/50" title={assignment.name}>{assignment.name}</span>
+                            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 dark:text-emerald-400 dark:bg-emerald-950/40 dark:border-emerald-800/60">Active Discount</span>
                           </div>
-                          <div className="text-xs text-gray-600 flex items-center justify-between">
-                            <span className="font-semibold text-gray-700">Value:</span>
-                            <span className="font-bold text-pink-700">{displayAmount}</span>
+                          <div className="text-xs text-gray-600 flex items-center justify-between dark:text-slate-300">
+                            <span className="font-semibold text-gray-700 dark:text-slate-200">Value:</span>
+                            <span className="font-bold text-pink-700 dark:text-pink-300">{displayAmount}</span>
                           </div>
                           {assignment.structure?.description && (
-                            <div className="text-xs text-gray-500 italic bg-gray-50 p-1.5 rounded border border-gray-100">"{assignment.structure.description}"</div>
+                            <div className="text-xs text-gray-500 italic bg-gray-50 p-1.5 rounded border border-gray-100 dark:text-slate-400 dark:bg-slate-900 dark:border-slate-700">"{assignment.structure.description}"</div>
                           )}
-                          <div className="text-[11px] text-gray-500 pt-1.5 border-t border-gray-100">
-                            <span className="font-semibold text-gray-700 block mb-0.5">Applied To:</span>
-                            <span className="text-gray-600 block leading-tight">{appliesTo}</span>
+                          <div className="text-[11px] text-gray-500 pt-1.5 border-t border-gray-100 dark:text-slate-400 dark:border-slate-700">
+                            <span className="font-semibold text-gray-700 block mb-0.5 dark:text-slate-200">Applied To:</span>
+                            <span className="text-gray-600 block leading-tight dark:text-slate-300">{appliesTo}</span>
                           </div>
                         </div>
                       </TooltipContent>
@@ -2469,16 +2469,16 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                 className={cn(
                   'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] sm:text-xs font-medium border transition-all',
                   record.isFullyCollected
-                    ? 'bg-green-100 text-green-800 border-green-300'
+                    ? 'bg-green-100 text-green-800 border-green-300 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60'
                     : record.isPartiallyCollected
-                    ? 'bg-amber-100 text-amber-900 border-amber-300'
-                    : 'bg-blue-100 text-blue-800 border-blue-200'
+                    ? 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60'
+                    : 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60'
                 )}
               >
                 <span
                   className={cn(
                     'font-semibold',
-                    record.isFullyCollected ? 'text-green-900' : 'text-blue-900'
+                    record.isFullyCollected ? 'text-green-900 dark:text-green-200' : 'text-blue-900 dark:text-blue-200'
                   )}
                 >
                   {record.isFullyCollected
@@ -2492,8 +2492,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                     <span
                       key={item.id}
                       className={cn(
-                        item.isFullyCollected && 'line-through opacity-70 text-green-700 font-normal',
-                        item.isPartiallyCollected && 'text-amber-800 font-semibold'
+                        item.isFullyCollected && 'line-through opacity-70 text-green-700 font-normal dark:text-green-300',
+                        item.isPartiallyCollected && 'text-amber-800 font-semibold dark:text-amber-200'
                       )}
                     >
                       {item.name}{itemIdx < record.items.length - 1 && <span className="no-underline ml-0.5 opacity-100 text-blue-400">,</span>}
@@ -2554,11 +2554,11 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                   />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <div className="px-2 py-1.5 text-sm font-semibold text-gray-900 border-b mb-1">Select Sibling</div>
+                  <div className="px-2 py-1.5 text-sm font-semibold text-gray-900 border-b mb-1 dark:text-slate-100">Select Sibling</div>
                   {siblings.map(sibling => (
                     <DropdownMenuItem key={sibling.id} onClick={() => router.push(`/fees/collect/${sibling.id}`)} className="cursor-pointer flex flex-col items-start py-2">
-                      <span className="font-medium text-gray-900">{formatPupilDisplayName(sibling)}</span>
-                      <span className="text-xs text-gray-500">{sibling.className} • {sibling.admissionNumber}</span>
+                      <span className="font-medium text-gray-900 dark:text-slate-100">{formatPupilDisplayName(sibling)}</span>
+                      <span className="text-xs text-gray-500 dark:text-slate-400">{sibling.className} • {sibling.admissionNumber}</span>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -2589,26 +2589,26 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                       disabled={!pupil?.id || isFinancialDataLoading}
                     />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" sideOffset={8} className="w-64 p-3 bg-white/95 backdrop-blur-xl border border-violet-100 shadow-2xl rounded-2xl">
-                    <div className="mb-3 pb-2 border-b border-violet-100">
-                      <p className="text-[11px] font-bold text-violet-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <DropdownMenuContent align="end" sideOffset={8} className="w-64 p-3 bg-white/95 backdrop-blur-xl border border-violet-100 shadow-2xl rounded-2xl dark:bg-slate-900/95 dark:border-violet-800/60">
+                    <div className="mb-3 pb-2 border-b border-violet-100 dark:border-violet-800/60">
+                      <p className="text-[11px] font-bold text-violet-700 uppercase tracking-wider flex items-center gap-1.5 dark:text-violet-300">
                         <Zap className="w-3 h-3" />Wire &amp; Payment Options
                       </p>
                     </div>
-                    <div role="menuitem" className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-violet-50 transition-all duration-200 group mb-1" onClick={() => { setIsWirePopupOpen(false); setIsSchoolPayModalOpen(true); }}>
-                      <div className="relative flex items-center justify-center w-9 h-9 rounded-full bg-violet-50 border border-violet-200 text-violet-600 group-hover:bg-violet-500 group-hover:text-white group-hover:border-violet-500 transition-all duration-200 flex-shrink-0">
-                        {schoolPayCount > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-violet-600 text-white text-[8px] font-bold rounded-full flex items-center justify-center border border-white">{schoolPayCount > 9 ? '9+' : schoolPayCount}</span>}
+                    <div role="menuitem" className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-violet-50 transition-all duration-200 group mb-1 dark:hover:bg-violet-950/40" onClick={() => { setIsWirePopupOpen(false); setIsSchoolPayModalOpen(true); }}>
+                      <div className="relative flex items-center justify-center w-9 h-9 rounded-full bg-violet-50 border border-violet-200 text-violet-600 group-hover:bg-violet-500 group-hover:text-white group-hover:border-violet-500 transition-all duration-200 flex-shrink-0 dark:bg-violet-950/40 dark:border-violet-800/60 dark:text-violet-400">
+                        {schoolPayCount > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-violet-600 text-white text-[8px] font-bold rounded-full flex items-center justify-center border border-white dark:border-slate-700">{schoolPayCount > 9 ? '9+' : schoolPayCount}</span>}
                         <Zap className="w-4 h-4" />
                       </div>
-                      <div className="min-w-0"><p className="text-[12px] font-semibold text-gray-800 leading-tight">SchoolPay Wire</p><p className="text-[10px] text-gray-500 leading-tight mt-0.5">View mobile money payments</p></div>
+                      <div className="min-w-0"><p className="text-[12px] font-semibold text-gray-800 leading-tight dark:text-slate-100">SchoolPay Wire</p><p className="text-[10px] text-gray-500 leading-tight mt-0.5 dark:text-slate-400">View mobile money payments</p></div>
                     </div>
-                    <div role="menuitem" className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-emerald-50 transition-all duration-200 group mb-1" onClick={() => { setIsWirePopupOpen(false); setIsManagePayCodeModalOpen(true); }}>
-                      <div className="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-500 transition-all duration-200 flex-shrink-0"><Tag className="w-4 h-4" /></div>
-                      <div className="min-w-0"><p className="text-[12px] font-semibold text-gray-800 leading-tight">Pay Code</p><p className="text-[10px] text-gray-500 leading-tight mt-0.5">Manage SchoolPay payment code</p></div>
+                    <div role="menuitem" className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-emerald-50 transition-all duration-200 group mb-1 dark:hover:bg-emerald-950/40" onClick={() => { setIsWirePopupOpen(false); setIsManagePayCodeModalOpen(true); }}>
+                      <div className="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-500 transition-all duration-200 flex-shrink-0 dark:bg-emerald-950/40 dark:border-emerald-800/60 dark:text-emerald-400"><Tag className="w-4 h-4" /></div>
+                      <div className="min-w-0"><p className="text-[12px] font-semibold text-gray-800 leading-tight dark:text-slate-100">Pay Code</p><p className="text-[10px] text-gray-500 leading-tight mt-0.5 dark:text-slate-400">Manage SchoolPay payment code</p></div>
                     </div>
-                    <div role="menuitem" className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-blue-50 transition-all duration-200 group" onClick={() => { setIsWirePopupOpen(false); handleGeneratePaymentID(); }}>
-                      <div className="flex items-center justify-center w-9 h-9 rounded-full bg-blue-50 border border-blue-200 text-blue-600 group-hover:bg-blue-500 group-hover:text-white group-hover:border-blue-500 transition-all duration-200 flex-shrink-0"><IdentificationCard className="w-4 h-4" weight="bold" /></div>
-                      <div className="min-w-0"><p className="text-[12px] font-semibold text-gray-800 leading-tight">Pay ID Card</p><p className="text-[10px] text-gray-500 leading-tight mt-0.5">Print payment ID card (PDF)</p></div>
+                    <div role="menuitem" className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-blue-50 transition-all duration-200 group dark:hover:bg-blue-950/40" onClick={() => { setIsWirePopupOpen(false); handleGeneratePaymentID(); }}>
+                      <div className="flex items-center justify-center w-9 h-9 rounded-full bg-blue-50 border border-blue-200 text-blue-600 group-hover:bg-blue-500 group-hover:text-white group-hover:border-blue-500 transition-all duration-200 flex-shrink-0 dark:bg-blue-950/40 dark:border-blue-800/60 dark:text-blue-400"><IdentificationCard className="w-4 h-4" weight="bold" /></div>
+                      <div className="min-w-0"><p className="text-[12px] font-semibold text-gray-800 leading-tight dark:text-slate-100">Pay ID Card</p><p className="text-[10px] text-gray-500 leading-tight mt-0.5 dark:text-slate-400">Print payment ID card (PDF)</p></div>
                     </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -2626,10 +2626,10 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem onClick={() => setIsUniformTrackingModalOpen(true)} disabled={isFinancialDataLoading} className="cursor-pointer">
-                  <ClipboardText className="mr-2 h-4 w-4 text-blue-600" weight="bold" />Add Uniform
+                  <ClipboardText className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" weight="bold" />Add Uniform
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => { if (pupil?.id) router.push(`/requirement-tracking?id=${pupil.id}`); }} className="cursor-pointer">
-                  <ClipboardText className="mr-2 h-4 w-4 text-purple-600" weight="bold" />Requirements
+                  <ClipboardText className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" weight="bold" />Requirements
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -2681,7 +2681,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                       )[0];
                     setSelectedTermId(defaultTerm?.id || '');
                   }}
-                  className="bg-white rounded-full px-2 py-1 sm:px-3 sm:py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-semibold hover:border-gray-300 transition-colors text-[10px] shadow-sm min-w-[90px] sm:min-w-[140px] max-w-[110px] sm:max-w-none"
+                  className="bg-white rounded-full px-2 py-1 sm:px-3 sm:py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-semibold hover:border-gray-300 transition-colors text-[10px] shadow-sm min-w-[90px] sm:min-w-[140px] max-w-[110px] sm:max-w-none dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700"
                   disabled={isLoadingAcademicYears}
                 >
                   <option value="">Select Year</option>
@@ -2721,7 +2721,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                     <TabsTrigger
                       key={term.id}
                       value={term.id}
-                      className={`h-6 sm:h-7 shrink-0 rounded-full border-2 bg-white/90 px-2 sm:px-3 py-0 text-[10px] sm:text-[11px] font-bold leading-none transition-all duration-200 ease-out hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 data-[state=inactive]:bg-white/90 whitespace-nowrap ${TERM_TAB_NEON_STYLES[index % TERM_TAB_NEON_STYLES.length]}`}
+                      className={`h-6 sm:h-7 shrink-0 rounded-full border-2 bg-white/90 px-2 sm:px-3 py-0 text-[10px] sm:text-[11px] font-bold leading-none transition-all duration-200 ease-out hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 data-[state=inactive]:bg-white/90 whitespace-nowrap  dark:bg-slate-900/90${TERM_TAB_NEON_STYLES[index % TERM_TAB_NEON_STYLES.length]}`}
                     >
                       {term.name}
                     </TabsTrigger>
@@ -2738,7 +2738,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                   <span className="hidden sm:inline">Total Fees:</span>
                 </span>
                 <span className="inline-flex min-w-[5.5rem] justify-end font-bold tabular-nums text-indigo-600 dark:text-indigo-400">
-                  {hasTermSelectionError ? '—' : isFinancialDataLoading ? <span className="inline-block h-3 w-16 animate-pulse rounded bg-indigo-200 align-middle" role="status" aria-label="Verifying total fees" /> : new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalFees)}
+                  {hasTermSelectionError ? '—' : isFinancialDataLoading ? <span className="inline-block h-3 w-16 animate-pulse rounded bg-indigo-200 align-middle dark:bg-indigo-900/40" role="status" aria-label="Verifying total fees" /> : new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalFees)}
                 </span>
               </div>
               <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
@@ -2747,7 +2747,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                   <span className="hidden sm:inline">Total Paid:</span>
                 </span>
                 <span className="inline-flex min-w-[5.5rem] justify-end font-bold tabular-nums text-green-600 dark:text-green-400">
-                  {hasTermSelectionError ? '—' : isFinancialDataLoading ? <span className="inline-block h-3 w-16 animate-pulse rounded bg-green-200 align-middle" role="status" aria-label="Verifying total paid" /> : new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalPaid)}
+                  {hasTermSelectionError ? '—' : isFinancialDataLoading ? <span className="inline-block h-3 w-16 animate-pulse rounded bg-green-200 align-middle dark:bg-green-900/40" role="status" aria-label="Verifying total paid" /> : new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalPaid)}
                 </span>
               </div>
               <div className="flex items-center gap-1 bg-red-50/80 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
@@ -2756,7 +2756,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                   <span className="hidden sm:inline">Balance:</span>
                 </span>
                 <span className="inline-flex min-w-[5.5rem] justify-end font-bold tabular-nums text-red-650 dark:text-red-400">
-                  {hasTermSelectionError ? '—' : isFinancialDataLoading ? <span className="inline-block h-3 w-16 animate-pulse rounded bg-red-200 align-middle" role="status" aria-label="Verifying balance" /> : new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalBalance)}
+                  {hasTermSelectionError ? '—' : isFinancialDataLoading ? <span className="inline-block h-3 w-16 animate-pulse rounded bg-red-200 align-middle dark:bg-red-900/40" role="status" aria-label="Verifying balance" /> : new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalBalance)}
                 </span>
               </div>
             </>
@@ -2764,15 +2764,15 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         />
 
         <div className="max-w-none px-4 sm:px-6 lg:px-8 py-4">
-          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden dark:bg-slate-900 dark:border-indigo-800/60">
             {/* Term content or empty state */}
             {hasTermSelectionError ? (
-              <div role="alert" className="m-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:m-6">
+              <div role="alert" className="m-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:m-6 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
                 {academicYears.length === 0
                   ? 'Academic years could not be loaded. The fee balance cannot be verified while the school data is unavailable.'
                   : 'No valid academic year and term are available for this pupil. No balance can be calculated.'}
                 {academicYears.length === 0 && (
-                  <button type="button" onClick={() => window.location.reload()} className="mt-3 block min-h-11 rounded-lg border border-amber-400 px-4 font-medium hover:bg-amber-100">
+                  <button type="button" onClick={() => window.location.reload()} className="mt-3 block min-h-11 rounded-lg border border-amber-400 px-4 font-medium hover:bg-amber-100 dark:hover:bg-amber-950/40">
                     Retry loading
                   </button>
                 )}
@@ -2806,9 +2806,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               /* Show message if no valid terms */
               selectedAcademicYear && validTerms.length === 0 && pupil?.registrationDate && (
                 <div className="px-4 py-8 text-center">
-                  <div className="inline-block rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-                    <h3 className="mb-2 font-medium text-yellow-800">No Available Terms</h3>
-                    <p className="text-sm text-yellow-700">
+                  <div className="inline-block rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800/60 dark:bg-yellow-950/40">
+                    <h3 className="mb-2 font-medium text-yellow-800 dark:text-yellow-200">No Available Terms</h3>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
                       This pupil was registered after all terms in {selectedAcademicYear.name} had ended.
                       <br />
                       <span className="font-medium">Registration Date:</span> {new Date(pupil.registrationDate).toLocaleDateString()}
@@ -2861,14 +2861,14 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           }
         }}
       >
-        <AlertDialogContent className="w-[calc(100%-1rem)] max-w-md gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-xl">
-          <AlertDialogHeader className="border-b border-slate-100 px-4 py-3 text-left sm:px-5">
+        <AlertDialogContent className="w-[calc(100%-1rem)] max-w-md gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+          <AlertDialogHeader className="border-b border-slate-100 px-4 py-3 text-left sm:px-5 dark:border-slate-700">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300">
                 <AlertTriangle className="h-4 w-4" aria-hidden="true" />
               </div>
               <div className="min-w-0">
-                <AlertDialogTitle className="text-base font-semibold text-slate-950 sm:text-lg">
+                <AlertDialogTitle className="text-base font-semibold text-slate-950 sm:text-lg dark:text-slate-100">
                   Reverse this payment?
                 </AlertDialogTitle>
                 <AlertDialogDescription className="sr-only">
@@ -2881,20 +2881,20 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           {pendingPaymentReversal && (
             <>
               <div className="space-y-3 px-4 py-3.5 sm:px-5">
-                <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-sm">
-                  <div className="min-w-0 border-b border-r border-slate-200 px-3 py-2.5">
-                    <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Pupil</dt>
-                    <dd className="mt-0.5 truncate text-sm font-semibold text-slate-900">
+                <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-sm dark:border-slate-700 dark:bg-slate-900">
+                  <div className="min-w-0 border-b border-r border-slate-200 px-3 py-2.5 dark:border-slate-700">
+                    <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Pupil</dt>
+                    <dd className="mt-0.5 truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
                     {pupil ? `${formatPupilDisplayName(pupil)}` : 'Selected pupil'}
                     </dd>
                   </div>
-                  <div className="min-w-0 border-b border-slate-200 px-3 py-2.5">
-                    <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Fee</dt>
-                    <dd className="mt-0.5 truncate text-sm font-semibold text-slate-900">{pendingPaymentReversal.fee.name}</dd>
+                  <div className="min-w-0 border-b border-slate-200 px-3 py-2.5 dark:border-slate-700">
+                    <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Fee</dt>
+                    <dd className="mt-0.5 truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{pendingPaymentReversal.fee.name}</dd>
                   </div>
-                  <div className="border-r border-slate-200 px-3 py-2.5">
-                    <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Amount</dt>
-                    <dd className="mt-0.5 text-sm font-bold tabular-nums text-red-700">
+                  <div className="border-r border-slate-200 px-3 py-2.5 dark:border-slate-700">
+                    <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Amount</dt>
+                    <dd className="mt-0.5 text-sm font-bold tabular-nums text-red-700 dark:text-red-300">
                     {new Intl.NumberFormat('en-UG', {
                       style: 'currency',
                       currency: 'UGX',
@@ -2903,8 +2903,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                     </dd>
                   </div>
                   <div className="px-3 py-2.5">
-                    <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Date</dt>
-                    <dd className="mt-0.5 whitespace-nowrap text-sm font-semibold text-slate-900">
+                    <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Date</dt>
+                    <dd className="mt-0.5 whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-slate-100">
                     {new Date(pendingPaymentReversal.payment.paymentDate).toLocaleDateString('en-UG', {
                       day: '2-digit',
                       month: 'short',
@@ -2914,15 +2914,15 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                   </div>
                 </dl>
 
-                <p className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs leading-4 text-red-900">
+                <p className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs leading-4 text-red-900 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200">
                   Marks this school record as reversed, recalculates the balance, and keeps it in history. It does not send money back. To restore it later, record a new payment.
                 </p>
               </div>
             </>
           )}
 
-          <AlertDialogFooter className="grid grid-cols-2 gap-2 border-t border-slate-100 bg-slate-50 px-4 py-3 sm:px-5">
-            <AlertDialogCancel disabled={isRevertingPayment} className="m-0 h-10 min-w-0 rounded-full border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 sm:text-sm">
+          <AlertDialogFooter className="grid grid-cols-2 gap-2 border-t border-slate-100 bg-slate-50 px-4 py-3 sm:px-5 dark:border-slate-700 dark:bg-slate-900">
+            <AlertDialogCancel disabled={isRevertingPayment} className="m-0 h-10 min-w-0 rounded-full border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 sm:text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-900">
               Keep payment
             </AlertDialogCancel>
             <Button

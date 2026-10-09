@@ -266,7 +266,7 @@ export default function PLEResultsPage() {
 
   if (!mounted || isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
         <GlassPageTopBar
           title="PLE Results"
           subtitle="Loading PLE records..."
@@ -284,7 +284,7 @@ export default function PLEResultsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 animate-in fade-in duration-500 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
       <GlassPageTopBar
         title="PLE Results"
         subtitle="Manage Primary Leaving Examination records and results by year."
@@ -296,7 +296,7 @@ export default function PLEResultsPage() {
               <SelectTrigger className="h-[34px] min-w-[80px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
-              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999]">
+              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999] dark:bg-slate-900">
                 <SelectItem value="all">All Years</SelectItem>
                 {availableYears.map(year => (
                   <SelectItem key={year} value={year.toString()}>
@@ -313,7 +313,7 @@ export default function PLEResultsPage() {
               <SelectTrigger className="h-[34px] min-w-[90px] max-w-[125px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
-              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999]">
+              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999] dark:bg-slate-900">
                 <SelectItem value="all">All Years</SelectItem>
                 {availableYears.map(year => (
                   <SelectItem key={year} value={year.toString()}>
@@ -348,7 +348,7 @@ export default function PLEResultsPage() {
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
 
         {/* PLE Records Table */}
-        <div className="rounded-lg border shadow-sm bg-white">
+        <div className="rounded-lg border shadow-sm bg-white dark:bg-slate-900">
           <Table>
             <TableHeader>
               <TableRow>
@@ -366,8 +366,8 @@ export default function PLEResultsPage() {
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
-                      <BookOpen className="h-8 w-8 text-gray-400" />
-                      <p className="text-gray-500">No PLE records found</p>
+                      <BookOpen className="h-8 w-8 text-gray-400 dark:text-slate-400" />
+                      <p className="text-gray-500 dark:text-slate-400">No PLE records found</p>
                       <Button
                         variant="outline"
                         size="sm"
@@ -383,7 +383,7 @@ export default function PLEResultsPage() {
                   <TableRow key={record.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
-                        <GraduationCap className="h-4 w-4 text-purple-600" />
+                        <GraduationCap className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                         {record.examName}
                       </div>
                     </TableCell>
@@ -394,23 +394,23 @@ export default function PLEResultsPage() {
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <Users className="h-4 w-4 text-blue-600" />
+                        <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                         <span className="font-semibold">{record.totalCandidates}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <UserCheck className="h-4 w-4 text-blue-500" />
+                        <UserCheck className="h-4 w-4 text-blue-500 dark:text-blue-400" />
                         <span>{record.maleCandidates}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <UserX className="h-4 w-4 text-pink-500" />
+                        <UserX className="h-4 w-4 text-pink-500 dark:text-pink-400" />
                         <span>{record.femaleCandidates}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-center text-sm text-gray-500">
+                    <TableCell className="text-center text-sm text-gray-500 dark:text-slate-400">
                       {formatDate(record.createdAt)}
                     </TableCell>
                     <TableCell className="text-center">
@@ -441,7 +441,7 @@ export default function PLEResultsPage() {
                               setRecordToDelete(record);
                               setIsDeleteDialogOpen(true);
                             }}
-                            className="text-red-600"
+                            className="text-red-600 dark:text-red-400"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete
@@ -489,12 +489,12 @@ export default function PLEResultsPage() {
                 </Select>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-4 dark:bg-blue-950/40 dark:border-blue-800/60">
                 <div className="flex items-start gap-2">
-                  <InfoIcon className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <InfoIcon className="h-5 w-5 text-blue-600 mt-0.5 dark:text-blue-400" />
                   <div className="text-sm">
-                    <p className="font-medium text-blue-900">Auto-capture Information</p>
-                    <p className="text-blue-800 mt-1">
+                    <p className="font-medium text-blue-900 dark:text-blue-200">Auto-capture Information</p>
+                    <p className="text-blue-800 mt-1 dark:text-blue-200">
                       This will automatically capture all current P.7 pupils including their names,
                       date of birth, pupil identification numbers, and gender for PLE {newRecordYear}.
                     </p>

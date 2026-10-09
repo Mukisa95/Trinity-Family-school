@@ -29,7 +29,7 @@ export default function ChangelogPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-3 sm:p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-3 sm:p-4 dark:from-blue-950/40 dark:via-slate-900 dark:to-purple-950/40">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <motion.div
@@ -54,7 +54,7 @@ export default function ChangelogPage() {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-1">
               Changelog
             </h1>
-            <p className="text-gray-600 text-sm mb-2">
+            <p className="text-gray-600 text-sm mb-2 dark:text-slate-300">
               Track all improvements, bug fixes, and updates
             </p>
             <Badge className="px-2.5 py-0.5 text-xs bg-gradient-to-r from-blue-600 to-purple-600 text-white">
@@ -73,13 +73,13 @@ export default function ChangelogPage() {
             >
               <Card className="border shadow-lg">
                 <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center">
-                    <Sparkles className="h-6 w-6 text-gray-400" />
+                  <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center dark:from-blue-950/40 dark:to-purple-950/40">
+                    <Sparkles className="h-6 w-6 text-gray-400 dark:text-slate-400" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-1">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-1 dark:text-slate-100">
                     No updates yet
                   </h3>
-                  <p className="text-gray-600 text-sm">
+                  <p className="text-gray-600 text-sm dark:text-slate-300">
                     Changelog entries will appear here as you make updates to the application.
                   </p>
                 </CardContent>
@@ -94,14 +94,14 @@ export default function ChangelogPage() {
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
               <Card className="border shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 border-b py-3 px-4">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 border-b py-3 px-4 dark:from-blue-950/40 dark:to-purple-950/40">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-md flex items-center justify-center shadow-sm">
                         <Calendar className="h-4 w-4 text-white" />
                       </div>
                       <div>
-                        <CardTitle className="text-lg font-bold text-gray-800">
+                        <CardTitle className="text-lg font-bold text-gray-800 dark:text-slate-100">
                           {formatDate(entry.date)}
                         </CardTitle>
                         <Badge 
@@ -123,7 +123,7 @@ export default function ChangelogPage() {
                         <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-emerald-600 rounded-md flex items-center justify-center">
                           <Zap className="h-3 w-3 text-white" />
                         </div>
-                        <h3 className="text-sm font-semibold text-gray-800">
+                        <h3 className="text-sm font-semibold text-gray-800 dark:text-slate-100">
                           Improvements
                         </h3>
                       </div>
@@ -134,9 +134,9 @@ export default function ChangelogPage() {
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.1 + idx * 0.05 }}
-                            className="flex items-start gap-1.5 text-sm text-gray-700"
+                            className="flex items-start gap-1.5 text-sm text-gray-700 dark:text-slate-200"
                           >
-                            <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5 flex-shrink-0" />
+                            <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5 flex-shrink-0 dark:text-green-400" />
                             <span>{improvement}</span>
                           </motion.li>
                         ))}
@@ -151,7 +151,7 @@ export default function ChangelogPage() {
                         <div className="w-6 h-6 bg-gradient-to-br from-red-500 to-pink-600 rounded-md flex items-center justify-center">
                           <Bug className="h-3 w-3 text-white" />
                         </div>
-                        <h3 className="text-sm font-semibold text-gray-800">
+                        <h3 className="text-sm font-semibold text-gray-800 dark:text-slate-100">
                           Bug Fixes
                         </h3>
                       </div>
@@ -162,9 +162,9 @@ export default function ChangelogPage() {
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.1 + idx * 0.05 }}
-                            className="flex items-start gap-1.5 text-sm text-gray-700"
+                            className="flex items-start gap-1.5 text-sm text-gray-700 dark:text-slate-200"
                           >
-                            <AlertCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 flex-shrink-0" />
+                            <AlertCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 flex-shrink-0 dark:text-red-400" />
                             <span>{fix}</span>
                           </motion.li>
                         ))}
@@ -179,7 +179,7 @@ export default function ChangelogPage() {
                         <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-md flex items-center justify-center">
                           <RefreshCw className="h-3 w-3 text-white" />
                         </div>
-                        <h3 className="text-sm font-semibold text-gray-800">
+                        <h3 className="text-sm font-semibold text-gray-800 dark:text-slate-100">
                           Updates
                         </h3>
                       </div>
@@ -190,9 +190,9 @@ export default function ChangelogPage() {
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.1 + idx * 0.05 }}
-                            className="flex items-start gap-1.5 text-sm text-gray-700"
+                            className="flex items-start gap-1.5 text-sm text-gray-700 dark:text-slate-200"
                           >
-                            <RefreshCw className="h-3.5 w-3.5 text-blue-500 mt-0.5 flex-shrink-0" />
+                            <RefreshCw className="h-3.5 w-3.5 text-blue-500 mt-0.5 flex-shrink-0 dark:text-blue-400" />
                             <span>{update}</span>
                           </motion.li>
                         ))}
@@ -211,7 +211,7 @@ export default function ChangelogPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: CHANGELOG.length * 0.1 + 0.3 }}
-          className="mt-4 text-center text-gray-500 text-xs"
+          className="mt-4 text-center text-gray-500 text-xs dark:text-slate-400"
         >
           <p>Stay updated with the latest changes and improvements!</p>
         </motion.div>

@@ -1037,9 +1037,9 @@ export default function ViewAttendanceReportsPage() {
 
   const getTrendIcon = (trend: "up" | "down" | "stable") => {
     switch (trend) {
-      case "up": return <TrendingUp className="h-4 w-4 text-green-600" />;
-      case "down": return <TrendingDown className="h-4 w-4 text-red-600" />;
-      default: return <Minus className="h-4 w-4 text-gray-600" />;
+      case "up": return <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />;
+      case "down": return <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />;
+      default: return <Minus className="h-4 w-4 text-gray-600 dark:text-slate-300" />;
     }
   };
 
@@ -1289,14 +1289,14 @@ export default function ViewAttendanceReportsPage() {
         backLabel="Back to Attendance Hub"
         className={reportType === "school" && trendPeriod === "daily" && schoolAttendanceData.length > 0 ? "mb-1.5" : "mb-4"}
         meta={
-          <span className="whitespace-nowrap rounded-full border border-indigo-100/80 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+          <span className="whitespace-nowrap rounded-full border border-indigo-100/80 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:border-indigo-800/80 dark:bg-indigo-950/40 dark:text-indigo-300">
             {trendPeriod}
           </span>
         }
         titleControls={
           <button
             onClick={() => setIsPrintModalOpen(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-blue-200/60 bg-white/90 text-blue-600 shadow-sm transition-all hover:scale-105 hover:bg-blue-50 active:scale-95 lg:hidden"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-blue-200/60 bg-white/90 text-blue-600 shadow-sm transition-all hover:scale-105 hover:bg-blue-50 active:scale-95 lg:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-400 dark:hover:bg-blue-950/40"
             title="Print PDF"
             type="button"
             aria-label="Print PDF"
@@ -1355,7 +1355,7 @@ export default function ViewAttendanceReportsPage() {
             </Select>
 
             {startDate && (
-              <div className="flex h-[34px] items-center gap-0.5 rounded-full border border-blue-200/60 bg-white/90 px-1 shadow-sm">
+              <div className="flex h-[34px] items-center gap-0.5 rounded-full border border-blue-200/60 bg-white/90 px-1 shadow-sm dark:border-blue-800/60 dark:bg-slate-900/90">
                 <button
                   onClick={() => {
                     if (!startDate) return;
@@ -1405,7 +1405,7 @@ export default function ViewAttendanceReportsPage() {
                       setEndDate(format(newEndDate, "yyyy-MM-dd"));
                     } catch (e) { console.warn(e); }
                   }}
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-blue-50 hover:text-blue-700"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
                   type="button"
                 >
                   <ChevronLeft className="h-3 w-3" />
@@ -1442,7 +1442,7 @@ export default function ViewAttendanceReportsPage() {
                     setStartDate(format(newStartDate, "yyyy-MM-dd"));
                     setEndDate(format(newEndDate, "yyyy-MM-dd"));
                   }}
-                  className="h-7 px-2 text-[10px] font-semibold text-gray-700 transition-all hover:text-blue-700"
+                  className="h-7 px-2 text-[10px] font-semibold text-gray-700 transition-all hover:text-blue-700 dark:text-slate-200 dark:hover:text-blue-300"
                   type="button"
                 >
                   {(() => {
@@ -1525,7 +1525,7 @@ export default function ViewAttendanceReportsPage() {
                       setEndDate(format(newEndDate, "yyyy-MM-dd"));
                     } catch (e) { console.warn(e); }
                   }}
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-blue-50 hover:text-blue-700"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
                   type="button"
                 >
                   <ChevronRight className="h-3 w-3" />
@@ -1547,7 +1547,7 @@ export default function ViewAttendanceReportsPage() {
                       const value = format(date, "yyyy-MM-dd");
                       const label = format(date, "EEE, MMM dd");
                       const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                      days.push(<SelectItem key={value} value={value} className="rounded-lg text-sm"><span className={isWeekend ? "text-gray-500" : ""}>{label}</span></SelectItem>);
+                      days.push(<SelectItem key={value} value={value} className="rounded-lg text-sm"><span className={isWeekend ? "text-gray-500 dark:text-slate-400" : ""}>{label}</span></SelectItem>);
                     }
                     return days;
                   })()}
@@ -1590,7 +1590,7 @@ export default function ViewAttendanceReportsPage() {
                   <SelectItem value="_all_" className="rounded-lg text-sm">All terms</SelectItem>
                   {academicYears?.map((academicYear) => (
                     <React.Fragment key={academicYear.id}>
-                      <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-50">{academicYear.name}</div>
+                      <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-50 dark:text-slate-400 dark:bg-slate-900">{academicYear.name}</div>
                       {academicYear.terms?.map((term) => (
                         <SelectItem key={term.id} value={term.id} className="rounded-lg text-sm">{term.name}</SelectItem>
                       ))}
@@ -1665,7 +1665,7 @@ export default function ViewAttendanceReportsPage() {
               </Select>
 
               {startDate && (
-                <div className="flex h-[34px] items-center gap-0.5 rounded-full border border-blue-200/60 bg-white/90 px-1 shadow-sm lg:hidden">
+                <div className="flex h-[34px] items-center gap-0.5 rounded-full border border-blue-200/60 bg-white/90 px-1 shadow-sm lg:hidden dark:border-blue-800/60 dark:bg-slate-900/90">
                   <button
                     onClick={() => {
                       if (!startDate) return;
@@ -1715,7 +1715,7 @@ export default function ViewAttendanceReportsPage() {
                         setEndDate(format(newEndDate, "yyyy-MM-dd"));
                       } catch (e) { console.warn(e); }
                     }}
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-blue-50 hover:text-blue-700"
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
                     type="button"
                   >
                     <ChevronLeft className="h-3 w-3" />
@@ -1752,7 +1752,7 @@ export default function ViewAttendanceReportsPage() {
                       setStartDate(format(newStartDate, "yyyy-MM-dd"));
                       setEndDate(format(newEndDate, "yyyy-MM-dd"));
                     }}
-                    className="h-7 px-2 text-[10px] font-semibold text-gray-700 transition-all hover:text-blue-700"
+                    className="h-7 px-2 text-[10px] font-semibold text-gray-700 transition-all hover:text-blue-700 dark:text-slate-200 dark:hover:text-blue-300"
                     type="button"
                   >
                     {(() => {
@@ -1835,7 +1835,7 @@ export default function ViewAttendanceReportsPage() {
                         setEndDate(format(newEndDate, "yyyy-MM-dd"));
                       } catch (e) { console.warn(e); }
                     }}
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-blue-50 hover:text-blue-700"
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-blue-50 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
                     type="button"
                   >
                     <ChevronRight className="h-3 w-3" />
@@ -1857,7 +1857,7 @@ export default function ViewAttendanceReportsPage() {
                         const value = format(date, "yyyy-MM-dd");
                         const label = format(date, "EEE, MMM dd");
                         const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                        days.push(<SelectItem key={value} value={value} className="rounded-lg text-sm"><span className={isWeekend ? "text-gray-500" : ""}>{label}</span></SelectItem>);
+                        days.push(<SelectItem key={value} value={value} className="rounded-lg text-sm"><span className={isWeekend ? "text-gray-500 dark:text-slate-400" : ""}>{label}</span></SelectItem>);
                       }
                       return days;
                     })()}
@@ -1900,7 +1900,7 @@ export default function ViewAttendanceReportsPage() {
                     <SelectItem value="_all_" className="rounded-lg text-sm">All terms</SelectItem>
                     {academicYears?.map((academicYear) => (
                       <React.Fragment key={academicYear.id}>
-                        <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-50">{academicYear.name}</div>
+                        <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-50 dark:text-slate-400 dark:bg-slate-900">{academicYear.name}</div>
                         {academicYear.terms?.map((term) => (
                           <SelectItem key={term.id} value={term.id} className="rounded-lg text-sm">{term.name}</SelectItem>
                         ))}
@@ -1954,13 +1954,13 @@ export default function ViewAttendanceReportsPage() {
             {(dateRangeValidation.warning || !selectedAcademicYear) && (
               <div className="flex flex-col gap-1">
                 {dateRangeValidation.warning && (
-                  <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50/80 px-2.5 py-1 text-[10px] text-amber-700 sm:text-xs">
+                  <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50/80 px-2.5 py-1 text-[10px] text-amber-700 sm:text-xs dark:border-amber-800/60 dark:bg-amber-950/80 dark:text-amber-300">
                     <Info className="h-3 w-3 flex-shrink-0" />
                     <span>{dateRangeValidation.warning}</span>
                   </div>
                 )}
                 {!selectedAcademicYear && (
-                  <div className="flex items-center gap-1.5 rounded-lg border border-yellow-200 bg-yellow-50/80 px-2.5 py-1 text-[10px] text-yellow-700 sm:text-xs">
+                  <div className="flex items-center gap-1.5 rounded-lg border border-yellow-200 bg-yellow-50/80 px-2.5 py-1 text-[10px] text-yellow-700 sm:text-xs dark:border-yellow-800/60 dark:bg-yellow-950/80 dark:text-yellow-300">
                     <AlertTriangle className="h-3 w-3 flex-shrink-0" />
                     <span>Select an academic year for accurate analysis.</span>
                   </div>
@@ -1980,7 +1980,7 @@ export default function ViewAttendanceReportsPage() {
                 School Attendance - {startDate ? format(parseISO(startDate), "MMM dd, yyyy") : "Select Date"}
               </span>
               <span className="text-xs text-gray-300 font-medium">•</span>
-              <span className="text-[10px] sm:text-xs font-bold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/20 px-2 py-0.5 rounded-full border border-green-100/80 whitespace-nowrap">
+              <span className="text-[10px] sm:text-xs font-bold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/20 px-2 py-0.5 rounded-full border border-green-100/80 whitespace-nowrap dark:border-green-800/80">
                 {(() => {
                   const totalPresent = schoolAttendanceData.reduce((sum, cls) => sum + cls.present + cls.late, 0);
                   const totalPupils = schoolAttendanceData.reduce((sum, cls) => sum + cls.totalPupils, 0);
@@ -2035,7 +2035,7 @@ export default function ViewAttendanceReportsPage() {
       {/* Unified frosted-glass sticky header */}
       {false && (
       <div className="hidden">
-        <div className="h-px bg-gradient-to-r from-transparent via-blue-200/60 to-transparent" />
+        <div className="h-px bg-gradient-to-r from-transparent via-blue-200/60 to-transparent dark:via-blue-900/60" />
         <div className="max-w-7xl mx-auto py-1">
           {/* Wrapped row of controls on small screens */}
           <div className="flex flex-row flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-2 w-full">
@@ -2043,14 +2043,14 @@ export default function ViewAttendanceReportsPage() {
             {/* Back button */}
             <SmartBackButton
               fallbackHref="/attendance"
-              className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-50/80 border border-blue-200/60 text-blue-600 shadow-sm flex-shrink-0 hover:bg-blue-100 transition-colors"
+              className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-50/80 border border-blue-200/60 text-blue-600 shadow-sm flex-shrink-0 hover:bg-blue-100 transition-colors dark:bg-blue-950/80 dark:border-blue-800/60 dark:text-blue-400 dark:hover:bg-blue-950/40"
               title="Back to Attendance Hub"
             >
               <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </SmartBackButton>
 
             {/* Title */}
-            <h1 className="text-xs sm:text-sm font-bold text-indigo-900 leading-tight flex-shrink-0 mr-1">
+            <h1 className="text-xs sm:text-sm font-bold text-indigo-900 leading-tight flex-shrink-0 mr-1 dark:text-indigo-200">
               Attendance
             </h1>
 
@@ -2163,7 +2163,7 @@ export default function ViewAttendanceReportsPage() {
                       setEndDate(format(newEndDate, "yyyy-MM-dd"));
                     } catch (e) { console.warn(e); }
                   }}
-                  className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-600"
+                  className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-600 dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-blue-950/40 dark:text-slate-300"
                 >
                   <ChevronLeft className="h-3 w-3" />
                 </button>
@@ -2199,7 +2199,7 @@ export default function ViewAttendanceReportsPage() {
                     setStartDate(format(newStartDate, "yyyy-MM-dd"));
                     setEndDate(format(newEndDate, "yyyy-MM-dd"));
                   }}
-                  className="h-6 sm:h-7 px-2 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-[9px] sm:text-[10px] font-medium text-gray-700 whitespace-nowrap"
+                  className="h-6 sm:h-7 px-2 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-[9px] sm:text-[10px] font-medium text-gray-700 whitespace-nowrap dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-blue-950/40 dark:text-slate-200"
                 >
                   {(() => {
                     if (!startDate) return "Now";
@@ -2281,7 +2281,7 @@ export default function ViewAttendanceReportsPage() {
                       setEndDate(format(newEndDate, "yyyy-MM-dd"));
                     } catch (e) { console.warn(e); }
                   }}
-                  className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-600"
+                  className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-600 dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-blue-950/40 dark:text-slate-300"
                 >
                   <ChevronRight className="h-3 w-3" />
                 </button>
@@ -2304,7 +2304,7 @@ export default function ViewAttendanceReportsPage() {
                         const value = format(date, "yyyy-MM-dd");
                         const label = format(date, "EEE, MMM dd");
                         const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                        days.push(<SelectItem key={value} value={value} className="rounded-lg text-sm"><span className={isWeekend ? "text-gray-500" : ""}>{label}</span></SelectItem>);
+                        days.push(<SelectItem key={value} value={value} className="rounded-lg text-sm"><span className={isWeekend ? "text-gray-500 dark:text-slate-400" : ""}>{label}</span></SelectItem>);
                       }
                       return days;
                     })()}
@@ -2347,7 +2347,7 @@ export default function ViewAttendanceReportsPage() {
                     <SelectItem value="_all_" className="rounded-lg text-sm">All terms</SelectItem>
                     {academicYears?.map((academicYear) => (
                       <React.Fragment key={academicYear.id}>
-                        <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-50">{academicYear.name}</div>
+                        <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-50 dark:text-slate-400 dark:bg-slate-900">{academicYear.name}</div>
                         {academicYear.terms?.map((term) => (
                           <SelectItem key={term.id} value={term.id} className="rounded-lg text-sm">{term.name}</SelectItem>
                         ))}
@@ -2403,7 +2403,7 @@ export default function ViewAttendanceReportsPage() {
             {/* Print Button */}
             <button
               onClick={() => setIsPrintModalOpen(true)}
-              className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all flex-shrink-0 text-blue-600"
+              className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all flex-shrink-0 text-blue-600 dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-blue-950/40 dark:text-blue-400"
               title="Print PDF"
             >
               <Printer className="h-3.5 w-3.5" />
@@ -2415,13 +2415,13 @@ export default function ViewAttendanceReportsPage() {
           {(dateRangeValidation.warning || !selectedAcademicYear) && (
             <div className="mt-2 flex flex-col gap-1">
               {dateRangeValidation.warning && (
-                <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-amber-700 bg-amber-50/80 border border-amber-200 rounded-lg px-2.5 py-1">
+                <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-amber-700 bg-amber-50/80 border border-amber-200 rounded-lg px-2.5 py-1 dark:text-amber-300 dark:bg-amber-950/80 dark:border-amber-800/60">
                   <Info className="h-3 w-3 flex-shrink-0" />
                   <span>{dateRangeValidation.warning}</span>
                 </div>
               )}
               {!selectedAcademicYear && (
-                <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-yellow-700 bg-yellow-50/80 border border-yellow-200 rounded-lg px-2.5 py-1">
+                <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-yellow-700 bg-yellow-50/80 border border-yellow-200 rounded-lg px-2.5 py-1 dark:text-yellow-300 dark:bg-yellow-950/80 dark:border-yellow-800/60">
                   <AlertTriangle className="h-3 w-3 flex-shrink-0" />
                   <span>Select an academic year for accurate analysis.</span>
                 </div>
@@ -2550,9 +2550,9 @@ export default function ViewAttendanceReportsPage() {
                                         onClick={() => toggleClassStatusExpansion(classData.classId, 'present')}
                                         className="flex items-center gap-1 sm:gap-2 hover:bg-green-50 dark:hover:bg-green-900/20 p-1 rounded transition-colors"
                                       >
-                                        <Badge className="bg-green-100 text-green-800 hover:bg-green-200 text-xs sm:text-sm">{classData.present}</Badge>
+                                        <Badge className="bg-green-100 text-green-800 hover:bg-green-200 text-xs sm:text-sm dark:bg-green-950/40 dark:text-green-200 dark:hover:bg-green-900/40">{classData.present}</Badge>
                                         {expandedStatuses.has(`${classData.classId}-present`) && classData.pupils.present.length > 0 && (
-                                          <span className="text-xs text-green-600">↓</span>
+                                          <span className="text-xs text-green-600 dark:text-green-400">↓</span>
                                         )}
                                       </button>
                                     </TableCell>
@@ -2561,9 +2561,9 @@ export default function ViewAttendanceReportsPage() {
                                         onClick={() => toggleClassStatusExpansion(classData.classId, 'absent')}
                                         className="flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-900/20 p-1 rounded transition-colors"
                                       >
-                                        <Badge className="bg-red-100 text-red-800 hover:bg-red-200">{classData.absent}</Badge>
+                                        <Badge className="bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-950/40 dark:text-red-200 dark:hover:bg-red-900/40">{classData.absent}</Badge>
                                         {expandedStatuses.has(`${classData.classId}-absent`) && classData.pupils.absent.length > 0 && (
-                                          <span className="text-xs text-red-600">↓</span>
+                                          <span className="text-xs text-red-600 dark:text-red-400">↓</span>
                                         )}
                                       </button>
                                     </TableCell>
@@ -2572,9 +2572,9 @@ export default function ViewAttendanceReportsPage() {
                                         onClick={() => toggleClassStatusExpansion(classData.classId, 'late')}
                                         className="flex items-center gap-2 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 p-1 rounded transition-colors"
                                       >
-                                        <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">{classData.late}</Badge>
+                                        <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:hover:bg-yellow-900/40">{classData.late}</Badge>
                                         {expandedStatuses.has(`${classData.classId}-late`) && classData.pupils.late.length > 0 && (
-                                          <span className="text-xs text-yellow-600">↓</span>
+                                          <span className="text-xs text-yellow-600 dark:text-yellow-400">↓</span>
                                         )}
                                       </button>
                                     </TableCell>
@@ -2583,9 +2583,9 @@ export default function ViewAttendanceReportsPage() {
                                         onClick={() => toggleClassStatusExpansion(classData.classId, 'excused')}
                                         className="flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-1 rounded transition-colors"
                                       >
-                                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">{classData.excused}</Badge>
+                                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:hover:bg-blue-900/40">{classData.excused}</Badge>
                                         {expandedStatuses.has(`${classData.classId}-excused`) && classData.pupils.excused.length > 0 && (
-                                          <span className="text-xs text-blue-600">↓</span>
+                                          <span className="text-xs text-blue-600 dark:text-blue-400">↓</span>
                                         )}
                                       </button>
                                     </TableCell>
@@ -2594,9 +2594,9 @@ export default function ViewAttendanceReportsPage() {
                                         onClick={() => toggleClassStatusExpansion(classData.classId, 'delayed')}
                                         className="flex items-center gap-2 hover:bg-purple-50 dark:hover:bg-purple-900/20 p-1 rounded transition-colors"
                                       >
-                                        <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">{classData.delayed}</Badge>
+                                        <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-950/40 dark:text-purple-200 dark:hover:bg-purple-900/40">{classData.delayed}</Badge>
                                         {expandedStatuses.has(`${classData.classId}-delayed`) && classData.pupils.delayed.length > 0 && (
-                                          <span className="text-xs text-purple-600">↓</span>
+                                          <span className="text-xs text-purple-600 dark:text-purple-400">↓</span>
                                         )}
                                       </button>
                                     </TableCell>
@@ -2605,9 +2605,9 @@ export default function ViewAttendanceReportsPage() {
                                         onClick={() => toggleClassStatusExpansion(classData.classId, 'notRecorded')}
                                         className="flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-900/20 p-1 rounded transition-colors"
                                       >
-                                        <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-200">{classData.notRecorded}</Badge>
+                                        <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800">{classData.notRecorded}</Badge>
                                         {expandedStatuses.has(`${classData.classId}-notRecorded`) && classData.pupils.notRecorded.length > 0 && (
-                                          <span className="text-xs text-gray-600">↓</span>
+                                          <span className="text-xs text-gray-600 dark:text-slate-300">↓</span>
                                         )}
                                       </button>
                                     </TableCell>
@@ -2615,7 +2615,7 @@ export default function ViewAttendanceReportsPage() {
                                     <TableCell>
                                       <div className="flex items-center gap-2">
                                         <span className="font-medium">{classData.attendanceRate.toFixed(1)}%</span>
-                                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                                        <div className="w-16 bg-gray-200 rounded-full h-2 dark:bg-slate-800">
                                           <div
                                             className={`h-2 rounded-full ${classData.attendanceRate >= 95 ? 'bg-green-500' :
                                               classData.attendanceRate >= 85 ? 'bg-yellow-500' :
@@ -2661,7 +2661,7 @@ export default function ViewAttendanceReportsPage() {
                                                   }`} />
                                                 <div>
                                                   <div className="font-medium text-sm">{pupil.name}</div>
-                                                  <div className="text-xs text-gray-500 font-mono">{pupil.admissionNumber}</div>
+                                                  <div className="text-xs text-gray-500 font-mono dark:text-slate-400">{pupil.admissionNumber}</div>
                                                 </div>
                                               </div>
                                             </TableCell>
@@ -2883,7 +2883,7 @@ export default function ViewAttendanceReportsPage() {
                                             </div>
                                           </details>
                                         ) : (
-                                          <span className="text-sm text-gray-500">No exclusions</span>
+                                          <span className="text-sm text-gray-500 dark:text-slate-400">No exclusions</span>
                                         )}
                                       </div>
                                     </div>
@@ -2940,7 +2940,7 @@ export default function ViewAttendanceReportsPage() {
                                           >
                                             {pupilData.pupilName}
                                           </button>
-                                          <div className="text-xs text-gray-500 font-mono">{pupilData.admissionNumber}</div>
+                                          <div className="text-xs text-gray-500 font-mono dark:text-slate-400">{pupilData.admissionNumber}</div>
                                         </div>
                                       ) : isYearView ? (
                                         <div className="h-8"></div>
@@ -2955,27 +2955,27 @@ export default function ViewAttendanceReportsPage() {
                                       </TableCell>
                                     )}
                                     <TableCell className={isYearView ? "py-1" : ""}>
-                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-green-100 text-green-800`}>{period.present}</Badge>
+                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200`}>{period.present}</Badge>
                                     </TableCell>
                                     <TableCell className={isYearView ? "py-1" : ""}>
-                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-red-100 text-red-800`}>{period.absent}</Badge>
+                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200`}>{period.absent}</Badge>
                                     </TableCell>
                                     <TableCell className={isYearView ? "py-1" : ""}>
-                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-yellow-100 text-yellow-800`}>{period.late}</Badge>
+                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200`}>{period.late}</Badge>
                                     </TableCell>
                                     <TableCell className={isYearView ? "py-1" : ""}>
-                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-blue-100 text-blue-800`}>{period.excused}</Badge>
+                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200`}>{period.excused}</Badge>
                                     </TableCell>
                                     <TableCell className={isYearView ? "py-1" : ""}>
-                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-purple-100 text-purple-800`}>{period.delayed}</Badge>
+                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-200`}>{period.delayed}</Badge>
                                     </TableCell>
                                     <TableCell className={isYearView ? "py-1" : ""}>
-                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-gray-100 text-gray-800`}>{period.notRecorded}</Badge>
+                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100`}>{period.notRecorded}</Badge>
                                     </TableCell>
                                     <TableCell className={isYearView ? "py-1" : ""}>
                                       <div className="flex items-center">
                                         <span className={`font-medium ${isYearView ? "text-sm" : ""}`}>{period.attendanceRate.toFixed(1)}%</span>
-                                        <div className={`ml-2 bg-gray-200 rounded-full ${isYearView ? "w-12 h-1.5" : "w-16 h-2"}`}>
+                                        <div className={`ml-2 bg-gray-200 rounded-full  dark:bg-slate-800${isYearView ? "w-12 h-1.5" : "w-16 h-2"}`}>
                                           <div
                                             className={`bg-blue-600 rounded-full ${isYearView ? "h-1.5" : "h-2"}`}
                                             style={{ width: `${Math.min(period.attendanceRate, 100)}%` }}
@@ -3001,22 +3001,22 @@ export default function ViewAttendanceReportsPage() {
                                         </TableCell>
                                       )}
                                       <TableCell className="py-1">
-                                        <Badge className="bg-green-300 text-green-900 font-bold text-xs px-2 py-0.5">{totalPresent}</Badge>
+                                        <Badge className="bg-green-300 text-green-900 font-bold text-xs px-2 py-0.5 dark:text-green-200">{totalPresent}</Badge>
                                       </TableCell>
                                       <TableCell className="py-1">
-                                        <Badge className="bg-red-300 text-red-900 font-bold text-xs px-2 py-0.5">{totalAbsent}</Badge>
+                                        <Badge className="bg-red-300 text-red-900 font-bold text-xs px-2 py-0.5 dark:text-red-200">{totalAbsent}</Badge>
                                       </TableCell>
                                       <TableCell className="py-1">
-                                        <Badge className="bg-yellow-300 text-yellow-900 font-bold text-xs px-2 py-0.5">{totalLate}</Badge>
+                                        <Badge className="bg-yellow-300 text-yellow-900 font-bold text-xs px-2 py-0.5 dark:text-yellow-200">{totalLate}</Badge>
                                       </TableCell>
                                       <TableCell className="py-1">
-                                        <Badge className="bg-blue-300 text-blue-900 font-bold text-xs px-2 py-0.5">{totalExcused}</Badge>
+                                        <Badge className="bg-blue-300 text-blue-900 font-bold text-xs px-2 py-0.5 dark:text-blue-200">{totalExcused}</Badge>
                                       </TableCell>
                                       <TableCell className="py-1">
-                                        <Badge className="bg-purple-300 text-purple-900 font-bold text-xs px-2 py-0.5">{totalDelayed}</Badge>
+                                        <Badge className="bg-purple-300 text-purple-900 font-bold text-xs px-2 py-0.5 dark:text-purple-200">{totalDelayed}</Badge>
                                       </TableCell>
                                       <TableCell className="py-1">
-                                        <Badge className="bg-gray-300 text-gray-900 font-bold text-xs px-2 py-0.5">{totalNotRecorded}</Badge>
+                                        <Badge className="bg-gray-300 text-gray-900 font-bold text-xs px-2 py-0.5 dark:text-slate-100">{totalNotRecorded}</Badge>
                                       </TableCell>
                                       <TableCell className="py-1">
                                         <div className="flex items-center">

@@ -174,29 +174,29 @@ export function PLESnapshotRecaptureModal({
                     <div className="space-y-4">
                         {/* Summary */}
                         <div className="grid grid-cols-3 gap-4">
-                            <div className="bg-gray-50 rounded-lg p-4 text-center">
-                                <div className="text-2xl font-bold text-gray-900">{batchResults.length}</div>
-                                <div className="text-xs text-gray-600">Total Processed</div>
+                            <div className="bg-gray-50 rounded-lg p-4 text-center dark:bg-slate-900">
+                                <div className="text-2xl font-bold text-gray-900 dark:text-slate-100">{batchResults.length}</div>
+                                <div className="text-xs text-gray-600 dark:text-slate-300">Total Processed</div>
                             </div>
-                            <div className="bg-green-50 rounded-lg p-4 text-center">
-                                <div className="text-2xl font-bold text-green-900">{successResults.length}</div>
-                                <div className="text-xs text-green-600">Successful</div>
+                            <div className="bg-green-50 rounded-lg p-4 text-center dark:bg-green-950/40">
+                                <div className="text-2xl font-bold text-green-900 dark:text-green-200">{successResults.length}</div>
+                                <div className="text-xs text-green-600 dark:text-green-400">Successful</div>
                             </div>
-                            <div className="bg-red-50 rounded-lg p-4 text-center">
-                                <div className="text-2xl font-bold text-red-900">{failureResults.length}</div>
-                                <div className="text-xs text-red-600">Failed</div>
+                            <div className="bg-red-50 rounded-lg p-4 text-center dark:bg-red-950/40">
+                                <div className="text-2xl font-bold text-red-900 dark:text-red-200">{failureResults.length}</div>
+                                <div className="text-xs text-red-600 dark:text-red-400">Failed</div>
                             </div>
                         </div>
 
                         {/* Success List */}
                         {successResults.length > 0 && (
                             <div className="space-y-2">
-                                <h3 className="font-medium text-green-900">✅ Successful Recaptures</h3>
-                                <div className="bg-green-50 rounded-lg p-3 max-h-48 overflow-y-auto">
+                                <h3 className="font-medium text-green-900 dark:text-green-200">✅ Successful Recaptures</h3>
+                                <div className="bg-green-50 rounded-lg p-3 max-h-48 overflow-y-auto dark:bg-green-950/40">
                                     {successResults.map((result) => (
                                         <div key={result.pupilId} className="flex items-center gap-2 py-1">
-                                            <Check className="w-4 h-4 text-green-600" />
-                                            <span className="text-sm text-green-900">{result.pupilName}</span>
+                                            <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                            <span className="text-sm text-green-900 dark:text-green-200">{result.pupilName}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -206,16 +206,16 @@ export function PLESnapshotRecaptureModal({
                         {/* Failure List */}
                         {failureResults.length > 0 && (
                             <div className="space-y-2">
-                                <h3 className="font-medium text-red-900">❌ Failed Recaptures</h3>
-                                <div className="bg-red-50 rounded-lg p-3 max-h-48 overflow-y-auto">
+                                <h3 className="font-medium text-red-900 dark:text-red-200">❌ Failed Recaptures</h3>
+                                <div className="bg-red-50 rounded-lg p-3 max-h-48 overflow-y-auto dark:bg-red-950/40">
                                     {failureResults.map((result) => (
-                                        <div key={result.pupilId} className="space-y-1 py-2 border-b border-red-100 last:border-b-0">
+                                        <div key={result.pupilId} className="space-y-1 py-2 border-b border-red-100 last:border-b-0 dark:border-red-800/60">
                                             <div className="flex items-center gap-2">
-                                                <X className="w-4 h-4 text-red-600" />
-                                                <span className="text-sm font-medium text-red-900">{result.pupilName}</span>
+                                                <X className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                                <span className="text-sm font-medium text-red-900 dark:text-red-200">{result.pupilName}</span>
                                             </div>
                                             {result.error && (
-                                                <p className="text-xs text-red-700 ml-6">{result.error}</p>
+                                                <p className="text-xs text-red-700 ml-6 dark:text-red-300">{result.error}</p>
                                             )}
                                         </div>
                                     ))}
@@ -250,7 +250,7 @@ export function PLESnapshotRecaptureModal({
                     {pupils.length > 0 ? (
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <label className="block text-sm font-medium text-gray-700">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-slate-200">
                                     Select Pupils ({selectedPupilIds.size} of {pupils.length} selected)
                                 </label>
                                 <Button
@@ -263,11 +263,11 @@ export function PLESnapshotRecaptureModal({
                                 </Button>
                             </div>
 
-                            <div className="border border-gray-300 rounded-md max-h-96 overflow-y-auto">
+                            <div className="border border-gray-300 rounded-md max-h-96 overflow-y-auto dark:border-slate-700">
                                 {pupils.map((pupil) => (
                                     <div
                                         key={pupil.id}
-                                        className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                                        className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 dark:hover:bg-slate-900 dark:border-slate-700"
                                     >
                                         <Checkbox
                                             checked={selectedPupilIds.has(pupil.id)}
@@ -275,10 +275,10 @@ export function PLESnapshotRecaptureModal({
                                             disabled={isProcessing}
                                         />
                                         <div className="flex-1 min-w-0">
-                                            <div className="font-medium text-sm text-gray-900">
+                                            <div className="font-medium text-sm text-gray-900 dark:text-slate-100">
                                                 {formatPupilDisplayName(pupil)}
                                             </div>
-                                            <div className="text-xs text-gray-500">
+                                            <div className="text-xs text-gray-500 dark:text-slate-400">
                                                 {pupil.admissionNumber} • {pupil.gender} • Class: {pupil.classId}
                                             </div>
                                         </div>
@@ -287,22 +287,22 @@ export function PLESnapshotRecaptureModal({
                             </div>
                         </div>
                     ) : (
-                        <div className="text-center py-8 text-gray-500">
+                        <div className="text-center py-8 text-gray-500 dark:text-slate-400">
                             <p>No pupils found in this PLE record.</p>
                         </div>
                     )}
 
                     {/* Processing Status */}
                     {isProcessing && processingStatus && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 dark:bg-blue-950/40 dark:border-blue-800/60">
                             <div className="flex items-center gap-3 mb-2">
-                                <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-                                <span className="font-medium text-blue-900">Processing...</span>
+                                <Loader2 className="w-5 h-5 animate-spin text-blue-600 dark:text-blue-400" />
+                                <span className="font-medium text-blue-900 dark:text-blue-200">Processing...</span>
                             </div>
-                            <div className="text-sm text-blue-800">
+                            <div className="text-sm text-blue-800 dark:text-blue-200">
                                 Processing {processingStatus.current} of {processingStatus.total}: {processingStatus.currentPupilName}
                             </div>
-                            <div className="mt-2 bg-blue-200 rounded-full h-2 overflow-hidden">
+                            <div className="mt-2 bg-blue-200 rounded-full h-2 overflow-hidden dark:bg-blue-900/40">
                                 <div
                                     className="bg-blue-600 h-full transition-all duration-300"
                                     style={{ width: `${(processingStatus.current / processingStatus.total) * 100}%` }}

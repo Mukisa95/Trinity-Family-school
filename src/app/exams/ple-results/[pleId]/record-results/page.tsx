@@ -307,7 +307,7 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
 
   if (!mounted || isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
         <GlassPageTopBar
           title="Record Results"
           subtitle="Loading PLE record..."
@@ -326,7 +326,7 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
 
   if (!pleRecord) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
         <GlassPageTopBar
           title="Record Results"
           subtitle="PLE record not found"
@@ -336,7 +336,7 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-6">
             <div className="text-center">
-              <p className="text-red-600 mb-2">PLE record not found</p>
+              <p className="text-red-600 mb-2 dark:text-red-400">PLE record not found</p>
               <Button onClick={() => router.push('/exams/ple-results')}>
                 Back to PLE Results
               </Button>
@@ -348,7 +348,7 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 animate-in fade-in duration-500 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
       <GlassPageTopBar
         title={`Record Results - ${pleRecord.examName}`}
         subtitle="Enter PLE aggregates for each subject and candidate."
@@ -356,13 +356,13 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
         backLabel="Back to PLE"
         meta={
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="bg-purple-50 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-100/80 whitespace-nowrap">
+            <span className="bg-purple-50 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-100/80 whitespace-nowrap dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/80">
               {pleRecord.totalCandidates} candidates
             </span>
-            <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100/80 whitespace-nowrap">
+            <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100/80 whitespace-nowrap dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/80">
               {orderedSubjects.length} subjects
             </span>
-            <span className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-100/80 whitespace-nowrap">
+            <span className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-100/80 whitespace-nowrap dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/80">
               Year {pleRecord.year}
             </span>
           </div>
@@ -402,37 +402,37 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
             <DigitalSignatureDisplay
               signature={signatures[0].signature}
               variant="inline"
-              className="text-xs text-gray-500 bg-white/60 backdrop-blur border border-white/40 px-3 py-1.5 rounded-full shadow-sm"
+              className="text-xs text-gray-500 bg-white/60 backdrop-blur border border-white/40 px-3 py-1.5 rounded-full shadow-sm dark:text-slate-400 dark:bg-slate-900/60 dark:border-slate-700/40"
             />
           </div>
         )}
 
         {/* Results Entry Table */}
-        <div className="rounded-lg border bg-white overflow-hidden">
+        <div className="rounded-lg border bg-white overflow-hidden dark:bg-slate-900">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="bg-gray-50 border-b">
-                  <th className="text-left p-2 font-medium text-gray-700 border-r text-sm min-w-[200px]">Candidate</th>
-                  <th className="text-center p-2 font-medium text-gray-700 border-r text-sm min-w-[100px]">Status</th>
+                <tr className="bg-gray-50 border-b dark:bg-slate-900">
+                  <th className="text-left p-2 font-medium text-gray-700 border-r text-sm min-w-[200px] dark:text-slate-200">Candidate</th>
+                  <th className="text-center p-2 font-medium text-gray-700 border-r text-sm min-w-[100px] dark:text-slate-200">Status</th>
                   {orderedSubjects.map(subject => (
-                    <th key={subject.id} className="text-center p-2 font-medium text-gray-700 border-r text-sm min-w-[80px]">
+                    <th key={subject.id} className="text-center p-2 font-medium text-gray-700 border-r text-sm min-w-[80px] dark:text-slate-200">
                       {subject.code}
                     </th>
                   ))}
-                  <th className="text-center p-2 font-medium text-gray-700 border-r text-sm min-w-[80px]">Total</th>
-                  <th className="text-center p-2 font-medium text-gray-700 text-sm min-w-[80px]">Div</th>
+                  <th className="text-center p-2 font-medium text-gray-700 border-r text-sm min-w-[80px] dark:text-slate-200">Total</th>
+                  <th className="text-center p-2 font-medium text-gray-700 text-sm min-w-[80px] dark:text-slate-200">Div</th>
                 </tr>
               </thead>
               <tbody>
                 {displayResults.map((pupil, index) => (
-                  <tr key={pupil.pupilId} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                  <tr key={pupil.pupilId} className={index % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-gray-50/50 dark:bg-slate-900/50'}>
                     <td className="p-2 border-r">
                       <div className="text-sm">
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-gray-900 dark:text-slate-100">
                           {formatPupilDisplayName(pupil)}
                         </div>
-                        <div className="text-xs text-gray-500 mt-0.5">
+                        <div className="text-xs text-gray-500 mt-0.5 dark:text-slate-400">
                           {pupil.gender}
                         </div>
                       </div>
@@ -464,7 +464,7 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
                     {orderedSubjects.map(subject => (
                       <td key={subject.id} className="p-2 border-r text-center">
                         {pupil.status === 'missed' ? (
-                          <div className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-medium">
+                          <div className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-medium dark:bg-red-950/40 dark:text-red-300">
                             Missed
                           </div>
                         ) : (
@@ -492,13 +492,13 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
                     ))}
                     <td className="p-2 border-r text-center">
                       {pupil.status === 'missed' ? (
-                        <div className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-medium">
+                        <div className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-medium dark:bg-red-950/40 dark:text-red-300">
                           Missed
                         </div>
                       ) : (
                         <div className={`px-2 py-1 rounded text-xs font-mono font-medium ${pupil.totalAggregate > 0
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-gray-100 text-gray-500'
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
+                          : 'bg-gray-100 text-gray-500 dark:bg-slate-900 dark:text-slate-400'
                           }`}>
                           {pupil.totalAggregate || '--'}
                         </div>
@@ -506,7 +506,7 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
                     </td>
                     <td className="p-2 text-center">
                       {pupil.status === 'missed' ? (
-                        <div className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-medium">
+                        <div className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-medium dark:bg-red-950/40 dark:text-red-300">
                           Missed
                         </div>
                       ) : (
@@ -539,24 +539,24 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
         </div>
 
         {/* Compact Legend */}
-        <div className="bg-white rounded-lg border p-3">
-          <h4 className="font-medium text-sm text-gray-700 mb-2">PLE Grading System</h4>
+        <div className="bg-white rounded-lg border p-3 dark:bg-slate-900">
+          <h4 className="font-medium text-sm text-gray-700 mb-2 dark:text-slate-200">PLE Grading System</h4>
           <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
             {PLE_AGGREGATES.map(agg => (
               <div key={agg.value} className="flex items-center gap-1">
-                <span className="bg-gray-100 px-1.5 py-0.5 rounded font-mono">
+                <span className="bg-gray-100 px-1.5 py-0.5 rounded font-mono dark:bg-slate-900">
                   {agg.value}
                 </span>
-                <span className="text-gray-600">{agg.points}pts</span>
+                <span className="text-gray-600 dark:text-slate-300">{agg.points}pts</span>
               </div>
             ))}
             <div className="w-px h-4 bg-gray-300 mx-2"></div>
             {PLE_DIVISIONS.map(div => (
               <div key={div.value} className="flex items-center gap-1">
-                <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">
+                <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium dark:bg-blue-950/40 dark:text-blue-300">
                   Div {div.value}
                 </span>
-                <span className="text-gray-600">{div.label.split('(')[1]?.replace(')', '')}</span>
+                <span className="text-gray-600 dark:text-slate-300">{div.label.split('(')[1]?.replace(')', '')}</span>
               </div>
             ))}
           </div>

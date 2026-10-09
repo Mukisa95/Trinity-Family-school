@@ -91,13 +91,13 @@ export function RequirementReleaseModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Previously Released Items */}
           {previouslyReleasedItems.length > 0 && (
-            <div className="bg-green-50 p-3 rounded-lg">
-              <h4 className="text-sm font-medium text-green-800 mb-2">Already Released:</h4>
+            <div className="bg-green-50 p-3 rounded-lg dark:bg-green-950/40">
+              <h4 className="text-sm font-medium text-green-800 mb-2 dark:text-green-200">Already Released:</h4>
               <div className="space-y-1">
                 {previouslyReleasedItems.map(itemId => {
                   const item = requirements.find(r => r.id === itemId);
                   return item ? (
-                    <div key={itemId} className="text-sm text-green-700">
+                    <div key={itemId} className="text-sm text-green-700 dark:text-green-300">
                       ✓ {item.name}
                     </div>
                   ) : null;
@@ -124,12 +124,12 @@ export function RequirementReleaseModal({
                       }
                     }}
                   />
-                  <Label htmlFor="release-all" className="font-medium text-blue-600">
+                  <Label htmlFor="release-all" className="font-medium text-blue-600 dark:text-blue-400">
                     Release All Remaining Items
                   </Label>
                 </div>
                 {releaseAll && (
-                  <div className="mt-2 text-sm text-gray-600">
+                  <div className="mt-2 text-sm text-gray-600 dark:text-slate-300">
                     This will mark all remaining requirements as released.
                   </div>
                 )}
@@ -168,7 +168,7 @@ export function RequirementReleaseModal({
                   </ScrollArea>
                   
                   {selectedItems.length > 0 && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">
                       {selectedItems.length} item(s) selected for release
                     </p>
                   )}
@@ -177,7 +177,7 @@ export function RequirementReleaseModal({
             </div>
           ) : (
             <div className="text-center py-4">
-              <p className="text-sm text-gray-500">All requirements have already been released.</p>
+              <p className="text-sm text-gray-500 dark:text-slate-400">All requirements have already been released.</p>
             </div>
           )}
 

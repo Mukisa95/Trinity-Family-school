@@ -79,15 +79,15 @@ export function DigitalSignature({ onSignatureComplete, onCancel, disabled }: Di
   if (authenticatedUser) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <Shield className="w-6 h-6 text-green-600" />
+        <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg dark:bg-green-950/40 dark:border-green-800/60">
+          <Shield className="w-6 h-6 text-green-600 dark:text-green-400" />
           <div className="flex-1">
-            <div className="font-medium text-green-800">Digital Signature Verified</div>
-            <div className="text-sm text-green-600">
+            <div className="font-medium text-green-800 dark:text-green-200">Digital Signature Verified</div>
+            <div className="text-sm text-green-600 dark:text-green-400">
               {authenticatedUser.firstName} {authenticatedUser.lastName} ({authenticatedUser.username})
             </div>
           </div>
-          <Badge className="bg-green-100 text-green-800 border-green-300">
+          <Badge className="bg-green-100 text-green-800 border-green-300 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60">
             Authenticated
           </Badge>
         </div>
@@ -106,11 +106,11 @@ export function DigitalSignature({ onSignatureComplete, onCancel, disabled }: Di
   return (
     <div className="space-y-4">
       <div className="text-center space-y-2">
-        <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mx-auto">
-          <User className="w-8 h-8 text-blue-600" />
+        <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mx-auto dark:bg-blue-950/40">
+          <User className="w-8 h-8 text-blue-600 dark:text-blue-400" />
         </div>
         <h3 className="text-lg font-semibold">Digital Signature Required</h3>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-600 dark:text-slate-300">
           Enter your credentials to authenticate this purchase record
         </p>
       </div>

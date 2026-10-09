@@ -219,7 +219,7 @@ export function PupilAttendanceForm({ eventId, event }: PupilAttendanceFormProps
                 <CardDescription>
                   {availablePupils.length} pupils available for attendance marking
                   {recordedPupils.length > 0 && (
-                    <span className="text-green-600 ml-2">
+                    <span className="text-green-600 ml-2 dark:text-green-400">
                       ({recordedPupils.length} already recorded)
                     </span>
                   )}
@@ -359,7 +359,7 @@ export function PupilAttendanceForm({ eventId, event }: PupilAttendanceFormProps
           <CardContent>
             <div className="space-y-2">
               {recordedPupils.map(record => (
-                <div key={record.pupilId} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                <div key={record.pupilId} className="flex items-center justify-between p-2 bg-gray-50 rounded dark:bg-slate-900">
                   <span className="font-medium">{record.pupilName}</span>
                   <Badge 
                     variant={

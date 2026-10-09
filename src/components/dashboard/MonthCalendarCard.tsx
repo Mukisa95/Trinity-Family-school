@@ -119,13 +119,13 @@ export function MonthCalendarCard() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="h-full"
         >
-            <Card className="h-full cursor-pointer rounded-xl transition-all duration-300 relative group overflow-visible flex flex-col" style={{
+            <Card className="theme-dashboard-surface h-full cursor-pointer rounded-xl transition-all duration-300 relative group overflow-visible flex flex-col" style={{
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
                 transform: 'translateZ(0)',
                 background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(239, 246, 255, 0.5) 100%)',
             }}>
                 {/* 3D Depth Effect - Top highlight */}
-                <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10" />
+                <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10 dark:from-slate-900/40" />
                 {/* 3D Depth Effect - Bottom shadow */}
                 <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
@@ -186,12 +186,12 @@ export function MonthCalendarCard() {
                         }}
                     />
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-0 rounded-xl shadow-xl border-slate-200 overflow-hidden z-50">
-                    <div className="bg-slate-50 border-b border-slate-100 px-3 py-2 flex justify-between items-center">
-                        <span className="font-semibold text-sm text-slate-800">
+                <PopoverContent className="w-64 p-0 rounded-xl shadow-xl border-slate-200 overflow-hidden z-50 dark:border-slate-700">
+                    <div className="bg-slate-50 border-b border-slate-100 px-3 py-2 flex justify-between items-center dark:bg-slate-900 dark:border-slate-700">
+                        <span className="font-semibold text-sm text-slate-800 dark:text-slate-100">
                             {popoverState.date ? format(popoverState.date, 'EEEE, MMM d') : ''}
                         </span>
-                        <span className="text-xs font-medium text-slate-500 bg-white px-2 py-0.5 rounded-full shadow-sm border border-slate-200">
+                        <span className="text-xs font-medium text-slate-500 bg-white px-2 py-0.5 rounded-full shadow-sm border border-slate-200 dark:text-slate-400 dark:bg-slate-900 dark:border-slate-700">
                             {popoverState.events.length} Event{popoverState.events.length !== 1 ? 's' : ''}
                         </span>
                     </div>
@@ -200,11 +200,11 @@ export function MonthCalendarCard() {
                             const isUgandaHoliday = (event.customFields as any)?.isUgandaPublicHoliday;
                             const colorCode = isUgandaHoliday ? UGANDA_HOLIDAY_COLOR : (event.colorCode || EVENT_TYPE_COLORS[event.type as keyof typeof EVENT_TYPE_COLORS] || '#3b82f6');
                             return (
-                                <div key={`${event.id}-${i}`} className="flex items-start gap-2 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors" onClick={() => router.push('/events')}>
+                                <div key={`${event.id}-${i}`} className="flex items-start gap-2 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors dark:hover:bg-slate-900" onClick={() => router.push('/events')}>
                                     <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: colorCode }} />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-slate-700 truncate">{event.title}</p>
-                                        <p className="text-xs text-slate-500 truncate">
+                                        <p className="text-sm font-medium text-slate-700 truncate dark:text-slate-200">{event.title}</p>
+                                        <p className="text-xs text-slate-500 truncate dark:text-slate-400">
                                             {event.isAllDay ? 'All Day' : `${event.startTime || ''} ${event.endTime ? `- ${event.endTime}` : ''}`.trim()}
                                         </p>
                                     </div>
@@ -212,8 +212,8 @@ export function MonthCalendarCard() {
                             );
                         })}
                     </div>
-                    <div className="p-2 border-t border-slate-100 bg-slate-50">
-                        <Button variant="ghost" className="w-full text-xs h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-100/50" onClick={() => router.push('/events')}>
+                    <div className="p-2 border-t border-slate-100 bg-slate-50 dark:border-slate-700 dark:bg-slate-900">
+                        <Button variant="ghost" className="w-full text-xs h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-100/50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/50" onClick={() => router.push('/events')}>
                             View in Calendar →
                         </Button>
                     </div>

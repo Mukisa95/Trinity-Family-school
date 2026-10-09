@@ -404,7 +404,7 @@ export function SchoolPayRedistributeModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden dark:bg-slate-900">
 
         {/* ── Header ── */}
         <div className="bg-gradient-to-r from-violet-600 to-purple-700 px-6 py-4 text-white">
@@ -413,7 +413,7 @@ export function SchoolPayRedistributeModal({
               <span className="text-xl">⚡</span>
               <h2 className="text-base font-bold">Redistribute SchoolPay Payment</h2>
             </div>
-            <button onClick={onClose} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-sm transition-colors">✕</button>
+            <button onClick={onClose} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-sm transition-colors dark:bg-slate-900/20 dark:hover:bg-slate-900/30">✕</button>
           </div>
           <p className="text-xs text-violet-200 mt-1">
             Total: <span className="font-bold text-white">{fmt(total)}</span>
@@ -428,8 +428,8 @@ export function SchoolPayRedistributeModal({
                 onClick={() => setDistributionTarget('pupil')}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                   distributionTarget === 'pupil'
-                    ? 'bg-white text-violet-700 shadow'
-                    : 'bg-white/20 text-white hover:bg-white/30'
+                    ? 'bg-white text-violet-700 shadow dark:bg-slate-900 dark:text-violet-300'
+                    : 'bg-white/20 text-white hover:bg-white/30 dark:bg-slate-900/20 dark:hover:bg-slate-900/30'
                 }`}
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -441,8 +441,8 @@ export function SchoolPayRedistributeModal({
                 onClick={() => setDistributionTarget('family')}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                   distributionTarget === 'family'
-                    ? 'bg-white text-violet-700 shadow'
-                    : 'bg-white/20 text-white hover:bg-white/30'
+                    ? 'bg-white text-violet-700 shadow dark:bg-slate-900 dark:text-violet-300'
+                    : 'bg-white/20 text-white hover:bg-white/30 dark:bg-slate-900/20 dark:hover:bg-slate-900/30'
                 }`}
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -461,9 +461,9 @@ export function SchoolPayRedistributeModal({
             <>
               {/* Controls */}
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm text-gray-600 flex-1">Allocate across terms. Only fees with outstanding balance are shown.</p>
+                <p className="text-sm text-gray-600 flex-1 dark:text-slate-300">Allocate across terms. Only fees with outstanding balance are shown.</p>
                 <button onClick={handleSmartDistribute}
-                  className="text-xs px-3 py-1.5 bg-violet-100 hover:bg-violet-200 text-violet-700 rounded-full font-semibold transition-colors whitespace-nowrap">
+                  className="text-xs px-3 py-1.5 bg-violet-100 hover:bg-violet-200 text-violet-700 rounded-full font-semibold transition-colors whitespace-nowrap dark:bg-violet-950/40 dark:hover:bg-violet-900/40 dark:text-violet-300">
                   ⚡ Smart Distribute
                 </button>
               </div>
@@ -474,7 +474,7 @@ export function SchoolPayRedistributeModal({
                   <select
                     value={pickerValue}
                     onChange={e => addTerm(e.target.value)}
-                    className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-500 text-gray-700"
+                    className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-500 text-gray-700 dark:border-slate-700 dark:text-slate-200"
                   >
                     <option value="">+ Add another term to redistribute into…</option>
                     {availableToAdd.map(s => (
@@ -486,50 +486,50 @@ export function SchoolPayRedistributeModal({
 
               {/* Per-term sections */}
               {termFeeData.map(({ slot, withBalance, hasAnyBalance, isCurrent }) => (
-                <div key={slot.termId} className="rounded-xl border border-gray-200 overflow-hidden">
-                  <div className={`px-4 py-2 flex items-center justify-between ${isCurrent ? 'bg-violet-50 border-b border-violet-100' : 'bg-fuchsia-50 border-b border-fuchsia-100'}`}>
+                <div key={slot.termId} className="rounded-xl border border-gray-200 overflow-hidden dark:border-slate-700">
+                  <div className={`px-4 py-2 flex items-center justify-between ${isCurrent ? 'bg-violet-50 border-b border-violet-100 dark:bg-violet-950/40 dark:border-violet-800/60' : 'bg-fuchsia-50 border-b border-fuchsia-100'}`}>
                     <div className="flex items-center gap-2">
                       {!isCurrent && <span className="text-fuchsia-500 text-xs font-bold">→</span>}
-                      <span className={`text-sm font-bold ${isCurrent ? 'text-violet-800' : 'text-fuchsia-800'}`}>
+                      <span className={`text-sm font-bold ${isCurrent ? 'text-violet-800 dark:text-violet-200' : 'text-fuchsia-800'}`}>
                         {slot.termName} {slot.yearName}
                       </span>
                       {isCurrent
-                        ? <span className="text-[10px] bg-violet-200 text-violet-700 rounded-full px-2 py-0.5">Current</span>
+                        ? <span className="text-[10px] bg-violet-200 text-violet-700 rounded-full px-2 py-0.5 dark:bg-violet-900/40 dark:text-violet-300">Current</span>
                         : <span className="text-[10px] bg-fuchsia-200 text-fuchsia-700 rounded-full px-2 py-0.5">Added</span>}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 dark:text-slate-400">
                         {hasAnyBalance ? `${withBalance.filter(r => r.balance > 0).length} fee(s) due` : '✅ Settled'}
                       </span>
                       {!isCurrent && (
                         <button onClick={() => removeTerm(slot.termId)}
-                          className="text-xs text-gray-400 hover:text-red-500 transition-colors">✕</button>
+                          className="text-xs text-gray-400 hover:text-red-500 transition-colors dark:text-slate-400 dark:hover:text-red-400">✕</button>
                       )}
                     </div>
                   </div>
                   {!hasAnyBalance ? (
-                    <div className="px-4 py-3 text-sm text-gray-400 italic">All fees in this term are fully paid.</div>
+                    <div className="px-4 py-3 text-sm text-gray-400 italic dark:text-slate-400">All fees in this term are fully paid.</div>
                   ) : (
                     <div className="p-3 space-y-2">
                       {withBalance.filter(r => r.balance > 0).map(({ fee, paid, balance }) => (
-                        <div key={fee.id} className="bg-gray-50 rounded-lg border border-gray-200 p-3">
+                        <div key={fee.id} className="bg-gray-50 rounded-lg border border-gray-200 p-3 dark:bg-slate-900 dark:border-slate-700">
                           <div className="flex items-center justify-between mb-1.5">
                             <div>
-                              <p className="text-sm font-semibold text-gray-800">{fee.name}</p>
-                              <p className="text-[10px] text-gray-400">
+                              <p className="text-sm font-semibold text-gray-800 dark:text-slate-100">{fee.name}</p>
+                              <p className="text-[10px] text-gray-400 dark:text-slate-400">
                                 Total: {fmt(fee.amount || 0)} · Paid: {fmt(paid)} · Balance: {fmt(balance)}
                               </p>
                             </div>
-                            <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 font-medium">{fmt(balance)} due</span>
+                            <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 font-medium dark:bg-amber-950/40 dark:text-amber-300">{fmt(balance)} due</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500 w-14 shrink-0">Allocate:</span>
+                            <span className="text-xs text-gray-500 w-14 shrink-0 dark:text-slate-400">Allocate:</span>
                             <input
                               type="number" min={0} max={total} step={100}
                               value={getAlloc(slot.termId, fee.id)}
                               onChange={e => setAlloc(slot.termId, fee.id, e.target.value)}
                               placeholder="0"
-                              className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                              className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-slate-700"
                             />
                             <button
                               onClick={() => {
@@ -537,7 +537,7 @@ export function SchoolPayRedistributeModal({
                                 const available = total - (allocatedTotal - cur);
                                 setAlloc(slot.termId, fee.id, String(Math.min(balance, available)));
                               }}
-                              className="text-xs px-2 py-1 bg-violet-100 hover:bg-violet-200 text-violet-700 rounded-lg transition-colors whitespace-nowrap"
+                              className="text-xs px-2 py-1 bg-violet-100 hover:bg-violet-200 text-violet-700 rounded-lg transition-colors whitespace-nowrap dark:bg-violet-950/40 dark:hover:bg-violet-900/40 dark:text-violet-300"
                             >Max</button>
                           </div>
                         </div>
@@ -551,66 +551,66 @@ export function SchoolPayRedistributeModal({
             // ── Family mode UI ─────────────────────────────────────────────
             <>
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm text-gray-600 flex-1">
+                <p className="text-sm text-gray-600 flex-1 dark:text-slate-300">
                   Distribute across all {siblings.length + 1} family members for the current term.
                 </p>
                 {!loadingSiblings && (
                   <button onClick={handleSmartDistributeFamily}
-                    className="text-xs px-3 py-1.5 bg-violet-100 hover:bg-violet-200 text-violet-700 rounded-full font-semibold transition-colors whitespace-nowrap">
+                    className="text-xs px-3 py-1.5 bg-violet-100 hover:bg-violet-200 text-violet-700 rounded-full font-semibold transition-colors whitespace-nowrap dark:bg-violet-950/40 dark:hover:bg-violet-900/40 dark:text-violet-300">
                     ⚡ Smart Distribute
                   </button>
                 )}
               </div>
 
               {loadingSiblings ? (
-                <div className="flex items-center justify-center py-10 gap-2 text-gray-400 text-sm">
-                  <span className="w-4 h-4 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" />
+                <div className="flex items-center justify-center py-10 gap-2 text-gray-400 text-sm dark:text-slate-400">
+                  <span className="w-4 h-4 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin dark:border-violet-800/60" />
                   Loading sibling fee data…
                 </div>
               ) : (
                 familyFeeData.map(({ person, withBalance, isMainPupil }) => (
-                  <div key={person.id} className="rounded-xl border border-gray-200 overflow-hidden">
+                  <div key={person.id} className="rounded-xl border border-gray-200 overflow-hidden dark:border-slate-700">
                     {/* Person header */}
-                    <div className={`px-4 py-2.5 flex items-center gap-2.5 ${isMainPupil ? 'bg-violet-50 border-b border-violet-100' : 'bg-indigo-50 border-b border-indigo-100'}`}>
+                    <div className={`px-4 py-2.5 flex items-center gap-2.5 ${isMainPupil ? 'bg-violet-50 border-b border-violet-100 dark:bg-violet-950/40 dark:border-violet-800/60' : 'bg-indigo-50 border-b border-indigo-100 dark:bg-indigo-950/40 dark:border-indigo-800/60'}`}>
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${isMainPupil ? 'bg-violet-600' : 'bg-indigo-500'}`}>
                         {person.firstName.charAt(0)}{person.lastName.charAt(0)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className={`text-sm font-bold ${isMainPupil ? 'text-violet-800' : 'text-indigo-800'}`}>
+                        <span className={`text-sm font-bold ${isMainPupil ? 'text-violet-800 dark:text-violet-200' : 'text-indigo-800 dark:text-indigo-200'}`}>
                           {formatPupilDisplayName(person)}
                         </span>
                         {isMainPupil && (
-                          <span className="ml-2 text-[10px] bg-violet-200 text-violet-700 rounded-full px-2 py-0.5">This pupil</span>
+                          <span className="ml-2 text-[10px] bg-violet-200 text-violet-700 rounded-full px-2 py-0.5 dark:bg-violet-900/40 dark:text-violet-300">This pupil</span>
                         )}
                       </div>
-                      <span className="text-xs text-gray-500 flex-shrink-0">
+                      <span className="text-xs text-gray-500 flex-shrink-0 dark:text-slate-400">
                         {withBalance.length > 0 ? `${withBalance.length} fee(s) due` : '✅ Settled'}
                       </span>
                     </div>
 
                     {withBalance.length === 0 ? (
-                      <div className="px-4 py-3 text-sm text-gray-400 italic">All fees settled for this term.</div>
+                      <div className="px-4 py-3 text-sm text-gray-400 italic dark:text-slate-400">All fees settled for this term.</div>
                     ) : (
                       <div className="p-3 space-y-2">
                         {withBalance.map(({ fee, paid, balance }) => (
-                          <div key={fee.id} className="bg-gray-50 rounded-lg border border-gray-200 p-3">
+                          <div key={fee.id} className="bg-gray-50 rounded-lg border border-gray-200 p-3 dark:bg-slate-900 dark:border-slate-700">
                             <div className="flex items-center justify-between mb-1.5">
                               <div>
-                                <p className="text-sm font-semibold text-gray-800">{fee.name}</p>
-                                <p className="text-[10px] text-gray-400">
+                                <p className="text-sm font-semibold text-gray-800 dark:text-slate-100">{fee.name}</p>
+                                <p className="text-[10px] text-gray-400 dark:text-slate-400">
                                   Total: {fmt(fee.amount || 0)} · Paid: {fmt(paid)} · Balance: {fmt(balance)}
                                 </p>
                               </div>
-                              <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 font-medium">{fmt(balance)} due</span>
+                              <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 font-medium dark:bg-amber-950/40 dark:text-amber-300">{fmt(balance)} due</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-500 w-14 shrink-0">Allocate:</span>
+                              <span className="text-xs text-gray-500 w-14 shrink-0 dark:text-slate-400">Allocate:</span>
                               <input
                                 type="number" min={0} max={total} step={100}
                                 value={getFamilyAlloc(person.id, selectedTermId, fee.id)}
                                 onChange={e => setFamilyAlloc(person.id, selectedTermId, fee.id, e.target.value)}
                                 placeholder="0"
-                                className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                                className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-slate-700"
                               />
                               <button
                                 onClick={() => {
@@ -618,7 +618,7 @@ export function SchoolPayRedistributeModal({
                                   const available = total - (familyAllocatedTotal - cur);
                                   setFamilyAlloc(person.id, selectedTermId, fee.id, String(Math.min(balance, available)));
                                 }}
-                                className="text-xs px-2 py-1 bg-violet-100 hover:bg-violet-200 text-violet-700 rounded-lg transition-colors whitespace-nowrap"
+                                className="text-xs px-2 py-1 bg-violet-100 hover:bg-violet-200 text-violet-700 rounded-lg transition-colors whitespace-nowrap dark:bg-violet-950/40 dark:hover:bg-violet-900/40 dark:text-violet-300"
                               >Max</button>
                             </div>
                           </div>
@@ -632,27 +632,27 @@ export function SchoolPayRedistributeModal({
           )}
 
           {/* ── Summary panel ── */}
-          <div className="bg-violet-50 border border-violet-200 rounded-xl p-3 space-y-1.5 text-sm">
+          <div className="bg-violet-50 border border-violet-200 rounded-xl p-3 space-y-1.5 text-sm dark:bg-violet-950/40 dark:border-violet-800/60">
             <div className="flex justify-between">
-              <span className="text-gray-600">Total received</span>
-              <span className="font-bold text-violet-900">{fmt(total)}</span>
+              <span className="text-gray-600 dark:text-slate-300">Total received</span>
+              <span className="font-bold text-violet-900 dark:text-violet-200">{fmt(total)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Allocated to fees</span>
-              <span className={`font-semibold ${currentOverAllocated ? 'text-red-600' : 'text-gray-800'}`}>{fmt(currentAllocatedTotal)}</span>
+              <span className="text-gray-600 dark:text-slate-300">Allocated to fees</span>
+              <span className={`font-semibold ${currentOverAllocated ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-slate-100'}`}>{fmt(currentAllocatedTotal)}</span>
             </div>
-            <div className="flex justify-between border-t border-violet-200 pt-1.5">
-              <span className="text-gray-600">Advance / Excess</span>
-              <span className={`font-bold ${currentExcess > 0 ? 'text-amber-600' : 'text-green-600'}`}>{fmt(currentExcess)}</span>
+            <div className="flex justify-between border-t border-violet-200 pt-1.5 dark:border-violet-800/60">
+              <span className="text-gray-600 dark:text-slate-300">Advance / Excess</span>
+              <span className={`font-bold ${currentExcess > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}>{fmt(currentExcess)}</span>
             </div>
           </div>
 
-          {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">{error}</div>}
+          {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm dark:bg-red-950/40 dark:border-red-800/60 dark:text-red-300">{error}</div>}
         </div>
 
         {/* ── Footer ── */}
-        <div className="border-t px-5 py-3 bg-gray-50 flex items-center justify-between gap-3">
-          <button onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors">
+        <div className="border-t px-5 py-3 bg-gray-50 flex items-center justify-between gap-3 dark:bg-slate-900">
+          <button onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
             Cancel
           </button>
           <button
@@ -661,7 +661,7 @@ export function SchoolPayRedistributeModal({
             className="px-5 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full text-sm font-semibold transition-colors flex items-center gap-2"
           >
             {isSubmitting
-              ? (<><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Redistributing…</>)
+              ? (<><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin dark:border-slate-700/40" />Redistributing…</>)
               : 'Confirm Redistribution'}
           </button>
         </div>

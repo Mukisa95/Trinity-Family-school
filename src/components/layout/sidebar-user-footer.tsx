@@ -1,5 +1,7 @@
 "use client";
 
+import { ThemeToggle, ThemePreferenceMenu } from '@/components/ui/theme-toggle';
+
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -72,7 +74,7 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
               {/* Avatar / Initial */}
               <div className="relative flex-shrink-0">
                 <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 blur-[2px] opacity-75 animate-pulse" />
-                <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 flex items-center justify-center border border-white shadow-sm">
+                <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 flex items-center justify-center border border-white shadow-sm dark:border-slate-700">
                   <span className="text-xs font-bold text-white uppercase">
                     {user?.firstName?.[0] || user?.username?.[0] || '?'}
                   </span>
@@ -82,18 +84,20 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
               {/* Name / Role (Hidden when collapsed) */}
               {!isCollapsed && (
                 <div className="flex-1 min-w-0 leading-tight">
-                  <p className="text-xs font-bold text-gray-900 truncate">
+                  <p className="text-xs font-bold text-gray-900 truncate dark:text-slate-100">
                     {user?.firstName && user?.lastName
                       ? `${user.firstName} ${user.lastName}`
                       : user?.username || 'User'}
                   </p>
-                  <p className="text-[10px] text-gray-500 font-semibold capitalize truncate">
+                  <p className="text-[10px] text-gray-500 font-semibold capitalize truncate dark:text-slate-400">
                     {user?.role || 'Role'}
                   </p>
                 </div>
               )}
             </button>
           </DropdownMenuTrigger>
+
+          <ThemeToggle compact={isCollapsed} />
 
           {/* Sidebar Collapse button (only when expanded and not mobile) */}
           {!isCollapsed && !isMobile && (
@@ -102,7 +106,7 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
                 e.stopPropagation();
                 toggleSidebar();
               }}
-              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-all flex-shrink-0"
+              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-all flex-shrink-0 dark:text-slate-400"
               title="Collapse Sidebar"
               aria-label="Collapse Sidebar"
             >
@@ -115,20 +119,20 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
           side={isCollapsed ? "right" : "top"}
           align={isCollapsed ? "end" : "center"}
           sideOffset={isCollapsed ? 12 : 8}
-          className="w-48 bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200/70 p-1 z-50"
+          className="w-48 bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200/70 p-1 z-50 dark:bg-slate-900/95 dark:border-slate-700/70"
         >
-          <div className="px-3 py-2 border-b border-blue-50 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 rounded-t-lg">
-            <p className="text-[10px] font-medium text-gray-600">Signed in as</p>
-            <p className="text-xs font-bold text-blue-700 truncate">{user?.username || 'User'}</p>
+          <div className="px-3 py-2 border-b border-blue-50 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 rounded-t-lg dark:border-blue-800/60 dark:from-blue-950/50 dark:to-indigo-950/50">
+            <p className="text-[10px] font-medium text-gray-600 dark:text-slate-300">Signed in as</p>
+            <p className="text-xs font-bold text-blue-700 truncate dark:text-blue-300">{user?.username || 'User'}</p>
           </div>
 
           <div className="mt-1">
             {isCollapsed && (
               <DropdownMenuItem
                 onClick={() => toggleSidebar()}
-                className="flex items-center w-full px-3 py-2 text-xs text-gray-700 hover:bg-blue-50/80 hover:text-blue-700 rounded-md transition-all duration-200 cursor-pointer"
+                className="flex items-center w-full px-3 py-2 text-xs text-gray-700 hover:bg-blue-50/80 hover:text-blue-700 rounded-md transition-all duration-200 cursor-pointer dark:text-slate-200 dark:hover:bg-blue-950/80 dark:hover:text-blue-300"
               >
-                <ChevronRight className="mr-2 h-4 w-4 text-gray-400" />
+                <ChevronRight className="mr-2 h-4 w-4 text-gray-400 dark:text-slate-400" />
                 Expand Sidebar
               </DropdownMenuItem>
             )}
@@ -137,9 +141,9 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
               <Link
                 href="/profile"
                 onClick={handleItemClick}
-                className="flex items-center w-full px-3 py-2 text-xs text-gray-700 hover:bg-blue-50/80 hover:text-blue-700 rounded-md transition-all duration-200 cursor-pointer"
+                className="flex items-center w-full px-3 py-2 text-xs text-gray-700 hover:bg-blue-50/80 hover:text-blue-700 rounded-md transition-all duration-200 cursor-pointer dark:text-slate-200 dark:hover:bg-blue-950/80 dark:hover:text-blue-300"
               >
-                <User className="mr-2 h-4 w-4 text-gray-400" />
+                <User className="mr-2 h-4 w-4 text-gray-400 dark:text-slate-400" />
                 My Profile
               </Link>
             </DropdownMenuItem>
@@ -148,27 +152,29 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
               <Link
                 href="/changelog"
                 onClick={handleItemClick}
-                className="flex items-center w-full px-3 py-2 text-xs text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-semibold rounded-md transition-all duration-200 cursor-pointer"
+                className="flex items-center w-full px-3 py-2 text-xs text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-semibold rounded-md transition-all duration-200 cursor-pointer dark:text-blue-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
               >
-                <span className="mr-2 px-1 py-0.2 text-[9px] bg-blue-100 text-blue-700 rounded border border-blue-200">v{APP_VERSION}</span>
+                <span className="mr-2 px-1 py-0.2 text-[9px] bg-blue-100 text-blue-700 rounded border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">v{APP_VERSION}</span>
                 What's New
               </Link>
             </DropdownMenuItem>
 
             <DropdownMenuItem asChild>
-              <Link href="/download" onClick={handleItemClick} className="flex min-h-11 items-center w-full px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md cursor-pointer">
-                <Download className="mr-2 h-4 w-4 text-gray-400" aria-hidden="true" />
+              <Link href="/download" onClick={handleItemClick} className="flex min-h-11 items-center w-full px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md cursor-pointer dark:text-slate-200 dark:hover:bg-blue-950/40 dark:hover:text-blue-300">
+                <Download className="mr-2 h-4 w-4 text-gray-400 dark:text-slate-400" aria-hidden="true" />
                 Download Android app
               </Link>
             </DropdownMenuItem>
 
-            <DropdownMenuSeparator className="my-1 bg-blue-50" />
+            <DropdownMenuSeparator className="my-1 bg-blue-50 dark:bg-blue-950/40" />
+            <ThemePreferenceMenu />
+            <DropdownMenuSeparator />
 
             <DropdownMenuItem
               onClick={handleLogout}
-              className="flex items-center w-full px-3 py-2 text-xs text-red-600 hover:bg-red-50/70 hover:text-red-700 rounded-md transition-all duration-200 cursor-pointer focus:bg-red-50 focus:text-red-700"
+              className="flex items-center w-full px-3 py-2 text-xs text-red-600 hover:bg-red-50/70 hover:text-red-700 rounded-md transition-all duration-200 cursor-pointer focus:bg-red-50 focus:text-red-700 dark:text-red-400 dark:hover:bg-red-950/70 dark:hover:text-red-300 dark:focus:bg-red-950/40 dark:focus:text-red-300"
             >
-              <LogOut className="mr-2 h-4 w-4 text-red-500" />
+              <LogOut className="mr-2 h-4 w-4 text-red-500 dark:text-red-400" />
               Logout
             </DropdownMenuItem>
           </div>

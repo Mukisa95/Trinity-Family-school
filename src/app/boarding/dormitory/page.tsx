@@ -177,7 +177,7 @@ export default function DormitoriesPage() {
         className="mb-1.5"
         meta={
           <div className="rounded-full bg-gradient-to-r from-indigo-500 to-fuchsia-500 p-[1px] shrink-0 shadow-sm">
-            <div className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+            <div className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:bg-slate-900 dark:text-indigo-300">
               In-House
             </div>
           </div>
@@ -232,21 +232,21 @@ export default function DormitoriesPage() {
 
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); setOpen(v); }}>
-              <DialogContent className="max-w-2xl border border-white/60 bg-white/70 backdrop-blur-xl">
+              <DialogContent className="max-w-2xl border border-white/60 bg-white/70 backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/70">
                 <DialogHeader>
                   <DialogTitle className="text-lg">{editing ? 'Edit Dormitory' : 'Create Dormitory'}</DialogTitle>
                 </DialogHeader>
                 <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={formValidation.focusField} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="dormitory-name" className={formValidation.getFieldError('dormitory-name') ? 'text-red-700' : undefined}>Name <span className="text-red-600">*</span></Label>
+                    <Label htmlFor="dormitory-name" className={formValidation.getFieldError('dormitory-name') ? 'text-red-700 dark:text-red-300' : undefined}>Name <span className="text-red-600 dark:text-red-400">*</span></Label>
                     <Input id="dormitory-name" value={editState.name} onChange={(e) => { setEditState(s => ({ ...s, name: e.target.value })); formValidation.handleFieldChange('dormitory-name'); }} {...formValidation.getFieldProps('dormitory-name')} />
                     <FieldError error={formValidation.getFieldError('dormitory-name')} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="dormitory-gender" className={formValidation.getFieldError('dormitory-gender') ? 'text-red-700' : undefined}>Gender <span className="text-red-600">*</span></Label>
+                    <Label htmlFor="dormitory-gender" className={formValidation.getFieldError('dormitory-gender') ? 'text-red-700 dark:text-red-300' : undefined}>Gender <span className="text-red-600 dark:text-red-400">*</span></Label>
                 <Select value={editState.gender} onValueChange={(v) => { setEditState(s => ({ ...s, gender: v as any })); formValidation.handleFieldChange('dormitory-gender'); }}>
-                      <SelectTrigger id="dormitory-gender" className="bg-white/70 backdrop-blur" {...formValidation.getFieldProps('dormitory-gender')}>
+                      <SelectTrigger id="dormitory-gender" className="bg-white/70 backdrop-blur dark:bg-slate-900/70" {...formValidation.getFieldProps('dormitory-gender')}>
                     <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent>
@@ -264,7 +264,7 @@ export default function DormitoriesPage() {
                       onChange={(vals) => setEditState(s => ({ ...s, classIds: vals }))}
                       placeholder="Select classes"
                       searchPlaceholder="Search classes..."
-                      className="bg-white/70 backdrop-blur rounded-md"
+                      className="bg-white/70 backdrop-blur rounded-md dark:bg-slate-900/70"
                     />
                   </div>
                   <div className="space-y-2">
@@ -279,7 +279,7 @@ export default function DormitoriesPage() {
                       onChange={(vals) => setEditState(s => ({ ...s, patronStaffIds: vals }))}
                       placeholder="Select staff"
                       searchPlaceholder="Search staff..."
-                      className="bg-white/70 backdrop-blur rounded-md"
+                      className="bg-white/70 backdrop-blur rounded-md dark:bg-slate-900/70"
                     />
                   </div>
                   <div className="space-y-2 sm:col-span-2">
@@ -290,7 +290,7 @@ export default function DormitoriesPage() {
                       onChange={(vals) => setEditState(s => ({ ...s, inChargePupilIds: vals }))}
                       placeholder="Select pupil leaders"
                       searchPlaceholder="Search pupils..."
-                      className="bg-white/70 backdrop-blur rounded-md"
+                      className="bg-white/70 backdrop-blur rounded-md dark:bg-slate-900/70"
                     />
                   </div>
                 </div>
@@ -310,10 +310,10 @@ export default function DormitoriesPage() {
 
 
 
-        <Card className="border-white/60 bg-white/70 backdrop-blur-xl">
+        <Card className="border-white/60 bg-white/70 backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/70">
           <CardHeader className="py-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Bed className="h-5 w-5 text-indigo-600" /> Dormitories
+              <Bed className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> Dormitories
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -326,11 +326,11 @@ export default function DormitoriesPage() {
                 {dormitories.map((d) => (
                   <div
                     key={d.id}
-                    className="rounded-xl border border-white/60 bg-gradient-to-br from-white/80 to-white/60 backdrop-blur p-3 shadow-sm hover:shadow-md transition-shadow"
+                    className="rounded-xl border border-white/60 bg-gradient-to-br from-white/80 to-white/60 backdrop-blur p-3 shadow-sm hover:shadow-md transition-shadow dark:border-slate-700/60 dark:from-slate-900/80 dark:to-slate-900/60"
                   >
                     <div className="flex items-center justify-between">
                       <div className="font-semibold">{d.name}</div>
-                      <div className="text-[11px] px-2 py-0.5 rounded-full bg-white/70 border border-white/60 text-muted-foreground">
+                      <div className="text-[11px] px-2 py-0.5 rounded-full bg-white/70 border border-white/60 text-muted-foreground dark:bg-slate-900/70 dark:border-slate-700/60">
                         {formatDormGender(d.gender as any)}
                       </div>
                     </div>
@@ -343,7 +343,7 @@ export default function DormitoriesPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleOpenEdit(d)}
-                          className="rounded-full bg-white/70 backdrop-blur"
+                          className="rounded-full bg-white/70 backdrop-blur dark:bg-slate-900/70"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>

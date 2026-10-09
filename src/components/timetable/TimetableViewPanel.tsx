@@ -149,7 +149,7 @@ function WeekGridView({
     );
 
     if (templatePeriods.length === 0) {
-        return <p className="text-gray-400 text-sm text-center py-10">No periods found. Generate a timetable structure first.</p>;
+        return <p className="text-gray-400 text-sm text-center py-10 dark:text-slate-400">No periods found. Generate a timetable structure first.</p>;
     }
 
     const getEntry = (classId: string, dayId: number, templatePeriod: GeneratedPeriod): TimetableEntry | undefined => {
@@ -260,16 +260,16 @@ function WeekGridView({
 
     return (
         <div className="flex-1 min-h-0 flex flex-col pt-1">
-            <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-220px)] sm:max-h-[calc(100vh-200px)] custom-scrollbar rounded-xl border border-gray-200 relative mb-4">
+            <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-220px)] sm:max-h-[calc(100vh-200px)] custom-scrollbar rounded-xl border border-gray-200 relative mb-4 dark:border-slate-700">
                 <table ref={tableRef} className="table-fixed text-sm border-separate border-spacing-0" style={{ width: stickyOffset + templatePeriods.reduce((sum, period) => sum + periodWidth(period), 0) }}>
                     <thead>
-                        <tr className="bg-slate-50 border-b border-gray-200">
+                        <tr className="bg-slate-50 border-b border-gray-200 dark:bg-slate-900 dark:border-slate-700">
                             {/* Day column — sticky left-0 */}
-                            <th className="sticky top-0 left-0 z-40 bg-slate-50 border-r border-b border-gray-200 w-[48px] min-w-[48px] shadow-[1px_1px_0_0_#e5e7eb]" />
+                            <th className="sticky top-0 left-0 z-40 bg-slate-50 border-r border-b border-gray-200 w-[48px] min-w-[48px] shadow-[1px_1px_0_0_#e5e7eb] dark:bg-slate-900 dark:border-slate-700" />
                             {/* Class column — sticky left-[48px], hidden when a specific class is selected */}
                             {showClassCol && (
                                 <th
-                                    className="sticky left-[48px] top-0 z-40 border-r border-b border-gray-200 bg-slate-50 p-2 text-center text-xs font-semibold text-gray-500 shadow-[1px_1px_0_0_#e5e7eb]"
+                                    className="sticky left-[48px] top-0 z-40 border-r border-b border-gray-200 bg-slate-50 p-2 text-center text-xs font-semibold text-gray-500 shadow-[1px_1px_0_0_#e5e7eb] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
                                     style={{ width: classColumnWidth, minWidth: classColumnWidth, maxWidth: classColumnWidth }}
                                 >
                                     CLASS
@@ -297,7 +297,7 @@ function WeekGridView({
                                 return (
                                     <th
                                         key={p.id}
-                                        className={`p-0.5 border-r border-b border-gray-200 text-center align-top relative overflow-visible sticky top-0 z-30 shadow-[0_1px_0_0_#e5e7eb] ${isBreak ? "bg-gray-100/80" : "bg-slate-50"}`}
+                                        className={`p-0.5 border-r border-b border-gray-200 text-center align-top relative overflow-visible sticky top-0 z-30 shadow-[0_1px_0_0_#e5e7eb]  dark:border-slate-700${isBreak ? "bg-gray-100/80 dark:bg-slate-900/80" : "bg-slate-50 dark:bg-slate-900"}`}
                                         style={{ width: w, minWidth: w }}
                                     >
                                         {/* In-cell red timeline line */}
@@ -315,7 +315,7 @@ function WeekGridView({
                                                 />
                                             </div>
                                         )}
-                                        <div className={`text-[9px] font-bold uppercase leading-none ${isBreak ? "text-gray-400" : "text-gray-500 bg-gray-100 px-1 py-0.5 rounded-sm"}`}>
+                                        <div className={`text-[9px] font-bold uppercase leading-none ${isBreak ? "text-gray-400 dark:text-slate-400" : "text-gray-500 bg-gray-100 px-1 py-0.5 rounded-sm dark:text-slate-400 dark:bg-slate-900"}`}>
                                             {isBreak ? (p.customLabel || p.type) : `L${p.periodNumber}`}
                                         </div>
                                         {(() => {
@@ -327,8 +327,8 @@ function WeekGridView({
                                             };
                                             return (
                                                 <>
-                                                    <div className="text-[8px] text-gray-400 leading-none mt-0.5 whitespace-nowrap overflow-hidden max-w-full text-center select-none">{formatTime(p.startTime)}</div>
-                                                    <div className="text-[8px] text-gray-400 leading-none whitespace-nowrap overflow-hidden max-w-full text-center select-none">{formatTime(p.endTime)}</div>
+                                                    <div className="text-[8px] text-gray-400 leading-none mt-0.5 whitespace-nowrap overflow-hidden max-w-full text-center select-none dark:text-slate-400">{formatTime(p.startTime)}</div>
+                                                    <div className="text-[8px] text-gray-400 leading-none whitespace-nowrap overflow-hidden max-w-full text-center select-none dark:text-slate-400">{formatTime(p.endTime)}</div>
                                                 </>
                                             );
                                         })()}
@@ -355,13 +355,13 @@ function WeekGridView({
                                     return (
                                         <tr
                                             key={`${day.id}-${cls.id}-${row.stream?.id || 'all'}`}
-                                            className={`${isToday ? (dayIdx % 2 === 0 ? "bg-indigo-50/30" : "bg-indigo-50/50") : (dayIdx % 2 === 0 ? "bg-white" : "bg-slate-50/40")} border-b border-gray-100`}
+                                            className={`${isToday ? (dayIdx % 2 === 0 ? "bg-indigo-50/30 dark:bg-indigo-950/30" : "bg-indigo-50/50 dark:bg-indigo-950/50") : (dayIdx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50/40 dark:bg-slate-900/40")} border-b border-gray-100 dark:border-slate-700`}
                                         >
                                             {/* Day label cell — only on first visual row, spans class and stream rows */}
                                             {rowIdx === 0 && (
                                                 <td
                                                     rowSpan={rowCount}
-                                                    className={`sticky left-0 z-10 border-r border-b border-gray-200 text-center align-middle font-black ${isToday ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-gray-600'}`}
+                                                    className={`sticky left-0 z-10 border-r border-b border-gray-200 text-center align-middle font-black  dark:border-slate-700${isToday ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-gray-600 dark:bg-slate-900 dark:text-slate-300'}`}
                                                     style={{ width: 48, minWidth: 48 }}
                                                 >
                                                     <div className="flex items-center justify-center h-full">
@@ -378,7 +378,7 @@ function WeekGridView({
                                             {showClassCol && (!row.stream || row.streamIndex === 0) && (
                                                 <td
                                                     rowSpan={row.stream ? row.streamCount : undefined}
-                                                    className={`sticky left-[48px] z-10 border-r border-b border-gray-200 p-0 text-[10px] font-bold text-gray-700 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] ${dayIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'}`}
+                                                    className={`sticky left-[48px] z-10 border-r border-b border-gray-200 p-0 text-[10px] font-bold text-gray-700 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]  dark:border-slate-700 dark:text-slate-200${dayIdx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/80 dark:bg-slate-900/80'}`}
                                                     style={{ width: classColumnWidth, minWidth: classColumnWidth, maxWidth: classColumnWidth }}
                                                 >
                                                     {row.stream ? (
@@ -386,14 +386,14 @@ function WeekGridView({
                                                             className="grid h-full"
                                                             style={{ minHeight: row.streamCount * 38, gridTemplateColumns: 'minmax(54px, 1fr) minmax(34px, 0.7fr)' }}
                                                         >
-                                                            <div className="flex items-center justify-center border-r border-indigo-100 px-1 text-center">
+                                                            <div className="flex items-center justify-center border-r border-indigo-100 px-1 text-center dark:border-indigo-800/60">
                                                                 <span className="block max-w-full truncate" title={cls.name}>{cls.code || cls.name}</span>
                                                             </div>
-                                                            <div className="flex min-w-0 flex-col bg-indigo-50/60">
+                                                            <div className="flex min-w-0 flex-col bg-indigo-50/60 dark:bg-indigo-950/60">
                                                                 {classStreamRows.map((streamRow, streamRowIndex) => (
                                                                     <div
                                                                         key={streamRow.stream!.id}
-                                                                        className={`flex min-h-[38px] flex-1 items-center justify-center px-1 text-center text-[9px] font-bold text-indigo-700 ${streamRowIndex < classStreamRows.length - 1 ? 'border-b border-indigo-100' : ''}`}
+                                                                        className={`flex min-h-[38px] flex-1 items-center justify-center px-1 text-center text-[9px] font-bold text-indigo-700  dark:text-indigo-300${streamRowIndex < classStreamRows.length - 1 ? 'border-b border-indigo-100 dark:border-indigo-800/60' : ''}`}
                                                                         title={streamRow.stream!.name}
                                                                     >
                                                                         <span className="block max-w-full truncate">{streamRow.stream!.code || streamRow.stream!.name}</span>
@@ -422,13 +422,13 @@ function WeekGridView({
                                                                 key={templatePeriod.id}
                                                                 ref={isActivePeriodForToday ? activeColRef : null}
                                                                 rowSpan={rowCount}
-                                                                className={`border-r border-gray-200 text-center align-middle relative overflow-hidden ${isActivePeriodForToday ? "bg-amber-100/60" : "bg-gray-100/90"}`}
+                                                                className={`border-r border-gray-200 text-center align-middle relative overflow-hidden  dark:border-slate-700${isActivePeriodForToday ? "bg-amber-100/60 dark:bg-amber-950/60" : "bg-gray-100/90 dark:bg-slate-900/90"}`}
                                                             >
                                                                 {isActivePeriodForToday && (
                                                                     <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-amber-400/20 blur-xl rounded-full pointer-events-none" />
                                                                 )}
                                                                 <span
-                                                                    className={`text-[9px] font-black uppercase tracking-widest relative z-10 ${isActivePeriodForToday ? "text-amber-700" : "text-gray-400"}`}
+                                                                    className={`text-[9px] font-black uppercase tracking-widest relative z-10 ${isActivePeriodForToday ? "text-amber-700 dark:text-amber-300" : "text-gray-400 dark:text-slate-400"}`}
                                                                     style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
                                                                 >
                                                                     {templatePeriod.customLabel || templatePeriod.type}
@@ -456,7 +456,7 @@ function WeekGridView({
                                                                 skipCells = groupEntry.periodSpan - 1;
                                                             }
                                                             return (
-                                                                <td key={templatePeriod.id} ref={isActivePeriodForToday ? activeColRef : null} rowSpan={groupRowSpan} colSpan={groupEntry.periodSpan || 1} className="border-r border-gray-100 text-center align-middle p-0">
+                                                                <td key={templatePeriod.id} ref={isActivePeriodForToday ? activeColRef : null} rowSpan={groupRowSpan} colSpan={groupEntry.periodSpan || 1} className="border-r border-gray-100 text-center align-middle p-0 dark:border-slate-700">
                                                                     <div
                                                                         className="flex flex-col items-center justify-center h-full gap-0.5 px-1 py-1 mx-0.5 my-0.5 rounded border"
                                                                         style={{ background: 'hsl(270,50%,87%)', borderColor: 'hsl(270,45%,75%)', color: 'hsl(270,60%,28%)' }}
@@ -473,7 +473,7 @@ function WeekGridView({
                                                 }
 
                                                 const dayPeriod = getDayPeriod(day.id, templatePeriod);
-                                                if (!dayPeriod) return <td key={templatePeriod.id} className="h-[38px] border-r border-gray-100" />;
+                                                if (!dayPeriod) return <td key={templatePeriod.id} className="h-[38px] border-r border-gray-100 dark:border-slate-700" />;
                                                 const mode = getTimetableStreamMode(profile, cls.id, day.id, dayPeriod.id);
                                                 if (row.stream && mode === 'consolidated' && row.streamIndex > 0) return null;
 
@@ -502,7 +502,7 @@ function WeekGridView({
                                                     const actTeacher = staffList.find(s => s.id === entry.teacherId);
                                                     const isActiveActivity = periodState === 'active';
                                                     return (
-                                                        <td key={templatePeriod.id} ref={isActivePeriodForToday && rowIdx === 0 ? activeColRef : null} rowSpan={rowSpan} colSpan={entry?.periodSpan || 1} className="border-r border-gray-100 text-center align-middle relative h-[38px] p-0">
+                                                        <td key={templatePeriod.id} ref={isActivePeriodForToday && rowIdx === 0 ? activeColRef : null} rowSpan={rowSpan} colSpan={entry?.periodSpan || 1} className="border-r border-gray-100 text-center align-middle relative h-[38px] p-0 dark:border-slate-700">
                                                             <div
                                                                 className="absolute inset-0 m-px rounded border flex flex-col items-center justify-center"
                                                                 style={isActiveActivity
@@ -527,7 +527,7 @@ function WeekGridView({
                                                         ref={isActivePeriodForToday && rowIdx === 0 ? activeColRef : null}
                                                         rowSpan={rowSpan}
                                                         colSpan={entry?.periodSpan || 1}
-                                                        className="border-r border-gray-100 text-center align-middle relative h-[38px] p-0"
+                                                        className="border-r border-gray-100 text-center align-middle relative h-[38px] p-0 dark:border-slate-700"
                                                     >
                                                         {entry && subject ? (() => {
                                                             const optSubject = entry.optionalSubjectId ? subjects.find(s => s.id === entry.optionalSubjectId) : null;
@@ -540,7 +540,7 @@ function WeekGridView({
                                                             if (isSplit) {
                                                                 return (
                                                                     <div className="absolute inset-0 m-px flex flex-col rounded border overflow-hidden" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
-                                                                        <div className="flex-1 flex flex-col items-center justify-center border-b border-white/40 min-h-0 py-[1px]" style={primaryStyle}>
+                                                                        <div className="flex-1 flex flex-col items-center justify-center border-b border-white/40 min-h-0 py-[1px] dark:border-slate-700/40" style={primaryStyle}>
                                                                             <span className="text-[9px] font-bold leading-tight truncate px-1" style={{ color: 'inherit' }}>
                                                                                 {subject.code || subject.name?.substring(0, 4) || '?'}
                                                                             </span>
@@ -579,7 +579,7 @@ function WeekGridView({
                                                                     )}
                                                                     {periodState === 'active' && (
                                                                         <span className="absolute bottom-0.5 left-0 right-0 flex justify-center">
-                                                                            <span className="inline-block w-1 h-1 rounded-full bg-white opacity-80 animate-pulse" />
+                                                                            <span className="inline-block w-1 h-1 rounded-full bg-white opacity-80 animate-pulse dark:bg-slate-900" />
                                                                         </span>
                                                                     )}
                                                                 </div>
@@ -737,14 +737,14 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
     const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-5 min-w-0 flex flex-col gap-3 h-[calc(100vh-170px)] overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-5 min-w-0 flex flex-col gap-3 h-[calc(100vh-170px)] overflow-hidden dark:bg-slate-900 dark:border-slate-700">
 
             {mobileControlTargets?.view && createPortal(
                 <select
                     value={viewMode}
                     onChange={(event) => setViewMode(event.target.value as ViewMode)}
                     aria-label="Choose week or day view"
-                    className="h-11 w-[46px] cursor-pointer appearance-none bg-transparent px-1 text-center text-[11px] font-semibold text-gray-700 focus:outline-none sm:hidden"
+                    className="h-11 w-[46px] cursor-pointer appearance-none bg-transparent px-1 text-center text-[11px] font-semibold text-gray-700 focus:outline-none sm:hidden dark:text-slate-200"
                 >
                     <option value="day">Day</option>
                     <option value="week">Week</option>
@@ -757,7 +757,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                     value={filterMode}
                     onChange={event => setFilterMode(event.target.value as FilterMode)}
                     aria-label="Filter timetable by classes, class, teacher, or subject"
-                    className="h-11 w-[54px] cursor-pointer appearance-none bg-transparent px-1 text-center text-[11px] font-medium text-gray-700 focus:outline-none sm:hidden"
+                    className="h-11 w-[54px] cursor-pointer appearance-none bg-transparent px-1 text-center text-[11px] font-medium text-gray-700 focus:outline-none sm:hidden dark:text-slate-200"
                 >
                     {FILTER_OPTIONS.map(option => (
                         <option key={option.id} value={option.id}>{option.mobileLabel}</option>
@@ -771,7 +771,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                     value={filterId}
                     onChange={event => setFilterId(event.target.value)}
                     aria-label={`Choose ${filterMode}`}
-                    className="h-11 w-[76px] cursor-pointer appearance-none truncate bg-transparent px-1 text-center text-[10px] font-semibold text-indigo-700 focus:outline-none sm:hidden"
+                    className="h-11 w-[76px] cursor-pointer appearance-none truncate bg-transparent px-1 text-center text-[10px] font-semibold text-indigo-700 focus:outline-none sm:hidden dark:text-indigo-300"
                 >
                     <option value="">{filterMode === "class" ? "Class" : filterMode === "teacher" ? "Teacher" : "Subject"}</option>
                     {filterMode === "class" && profileClasses.map(classItem => (
@@ -795,7 +795,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                     icon={isEditing ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
                     tone={isEditing ? "emerald" : "blue"}
                     onClick={() => { setViewMode("day"); setIsEditing(!isEditing); }}
-                    className="h-[54px] w-[54px] min-w-[54px] flex-none rounded-full border-indigo-300/65 bg-white/72 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/55 backdrop-blur-[20px] sm:hidden"
+                    className="h-[54px] w-[54px] min-w-[54px] flex-none rounded-full border-indigo-300/65 bg-white/72 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/55 backdrop-blur-[20px] sm:hidden dark:border-indigo-800/65 dark:bg-slate-900/72 dark:ring-indigo-800/55"
                 />,
                 mobileControlTargets.edit,
             )}
@@ -826,19 +826,19 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
             )}
 
             {/* ── Unified Control Toolbar ── */}
-            <div className={`flex-shrink-0 bg-gray-50/80 p-1.5 sm:p-2 rounded-full sm:rounded-xl border border-gray-100 overflow-hidden ${viewMode === "week" ? "hidden sm:flex" : "flex"}`}>
+            <div className={`flex-shrink-0 bg-gray-50/80 p-1.5 sm:p-2 rounded-full sm:rounded-xl border border-gray-100 overflow-hidden  dark:bg-slate-900/80 dark:border-slate-700${viewMode === "week" ? "hidden sm:flex" : "flex"}`}>
                 <div className="flex w-full min-w-0 flex-row items-center gap-2 overflow-x-auto pb-0.5 hide-scrollbar custom-scrollbar-mobile">
 
                     {/* Unified Pill: View Mode + Filters */}
-                    <div className="hidden min-w-0 flex-nowrap items-center divide-x divide-gray-200 rounded-full border border-gray-200 bg-white p-0.5 shadow-sm sm:flex sm:flex-shrink-0">
+                    <div className="hidden min-w-0 flex-nowrap items-center divide-x divide-gray-200 rounded-full border border-gray-200 bg-white p-0.5 shadow-sm sm:flex sm:flex-shrink-0 dark:divide-slate-700 dark:border-slate-700 dark:bg-slate-900">
                         {/* View Mode Toggle */}
                         <div className="flex items-center px-1">
                             <div className="flex items-center">
                                 <button
                                     onClick={() => setViewMode("day")}
                                     className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${viewMode === "day"
-                                        ? "bg-blue-50 text-blue-700 shadow-sm border border-blue-200/50"
-                                        : "text-gray-500 hover:text-gray-700 bg-transparent"
+                                        ? "bg-blue-50 text-blue-700 shadow-sm border border-blue-200/50 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/50"
+                                        : "text-gray-500 hover:text-gray-700 bg-transparent dark:text-slate-400 dark:hover:text-slate-200"
                                         }`}
                                 >
                                     Day
@@ -846,8 +846,8 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                                 <button
                                     onClick={() => setViewMode("week")}
                                     className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${viewMode === "week"
-                                        ? "bg-purple-50 text-purple-700 shadow-sm border border-purple-200/50"
-                                        : "text-gray-500 hover:text-gray-700 bg-transparent"
+                                        ? "bg-purple-50 text-purple-700 shadow-sm border border-purple-200/50 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/50"
+                                        : "text-gray-500 hover:text-gray-700 bg-transparent dark:text-slate-400 dark:hover:text-slate-200"
                                         }`}
                                 >
                                     Week
@@ -861,7 +861,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                                 value={filterMode}
                                 onChange={e => setFilterMode(e.target.value as FilterMode)}
                                 aria-label="Filter timetable"
-                                className="h-8 cursor-pointer appearance-none bg-transparent px-1 text-xs font-medium text-gray-700 focus:outline-none"
+                                className="h-8 cursor-pointer appearance-none bg-transparent px-1 text-xs font-medium text-gray-700 focus:outline-none dark:text-slate-200"
                             >
                                 {FILTER_OPTIONS.map(opt => (
                                     <option key={opt.id} value={opt.id}>{opt.label}</option>
@@ -872,7 +872,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                                 <select
                                     value={filterId}
                                     onChange={e => setFilterId(e.target.value)}
-                                    className="text-xs font-semibold text-indigo-700 focus:outline-none bg-indigo-50/50 rounded-full px-2.5 py-1 max-w-[120px] truncate appearance-none cursor-pointer border border-indigo-100/50"
+                                    className="text-xs font-semibold text-indigo-700 focus:outline-none bg-indigo-50/50 rounded-full px-2.5 py-1 max-w-[120px] truncate appearance-none cursor-pointer border border-indigo-100/50 dark:text-indigo-300 dark:bg-indigo-950/50 dark:border-indigo-800/50"
                                 >
                                     <option value="">— Class —</option>
                                     {profileClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -882,7 +882,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                                 <select
                                     value={filterId}
                                     onChange={e => setFilterId(e.target.value)}
-                                    className="text-xs font-semibold text-indigo-700 focus:outline-none bg-indigo-50/50 rounded-full px-2.5 py-1 max-w-[120px] truncate appearance-none cursor-pointer border border-indigo-100/50"
+                                    className="text-xs font-semibold text-indigo-700 focus:outline-none bg-indigo-50/50 rounded-full px-2.5 py-1 max-w-[120px] truncate appearance-none cursor-pointer border border-indigo-100/50 dark:text-indigo-300 dark:bg-indigo-950/50 dark:border-indigo-800/50"
                                 >
                                     <option value="">— Teacher —</option>
                                     {staffList.map(s => <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
@@ -892,20 +892,20 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                                 <select
                                     value={filterId}
                                     onChange={e => setFilterId(e.target.value)}
-                                    className="max-w-[120px] cursor-pointer appearance-none truncate rounded-full border border-indigo-100/50 bg-indigo-50/50 px-2.5 py-1 text-xs font-semibold text-indigo-700 focus:outline-none"
+                                    className="max-w-[120px] cursor-pointer appearance-none truncate rounded-full border border-indigo-100/50 bg-indigo-50/50 px-2.5 py-1 text-xs font-semibold text-indigo-700 focus:outline-none dark:border-indigo-800/50 dark:bg-indigo-950/50 dark:text-indigo-300"
                                 >
                                     <option value="">— Subject —</option>
                                     {subjects.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
                                 </select>
                             )}
-                            {filterId && filterMode === "teacher" && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold ml-1">{entries.filter(e => e.teacherId === filterId).length}</span>}
-                            {filterId && filterMode === "subject" && <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-bold ml-1">{entries.filter(e => e.subjectId === filterId).length}</span>}
+                            {filterId && filterMode === "teacher" && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold ml-1 dark:bg-blue-950/40 dark:text-blue-300">{entries.filter(e => e.teacherId === filterId).length}</span>}
+                            {filterId && filterMode === "subject" && <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-bold ml-1 dark:bg-purple-950/40 dark:text-purple-300">{entries.filter(e => e.subjectId === filterId).length}</span>}
                         </div>
                     </div>
 
                     {/* Compact Day Chips (Only on Day View) */}
                     {viewMode === "day" && (
-                        <div className="ml-auto flex w-full flex-shrink-0 flex-nowrap items-center justify-between rounded-full border border-gray-200 bg-white p-0.5 shadow-sm sm:ml-2 sm:w-auto sm:justify-start">
+                        <div className="ml-auto flex w-full flex-shrink-0 flex-nowrap items-center justify-between rounded-full border border-gray-200 bg-white p-0.5 shadow-sm sm:ml-2 sm:w-auto sm:justify-start dark:border-slate-700 dark:bg-slate-900">
                             {DAYS.map((dayName, idx) => {
                                 const dayId = idx + 1;
                                 const hasPeriods = periods.some(period => period.dayOfWeek === dayId);
@@ -918,7 +918,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                                         aria-pressed={selectedDay === dayId}
                                         className={`min-h-11 flex-shrink-0 whitespace-nowrap rounded-full px-2 text-[10px] font-bold transition-colors sm:min-h-0 sm:px-2.5 sm:py-1 sm:text-[11px] ${selectedDay === dayId
                                             ? "bg-blue-600 text-white shadow-sm"
-                                            : "text-gray-500 hover:bg-gray-50"
+                                            : "text-gray-500 hover:bg-gray-50 dark:text-slate-400 dark:hover:bg-slate-900"
                                             }`}
                                     >
                                         {dayName.substring(0, 3)}
@@ -978,7 +978,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                     {isFabOpen && <div className="pointer-events-auto flex flex-col items-end gap-2">
                         {/* Auto Arrange (Placeholder) */}
                         <button
-                            className="bg-white hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-full shadow-lg border border-gray-200 flex items-center gap-2 text-sm font-semibold transition-all hover:-translate-y-0.5"
+                            className="bg-white hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-full shadow-lg border border-gray-200 flex items-center gap-2 text-sm font-semibold transition-all hover:-translate-y-0.5 dark:bg-slate-900 dark:hover:bg-slate-900 dark:text-slate-200 dark:border-slate-700"
                             onClick={() => { }} // Hook up auto-arrange logic later
                         >
                             <span>✣</span> Auto Arrange
@@ -1003,10 +1003,10 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                             }
                         }}
                         className={`pointer-events-auto flex items-center justify-center w-14 h-14 rounded-full shadow-xl text-white transition-all duration-300 hover:scale-105 active:scale-95 ${isEditing
-                            ? 'bg-amber-500 hover:bg-amber-600 border-2 border-amber-300'
+                            ? 'bg-amber-500 hover:bg-amber-600 border-2 border-amber-300 dark:border-amber-800/60'
                             : isFabOpen
                                 ? 'bg-gray-800 hover:bg-gray-900 border-2 border-gray-700'
-                                : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-800'
+                                : 'bg-white hover:bg-gray-50 border border-gray-200 text-gray-800 dark:bg-slate-900 dark:hover:bg-slate-900 dark:border-slate-700 dark:text-slate-100'
                             }`}
                         title={isEditing ? 'Done Editing' : 'Quick Actions'}
                     >

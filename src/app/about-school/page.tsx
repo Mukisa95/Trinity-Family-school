@@ -951,11 +951,11 @@ export default function AboutSchoolPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-sm mb-2 flex items-center text-blue-900">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 dark:bg-blue-950/40 dark:border-blue-800/60">
+                <h4 className="font-semibold text-sm mb-2 flex items-center text-blue-900 dark:text-blue-200">
                   <Info className="mr-2 h-4 w-4" /> How to Change Your App Icon
                 </h4>
-                <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside dark:text-blue-200">
                   <li>Upload your school logo as a PNG, JPEG, or WebP file</li>
                   <li>Image must be at least 192×192 pixels (512×512 or higher recommended)</li>
                   <li>The system will automatically generate all required icon sizes</li>
@@ -978,13 +978,13 @@ export default function AboutSchoolPage() {
                   {appIconPreview && (
                     <div className="mt-3">
                       <Label className="text-sm font-medium mb-2 block">Preview</Label>
-                      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border">
+                      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border dark:bg-slate-900">
                         <Image 
                           src={appIconPreview} 
                           alt="App Icon Preview" 
                           width={120} 
                           height={120} 
-                          className="rounded-lg border-2 border-gray-300 object-contain bg-white" 
+                          className="rounded-lg border-2 border-gray-300 object-contain bg-white dark:border-slate-700 dark:bg-slate-900"
                         />
                         <div className="flex-1">
                           <p className="text-sm text-muted-foreground">
@@ -1034,8 +1034,8 @@ export default function AboutSchoolPage() {
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">Generation Results</Label>
                   {!iconGenerationResults && !isGeneratingIcons && (
-                    <div className="p-8 bg-gray-50 rounded-lg border border-dashed border-gray-300 text-center">
-                      <ImageIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                    <div className="p-8 bg-gray-50 rounded-lg border border-dashed border-gray-300 text-center dark:bg-slate-900 dark:border-slate-700">
+                      <ImageIcon className="mx-auto h-12 w-12 text-gray-400 mb-3 dark:text-slate-400" />
                       <p className="text-sm text-muted-foreground">
                         Upload and generate icons to see results here
                       </p>
@@ -1043,7 +1043,7 @@ export default function AboutSchoolPage() {
                   )}
                   
                   {isGeneratingIcons && (
-                    <div className="p-8 bg-gray-50 rounded-lg border text-center">
+                    <div className="p-8 bg-gray-50 rounded-lg border text-center dark:bg-slate-900">
                       <Loader2 className="mx-auto h-12 w-12 text-primary animate-spin mb-3" />
                       <p className="text-sm font-medium">Generating all icon sizes...</p>
                       <p className="text-xs text-muted-foreground mt-1">This may take a few seconds</p>
@@ -1052,15 +1052,15 @@ export default function AboutSchoolPage() {
                   
                   {iconGenerationResults && !isGeneratingIcons && (
                     <div className="space-y-3">
-                      <div className={`p-4 rounded-lg border ${iconGenerationResults.success ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                      <div className={`p-4 rounded-lg border ${iconGenerationResults.success ? 'bg-green-50 border-green-200 dark:bg-green-950/40 dark:border-green-800/60' : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/40 dark:border-yellow-800/60'}`}>
                         <div className="flex items-center gap-2 mb-2">
-                          <CheckCircle2 className={`h-5 w-5 ${iconGenerationResults.success ? 'text-green-600' : 'text-yellow-600'}`} />
-                          <h4 className={`font-semibold text-sm ${iconGenerationResults.success ? 'text-green-900' : 'text-yellow-900'}`}>
+                          <CheckCircle2 className={`h-5 w-5 ${iconGenerationResults.success ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`} />
+                          <h4 className={`font-semibold text-sm ${iconGenerationResults.success ? 'text-green-900 dark:text-green-200' : 'text-yellow-900 dark:text-yellow-200'}`}>
                             {iconGenerationResults.message}
                           </h4>
                         </div>
                         <div className="text-xs space-y-1">
-                          <p className={iconGenerationResults.success ? 'text-green-800' : 'text-yellow-800'}>
+                          <p className={iconGenerationResults.success ? 'text-green-800 dark:text-green-200' : 'text-yellow-800 dark:text-yellow-200'}>
                             Total: {iconGenerationResults.summary.total} | 
                             Success: {iconGenerationResults.summary.success} | 
                             Failed: {iconGenerationResults.summary.failed}
@@ -1069,9 +1069,9 @@ export default function AboutSchoolPage() {
                       </div>
                       
                       {iconGenerationResults.success && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                          <h4 className="font-semibold text-xs mb-2 text-blue-900">Next Steps:</h4>
-                          <ol className="text-xs text-blue-800 space-y-1 list-decimal list-inside">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 dark:bg-blue-950/40 dark:border-blue-800/60">
+                          <h4 className="font-semibold text-xs mb-2 text-blue-900 dark:text-blue-200">Next Steps:</h4>
+                          <ol className="text-xs text-blue-800 space-y-1 list-decimal list-inside dark:text-blue-200">
                             <li>Clear your browser cache (Ctrl+Shift+Delete)</li>
                             <li>Uninstall the PWA if already installed</li>
                             <li>Reload the website (Ctrl+F5)</li>
@@ -1084,11 +1084,11 @@ export default function AboutSchoolPage() {
                         <summary className="cursor-pointer text-muted-foreground hover:text-foreground font-medium">
                           View Detailed Results ({iconGenerationResults.results.length} files)
                         </summary>
-                        <div className="mt-2 space-y-1 max-h-48 overflow-y-auto bg-gray-50 p-2 rounded border">
+                        <div className="mt-2 space-y-1 max-h-48 overflow-y-auto bg-gray-50 p-2 rounded border dark:bg-slate-900">
                           {iconGenerationResults.results.map((result: any, index: number) => (
                             <div 
                               key={index} 
-                              className={`flex items-start gap-2 p-1 ${result.success ? 'text-green-700' : 'text-red-700'}`}
+                              className={`flex items-start gap-2 p-1 ${result.success ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}
                             >
                               <span>{result.success ? '✓' : '✗'}</span>
                               <span className="flex-1">{result.description}</span>
@@ -1171,7 +1171,7 @@ export default function AboutSchoolPage() {
           <FormErrorSummary errors={houseValidation.errors} submissionError={houseValidation.submissionError} onSelectError={houseValidation.focusField} />
           <div className="space-y-3">
             <div>
-              <Label htmlFor="houseName" className={houseValidation.getFieldError('houseName') ? 'text-red-700' : undefined}>House Name <span className="text-red-600">*</span></Label>
+              <Label htmlFor="houseName" className={houseValidation.getFieldError('houseName') ? 'text-red-700 dark:text-red-300' : undefined}>House Name <span className="text-red-600 dark:text-red-400">*</span></Label>
               <Input
                 id="houseName"
                 value={houseForm.name}
@@ -1191,7 +1191,7 @@ export default function AboutSchoolPage() {
               />
             </div>
             <div>
-              <Label htmlFor="houseColorText" className={houseValidation.getFieldError('houseColorText') ? 'text-red-700' : undefined}>Theme Color <span className="text-red-600">*</span></Label>
+              <Label htmlFor="houseColorText" className={houseValidation.getFieldError('houseColorText') ? 'text-red-700 dark:text-red-300' : undefined}>Theme Color <span className="text-red-600 dark:text-red-400">*</span></Label>
               <div className="flex items-center gap-3">
                 <Input
                   id="houseColor"

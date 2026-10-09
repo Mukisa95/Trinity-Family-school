@@ -95,44 +95,44 @@ const SMSConfirmationDialog: React.FC<SMSConfirmationDialogProps> = ({
         <div className="space-y-4">
           {/* Message Preview */}
           <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">Message Preview:</h4>
-            <div className="p-3 bg-gray-50 rounded-lg border">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-slate-200">Message Preview:</h4>
+            <div className="p-3 bg-gray-50 rounded-lg border dark:bg-slate-900">
               <p className="text-sm whitespace-pre-wrap">{message}</p>
             </div>
           </div>
 
           {/* Recipient review */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="flex min-w-0 items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 p-3">
-              <Users className="h-4 w-4 shrink-0 text-blue-600" />
+            <div className="flex min-w-0 items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 p-3 dark:border-blue-800/60 dark:bg-blue-950/40">
+              <Users className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
               <div>
-                <p className="text-xs font-medium text-blue-900">Total selected</p>
-                <p className="text-lg font-bold text-blue-600">{recipients.length}</p>
+                <p className="text-xs font-medium text-blue-900 dark:text-blue-200">Total selected</p>
+                <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{recipients.length}</p>
               </div>
             </div>
             <button
               type="button"
               disabled={duplicateCount === 0}
               onClick={() => setShowDuplicateDetails((current) => !current)}
-              className="flex min-w-0 items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-left transition-colors hover:bg-amber-100 disabled:cursor-default disabled:hover:bg-amber-50"
+              className="flex min-w-0 items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-left transition-colors hover:bg-amber-100 disabled:cursor-default disabled:hover:bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/40 dark:hover:bg-amber-950/40 dark:disabled:hover:bg-amber-950/40"
               aria-expanded={showDuplicateDetails}
             >
-              <UserMinus className="h-4 w-4 shrink-0 text-amber-600" />
+              <UserMinus className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
               <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-1 text-xs font-medium text-amber-900">
+                <p className="flex items-center gap-1 text-xs font-medium text-amber-900 dark:text-amber-200">
                   Duplicates
                   {duplicateCount > 0 && (
                     <ChevronDown className={`h-3 w-3 transition-transform ${showDuplicateDetails ? 'rotate-180' : ''}`} />
                   )}
                 </p>
-                <p className="text-lg font-bold text-amber-600">{duplicateCount}</p>
+                <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{duplicateCount}</p>
               </div>
             </button>
-            <div className="flex min-w-0 items-center gap-2 rounded-lg border border-green-100 bg-green-50 p-3">
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+            <div className="flex min-w-0 items-center gap-2 rounded-lg border border-green-100 bg-green-50 p-3 dark:border-green-800/60 dark:bg-green-950/40">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
               <div>
-                <p className="text-xs font-medium text-green-900">Final recipients</p>
-                <p className="text-lg font-bold text-green-600">{finalRecipientCount}</p>
+                <p className="text-xs font-medium text-green-900 dark:text-green-200">Final recipients</p>
+                <p className="text-lg font-bold text-green-600 dark:text-green-400">{finalRecipientCount}</p>
               </div>
             </div>
           </div>
@@ -142,19 +142,19 @@ const SMSConfirmationDialog: React.FC<SMSConfirmationDialogProps> = ({
               <CollapsibleTrigger asChild>
                 <button type="button" className="sr-only">Toggle duplicate recipient details</button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/40 p-3">
+              <CollapsibleContent className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/40 p-3 dark:border-amber-800/60 dark:bg-amber-950/40">
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">Review repeated phone numbers</p>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">Review repeated phone numbers</p>
+                  <p className="text-xs text-gray-600 dark:text-slate-300">
                     Numbers are matched using their last 8 digits. The first match is included and repeated matches are excluded by default. Check any recipient you still want to include.
                   </p>
                 </div>
 
                 <div className="max-h-[260px] space-y-3 overflow-y-auto pr-1">
                   {duplicateAnalysis.groups.map((group) => (
-                    <div key={group.matchKey} className="overflow-hidden rounded-md border bg-white">
-                      <div className="flex items-center justify-between gap-3 border-b bg-gray-50 px-3 py-2">
-                        <span className="flex items-center gap-1.5 text-xs font-medium text-gray-700">
+                    <div key={group.matchKey} className="overflow-hidden rounded-md border bg-white dark:bg-slate-900">
+                      <div className="flex items-center justify-between gap-3 border-b bg-gray-50 px-3 py-2 dark:bg-slate-900">
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-gray-700 dark:text-slate-200">
                           <Phone className="h-3.5 w-3.5" />
                           Same last 8 digits: {group.matchKey}
                         </span>
@@ -166,7 +166,7 @@ const SMSConfirmationDialog: React.FC<SMSConfirmationDialogProps> = ({
                           return (
                             <label
                               key={recipient.id}
-                              className="flex cursor-pointer items-start gap-3 px-3 py-2.5 hover:bg-gray-50"
+                              className="flex cursor-pointer items-start gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-slate-900"
                             >
                               <Checkbox
                                 checked={isIncluded}
@@ -175,13 +175,13 @@ const SMSConfirmationDialog: React.FC<SMSConfirmationDialogProps> = ({
                               />
                               <span className="min-w-0 flex-1">
                                 <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                                  <span className="text-sm font-medium text-gray-900">{recipient.name}</span>
-                                  <span className={`text-[10px] font-semibold uppercase ${isIncluded ? 'text-green-700' : 'text-amber-700'}`}>
+                                  <span className="text-sm font-medium text-gray-900 dark:text-slate-100">{recipient.name}</span>
+                                  <span className={`text-[10px] font-semibold uppercase ${isIncluded ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'}`}>
                                     {isIncluded ? 'Included' : 'Excluded'}
                                   </span>
                                 </span>
-                                <span className="block text-xs text-gray-600">{recipient.phone}</span>
-                                <span className="block text-[11px] text-gray-500">
+                                <span className="block text-xs text-gray-600 dark:text-slate-300">{recipient.phone}</span>
+                                <span className="block text-[11px] text-gray-500 dark:text-slate-400">
                                   {[recipient.className, recipient.guardianLabel].filter(Boolean).join(' · ')}
                                   {index === 0 ? ' · First match' : ''}
                                 </span>
@@ -200,26 +200,26 @@ const SMSConfirmationDialog: React.FC<SMSConfirmationDialogProps> = ({
           {/* Message Details */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Characters:</span>
-              <span className={messageLength > 160 ? 'text-red-600 font-medium' : 'text-gray-900'}>
+              <span className="text-gray-600 dark:text-slate-300">Characters:</span>
+              <span className={messageLength > 160 ? 'text-red-600 font-medium dark:text-red-400' : 'text-gray-900 dark:text-slate-100'}>
                 {messageLength}
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">SMS per recipient:</span>
-              <span className={smsCount > 1 ? 'text-amber-600 font-medium' : 'text-gray-900'}>
+              <span className="text-gray-600 dark:text-slate-300">SMS per recipient:</span>
+              <span className={smsCount > 1 ? 'text-amber-600 font-medium dark:text-amber-400' : 'text-gray-900 dark:text-slate-100'}>
                 {smsCount}
               </span>
             </div>
             {duplicateCount > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Currently excluded:</span>
-                <span className="font-medium text-amber-700">{currentlyExcludedCount}</span>
+                <span className="text-gray-600 dark:text-slate-300">Currently excluded:</span>
+                <span className="font-medium text-amber-700 dark:text-amber-300">{currentlyExcludedCount}</span>
               </div>
             )}
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Total SMS messages:</span>
-              <span className="text-gray-900 font-medium">{totalSMSMessages}</span>
+              <span className="text-gray-600 dark:text-slate-300">Total SMS messages:</span>
+              <span className="text-gray-900 font-medium dark:text-slate-100">{totalSMSMessages}</span>
             </div>
           </div>
 
@@ -261,7 +261,7 @@ const SMSConfirmationDialog: React.FC<SMSConfirmationDialogProps> = ({
 };
 
 const BadgeCount = ({ count }: { count: number }) => (
-  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
     {count} matches
   </span>
 );

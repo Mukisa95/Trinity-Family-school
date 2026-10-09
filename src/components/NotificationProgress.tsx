@@ -85,22 +85,22 @@ export function NotificationProgress({
   const getStatusIcon = () => {
     switch (status.status) {
       case 'completed':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <CheckCircle className="h-5 w-5 text-green-500 dark:text-green-400" />;
       case 'failed':
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
+        return <AlertCircle className="h-5 w-5 text-red-500 dark:text-red-400" />;
       default:
-        return <Clock className="h-5 w-5 text-blue-500 animate-spin" />;
+        return <Clock className="h-5 w-5 text-blue-500 animate-spin dark:text-blue-400" />;
     }
   };
 
   const getStatusColor = () => {
     switch (status.status) {
       case 'completed':
-        return 'bg-green-50 border-green-200';
+        return 'bg-green-50 border-green-200 dark:bg-green-950/40 dark:border-green-800/60';
       case 'failed':
-        return 'bg-red-50 border-red-200';
+        return 'bg-red-50 border-red-200 dark:bg-red-950/40 dark:border-red-800/60';
       default:
-        return 'bg-blue-50 border-blue-200';
+        return 'bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60';
     }
   };
 
@@ -140,22 +140,22 @@ export function NotificationProgress({
           {/* Stats */}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-gray-500" />
+              <Users className="h-4 w-4 text-gray-500 dark:text-slate-400" />
               <span>Total: {status.stats.total}</span>
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
+              <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400" />
               <span>Sent: {status.stats.sent}</span>
             </div>
             {status.stats.failed > 0 && (
               <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-red-500" />
+                <AlertCircle className="h-4 w-4 text-red-500 dark:text-red-400" />
                 <span>Failed: {status.stats.failed}</span>
               </div>
             )}
             {status.stats.remaining > 0 && status.status === 'processing' && (
               <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-blue-500" />
+                <Clock className="h-4 w-4 text-blue-500 dark:text-blue-400" />
                 <span>Remaining: {status.stats.remaining}</span>
               </div>
             )}
@@ -163,20 +163,20 @@ export function NotificationProgress({
 
           {/* Processing Time */}
           {status.processingTime && (
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-500 dark:text-slate-400">
               Processing time: {status.processingTime}ms
             </div>
           )}
 
           {/* Status Message */}
           {status.status === 'completed' && (
-            <div className="text-sm text-green-600 font-medium">
+            <div className="text-sm text-green-600 font-medium dark:text-green-400">
               ✅ All notifications sent successfully!
             </div>
           )}
           
           {status.status === 'failed' && (
-            <div className="text-sm text-red-600 font-medium">
+            <div className="text-sm text-red-600 font-medium dark:text-red-400">
               ❌ Some notifications failed to send
             </div>
           )}

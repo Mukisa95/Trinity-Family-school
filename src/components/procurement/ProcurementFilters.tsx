@@ -190,7 +190,7 @@ export function ProcurementFilters({
           <div>
             <Label htmlFor="search">Search</Label>
             <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400 dark:text-slate-400" />
               <Input
                 id="search"
                 placeholder="Search items, suppliers..."

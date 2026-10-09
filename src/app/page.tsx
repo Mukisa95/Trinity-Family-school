@@ -202,9 +202,9 @@ const StatCard = ({
       }}
       onClick={handleClick}
     >
-      <div className="absolute inset-0 bg-white/90" />
+      <div className="absolute inset-0 bg-white/90 dark:bg-slate-900/90" />
       {/* 3D Depth Effect - Top highlight */}
-      <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none dark:from-slate-900/40" />
       {/* 3D Depth Effect - Bottom shadow */}
       <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
 
@@ -224,7 +224,7 @@ const StatCard = ({
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.2 }}
               >
-                <h3 className="text-sm sm:text-xl md:text-2xl font-black text-gray-900 leading-none tracking-tight">
+                <h3 className="text-sm sm:text-xl md:text-2xl font-black text-gray-900 leading-none tracking-tight dark:text-slate-100">
                   <CountUp end={value} />
                 </h3>
               </motion.div>
@@ -236,13 +236,13 @@ const StatCard = ({
           <div className="flex items-center justify-between mt-1.5">
             <div className="flex items-center space-x-1">
               <TrendingUp
-                className={`w-3 h-3 ${trend.isPositive ? 'text-green-500' : 'text-red-500'}`}
+                className={`w-3 h-3 ${trend.isPositive ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}
               />
-              <span className={`text-xs font-medium ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              <span className={`text-xs font-medium ${trend.isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                 {trend.value}%
               </span>
             </div>
-            <div className="h-1 w-12 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-1 w-12 bg-gray-200 rounded-full overflow-hidden dark:bg-slate-800">
               <div
                 className={`h-1 rounded-full transition-all duration-1000 ${trend.isPositive ? 'bg-green-500' : 'bg-red-500'
                   }`}
@@ -254,7 +254,7 @@ const StatCard = ({
 
         {onClick && (
           <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <ChevronRight className="w-3 h-3 text-gray-400" />
+            <ChevronRight className="w-3 h-3 text-gray-400 dark:text-slate-400" />
           </div>
         )}
       </div>
@@ -360,32 +360,32 @@ const PupilRowWithDetails = ({
   }, [pupil.id, historyRecords]);
 
   const attendanceBadgeColor =
-    attendanceStatus === 'Absent' ? 'bg-red-100 text-red-700' :
-      attendanceStatus === 'Delayed' ? 'bg-amber-100 text-amber-700' :
-        attendanceStatus === 'Late' ? 'bg-orange-100 text-orange-700' :
-          attendanceStatus === 'Present' ? 'bg-green-100 text-green-700' :
-            'bg-gray-100 text-gray-500';
+    attendanceStatus === 'Absent' ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300' :
+      attendanceStatus === 'Delayed' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300' :
+        attendanceStatus === 'Late' ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300' :
+          attendanceStatus === 'Present' ? 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300' :
+            'bg-gray-100 text-gray-500 dark:bg-slate-900 dark:text-slate-400';
 
   const generalBadgeColor =
-    generalStatus === 'Active' ? 'bg-indigo-100 text-indigo-700' :
-      generalStatus === 'Inactive' ? 'bg-slate-100 text-slate-600' :
-        generalStatus === 'Graduated' ? 'bg-emerald-100 text-emerald-700' :
-          generalStatus === 'Transferred' ? 'bg-orange-100 text-orange-700' :
-            generalStatus === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
-              'bg-gray-100 text-gray-500';
+    generalStatus === 'Active' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300' :
+      generalStatus === 'Inactive' ? 'bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300' :
+        generalStatus === 'Graduated' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' :
+          generalStatus === 'Transferred' ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300' :
+            generalStatus === 'Pending' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-300' :
+              'bg-gray-100 text-gray-500 dark:bg-slate-900 dark:text-slate-400';
 
   return (
-    <div className="bg-white rounded-lg border overflow-hidden">
+    <div className="bg-white rounded-lg border overflow-hidden dark:bg-slate-900">
       {/* Pupil Name Row — click to toggle sub-menu */}
       <div
-        className="p-2 sm:p-3 hover:bg-blue-50 cursor-pointer flex items-center gap-2 group transition-colors"
+        className="p-2 sm:p-3 hover:bg-blue-50 cursor-pointer flex items-center gap-2 group transition-colors dark:hover:bg-blue-950/40"
         onClick={(e) => {
           e.stopPropagation();
           setIsMenuOpen((prev) => !prev);
         }}
       >
-        <UserCheck className="w-4 h-4 text-gray-400 group-hover:text-blue-500 flex-shrink-0" />
-        <span className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 truncate flex-1">
+        <UserCheck className="w-4 h-4 text-gray-400 group-hover:text-blue-500 flex-shrink-0 dark:text-slate-400 dark:group-hover:text-blue-400" />
+        <span className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 truncate flex-1 dark:text-slate-100 dark:group-hover:text-blue-400">
           {formatPupilDisplayName(pupil)}
         </span>
         <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -399,21 +399,21 @@ const PupilRowWithDetails = ({
               {attendanceStatus}
             </span>
           )}
-          <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200  dark:text-slate-400${isMenuOpen ? 'rotate-180' : ''}`} />
         </div>
       </div>
 
       {/* Compact Expandable Sub-menu */}
       {isMenuOpen && (
-        <div className="border-t border-gray-100 bg-gray-50 px-2.5 py-2 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+        <div className="border-t border-gray-100 bg-gray-50 px-2.5 py-2 space-y-1.5 dark:border-slate-700 dark:bg-slate-900" onClick={(e) => e.stopPropagation()}>
 
           {/* Row 1: Status selects side by side */}
           <div className="grid grid-cols-2 gap-1.5">
             {/* General Status */}
             <div>
-              <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wide">Enrolment</span>
+              <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wide dark:text-slate-400">Enrolment</span>
               <select
-                className={`w-full text-[10px] font-semibold rounded-md border border-gray-200 py-0.5 pl-1.5 pr-4 cursor-pointer focus:ring-1 focus:ring-blue-400 bg-white mt-0.5 ${generalBadgeColor}`}
+                className={`w-full text-[10px] font-semibold rounded-md border border-gray-200 py-0.5 pl-1.5 pr-4 cursor-pointer focus:ring-1 focus:ring-blue-400 bg-white mt-0.5  dark:border-slate-700 dark:bg-slate-900${generalBadgeColor}`}
                 value={generalStatus || ''}
                 onChange={async (e) => {
                   if (!pupil.id) return;
@@ -432,9 +432,9 @@ const PupilRowWithDetails = ({
             {/* Attendance Status */}
             {pupil.attendanceRecord ? (
               <div>
-                <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wide">Attendance</span>
+                <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wide dark:text-slate-400">Attendance</span>
                 <select
-                  className={`w-full text-[10px] font-semibold rounded-md border border-gray-200 py-0.5 pl-1.5 pr-4 cursor-pointer focus:ring-1 focus:ring-blue-400 bg-white mt-0.5 ${attendanceBadgeColor}`}
+                  className={`w-full text-[10px] font-semibold rounded-md border border-gray-200 py-0.5 pl-1.5 pr-4 cursor-pointer focus:ring-1 focus:ring-blue-400 bg-white mt-0.5  dark:border-slate-700 dark:bg-slate-900${attendanceBadgeColor}`}
                   value={attendanceStatus}
                   onChange={async (e) => {
                     const record = pupil.attendanceRecord;
@@ -462,7 +462,7 @@ const PupilRowWithDetails = ({
 
           {/* Row 2: View Attendance pills + Details button — all in one row */}
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wide mr-0.5">View:</span>
+            <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wide mr-0.5 dark:text-slate-400">View:</span>
             {(['week', 'month', 'term'] as const).map((period) => (
               <button
                 key={period}
@@ -474,14 +474,14 @@ const PupilRowWithDetails = ({
                   else from.setMonth(today.getMonth() - 3);
                   router.push(`/pupil-detail?id=${pupil.id}&tab=attendance&from=${format(from, 'yyyy-MM-dd')}&to=${format(today, 'yyyy-MM-dd')}`);
                 }}
-                className="capitalize text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors"
+                className="capitalize text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/40 dark:border-blue-800/60"
               >
                 {period}
               </button>
             ))}
             <button
               onClick={() => router.push(`/pupil-detail?id=${pupil.id}`)}
-              className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200 transition-colors flex items-center gap-1"
+              className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200 transition-colors flex items-center gap-1 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:border-slate-700"
             >
               <UserCheck className="w-2.5 h-2.5" />
               Details
@@ -490,8 +490,8 @@ const PupilRowWithDetails = ({
 
           {/* Guardian Info — compact grid */}
           {showInfo && (
-            <div className="pt-1.5 border-t border-gray-200">
-              <span className="text-[9px] font-bold uppercase text-blue-600 tracking-wide flex items-center gap-1 mb-1">
+            <div className="pt-1.5 border-t border-gray-200 dark:border-slate-700">
+              <span className="text-[9px] font-bold uppercase text-blue-600 tracking-wide flex items-center gap-1 mb-1 dark:text-blue-400">
                 <Info className="w-2.5 h-2.5" /> Guardians
               </span>
               {pupil.guardians && pupil.guardians.length > 0 ? (
@@ -501,46 +501,46 @@ const PupilRowWithDetails = ({
                     const phones = [guardian.phone, guardian.secondaryPhone, ...(guardian.additionalPhones || [])].filter(Boolean);
                     return (
                       <div key={idx} className="flex items-center gap-1 flex-wrap">
-                        <span className="text-[10px] font-medium text-gray-600 mr-1 shrink-0">{guardianName}{guardian.relationship ? ` (${guardian.relationship})` : ''}:</span>
+                        <span className="text-[10px] font-medium text-gray-600 mr-1 shrink-0 dark:text-slate-300">{guardianName}{guardian.relationship ? ` (${guardian.relationship})` : ''}:</span>
                         {phones.length > 0 ? phones.map((phone, pIdx) => (
                           <a
                             key={pIdx}
                             href={`tel:${phone}`}
-                            className="px-1.5 py-0.5 bg-green-100 hover:bg-green-200 text-green-700 rounded font-mono text-[10px] transition-colors inline-flex items-center gap-0.5"
+                            className="px-1.5 py-0.5 bg-green-100 hover:bg-green-200 text-green-700 rounded font-mono text-[10px] transition-colors inline-flex items-center gap-0.5 dark:bg-green-950/40 dark:hover:bg-green-900/40 dark:text-green-300"
                             onClick={(e) => e.stopPropagation()}
                           >
                             📞 {phone}
                           </a>
-                        )) : <span className="text-[10px] text-gray-400">No contact</span>}
+                        )) : <span className="text-[10px] text-gray-400 dark:text-slate-400">No contact</span>}
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <p className="text-[10px] text-gray-400 italic">No guardian info</p>
+                <p className="text-[10px] text-gray-400 italic dark:text-slate-400">No guardian info</p>
               )}
             </div>
           )}
 
           {/* Attendance History — single compact row */}
           {showHistory && (
-            <div className="pt-1.5 border-t border-gray-200 flex items-center justify-between">
-              <span className="text-[9px] font-bold uppercase text-amber-600 tracking-wide flex items-center gap-1">
+            <div className="pt-1.5 border-t border-gray-200 flex items-center justify-between dark:border-slate-700">
+              <span className="text-[9px] font-bold uppercase text-amber-600 tracking-wide flex items-center gap-1 dark:text-amber-400">
                 <Clock className="w-2.5 h-2.5" /> {historyDuration}
               </span>
               {historyLoading ? (
                 <div className="flex items-center gap-2 text-[10px] animate-pulse">
-                  <span className="w-6 h-3 bg-green-200 rounded" />
-                  <span className="w-6 h-3 bg-red-200 rounded" />
-                  <span className="w-6 h-3 bg-amber-200 rounded" />
-                  <span className="w-10 h-4 bg-gray-200 rounded" />
+                  <span className="w-6 h-3 bg-green-200 rounded dark:bg-green-900/40" />
+                  <span className="w-6 h-3 bg-red-200 rounded dark:bg-red-900/40" />
+                  <span className="w-6 h-3 bg-amber-200 rounded dark:bg-amber-900/40" />
+                  <span className="w-10 h-4 bg-gray-200 rounded dark:bg-slate-800" />
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-[10px]">
-                  <span className="flex items-center gap-0.5 text-green-700 font-semibold"><CheckCircle className="w-2.5 h-2.5" />{stats.present}</span>
-                  <span className="flex items-center gap-0.5 text-red-700 font-semibold"><XCircle className="w-2.5 h-2.5" />{stats.absent}</span>
-                  <span className="flex items-center gap-0.5 text-amber-700 font-semibold"><Clock className="w-2.5 h-2.5" />{stats.late}</span>
-                  <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${stats.rate >= 90 ? 'bg-green-100 text-green-700' : stats.rate >= 75 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                  <span className="flex items-center gap-0.5 text-green-700 font-semibold dark:text-green-300"><CheckCircle className="w-2.5 h-2.5" />{stats.present}</span>
+                  <span className="flex items-center gap-0.5 text-red-700 font-semibold dark:text-red-300"><XCircle className="w-2.5 h-2.5" />{stats.absent}</span>
+                  <span className="flex items-center gap-0.5 text-amber-700 font-semibold dark:text-amber-300"><Clock className="w-2.5 h-2.5" />{stats.late}</span>
+                  <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${stats.rate >= 90 ? 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300' : stats.rate >= 75 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300' : 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300'}`}>
                     {stats.rate}%
                   </span>
                 </div>
@@ -661,9 +661,9 @@ const ExpandableStaffCard = ({
           transform: 'translateZ(0)',
         }}
       >
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl" />
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl dark:bg-slate-900/80" />
         {/* 3D Depth Effect - Top highlight */}
-        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl" />
+        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl dark:from-slate-900/40" />
         {/* 3D Depth Effect - Bottom shadow */}
         <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
@@ -672,9 +672,9 @@ const ExpandableStaffCard = ({
         {/* Expand/Collapse Icon - Positioned at bottom right */}
         <div className="absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5 z-10 pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity duration-300">
           {isExpanded ? (
-            <ChevronUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
+            <ChevronUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 dark:text-slate-400" />
           ) : (
-            <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
+            <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 dark:text-slate-400" />
           )}
         </div>
 
@@ -697,7 +697,7 @@ const ExpandableStaffCard = ({
                     transition={{ duration: 0.2 }}
                   >
                     <div className="flex items-baseline space-x-1">
-                      <span className="text-sm sm:text-xl md:text-2xl font-black text-gray-900 leading-none tracking-tight">
+                      <span className="text-sm sm:text-xl md:text-2xl font-black text-gray-900 leading-none tracking-tight dark:text-slate-100">
                         <CountUp end={value} />
                       </span>
                     </div>
@@ -746,7 +746,7 @@ const ExpandableStaffCard = ({
                 transform: 'translateZ(0)',
               }}>
                 {/* 3D Depth Effect */}
-                <div className="absolute top-0 left-0 right-0 h-1/4 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10" />
+                <div className="absolute top-0 left-0 right-0 h-1/4 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10 dark:from-slate-900/40" />
                 <CardHeader className="pb-3 border-b flex-shrink-0 relative z-20" style={{ background: color.gradient }}>
                   <div className="flex items-center justify-between mb-2">
                     <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
@@ -762,7 +762,7 @@ const ExpandableStaffCard = ({
                         setSearchQuery('');
                         setExpandedDepartments(new Set());
                       }}
-                      className="h-7 w-7 p-0 hover:bg-white/50"
+                      className="h-7 w-7 p-0 hover:bg-white/50 dark:hover:bg-slate-900/50"
                     >
                       <XCircle className="w-4 h-4" />
                     </Button>
@@ -774,7 +774,7 @@ const ExpandableStaffCard = ({
                       placeholder="Search staff by name, phone, department..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:border-slate-700"
                       onClick={(e) => e.stopPropagation()}
                     />
                     {searchQuery && (
@@ -783,7 +783,7 @@ const ExpandableStaffCard = ({
                           e.stopPropagation();
                           setSearchQuery('');
                         }}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-300"
                       >
                         <XCircle className="w-4 h-4" />
                       </button>
@@ -793,13 +793,13 @@ const ExpandableStaffCard = ({
                 <CardContent className="p-0 overflow-y-auto flex-1 min-h-0">
                   {Object.keys(groupedStaff).length === 0 ? (
                     <div className="p-8 text-center">
-                      <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-sm text-gray-500">
+                      <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3 dark:text-slate-400" />
+                      <p className="text-sm text-gray-500 dark:text-slate-400">
                         {searchQuery ? 'No staff found matching your search' : 'No staff data available'}
                       </p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-gray-200">
+                    <div className="divide-y divide-gray-200 dark:divide-slate-700">
                       {Object.entries(groupedStaff).map(([role, members]: [string, any]) => {
                         const isExpanded = expandedDepartments.has(role);
 
@@ -807,22 +807,22 @@ const ExpandableStaffCard = ({
                           <div key={role}>
                             {/* Role Header - Clickable */}
                             <div
-                              className="p-3 sm:p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                              className="p-3 sm:p-4 hover:bg-gray-50 cursor-pointer transition-colors dark:hover:bg-slate-900"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 toggleDepartment(role);
                               }}
                             >
                               <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                  <Users className="w-4 h-4 text-purple-600" />
+                                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 dark:text-slate-100">
+                                  <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                                   {role}
-                                  <span className="text-xs font-normal text-gray-500">({members.length} staff)</span>
+                                  <span className="text-xs font-normal text-gray-500 dark:text-slate-400">({members.length} staff)</span>
                                 </h3>
                                 {isExpanded ? (
-                                  <ChevronUp className="w-4 h-4 text-gray-500" />
+                                  <ChevronUp className="w-4 h-4 text-gray-500 dark:text-slate-400" />
                                 ) : (
-                                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                                  <ChevronDown className="w-4 h-4 text-gray-500 dark:text-slate-400" />
                                 )}
                               </div>
                             </div>
@@ -843,16 +843,16 @@ const ExpandableStaffCard = ({
                                 >
                                   <div className="px-3 sm:px-4 pb-3 sm:pb-4 space-y-1.5">
                                     {members.map((member: any) => (
-                                      <div key={member.id} className="bg-gray-50 rounded-lg p-3">
+                                      <div key={member.id} className="bg-gray-50 rounded-lg p-3 dark:bg-slate-900">
                                         <div className="flex items-start justify-between gap-2 mb-2">
                                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                                            <UserCheck className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                                            <UserCheck className="w-4 h-4 text-purple-500 flex-shrink-0 dark:text-purple-400" />
                                             <div className="min-w-0">
-                                              <p className="text-sm font-semibold text-gray-900 truncate">
+                                              <p className="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
                                                 {member.firstName} {member.lastName}
                                               </p>
                                               {member.departmentsList && (
-                                                <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                                                <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5 dark:text-slate-400">
                                                   <Building2 className="w-3 h-3" />
                                                   {member.departmentsList}
                                                 </p>
@@ -864,7 +864,7 @@ const ExpandableStaffCard = ({
                                           {member.contactNumber && (
                                             <a
                                               href={`tel:${member.contactNumber}`}
-                                              className="px-2.5 py-1.5 bg-green-100 hover:bg-green-200 text-green-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1.5"
+                                              className="px-2.5 py-1.5 bg-green-100 hover:bg-green-200 text-green-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1.5 dark:bg-green-950/40 dark:hover:bg-green-900/40 dark:text-green-300"
                                               onClick={(e) => e.stopPropagation()}
                                             >
                                               <Phone className="w-3.5 h-3.5" />
@@ -874,7 +874,7 @@ const ExpandableStaffCard = ({
                                           {member.alternativePhone && (
                                             <a
                                               href={`tel:${member.alternativePhone}`}
-                                              className="px-2.5 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1.5"
+                                              className="px-2.5 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1.5 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 dark:text-blue-300"
                                               onClick={(e) => e.stopPropagation()}
                                               title="Alternative phone"
                                             >
@@ -1058,9 +1058,9 @@ const ExpandableAttendanceCard = ({
           transform: 'translateZ(0)',
         }}
       >
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl" />
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl dark:bg-slate-900/80" />
         {/* 3D Depth Effect - Top highlight */}
-        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl" />
+        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl dark:from-slate-900/40" />
         {/* 3D Depth Effect - Bottom shadow */}
         <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
@@ -1069,9 +1069,9 @@ const ExpandableAttendanceCard = ({
         {/* Expand/Collapse Icon - Positioned at bottom right */}
         <div className="absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5 z-10 pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity duration-300">
           {isExpanded ? (
-            <ChevronUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
+            <ChevronUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 dark:text-slate-400" />
           ) : (
-            <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
+            <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 dark:text-slate-400" />
           )}
         </div>
 
@@ -1116,7 +1116,7 @@ const ExpandableAttendanceCard = ({
                         transition={{ duration: 0.25 }}
                         className="flex items-baseline space-x-1"
                       >
-                        <span className="text-sm sm:text-xl md:text-2xl font-black text-gray-900 leading-none tracking-tight">
+                        <span className="text-sm sm:text-xl md:text-2xl font-black text-gray-900 leading-none tracking-tight dark:text-slate-100">
                           <CountUp end={currentValue} />
                         </span>
                       </motion.div>
@@ -1166,7 +1166,7 @@ const ExpandableAttendanceCard = ({
                 transform: 'translateZ(0)',
               }}>
                 {/* 3D Depth Effect */}
-                <div className="absolute top-0 left-0 right-0 h-1/4 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10" />
+                <div className="absolute top-0 left-0 right-0 h-1/4 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10 dark:from-slate-900/40" />
                 <CardHeader className="pb-2 border-b flex-shrink-0 relative z-20" style={{ background: currentColor.gradient }}>
                   <div className="flex items-center justify-between mb-2">
                     <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
@@ -1185,7 +1185,7 @@ const ExpandableAttendanceCard = ({
                         setShowHistory(false);
                         setCurrentPopupFilter(null);
                       }}
-                      className="h-7 w-7 p-0 hover:bg-white/50"
+                      className="h-7 w-7 p-0 hover:bg-white/50 dark:hover:bg-slate-900/50"
                     >
                       <XCircle className="w-4 h-4" />
                     </Button>
@@ -1263,8 +1263,8 @@ const ExpandableAttendanceCard = ({
                 <CardContent className="p-0 overflow-y-auto flex-1 min-h-0">
                   {classBreakdown.length === 0 ? (
                     <div className="p-8 text-center">
-                      <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-sm text-gray-500">No attendance data available</p>
+                      <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3 dark:text-slate-400" />
+                      <p className="text-sm text-gray-500 dark:text-slate-400">No attendance data available</p>
                     </div>
                   ) : (
                     <div>
@@ -1278,7 +1278,7 @@ const ExpandableAttendanceCard = ({
                         return (
                           <div key={classData.classId} className="border-b last:border-b-0">
                             <div
-                              className="flex items-center justify-between p-3 sm:p-4 hover:bg-gray-50 cursor-pointer"
+                              className="flex items-center justify-between p-3 sm:p-4 hover:bg-gray-50 cursor-pointer dark:hover:bg-slate-900"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (isClassExpanded) {
@@ -1289,10 +1289,10 @@ const ExpandableAttendanceCard = ({
                               }}
                             >
                               <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                                <span className="text-sm sm:text-base font-bold text-gray-900 min-w-[50px] sm:min-w-[70px]">
+                                <span className="text-sm sm:text-base font-bold text-gray-900 min-w-[50px] sm:min-w-[70px] dark:text-slate-100">
                                   {classData.className}
                                 </span>
-                                <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden dark:bg-slate-800">
                                   <div
                                     className={`h-full rounded-full ${currentColor.bg.startsWith('rgba') && currentColor.bg.indexOf('34, 197, 94') !== -1 ? 'bg-green-500' :
                                       currentColor.bg.indexOf('239, 68, 68') !== -1 ? 'bg-red-500' :
@@ -1303,23 +1303,23 @@ const ExpandableAttendanceCard = ({
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
-                                <span className="text-sm sm:text-base font-bold text-gray-900">
+                                <span className="text-sm sm:text-base font-bold text-gray-900 dark:text-slate-100">
                                   {displayValue}/{classData.total}
                                 </span>
                                 {isClassExpanded ? (
-                                  <ChevronUp className="w-4 h-4 text-gray-500" />
+                                  <ChevronUp className="w-4 h-4 text-gray-500 dark:text-slate-400" />
                                 ) : (
-                                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                                  <ChevronDown className="w-4 h-4 text-gray-500 dark:text-slate-400" />
                                 )}
                               </div>
                             </div>
 
                             {/* Pupil List with Info and History Inline */}
                             {isClassExpanded && (
-                              <div className="bg-gray-50 border-t">
+                              <div className="bg-gray-50 border-t dark:bg-slate-900">
                                 <div className="px-3 sm:px-4 pb-3">
                                   {classData.pupils.length === 0 ? (
-                                    <p className="text-xs sm:text-sm text-gray-500 italic py-3">No pupils {actualFilterType}</p>
+                                    <p className="text-xs sm:text-sm text-gray-500 italic py-3 dark:text-slate-400">No pupils {actualFilterType}</p>
                                   ) : (
                                     <div className="space-y-2 pt-2">
                                       {classData.pupils.map((pupil: any) => (
@@ -1453,13 +1453,13 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card className="h-full rounded-xl transition-all duration-300 relative group overflow-visible" style={{
+      <Card className="theme-dashboard-surface h-full rounded-xl transition-all duration-300 relative group overflow-visible" style={{
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
         transform: 'translateZ(0)',
         background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(249, 250, 251, 1) 100%)',
       }}>
         {/* 3D Depth Effect - Top highlight */}
-        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10" />
+        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10 dark:from-slate-900/40" />
         {/* 3D Depth Effect - Bottom shadow */}
         <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
@@ -1477,7 +1477,7 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
               variant="ghost"
               size="sm"
               onClick={() => router.push('/classes')}
-              className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+              className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:text-indigo-300 dark:hover:bg-indigo-950/40"
             >
               View All
               <ChevronRight className="w-4 h-4 ml-1" />
@@ -1531,37 +1531,37 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
                         <motion.div
                           initial={{ scale: 0.9, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
-                          className="bg-white/95 backdrop-blur-md rounded-xl p-4 border border-gray-200 relative"
+                          className="bg-white/95 backdrop-blur-md rounded-xl p-4 border border-gray-200 relative dark:bg-slate-900/95 dark:border-slate-700"
                           style={{
                             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
                             transform: 'translateZ(0)',
                           }}
                         >
                           {/* Glassmorphic top gradient */}
-                          <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/60 to-transparent pointer-events-none rounded-t-xl" />
+                          <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/60 to-transparent pointer-events-none rounded-t-xl dark:from-slate-900/60" />
 
-                          <p className="font-bold text-gray-800 mb-3 relative z-10 text-base">
+                          <p className="font-bold text-gray-800 mb-3 relative z-10 text-base dark:text-slate-100">
                             Class {label}
                           </p>
                           <div className="space-y-2 relative z-10">
                             <div className="flex items-center justify-between gap-4">
-                              <span className="text-sm font-medium text-violet-600 flex items-center gap-2">
+                              <span className="text-sm font-medium text-violet-600 flex items-center gap-2 dark:text-violet-400">
                                 <div className="w-3 h-3 rounded-full bg-gradient-to-br from-violet-400 to-purple-600" />
                                 Boys
                               </span>
-                              <span className="font-bold text-violet-700 text-base">{male}</span>
+                              <span className="font-bold text-violet-700 text-base dark:text-violet-300">{male}</span>
                             </div>
                             <div className="flex items-center justify-between gap-4">
-                              <span className="text-sm font-medium text-pink-600 flex items-center gap-2">
+                              <span className="text-sm font-medium text-pink-600 flex items-center gap-2 dark:text-pink-400">
                                 <div className="w-3 h-3 rounded-full bg-gradient-to-br from-pink-400 to-pink-600" />
                                 Girls
                               </span>
-                              <span className="font-bold text-pink-700 text-base">{female}</span>
+                              <span className="font-bold text-pink-700 text-base dark:text-pink-300">{female}</span>
                             </div>
                             <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent my-2"></div>
                             <div className="flex items-center justify-between gap-4">
-                              <span className="text-sm font-semibold text-gray-700">Total</span>
-                              <span className="font-bold text-gray-900 text-lg">{total}</span>
+                              <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">Total</span>
+                              <span className="font-bold text-gray-900 text-lg dark:text-slate-100">{total}</span>
                             </div>
                           </div>
                         </motion.div>
@@ -1832,7 +1832,7 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
         background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(239, 246, 255, 0.5) 100%)',
       }}>
         {/* 3D Depth Effect - Top highlight */}
-        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10" />
+        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10 dark:from-slate-900/40" />
         {/* 3D Depth Effect - Bottom shadow */}
         <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
@@ -1850,11 +1850,11 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
             </div>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 self-start">
               {isRecessMode && (
-                <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 border-amber-200">
+                <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60">
                   🎓 Recess
                 </Badge>
               )}
-              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-blue-50 border-blue-200 text-blue-700">
+              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/40 dark:border-blue-800/60 dark:text-blue-300">
                 {overallStats.recorded}/{overallStats.total}
               </Badge>
               <Button
@@ -1864,7 +1864,7 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
                   e.stopPropagation();
                   router.push('/attendance/view');
                 }}
-                className="text-blue-600 hover:text-blue-700 p-1 h-auto hover:bg-blue-50"
+                className="text-blue-600 hover:text-blue-700 p-1 h-auto hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/40"
               >
                 <ChevronRight className="w-4 h-4" />
               </Button>
@@ -1874,7 +1874,7 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
         <CardContent className="px-2 pb-2 pt-0 relative z-20">
           {attendanceLoading ? (
             <div className="h-[180px] flex items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+              <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
             </div>
           ) : !isToday && getNonSchoolDayMessage ? (
             <div className="h-[180px] flex flex-col items-center justify-center text-center px-4">
@@ -1882,18 +1882,18 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
                 // Compact recess message
                 <>
                   <div className="text-3xl mb-2">🎓</div>
-                  <h3 className="text-base font-semibold text-gray-900 mb-1">
+                  <h3 className="text-base font-semibold text-gray-900 mb-1 dark:text-slate-100">
                     Learners on Recess
                   </h3>
-                  <p className="text-xs text-gray-600 mb-2">
+                  <p className="text-xs text-gray-600 mb-2 dark:text-slate-300">
                     Attendance not being taken - learners enjoying their break
                   </p>
-                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-md p-2 mb-2">
-                    <div className="text-xs text-amber-700 font-medium">
+                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-md p-2 mb-2 dark:from-amber-950/40 dark:to-orange-950/40 dark:border-amber-800/60">
+                    <div className="text-xs text-amber-700 font-medium dark:text-amber-300">
                       Showing {effectiveTerm.term?.name || 'previous term'} data
                     </div>
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-500 dark:text-slate-400">
                     {format(currentDate, 'MMM d, yyyy')}
                   </div>
                 </>
@@ -1901,20 +1901,20 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
                 // Regular non-school day message
                 <>
                   <div className="text-4xl mb-3">{getNonSchoolDayMessage.icon}</div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2 dark:text-slate-100">
                     {getNonSchoolDayMessage.title}
                   </h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
+                  <p className="text-sm text-gray-600 leading-relaxed dark:text-slate-300">
                     {getNonSchoolDayMessage.message}
                   </p>
-                  <div className="mt-4 text-xs text-gray-500">
+                  <div className="mt-4 text-xs text-gray-500 dark:text-slate-400">
                     {format(currentDate, 'EEEE, MMMM d, yyyy')}
                   </div>
                 </>
               )}
             </div>
           ) : chartData.length === 0 ? (
-            <div className="h-[180px] flex flex-col items-center justify-center text-gray-500">
+            <div className="h-[180px] flex flex-col items-center justify-center text-gray-500 dark:text-slate-400">
               <AlertCircle className="w-8 h-8 mb-2" />
               <p className="text-sm">No attendance data available</p>
             </div>
@@ -1948,53 +1948,53 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
                         const isUnrecorded = data.notRecorded === data.totalPupils;
                         return (
                           <div
-                            className="bg-white rounded-lg border border-blue-100 p-2.5 text-xs shadow-xl"
+                            className="bg-white rounded-lg border border-blue-100 p-2.5 text-xs shadow-xl dark:bg-slate-900 dark:border-blue-800/60"
                             style={{ minWidth: 140, zIndex: 9999 }}
                           >
-                            <p className="font-bold text-gray-800 mb-1.5 leading-tight">{data.name}</p>
+                            <p className="font-bold text-gray-800 mb-1.5 leading-tight dark:text-slate-100">{data.name}</p>
                             <div className="space-y-0.5">
                               {data.present > 0 && (
                                 <div className="flex justify-between gap-3">
-                                  <span className="text-gray-500 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />Present</span>
-                                  <span className="font-semibold text-green-700">{data.present}</span>
+                                  <span className="text-gray-500 flex items-center gap-1 dark:text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />Present</span>
+                                  <span className="font-semibold text-green-700 dark:text-green-300">{data.present}</span>
                                 </div>
                               )}
                               {data.late > 0 && (
                                 <div className="flex justify-between gap-3">
-                                  <span className="text-gray-500 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-yellow-500 inline-block" />Late</span>
-                                  <span className="font-semibold text-yellow-700">{data.late}</span>
+                                  <span className="text-gray-500 flex items-center gap-1 dark:text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-yellow-500 inline-block" />Late</span>
+                                  <span className="font-semibold text-yellow-700 dark:text-yellow-300">{data.late}</span>
                                 </div>
                               )}
                               {data.absent > 0 && (
                                 <div className="flex justify-between gap-3">
-                                  <span className="text-gray-500 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />Absent</span>
-                                  <span className="font-semibold text-red-700">{data.absent}</span>
+                                  <span className="text-gray-500 flex items-center gap-1 dark:text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />Absent</span>
+                                  <span className="font-semibold text-red-700 dark:text-red-300">{data.absent}</span>
                                 </div>
                               )}
                               {data.excused > 0 && (
                                 <div className="flex justify-between gap-3">
-                                  <span className="text-gray-500 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />Excused</span>
-                                  <span className="font-semibold text-blue-700">{data.excused}</span>
+                                  <span className="text-gray-500 flex items-center gap-1 dark:text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />Excused</span>
+                                  <span className="font-semibold text-blue-700 dark:text-blue-300">{data.excused}</span>
                                 </div>
                               )}
                               {data.delayed > 0 && (
                                 <div className="flex justify-between gap-3">
-                                  <span className="text-gray-500 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-purple-500 inline-block" />Delayed</span>
-                                  <span className="font-semibold text-purple-700">{data.delayed}</span>
+                                  <span className="text-gray-500 flex items-center gap-1 dark:text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-purple-500 inline-block" />Delayed</span>
+                                  <span className="font-semibold text-purple-700 dark:text-purple-300">{data.delayed}</span>
                                 </div>
                               )}
                               {data.notRecorded > 0 && (
                                 <div className="flex justify-between gap-3">
-                                  <span className="text-gray-500 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block" />Not recorded</span>
-                                  <span className="font-semibold text-gray-600">{data.notRecorded}</span>
+                                  <span className="text-gray-500 flex items-center gap-1 dark:text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block" />Not recorded</span>
+                                  <span className="font-semibold text-gray-600 dark:text-slate-300">{data.notRecorded}</span>
                                 </div>
                               )}
                             </div>
-                            <div className="mt-1.5 pt-1.5 border-t border-gray-100 flex items-center justify-between gap-2">
+                            <div className="mt-1.5 pt-1.5 border-t border-gray-100 flex items-center justify-between gap-2 dark:border-slate-700">
                               {!isUnrecorded && (
-                                <span className="font-bold text-blue-600">{data.attendanceRate}%</span>
+                                <span className="font-bold text-blue-600 dark:text-blue-400">{data.attendanceRate}%</span>
                               )}
-                              <span className="text-gray-400 text-[10px] ml-auto">
+                              <span className="text-gray-400 text-[10px] ml-auto dark:text-slate-400">
                                 {isUnrecorded ? '📋 Tap to record' : '👆 Tap to view'}
                               </span>
                             </div>
@@ -2081,17 +2081,17 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
 
   if (!activePhotos.length) {
     return (
-      <Card className="h-full border-0 rounded-xl bg-gradient-to-br from-slate-50 via-white to-blue-50 relative overflow-visible group" style={{
+      <Card className="h-full border-0 rounded-xl bg-gradient-to-br from-slate-50 via-white to-blue-50 relative overflow-visible group dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/40" style={{
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
         transform: 'translateZ(0)',
       }}>
         {/* 3D Depth Effect */}
-        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/60 to-transparent pointer-events-none rounded-t-xl z-10" />
+        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/60 to-transparent pointer-events-none rounded-t-xl z-10 dark:from-slate-900/60" />
         {/* 3D Depth Effect - Bottom shadow */}
         <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
         {/* Decorative accent */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 rounded-t-xl opacity-50" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 rounded-t-xl opacity-50 dark:from-slate-800 dark:to-slate-800" />
 
         <CardContent className="flex flex-col items-center justify-center h-64 relative z-20 overflow-hidden rounded-xl">
           <div className="absolute inset-0 opacity-[0.03]" style={{
@@ -2100,16 +2100,16 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
           }} />
 
           <motion.div
-            className="w-20 h-20 mb-4 bg-white rounded-2xl flex items-center justify-center shadow-xl border border-gray-100 relative group"
+            className="w-20 h-20 mb-4 bg-white rounded-2xl flex items-center justify-center shadow-xl border border-gray-100 relative group dark:bg-slate-900 dark:border-slate-700"
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl opacity-50 group-hover:opacity-100 transition-opacity duration-500 dark:from-blue-950/40 dark:to-indigo-950/40" />
             <ImageIcon className="w-10 h-10 text-gray-300 relative z-10" />
           </motion.div>
-          <h3 className="text-gray-900 font-semibold mb-1 relative z-10">No Moments Yet</h3>
-          <p className="text-sm text-gray-500 relative z-10">Capture and upload school memories</p>
+          <h3 className="text-gray-900 font-semibold mb-1 relative z-10 dark:text-slate-100">No Moments Yet</h3>
+          <p className="text-sm text-gray-500 relative z-10 dark:text-slate-400">Capture and upload school memories</p>
         </CardContent>
       </Card>
     );
@@ -2139,7 +2139,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
       transform: 'translateZ(0)',
     }}>
       {/* 3D Depth Highlight */}
-      <div className="absolute top-0 left-0 right-0 h-1/4 bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-xl z-20" />
+      <div className="absolute top-0 left-0 right-0 h-1/4 bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-xl z-20 dark:from-slate-900/20" />
       {/* 3D Depth Effect - Bottom shadow */}
       <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
@@ -2225,7 +2225,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
               variant="ghost"
               size="icon"
               onClick={() => paginate(-1)}
-              className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10 pointer-events-auto transition-transform hover:scale-110"
+              className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10 pointer-events-auto transition-transform hover:scale-110 dark:border-slate-700/10"
             >
               <ChevronLeft className="w-6 h-6" />
             </Button>
@@ -2233,7 +2233,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
               variant="ghost"
               size="icon"
               onClick={() => paginate(1)}
-              className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10 pointer-events-auto transition-transform hover:scale-110"
+              className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10 pointer-events-auto transition-transform hover:scale-110 dark:border-slate-700/10"
             >
               <ChevronRight className="w-6 h-6" />
             </Button>
@@ -2249,8 +2249,8 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
                   setCurrentSlide(index);
                 }}
                 className={`transition-all duration-300 rounded-full shadow-sm ${index === currentSlide
-                  ? 'w-6 h-1.5 bg-white'
-                  : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/60'
+                  ? 'w-6 h-1.5 bg-white dark:bg-slate-900'
+                  : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/60 dark:bg-slate-900/40 dark:hover:bg-slate-900/60'
                   }`}
               />
             ))}
@@ -2262,7 +2262,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
               size="icon"
               variant="ghost"
               onClick={() => setIsPlaying(!isPlaying)}
-              className="w-8 h-8 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10 transition-colors"
+              className="w-8 h-8 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10 transition-colors dark:border-slate-700/10"
             >
               {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
             </Button>
@@ -2322,13 +2322,13 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
           />
         )}
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-indigo-700 sm:text-base">
+          <p className="text-sm font-semibold text-indigo-700 sm:text-base dark:text-indigo-300">
             {timeGreeting}, {displayName}
           </p>
-          <h1 className="truncate text-base font-bold tracking-tight text-gray-900 sm:text-lg md:text-xl">
+          <h1 className="truncate text-base font-bold tracking-tight text-gray-900 sm:text-lg md:text-xl dark:text-slate-100">
             {schoolSettings?.generalInfo?.name || 'TRINITY FAMILY NURSERY AND PRIMARY SCHOOL'}
           </h1>
-          <p className="truncate text-[11px] font-medium uppercase tracking-wide text-gray-500 sm:text-xs">
+          <p className="truncate text-[11px] font-medium uppercase tracking-wide text-gray-500 sm:text-xs dark:text-slate-400">
             {schoolSettings?.generalInfo?.motto || 'GUIDING GROWTH, INSPIRING GREATNESS'}
           </p>
         </div>
@@ -2408,37 +2408,37 @@ export default function DashboardPage() {
   const cardColors = {
     pupils: {
       bg: 'rgba(59, 130, 246, 0.1)',
-      text: 'text-blue-600',
+      text: 'text-blue-600 dark:text-blue-400',
       accent: '#3B82F6',
       gradient: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 197, 253, 0.1) 100%)'
     },
     male: {
       bg: 'rgba(124, 58, 237, 0.1)',
-      text: 'text-violet-600',
+      text: 'text-violet-600 dark:text-violet-400',
       accent: '#7C3AED',
       gradient: 'linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(196, 181, 253, 0.1) 100%)'
     },
     female: {
       bg: 'rgba(236, 72, 153, 0.1)',
-      text: 'text-pink-600',
+      text: 'text-pink-600 dark:text-pink-400',
       accent: '#EC4899',
       gradient: 'linear-gradient(135deg, rgba(236, 72, 153, 0.05) 0%, rgba(249, 168, 212, 0.1) 100%)'
     },
     staff: {
       bg: 'rgba(168, 85, 247, 0.1)',
-      text: 'text-purple-600',
+      text: 'text-purple-600 dark:text-purple-400',
       accent: '#A855F7',
       gradient: 'linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, rgba(216, 180, 254, 0.1) 100%)'
     },
     classes: {
       bg: 'rgba(34, 197, 94, 0.1)',
-      text: 'text-green-600',
+      text: 'text-green-600 dark:text-green-400',
       accent: '#22C55E',
       gradient: 'linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, rgba(134, 239, 172, 0.1) 100%)'
     },
     subjects: {
       bg: 'rgba(251, 146, 60, 0.1)',
-      text: 'text-orange-600',
+      text: 'text-orange-600 dark:text-orange-400',
       accent: '#FB923C',
       gradient: 'linear-gradient(135deg, rgba(251, 146, 60, 0.05) 0%, rgba(254, 215, 170, 0.1) 100%)'
     }
@@ -2463,21 +2463,21 @@ export default function DashboardPage() {
 
         {/* Error Indicator */}
         {hasError && !isLoading && (
-          <Card className="mb-6 border-red-200 bg-red-50 rounded-xl" style={{
+          <Card className="mb-6 border-red-200 bg-red-50 rounded-xl dark:border-red-800/60 dark:bg-red-950/40" style={{
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
             transform: 'translateZ(0)',
           }}>
             {/* 3D Depth Effect */}
-            <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/30 to-transparent pointer-events-none rounded-t-xl" />
+            <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/30 to-transparent pointer-events-none rounded-t-xl dark:from-slate-900/30" />
             <CardContent className="py-4 relative z-10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
+                  <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
                   <div>
-                    <p className="text-sm font-medium text-red-900">
+                    <p className="text-sm font-medium text-red-900 dark:text-red-200">
                       Error loading dashboard data
                     </p>
-                    <p className="text-xs text-red-600 mt-1">
+                    <p className="text-xs text-red-600 mt-1 dark:text-red-400">
                       Please try refreshing the page
                     </p>
                   </div>
@@ -2486,7 +2486,7 @@ export default function DashboardPage() {
                   variant="outline"
                   size="sm"
                   onClick={refetchAll}
-                  className="border-red-300 text-red-700 hover:bg-red-100"
+                  className="border-red-300 text-red-700 hover:bg-red-100 dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Retry
@@ -2512,8 +2512,8 @@ export default function DashboardPage() {
               onClick={() => handleCardClick('/pupils?classId=all&status=Active')}
               subtitle="Active students"
               segments={stats.totalPupils ? [
-                { percentage: (stats.malePupils / stats.totalPupils) * 100, color: 'text-blue-500' },
-                { percentage: (stats.femalePupils / stats.totalPupils) * 100, color: 'text-pink-500' }
+                { percentage: (stats.malePupils / stats.totalPupils) * 100, color: 'text-blue-500 dark:text-blue-400' },
+                { percentage: (stats.femalePupils / stats.totalPupils) * 100, color: 'text-pink-500 dark:text-pink-400' }
               ] : [{ percentage: 100, color: cardColors.pupils.text }]}
               isLoading={pupilsLoading}
             />
@@ -2550,8 +2550,8 @@ export default function DashboardPage() {
               color={cardColors.staff}
               subtitle="Total staff"
               segments={staff && staff.length > 0 ? [
-                { percentage: (staff.filter(s => s.gender === 'Male').length / staff.length) * 100, color: 'text-blue-500' },
-                { percentage: (staff.filter(s => s.gender === 'Female').length / staff.length) * 100, color: 'text-pink-500' }
+                { percentage: (staff.filter(s => s.gender === 'Male').length / staff.length) * 100, color: 'text-blue-500 dark:text-blue-400' },
+                { percentage: (staff.filter(s => s.gender === 'Female').length / staff.length) * 100, color: 'text-pink-500 dark:text-pink-400' }
               ] : [{ percentage: 100, color: cardColors.staff.text }]}
               isLoading={staffLoading}
               staff={staff}
@@ -2577,7 +2577,7 @@ export default function DashboardPage() {
                 icon={UserX}
                 color={{
                   bg: 'rgba(239, 68, 68, 0.1)',
-                  text: 'text-red-600',
+                  text: 'text-red-600 dark:text-red-400',
                   accent: '#EF4444',
                   gradient: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(252, 165, 165, 0.1) 100%)'
                 }}
@@ -2594,14 +2594,14 @@ export default function DashboardPage() {
                     icon: UserX,
                     color: {
                       bg: 'rgba(239, 68, 68, 0.1)',
-                      text: 'text-red-600',
+                      text: 'text-red-600 dark:text-red-400',
                       accent: '#EF4444',
                       gradient: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(252, 165, 165, 0.1) 100%)'
                     },
                     subtitle: "Not present",
                     filterType: "absent",
                     progress: stats.presentToday + stats.absentToday ? Math.round((stats.absentToday / (stats.presentToday + stats.absentToday)) * 100) : 0,
-                    segments: [{ percentage: stats.presentToday + stats.absentToday ? Math.round((stats.absentToday / (stats.presentToday + stats.absentToday)) * 100) : 0, color: 'text-red-500' }]
+                    segments: [{ percentage: stats.presentToday + stats.absentToday ? Math.round((stats.absentToday / (stats.presentToday + stats.absentToday)) * 100) : 0, color: 'text-red-500 dark:text-red-400' }]
                   },
                   {
                     title: "Delayed Today",
@@ -2609,14 +2609,14 @@ export default function DashboardPage() {
                     icon: Clock,
                     color: {
                       bg: 'rgba(245, 158, 11, 0.1)',
-                      text: 'text-amber-600',
+                      text: 'text-amber-600 dark:text-amber-400',
                       accent: '#F59E0B',
                       gradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(253, 230, 138, 0.1) 100%)'
                     },
                     subtitle: "Not yet returned",
                     filterType: "delayed",
                     progress: stats.attendanceTotal ? Math.round((stats.delayedToday / stats.attendanceTotal) * 100) : 0,
-                    segments: [{ percentage: stats.attendanceTotal ? Math.round((stats.delayedToday / stats.attendanceTotal) * 100) : 0, color: 'text-amber-500' }]
+                    segments: [{ percentage: stats.attendanceTotal ? Math.round((stats.delayedToday / stats.attendanceTotal) * 100) : 0, color: 'text-amber-500 dark:text-amber-400' }]
                   }
                 ]}
               />

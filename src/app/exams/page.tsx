@@ -170,28 +170,28 @@ const getExamStatus = (startDate: string | undefined | null, endDate: string | u
   const end = safeParseDateString(endDate);
   const now = new Date();
 
-  if (!start || !end) return { status: 'scheduled', text: 'Scheduled', icon: Calendar, color: 'text-gray-600' };
+  if (!start || !end) return { status: 'scheduled', text: 'Scheduled', icon: Calendar, color: 'text-gray-600 dark:text-slate-300' };
 
   if (now < start) {
     const daysUntil = Math.ceil((start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysUntil === 0) return { status: 'today', text: 'Starts Today', icon: PlayCircle, color: 'text-orange-600' };
-    if (daysUntil === 1) return { status: 'tomorrow', text: 'Starts Tomorrow', icon: Clock, color: 'text-blue-600' };
-    return { status: 'upcoming', text: `Starts in ${daysUntil} days`, icon: Clock, color: 'text-blue-600' };
+    if (daysUntil === 0) return { status: 'today', text: 'Starts Today', icon: PlayCircle, color: 'text-orange-600 dark:text-orange-400' };
+    if (daysUntil === 1) return { status: 'tomorrow', text: 'Starts Tomorrow', icon: Clock, color: 'text-blue-600 dark:text-blue-400' };
+    return { status: 'upcoming', text: `Starts in ${daysUntil} days`, icon: Clock, color: 'text-blue-600 dark:text-blue-400' };
   }
 
   if (now > end) {
     const daysAgo = Math.ceil((now.getTime() - end.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysAgo === 0) return { status: 'ended_today', text: 'Ended Today', icon: CheckCircle, color: 'text-green-600' };
-    if (daysAgo === 1) return { status: 'ended_yesterday', text: 'Ended Yesterday', icon: CheckCircle, color: 'text-green-600' };
-    return { status: 'ended', text: 'Ended', icon: CheckCircle, color: 'text-green-600' };
+    if (daysAgo === 0) return { status: 'ended_today', text: 'Ended Today', icon: CheckCircle, color: 'text-green-600 dark:text-green-400' };
+    if (daysAgo === 1) return { status: 'ended_yesterday', text: 'Ended Yesterday', icon: CheckCircle, color: 'text-green-600 dark:text-green-400' };
+    return { status: 'ended', text: 'Ended', icon: CheckCircle, color: 'text-green-600 dark:text-green-400' };
   }
 
   // Ongoing
   const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   const currentDay = Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-  if (totalDays === 1) return { status: 'ongoing_single', text: 'Ongoing Today', icon: PlayCircle, color: 'text-orange-600' };
-  return { status: 'ongoing', text: `Ongoing: Day ${currentDay}/${totalDays}`, icon: PlayCircle, color: 'text-orange-600' };
+  if (totalDays === 1) return { status: 'ongoing_single', text: 'Ongoing Today', icon: PlayCircle, color: 'text-orange-600 dark:text-orange-400' };
+  return { status: 'ongoing', text: `Ongoing: Day ${currentDay}/${totalDays}`, icon: PlayCircle, color: 'text-orange-600 dark:text-orange-400' };
 };
 
 export default function ExamsPage() {
@@ -1693,19 +1693,19 @@ export default function ExamsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+            <Loader2 className="h-12 w-12 animate-spin text-blue-600 dark:text-blue-400" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold text-gray-800">Loading Exam Management</h2>
-            <p className="text-sm text-gray-600">Fetching exam data and preparing interface...</p>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-slate-100">Loading Exam Management</h2>
+            <p className="text-sm text-gray-600 dark:text-slate-300">Fetching exam data and preparing interface...</p>
             {coreDataLoading && (
-              <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+              <div className="flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-slate-400">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                 <span>Loading core data...</span>
               </div>
             )}
             {!mounted && (
-              <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+              <div className="flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-slate-400">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span>Initializing application...</span>
               </div>
@@ -1722,13 +1722,13 @@ export default function ExamsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4 max-w-md mx-auto p-6">
           <div className="flex items-center justify-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-              <X className="h-8 w-8 text-red-600" />
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center dark:bg-red-950/40">
+              <X className="h-8 w-8 text-red-600 dark:text-red-400" />
             </div>
           </div>
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold text-gray-800">Unable to Load Exams</h2>
-            <p className="text-sm text-gray-600">There was an error fetching exam data. Please check your connection and try again.</p>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-slate-100">Unable to Load Exams</h2>
+            <p className="text-sm text-gray-600 dark:text-slate-300">There was an error fetching exam data. Please check your connection and try again.</p>
             <Button
               onClick={() => window.location.reload()}
               className="mt-4 bg-red-600 hover:bg-red-700 text-white"
@@ -1814,11 +1814,11 @@ export default function ExamsPage() {
 
         {/* Offline Indicator */}
         {isOffline && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center gap-3">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center gap-3 dark:bg-amber-950/40 dark:border-amber-800/60">
             <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
             <div>
-              <p className="text-sm font-medium text-amber-800">Working Offline</p>
-              <p className="text-xs text-amber-700">You're viewing cached data. Some features may be limited.</p>
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Working Offline</p>
+              <p className="text-xs text-amber-700 dark:text-amber-300">You're viewing cached data. Some features may be limited.</p>
             </div>
           </div>
         )}
@@ -1833,11 +1833,11 @@ export default function ExamsPage() {
       >
         <ModernDialogContent size="md">
           <ModernDialogHeader>
-            <ModernDialogTitle className="flex items-center gap-2 text-indigo-900">
-              <Filter size={20} className="text-indigo-600 animate-[pulse_2s_infinite]" />
+            <ModernDialogTitle className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200">
+              <Filter size={20} className="text-indigo-600 animate-[pulse_2s_infinite] dark:text-indigo-400" />
               Filter Exams
             </ModernDialogTitle>
-            <ModernDialogDescription className="text-gray-500">
+            <ModernDialogDescription className="text-gray-500 dark:text-slate-400">
               Apply filters to narrow down the list of examinations.
             </ModernDialogDescription>
           </ModernDialogHeader>
@@ -1971,7 +1971,7 @@ export default function ExamsPage() {
                   });
                   setIsFilterPopupOpen(false);
                 }}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-full border border-rose-100 transition-all duration-200"
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-full border border-rose-100 transition-all duration-200 dark:text-rose-400 dark:bg-rose-950/40 dark:hover:bg-rose-950/40 dark:border-rose-800/60"
               >
                 <X size={12} />
                 <span>Clear All ({activeFiltersCount})</span>
@@ -2000,8 +2000,8 @@ export default function ExamsPage() {
       >
         <ModernDialogContent className="max-w-2xl">
           <ModernDialogHeader>
-            <ModernDialogTitle className="flex items-center gap-2 text-indigo-950">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
+            <ModernDialogTitle className="flex items-center gap-2 text-indigo-950 dark:text-indigo-100">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
                 <Layers className="h-4 w-4" />
               </span>
               Manage exam batch
@@ -2012,9 +2012,9 @@ export default function ExamsPage() {
           </ModernDialogHeader>
 
           <div className="space-y-4 py-2">
-            <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 text-sm text-indigo-950">
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 text-sm text-indigo-950 dark:border-indigo-800/60 dark:bg-indigo-950/60 dark:text-indigo-100">
               <p className="font-semibold">Start with one exam</p>
-              <p className="mt-0.5 text-xs leading-5 text-indigo-800">
+              <p className="mt-0.5 text-xs leading-5 text-indigo-800 dark:text-indigo-200">
                 Only exams with the same name, type, academic year, term, and assessment nature are offered. Continuous Assessment sets already have their own grouping.
               </p>
             </div>
@@ -2040,20 +2040,20 @@ export default function ExamsPage() {
             </div>
 
             {batchAnchor && (
-              <div className="overflow-hidden rounded-xl border border-slate-200">
-                <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-3 py-2.5">
+              <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-900">
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">Compatible exams</p>
-                    <p className="text-xs text-slate-500">Select the classes to join the batch.</p>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Compatible exams</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Select the classes to join the batch.</p>
                   </div>
-                  <Badge variant="secondary" className="shrink-0 bg-indigo-100 text-indigo-800 hover:bg-indigo-100">
+                  <Badge variant="secondary" className="shrink-0 bg-indigo-100 text-indigo-800 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-200 dark:hover:bg-indigo-950/40">
                     {1 + currentBatchMemberIds.length + batchAdditionIds.length} in batch
                   </Badge>
                 </div>
                 <ScrollArea className="h-64">
-                  <div className="divide-y divide-slate-100">
+                  <div className="divide-y divide-slate-100 dark:divide-slate-700">
                     {compatibleBatchExams.length === 0 ? (
-                      <p className="px-3 py-8 text-center text-sm text-slate-500">
+                      <p className="px-3 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
                         No other compatible exams are available in this view.
                       </p>
                     ) : compatibleBatchExams.map(exam => {
@@ -2062,7 +2062,7 @@ export default function ExamsPage() {
                       return (
                         <label
                           key={exam.id}
-                          className={`flex cursor-pointer items-center gap-3 px-3 py-3 transition-colors ${isAlreadyInBatch ? 'bg-indigo-50/40' : 'hover:bg-slate-50'}`}
+                          className={`flex cursor-pointer items-center gap-3 px-3 py-3 transition-colors ${isAlreadyInBatch ? 'bg-indigo-50/40 dark:bg-indigo-950/40' : 'hover:bg-slate-50 dark:hover:bg-slate-900'}`}
                         >
                           <Checkbox
                             checked={isAlreadyInBatch || batchAdditionIds.includes(exam.id)}
@@ -2071,13 +2071,13 @@ export default function ExamsPage() {
                             aria-label={`Add ${exam.name} for ${classMeta.name} to this batch`}
                           />
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium text-slate-800">{exam.name}</span>
-                            <span className="block text-xs text-slate-500">{classMeta.name} · {formatDateRange(exam.startDate, exam.endDate)}</span>
+                            <span className="block truncate text-sm font-medium text-slate-800 dark:text-slate-100">{exam.name}</span>
+                            <span className="block text-xs text-slate-500 dark:text-slate-400">{classMeta.name} · {formatDateRange(exam.startDate, exam.endDate)}</span>
                           </span>
                           {isAlreadyInBatch ? (
-                            <Badge variant="outline" className="border-indigo-200 bg-white text-indigo-700">Already added</Badge>
+                            <Badge variant="outline" className="border-indigo-200 bg-white text-indigo-700 dark:border-indigo-800/60 dark:bg-slate-900 dark:text-indigo-300">Already added</Badge>
                           ) : exam.batchId ? (
-                            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">Move here</Badge>
+                            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-300">Move here</Badge>
                           ) : null}
                         </label>
                       );
@@ -2171,15 +2171,15 @@ export default function ExamsPage() {
                     key={batchId}
                     className={
                       showBatchHeader
-                        ? "overflow-hidden rounded-[24px] border border-blue-100 bg-white shadow-[0_18px_42px_-28px_rgba(59,130,246,0.35)] transition-all duration-300 hover:shadow-[0_24px_56px_-30px_rgba(59,130,246,0.28)]"
-                        : "overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_18px_42px_-30px_rgba(15,23,42,0.16)] transition-all duration-300 hover:border-slate-300 hover:shadow-[0_24px_54px_-32px_rgba(15,23,42,0.18)]"
+                        ? "overflow-hidden rounded-[24px] border border-blue-100 bg-white shadow-[0_18px_42px_-28px_rgba(59,130,246,0.35)] transition-all duration-300 hover:shadow-[0_24px_56px_-30px_rgba(59,130,246,0.28)] dark:border-blue-800/60 dark:bg-slate-900"
+                        : "overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_18px_42px_-30px_rgba(15,23,42,0.16)] transition-all duration-300 hover:border-slate-300 hover:shadow-[0_24px_54px_-32px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-700"
                     }
                   >
                     {showBatchHeader && (
                       <div className={`px-3 py-2.5 ${isCATExam ? 'bg-gradient-to-r from-purple-500 to-indigo-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600'}`}>
                       <div className="flex min-w-0 items-center justify-between gap-1.5">
                         <div className="flex min-w-0 items-center gap-1.5">
-                          <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-white animate-pulse"></div>
+                          <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-white animate-pulse dark:bg-slate-900"></div>
                           <div className="flex min-w-0 items-center gap-1.5">
                             <h3 className="truncate text-sm font-semibold leading-snug text-white">
                               {isCATExam ? (firstExam.baseName || firstExam.name.split(' - ')[0]) : (firstExam.baseName || firstExam.name)}
@@ -2187,7 +2187,7 @@ export default function ExamsPage() {
                                 <span className="text-blue-100 font-normal"> ({firstExam.customExamTypeName})</span>
                               )}
                             </h3>
-                            <Badge variant="secondary" className="h-5 shrink-0 whitespace-nowrap border-white/30 bg-white/15 px-1.5 text-[10px] font-semibold text-white">
+                            <Badge variant="secondary" className="h-5 shrink-0 whitespace-nowrap border-white/30 bg-white/15 px-1.5 text-[10px] font-semibold text-white dark:border-slate-700/30 dark:bg-slate-900/15">
                               {isCATExam ? 'CAT' : getExamStatus(firstExam.startDate, firstExam.endDate).text.replace(/^Ongoing: Day \d+\/\d+$/, 'Ongoing')}
                             </Badge>
                           </div>
@@ -2216,7 +2216,7 @@ export default function ExamsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleOpenStackGradingScaleDialog(exams, firstExam.baseName || firstExam.name)}
-                            className="h-8 w-8 rounded-full border border-white/20 p-0 hover:bg-white/20 transition-colors sm:h-7 sm:w-7"
+                            className="h-8 w-8 rounded-full border border-white/20 p-0 hover:bg-white/20 transition-colors sm:h-7 sm:w-7 dark:border-slate-700/20 dark:hover:bg-slate-900/20"
                             title="Edit grading scale for this stack"
                           >
                             <GraduationCap className="h-3 w-3 text-white" />
@@ -2225,7 +2225,7 @@ export default function ExamsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteExamStack(exams.map(exam => exam.id), firstExam.baseName || firstExam.name)}
-                            className="h-8 w-8 rounded-full border border-white/20 p-0 hover:bg-white/20 transition-colors sm:h-7 sm:w-7"
+                            className="h-8 w-8 rounded-full border border-white/20 p-0 hover:bg-white/20 transition-colors sm:h-7 sm:w-7 dark:border-slate-700/20 dark:hover:bg-slate-900/20"
                             title="Delete entire stack"
                           >
                             <Trash2 className="h-3 w-3 text-white" />
@@ -2236,7 +2236,7 @@ export default function ExamsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleAddSet(firstExam)}
-                              className="h-8 w-8 rounded-full border border-white/20 p-0 hover:bg-white/20 transition-colors sm:h-7 sm:w-7"
+                              className="h-8 w-8 rounded-full border border-white/20 p-0 hover:bg-white/20 transition-colors sm:h-7 sm:w-7 dark:border-slate-700/20 dark:hover:bg-slate-900/20"
                               title="Add another set to this CAT"
                             >
                               <PlusCircle className="h-3 w-3 text-white" />
@@ -2248,7 +2248,7 @@ export default function ExamsPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setExpandedBatches(prev => ({ ...prev, [batchId]: !isExpanded }))}
-                                className="hidden h-8 w-8 rounded-full border border-white/20 p-0 transition-colors hover:bg-white/20 sm:inline-flex sm:h-7 sm:w-7"
+                                className="hidden h-8 w-8 rounded-full border border-white/20 p-0 transition-colors hover:bg-white/20 sm:inline-flex sm:h-7 sm:w-7 dark:border-slate-700/20 dark:hover:bg-slate-900/20"
                               >
                                 <ChevronDown className={`h-3 w-3 text-white transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                               </Button>
@@ -2261,7 +2261,7 @@ export default function ExamsPage() {
                     {/* Phone layout: details and controls reflow instead of compressing a table. */}
                     <div className="space-y-2 p-2.5 sm:hidden">
                       {isCATExam && sortedCATSets.length > 1 && (
-                        <div className="flex w-fit max-w-full flex-wrap gap-1 rounded-full border border-indigo-300/65 bg-white/72 p-1 shadow-[0_3px_12px_rgba(79,70,229,0.08),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/45 backdrop-blur-[16px]" aria-label="Choose continuous assessment set">
+                        <div className="flex w-fit max-w-full flex-wrap gap-1 rounded-full border border-indigo-300/65 bg-white/72 p-1 shadow-[0_3px_12px_rgba(79,70,229,0.08),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/45 backdrop-blur-[16px] dark:border-indigo-800/65 dark:bg-slate-900/72 dark:ring-indigo-800/45" aria-label="Choose continuous assessment set">
                           {sortedCATSets.map(([setName, setExams]) => {
                             const isSelected = setName === selectedCATSetKey;
                             return (
@@ -2272,7 +2272,7 @@ export default function ExamsPage() {
                                 className={`h-8 rounded-full border px-2.5 text-[11px] font-semibold transition-colors ${
                                   isSelected
                                     ? 'border-purple-500 bg-purple-500 text-white shadow-sm'
-                                    : 'border-transparent bg-transparent text-purple-700 hover:bg-purple-50'
+                                    : 'border-transparent bg-transparent text-purple-700 hover:bg-purple-50 dark:text-purple-300 dark:hover:bg-purple-950/40'
                                 }`}
                               >
                                 {setName} <span className="opacity-75">({setExams.length})</span>
@@ -2283,7 +2283,7 @@ export default function ExamsPage() {
                       )}
 
                       {mobileExamChoices.length > 1 && (
-                        <div className="flex w-fit max-w-full flex-wrap gap-1 rounded-full border border-blue-300/65 bg-white/72 p-1 shadow-[0_3px_12px_rgba(59,130,246,0.08),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-blue-200/45 backdrop-blur-[16px]" aria-label="Choose class">
+                        <div className="flex w-fit max-w-full flex-wrap gap-1 rounded-full border border-blue-300/65 bg-white/72 p-1 shadow-[0_3px_12px_rgba(59,130,246,0.08),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-blue-200/45 backdrop-blur-[16px] dark:border-blue-800/65 dark:bg-slate-900/72 dark:ring-blue-800/45" aria-label="Choose class">
                           {mobileExamChoices.map(exam => {
                             const classMeta = getClassMeta(exam.classId);
                             const isSelected = exam.id === mobileSelectedExam.id;
@@ -2295,7 +2295,7 @@ export default function ExamsPage() {
                                 className={`h-8 rounded-full border px-2.5 text-[11px] font-bold transition-colors ${
                                   isSelected
                                     ? 'border-blue-500 bg-blue-500 text-white shadow-sm'
-                                    : 'border-transparent bg-transparent text-blue-700 hover:bg-blue-50'
+                                    : 'border-transparent bg-transparent text-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-950/40'
                                 }`}
                               >
                                 {classMeta.code}
@@ -2312,30 +2312,30 @@ export default function ExamsPage() {
                           : mobileSelectedExam.baseName || mobileSelectedExam.name;
 
                         return (
-                          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 px-2.5 py-2 shadow-sm">
+                          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 px-2.5 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-900/60">
                             <div className="flex min-w-0 items-center gap-2">
                               <div className={`flex h-8 min-w-8 items-center justify-center rounded-lg text-[11px] font-bold text-white ${isCATExam ? 'bg-gradient-to-br from-purple-500 to-indigo-600' : 'bg-gradient-to-br from-blue-500 to-indigo-600'}`}>
                                 {classMeta.code || 'N/A'}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="truncate text-[13px] font-semibold leading-tight text-slate-900">{mobileTitle}</p>
-                                <p className="truncate text-[11px] leading-tight text-slate-500">{classMeta.name} · {formatDateRange(mobileSelectedExam.startDate, mobileSelectedExam.endDate)}</p>
+                                <p className="truncate text-[13px] font-semibold leading-tight text-slate-900 dark:text-slate-100">{mobileTitle}</p>
+                                <p className="truncate text-[11px] leading-tight text-slate-500 dark:text-slate-400">{classMeta.name} · {formatDateRange(mobileSelectedExam.startDate, mobileSelectedExam.endDate)}</p>
                               </div>
                             </div>
-                            <div className="mt-2 flex items-center justify-center gap-0.5 rounded-full border border-indigo-300/65 bg-white/72 p-0.5 shadow-[0_3px_12px_rgba(79,70,229,0.08),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/45 backdrop-blur-[16px]">
-                              <Button variant="outline" size="sm" asChild className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-blue-700 shadow-none hover:border-blue-200 hover:bg-blue-50" title="Record Results">
+                            <div className="mt-2 flex items-center justify-center gap-0.5 rounded-full border border-indigo-300/65 bg-white/72 p-0.5 shadow-[0_3px_12px_rgba(79,70,229,0.08),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/45 backdrop-blur-[16px] dark:border-indigo-800/65 dark:bg-slate-900/72 dark:ring-indigo-800/45">
+                              <Button variant="outline" size="sm" asChild className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-blue-700 shadow-none hover:border-blue-200 hover:bg-blue-50 dark:text-blue-300 dark:hover:border-blue-800/60 dark:hover:bg-blue-950/40" title="Record Results">
                                 <Link href={`/exams/${mobileSelectedExam.id}/record-results?classId=${mobileSelectedExam.classId}`}><FilePenLine className="h-4 w-4" /></Link>
                               </Button>
-                              <Button variant="outline" size="sm" onClick={() => openExamPrintOptions(mobileSelectedExam)} className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-amber-700 shadow-none hover:border-amber-200 hover:bg-amber-50" title="Print Reports">
+                              <Button variant="outline" size="sm" onClick={() => openExamPrintOptions(mobileSelectedExam)} className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-amber-700 shadow-none hover:border-amber-200 hover:bg-amber-50 dark:text-amber-300 dark:hover:border-amber-800/60 dark:hover:bg-amber-950/40" title="Print Reports">
                                 <Printer className="h-4 w-4" />
                               </Button>
-                              <Button variant="outline" size="sm" asChild className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-emerald-700 shadow-none hover:border-emerald-200 hover:bg-emerald-50" title="View Results">
+                              <Button variant="outline" size="sm" asChild className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-emerald-700 shadow-none hover:border-emerald-200 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:border-emerald-800/60 dark:hover:bg-emerald-950/40" title="View Results">
                                 <Link href={`/exams/${mobileSelectedExam.id}/view-results?classId=${mobileSelectedExam.classId}`}><Eye className="h-4 w-4" /></Link>
                               </Button>
-                              <Button variant="outline" size="sm" asChild className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-purple-700 shadow-none hover:border-purple-200 hover:bg-purple-50" title="Edit Snapshot Data">
+                              <Button variant="outline" size="sm" asChild className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-purple-700 shadow-none hover:border-purple-200 hover:bg-purple-50 dark:text-purple-300 dark:hover:border-purple-800/60 dark:hover:bg-purple-950/40" title="Edit Snapshot Data">
                                 <Link href={`/exams/${mobileSelectedExam.id}/edit-snapshot`}><Camera className="h-4 w-4" /></Link>
                               </Button>
-                              <Button variant="outline" size="sm" onClick={() => handleDeleteExam(mobileSelectedExam.id)} className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-red-700 shadow-none hover:border-red-200 hover:bg-red-50" title="Delete Exam">
+                              <Button variant="outline" size="sm" onClick={() => handleDeleteExam(mobileSelectedExam.id)} className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-red-700 shadow-none hover:border-red-200 hover:bg-red-50 dark:text-red-300 dark:hover:border-red-800/60 dark:hover:bg-red-950/40" title="Delete Exam">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
@@ -2383,7 +2383,7 @@ export default function ExamsPage() {
                                     return (
                                       <React.Fragment key={setName}>
                                         {/* Set header row */}
-                                        <TableRow className="border-b border-gray-100">
+                                        <TableRow className="border-b border-gray-100 dark:border-slate-700">
                                           <TableCell className="font-medium text-sm">
                                             <div className="flex items-center gap-2">
                                               <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-md flex items-center justify-center flex-shrink-0">
@@ -2393,7 +2393,7 @@ export default function ExamsPage() {
                                               </div>
                                               <div>
                                                 <span className="font-semibold text-sm">{setName}</span>
-                                                <p className="text-xs text-gray-500 leading-tight">
+                                                <p className="text-xs text-gray-500 leading-tight dark:text-slate-400">
                                                   {firstSetExam.name.replace(new RegExp(`^${(firstSetExam.baseName || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} - `), '').replace(/ - SET \d+$/i, '')}
                                                 </p>
                                               </div>
@@ -2404,15 +2404,15 @@ export default function ExamsPage() {
                                               )}
                                             </div>
                                           </TableCell>
-                                          <TableCell className="hidden md:table-cell text-xs text-gray-600">
+                                          <TableCell className="hidden md:table-cell text-xs text-gray-600 dark:text-slate-300">
                                             {setExams.length === 1 || isSetExpanded ? (
                                               // Extract exam name (remove assessment name and set number)
                                               firstSetExam.name.replace(new RegExp(`^${firstSetExam.baseName} - `), '').replace(/ - SET \d+$/i, '')
                                             ) : (
-                                              <span className="text-gray-500">{setExams.length} different exams</span>
+                                              <span className="text-gray-500 dark:text-slate-400">{setExams.length} different exams</span>
                                             )}
                                           </TableCell>
-                                          <TableCell className="hidden lg:table-cell text-xs text-gray-600">
+                                          <TableCell className="hidden lg:table-cell text-xs text-gray-600 dark:text-slate-300">
                                             {firstSetExam.examNature === 'Subject based'
                                               ? (firstSetExam.subjectIds && firstSetExam.subjectIds.length > 0
                                                 ? `${firstSetExam.subjectIds.length} Subject${firstSetExam.subjectIds.length !== 1 ? 's' : ''}`
@@ -2422,7 +2422,7 @@ export default function ExamsPage() {
                                           </TableCell>
                                           <TableCell className="hidden sm:table-cell text-xs">
                                             <div className="space-y-1">
-                                              <div className="text-gray-800 font-medium">
+                                              <div className="text-gray-800 font-medium dark:text-slate-100">
                                                 {formatDateRange(firstSetExam.startDate, firstSetExam.endDate)}
                                               </div>
                                               {(() => {
@@ -2451,7 +2451,7 @@ export default function ExamsPage() {
                                                     variant="outline"
                                                     size="sm"
                                                     asChild
-                                                    className="h-8 w-8 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                                    className="h-8 w-8 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
                                                     title="Record Results"
                                                   >
                                                     <Link href={`/exams/${firstSetExam.id}/record-results?classId=${firstSetExam.classId}`}>
@@ -2463,7 +2463,7 @@ export default function ExamsPage() {
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => openExamPrintOptions(firstSetExam)}
-                                                    className="h-8 w-8 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                                    className="h-8 w-8 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-amber-800/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
                                                     title="Print Reports"
                                                   >
                                                     <Printer className="h-4 w-4" />
@@ -2473,7 +2473,7 @@ export default function ExamsPage() {
                                                     variant="outline"
                                                     size="sm"
                                                     asChild
-                                                    className="h-8 w-8 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                                    className="h-8 w-8 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-green-800/60 dark:text-green-300 dark:hover:bg-green-950/40"
                                                     title="View Results"
                                                   >
                                                     <Link href={`/exams/${firstSetExam.id}/view-results?classId=${firstSetExam.classId}`}>
@@ -2486,7 +2486,7 @@ export default function ExamsPage() {
                                                     variant="outline"
                                                     size="sm"
                                                     asChild
-                                                    className="h-8 w-8 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                                    className="h-8 w-8 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-purple-800/60 dark:text-purple-300 dark:hover:bg-purple-950/40"
                                                     title="Edit Snapshot Data"
                                                   >
                                                     <Link href={`/exams/${firstSetExam.id}/edit-snapshot`}>
@@ -2505,7 +2505,7 @@ export default function ExamsPage() {
                                                   const examIds = setExams.map(exam => exam.id);
                                                   handleDeleteExamStack(examIds, `${firstSetExam.baseName || firstSetExam.name} ${setName}`);
                                                 }}
-                                                className="h-8 w-8 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                                className="h-8 w-8 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
                                                 title="Delete Set"
                                               >
                                                 <Trash2 className="h-4 w-4" />
@@ -2516,7 +2516,7 @@ export default function ExamsPage() {
                                                   variant="ghost"
                                                   size="sm"
                                                   onClick={() => setExpandedBatches(prev => ({ ...prev, [`${batchId}_${setName}`]: !isSetExpanded }))}
-                                                  className="h-8 w-8 p-0 rounded-full text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-all duration-200 shadow-sm hover:shadow-md"
+                                                  className="h-8 w-8 p-0 rounded-full text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-all duration-200 shadow-sm hover:shadow-md dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-slate-100"
                                                 >
                                                   <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isSetExpanded ? 'rotate-180' : ''}`} />
                                                 </Button>
@@ -2530,17 +2530,17 @@ export default function ExamsPage() {
                                           const examName = exam.name.replace(new RegExp(`^${exam.baseName} - `), '').replace(/ - SET \d+$/i, '');
 
                                           return (
-                                            <TableRow key={exam.id} className="border-b border-gray-100 bg-gray-50/30">
+                                            <TableRow key={exam.id} className="border-b border-gray-100 bg-gray-50/30 dark:border-slate-700 dark:bg-slate-900/30">
                                               <TableCell className="font-medium text-sm">
                                                 <div className="flex items-center gap-2 pl-6">
-                                                  <CornerDownRight className="h-3 w-3 text-gray-400" />
-                                                  <span className="text-gray-600 text-xs">Class: {allClasses.find(c => c.id === exam.classId)?.name || 'Unknown'}</span>
+                                                  <CornerDownRight className="h-3 w-3 text-gray-400 dark:text-slate-400" />
+                                                  <span className="text-gray-600 text-xs dark:text-slate-300">Class: {allClasses.find(c => c.id === exam.classId)?.name || 'Unknown'}</span>
                                                 </div>
                                               </TableCell>
-                                              <TableCell className="hidden md:table-cell text-xs text-gray-600">
+                                              <TableCell className="hidden md:table-cell text-xs text-gray-600 dark:text-slate-300">
                                                 {examName}
                                               </TableCell>
-                                              <TableCell className="hidden lg:table-cell text-xs text-gray-600">
+                                              <TableCell className="hidden lg:table-cell text-xs text-gray-600 dark:text-slate-300">
                                                 {exam.examNature === 'Subject based'
                                                   ? (exam.subjectIds && exam.subjectIds.length > 0
                                                     ? `${exam.subjectIds.length} Subject${exam.subjectIds.length !== 1 ? 's' : ''}`
@@ -2550,7 +2550,7 @@ export default function ExamsPage() {
                                               </TableCell>
                                               <TableCell className="hidden sm:table-cell text-xs">
                                                 <div className="space-y-1">
-                                                  <div className="text-gray-800 font-medium">
+                                                  <div className="text-gray-800 font-medium dark:text-slate-100">
                                                     {formatDateRange(exam.startDate, exam.endDate)}
                                                   </div>
                                                   {(() => {
@@ -2571,7 +2571,7 @@ export default function ExamsPage() {
                                                     variant="outline"
                                                     size="sm"
                                                     asChild
-                                                    className="h-7 w-7 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                                    className="h-7 w-7 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
                                                     title="Record Results"
                                                   >
                                                     <Link href={`/exams/${exam.id}/record-results?classId=${exam.classId}`}>
@@ -2583,7 +2583,7 @@ export default function ExamsPage() {
                                                     variant="outline"
                                                     size="sm"
                                                     asChild
-                                                    className="h-7 w-7 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                                    className="h-7 w-7 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-green-800/60 dark:text-green-300 dark:hover:bg-green-950/40"
                                                     title="View Results"
                                                   >
                                                     <Link href={`/exams/${exam.id}/view-results?classId=${exam.classId}`}>
@@ -2596,7 +2596,7 @@ export default function ExamsPage() {
                                                     variant="outline"
                                                     size="sm"
                                                     asChild
-                                                    className="h-7 w-7 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                                    className="h-7 w-7 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-purple-800/60 dark:text-purple-300 dark:hover:bg-purple-950/40"
                                                     title="Edit Snapshot Data"
                                                   >
                                                     <Link href={`/exams/${exam.id}/edit-snapshot`}>
@@ -2609,7 +2609,7 @@ export default function ExamsPage() {
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => handleDeleteExam(exam.id)}
-                                                    className="h-7 w-7 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                                    className="h-7 w-7 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
                                                     title="Delete Exam"
                                                   >
                                                     <Trash2 className="h-3 w-3" />
@@ -2625,9 +2625,9 @@ export default function ExamsPage() {
 
                                   {/* Show collapse indicator when there are multiple sets and collapsed */}
                                   {!isExpanded && sortedSets.length > 1 && (
-                                    <TableRow className="border-b border-gray-100 bg-purple-50/30">
+                                    <TableRow className="border-b border-gray-100 bg-purple-50/30 dark:border-slate-700 dark:bg-purple-950/30">
                                       <TableCell colSpan={5} className="text-center py-3">
-                                        <div className="flex items-center justify-center gap-2 text-purple-700">
+                                        <div className="flex items-center justify-center gap-2 text-purple-700 dark:text-purple-300">
                                           <ChevronDown className="h-4 w-4" />
                                           <span className="text-sm">
                                             {sortedSets.length - 1} more set{sortedSets.length - 1 !== 1 ? 's' : ''} • Click expand to view all
@@ -2643,7 +2643,7 @@ export default function ExamsPage() {
                             // Regular exam rendering (existing logic)
                             <>
                               {/* Show first class or all classes when collapsed */}
-                              <TableRow className="border-b border-gray-100">
+                              <TableRow className="border-b border-gray-100 dark:border-slate-700">
                                 <TableCell className="font-medium text-sm">
                                   {exams.length === 1 || isExpanded ? (
                                     // Single class OR expanded - show first class avatar only
@@ -2655,10 +2655,10 @@ export default function ExamsPage() {
                                       </div>
                                       {exams.length === 1 && (
                                         <div className="min-w-0">
-                                          <div className="truncate text-sm font-semibold text-gray-900">
+                                          <div className="truncate text-sm font-semibold text-gray-900 dark:text-slate-100">
                                             {firstExam.baseName || firstExam.name}
                                           </div>
-                                          <div className="text-xs text-gray-500">
+                                          <div className="text-xs text-gray-500 dark:text-slate-400">
                                             {firstExam.examTypeName || firstExam.examTypeId}
                                           </div>
                                         </div>
@@ -2679,7 +2679,7 @@ export default function ExamsPage() {
                                               className={`inline-flex items-center justify-center w-7 h-7 rounded-md border text-xs font-bold transition-all ${
                                                 isSelectedClass
                                                   ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                                                  : 'bg-white border-blue-200 text-blue-700 hover:bg-blue-50'
+                                                  : 'bg-white border-blue-200 text-blue-700 hover:bg-blue-50 dark:bg-slate-900 dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40'
                                               }`}
                                               title={`Show actions for ${classMeta.name}`}
                                             >
@@ -2691,14 +2691,14 @@ export default function ExamsPage() {
                                     </div>
                                   )}
                                 </TableCell>
-                                <TableCell className="hidden md:table-cell text-xs text-gray-600">
+                                <TableCell className="hidden md:table-cell text-xs text-gray-600 dark:text-slate-300">
                                   {exams.length === 1 || isExpanded ? (
                                     firstExam.examTypeName || firstExam.examTypeId
                                   ) : (
-                                    <span className="text-gray-500">Multiple classes</span>
+                                    <span className="text-gray-500 dark:text-slate-400">Multiple classes</span>
                                   )}
                                 </TableCell>
-                                <TableCell className="hidden lg:table-cell text-xs text-gray-600">
+                                <TableCell className="hidden lg:table-cell text-xs text-gray-600 dark:text-slate-300">
                                   {exams.length === 1 || isExpanded ? (
                                     firstExam.examNature === 'Subject based'
                                       ? (firstExam.subjectIds && firstExam.subjectIds.length > 0
@@ -2706,13 +2706,13 @@ export default function ExamsPage() {
                                         : 'No Subjects')
                                       : 'All Subjects'
                                   ) : (
-                                    <span className="text-gray-500">Varies by class</span>
+                                    <span className="text-gray-500 dark:text-slate-400">Varies by class</span>
                                   )}
                                 </TableCell>
                                 <TableCell className="hidden sm:table-cell text-xs">
                                   {exams.length === 1 || isExpanded ? (
                                     <div className="space-y-1">
-                                      <div className="text-gray-800 font-medium">
+                                      <div className="text-gray-800 font-medium dark:text-slate-100">
                                         {formatDateRange(firstExam.startDate, firstExam.endDate)}
                                       </div>
                                       {(() => {
@@ -2733,7 +2733,7 @@ export default function ExamsPage() {
                                       />
                                     </div>
                                   ) : (
-                                    <span className="text-gray-500">Same date</span>
+                                    <span className="text-gray-500 dark:text-slate-400">Same date</span>
                                   )}
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -2744,7 +2744,7 @@ export default function ExamsPage() {
                                         variant="outline"
                                         size="sm"
                                         asChild
-                                        className="h-7 w-7 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                        className="h-7 w-7 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
                                         title="Record Results"
                                       >
                                         <Link href={`/exams/${firstExam.id}/record-results?classId=${firstExam.classId}`}>
@@ -2756,7 +2756,7 @@ export default function ExamsPage() {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => openExamPrintOptions(firstExam)}
-                                        className="h-7 w-7 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                        className="h-7 w-7 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-amber-800/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
                                         title="Print Reports"
                                       >
                                         <Printer className="h-3 w-3" />
@@ -2766,7 +2766,7 @@ export default function ExamsPage() {
                                         variant="outline"
                                         size="sm"
                                         asChild
-                                        className="h-7 w-7 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                        className="h-7 w-7 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-green-800/60 dark:text-green-300 dark:hover:bg-green-950/40"
                                         title="View Results"
                                       >
                                         <Link href={`/exams/${firstExam.id}/view-results?classId=${firstExam.classId}`}>
@@ -2779,7 +2779,7 @@ export default function ExamsPage() {
                                         variant="outline"
                                         size="sm"
                                         asChild
-                                        className="h-7 w-7 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                        className="h-7 w-7 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-purple-800/60 dark:text-purple-300 dark:hover:bg-purple-950/40"
                                         title="Edit Snapshot Data"
                                       >
                                         <Link href={`/exams/${firstExam.id}/edit-snapshot`}>
@@ -2792,7 +2792,7 @@ export default function ExamsPage() {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handleDeleteExam(firstExam.id)}
-                                        className="h-7 w-7 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                        className="h-7 w-7 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
                                         title="Delete Exam"
                                       >
                                         <Trash2 className="h-3 w-3" />
@@ -2804,7 +2804,7 @@ export default function ExamsPage() {
                                           variant="ghost"
                                           size="sm"
                                           onClick={() => setExpandedBatches(prev => ({ ...prev, [batchId]: !isExpanded }))}
-                                          className="h-7 px-2 text-xs text-gray-600 hover:bg-gray-50 transition-colors ml-1"
+                                          className="h-7 px-2 text-xs text-gray-600 hover:bg-gray-50 transition-colors ml-1 dark:text-slate-300 dark:hover:bg-slate-900"
                                         >
                                           <ChevronDown className="h-3 w-3 rotate-180" />
                                         </Button>
@@ -2813,14 +2813,14 @@ export default function ExamsPage() {
                                   ) : (
                                     // Multiple classes collapsed - show selected class actions plus stack controls
                                     <div className="flex items-center justify-end gap-1">
-                                      <div className="hidden xl:flex items-center mr-2 text-xs text-gray-500">
+                                      <div className="hidden xl:flex items-center mr-2 text-xs text-gray-500 dark:text-slate-400">
                                         {getClassMeta(selectedCollapsedExam.classId).code}
                                       </div>
                                       <Button
                                         variant="outline"
                                         size="sm"
                                         asChild
-                                        className="h-7 w-7 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                        className="h-7 w-7 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
                                         title="Record Results"
                                       >
                                         <Link href={`/exams/${selectedCollapsedExam.id}/record-results?classId=${selectedCollapsedExam.classId}`}>
@@ -2831,7 +2831,7 @@ export default function ExamsPage() {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => openExamPrintOptions(selectedCollapsedExam)}
-                                        className="h-7 w-7 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                        className="h-7 w-7 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-amber-800/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
                                         title="Print Reports"
                                       >
                                         <Printer className="h-3 w-3" />
@@ -2840,7 +2840,7 @@ export default function ExamsPage() {
                                         variant="outline"
                                         size="sm"
                                         asChild
-                                        className="h-7 w-7 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                        className="h-7 w-7 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-green-800/60 dark:text-green-300 dark:hover:bg-green-950/40"
                                         title="View Results"
                                       >
                                         <Link href={`/exams/${selectedCollapsedExam.id}/view-results?classId=${selectedCollapsedExam.classId}`}>
@@ -2851,7 +2851,7 @@ export default function ExamsPage() {
                                         variant="outline"
                                         size="sm"
                                         asChild
-                                        className="h-7 w-7 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                        className="h-7 w-7 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-purple-800/60 dark:text-purple-300 dark:hover:bg-purple-950/40"
                                         title="Edit Snapshot Data"
                                       >
                                         <Link href={`/exams/${selectedCollapsedExam.id}/edit-snapshot`}>
@@ -2862,7 +2862,7 @@ export default function ExamsPage() {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handleDeleteExam(selectedCollapsedExam.id)}
-                                        className="h-7 w-7 p-0 rounded-full border-2 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-400 transition-all duration-200 shadow-sm hover:shadow-md"
+                                        className="h-7 w-7 p-0 rounded-full border-2 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-400 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-400 dark:hover:bg-red-950/40"
                                         title="Delete This Class Exam"
                                       >
                                         <Trash2 className="h-3 w-3" />
@@ -2871,7 +2871,7 @@ export default function ExamsPage() {
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => setExpandedBatches(prev => ({ ...prev, [batchId]: !isExpanded }))}
-                                        className="h-7 px-2 text-xs text-blue-600 hover:bg-blue-50 transition-colors"
+                                        className="h-7 px-2 text-xs text-blue-600 hover:bg-blue-50 transition-colors dark:text-blue-400 dark:hover:bg-blue-950/40"
                                       >
                                         <ChevronDown className="h-3 w-3 mr-1" />
                                         Expand
@@ -2886,10 +2886,10 @@ export default function ExamsPage() {
                                 const className = allClasses.find(c => c.id === exam.classId)?.name || 'Unknown';
 
                                 return (
-                                  <TableRow key={exam.id} className="border-b border-gray-100 bg-gray-50/30">
+                                  <TableRow key={exam.id} className="border-b border-gray-100 bg-gray-50/30 dark:border-slate-700 dark:bg-slate-900/30">
                                     <TableCell className="font-medium text-sm">
                                       <div className="flex items-center gap-2 pl-4">
-                                        <CornerDownRight className="h-3 w-3 text-gray-400" />
+                                        <CornerDownRight className="h-3 w-3 text-gray-400 dark:text-slate-400" />
                                         <div className="w-6 h-6 bg-gradient-to-br from-gray-400 to-gray-500 rounded-md flex items-center justify-center">
                                           <span className="text-white font-bold text-xs">
                                             {allClasses.find(c => c.id === exam.classId)?.code || 'N/A'}
@@ -2897,16 +2897,16 @@ export default function ExamsPage() {
                                         </div>
                                       </div>
                                     </TableCell>
-                                    <TableCell className="hidden md:table-cell text-xs text-gray-500">
+                                    <TableCell className="hidden md:table-cell text-xs text-gray-500 dark:text-slate-400">
                                       {/* Empty for additional rows */}
                                     </TableCell>
-                                    <TableCell className="hidden lg:table-cell text-xs text-gray-600">
+                                    <TableCell className="hidden lg:table-cell text-xs text-gray-600 dark:text-slate-300">
                                       {exam.examNature === 'Subject based' && exam.subjectIds
                                         ? `${exam.subjectIds.length} subject${exam.subjectIds.length !== 1 ? 's' : ''}`
                                         : 'All subjects'
                                       }
                                     </TableCell>
-                                    <TableCell className="hidden sm:table-cell text-xs text-gray-500">
+                                    <TableCell className="hidden sm:table-cell text-xs text-gray-500 dark:text-slate-400">
                                       {/* Empty for additional rows */}
                                     </TableCell>
                                     <TableCell className="text-right">
@@ -2915,7 +2915,7 @@ export default function ExamsPage() {
                                           variant="outline"
                                           size="sm"
                                           asChild
-                                          className="h-7 w-7 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                          className="h-7 w-7 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
                                           title="Record Results"
                                         >
                                           <Link href={`/exams/${exam.id}/record-results?classId=${exam.classId}`}>
@@ -2927,7 +2927,7 @@ export default function ExamsPage() {
                                           variant="outline"
                                           size="sm"
                                           onClick={() => openExamPrintOptions(exam)}
-                                          className="h-7 w-7 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                          className="h-7 w-7 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-amber-800/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
                                           title="Print Reports"
                                         >
                                           <Printer className="h-3 w-3" />
@@ -2937,7 +2937,7 @@ export default function ExamsPage() {
                                           variant="outline"
                                           size="sm"
                                           asChild
-                                          className="h-7 w-7 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                          className="h-7 w-7 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-green-800/60 dark:text-green-300 dark:hover:bg-green-950/40"
                                           title="View Results"
                                         >
                                           <Link href={`/exams/${exam.id}/view-results?classId=${exam.classId}`}>
@@ -2950,7 +2950,7 @@ export default function ExamsPage() {
                                           variant="outline"
                                           size="sm"
                                           asChild
-                                          className="h-7 w-7 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                          className="h-7 w-7 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-purple-800/60 dark:text-purple-300 dark:hover:bg-purple-950/40"
                                           title="Edit Snapshot Data"
                                         >
                                           <Link href={`/exams/${exam.id}/edit-snapshot`}>
@@ -2964,7 +2964,7 @@ export default function ExamsPage() {
                                             variant="outline"
                                             size="sm"
                                             onClick={() => handleAddSet(exam)}
-                                            className="h-7 w-7 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                            className="h-7 w-7 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-purple-800/60 dark:text-purple-300 dark:hover:bg-purple-950/40"
                                             title="Add Set"
                                           >
                                             <Plus className="h-3 w-3" />
@@ -2976,7 +2976,7 @@ export default function ExamsPage() {
                                           variant="outline"
                                           size="sm"
                                           onClick={() => handleDeleteExam(exam.id)}
-                                          className="h-7 w-7 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                          className="h-7 w-7 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
                                           title="Delete Exam"
                                         >
                                           <Trash2 className="h-3 w-3" />
@@ -3074,15 +3074,15 @@ export default function ExamsPage() {
                     key={batchId}
                     className={
                       showBatchHeader
-                        ? "overflow-hidden rounded-[24px] border border-blue-100 bg-white shadow-[0_18px_42px_-28px_rgba(59,130,246,0.35)] transition-all duration-300 hover:shadow-[0_24px_56px_-30px_rgba(59,130,246,0.28)]"
-                        : "overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_18px_42px_-30px_rgba(15,23,42,0.16)] transition-all duration-300 hover:border-slate-300 hover:shadow-[0_24px_54px_-32px_rgba(15,23,42,0.18)]"
+                        ? "overflow-hidden rounded-[24px] border border-blue-100 bg-white shadow-[0_18px_42px_-28px_rgba(59,130,246,0.35)] transition-all duration-300 hover:shadow-[0_24px_56px_-30px_rgba(59,130,246,0.28)] dark:border-blue-800/60 dark:bg-slate-900"
+                        : "overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_18px_42px_-30px_rgba(15,23,42,0.16)] transition-all duration-300 hover:border-slate-300 hover:shadow-[0_24px_54px_-32px_rgba(15,23,42,0.18)] dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-700"
                     }
                   >
                     {showBatchHeader && (
                       <div className={`relative px-4 py-3 ${isCATExam ? 'bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-700' : 'bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700'}`}>
                       <div className="relative flex items-center justify-between gap-3">
                         <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                            <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse"></div>
+                            <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse dark:bg-slate-900"></div>
                             <h3 className="truncate text-base font-bold text-white">
                               {isCATExam ? (firstExam.baseName || firstExam.name.split(' - ')[0]) : (firstExam.baseName || firstExam.name)}
                               {firstExam.customExamTypeName && (
@@ -3103,7 +3103,7 @@ export default function ExamsPage() {
                                 const uniqueClassIds = Array.from(new Set(exams.map(e => e.classId)));
                                 return (
                                   <span key={classId} className="inline-flex items-center">
-                                    <div className="flex h-4.5 w-4.5 items-center justify-center rounded-md bg-white/20">
+                                    <div className="flex h-4.5 w-4.5 items-center justify-center rounded-md bg-white/20 dark:bg-slate-900/20">
                                       <span className="text-[10px] font-bold text-white">
                                         {classCode}
                                       </span>
@@ -3177,7 +3177,7 @@ export default function ExamsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleOpenStackGradingScaleDialog(exams, firstExam.baseName || firstExam.name)}
-                            className="h-7 w-7 rounded-full border border-white/20 p-0 transition-colors hover:bg-white/20"
+                            className="h-7 w-7 rounded-full border border-white/20 p-0 transition-colors hover:bg-white/20 dark:border-slate-700/20 dark:hover:bg-slate-900/20"
                             title="Edit grading scale for this stack"
                           >
                             <GraduationCap className="h-3.5 w-3.5 text-white" />
@@ -3186,7 +3186,7 @@ export default function ExamsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteExamStack(exams.map(exam => exam.id), firstExam.baseName || firstExam.name)}
-                            className="h-7 w-7 rounded-full border border-white/20 p-0 transition-colors hover:bg-white/20"
+                            className="h-7 w-7 rounded-full border border-white/20 p-0 transition-colors hover:bg-white/20 dark:border-slate-700/20 dark:hover:bg-slate-900/20"
                             title="Delete entire stack"
                           >
                             <Trash2 className="h-3.5 w-3.5 text-white" />
@@ -3197,7 +3197,7 @@ export default function ExamsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleAddSet(firstExam)}
-                              className="h-7 w-7 rounded-full border border-white/20 p-0 transition-colors hover:bg-white/20"
+                              className="h-7 w-7 rounded-full border border-white/20 p-0 transition-colors hover:bg-white/20 dark:border-slate-700/20 dark:hover:bg-slate-900/20"
                               title="Add another set to this CAT"
                             >
                               <PlusCircle className="h-3.5 w-3.5 text-white" />
@@ -3209,7 +3209,7 @@ export default function ExamsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => setExpandedBatches(prev => ({ ...prev, [batchId]: !isExpanded }))}
-                              className="h-7 w-7 rounded-full border border-white/20 p-0 transition-colors hover:bg-white/20"
+                              className="h-7 w-7 rounded-full border border-white/20 p-0 transition-colors hover:bg-white/20 dark:border-slate-700/20 dark:hover:bg-slate-900/20"
                               title={isExpanded ? "Collapse stack" : "Expand stack"}
                             >
                               <ChevronDown className={`h-3.5 w-3.5 text-white transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
@@ -3224,28 +3224,28 @@ export default function ExamsPage() {
                     {/* Collapsed Summary View */}
                     <div className={`${showBatchHeader ? 'p-2.5 lg:p-3' : 'p-0'}`}>
                       {!showBatchHeader && (
-                        <div className="bg-white px-4 py-4 sm:px-5">
+                        <div className="bg-white px-4 py-4 sm:px-5 dark:bg-slate-900">
                           <div className="grid gap-3 md:grid-cols-2 md:gap-x-5 md:gap-y-3 xl:grid-cols-[minmax(180px,1.2fr)_minmax(100px,0.7fr)_minmax(100px,0.7fr)_minmax(180px,1fr)_auto] xl:items-center xl:gap-x-0 xl:gap-y-0">
                             <div className="flex min-w-0 items-center gap-3 xl:pr-3">
                               <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white shadow-sm">
                                 {allClasses.find(c => c.id === firstExam.classId)?.code || 'N/A'}
                               </div>
                               <div className="min-w-0">
-                                <h3 className="truncate text-[1.15rem] font-semibold tracking-tight text-slate-950">
+                                <h3 className="truncate text-[1.15rem] font-semibold tracking-tight text-slate-950 dark:text-slate-100">
                                   {isCATExam ? (firstExam.baseName || firstExam.name.split(' - ')[0]) : (firstExam.baseName || firstExam.name)}
                                 </h3>
-                                <p className="mt-0.5 text-sm leading-none text-slate-500">
+                                <p className="mt-0.5 text-sm leading-none text-slate-500 dark:text-slate-400">
                                   {firstExam.customExamTypeName || firstExam.examTypeName || firstExam.examTypeId}
                                 </p>
                               </div>
                             </div>
 
-                            <div className="text-sm text-slate-700 xl:border-l xl:border-slate-100 xl:px-3">
-                              <p className="font-medium text-slate-900">{firstExam.examTypeName || firstExam.examTypeId}</p>
+                            <div className="text-sm text-slate-700 xl:border-l xl:border-slate-100 xl:px-3 dark:text-slate-200 dark:xl:border-slate-700">
+                              <p className="font-medium text-slate-900 dark:text-slate-100">{firstExam.examTypeName || firstExam.examTypeId}</p>
                             </div>
 
-                            <div className="text-sm text-slate-700 xl:border-l xl:border-slate-100 xl:px-3">
-                              <p className="font-medium text-slate-900">
+                            <div className="text-sm text-slate-700 xl:border-l xl:border-slate-100 xl:px-3 dark:text-slate-200 dark:xl:border-slate-700">
+                              <p className="font-medium text-slate-900 dark:text-slate-100">
                                 {firstExam.examNature === 'Subject based'
                                   ? (firstExam.subjectIds && firstExam.subjectIds.length > 0
                                     ? `${firstExam.subjectIds.length} Subject${firstExam.subjectIds.length !== 1 ? 's' : ''}`
@@ -3254,9 +3254,9 @@ export default function ExamsPage() {
                               </p>
                             </div>
 
-                            <div className="text-sm text-slate-700 xl:border-l xl:border-slate-100 xl:px-3">
+                            <div className="text-sm text-slate-700 xl:border-l xl:border-slate-100 xl:px-3 dark:text-slate-200 dark:xl:border-slate-700">
                               <div className="flex flex-wrap items-center gap-2 text-sm">
-                                <p className="font-medium text-slate-900">{formatDateRange(firstExam.startDate, firstExam.endDate)}</p>
+                                <p className="font-medium text-slate-900 dark:text-slate-100">{formatDateRange(firstExam.startDate, firstExam.endDate)}</p>
                                 {(() => {
                                   const status = getExamStatus(firstExam.startDate, firstExam.endDate);
                                   const IconComponent = status.icon;
@@ -3268,32 +3268,32 @@ export default function ExamsPage() {
                                   );
                                 })()}
                               </div>
-                              <div className="mt-1 space-y-0.5 text-[11px] text-slate-500">
+                              <div className="mt-1 space-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
                                 <ExamSignatureDisplay exam={firstExam} variant="inline" />
                                 <p>Created {safeParseDateString(firstExam.createdAt) ? format(safeParseDateString(firstExam.createdAt)!, "MMM dd, yyyy HH:mm") : 'Unknown'}</p>
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2 md:col-span-2 xl:col-span-1 xl:justify-end xl:border-l xl:border-slate-100 xl:pl-3">
-                              <Button variant="outline" size="sm" asChild className="h-9 w-9 rounded-full border-2 border-blue-300 p-0 text-blue-700 shadow-sm transition-all duration-200 hover:border-blue-500 hover:bg-blue-50">
+                            <div className="flex items-center gap-2 md:col-span-2 xl:col-span-1 xl:justify-end xl:border-l xl:border-slate-100 xl:pl-3 dark:xl:border-slate-700">
+                              <Button variant="outline" size="sm" asChild className="h-9 w-9 rounded-full border-2 border-blue-300 p-0 text-blue-700 shadow-sm transition-all duration-200 hover:border-blue-500 hover:bg-blue-50 dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40">
                                 <Link href={`/exams/${firstExam.id}/record-results?classId=${firstExam.classId}`}>
                                   <FilePenLine className="h-4 w-4" />
                                 </Link>
                               </Button>
-                              <Button variant="outline" size="sm" onClick={() => openExamPrintOptions(firstExam)} className="h-9 w-9 rounded-full border-2 border-amber-300 p-0 text-amber-700 shadow-sm transition-all duration-200 hover:border-amber-500 hover:bg-amber-50">
+                              <Button variant="outline" size="sm" onClick={() => openExamPrintOptions(firstExam)} className="h-9 w-9 rounded-full border-2 border-amber-300 p-0 text-amber-700 shadow-sm transition-all duration-200 hover:border-amber-500 hover:bg-amber-50 dark:border-amber-800/60 dark:text-amber-300 dark:hover:bg-amber-950/40">
                                 <Printer className="h-4 w-4" />
                               </Button>
-                              <Button variant="outline" size="sm" asChild className="h-9 w-9 rounded-full border-2 border-green-300 p-0 text-green-700 shadow-sm transition-all duration-200 hover:border-green-500 hover:bg-green-50">
+                              <Button variant="outline" size="sm" asChild className="h-9 w-9 rounded-full border-2 border-green-300 p-0 text-green-700 shadow-sm transition-all duration-200 hover:border-green-500 hover:bg-green-50 dark:border-green-800/60 dark:text-green-300 dark:hover:bg-green-950/40">
                                 <Link href={`/exams/${firstExam.id}/view-results?classId=${firstExam.classId}`}>
                                   <Eye className="h-4 w-4" />
                                 </Link>
                               </Button>
-                              <Button variant="outline" size="sm" asChild className="h-9 w-9 rounded-full border-2 border-purple-300 p-0 text-purple-700 shadow-sm transition-all duration-200 hover:border-purple-500 hover:bg-purple-50">
+                              <Button variant="outline" size="sm" asChild className="h-9 w-9 rounded-full border-2 border-purple-300 p-0 text-purple-700 shadow-sm transition-all duration-200 hover:border-purple-500 hover:bg-purple-50 dark:border-purple-800/60 dark:text-purple-300 dark:hover:bg-purple-950/40">
                                 <Link href={`/exams/${firstExam.id}/edit-snapshot`}>
                                   <Camera className="h-4 w-4" />
                                 </Link>
                               </Button>
-                              <Button variant="outline" size="sm" onClick={() => handleDeleteExam(firstExam.id)} className="h-9 w-9 rounded-full border-2 border-red-300 p-0 text-red-700 shadow-sm transition-all duration-200 hover:border-red-500 hover:bg-red-50">
+                              <Button variant="outline" size="sm" onClick={() => handleDeleteExam(firstExam.id)} className="h-9 w-9 rounded-full border-2 border-red-300 p-0 text-red-700 shadow-sm transition-all duration-200 hover:border-red-500 hover:bg-red-50 dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
@@ -3319,10 +3319,10 @@ export default function ExamsPage() {
                                           e.stopPropagation();
                                           setSelectedCATSetKeys(prev => ({ ...prev, [batchId]: setName }));
                                         }}
-                                        className={`w-8 h-8 border-2 border-white rounded-lg flex items-center justify-center text-xs font-bold shadow-sm transition-all ${
+                                        className={`w-8 h-8 border-2 border-white rounded-lg flex items-center justify-center text-xs font-bold shadow-sm transition-all  dark:border-slate-700${
                                           isSelected
                                             ? 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white scale-105 z-10'
-                                            : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 hover:from-purple-100 hover:to-indigo-100 hover:scale-105'
+                                            : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 hover:from-purple-100 hover:to-indigo-100 hover:scale-105 dark:from-slate-900 dark:to-slate-800 dark:text-slate-200 dark:hover:from-purple-950/40 dark:hover:to-indigo-950/40'
                                         }`}
                                         title={`Show actions for ${setName}`}
                                       >
@@ -3347,10 +3347,10 @@ export default function ExamsPage() {
                                         key={exam.id}
                                         type="button"
                                         onClick={() => setSelectedCollapsedBatchExams(prev => ({ ...prev, [batchId]: exam.id }))}
-                                        className={`w-8 h-8 border-2 border-white rounded-lg flex items-center justify-center text-xs font-bold shadow-sm transition-all ${
+                                        className={`w-8 h-8 border-2 border-white rounded-lg flex items-center justify-center text-xs font-bold shadow-sm transition-all  dark:border-slate-700${
                                           isSelectedClass
                                             ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white'
-                                            : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 hover:from-blue-100 hover:to-indigo-100'
+                                            : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 hover:from-blue-100 hover:to-indigo-100 dark:from-slate-900 dark:to-slate-800 dark:text-slate-200 dark:hover:from-blue-950/40 dark:hover:to-indigo-950/40'
                                         }`}
                                         title={`Show actions for ${classMeta.name}`}
                                       >
@@ -3364,19 +3364,19 @@ export default function ExamsPage() {
                           )}
                         </div>
 
-                        <div className="hidden text-sm text-slate-700 xl:border-r xl:border-slate-100 xl:px-5">
-                          <div className="text-[11px] font-semibold text-slate-800">Multiple classes</div>
-                          <div className="text-[11px] text-slate-500">Exam set for multiple classes</div>
+                        <div className="hidden text-sm text-slate-700 xl:border-r xl:border-slate-100 xl:px-5 dark:text-slate-200 dark:xl:border-slate-700">
+                          <div className="text-[11px] font-semibold text-slate-800 dark:text-slate-100">Multiple classes</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">Exam set for multiple classes</div>
                         </div>
 
-                        <div className="hidden text-sm text-slate-700 xl:border-r xl:border-slate-100 xl:px-5">
-                          <div className="text-[11px] font-semibold text-slate-800">Varies by class</div>
-                          <div className="text-[11px] text-slate-500">Dates and details vary by class</div>
+                        <div className="hidden text-sm text-slate-700 xl:border-r xl:border-slate-100 xl:px-5 dark:text-slate-200 dark:xl:border-slate-700">
+                          <div className="text-[11px] font-semibold text-slate-800 dark:text-slate-100">Varies by class</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">Dates and details vary by class</div>
                         </div>
 
-                        <div className="hidden text-sm text-slate-700 xl:border-r xl:border-slate-100 xl:px-5">
-                          <div className="text-[11px] font-semibold text-slate-800">Same date</div>
-                          <div className="text-[11px] text-slate-500">Exams held on the same day</div>
+                        <div className="hidden text-sm text-slate-700 xl:border-r xl:border-slate-100 xl:px-5 dark:text-slate-200 dark:xl:border-slate-700">
+                          <div className="text-[11px] font-semibold text-slate-800 dark:text-slate-100">Same date</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">Exams held on the same day</div>
                         </div>
 
                         <div className="flex items-center justify-between gap-3 md:col-span-2 xl:col-span-1 xl:justify-end xl:pl-5">
@@ -3384,7 +3384,7 @@ export default function ExamsPage() {
                           {isCATExam && !isExpanded && (
                             <div className="flex w-full items-center justify-between gap-3 xl:justify-end">
                               <div className="min-w-0 items-center gap-2 pr-2 hidden md:flex">
-                                <span className="truncate text-sm font-semibold text-purple-700">
+                                <span className="truncate text-sm font-semibold text-purple-700 dark:text-purple-300">
                                   {currentSelectedSetKey}
                                 </span>
                               </div>
@@ -3394,7 +3394,7 @@ export default function ExamsPage() {
                                     variant="outline"
                                     size="sm"
                                     asChild
-                                    className="h-9 w-9 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                    className="h-9 w-9 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
                                     title="Record Results"
                                   >
                                     <Link href={`/exams/${firstSelectedSetExam.id}/record-results?classId=${firstSelectedSetExam.classId}`}>
@@ -3406,7 +3406,7 @@ export default function ExamsPage() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => openExamPrintOptions(firstSelectedSetExam)}
-                                    className="h-9 w-9 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                    className="h-9 w-9 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-amber-800/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
                                     title="Print Reports"
                                   >
                                     <Printer className="h-4 w-4" />
@@ -3416,7 +3416,7 @@ export default function ExamsPage() {
                                     variant="outline"
                                     size="sm"
                                     asChild
-                                    className="h-9 w-9 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                    className="h-9 w-9 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-green-800/60 dark:text-green-300 dark:hover:bg-green-950/40"
                                     title="View Results"
                                   >
                                     <Link href={`/exams/${firstSelectedSetExam.id}/view-results?classId=${firstSelectedSetExam.classId}`}>
@@ -3431,7 +3431,7 @@ export default function ExamsPage() {
                                       const examIds = selectedSetExams.map(e => e.id);
                                       handleDeleteExamStack(examIds, `${firstSelectedSetExam.baseName || firstSelectedSetExam.name} ${currentSelectedSetKey}`);
                                     }}
-                                    className="h-9 w-9 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                    className="h-9 w-9 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
                                     title="Delete Set"
                                   >
                                     <Trash2 className="h-4 w-4" />
@@ -3446,7 +3446,7 @@ export default function ExamsPage() {
                               <div className="flex w-full items-center justify-between gap-3 xl:justify-end">
                                 {!isExpanded && exams.length > 1 && (
                                   <div className="min-w-0 items-center gap-2 pr-2 hidden md:flex">
-                                    <span className="truncate text-sm font-semibold text-slate-700">
+                                    <span className="truncate text-sm font-semibold text-slate-700 dark:text-slate-200">
                                       {getClassMeta(selectedCollapsedExam.classId).code}
                                     </span>
                                   </div>
@@ -3456,7 +3456,7 @@ export default function ExamsPage() {
                                   variant="outline"
                                   size="sm"
                                   asChild
-                                  className="h-9 w-9 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                  className="h-9 w-9 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
                                   title="Record Results"
                                 >
                                   <Link href={`/exams/${(!isExpanded && exams.length > 1 ? selectedCollapsedExam.id : firstExam.id)}/record-results?classId=${(!isExpanded && exams.length > 1 ? selectedCollapsedExam.classId : firstExam.classId)}`}>
@@ -3468,7 +3468,7 @@ export default function ExamsPage() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => openExamPrintOptions(!isExpanded && exams.length > 1 ? selectedCollapsedExam : firstExam)}
-                                  className="h-9 w-9 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                  className="h-9 w-9 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-amber-800/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
                                   title="Print Reports"
                                 >
                                   <Printer className="h-4 w-4" />
@@ -3478,7 +3478,7 @@ export default function ExamsPage() {
                                   variant="outline"
                                   size="sm"
                                   asChild
-                                  className="h-9 w-9 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                  className="h-9 w-9 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-green-800/60 dark:text-green-300 dark:hover:bg-green-950/40"
                                   title="View Results"
                                 >
                                   <Link href={`/exams/${(!isExpanded && exams.length > 1 ? selectedCollapsedExam.id : firstExam.id)}/view-results?classId=${(!isExpanded && exams.length > 1 ? selectedCollapsedExam.classId : firstExam.classId)}`}>
@@ -3492,7 +3492,7 @@ export default function ExamsPage() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleDeleteExam(!isExpanded && exams.length > 1 ? selectedCollapsedExam.id : firstExam.id)}
-                                    className="h-9 w-9 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                    className="h-9 w-9 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
                                     title="Delete Exam"
                                   >
                                     <Trash2 className="h-4 w-4" />
@@ -3558,7 +3558,7 @@ export default function ExamsPage() {
                                     return (
                                       <div
                                         key={setName}
-                                        className="bg-gradient-to-r from-purple-50 to-indigo-50/50 rounded-xl p-2 border border-purple-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200"
+                                        className="bg-gradient-to-r from-purple-50 to-indigo-50/50 rounded-xl p-2 border border-purple-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200 dark:from-purple-950/40 dark:to-indigo-950/50 dark:border-purple-800/60 dark:hover:border-purple-800/60"
                                       >
                                         <div className="flex items-center justify-between">
                                           <div className="flex items-center gap-2">
@@ -3569,10 +3569,10 @@ export default function ExamsPage() {
                                             </div>
 
                                             <div>
-                                              <p className="font-semibold text-gray-900 text-sm leading-tight">
+                                              <p className="font-semibold text-gray-900 text-sm leading-tight dark:text-slate-100">
                                                 {setName} - {firstSetExam.name.replace(new RegExp(`^${(firstSetExam.baseName || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} - `), '').replace(/ - SET \d+$/i, '')}
                                               </p>
-                                              <p className="text-[11px] text-gray-500 mt-0.5">
+                                              <p className="text-[11px] text-gray-500 mt-0.5 dark:text-slate-400">
                                                 {setExams.length} exam{setExams.length !== 1 ? 's' : ''} • {safeParseDateString(firstSetExam.startDate) ? format(safeParseDateString(firstSetExam.startDate)!, "MMM dd") : 'No date'}
                                               </p>
                                             </div>
@@ -3583,7 +3583,7 @@ export default function ExamsPage() {
                                               variant="outline"
                                               size="sm"
                                               asChild
-                                              className="h-7 w-7 p-0 rounded-full border border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                              className="h-7 w-7 p-0 rounded-full border border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
                                               title="Record Results"
                                             >
                                               <Link href={`/exams/${firstSetExam.id}/record-results?classId=${firstSetExam.classId}`}>
@@ -3595,7 +3595,7 @@ export default function ExamsPage() {
                                               variant="outline"
                                               size="sm"
                                               onClick={() => openExamPrintOptions(firstSetExam)}
-                                              className="h-7 w-7 p-0 rounded-full border border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                              className="h-7 w-7 p-0 rounded-full border border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-amber-800/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
                                               title="Print Reports"
                                             >
                                               <Printer className="h-3.5 w-3.5" />
@@ -3605,7 +3605,7 @@ export default function ExamsPage() {
                                               variant="outline"
                                               size="sm"
                                               asChild
-                                              className="h-7 w-7 p-0 rounded-full border border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                              className="h-7 w-7 p-0 rounded-full border border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-green-800/60 dark:text-green-300 dark:hover:bg-green-950/40"
                                               title="View Results"
                                             >
                                               <Link href={`/exams/${firstSetExam.id}/view-results?classId=${firstSetExam.classId}`}>
@@ -3621,7 +3621,7 @@ export default function ExamsPage() {
                                                 const examIds = setExams.map(exam => exam.id);
                                                 handleDeleteExamStack(examIds, `${firstSetExam.baseName || firstSetExam.name} ${setName}`);
                                               }}
-                                              className="h-7 w-7 p-0 rounded-full border border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                              className="h-7 w-7 p-0 rounded-full border border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
                                               title="Delete Set"
                                             >
                                               <Trash2 className="h-3.5 w-3.5" />
@@ -3641,7 +3641,7 @@ export default function ExamsPage() {
                                   return (
                                     <div
                                       key={exam.id}
-                                      className="bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl p-2 border border-gray-200 hover:border-blue-200 hover:shadow-sm transition-all duration-200"
+                                      className="bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl p-2 border border-gray-200 hover:border-blue-200 hover:shadow-sm transition-all duration-200 dark:from-slate-900 dark:to-slate-900/50 dark:border-slate-700 dark:hover:border-blue-800/60"
                                     >
                                       <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
@@ -3652,12 +3652,12 @@ export default function ExamsPage() {
                                           </div>
 
                                           <div className="flex items-center gap-1.5 flex-wrap">
-                                            <p className="font-semibold text-gray-900 text-sm leading-tight">{className}</p>
+                                            <p className="font-semibold text-gray-900 text-sm leading-tight dark:text-slate-100">{className}</p>
                                             <span className="text-gray-300 text-xs">•</span>
                                             <button 
                                               type="button" 
                                               onClick={(e) => { e.stopPropagation(); setSubjectsPopupExam(exam); }}
-                                              className="text-[11px] text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer transition-colors"
+                                              className="text-[11px] text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer transition-colors dark:text-blue-400 dark:hover:text-blue-200"
                                             >
                                               {exam.examNature === 'Subject based' && exam.subjectIds
                                                 ? `${exam.subjectIds.length} subject${exam.subjectIds.length !== 1 ? 's' : ''}`
@@ -3672,7 +3672,7 @@ export default function ExamsPage() {
                                             variant="outline"
                                             size="sm"
                                             asChild
-                                            className="h-8 w-8 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                            className="h-8 w-8 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
                                             title="Record Results"
                                           >
                                             <Link href={`/exams/${exam.id}/record-results?classId=${exam.classId}`}>
@@ -3684,7 +3684,7 @@ export default function ExamsPage() {
                                             variant="outline"
                                             size="sm"
                                             onClick={() => openExamPrintOptions(exam)}
-                                            className="h-8 w-8 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                            className="h-8 w-8 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-amber-800/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
                                             title="Print Reports"
                                           >
                                             <Printer className="h-4 w-4" />
@@ -3694,7 +3694,7 @@ export default function ExamsPage() {
                                             variant="outline"
                                             size="sm"
                                             asChild
-                                            className="h-8 w-8 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                            className="h-8 w-8 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-green-800/60 dark:text-green-300 dark:hover:bg-green-950/40"
                                             title="View Results"
                                           >
                                             <Link href={`/exams/${exam.id}/view-results?classId=${exam.classId}`}>
@@ -3706,7 +3706,7 @@ export default function ExamsPage() {
                                             variant="outline"
                                             size="sm"
                                             asChild
-                                            className="h-8 w-8 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                            className="h-8 w-8 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-purple-800/60 dark:text-purple-300 dark:hover:bg-purple-950/40"
                                             title="Edit Snapshot Data"
                                           >
                                             <Link href={`/exams/${exam.id}/edit-snapshot`}>
@@ -3719,7 +3719,7 @@ export default function ExamsPage() {
                                             variant="outline"
                                             size="sm"
                                             onClick={() => handleDeleteExam(exam.id)}
-                                            className="h-8 w-8 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                            className="h-8 w-8 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
                                             title="Delete Exam"
                                           >
                                             <Trash2 className="h-4 w-4" />
@@ -3752,28 +3752,28 @@ export default function ExamsPage() {
             />
 
             {/* Modal Panel */}
-            <div className="relative z-10 w-full max-w-2xl h-[90vh] flex flex-col bg-slate-50 rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="relative z-10 w-full max-w-2xl h-[90vh] flex flex-col bg-slate-50 rounded-2xl shadow-2xl border border-slate-200 overflow-hidden dark:bg-slate-900 dark:border-slate-700">
 
               {/* Close Button */}
               <button
                 type="button"
                 onClick={() => { setIsDialogOpen(false); resetForm(); }}
-                className="absolute right-3 top-3 z-20 h-8 w-8 rounded-full bg-white/80 border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-white shadow-sm transition-all"
+                className="absolute right-3 top-3 z-20 h-8 w-8 rounded-full bg-white/80 border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-white shadow-sm transition-all dark:bg-slate-900/80 dark:border-slate-700 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-900"
               >
                 <X className="h-4 w-4" />
                 <span className="sr-only">Close</span>
               </button>
 
               {/* --- HEADER --- */}
-              <div className="flex-shrink-0 px-5 py-4 border-b border-slate-200 bg-white flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
+              <div className="flex-shrink-0 px-5 py-4 border-b border-slate-200 bg-white flex items-center gap-3 dark:border-slate-700 dark:bg-slate-900">
+                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0 dark:bg-blue-950/40 dark:text-blue-400">
                   {editingExam ? <FilePenLine className="h-5 w-5" /> : isAddingSet ? <PlusCircle className="h-5 w-5" /> : <CalendarClock className="h-5 w-5" />}
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-800">
+                  <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
                     {editingExam ? "Edit Exam" : isAddingSet ? "Add New Set" : "Schedule New Exam"}
                   </h2>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     {editingExam ? "Update the details for this examination." : isAddingSet ? "Add another set to an existing continuous assessment." : "Fill in the details, schedule, and targets below."}
                   </p>
                 </div>
@@ -3789,16 +3789,16 @@ export default function ExamsPage() {
                 />
 
                 {/* SECTION 1: Basic Information */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center gap-2">
-                    <Info className="h-4 w-4 text-blue-500" />
-                    <h3 className="text-sm font-semibold text-slate-700">Basic Information</h3>
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden dark:bg-slate-900 dark:border-slate-700">
+                  <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center gap-2 dark:bg-slate-900 dark:border-slate-700">
+                    <Info className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Basic Information</h3>
                   </div>
                   <div className="p-4 space-y-4">
                     {/* Assessment Name for CAT */}
                     {examTypeId === 'et_cat' && (
                       <div>
-                        <Label htmlFor="assessmentName" className="text-sm font-medium text-slate-700">Assessment Name <span className="text-rose-500">*</span></Label>
+                        <Label htmlFor="assessmentName" className="text-sm font-medium text-slate-700 dark:text-slate-200">Assessment Name <span className="text-rose-500 dark:text-rose-400">*</span></Label>
                         <Input
                           id="assessmentName"
                           value={assessmentName}
@@ -3814,7 +3814,7 @@ export default function ExamsPage() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
                       <div className="sm:col-span-6">
-                        <Label htmlFor="examName" className="text-sm font-medium text-slate-700">Exam Name <span className="text-rose-500">*</span></Label>
+                        <Label htmlFor="examName" className="text-sm font-medium text-slate-700 dark:text-slate-200">Exam Name <span className="text-rose-500 dark:text-rose-400">*</span></Label>
                         <Input
                           id="examName"
                           value={examName}
@@ -3826,7 +3826,7 @@ export default function ExamsPage() {
                         <FieldError error={examFormValidation.getFieldError('examName')} />
                       </div>
                       <div className="sm:col-span-3">
-                        <Label htmlFor="examTypeId" className="text-sm font-medium text-slate-700">Exam Type <span className="text-rose-500">*</span></Label>
+                        <Label htmlFor="examTypeId" className="text-sm font-medium text-slate-700 dark:text-slate-200">Exam Type <span className="text-rose-500 dark:text-rose-400">*</span></Label>
                         <Select value={examTypeId} onValueChange={(val) => {
                           setExamTypeId(val);
                           examFormValidation.handleFieldChange('examTypeId');
@@ -3842,8 +3842,8 @@ export default function ExamsPage() {
                         <FieldError error={examFormValidation.getFieldError('examTypeId')} />
                       </div>
                       <div className="sm:col-span-3">
-                        <Label htmlFor="examNature" className="text-sm font-medium text-slate-700">
-                          {selectedClassIdsForm.length > 1 && !editingExam ? "Default Exam Nature" : "Exam Nature"} <span className="text-rose-500">*</span>
+                        <Label htmlFor="examNature" className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                          {selectedClassIdsForm.length > 1 && !editingExam ? "Default Exam Nature" : "Exam Nature"} <span className="text-rose-500 dark:text-rose-400">*</span>
                         </Label>
                         <Select value={examNature} onValueChange={(val) => {
                           const nextNature = val as ExamNature;
@@ -3873,18 +3873,18 @@ export default function ExamsPage() {
                       </div>
                     </div>
                     {selectedClassIdsForm.length > 1 && !editingExam && (
-                      <p className="mt-1.5 text-xs text-slate-500">This applies to all selected classes first. You can still override each class below.</p>
+                      <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">This applies to all selected classes first. You can still override each class below.</p>
                     )}
 
                     {examTypeId === 'et_cat' && (
                       <div>
-                        <Label htmlFor="setNumber" className="text-sm font-medium text-slate-700">Set Number</Label>
-                        <Input id="setNumber" value={setNumber} placeholder="SET 1" className="mt-1.5 bg-slate-50 text-slate-500 cursor-not-allowed" disabled readOnly />
+                        <Label htmlFor="setNumber" className="text-sm font-medium text-slate-700 dark:text-slate-200">Set Number</Label>
+                        <Input id="setNumber" value={setNumber} placeholder="SET 1" className="mt-1.5 bg-slate-50 text-slate-500 cursor-not-allowed dark:bg-slate-900 dark:text-slate-400" disabled readOnly />
                       </div>
                     )}
                     {examTypeId === OTHER_EXAM_TYPE_ID && !isAddingSet && (
                       <div>
-                        <Label htmlFor="customExamTypeName" className="text-sm font-medium text-slate-700">Custom Type Name <span className="text-rose-500">*</span></Label>
+                        <Label htmlFor="customExamTypeName" className="text-sm font-medium text-slate-700 dark:text-slate-200">Custom Type Name <span className="text-rose-500 dark:text-rose-400">*</span></Label>
                         <Input id="customExamTypeName" value={customExamTypeName} onChange={(e) => { setCustomExamTypeName(e.target.value.toUpperCase()); examFormValidation.handleFieldChange('customExamTypeName'); }} placeholder="e.g., QUIZ, ORAL" className="mt-1.5" {...examFormValidation.getFieldProps('customExamTypeName')} />
                         <FieldError error={examFormValidation.getFieldError('customExamTypeName')} />
                       </div>
@@ -3893,22 +3893,22 @@ export default function ExamsPage() {
                 </div>
 
                 {/* SECTION 2: Schedule and class */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center gap-2">
-                    <CalendarClock className="h-4 w-4 text-purple-500" />
-                    <h3 className="text-sm font-semibold text-slate-700">Schedule and class</h3>
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden dark:bg-slate-900 dark:border-slate-700">
+                  <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center gap-2 dark:bg-slate-900 dark:border-slate-700">
+                    <CalendarClock className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Schedule and class</h3>
                   </div>
                   <div className="p-4 space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
                       <div className={isAddingSet ? "sm:col-span-6" : "sm:col-span-4"}>
-                        <Label className="text-sm font-medium text-slate-700">Start Date <span className="text-rose-500">*</span></Label>
+                        <Label className="text-sm font-medium text-slate-700 dark:text-slate-200">Start Date <span className="text-rose-500 dark:text-rose-400">*</span></Label>
                         <div className="mt-1.5">
                           <ModernDatePicker date={startDate} setDate={(value) => { setStartDate(value); examFormValidation.handleFieldChange('startDate'); }} placeholder="Select start date" showQuickSelects={true} minDate={getCurrentTermDateRange().minDate} maxDate={getCurrentTermDateRange().maxDate} examMode={true} excludeWeekends={false} triggerProps={{ id: 'startDate', ...examFormValidation.getFieldProps('startDate') }} />
                         </div>
                         <FieldError error={examFormValidation.getFieldError('startDate')} />
                       </div>
                       <div className={isAddingSet ? "sm:col-span-6" : "sm:col-span-4"}>
-                        <Label className="text-sm font-medium text-slate-700">End Date <span className="text-rose-500">*</span></Label>
+                        <Label className="text-sm font-medium text-slate-700 dark:text-slate-200">End Date <span className="text-rose-500 dark:text-rose-400">*</span></Label>
                         <div className="mt-1.5">
                           <ModernDatePicker date={endDate} setDate={(value) => { setEndDate(value); examFormValidation.handleFieldChange('endDate'); }} placeholder="Select end date" showQuickSelects={true} minDate={startDate || getCurrentTermDateRange().minDate} maxDate={getCurrentTermDateRange().maxDate} examMode={true} excludeWeekends={false} triggerProps={{ id: 'endDate', ...examFormValidation.getFieldProps('endDate') }} />
                         </div>
@@ -3917,9 +3917,9 @@ export default function ExamsPage() {
                       {!isAddingSet && (
                         <div className="sm:col-span-4">
                           <div className="flex items-center justify-between">
-                            <Label className="text-sm font-medium text-slate-700">Target Class(es) <span className="text-rose-500">*</span></Label>
+                            <Label className="text-sm font-medium text-slate-700 dark:text-slate-200">Target Class(es) <span className="text-rose-500 dark:text-rose-400">*</span></Label>
                             {selectedClassIdsForm.length > 0 && (
-                              <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{selectedClassIdsForm.length} selected</span>
+                              <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full dark:text-emerald-400 dark:bg-emerald-950/40">{selectedClassIdsForm.length} selected</span>
                             )}
                           </div>
                           <div className="mt-1.5">
@@ -3951,9 +3951,9 @@ export default function ExamsPage() {
                               triggerProps={{ id: 'targetClasses', ...examFormValidation.getFieldProps('targetClasses') }}
                             />
                             <FieldError error={examFormValidation.getFieldError('targetClasses')} />
-                            {allClasses.length === 0 && <p className="text-xs text-slate-500 mt-2">No classes available.</p>}
+                            {allClasses.length === 0 && <p className="text-xs text-slate-500 mt-2 dark:text-slate-400">No classes available.</p>}
                             {selectedClassIdsForm.some(classId => isNurseryClass(allClasses.find(schoolClass => schoolClass.id === classId))) && (
-                              <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                              <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-200">
                                 Nursery exams use commentary assessments: Excellent, Very Good, Good, Fair Good, and Needs Improvement.
                               </div>
                             )}
@@ -3963,12 +3963,12 @@ export default function ExamsPage() {
                     </div>
 
                     {!isAddingSet && !editingExam && selectedClassIdsForm.some(classId => getActiveClassStreams(allClasses.find(schoolClass => schoolClass.id === classId), academicYearId).length > 0) && (
-                      <div className="pt-3 border-t border-slate-100 space-y-3">
+                      <div className="pt-3 border-t border-slate-100 space-y-3 dark:border-slate-700">
                         <div className="flex items-start gap-2">
-                          <Layers className="h-4 w-4 text-indigo-500 mt-0.5" />
+                          <Layers className="h-4 w-4 text-indigo-500 mt-0.5 dark:text-indigo-400" />
                           <div>
-                            <Label className="text-sm font-medium text-slate-700">Stream scope</Label>
-                            <p className="text-xs text-slate-500 mt-0.5">Choose which streams will sit this exam. All active streams are selected by default.</p>
+                            <Label className="text-sm font-medium text-slate-700 dark:text-slate-200">Stream scope</Label>
+                            <p className="text-xs text-slate-500 mt-0.5 dark:text-slate-400">Choose which streams will sit this exam. All active streams are selected by default.</p>
                           </div>
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -3984,12 +3984,12 @@ export default function ExamsPage() {
                                 key={`stream-scope-${classId}`}
                                 id={`classStreams_${classId}`}
                                 tabIndex={-1}
-                                className="rounded-lg border border-slate-200 bg-slate-50/60 p-3 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                className="rounded-lg border border-slate-200 bg-slate-50/60 p-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:border-slate-700 dark:bg-slate-900/60"
                               >
                                 <div className="flex items-center justify-between gap-3 mb-2.5">
                                   <div>
-                                    <p className="text-sm font-semibold text-slate-800">{selectedClass?.name}</p>
-                                    <p className="text-xs text-slate-500">{selectedStreamIds.length} of {activeStreams.length} streams</p>
+                                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{selectedClass?.name}</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">{selectedStreamIds.length} of {activeStreams.length} streams</p>
                                   </div>
                                   <Button
                                     type="button"
@@ -4012,7 +4012,7 @@ export default function ExamsPage() {
                                     const checked = selectedStreamIds.includes(stream.id);
                                     const pupilCount = pupils.filter(pupil => pupil.classId === classId && pupil.status === 'Active' && pupil.streamId === stream.id).length;
                                     return (
-                                      <label key={stream.id} className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 cursor-pointer hover:border-indigo-300">
+                                      <label key={stream.id} className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 cursor-pointer hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-800/60">
                                         <span className="flex items-center gap-2.5">
                                           <Checkbox
                                             checked={checked}
@@ -4029,7 +4029,7 @@ export default function ExamsPage() {
                                               examFormValidation.handleFieldChange(`classStreams_${classId}`);
                                             }}
                                           />
-                                          <span className="text-sm font-medium text-slate-700">{stream.name} <span className="text-slate-400">({stream.code})</span></span>
+                                          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{stream.name} <span className="text-slate-400 dark:text-slate-400">({stream.code})</span></span>
                                         </span>
                                         <Badge variant="secondary" className="font-normal">{pupilCount} pupils</Badge>
                                       </label>
@@ -4045,16 +4045,16 @@ export default function ExamsPage() {
                     )}
 
                     {!isAddingSet && pupilsLoading && (
-                      <div className="flex items-center p-2.5 mb-2 bg-blue-50 rounded-lg border border-blue-100">
-                        <Loader2 className="h-4 w-4 animate-spin mr-2 text-blue-500" />
-                        <span className="text-sm text-blue-700">Loading class data...</span>
+                      <div className="flex items-center p-2.5 mb-2 bg-blue-50 rounded-lg border border-blue-100 dark:bg-blue-950/40 dark:border-blue-800/60">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2 text-blue-500 dark:text-blue-400" />
+                        <span className="text-sm text-blue-700 dark:text-blue-300">Loading class data...</span>
                       </div>
                     )}
 
                     {!isAddingSet && selectedClassIdsForm.length > 1 && !editingExam && (
-                      <div className="pt-3 border-t border-slate-100">
-                        <Label className="text-sm font-medium text-slate-700">Per Class Setup <span className="text-rose-500">*</span></Label>
-                        <p className="text-xs text-slate-500 mt-0.5 mb-3">Choose the exam nature for each class. Subject-based classes can then pick their own subjects.</p>
+                      <div className="pt-3 border-t border-slate-100 dark:border-slate-700">
+                        <Label className="text-sm font-medium text-slate-700 dark:text-slate-200">Per Class Setup <span className="text-rose-500 dark:text-rose-400">*</span></Label>
+                        <p className="text-xs text-slate-500 mt-0.5 mb-3 dark:text-slate-400">Choose the exam nature for each class. Subject-based classes can then pick their own subjects.</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {selectedClassIdsForm.map(classId => {
                             const currentClass = allClasses.find(c => c.id === classId);
@@ -4062,9 +4062,9 @@ export default function ExamsPage() {
                             const subjectsInThisClass = getSubjectsForClass(classId);
 
                             return (
-                              <div key={`class-setup-${classId}`} className="border border-slate-200 rounded-lg overflow-hidden">
-                                <div className="bg-slate-100 px-3 py-2 border-b border-slate-200 flex items-center justify-between">
-                                  <h5 className="text-sm font-semibold text-slate-800">{currentClass?.name || classId} <span className="text-slate-400 font-normal text-xs">({currentClass?.code})</span></h5>
+                              <div key={`class-setup-${classId}`} className="border border-slate-200 rounded-lg overflow-hidden dark:border-slate-700">
+                                <div className="bg-slate-100 px-3 py-2 border-b border-slate-200 flex items-center justify-between dark:bg-slate-900 dark:border-slate-700">
+                                  <h5 className="text-sm font-semibold text-slate-800 dark:text-slate-100">{currentClass?.name || classId} <span className="text-slate-400 font-normal text-xs dark:text-slate-400">({currentClass?.code})</span></h5>
                                   {!pupilsLoading && (() => {
                                     const activePupilsInClass = getScopedActivePupils(classId);
                                     const excludedCount = (excludedPupilIds[classId] || []).length;
@@ -4078,7 +4078,7 @@ export default function ExamsPage() {
                                         <Camera className="h-3 w-3" />
                                         <span>Snapshot</span>
                                         {excludedCount > 0 && (
-                                          <span className="ml-1 bg-white/30 rounded-full px-1.5 py-0.5 text-[10px] font-bold">{activePupilsInClass.length - excludedCount}/{activePupilsInClass.length}</span>
+                                          <span className="ml-1 bg-white/30 rounded-full px-1.5 py-0.5 text-[10px] font-bold dark:bg-slate-900/30">{activePupilsInClass.length - excludedCount}/{activePupilsInClass.length}</span>
                                         )}
                                       </button>
                                     );
@@ -4086,7 +4086,7 @@ export default function ExamsPage() {
                                 </div>
                                 <div className="p-3 space-y-3">
                                   <div>
-                                    <Label className="text-xs font-medium text-slate-600">Exam Nature</Label>
+                                    <Label className="text-xs font-medium text-slate-600 dark:text-slate-300">Exam Nature</Label>
                                     <Select value={classNature} onValueChange={(value) => { handlePerClassExamNatureChange(classId, value as ExamNature); examFormValidation.handleFieldChange(`classNature_${classId}`); }}>
                                       <SelectTrigger id={`classNature_${classId}`} className="mt-1.5" {...examFormValidation.getFieldProps(`classNature_${classId}`)}>
                                         <SelectValue placeholder="Select nature" />
@@ -4100,7 +4100,7 @@ export default function ExamsPage() {
 
                                   {classNature === 'Subject based' && (
                                     <div>
-                                      <Label className="text-xs font-medium text-slate-600">Subjects</Label>
+                                      <Label className="text-xs font-medium text-slate-600 dark:text-slate-300">Subjects</Label>
                                       <div
                                         id={`classSubjects_${classId}`}
                                         tabIndex={-1}
@@ -4109,17 +4109,17 @@ export default function ExamsPage() {
                                         className="mt-1.5 max-h-40 overflow-y-auto space-y-1.5 rounded-md aria-invalid:border-2 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-2 aria-invalid:ring-red-200"
                                       >
                                         {subjectsInThisClass.length === 0 ? (
-                                          <p className="text-sm text-slate-400 italic text-center py-2">No subjects assigned.</p>
+                                          <p className="text-sm text-slate-400 italic text-center py-2 dark:text-slate-400">No subjects assigned.</p>
                                         ) : (
                                           subjectsInThisClass.map(sub => (
-                                            <label key={`multi-class-${classId}-${sub.id}`} className="flex items-center gap-2.5 bg-white border border-slate-200 rounded-md px-3 py-1.5 hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer transition-colors">
+                                            <label key={`multi-class-${classId}-${sub.id}`} className="flex items-center gap-2.5 bg-white border border-slate-200 rounded-md px-3 py-1.5 hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer transition-colors dark:bg-slate-900 dark:border-slate-700 dark:hover:bg-emerald-950/40 dark:hover:border-emerald-800/60">
                                               <Checkbox
                                                 id={`class-${classId}-subj-${sub.id}`}
                                                 checked={(perClassSelectedSubjects[classId] || []).includes(sub.id)}
                                                 onCheckedChange={(checked) => { handlePerClassSubjectIdChange(classId, sub.id, checked); examFormValidation.handleFieldChange(`classSubjects_${classId}`); }}
                                                 className="h-4 w-4"
                                               />
-                                              <span className="text-sm text-slate-700">{sub.name} <span className="text-slate-400 text-xs">({sub.code})</span></span>
+                                              <span className="text-sm text-slate-700 dark:text-slate-200">{sub.name} <span className="text-slate-400 text-xs dark:text-slate-400">({sub.code})</span></span>
                                             </label>
                                           ))
                                         )}
@@ -4136,11 +4136,11 @@ export default function ExamsPage() {
                     )}
 
                     {!isAddingSet && selectedClassIdsForm.length > 0 && selectedClassIdsForm.some(classId => getExamNatureForClass(classId) === 'Subject based') && selectedClassIdsForm.length <= 1 && (
-                      <div className="pt-3 border-t border-slate-100">
+                      <div className="pt-3 border-t border-slate-100 dark:border-slate-700">
                         <div className="flex items-center justify-between mb-3">
                           <div>
-                            <Label className="text-sm font-medium text-slate-700">Target Subjects per Class <span className="text-rose-500">*</span></Label>
-                            <p className="text-xs text-slate-500 mt-0.5">Select subjects for each selected class.</p>
+                            <Label className="text-sm font-medium text-slate-700 dark:text-slate-200">Target Subjects per Class <span className="text-rose-500 dark:text-rose-400">*</span></Label>
+                            <p className="text-xs text-slate-500 mt-0.5 dark:text-slate-400">Select subjects for each selected class.</p>
                           </div>
                           {!pupilsLoading && selectedClassIdsForm.length === 1 && (() => {
                             const cId = selectedClassIdsForm[0];
@@ -4156,7 +4156,7 @@ export default function ExamsPage() {
                                 <Camera className="h-3.5 w-3.5" />
                                 <span>View Snapshot</span>
                                 {excludedCount > 0 && (
-                                  <span className="ml-1 bg-white/30 rounded-full px-1.5 py-0.5 text-[10px] font-bold">{activePupilsInClass.length - excludedCount}/{activePupilsInClass.length}</span>
+                                  <span className="ml-1 bg-white/30 rounded-full px-1.5 py-0.5 text-[10px] font-bold dark:bg-slate-900/30">{activePupilsInClass.length - excludedCount}/{activePupilsInClass.length}</span>
                                 )}
                               </button>
                             );
@@ -4167,9 +4167,9 @@ export default function ExamsPage() {
                             const subjectsInThisClass = getSubjectsForClass(classId);
                             const currentClass = allClasses.find(c => c.id === classId);
                             return (
-                              <div key={`class-subjects-${classId}`} className="border border-slate-200 rounded-lg overflow-hidden">
-                                <div className="bg-slate-100 px-3 py-2 border-b border-slate-200">
-                                  <h5 className="text-sm font-semibold text-slate-800">{currentClass?.name || classId} <span className="text-slate-400 font-normal text-xs">({currentClass?.code})</span></h5>
+                              <div key={`class-subjects-${classId}`} className="border border-slate-200 rounded-lg overflow-hidden dark:border-slate-700">
+                                <div className="bg-slate-100 px-3 py-2 border-b border-slate-200 dark:bg-slate-900 dark:border-slate-700">
+                                  <h5 className="text-sm font-semibold text-slate-800 dark:text-slate-100">{currentClass?.name || classId} <span className="text-slate-400 font-normal text-xs dark:text-slate-400">({currentClass?.code})</span></h5>
                                 </div>
                                 <div
                                   id={`classSubjects_${classId}`}
@@ -4179,17 +4179,17 @@ export default function ExamsPage() {
                                   className="p-3 max-h-40 overflow-y-auto space-y-1.5 aria-invalid:border-2 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-2 aria-invalid:ring-red-200"
                                 >
                                   {subjectsInThisClass.length === 0 ? (
-                                    <p className="text-sm text-slate-400 italic text-center py-2">No subjects assigned.</p>
+                                    <p className="text-sm text-slate-400 italic text-center py-2 dark:text-slate-400">No subjects assigned.</p>
                                   ) : (
                                     subjectsInThisClass.map(sub => (
-                                      <label key={sub.id} className="flex items-center gap-2.5 bg-white border border-slate-200 rounded-md px-3 py-1.5 hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer transition-colors">
+                                      <label key={sub.id} className="flex items-center gap-2.5 bg-white border border-slate-200 rounded-md px-3 py-1.5 hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer transition-colors dark:bg-slate-900 dark:border-slate-700 dark:hover:bg-emerald-950/40 dark:hover:border-emerald-800/60">
                                         <Checkbox
                                           id={`class-${classId}-subj-${sub.id}`}
                                           checked={(perClassSelectedSubjects[classId] || []).includes(sub.id)}
                                           onCheckedChange={(checked) => { handlePerClassSubjectIdChange(classId, sub.id, checked); examFormValidation.handleFieldChange(`classSubjects_${classId}`); }}
                                           className="h-4 w-4"
                                         />
-                                        <span className="text-sm text-slate-700">{sub.name} <span className="text-slate-400 text-xs">({sub.code})</span></span>
+                                        <span className="text-sm text-slate-700 dark:text-slate-200">{sub.name} <span className="text-slate-400 text-xs dark:text-slate-400">({sub.code})</span></span>
                                       </label>
                                     ))
                                   )}
@@ -4206,7 +4206,7 @@ export default function ExamsPage() {
                     {!isAddingSet && !editingExam && selectedClassIdsForm.length === 1 &&
                      getExamNatureForClass(selectedClassIdsForm[0]) === 'Set based' &&
                      !pupilsLoading && (
-                      <div className="pt-3 border-t border-slate-100 flex justify-end">
+                      <div className="pt-3 border-t border-slate-100 flex justify-end dark:border-slate-700">
                         <button
                           type="button"
                           onClick={() => { setSnapshotPreviewClassId(selectedClassIdsForm[0]); setSnapshotPreviewTab('pupils'); }}
@@ -4218,7 +4218,7 @@ export default function ExamsPage() {
                           {(excludedPupilIds[selectedClassIdsForm[0]] || []).length > 0 && (() => {
                             const activePupilsInClass = getScopedActivePupils(selectedClassIdsForm[0]);
                             const excl = (excludedPupilIds[selectedClassIdsForm[0]] || []).length;
-                            return <span className="ml-1 bg-white/30 rounded-full px-1.5 py-0.5 text-[10px] font-bold">{activePupilsInClass.length - excl}/{activePupilsInClass.length}</span>;
+                            return <span className="ml-1 bg-white/30 rounded-full px-1.5 py-0.5 text-[10px] font-bold dark:bg-slate-900/30">{activePupilsInClass.length - excl}/{activePupilsInClass.length}</span>;
                           })()}
                         </button>
                       </div>
@@ -4232,11 +4232,11 @@ export default function ExamsPage() {
               {/* --- END SCROLLABLE BODY --- */}
 
               {/* --- FOOTER --- */}
-              <div className="flex-shrink-0 bg-white border-t border-slate-200 px-5 py-3.5 flex items-center justify-end gap-3">
+              <div className="flex-shrink-0 bg-white border-t border-slate-200 px-5 py-3.5 flex items-center justify-end gap-3 dark:bg-slate-900 dark:border-slate-700">
                 <Button
                   variant="outline"
                   onClick={() => { setIsDialogOpen(false); resetForm(); }}
-                  className="h-10 px-5 border-slate-300 text-slate-700 hover:bg-slate-100 font-medium"
+                  className="h-10 px-5 border-slate-300 text-slate-700 hover:bg-slate-100 font-medium dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
                   disabled={createExamMutation.isPending || createMultipleExamsMutation.isPending || updateExamMutation.isPending}
                 >
                   Cancel
@@ -4276,12 +4276,12 @@ export default function ExamsPage() {
             />
 
             {/* Modal Panel */}
-            <div className="relative z-10 w-full sm:max-w-2xl h-[92vh] sm:h-[88vh] flex flex-col bg-white sm:rounded-2xl shadow-2xl border-0 sm:border border-slate-200 overflow-hidden">
+            <div className="relative z-10 w-full sm:max-w-2xl h-[92vh] sm:h-[88vh] flex flex-col bg-white sm:rounded-2xl shadow-2xl border-0 sm:border border-slate-200 overflow-hidden dark:bg-slate-900 dark:border-slate-700">
 
               {/* Header */}
               <div className="flex-shrink-0 bg-gradient-to-r from-violet-600 to-purple-700 px-5 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center">
+                  <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center dark:bg-slate-900/20">
                     <Camera className="h-5 w-5 text-white" />
                   </div>
                   <div>
@@ -4294,21 +4294,21 @@ export default function ExamsPage() {
                 <button
                   type="button"
                   onClick={() => setSnapshotPreviewClassId(null)}
-                  className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition-colors"
+                  className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition-colors dark:bg-slate-900/10 dark:hover:bg-slate-900/25"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
               {/* Tab Bar */}
-              <div className="flex-shrink-0 flex border-b border-slate-200 bg-slate-50">
+              <div className="flex-shrink-0 flex border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900">
                 <button
                   type="button"
                   onClick={() => setSnapshotPreviewTab('pupils')}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-all ${
                     snapshotPreviewTab === 'pupils'
-                      ? 'text-violet-700 border-b-2 border-violet-600 bg-white'
-                      : 'text-slate-500 hover:text-slate-700'
+                      ? 'text-violet-700 border-b-2 border-violet-600 bg-white dark:text-violet-300 dark:bg-slate-900'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                   }`}
                 >
                   <Users className="h-4 w-4" />
@@ -4318,7 +4318,7 @@ export default function ExamsPage() {
                     const excluded = excludedPupilIds[snapshotPreviewClassId] || [];
                     return (
                       <span className={`ml-1 text-xs font-bold px-2 py-0.5 rounded-full ${
-                        excluded.length > 0 ? 'bg-amber-100 text-amber-700' : 'bg-violet-100 text-violet-700'
+                        excluded.length > 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300' : 'bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300'
                       }`}>
                         {activePupils.length - excluded.length}/{activePupils.length}
                       </span>
@@ -4330,8 +4330,8 @@ export default function ExamsPage() {
                   onClick={() => setSnapshotPreviewTab('teachers')}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-all ${
                     snapshotPreviewTab === 'teachers'
-                      ? 'text-violet-700 border-b-2 border-violet-600 bg-white'
-                      : 'text-slate-500 hover:text-slate-700'
+                      ? 'text-violet-700 border-b-2 border-violet-600 bg-white dark:text-violet-300 dark:bg-slate-900'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                   }`}
                 >
                   <GraduationCap className="h-4 w-4" />
@@ -4340,7 +4340,7 @@ export default function ExamsPage() {
                     const overrides = snapshotTeacherOverrides[snapshotPreviewClassId] || {};
                     const count = Object.keys(overrides).length;
                     return count > 0 ? (
-                      <span className="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                      <span className="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
                         {count} override{count !== 1 ? 's' : ''}
                       </span>
                     ) : null;
@@ -4361,21 +4361,21 @@ export default function ExamsPage() {
                   return (
                     <div className="p-4 space-y-3">
                       {/* Summary bar */}
-                      <div className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 border border-slate-200">
+                      <div className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 border border-slate-200 dark:bg-slate-900 dark:border-slate-700">
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-violet-100 flex items-center justify-center">
-                            <Users className="h-5 w-5 text-violet-600" />
+                          <div className="h-10 w-10 rounded-full bg-violet-100 flex items-center justify-center dark:bg-violet-950/40">
+                            <Users className="h-5 w-5 text-violet-600 dark:text-violet-400" />
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-slate-800">{includedCount} of {activePupilsInClass.length} pupils</p>
-                            <p className="text-xs text-slate-500">will sit this exam</p>
+                            <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{includedCount} of {activePupilsInClass.length} pupils</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">will sit this exam</p>
                           </div>
                         </div>
                         {excluded.length > 0 && (
                           <button
                             type="button"
                             onClick={() => setExcludedPupilIds(prev => ({ ...prev, [snapshotPreviewClassId!]: [] }))}
-                            className="text-xs text-violet-600 hover:text-violet-800 font-semibold px-3 py-1.5 rounded-full bg-violet-50 hover:bg-violet-100 transition-colors"
+                            className="text-xs text-violet-600 hover:text-violet-800 font-semibold px-3 py-1.5 rounded-full bg-violet-50 hover:bg-violet-100 transition-colors dark:text-violet-400 dark:hover:text-violet-200 dark:bg-violet-950/40 dark:hover:bg-violet-950/40"
                           >
                             Restore all
                           </button>
@@ -4383,7 +4383,7 @@ export default function ExamsPage() {
                       </div>
 
                       {activePupilsInClass.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                        <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-400">
                           <Users className="h-12 w-12 mb-3 text-slate-200" />
                           <p className="text-sm font-medium">No active pupils in this class</p>
                           <p className="text-xs mt-1">Make sure pupils are enrolled and active.</p>
@@ -4408,29 +4408,29 @@ export default function ExamsPage() {
                                 }}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all duration-200 ${
                                   isExcluded
-                                    ? 'bg-red-50 border-red-200 opacity-60 hover:opacity-80'
-                                    : 'bg-white border-slate-200 hover:border-violet-300 hover:bg-violet-50/40 hover:shadow-sm'
+                                    ? 'bg-red-50 border-red-200 opacity-60 hover:opacity-80 dark:bg-red-950/40 dark:border-red-800/60'
+                                    : 'bg-white border-slate-200 hover:border-violet-300 hover:bg-violet-50/40 hover:shadow-sm dark:bg-slate-900 dark:border-slate-700 dark:hover:border-violet-800/60 dark:hover:bg-violet-950/40'
                                 }`}
                               >
                                 <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                                  isExcluded ? 'bg-red-100 text-red-500' : 'bg-gradient-to-br from-violet-500 to-purple-600 text-white'
+                                  isExcluded ? 'bg-red-100 text-red-500 dark:bg-red-950/40 dark:text-red-400' : 'bg-gradient-to-br from-violet-500 to-purple-600 text-white'
                                 }`}>
                                   {isExcluded ? <X className="h-4 w-4" /> : String(index + 1).padStart(2, '0')}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <p className={`text-sm font-semibold truncate ${
-                                    isExcluded ? 'text-red-400 line-through' : 'text-slate-800'
+                                    isExcluded ? 'text-red-400 line-through' : 'text-slate-800 dark:text-slate-100'
                                   }`}>
                                     {formatPupilDisplayName(pupil)}
                                   </p>
-                                  <p className="text-xs text-slate-400">
+                                  <p className="text-xs text-slate-400 dark:text-slate-400">
                                     Adm: {pupil.admissionNumber || 'N/A'}{pupil.gender ? ` • ${pupil.gender}` : ''}
                                   </p>
                                 </div>
                                 <div className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
                                   isExcluded
-                                    ? 'border-red-300 bg-red-100'
-                                    : 'border-violet-400 bg-violet-50'
+                                    ? 'border-red-300 bg-red-100 dark:border-red-800/60 dark:bg-red-950/40'
+                                    : 'border-violet-400 bg-violet-50 dark:bg-violet-950/40'
                                 }`}>
                                   {!isExcluded && <div className="w-2.5 h-2.5 rounded-sm bg-violet-500" />}
                                 </div>
@@ -4454,13 +4454,13 @@ export default function ExamsPage() {
                   return (
                     <div className="p-4 space-y-3">
                       {/* Summary bar */}
-                      <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-3 border border-slate-200">
-                        <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                          <GraduationCap className="h-5 w-5 text-emerald-600" />
+                      <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-3 border border-slate-200 dark:bg-slate-900 dark:border-slate-700">
+                        <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center dark:bg-emerald-950/40">
+                          <GraduationCap className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-slate-800">{subjectList.length} subject{subjectList.length !== 1 ? 's' : ''}</p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{subjectList.length} subject{subjectList.length !== 1 ? 's' : ''}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
                             {classNature === 'Subject based' ? 'Selected subjects only' : 'All subjects in class'}
                             {' — click a row to change teacher'}
                           </p>
@@ -4468,7 +4468,7 @@ export default function ExamsPage() {
                       </div>
 
                       {subjectList.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                        <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-400">
                           <BookOpen className="h-12 w-12 mb-3 text-slate-200" />
                           <p className="text-sm font-medium">No subjects to display</p>
                           <p className="text-xs mt-1">{classNature === 'Subject based' ? 'Select subjects first.' : 'No subjects assigned to this class.'}</p>
@@ -4484,17 +4484,17 @@ export default function ExamsPage() {
                             const effectiveTeacher = allStaff.find(s => s.id === effectiveTeacherId);
 
                             return (
-                              <div key={sub.id} className="bg-white border border-slate-200 rounded-xl p-3 hover:border-violet-200 hover:shadow-sm transition-all">
+                              <div key={sub.id} className="bg-white border border-slate-200 rounded-xl p-3 hover:border-violet-200 hover:shadow-sm transition-all dark:bg-slate-900 dark:border-slate-700 dark:hover:border-violet-800/60">
                                 <div className="flex items-start gap-3">
                                   <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center flex-shrink-0 shadow-sm">
                                     <BookOpen className="h-4 w-4 text-white" />
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                      <p className="text-sm font-semibold text-slate-800">{sub.name}</p>
-                                      <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{sub.code}</span>
+                                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{sub.name}</p>
+                                      <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full dark:text-slate-400 dark:bg-slate-900">{sub.code}</span>
                                       {override && (
-                                        <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Overridden</span>
+                                        <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 dark:text-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800/60">Overridden</span>
                                       )}
                                     </div>
                                     <div className="mt-2">
@@ -4514,7 +4514,7 @@ export default function ExamsPage() {
                                         }}
                                       >
                                         <SelectTrigger className={`h-8 text-xs ${
-                                          override ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-slate-200'
+                                          override ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-200' : 'border-slate-200 dark:border-slate-700'
                                         }`}>
                                           <SelectValue placeholder="No teacher assigned" />
                                         </SelectTrigger>
@@ -4530,7 +4530,7 @@ export default function ExamsPage() {
                                       </Select>
                                     </div>
                                     {effectiveTeacher && (
-                                      <p className="text-xs text-slate-400 mt-1">
+                                      <p className="text-xs text-slate-400 mt-1 dark:text-slate-400">
                                         {(effectiveTeacher as any).name || `${(effectiveTeacher as any).firstName || ''} ${(effectiveTeacher as any).lastName || ''}`.trim()}
                                         {override ? ' (overridden)' : ' (default)'}
                                       </p>
@@ -4548,9 +4548,9 @@ export default function ExamsPage() {
               </div>
 
               {/* Footer */}
-              <div className="flex-shrink-0 bg-white border-t border-slate-200 px-5 py-3.5 flex items-center justify-between gap-3">
-                <p className="text-xs text-slate-400">
-                  Changes apply when you <span className="font-semibold text-slate-600">Create Exam</span>. Nothing is saved yet.
+              <div className="flex-shrink-0 bg-white border-t border-slate-200 px-5 py-3.5 flex items-center justify-between gap-3 dark:bg-slate-900 dark:border-slate-700">
+                <p className="text-xs text-slate-400 dark:text-slate-400">
+                  Changes apply when you <span className="font-semibold text-slate-600 dark:text-slate-300">Create Exam</span>. Nothing is saved yet.
                 </p>
                 <button
                   type="button"
@@ -4586,13 +4586,13 @@ export default function ExamsPage() {
                 return popupSubjects.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {popupSubjects.map(subject => (
-                      <Badge key={subject.id} variant="secondary" className="px-3 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200">
+                      <Badge key={subject.id} variant="secondary" className="px-3 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950/40 dark:border-blue-800/60">
                         {subject.name}
                       </Badge>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-6 text-slate-500">
+                  <div className="text-center py-6 text-slate-500 dark:text-slate-400">
                     <BookOpen className="h-10 w-10 mx-auto text-slate-300 mb-2" />
                     <p>No subjects found for this class.</p>
                   </div>
@@ -4626,8 +4626,8 @@ export default function ExamsPage() {
             </ModernDialogHeader>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="text-sm text-slate-600">Each row applies to every exam result in the selected stack.</p>
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
+                <p className="text-sm text-slate-600 dark:text-slate-300">Each row applies to every exam result in the selected stack.</p>
                 <Button
                   type="button"
                   variant="outline"
@@ -4640,9 +4640,9 @@ export default function ExamsPage() {
 
               <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
                 {stackGradingScaleDraft.map((scale, index) => (
-                  <div key={`stack-scale-${index}`} className="grid grid-cols-4 gap-3 rounded-lg border border-slate-200 p-3">
+                  <div key={`stack-scale-${index}`} className="grid grid-cols-4 gap-3 rounded-lg border border-slate-200 p-3 dark:border-slate-700">
                     <div>
-                      <Label className="text-xs text-slate-600">Min Mark</Label>
+                      <Label className="text-xs text-slate-600 dark:text-slate-300">Min Mark</Label>
                       <Input
                         type="number"
                         value={scale.minMark}
@@ -4654,7 +4654,7 @@ export default function ExamsPage() {
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-slate-600">Max Mark</Label>
+                      <Label className="text-xs text-slate-600 dark:text-slate-300">Max Mark</Label>
                       <Input
                         type="number"
                         value={scale.maxMark}
@@ -4666,7 +4666,7 @@ export default function ExamsPage() {
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-slate-600">Grade</Label>
+                      <Label className="text-xs text-slate-600 dark:text-slate-300">Grade</Label>
                       <Input
                         value={scale.grade}
                         onChange={(e) => {
@@ -4677,7 +4677,7 @@ export default function ExamsPage() {
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-slate-600">Aggregates</Label>
+                      <Label className="text-xs text-slate-600 dark:text-slate-300">Aggregates</Label>
                       <Input
                         type="number"
                         value={scale.aggregates ?? 0}

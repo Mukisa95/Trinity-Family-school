@@ -33,7 +33,7 @@ export function CollectionRateBar({
 
   return (
     <div className="w-full">
-      <div className={`w-full ${heightClasses[height]} bg-gray-200 rounded-full overflow-hidden`}>
+      <div className={`w-full ${heightClasses[height]} bg-gray-200 rounded-full overflow-hidden dark:bg-slate-800`}>
         {animated ? (
           <motion.div
             className={`${heightClasses[height]} ${getColor()} rounded-full`}
@@ -49,7 +49,7 @@ export function CollectionRateBar({
         )}
       </div>
       {showPercentage && (
-        <div className="mt-1 text-sm font-medium text-gray-600 text-right">
+        <div className="mt-1 text-sm font-medium text-gray-600 text-right dark:text-slate-300">
           {clampedRate.toFixed(1)}%
         </div>
       )}

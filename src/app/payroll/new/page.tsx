@@ -135,7 +135,7 @@ function ScheduleFields({
     setSkipMonth("");
   };
   return (
-    <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:grid-cols-2">
+    <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:grid-cols-2 dark:border-slate-700 dark:bg-slate-900/70">
       <div className="sm:col-span-2">
         <p className="text-sm font-medium">{title}</p>
         <p className="text-xs text-muted-foreground">
@@ -515,7 +515,7 @@ export default function NewSalaryPage() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="text-red-600"
+                    className="text-red-600 dark:text-red-400"
                     onClick={() =>
                       setAllowances((current) =>
                         current.filter((item) => item.id !== allowance.id),
@@ -591,7 +591,7 @@ export default function NewSalaryPage() {
         {error && (
           <p
             role="alert"
-            className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+            className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-300"
           >
             {error}
           </p>

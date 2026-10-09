@@ -100,12 +100,12 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
           <div className="relative">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
-            <div className="absolute inset-0 h-12 w-12 rounded-full border-2 border-blue-200 border-t-transparent animate-spin mx-auto"></div>
+            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto dark:text-blue-400" />
+            <div className="absolute inset-0 h-12 w-12 rounded-full border-2 border-blue-200 border-t-transparent animate-spin mx-auto dark:border-blue-800/60"></div>
           </div>
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-gray-800">Loading Banking Details</h3>
-            <p className="text-sm text-gray-600">Please wait while we fetch the account information...</p>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-slate-100">Loading Banking Details</h3>
+            <p className="text-sm text-gray-600 dark:text-slate-300">Please wait while we fetch the account information...</p>
           </div>
         </div>
       </div>
@@ -117,12 +117,12 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
       <div className="min-h-screen p-4">
         <div className="max-w-2xl mx-auto">
           <div className="text-center py-16 space-y-6">
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-              <AlertCircle className="w-10 h-10 text-red-600" />
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto dark:bg-red-950/40">
+              <AlertCircle className="w-10 h-10 text-red-600 dark:text-red-400" />
             </div>
             <div className="space-y-3">
-              <h1 className="text-3xl font-bold text-gray-900">Pupil Not Found</h1>
-              <p className="text-gray-600 text-lg">The pupil ID provided could not be found in our records.</p>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100">Pupil Not Found</h1>
+              <p className="text-gray-600 text-lg dark:text-slate-300">The pupil ID provided could not be found in our records.</p>
             </div>
             <SmartBackButton fallbackHref="/banking/list" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl transition-all duration-200 hover:scale-105">
   <ArrowLeft className="w-5 h-5 mr-2" />
@@ -143,12 +143,12 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
           <div className="relative">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
-            <div className="absolute inset-0 h-12 w-12 rounded-full border-2 border-blue-200 border-t-transparent animate-spin mx-auto"></div>
+            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto dark:text-blue-400" />
+            <div className="absolute inset-0 h-12 w-12 rounded-full border-2 border-blue-200 border-t-transparent animate-spin mx-auto dark:border-blue-800/60"></div>
           </div>
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-gray-800">Loading Account Details</h3>
-            <p className="text-sm text-gray-600">Fetching account information...</p>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-slate-100">Loading Account Details</h3>
+            <p className="text-sm text-gray-600 dark:text-slate-300">Fetching account information...</p>
           </div>
         </div>
       </div>
@@ -165,7 +165,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                 <img
                   src={pupil.photo}
                   alt={`${formatPupilDisplayName(pupil)}`}
-                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-indigo-200 shadow-md shrink-0"
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-indigo-200 shadow-md shrink-0 dark:border-indigo-800/60"
                 />
               ) : (
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-base sm:text-lg font-bold text-white shadow-md shrink-0">
@@ -173,10 +173,10 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                 </div>
               )}
               <div className="min-w-0 flex flex-col">
-                <span className="truncate text-base sm:text-lg font-bold leading-tight text-indigo-900">
+                <span className="truncate text-base sm:text-lg font-bold leading-tight text-indigo-900 dark:text-indigo-200">
                   {`${formatPupilDisplayName(pupil)}`}
                 </span>
-                <span className="mt-0.5 truncate text-xs font-medium text-gray-500 sm:text-sm">
+                <span className="mt-0.5 truncate text-xs font-medium text-gray-500 sm:text-sm dark:text-slate-400">
                   ID: {pupil.admissionNumber}{pupil.className ? ` • ${pupil.className}` : ''}
                 </span>
               </div>
@@ -188,7 +188,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
 
         <div className="max-w-2xl mx-auto px-4 py-8">
           {/* No Account Card */}
-          <Card className="shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-2xl border-0 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80">
             <CardContent className="p-8 text-center">
               <div className="space-y-6">
                 {/* Avatar */}
@@ -197,7 +197,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                     <img
                       src={pupil.photo}
                       alt={`${formatPupilDisplayName(pupil)}`}
-                      className="w-24 h-24 rounded-full object-cover border-4 border-blue-200 shadow-lg"
+                      className="w-24 h-24 rounded-full object-cover border-4 border-blue-200 shadow-lg dark:border-blue-800/60"
                     />
                   ) : (
                     <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-3xl font-bold text-white shadow-lg">
@@ -208,23 +208,23 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
 
                 {/* Pupil Info */}
                 <div className="space-y-2">
-                  <h1 className="text-3xl font-bold text-gray-900">{`${formatPupilDisplayName(pupil)}`}</h1>
-                  <p className="text-lg text-gray-600">ID: {pupil.admissionNumber}</p>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100">{`${formatPupilDisplayName(pupil)}`}</h1>
+                  <p className="text-lg text-gray-600 dark:text-slate-300">ID: {pupil.admissionNumber}</p>
                   {pupil.className && (
-                    <Badge className="bg-blue-100 text-blue-800 text-sm px-3 py-1">
+                    <Badge className="bg-blue-100 text-blue-800 text-sm px-3 py-1 dark:bg-blue-950/40 dark:text-blue-200">
                       {pupil.className}
                     </Badge>
                   )}
                 </div>
 
                 {/* No Account Message */}
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 space-y-4">
-                  <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
-                    <Wallet className="w-8 h-8 text-amber-600" />
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 space-y-4 dark:bg-amber-950/40 dark:border-amber-800/60">
+                  <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto dark:bg-amber-950/40">
+                    <Wallet className="w-8 h-8 text-amber-600 dark:text-amber-400" />
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-xl font-semibold text-amber-800">No Bank Account</h3>
-                    <p className="text-amber-700">This pupil does not have a bank account yet. Create one to start managing their finances.</p>
+                    <h3 className="text-xl font-semibold text-amber-800 dark:text-amber-200">No Bank Account</h3>
+                    <p className="text-amber-700 dark:text-amber-300">This pupil does not have a bank account yet. Create one to start managing their finances.</p>
                   </div>
                 </div>
 
@@ -257,7 +257,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
               <img
                 src={pupil.photo}
                 alt={`${formatPupilDisplayName(pupil)}`}
-                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-indigo-200 shadow-md shrink-0"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-indigo-200 shadow-md shrink-0 dark:border-indigo-800/60"
               />
             ) : (
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-base sm:text-lg font-bold text-white shadow-md shrink-0">
@@ -265,10 +265,10 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
               </div>
             )}
             <div className="min-w-0 flex flex-col">
-              <span className="truncate text-base sm:text-lg font-bold leading-tight text-indigo-900">
+              <span className="truncate text-base sm:text-lg font-bold leading-tight text-indigo-900 dark:text-indigo-200">
                 {`${formatPupilDisplayName(pupil)}`}
               </span>
-              <span className="mt-0.5 truncate text-xs font-medium text-gray-500 sm:text-sm">
+              <span className="mt-0.5 truncate text-xs font-medium text-gray-500 sm:text-sm dark:text-slate-400">
                 ID: {pupil.admissionNumber}{pupil.className ? ` • ${pupil.className}` : ''} • Account: {account.accountNumber}
               </span>
             </div>
@@ -304,7 +304,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
       <GlassSummaryBar
         left={
           <div className="flex items-center gap-2">
-            <Wallet className="h-4 w-4 text-indigo-500" />
+            <Wallet className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
             <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
               Pupil Account Summary
             </span>
@@ -342,15 +342,15 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Loans Section */}
           <div className="lg:col-span-1 space-y-6">
-            <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+            <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <CreditCard className="w-5 h-5 text-amber-600" />
+                  <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2 dark:text-slate-100">
+                    <CreditCard className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                     Active Loans
                   </CardTitle>
                   {activeLoans.length > 0 && (
-                    <Badge className="bg-amber-100 text-amber-800">
+                    <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
                       {formatCurrency(totalOutstanding)}
                     </Badge>
                   )}
@@ -359,42 +359,42 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
               <CardContent className="space-y-4">
                 {activeLoans.length > 0 ? (
                   activeLoans.map(loan => (
-                    <div key={loan.id} className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200 hover:shadow-lg transition-all duration-200">
+                    <div key={loan.id} className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200 hover:shadow-lg transition-all duration-200 dark:from-amber-950/40 dark:to-orange-950/40 dark:border-amber-800/60">
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 mb-1">{loan.purpose || 'Loan'}</h3>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <h3 className="font-semibold text-gray-900 mb-1 dark:text-slate-100">{loan.purpose || 'Loan'}</h3>
+                          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
                             <Calendar className="w-4 h-4" />
                             <span>Due: {format(parseISO(loan.repaymentDate), 'MMM d, yyyy')}</span>
                           </div>
                         </div>
-                        <Badge className="bg-amber-200 text-amber-800 text-xs">
+                        <Badge className="bg-amber-200 text-amber-800 text-xs dark:bg-amber-900/40 dark:text-amber-200">
                           {loan.status}
                         </Badge>
                       </div>
 
                       <div className="grid grid-cols-3 gap-3 mb-3">
                         <div className="text-center">
-                          <p className="text-xs text-gray-500 mb-1">Amount</p>
-                          <p className="font-semibold text-sm text-gray-900">{formatCurrency(loan.amount)}</p>
+                          <p className="text-xs text-gray-500 mb-1 dark:text-slate-400">Amount</p>
+                          <p className="font-semibold text-sm text-gray-900 dark:text-slate-100">{formatCurrency(loan.amount)}</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-xs text-gray-500 mb-1">Repaid</p>
-                          <p className="font-semibold text-sm text-green-600">{formatCurrency(loan.amountRepaid)}</p>
+                          <p className="text-xs text-gray-500 mb-1 dark:text-slate-400">Repaid</p>
+                          <p className="font-semibold text-sm text-green-600 dark:text-green-400">{formatCurrency(loan.amountRepaid)}</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-xs text-gray-500 mb-1">Due</p>
-                          <p className="font-semibold text-sm text-red-600">{formatCurrency(loan.amount - loan.amountRepaid)}</p>
+                          <p className="text-xs text-gray-500 mb-1 dark:text-slate-400">Due</p>
+                          <p className="font-semibold text-sm text-red-600 dark:text-red-400">{formatCurrency(loan.amount - loan.amountRepaid)}</p>
                         </div>
                       </div>
 
                       {/* Progress Bar */}
                       <div className="space-y-2">
-                        <div className="flex justify-between text-xs text-gray-600">
+                        <div className="flex justify-between text-xs text-gray-600 dark:text-slate-300">
                           <span>Progress</span>
                           <span>{Math.round((loan.amountRepaid / loan.amount) * 100)}%</span>
                         </div>
-                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden dark:bg-slate-800">
                           <div
                             className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-300"
                             style={{ width: `${(loan.amountRepaid / loan.amount) * 100}%` }}
@@ -404,7 +404,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
 
                       {/* Cancel Loan Button */}
                       {loan.status === 'ACTIVE' && (
-                        <div className="mt-3 pt-3 border-t border-amber-200">
+                        <div className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-800/60">
                           <Button
                             size="sm"
                             variant="outline"
@@ -412,7 +412,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                               setSelectedLoan(loan);
                               setOpenCancelLoan(true);
                             }}
-                            className="w-full text-xs h-8 border-red-300 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            className="w-full text-xs h-8 border-red-300 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-colors dark:border-red-800/60 dark:hover:text-red-400 dark:hover:bg-red-950/40"
                           >
                             <X className="w-3 h-3 mr-1" />
                             Cancel Loan
@@ -423,12 +423,12 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                   ))
                 ) : (
                   <div className="text-center py-8 space-y-3">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
-                      <CreditCard className="w-8 h-8 text-gray-400" />
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto dark:bg-slate-900">
+                      <CreditCard className="w-8 h-8 text-gray-400 dark:text-slate-400" />
                     </div>
                     <div className="space-y-1">
-                      <p className="text-sm font-medium text-gray-600">No Active Loans</p>
-                      <p className="text-xs text-gray-500">This pupil has no active loans at the moment.</p>
+                      <p className="text-sm font-medium text-gray-600 dark:text-slate-300">No Active Loans</p>
+                      <p className="text-xs text-gray-500 dark:text-slate-400">This pupil has no active loans at the moment.</p>
                     </div>
                   </div>
                 )}
@@ -438,10 +438,10 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
 
           {/* Transactions Section */}
           <div className="lg:col-span-2">
-            <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+            <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80">
               <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <History className="w-5 h-5 text-blue-600" />
+                <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2 dark:text-slate-100">
+                  <History className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   Recent Transactions
                 </CardTitle>
               </CardHeader>
@@ -454,33 +454,33 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                         <div
                           key={tx.id}
                           className={`p-4 rounded-xl border transition-all duration-200 hover:shadow-lg ${isDeposit
-                              ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 hover:border-green-300'
-                              : 'bg-gradient-to-r from-red-50 to-pink-50 border-red-200 hover:border-red-300'
+                              ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 hover:border-green-300 dark:from-green-950/40 dark:to-emerald-950/40 dark:border-green-800/60 dark:hover:border-green-800/60'
+                              : 'bg-gradient-to-r from-red-50 to-pink-50 border-red-200 hover:border-red-300 dark:from-red-950/40 dark:to-pink-950/40 dark:border-red-800/60 dark:hover:border-red-800/60'
                             }`}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDeposit ? 'bg-green-100' : 'bg-red-100'
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDeposit ? 'bg-green-100 dark:bg-green-950/40' : 'bg-red-100 dark:bg-red-950/40'
                                 }`}>
                                 {isDeposit ? (
-                                  <TrendingUp className="w-5 h-5 text-green-600" />
+                                  <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
                                 ) : (
-                                  <TrendingDown className="w-5 h-5 text-red-600" />
+                                  <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
                                 )}
                               </div>
                               <div>
-                                <p className={`font-semibold ${isDeposit ? 'text-green-700' : 'text-red-700'}`}>
+                                <p className={`font-semibold ${isDeposit ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
                                   {tx.type}
                                 </p>
-                                <p className="text-sm text-gray-600">{tx.description || 'No description'}</p>
-                                <p className="text-xs text-gray-500 flex items-center gap-1">
+                                <p className="text-sm text-gray-600 dark:text-slate-300">{tx.description || 'No description'}</p>
+                                <p className="text-xs text-gray-500 flex items-center gap-1 dark:text-slate-400">
                                   <Clock className="w-3 h-3" />
                                   {format(parseISO(tx.transactionDate), 'MMM d, yyyy • HH:mm')}
                                 </p>
                               </div>
                             </div>
                             <div className="text-right flex flex-col items-end gap-2">
-                              <p className={`text-lg font-bold ${isDeposit ? 'text-green-600' : 'text-red-600'}`}>
+                              <p className={`text-lg font-bold ${isDeposit ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                 {isDeposit ? '+' : '-'}{formatCurrency(tx.amount)}
                               </p>
                               {!tx.isReverted && (
@@ -491,7 +491,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                                     setSelectedTransaction(tx);
                                     setOpenRevertTransaction(true);
                                   }}
-                                  className="text-xs h-7 px-2 border-gray-300 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                  className="text-xs h-7 px-2 border-gray-300 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-colors dark:border-slate-700 dark:hover:text-red-400 dark:hover:bg-red-950/40"
                                 >
                                   <RotateCcw className="w-3 h-3 mr-1" />
                                   Revert
@@ -510,12 +510,12 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                   </div>
                 ) : (
                   <div className="text-center py-12 space-y-4">
-                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
-                      <History className="w-10 h-10 text-gray-400" />
+                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto dark:bg-slate-900">
+                      <History className="w-10 h-10 text-gray-400 dark:text-slate-400" />
                     </div>
                     <div className="space-y-2">
-                      <p className="text-lg font-medium text-gray-600">No Transactions</p>
-                      <p className="text-sm text-gray-500">No transactions found for this pupil yet.</p>
+                      <p className="text-lg font-medium text-gray-600 dark:text-slate-300">No Transactions</p>
+                      <p className="text-sm text-gray-500 dark:text-slate-400">No transactions found for this pupil yet.</p>
                     </div>
                   </div>
                 )}
@@ -530,11 +530,11 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
         <ModernDialog open={openDeposit} onOpenChange={setOpenDeposit}>
           <ModernDialogContent size="md" open={openDeposit} onOpenChange={setOpenDeposit} className="sm:max-w-md">
             <ModernDialogHeader className="text-center pb-4">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Plus className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-green-950/40">
+                <Plus className="w-8 h-8 text-green-600 dark:text-green-400" />
               </div>
-              <ModernDialogTitle className="text-2xl font-bold text-gray-900">Make Deposit</ModernDialogTitle>
-              <ModernDialogDescription className="text-gray-600">
+              <ModernDialogTitle className="text-2xl font-bold text-gray-900 dark:text-slate-100">Make Deposit</ModernDialogTitle>
+              <ModernDialogDescription className="text-gray-600 dark:text-slate-300">
                 Add money to {formatPupilDisplayName(pupil)}'s account
               </ModernDialogDescription>
             </ModernDialogHeader>
@@ -574,7 +574,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
             }} className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="deposit-amount" className="text-sm font-semibold text-gray-700">Amount (UGX) *</Label>
+                  <Label htmlFor="deposit-amount" className="text-sm font-semibold text-gray-700 dark:text-slate-200">Amount (UGX) *</Label>
                   <Input
                     id="deposit-amount"
                     name="amount"
@@ -587,7 +587,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="deposit-description" className="text-sm font-semibold text-gray-700">Description</Label>
+                  <Label htmlFor="deposit-description" className="text-sm font-semibold text-gray-700 dark:text-slate-200">Description</Label>
                   <Input
                     id="deposit-description"
                     name="description"
@@ -612,18 +612,18 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
         <ModernDialog open={openWithdraw} onOpenChange={setOpenWithdraw}>
           <ModernDialogContent size="md" open={openWithdraw} onOpenChange={setOpenWithdraw} className="sm:max-w-md">
             <ModernDialogHeader className="text-center pb-4">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Minus className="w-8 h-8 text-red-600" />
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-red-950/40">
+                <Minus className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
-              <ModernDialogTitle className="text-2xl font-bold text-gray-900">Make Withdrawal</ModernDialogTitle>
-              <ModernDialogDescription className="text-gray-600">
+              <ModernDialogTitle className="text-2xl font-bold text-gray-900 dark:text-slate-100">Make Withdrawal</ModernDialogTitle>
+              <ModernDialogDescription className="text-gray-600 dark:text-slate-300">
                 Withdraw money from {formatPupilDisplayName(pupil)}'s account
               </ModernDialogDescription>
             </ModernDialogHeader>
-            <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+            <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-blue-700">Current Balance:</span>
-                <span className="text-lg font-bold text-blue-900">{formatCurrency(account.balance)}</span>
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Current Balance:</span>
+                <span className="text-lg font-bold text-blue-900 dark:text-blue-200">{formatCurrency(account.balance)}</span>
               </div>
             </div>
             <form onSubmit={async (e) => {
@@ -671,7 +671,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
             }} className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="withdraw-amount" className="text-sm font-semibold text-gray-700">Amount (UGX) *</Label>
+                  <Label htmlFor="withdraw-amount" className="text-sm font-semibold text-gray-700 dark:text-slate-200">Amount (UGX) *</Label>
                   <Input
                     id="withdraw-amount"
                     name="amount"
@@ -685,7 +685,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="withdraw-description" className="text-sm font-semibold text-gray-700">Description</Label>
+                  <Label htmlFor="withdraw-description" className="text-sm font-semibold text-gray-700 dark:text-slate-200">Description</Label>
                   <Input
                     id="withdraw-description"
                     name="description"
@@ -710,11 +710,11 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
         <ModernDialog open={openLoan} onOpenChange={setOpenLoan}>
           <ModernDialogContent size="md" open={openLoan} onOpenChange={setOpenLoan} className="sm:max-w-md">
             <ModernDialogHeader className="text-center pb-4">
-              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Banknote className="w-8 h-8 text-amber-600" />
+              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-amber-950/40">
+                <Banknote className="w-8 h-8 text-amber-600 dark:text-amber-400" />
               </div>
-              <ModernDialogTitle className="text-2xl font-bold text-gray-900">Create New Loan</ModernDialogTitle>
-              <ModernDialogDescription className="text-gray-600">
+              <ModernDialogTitle className="text-2xl font-bold text-gray-900 dark:text-slate-100">Create New Loan</ModernDialogTitle>
+              <ModernDialogDescription className="text-gray-600 dark:text-slate-300">
                 Create a new loan for {formatPupilDisplayName(pupil)}
               </ModernDialogDescription>
             </ModernDialogHeader>
@@ -754,7 +754,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
             }} className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="loan-amount" className="text-sm font-semibold text-gray-700">Loan Amount (UGX) *</Label>
+                  <Label htmlFor="loan-amount" className="text-sm font-semibold text-gray-700 dark:text-slate-200">Loan Amount (UGX) *</Label>
                   <Input
                     id="loan-amount"
                     name="amount"
@@ -767,7 +767,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="loan-purpose" className="text-sm font-semibold text-gray-700">Purpose *</Label>
+                  <Label htmlFor="loan-purpose" className="text-sm font-semibold text-gray-700 dark:text-slate-200">Purpose *</Label>
                   <Input
                     id="loan-purpose"
                     name="purpose"
@@ -778,7 +778,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="loan-repayment-date" className="text-sm font-semibold text-gray-700">Repayment Date *</Label>
+                    <Label htmlFor="loan-repayment-date" className="text-sm font-semibold text-gray-700 dark:text-slate-200">Repayment Date *</Label>
                     <DatePicker
                       date={loanRepaymentDate}
                       setDate={setLoanRepaymentDate}
@@ -786,7 +786,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="loan-interest-rate" className="text-sm font-semibold text-gray-700">Interest Rate (%)</Label>
+                    <Label htmlFor="loan-interest-rate" className="text-sm font-semibold text-gray-700 dark:text-slate-200">Interest Rate (%)</Label>
                     <Input
                       id="loan-interest-rate"
                       name="interestRate"
@@ -816,33 +816,33 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
         <ModernDialog open={openRevertTransaction} onOpenChange={setOpenRevertTransaction}>
           <ModernDialogContent size="md" open={openRevertTransaction} onOpenChange={setOpenRevertTransaction} className="sm:max-w-md">
             <ModernDialogHeader className="text-center pb-4">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <RotateCcw className="w-8 h-8 text-red-600" />
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-red-950/40">
+                <RotateCcw className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
-              <ModernDialogTitle className="text-2xl font-bold text-gray-900">Revert Transaction</ModernDialogTitle>
-              <ModernDialogDescription className="text-gray-600">
+              <ModernDialogTitle className="text-2xl font-bold text-gray-900 dark:text-slate-100">Revert Transaction</ModernDialogTitle>
+              <ModernDialogDescription className="text-gray-600 dark:text-slate-300">
                 Are you sure you want to revert this transaction? This action cannot be undone.
               </ModernDialogDescription>
             </ModernDialogHeader>
 
             {selectedTransaction && (
-              <div className="mb-6 p-4 bg-gray-50 rounded-xl border">
+              <div className="mb-6 p-4 bg-gray-50 rounded-xl border dark:bg-slate-900">
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-600">Type:</span>
-                    <span className="text-sm font-semibold text-gray-900">{selectedTransaction.type}</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Type:</span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-slate-100">{selectedTransaction.type}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-600">Amount:</span>
-                    <span className="text-sm font-bold text-red-600">{formatCurrency(selectedTransaction.amount)}</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Amount:</span>
+                    <span className="text-sm font-bold text-red-600 dark:text-red-400">{formatCurrency(selectedTransaction.amount)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-600">Date:</span>
-                    <span className="text-sm text-gray-900">{format(parseISO(selectedTransaction.transactionDate), 'MMM d, yyyy • HH:mm')}</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Date:</span>
+                    <span className="text-sm text-gray-900 dark:text-slate-100">{format(parseISO(selectedTransaction.transactionDate), 'MMM d, yyyy • HH:mm')}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-600">Description:</span>
-                    <span className="text-sm text-gray-900">{selectedTransaction.description || 'No description'}</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Description:</span>
+                    <span className="text-sm text-gray-900 dark:text-slate-100">{selectedTransaction.description || 'No description'}</span>
                   </div>
                 </div>
               </div>
@@ -903,55 +903,55 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
         <ModernDialog open={openCancelLoan} onOpenChange={setOpenCancelLoan}>
           <ModernDialogContent size="md" open={openCancelLoan} onOpenChange={setOpenCancelLoan} className="sm:max-w-md">
             <ModernDialogHeader className="text-center pb-4">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="w-8 h-8 text-red-600" />
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-red-950/40">
+                <Trash2 className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
-              <ModernDialogTitle className="text-2xl font-bold text-gray-900">Cancel Loan</ModernDialogTitle>
-              <ModernDialogDescription className="text-gray-600">
+              <ModernDialogTitle className="text-2xl font-bold text-gray-900 dark:text-slate-100">Cancel Loan</ModernDialogTitle>
+              <ModernDialogDescription className="text-gray-600 dark:text-slate-300">
                 Are you sure you want to cancel this loan? The outstanding amount will be deducted from the account balance.
               </ModernDialogDescription>
             </ModernDialogHeader>
 
             {selectedLoan && (
               <div className="mb-6 space-y-4">
-                <div className="p-4 bg-gray-50 rounded-xl border">
+                <div className="p-4 bg-gray-50 rounded-xl border dark:bg-slate-900">
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-sm font-medium text-gray-600">Purpose:</span>
-                      <span className="text-sm font-semibold text-gray-900">{selectedLoan.purpose}</span>
+                      <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Purpose:</span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-slate-100">{selectedLoan.purpose}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm font-medium text-gray-600">Loan Amount:</span>
-                      <span className="text-sm font-bold text-amber-600">{formatCurrency(selectedLoan.amount)}</span>
+                      <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Loan Amount:</span>
+                      <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{formatCurrency(selectedLoan.amount)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm font-medium text-gray-600">Amount Repaid:</span>
-                      <span className="text-sm font-bold text-green-600">{formatCurrency(selectedLoan.amountRepaid)}</span>
+                      <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Amount Repaid:</span>
+                      <span className="text-sm font-bold text-green-600 dark:text-green-400">{formatCurrency(selectedLoan.amountRepaid)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm font-medium text-gray-600">Outstanding:</span>
-                      <span className="text-sm font-bold text-red-600">{formatCurrency(selectedLoan.amount - selectedLoan.amountRepaid)}</span>
+                      <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Outstanding:</span>
+                      <span className="text-sm font-bold text-red-600 dark:text-red-400">{formatCurrency(selectedLoan.amount - selectedLoan.amountRepaid)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm font-medium text-gray-600">Due Date:</span>
-                      <span className="text-sm text-gray-900">{format(parseISO(selectedLoan.repaymentDate), 'MMM d, yyyy')}</span>
+                      <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Due Date:</span>
+                      <span className="text-sm text-gray-900 dark:text-slate-100">{format(parseISO(selectedLoan.repaymentDate), 'MMM d, yyyy')}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+                <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-200 dark:bg-yellow-950/40 dark:border-yellow-800/60">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 dark:text-yellow-400" />
                     <div className="space-y-1">
-                      <p className="text-sm font-medium text-yellow-800">Balance Check</p>
-                      <p className="text-xs text-yellow-700">
+                      <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Balance Check</p>
+                      <p className="text-xs text-yellow-700 dark:text-yellow-300">
                         Current balance: <span className="font-semibold">{formatCurrency(account?.balance || 0)}</span>
                       </p>
-                      <p className="text-xs text-yellow-700">
+                      <p className="text-xs text-yellow-700 dark:text-yellow-300">
                         Outstanding amount: <span className="font-semibold">{formatCurrency(selectedLoan.amount - selectedLoan.amountRepaid)}</span>
                       </p>
                       {account && (account.balance < (selectedLoan.amount - selectedLoan.amountRepaid)) && (
-                        <p className="text-xs text-red-600 font-medium">⚠️ Insufficient balance to cancel this loan</p>
+                        <p className="text-xs text-red-600 font-medium dark:text-red-400">⚠️ Insufficient balance to cancel this loan</p>
                       )}
                     </div>
                   </div>
@@ -1025,12 +1025,12 @@ export default function PupilBankingDetailPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
           <div className="relative">
-            <Loader2 className="h-16 w-16 animate-spin text-blue-600 mx-auto" />
-            <div className="absolute inset-0 h-16 w-16 rounded-full border-4 border-blue-200 border-t-transparent animate-spin mx-auto"></div>
+            <Loader2 className="h-16 w-16 animate-spin text-blue-600 mx-auto dark:text-blue-400" />
+            <div className="absolute inset-0 h-16 w-16 rounded-full border-4 border-blue-200 border-t-transparent animate-spin mx-auto dark:border-blue-800/60"></div>
           </div>
           <div className="space-y-2">
-            <h3 className="text-xl font-bold text-gray-800">Loading Banking Details</h3>
-            <p className="text-gray-600">Please wait while we prepare your banking dashboard...</p>
+            <h3 className="text-xl font-bold text-gray-800 dark:text-slate-100">Loading Banking Details</h3>
+            <p className="text-gray-600 dark:text-slate-300">Please wait while we prepare your banking dashboard...</p>
           </div>
         </div>
       </div>

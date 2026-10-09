@@ -356,8 +356,8 @@ export function MultiFeePaymentModal({
         {/* Header */}
         <DialogHeader className="pl-4 pr-10 pt-3 pb-2 border-b">
           <DialogTitle className="flex items-center gap-2">
-            <span className="font-bold text-lg text-green-600">Shs.</span>
-            <span className="text-lg font-semibold text-gray-900">
+            <span className="font-bold text-lg text-green-600 dark:text-green-400">Shs.</span>
+            <span className="text-lg font-semibold text-gray-900 dark:text-slate-100">
               Multi-Fee Payment - {pupilName}
             </span>
           </DialogTitle>
@@ -367,7 +367,7 @@ export function MultiFeePaymentModal({
           {/* Payment Details */}
           <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 dark:text-slate-400">
                 Total Amount (UGX)
               </label>
               <input
@@ -377,19 +377,19 @@ export function MultiFeePaymentModal({
                   setTotalAmount(formatMoneyInput(e.target.value))
                 }
                 disabled={distributionMode === 'manual' || isRecording}
-                className="w-full px-4 py-1.5 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-4 py-1.5 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed dark:border-slate-700 dark:disabled:bg-slate-900"
                 placeholder="Enter total amount"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 dark:text-slate-400">
                 Payment Method
               </label>
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
                 disabled={isRecording}
-                className="w-full px-4 py-1.5 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed bg-white"
+                className="w-full px-4 py-1.5 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed bg-white dark:border-slate-700 dark:disabled:bg-slate-900 dark:bg-slate-900"
               >
                 <option value="Cash">Cash</option>
                 <option value="Bank Transfer">Bank Transfer</option>
@@ -398,7 +398,7 @@ export function MultiFeePaymentModal({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 dark:text-slate-400">
                 Distribution Mode
               </label>
               <select
@@ -409,7 +409,7 @@ export function MultiFeePaymentModal({
                   )
                 }
                 disabled={isRecording}
-                className="w-full px-4 py-1.5 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed bg-white"
+                className="w-full px-4 py-1.5 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed bg-white dark:border-slate-700 dark:disabled:bg-slate-900 dark:bg-slate-900"
               >
                 <option value="smart">Smart Distribution</option>
                 <option value="equal">Equal Distribution</option>
@@ -420,13 +420,13 @@ export function MultiFeePaymentModal({
           </div>
           {/* Fees list */}
           <div className="space-y-3">
-            <h3 className="text-base font-medium text-gray-900 flex items-center gap-2">
+            <h3 className="text-base font-medium text-gray-900 flex items-center gap-2 dark:text-slate-100">
               <Users className="w-4 h-4" />
               Select Fees to Pay
             </h3>
 
             {fees.filter(f => f.balance > 0).length === 0 && (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-slate-400">
                 There are no outstanding fees for this pupil on the selected term.
               </p>
             )}
@@ -444,21 +444,21 @@ export function MultiFeePaymentModal({
                       isRecording ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
                     } ${
                       isSelected
-                        ? 'border-green-500 bg-green-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-green-500 bg-green-50 dark:bg-green-950/40'
+                        : 'border-gray-200 hover:border-gray-300 dark:border-slate-700 dark:hover:border-slate-700'
                     }`}
                     onClick={() => !isRecording && handleFeeSelection(fee, !isSelected)}
                   >
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 min-w-0 flex-1 mr-4">
-                      <span className="font-medium text-sm text-gray-900 truncate">
+                      <span className="font-medium text-sm text-gray-900 truncate dark:text-slate-100">
                         {fee.name}
                         {fee.isCarryForward && (
-                          <span className="ml-1 text-orange-600 text-xs whitespace-nowrap">
+                          <span className="ml-1 text-orange-600 text-xs whitespace-nowrap dark:text-orange-400">
                             (Carry Forward)
                           </span>
                         )}
                       </span>
-                      <span className="text-xs text-gray-500 whitespace-nowrap">
+                      <span className="text-xs text-gray-500 whitespace-nowrap dark:text-slate-400">
                         Balance:{' '}
                         {new Intl.NumberFormat('en-UG', {
                           style: 'currency',
@@ -470,7 +470,7 @@ export function MultiFeePaymentModal({
                     {isSelected && selectedFee && (
                       <div className="flex items-center gap-3">
                         <label
-                          className="flex items-center gap-1 text-xs text-gray-600"
+                          className="flex items-center gap-1 text-xs text-gray-600 dark:text-slate-300"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <input
@@ -478,7 +478,7 @@ export function MultiFeePaymentModal({
                             checked={!!selectedFee.isComplete}
                             onChange={() => !isRecording && toggleFeeComplete(fee.id)}
                             disabled={isRecording}
-                            className="h-3 w-3 rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="h-3 w-3 rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed dark:border-slate-700 dark:text-green-400"
                           />
                           <span>Mark complete</span>
                         </label>
@@ -488,7 +488,7 @@ export function MultiFeePaymentModal({
                             className="flex items-center gap-1"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <span className="text-xs text-gray-600">
+                            <span className="text-xs text-gray-600 dark:text-slate-300">
                               Pay:
                             </span>
                             <input
@@ -500,12 +500,12 @@ export function MultiFeePaymentModal({
                                   e.target.value
                                 )
                               }
-                              className="w-24 px-1 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="w-24 px-1 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed dark:border-slate-700"
                               disabled={selectedFee.isComplete || isRecording}
                             />
                           </div>
                         ) : (
-                          <div className="text-xs font-medium text-green-600">
+                          <div className="text-xs font-medium text-green-600 dark:text-green-400">
                             Pay:{' '}
                             {new Intl.NumberFormat('en-UG', {
                               style: 'currency',
@@ -522,24 +522,24 @@ export function MultiFeePaymentModal({
 
           {/* Summary */}
           {selectedFees.length > 0 && (
-            <div className="mt-4 bg-gray-50/70 border border-gray-200/50 rounded-xl p-4">
-              <h4 className="font-semibold text-gray-900 mb-3 text-sm">
+            <div className="mt-4 bg-gray-50/70 border border-gray-200/50 rounded-xl p-4 dark:bg-slate-900/70 dark:border-slate-700/50">
+              <h4 className="font-semibold text-gray-900 mb-3 text-sm dark:text-slate-100">
                 Payment Summary
               </h4>
               <div className={`grid gap-4 ${distributionMode === 'manual' ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
                 <div>
-                  <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block dark:text-slate-400">
                     Selected Fees
                   </span>
-                  <span className="text-sm font-bold text-gray-900">
+                  <span className="text-sm font-bold text-gray-900 dark:text-slate-100">
                     {selectedFees.length}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block dark:text-slate-400">
                     {distributionMode === 'manual' ? 'Total Payment' : 'Total to Pay'}
                   </span>
-                  <span className="text-sm font-bold text-gray-900">
+                  <span className="text-sm font-bold text-gray-900 dark:text-slate-100">
                     {new Intl.NumberFormat('en-UG', {
                       style: 'currency',
                       currency: 'UGX',
@@ -553,14 +553,14 @@ export function MultiFeePaymentModal({
                 </div>
                 {distributionMode !== 'manual' && (
                   <div>
-                    <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">
+                    <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block dark:text-slate-400">
                       Distributed
                     </span>
                     <span
                       className={`text-sm font-bold ${
                         totalSelectedAmount === parseFormattedMoney(totalAmount)
-                          ? 'text-green-600'
-                          : 'text-red-600'
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-red-600 dark:text-red-400'
                       }`}
                     >
                       {new Intl.NumberFormat('en-UG', {
@@ -572,10 +572,10 @@ export function MultiFeePaymentModal({
                   </div>
                 )}
                 <div>
-                  <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block dark:text-slate-400">
                     Max Payable
                   </span>
-                  <span className="text-sm font-bold text-gray-900">
+                  <span className="text-sm font-bold text-gray-900 dark:text-slate-100">
                     {new Intl.NumberFormat('en-UG', {
                       style: 'currency',
                       currency: 'UGX',
@@ -593,7 +593,7 @@ export function MultiFeePaymentModal({
           <button
             onClick={handleClose}
             disabled={isRecording}
-            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors text-sm disabled:bg-gray-100 disabled:cursor-not-allowed dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-900 dark:disabled:bg-slate-900"
           >
             Cancel
           </button>
@@ -604,7 +604,7 @@ export function MultiFeePaymentModal({
           >
             {isRecording ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent dark:border-slate-700" />
                 <span>Recording Payment...</span>
               </>
             ) : (

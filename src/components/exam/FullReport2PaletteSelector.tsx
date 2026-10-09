@@ -14,8 +14,8 @@ export function FullReport2PaletteSelector({
   return (
     <section className="mb-6 space-y-3" aria-labelledby="bespoke-report-palette-heading">
       <div>
-        <h3 id="bespoke-report-palette-heading" className="text-sm font-semibold text-gray-900">Report colour palette</h3>
-        <p className="mt-1 text-xs text-gray-500">Choose the accent colours used throughout the Bespoke Report.</p>
+        <h3 id="bespoke-report-palette-heading" className="text-sm font-semibold text-gray-900 dark:text-slate-100">Report colour palette</h3>
+        <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">Choose the accent colours used throughout the Bespoke Report.</p>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {([
@@ -30,10 +30,10 @@ export function FullReport2PaletteSelector({
               type="button"
               aria-pressed={isSelected}
               onClick={() => onPaletteChange(option.id)}
-              className="group rounded-xl border-2 bg-white p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+              className="group rounded-xl border-2 bg-white p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:bg-slate-900"
               style={{ borderColor: isSelected ? option.primary : "#e5e7eb", boxShadow: isSelected ? `0 0 0 3px ${option.soft}` : undefined }}
             >
-              <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+              <div className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900">
                 <div className="h-2" style={{ backgroundColor: option.primary }} />
                 <div className="space-y-1.5 p-2" style={{ backgroundColor: option.soft }}>
                   <div className="h-1.5 w-3/4 rounded-full" style={{ backgroundColor: option.primary, opacity: 0.75 }} />
@@ -45,7 +45,7 @@ export function FullReport2PaletteSelector({
                 </div>
               </div>
               <div className="mt-3 flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-gray-900">{option.label}</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-slate-100">{option.label}</span>
                 <span className="flex h-5 w-5 items-center justify-center rounded-full border" style={{ borderColor: option.primary, backgroundColor: isSelected ? option.primary : "#ffffff" }}>
                   {isSelected && <Check className="h-3.5 w-3.5 text-white" aria-hidden="true" />}
                 </span>

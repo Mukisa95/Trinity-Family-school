@@ -43,12 +43,12 @@ const DetailItem = React.memo(function DetailItem({ icon, label, value, multilin
   }
 
   return (
-    <div className={`flex ${multiline ? 'flex-col items-start' : 'items-center justify-between'} py-2 border-b border-gray-200/50 last:border-b-0`}>
+    <div className={`flex ${multiline ? 'flex-col items-start' : 'items-center justify-between'} py-2 border-b border-gray-200/50 last:border-b-0 dark:border-slate-700/50`}>
       <div className="flex items-center">
-        {icon && <span className="mr-2 text-gray-500">{icon}</span>}
-        <span className="font-medium text-gray-600">{label}:</span>
+        {icon && <span className="mr-2 text-gray-500 dark:text-slate-400">{icon}</span>}
+        <span className="font-medium text-gray-600 dark:text-slate-300">{label}:</span>
       </div>
-      <span className={`text-right ${multiline ? 'mt-1 ml-0 sm:ml-6 text-left sm:text-right' : ''} ${highlight ? 'font-semibold text-blue-600' : 'text-gray-800'}`}>
+      <span className={`text-right ${multiline ? 'mt-1 ml-0 sm:ml-6 text-left sm:text-right' : ''} ${highlight ? 'font-semibold text-blue-600 dark:text-blue-400' : 'text-gray-800 dark:text-slate-100'}`}>
         {value}
       </span>
     </div>
@@ -81,7 +81,7 @@ export function InformationSection({ pupil, classes }: { pupil: any; classes: an
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center text-lg">
-            <UserSquare className="mr-2 h-5 w-5 text-blue-600" />
+            <UserSquare className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
             Personal Details
           </CardTitle>
         </CardHeader>
@@ -100,7 +100,7 @@ export function InformationSection({ pupil, classes }: { pupil: any; classes: an
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center text-lg">
-            <BookOpen className="mr-2 h-5 w-5 text-green-600" />
+            <BookOpen className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
             Academic Information
           </CardTitle>
         </CardHeader>
@@ -116,20 +116,20 @@ export function InformationSection({ pupil, classes }: { pupil: any; classes: an
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center text-lg">
-            <UserSquare className="mr-2 h-5 w-5 text-purple-600" />
+            <UserSquare className="mr-2 h-5 w-5 text-purple-600 dark:text-purple-400" />
             Guardian Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {pupil.guardians?.map((guardian: any, index: number) => (
-            <div key={guardian.id} className="p-3 bg-gray-50 rounded-lg">
+            <div key={guardian.id} className="p-3 bg-gray-50 rounded-lg dark:bg-slate-900">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="font-medium">{guardian.name}</h4>
                 <Badge variant={guardian.relationship === 'Parent' ? 'default' : 'secondary'}>
                   {guardian.relationship}
                 </Badge>
               </div>
-              <div className="space-y-1 text-sm text-gray-600">
+              <div className="space-y-1 text-sm text-gray-600 dark:text-slate-300">
                 <DetailItem icon={<Phone />} label="Phone" value={guardian.phone} />
                 <DetailItem icon={<Mail />} label="Email" value={guardian.email} />
                 <DetailItem icon={<Home />} label="Address" value={guardian.address} />
@@ -143,7 +143,7 @@ export function InformationSection({ pupil, classes }: { pupil: any; classes: an
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center text-lg">
-            <HeartPulse className="mr-2 h-5 w-5 text-red-600" />
+            <HeartPulse className="mr-2 h-5 w-5 text-red-600 dark:text-red-400" />
             Medical Information
           </CardTitle>
         </CardHeader>
@@ -170,7 +170,7 @@ Gender: ${pupil.gender || 'N/A'}
 Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone : 'N/A'}`}
             pixelSize={4}
           />
-          <p className="text-xs text-gray-500 text-center mt-2">
+          <p className="text-xs text-gray-500 text-center mt-2 dark:text-slate-400">
             Rectangular Micro QR Code (rMQR)
           </p>
         </CardContent>
@@ -185,15 +185,15 @@ export function FeesSection({ pupil }: { pupil: any }) {
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center text-lg">
-            <Receipt className="mr-2 h-5 w-5 text-green-600" />
+            <Receipt className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
             Fee Information
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <Receipt className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Fee Management</h3>
-            <p className="text-gray-600 mb-4">
+            <Receipt className="h-12 w-12 text-gray-400 mx-auto mb-4 dark:text-slate-400" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2 dark:text-slate-100">Fee Management</h3>
+            <p className="text-gray-600 mb-4 dark:text-slate-300">
               View and manage {pupil.firstName}'s fee information, payments, and outstanding balances.
             </p>
             <Button className="bg-green-600 hover:bg-green-700">
@@ -212,15 +212,15 @@ export function RequirementsSection({ pupil }: { pupil: any }) {
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center text-lg">
-            <Shirt className="mr-2 h-5 w-5 text-purple-600" />
+            <Shirt className="mr-2 h-5 w-5 text-purple-600 dark:text-purple-400" />
             Requirements & Uniforms
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <Shirt className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Requirements Tracking</h3>
-            <p className="text-gray-600 mb-4">
+            <Shirt className="h-12 w-12 text-gray-400 mx-auto mb-4 dark:text-slate-400" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2 dark:text-slate-100">Requirements Tracking</h3>
+            <p className="text-gray-600 mb-4 dark:text-slate-300">
               Track {pupil.firstName}'s uniform requirements, books, and other school supplies.
             </p>
             <Button className="bg-purple-600 hover:bg-purple-700">
@@ -239,15 +239,15 @@ export function AttendanceSection({ pupil }: { pupil: any }) {
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center text-lg">
-            <BarChart3 className="mr-2 h-5 w-5 text-orange-600" />
+            <BarChart3 className="mr-2 h-5 w-5 text-orange-600 dark:text-orange-400" />
             Attendance Records
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Attendance Tracking</h3>
-            <p className="text-gray-600 mb-4">
+            <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4 dark:text-slate-400" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2 dark:text-slate-100">Attendance Tracking</h3>
+            <p className="text-gray-600 mb-4 dark:text-slate-300">
               View {pupil.firstName}'s attendance records, patterns, and statistics.
             </p>
             <Button className="bg-orange-600 hover:bg-orange-700">
@@ -266,7 +266,7 @@ export function ResultsSection({ pupil, examHistory }: { pupil: any; examHistory
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center text-lg">
-            <BookOpen className="mr-2 h-5 w-5 text-indigo-600" />
+            <BookOpen className="mr-2 h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             Examination Results
           </CardTitle>
         </CardHeader>
@@ -274,11 +274,11 @@ export function ResultsSection({ pupil, examHistory }: { pupil: any; examHistory
           {examHistory && examHistory.length > 0 ? (
             <div className="space-y-4">
               {examHistory.slice(0, 5).map((exam: any) => (
-                <div key={exam.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                <div key={exam.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors dark:hover:bg-slate-900">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-medium text-gray-900">{exam.name}</h4>
-                      <p className="text-sm text-gray-600">{formatDate(exam.startDate)}</p>
+                      <h4 className="font-medium text-gray-900 dark:text-slate-100">{exam.name}</h4>
+                      <p className="text-sm text-gray-600 dark:text-slate-300">{formatDate(exam.startDate)}</p>
                     </div>
                     <Badge variant="outline">View Results</Badge>
                   </div>
@@ -287,9 +287,9 @@ export function ResultsSection({ pupil, examHistory }: { pupil: any; examHistory
             </div>
           ) : (
             <div className="text-center py-8">
-              <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Results Yet</h3>
-              <p className="text-gray-600 mb-4">
+              <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4 dark:text-slate-400" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2 dark:text-slate-100">No Results Yet</h3>
+              <p className="text-gray-600 mb-4 dark:text-slate-300">
                 {pupil.firstName} hasn't taken any exams yet.
               </p>
             </div>

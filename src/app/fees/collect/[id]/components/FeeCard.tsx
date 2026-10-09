@@ -496,21 +496,21 @@ export function FeeCard({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border-2 border-slate-200 p-3 sm:p-4 transition-colors hover:border-indigo-300">
+    <div className="bg-white rounded-xl shadow-sm border-2 border-slate-200 p-3 sm:p-4 transition-colors hover:border-indigo-300 dark:bg-slate-900 dark:border-slate-700 dark:hover:border-indigo-800/60">
       {/* Fee Header - name and pay action on one line */}
       <div className="flex items-center justify-between gap-3">
-        <h3 className="min-w-0 flex-1 text-base sm:text-lg font-medium text-gray-900 break-words leading-tight">{fee.name}</h3>
+        <h3 className="min-w-0 flex-1 text-base sm:text-lg font-medium text-gray-900 break-words leading-tight dark:text-slate-100">{fee.name}</h3>
         <button
           onClick={handlePrimaryAction}
           disabled={isPaymentDataLoading}
           className={`inline-flex flex-shrink-0 items-center justify-center px-4 py-2 border-2 text-xs sm:text-sm font-semibold rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isPaymentDataLoading
-            ? 'border-gray-300 text-gray-400 bg-gray-50 cursor-not-allowed shadow-none'
-            : 'border-indigo-600 text-indigo-700 bg-white shadow-sm hover:bg-indigo-50 hover:border-indigo-700 hover:shadow-md hover:scale-95 origin-center'
+            ? 'border-gray-300 text-gray-400 bg-gray-50 cursor-not-allowed shadow-none dark:border-slate-700 dark:text-slate-400 dark:bg-slate-900'
+            : 'border-indigo-600 text-indigo-700 bg-white shadow-sm hover:bg-indigo-50 hover:border-indigo-700 hover:shadow-md hover:scale-95 origin-center dark:text-indigo-300 dark:bg-slate-900 dark:hover:bg-indigo-950/40'
             }`}
         >
           {isPaymentDataLoading ? (
             <>
-              <div className="w-4 h-4 mr-1.5 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
+              <div className="w-4 h-4 mr-1.5 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin dark:border-slate-700" />
               <span className="hidden sm:inline">Fetching payment data...</span>
               <span className="sm:hidden">Loading...</span>
             </>
@@ -532,16 +532,16 @@ export function FeeCard({
 
       <div className="min-w-0">
           {fee.description && fee.id !== 'previous-balance' && (
-            <p className="text-xs sm:text-sm text-gray-500 mt-0.5 break-words">{fee.description}</p>
+            <p className="text-xs sm:text-sm text-gray-500 mt-0.5 break-words dark:text-slate-400">{fee.description}</p>
           )}
 
           {/* Discount Information - Compact */}
           {fee.discount && (
-            <div className={`p-2.5 mt-2 rounded-md border ${fee.discount.type === 'fees-holiday' ? 'border-blue-200 bg-blue-50 hover:border-blue-300' : 'border-purple-100 bg-purple-50 hover:border-purple-200'} transition-all`}>
+            <div className={`p-2.5 mt-2 rounded-md border ${fee.discount.type === 'fees-holiday' ? 'border-blue-200 bg-blue-50 hover:border-blue-300 dark:border-blue-800/60 dark:bg-blue-950/40 dark:hover:border-blue-800/60' : 'border-purple-100 bg-purple-50 hover:border-purple-200 dark:border-purple-800/60 dark:bg-purple-950/40 dark:hover:border-purple-800/60'} transition-all`}>
               {fee.discount.type === 'fees-holiday' ? (
                 // Fees Holiday Display - New Format
                 <>
-                  <div className="text-xs sm:text-sm text-blue-700 mb-1.5">
+                  <div className="text-xs sm:text-sm text-blue-700 mb-1.5 dark:text-blue-300">
                     This fee has been halted as part of staff privilege to {(() => {
                       if (assignedStaff) {
                         const title = assignedStaff.gender === 'Female' ? 'Mrs' : 'Mr';
@@ -550,7 +550,7 @@ export function FeeCard({
                       return 'staff member';
                     })()}
                   </div>
-                  <div className="text-xs sm:text-sm text-blue-600 mt-0.5 break-words">
+                  <div className="text-xs sm:text-sm text-blue-600 mt-0.5 break-words dark:text-blue-400">
                     Applied to: {fee.name} ({new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(fee.originalAmount || fee.amount)})
                   </div>
                 </>
@@ -559,24 +559,24 @@ export function FeeCard({
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-x-4 gap-y-1.5 w-full">
                   {/* Left Column: Discount Name & Amount */}
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
-                    <span className="font-semibold text-purple-900 bg-purple-150/70 border border-purple-200 px-2 py-0.5 rounded text-[11px] uppercase tracking-wider truncate max-w-[150px]" title={fee.discount.name}>
+                    <span className="font-semibold text-purple-900 bg-purple-150/70 border border-purple-200 px-2 py-0.5 rounded text-[11px] uppercase tracking-wider truncate max-w-[150px] dark:text-purple-200 dark:border-purple-800/60" title={fee.discount.name}>
                       {fee.discount.name}
                     </span>
-                    <span className="text-purple-700 font-medium text-xs sm:text-sm">
-                      Active Discount: <span className="font-bold text-purple-900">{formatCurrency(fee.discount.amount)}</span>
+                    <span className="text-purple-700 font-medium text-xs sm:text-sm dark:text-purple-300">
+                      Active Discount: <span className="font-bold text-purple-900 dark:text-purple-200">{formatCurrency(fee.discount.amount)}</span>
                     </span>
                   </div>
                   
                   {/* Right Column: Calculations and Term */}
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm font-medium">
                     <span className="text-purple-650">
-                      Old amount: <span className="line-through text-purple-500/80">{formatCurrency(fee.originalAmount || (fee.amount + fee.discount.amount))}</span>
+                      Old amount: <span className="line-through text-purple-500/80 dark:text-purple-400/80">{formatCurrency(fee.originalAmount || (fee.amount + fee.discount.amount))}</span>
                     </span>
-                    <span className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-150 px-2 py-0.5 rounded-md">
-                      New amount: <span className="font-bold text-emerald-800">{formatCurrency(fee.amount)}</span>
+                    <span className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-150 px-2 py-0.5 rounded-md dark:text-emerald-300 dark:bg-emerald-950/40">
+                      New amount: <span className="font-bold text-emerald-800 dark:text-emerald-200">{formatCurrency(fee.amount)}</span>
                     </span>
                     <span className="text-purple-300 text-xs hidden sm:inline">|</span>
-                    <span className="text-purple-500 text-xs font-normal">
+                    <span className="text-purple-500 text-xs font-normal dark:text-purple-400">
                       {selectedTerm} - {selectedAcademicYear?.name}
                     </span>
                   </div>
@@ -598,11 +598,11 @@ export function FeeCard({
                   .map(([termYear, items], termIndex) => {
                     // Color scheme for different terms
                     const colorSchemes = [
-                      { bg: 'bg-blue-50', border: 'border-blue-200', header: 'bg-blue-100', text: 'text-blue-900', accent: 'text-blue-700' },
-                      { bg: 'bg-amber-50', border: 'border-amber-200', header: 'bg-amber-100', text: 'text-amber-900', accent: 'text-amber-700' },
-                      { bg: 'bg-purple-50', border: 'border-purple-200', header: 'bg-purple-100', text: 'text-purple-900', accent: 'text-purple-700' },
-                      { bg: 'bg-green-50', border: 'border-green-200', header: 'bg-green-100', text: 'text-green-900', accent: 'text-green-700' },
-                      { bg: 'bg-pink-50', border: 'border-pink-200', header: 'bg-pink-100', text: 'text-pink-900', accent: 'text-pink-700' },
+                      { bg: 'bg-blue-50 dark:bg-blue-950/40', border: 'border-blue-200 dark:border-blue-800/60', header: 'bg-blue-100 dark:bg-blue-950/40', text: 'text-blue-900 dark:text-blue-200', accent: 'text-blue-700 dark:text-blue-300' },
+                      { bg: 'bg-amber-50 dark:bg-amber-950/40', border: 'border-amber-200 dark:border-amber-800/60', header: 'bg-amber-100 dark:bg-amber-950/40', text: 'text-amber-900 dark:text-amber-200', accent: 'text-amber-700 dark:text-amber-300' },
+                      { bg: 'bg-purple-50 dark:bg-purple-950/40', border: 'border-purple-200 dark:border-purple-800/60', header: 'bg-purple-100 dark:bg-purple-950/40', text: 'text-purple-900 dark:text-purple-200', accent: 'text-purple-700 dark:text-purple-300' },
+                      { bg: 'bg-green-50 dark:bg-green-950/40', border: 'border-green-200 dark:border-green-800/60', header: 'bg-green-100 dark:bg-green-950/40', text: 'text-green-900 dark:text-green-200', accent: 'text-green-700 dark:text-green-300' },
+                      { bg: 'bg-pink-50 dark:bg-pink-950/40', border: 'border-pink-200 dark:border-pink-800/60', header: 'bg-pink-100 dark:bg-pink-950/40', text: 'text-pink-900 dark:text-pink-200', accent: 'text-pink-700 dark:text-pink-300' },
                     ];
                     const colors = colorSchemes[termIndex % colorSchemes.length];
 
@@ -639,10 +639,10 @@ export function FeeCard({
                   })}
 
                 {/* Grand Total */}
-                <div className="bg-red-50 border-2 border-red-300 rounded-md px-2 py-1.5 mt-1.5">
+                <div className="bg-red-50 border-2 border-red-300 rounded-md px-2 py-1.5 mt-1.5 dark:bg-red-950/40 dark:border-red-800/60">
                   <div className="flex justify-between items-center">
-                    <span className="text-[11px] font-bold text-red-900">Total Outstanding Balance:</span>
-                    <span className="text-[12px] text-red-700 whitespace-nowrap font-bold">
+                    <span className="text-[11px] font-bold text-red-900 dark:text-red-200">Total Outstanding Balance:</span>
+                    <span className="text-[12px] text-red-700 whitespace-nowrap font-bold dark:text-red-300">
                       {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(fee.amount)}
                     </span>
                   </div>
@@ -654,22 +654,22 @@ export function FeeCard({
           {/* Uniform Details */}
           {UniformFeesIntegrationService.isUniformFee(fee) && (
             <div className="mt-2 space-y-2">
-              <div className="p-2 rounded-md border border-blue-100 bg-blue-50">
+              <div className="p-2 rounded-md border border-blue-100 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/40">
                 <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs">
                   <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
-                    <div className="flex items-center gap-1 font-semibold text-blue-900 shrink-0">
-                      <TShirt size={14} className="text-blue-600" />
+                    <div className="flex items-center gap-1 font-semibold text-blue-900 shrink-0 dark:text-blue-200">
+                      <TShirt size={14} className="text-blue-600 dark:text-blue-400" />
                       <span>Uniform Details</span>
                     </div>
 
                     {(fee as any).uniformDetails?.selectionMode && (
-                      <span className="text-[10px] text-blue-700 bg-blue-100/80 px-1.5 py-0.5 rounded border border-blue-200 font-medium shrink-0">
+                      <span className="text-[10px] text-blue-700 bg-blue-100/80 px-1.5 py-0.5 rounded border border-blue-200 font-medium shrink-0 dark:text-blue-300 dark:bg-blue-950/80 dark:border-blue-800/60">
                         {(fee as any).uniformDetails.selectionMode}
                       </span>
                     )}
 
                     <div className="flex flex-wrap items-center gap-1">
-                      <span className="text-[11px] font-medium text-blue-800 shrink-0">Items:</span>
+                      <span className="text-[11px] font-medium text-blue-800 shrink-0 dark:text-blue-200">Items:</span>
                       {(() => {
                         const uniformIds = (fee as any).uniformDetails?.uniformId || [];
                         const uniformIdArray = Array.isArray(uniformIds) ? uniformIds : [uniformIds];
@@ -711,34 +711,34 @@ export function FeeCard({
                                 key={index}
                                 className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] ${
                                   isFullyCollected
-                                    ? 'bg-green-100 border border-green-300 text-green-800'
+                                    ? 'bg-green-100 border border-green-300 text-green-800 dark:bg-green-950/40 dark:border-green-800/60 dark:text-green-200'
                                     : isPartiallyCollected
-                                    ? 'bg-amber-100 border border-amber-300 text-amber-900'
-                                    : 'bg-white border border-gray-300 text-gray-700'
+                                    ? 'bg-amber-100 border border-amber-300 text-amber-900 dark:bg-amber-950/40 dark:border-amber-800/60 dark:text-amber-200'
+                                    : 'bg-white border border-gray-300 text-gray-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200'
                                 }`}
                               >
                                 {isFullyCollected ? (
                                   <>
-                                    <span className="text-green-600 font-bold">✓</span>
+                                    <span className="text-green-600 font-bold dark:text-green-400">✓</span>
                                     <span className="line-through">{name} ({colQty}/{totalQty})</span>
                                     {sizeInfo && (
-                                      <span className="text-[9px] text-green-600 ml-0.5">({sizeInfo.size})</span>
+                                      <span className="text-[9px] text-green-600 ml-0.5 dark:text-green-400">({sizeInfo.size})</span>
                                     )}
                                   </>
                                 ) : isPartiallyCollected ? (
                                   <>
-                                    <span className="text-amber-600 font-bold">◐</span>
+                                    <span className="text-amber-600 font-bold dark:text-amber-400">◐</span>
                                     <span>{name} ({colQty}/{totalQty})</span>
                                     {sizeInfo && (
-                                      <span className="text-[9px] text-amber-700 ml-0.5">({sizeInfo.size})</span>
+                                      <span className="text-[9px] text-amber-700 ml-0.5 dark:text-amber-300">({sizeInfo.size})</span>
                                     )}
                                   </>
                                 ) : (
                                   <>
-                                    <span className="text-gray-400">○</span>
+                                    <span className="text-gray-400 dark:text-slate-400">○</span>
                                     <span>{name} (0/{totalQty})</span>
                                     {sizeInfo && (
-                                      <span className={`text-[9px] ml-0.5 ${sizeInfo.available ? 'text-blue-600' : 'text-red-600'}`}>
+                                      <span className={`text-[9px] ml-0.5 ${sizeInfo.available ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
                                         ({sizeInfo.size}{sizeInfo.available ? '' : ' - Out'})
                                       </span>
                                     )}
@@ -749,12 +749,12 @@ export function FeeCard({
                           });
                         }
 
-                        return <span className="text-gray-500 text-[11px]">No items listed</span>;
+                        return <span className="text-gray-500 text-[11px] dark:text-slate-400">No items listed</span>;
                       })()}
                     </div>
 
                     {(fee as any).uniformDetails?.discountAmount > 0 && (
-                      <span className="text-[10px] font-medium text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded border border-purple-200 shrink-0">
+                      <span className="text-[10px] font-medium text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded border border-purple-200 shrink-0 dark:text-purple-300 dark:bg-purple-950/40 dark:border-purple-800/60">
                         Discount Applied: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format((fee as any).uniformDetails.discountAmount)}
                       </span>
                     )}
@@ -762,7 +762,7 @@ export function FeeCard({
 
                   <button
                     onClick={() => setIsUniformTrackingExpanded(!isUniformTrackingExpanded)}
-                    className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium shrink-0 ml-auto"
+                    className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium shrink-0 ml-auto dark:text-blue-400 dark:hover:text-blue-200"
                   >
                     {isUniformTrackingExpanded ? (
                       <>
@@ -781,14 +781,14 @@ export function FeeCard({
 
               {/* Expandable Uniform Tracking Section */}
               {isUniformTrackingExpanded && (
-                <div className="mt-2 p-3 rounded-md border border-indigo-200 bg-indigo-50">
+                <div className="mt-2 p-3 rounded-md border border-indigo-200 bg-indigo-50 dark:border-indigo-800/60 dark:bg-indigo-950/40">
                   {isUniformTrackingLoading ? (
-                    <div className="text-sm text-gray-600">Loading tracking information...</div>
+                    <div className="text-sm text-gray-600 dark:text-slate-300">Loading tracking information...</div>
                   ) : uniformTrackingRecord ? (
                     <div className="space-y-3">
                       {/* Collection Status */}
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">Collection Status:</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-slate-200">Collection Status:</span>
                         <Badge
                           variant={effectiveCollectionStatus === 'collected' ? 'default' : 'outline'}
                           className="text-xs"
@@ -804,7 +804,7 @@ export function FeeCard({
                       {/* Collected Items */}
                       {trackingUniforms.length > 0 && (
                         <div className="mb-3">
-                          <p className="text-xs font-medium text-gray-700 mb-1.5 flex justify-between items-center">
+                          <p className="text-xs font-medium text-gray-700 mb-1.5 flex justify-between items-center dark:text-slate-200">
                             <span>Uniform Items ({previouslyCollectedItems.length}/{trackingUniforms.length} collected):</span>
                           </p>
                           <div className="space-y-1">
@@ -832,12 +832,12 @@ export function FeeCard({
                                 <div
                                   key={uniform.id}
                                   className={`flex items-center justify-between p-2 rounded border text-xs ${isCollected
-                                    ? 'bg-green-50 border-green-200'
-                                    : 'bg-white border-gray-200'
+                                    ? 'bg-green-50 border-green-200 dark:bg-green-950/40 dark:border-green-800/60'
+                                    : 'bg-white border-gray-200 dark:bg-slate-900 dark:border-slate-700'
                                     }`}
                                 >
                                   <div className="flex flex-col gap-0.5">
-                                    <span className={isCollected ? 'text-green-700 font-medium' : 'text-gray-700 font-medium'}>
+                                    <span className={isCollected ? 'text-green-700 font-medium dark:text-green-300' : 'text-gray-700 font-medium dark:text-slate-200'}>
                                       {uniform.name}
                                     </span>
 
@@ -845,24 +845,24 @@ export function FeeCard({
                                     {!isCollected && (
                                       <div className="flex items-center gap-1">
                                         {sizeStatus.status === 'available' && (
-                                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[9px] px-1 py-0 h-4 font-normal">
+                                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[9px] px-1 py-0 h-4 font-normal dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">
                                             Size: {sizeStatus.size}
                                           </Badge>
                                         )}
                                         {sizeStatus.status === 'out' && (
-                                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-[9px] px-1 py-0 h-4 font-normal">
+                                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-[9px] px-1 py-0 h-4 font-normal dark:bg-red-950/40 dark:text-red-300 dark:border-red-800/60">
                                             Size: {sizeStatus.size} (Out of Stock)
                                           </Badge>
                                         )}
                                         {sizeStatus.status === 'unspecified' && (
-                                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] px-1 py-0 h-4 font-normal">
+                                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] px-1 py-0 h-4 font-normal dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60">
                                             No Size Selected
                                           </Badge>
                                         )}
                                       </div>
                                     )}
                                     {isCollected && uniformTrackingRecord.selectedSizes?.[uniform.id] && (
-                                      <span className="text-[10px] text-green-600">Size: {uniformTrackingRecord.selectedSizes[uniform.id]}</span>
+                                      <span className="text-[10px] text-green-600 dark:text-green-400">Size: {uniformTrackingRecord.selectedSizes[uniform.id]}</span>
                                     )}
                                   </div>
 
@@ -871,18 +871,18 @@ export function FeeCard({
                                     const colQty = uniformTrackingRecord.collectedQuantities?.[uniform.id] ?? (isCollected ? totalQty : 0);
                                     if (colQty >= totalQty && colQty > 0) {
                                       return (
-                                        <Badge variant="outline" className="text-[10px] bg-green-100 text-green-800 border-green-300">
+                                        <Badge variant="outline" className="text-[10px] bg-green-100 text-green-800 border-green-300 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60">
                                           ✓ Collected ({colQty}/{totalQty})
                                         </Badge>
                                       );
                                     } else if (colQty > 0) {
                                       return (
-                                        <Badge variant="outline" className="text-[10px] bg-amber-100 text-amber-800 border-amber-300">
+                                        <Badge variant="outline" className="text-[10px] bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60">
                                           ◐ Partial ({colQty}/{totalQty})
                                         </Badge>
                                       );
                                     }
-                                    return <span className="text-[10px] text-gray-400">Pending (0/{totalQty})</span>;
+                                    return <span className="text-[10px] text-gray-400 dark:text-slate-400">Pending (0/{totalQty})</span>;
                                   })()}
                                 </div>
                               );
@@ -894,7 +894,7 @@ export function FeeCard({
                       {/* Collection History */}
                       {uniformTrackingRecord.history && uniformTrackingRecord.history.length > 0 && (
                         <div>
-                          <p className="text-xs font-medium text-gray-700 mb-1.5">📜 Collection History:</p>
+                          <p className="text-xs font-medium text-gray-700 mb-1.5 dark:text-slate-200">📜 Collection History:</p>
                           <div className="space-y-1.5 max-h-32 overflow-y-auto">
                             {uniformTrackingRecord.history
                               .filter(h =>
@@ -904,19 +904,19 @@ export function FeeCard({
                               )
                               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                               .map((historyItem, index) => (
-                                <div key={index} className="text-xs bg-white rounded border p-2">
+                                <div key={index} className="text-xs bg-white rounded border p-2 dark:bg-slate-900">
                                   <div className="flex justify-between items-start mb-1">
-                                    <span className="text-gray-500">
+                                    <span className="text-gray-500 dark:text-slate-400">
                                       {new Date(historyItem.date).toLocaleDateString()} {new Date(historyItem.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                   </div>
                                   {(historyItem.releasedBy || historyItem.receivedBy) && (
-                                    <div className="text-gray-700 text-xs">
+                                    <div className="text-gray-700 text-xs dark:text-slate-200">
                                       Released by: {historyItem.releasedBy || historyItem.receivedBy}
                                     </div>
                                   )}
                                   {historyItem.collectedItems && historyItem.collectedItems.length > 0 && (
-                                    <div className="text-blue-600 text-xs mt-1">
+                                    <div className="text-blue-600 text-xs mt-1 dark:text-blue-400">
                                       📦 Collected: {historyItem.collectedItems.length} item(s)
                                     </div>
                                   )}
@@ -940,7 +940,7 @@ export function FeeCard({
                       )}
                     </div>
                   ) : (
-                    <div className="text-sm text-amber-700">
+                    <div className="text-sm text-amber-700 dark:text-amber-300">
                       {uniformTrackingError
                         ? 'Tracking status is temporarily unavailable. Collection is disabled to protect existing records.'
                         : 'No tracking information available.'}
@@ -953,25 +953,25 @@ export function FeeCard({
       </div>
 
       <div className="mt-2 grid grid-cols-3 gap-1.5 sm:gap-2">
-        <div className="rounded-md sm:rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-1 sm:px-3 sm:py-2">
-          <p className="text-[9px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">Total</p>
-          <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-sm lg:text-base font-bold leading-tight text-slate-900 break-all">
+        <div className="rounded-md sm:rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-1 sm:px-3 sm:py-2 dark:border-slate-700 dark:bg-slate-900">
+          <p className="text-[9px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Total</p>
+          <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-sm lg:text-base font-bold leading-tight text-slate-900 break-all dark:text-slate-100">
             <span className="sm:hidden">{formatCurrencyCompact(fee.amount)}</span>
             <span className="hidden sm:inline">{formatCurrency(fee.amount)}</span>
           </p>
         </div>
 
-        <div className="rounded-md sm:rounded-lg border border-green-200 bg-green-50 px-1.5 py-1 sm:px-3 sm:py-2">
-          <p className="text-[9px] sm:text-xs font-semibold uppercase tracking-wide text-green-700">Paid</p>
-          <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-sm lg:text-base font-bold leading-tight text-green-700 break-all">
+        <div className="rounded-md sm:rounded-lg border border-green-200 bg-green-50 px-1.5 py-1 sm:px-3 sm:py-2 dark:border-green-800/60 dark:bg-green-950/40">
+          <p className="text-[9px] sm:text-xs font-semibold uppercase tracking-wide text-green-700 dark:text-green-300">Paid</p>
+          <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-sm lg:text-base font-bold leading-tight text-green-700 break-all dark:text-green-300">
             <span className="sm:hidden">{formatCurrencyCompact(totalPaid)}</span>
             <span className="hidden sm:inline">{formatCurrency(totalPaid)}</span>
           </p>
         </div>
 
-        <div className="rounded-md sm:rounded-lg border border-red-200 bg-red-50 px-1.5 py-1 sm:px-3 sm:py-2">
-          <p className="text-[9px] sm:text-xs font-semibold uppercase tracking-wide text-red-700">Balance</p>
-          <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-sm lg:text-base font-bold leading-tight text-red-700 break-all">
+        <div className="rounded-md sm:rounded-lg border border-red-200 bg-red-50 px-1.5 py-1 sm:px-3 sm:py-2 dark:border-red-800/60 dark:bg-red-950/40">
+          <p className="text-[9px] sm:text-xs font-semibold uppercase tracking-wide text-red-700 dark:text-red-300">Balance</p>
+          <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-sm lg:text-base font-bold leading-tight text-red-700 break-all dark:text-red-300">
             <span className="sm:hidden">{formatCurrencyCompact(balance)}</span>
             <span className="hidden sm:inline">{formatCurrency(balance)}</span>
           </p>
@@ -981,13 +981,13 @@ export function FeeCard({
 
       {/* Payment History - Ultra Compact with collapsible/expandable */}
       {sortedPayments.length > 0 ? (
-        <div className="mt-2 border-t border-gray-100 pt-2">
+        <div className="mt-2 border-t border-gray-100 pt-2 dark:border-slate-700">
           <div className="flex items-center justify-between mb-1.5">
-            <h4 className="text-xs font-medium text-gray-900">Payment History</h4>
+            <h4 className="text-xs font-medium text-gray-900 dark:text-slate-100">Payment History</h4>
             {hasMorePayments && (
               <button
                 onClick={() => setIsPaymentHistoryExpanded(!isPaymentHistoryExpanded)}
-                className="text-[10px] text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5 px-1 py-0.5"
+                className="text-[10px] text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5 px-1 py-0.5 dark:text-indigo-400 dark:hover:text-indigo-200"
               >
                 {isPaymentHistoryExpanded ? (
                   <>
@@ -1010,18 +1010,18 @@ export function FeeCard({
             {displayedPayments.map((payment) => (
               <div
                 key={payment.id}
-                className="bg-gray-50 p-1.5 rounded border border-gray-200"
+                className="bg-gray-50 p-1.5 rounded border border-gray-200 dark:bg-slate-900 dark:border-slate-700"
               >
                 <div className="flex items-center justify-between gap-1.5">
                   <div className="flex-1 min-w-0 flex items-center gap-1.5">
-                    <span className="text-[11px] font-medium text-gray-900 whitespace-nowrap">
+                    <span className="text-[11px] font-medium text-gray-900 whitespace-nowrap dark:text-slate-100">
                       {new Intl.NumberFormat('en-UG', {
                         style: 'currency',
                         currency: 'UGX',
                         maximumFractionDigits: 0
                       }).format(payment.amount)}
                     </span>
-                    <span className="text-[10px] text-gray-500">
+                    <span className="text-[10px] text-gray-500 dark:text-slate-400">
                       {new Date(payment.paymentDate || '').toLocaleDateString('en-GB', {
                         day: '2-digit',
                         month: 'short',
@@ -1029,23 +1029,23 @@ export function FeeCard({
                       })}
                     </span>
                     {payment.reverted && (
-                      <span className="px-1 py-0.5 text-[9px] font-medium rounded bg-red-100 text-red-800">
+                      <span className="px-1 py-0.5 text-[9px] font-medium rounded bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200">
                         REV
                       </span>
                     )}
                     {(payment as any).isCarryForwardPayment && (
-                      <span className="px-1 py-0.5 text-[9px] font-medium rounded bg-blue-100 text-blue-800">
+                      <span className="px-1 py-0.5 text-[9px] font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
                         CF
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-0.5 flex-shrink-0">
-                    <span className="text-[10px] text-gray-600 truncate max-w-[60px]">
+                    <span className="text-[10px] text-gray-600 truncate max-w-[60px] dark:text-slate-300">
                       {payment.paidBy?.name?.split(' ')[0] || 'Unknown'}
                     </span>
                     <button
                       onClick={() => handlePrintReceipt(payment)}
-                      className="text-blue-600 hover:text-blue-800 p-0.5 rounded hover:bg-blue-50 transition-colors"
+                      className="text-blue-600 hover:text-blue-800 p-0.5 rounded hover:bg-blue-50 transition-colors dark:text-blue-400 dark:hover:text-blue-200 dark:hover:bg-blue-950/40"
                       title="Print"
                     >
                       <Printer className="h-3 w-3" />
@@ -1053,7 +1053,7 @@ export function FeeCard({
                     <button
                       onClick={() => handleSendSMS(payment)}
                       disabled={payment.reverted}
-                      className="text-green-600 hover:text-green-800 p-0.5 rounded hover:bg-green-50 transition-colors disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent"
+                      className="text-green-600 hover:text-green-800 p-0.5 rounded hover:bg-green-50 transition-colors disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent dark:text-green-400 dark:hover:text-green-200 dark:hover:bg-green-950/40"
                       title={payment.reverted ? 'Receipt SMS unavailable for reversed payment' : 'Send SMS receipt'}
                       aria-label={`Send SMS receipt for payment of ${formatCurrency(payment.amount)}`}
                     >
@@ -1062,7 +1062,7 @@ export function FeeCard({
                     {!payment.reverted && (
                       <button
                         onClick={() => handleRevertPayment(payment)}
-                        className="text-red-600 hover:text-red-800 p-0.5 rounded hover:bg-red-50 transition-colors"
+                        className="text-red-600 hover:text-red-800 p-0.5 rounded hover:bg-red-50 transition-colors dark:text-red-400 dark:hover:text-red-200 dark:hover:bg-red-950/40"
                         title="Reverse payment (confirmation required)"
                         aria-label={`Reverse payment of ${formatCurrency(payment.amount)}`}
                       >
@@ -1074,12 +1074,12 @@ export function FeeCard({
                 {(payment.notes || (payment as any).originalTerm || payment.id) && (
                   <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
                     {payment.notes && (
-                      <span className="text-[10px] text-gray-500 truncate max-w-[120px]">
+                      <span className="text-[10px] text-gray-500 truncate max-w-[120px] dark:text-slate-400">
                         {payment.notes}
                       </span>
                     )}
                     {(payment as any).originalTerm && (payment as any).originalYear && (
-                      <span className="text-[10px] text-blue-600">
+                      <span className="text-[10px] text-blue-600 dark:text-blue-400">
                         {(payment as any).originalTerm} {(payment as any).originalYear}
                       </span>
                     )}
@@ -1098,7 +1098,7 @@ export function FeeCard({
           <div className="hidden md:block overflow-x-auto">
             <div className="min-w-full">
               {/* Table Header - Ultra compact */}
-              <div className="grid grid-cols-12 gap-1 px-2 py-1 bg-gray-100 rounded-t border-b border-gray-200 text-[10px] font-medium text-gray-700">
+              <div className="grid grid-cols-12 gap-1 px-2 py-1 bg-gray-100 rounded-t border-b border-gray-200 text-[10px] font-medium text-gray-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200">
                 <div className="col-span-2">Date</div>
                 <div className="col-span-2">Amount</div>
                 <div className="col-span-5">Received By</div>
@@ -1106,15 +1106,15 @@ export function FeeCard({
               </div>
 
               {/* Table Body - Ultra compact */}
-              <div className="bg-white rounded-b divide-y divide-gray-200">
+              <div className="bg-white rounded-b divide-y divide-gray-200 dark:bg-slate-900 dark:divide-slate-700">
                 {displayedPayments.map((payment) => (
                   <div
                     key={payment.id}
-                    className="grid grid-cols-12 gap-1 px-2 py-1 hover:bg-gray-50 transition-colors"
+                    className="grid grid-cols-12 gap-1 px-2 py-1 hover:bg-gray-50 transition-colors dark:hover:bg-slate-900"
                   >
                     {/* Date Column */}
                     <div className="col-span-2 flex items-center">
-                      <div className="text-[11px] text-gray-900">
+                      <div className="text-[11px] text-gray-900 dark:text-slate-100">
                         {new Date(payment.paymentDate || '').toLocaleDateString('en-GB', {
                           day: '2-digit',
                           month: 'short',
@@ -1126,7 +1126,7 @@ export function FeeCard({
                     {/* Amount Column */}
                     <div className="col-span-2 flex items-center">
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-[11px] font-medium text-gray-900">
+                        <span className="text-[11px] font-medium text-gray-900 dark:text-slate-100">
                           {new Intl.NumberFormat('en-UG', {
                             style: 'currency',
                             currency: 'UGX',
@@ -1135,12 +1135,12 @@ export function FeeCard({
                         </span>
                         <div className="flex items-center gap-0.5">
                           {payment.reverted && (
-                            <span className="px-1 py-0.5 text-[9px] font-medium rounded bg-red-100 text-red-800">
+                            <span className="px-1 py-0.5 text-[9px] font-medium rounded bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200">
                               REV
                             </span>
                           )}
                           {(payment as any).isCarryForwardPayment && (
-                            <span className="px-1 py-0.5 text-[9px] font-medium rounded bg-blue-100 text-blue-800">
+                            <span className="px-1 py-0.5 text-[9px] font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
                               CF
                             </span>
                           )}
@@ -1151,17 +1151,17 @@ export function FeeCard({
                     {/* Received By Column */}
                     <div className="col-span-5 flex items-center">
                       <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                        <span className="text-[11px] text-gray-900 truncate">
+                        <span className="text-[11px] text-gray-900 truncate dark:text-slate-100">
                           {payment.paidBy?.name || 'Unknown'}
                         </span>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {payment.notes && (
-                            <span className="text-[10px] text-gray-500 truncate max-w-[200px]">
+                            <span className="text-[10px] text-gray-500 truncate max-w-[200px] dark:text-slate-400">
                               {payment.notes}
                             </span>
                           )}
                           {(payment as any).originalTerm && (payment as any).originalYear && (
-                            <span className="text-[10px] text-blue-600 whitespace-nowrap">
+                            <span className="text-[10px] text-blue-600 whitespace-nowrap dark:text-blue-400">
                               {(payment as any).originalTerm} {(payment as any).originalYear}
                             </span>
                           )}
@@ -1178,7 +1178,7 @@ export function FeeCard({
                     <div className="col-span-3 flex items-center justify-end gap-0.5">
                       <button
                         onClick={() => handlePrintReceipt(payment)}
-                        className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                        className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors dark:text-blue-400 dark:hover:text-blue-200 dark:hover:bg-blue-950/40"
                         title="Print Receipt"
                       >
                         <Printer className="h-3.5 w-3.5" />
@@ -1186,7 +1186,7 @@ export function FeeCard({
                       <button
                         onClick={() => handleSendSMS(payment)}
                         disabled={payment.reverted}
-                        className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent"
+                        className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent dark:text-green-400 dark:hover:text-green-200 dark:hover:bg-green-950/40"
                         title={payment.reverted ? 'Receipt SMS unavailable for reversed payment' : 'Send SMS Receipt'}
                         aria-label={`Send SMS receipt for payment of ${formatCurrency(payment.amount)}`}
                       >
@@ -1195,7 +1195,7 @@ export function FeeCard({
                       {!payment.reverted && (
                         <button
                           onClick={() => handleRevertPayment(payment)}
-                          className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
+                          className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors dark:text-red-400 dark:hover:text-red-200 dark:hover:bg-red-950/40"
                           title="Reverse payment (confirmation required)"
                           aria-label={`Reverse payment of ${formatCurrency(payment.amount)}`}
                         >
@@ -1210,8 +1210,8 @@ export function FeeCard({
           </div>
         </div>
       ) : (
-        <div className="mt-2 border-t border-gray-100 pt-2">
-          <div className="text-[11px] text-gray-500">No payments recorded</div>
+        <div className="mt-2 border-t border-gray-100 pt-2 dark:border-slate-700">
+          <div className="text-[11px] text-gray-500 dark:text-slate-400">No payments recorded</div>
         </div>
       )}
 
@@ -1219,7 +1219,7 @@ export function FeeCard({
         <div className="mt-3 flex justify-end">
           <button
             onClick={handleGenerateAssignmentCard}
-            className="inline-flex items-center justify-center px-3 py-1.5 text-xs sm:text-sm font-medium text-indigo-700 bg-indigo-50 rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 hover:scale-95 origin-center"
+            className="inline-flex items-center justify-center px-3 py-1.5 text-xs sm:text-sm font-medium text-indigo-700 bg-indigo-50 rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 hover:scale-95 origin-center dark:text-indigo-300 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/40"
           >
             <IdentificationCard className="w-4 h-4 mr-1.5" />
             Card

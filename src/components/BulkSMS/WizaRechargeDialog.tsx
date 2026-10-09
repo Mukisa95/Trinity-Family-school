@@ -120,9 +120,9 @@ const WizaRechargeDialog: React.FC<WizaRechargeDialogProps> = ({
 
           {/* Success state */}
           {status === 'success' && (
-            <Alert className="border-green-200 bg-green-50">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-700">{resultMsg}</AlertDescription>
+            <Alert className="border-green-200 bg-green-50 dark:border-green-800/60 dark:bg-green-950/40">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <AlertDescription className="text-green-700 dark:text-green-300">{resultMsg}</AlertDescription>
             </Alert>
           )}
 
@@ -138,7 +138,7 @@ const WizaRechargeDialog: React.FC<WizaRechargeDialogProps> = ({
             <>
               {/* Phone number */}
               <div className="space-y-1.5">
-                <Label htmlFor="recharge-phone" className={formValidation.getFieldError('recharge-phone') ? 'text-red-700' : undefined}>Mobile Money Number <span className="text-red-600">*</span></Label>
+                <Label htmlFor="recharge-phone" className={formValidation.getFieldError('recharge-phone') ? 'text-red-700 dark:text-red-300' : undefined}>Mobile Money Number <span className="text-red-600 dark:text-red-400">*</span></Label>
                 <div className="relative">
                   <Smartphone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -157,7 +157,7 @@ const WizaRechargeDialog: React.FC<WizaRechargeDialogProps> = ({
 
               {/* Amount */}
               <div className="space-y-1.5">
-                <Label htmlFor="recharge-amount" className={formValidation.getFieldError('recharge-amount') ? 'text-red-700' : undefined}>Amount (UGX) <span className="text-red-600">*</span></Label>
+                <Label htmlFor="recharge-amount" className={formValidation.getFieldError('recharge-amount') ? 'text-red-700 dark:text-red-300' : undefined}>Amount (UGX) <span className="text-red-600 dark:text-red-400">*</span></Label>
                 <Input
                   id="recharge-amount"
                   type="number"

@@ -288,7 +288,7 @@ export default function ClassStreamSetupPage() {
 
   const isLoading = classLoading || pupilsLoading || academicYearLoading;
   if (isLoading) {
-    return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="mr-2 h-6 w-6 animate-spin text-cyan-700" /> Loading stream setup…</div>;
+    return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="mr-2 h-6 w-6 animate-spin text-cyan-700 dark:text-cyan-300" /> Loading stream setup…</div>;
   }
   if (!schoolClass) {
     return <div className="p-6 text-center"><p className="mb-4">Class not found.</p><Button asChild><Link href="/classes">Back to Classes</Link></Button></div>;
@@ -296,7 +296,7 @@ export default function ClassStreamSetupPage() {
   if (!definitions.length) {
     return (
       <div className="mx-auto max-w-3xl p-4 sm:p-6">
-        <Card className="border-2 border-cyan-200">
+        <Card className="border-2 border-cyan-200 dark:border-cyan-800/60">
           <CardHeader><CardTitle>No streams created</CardTitle><CardDescription>Create stream names and codes from the Edit dialog on Class Details first.</CardDescription></CardHeader>
           <CardContent className="flex flex-wrap gap-3">
             <Button asChild><Link href={`/class-detail?id=${encodeURIComponent(classId)}&edit=1`}>Open Class Edit</Link></Button>
@@ -322,12 +322,12 @@ export default function ClassStreamSetupPage() {
         backLabel="Back to class details"
         meta={
           <span
-            className="inline-flex items-center gap-1 rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-800"
+            className="inline-flex items-center gap-1 rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-800 dark:border-cyan-800/60 dark:bg-cyan-950/40 dark:text-cyan-200"
             aria-label={`Assignment progress ${assignedCount} of ${activePupils.length}`}
             title={`Assignment progress: ${assignedCount}/${activePupils.length}`}
           >
             <span className="hidden sm:inline">Assigned</span>
-            <strong className="tabular-nums text-cyan-950">{assignedCount}/{activePupils.length}</strong>
+            <strong className="tabular-nums text-cyan-950 dark:text-cyan-100">{assignedCount}/{activePupils.length}</strong>
           </span>
         }
         className="stream-setup-topbar mb-0"
@@ -344,13 +344,13 @@ export default function ClassStreamSetupPage() {
 
       <div className="grid gap-4 lg:grid-cols-[19rem_minmax(0,1fr)]">
         <aside className="space-y-4">
-          <Card className="border-slate-200 shadow-sm">
+          <Card className="border-slate-200 shadow-sm dark:border-slate-700">
             <CardHeader className="pb-3"><CardTitle className="text-base">Active streams</CardTitle><CardDescription>Uncheck a stream to disable it for this academic year.</CardDescription></CardHeader>
             <CardContent className="space-y-2">
               {definitions.map(stream => {
                 const isActive = activeStreamIds.includes(stream.id);
                 return (
-                  <label key={stream.id} className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors ${isActive ? 'border-cyan-300 bg-cyan-50' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
+                  <label key={stream.id} className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors ${isActive ? 'border-cyan-300 bg-cyan-50 dark:border-cyan-800/60 dark:bg-cyan-950/40' : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400'}`}>
                     <Checkbox checked={isActive} onCheckedChange={checked => toggleActiveStream(stream.id, checked === true)} aria-label={`${isActive ? 'Disable' : 'Enable'} ${stream.name}`} />
                     <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{stream.name}</span><span className="text-xs">Code: {stream.code}</span></span>
                     <Badge variant="outline" className="tabular-nums">{counts[stream.id] || 0}</Badge>
@@ -360,40 +360,40 @@ export default function ClassStreamSetupPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-emerald-200 bg-emerald-50/60 shadow-sm">
+          <Card className="border-emerald-200 bg-emerald-50/60 shadow-sm dark:border-emerald-800/60 dark:bg-emerald-950/60">
             <CardContent className="space-y-2 p-4">
-              <div className="flex items-center gap-2 font-semibold text-emerald-950"><ShieldCheck className="h-4 w-4" /> Safe save</div>
-              <p className="text-xs leading-5 text-emerald-900">Nothing changes until Save Stream Setup succeeds. The class configuration and all pupil assignments are saved together.</p>
+              <div className="flex items-center gap-2 font-semibold text-emerald-950 dark:text-emerald-100"><ShieldCheck className="h-4 w-4" /> Safe save</div>
+              <p className="text-xs leading-5 text-emerald-900 dark:text-emerald-200">Nothing changes until Save Stream Setup succeeds. The class configuration and all pupil assignments are saved together.</p>
               <Progress value={assignmentProgress} className="h-2" />
             </CardContent>
           </Card>
         </aside>
 
-        <Card className="min-w-0 overflow-visible border-slate-200 shadow-sm">
+        <Card className="min-w-0 overflow-visible border-slate-200 shadow-sm dark:border-slate-700">
           <CardHeader
-            className="sticky z-20 rounded-t-lg border-b border-slate-200 bg-slate-50/95 p-2 shadow-sm backdrop-blur-md sm:p-3"
+            className="sticky z-20 rounded-t-lg border-b border-slate-200 bg-slate-50/95 p-2 shadow-sm backdrop-blur-md sm:p-3 dark:border-slate-700 dark:bg-slate-900/95"
             style={{ top: `${topbarHeight}px` }}
           >
             <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
               {activeStreams.length === 2 ? (
-                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-lg border border-cyan-200 bg-cyan-50/90 px-2 py-1.5 lg:flex-nowrap">
-                  <Label htmlFor="focus-stream" className="shrink-0 text-xs font-semibold text-cyan-950 sm:text-sm">Choose pupils for</Label>
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-lg border border-cyan-200 bg-cyan-50/90 px-2 py-1.5 lg:flex-nowrap dark:border-cyan-800/60 dark:bg-cyan-950/90">
+                  <Label htmlFor="focus-stream" className="shrink-0 text-xs font-semibold text-cyan-950 sm:text-sm dark:text-cyan-100">Choose pupils for</Label>
                   <Select value={focusStreamId} onValueChange={setFocusStreamId}>
-                    <SelectTrigger id="focus-stream" className="h-9 w-44 shrink-0 bg-white"><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="focus-stream" className="h-9 w-44 shrink-0 bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
                     <SelectContent>{activeStreams.map(stream => <SelectItem key={stream.id} value={stream.id}>{stream.name} ({stream.code})</SelectItem>)}</SelectContent>
                   </Select>
-                  <span className="min-w-0 text-xs text-cyan-900 lg:truncate">The remainder go to <strong>{activeStreams.find(stream => stream.id !== focusStreamId)?.name}</strong>.</span>
+                  <span className="min-w-0 text-xs text-cyan-900 lg:truncate dark:text-cyan-200">The remainder go to <strong>{activeStreams.find(stream => stream.id !== focusStreamId)?.name}</strong>.</span>
                 </div>
               ) : null}
               <div className="relative w-full shrink-0 lg:w-56 xl:w-64">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <Input aria-label="Search pupils" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search pupils…" className="h-9 bg-white pl-9" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-400" />
+                <Input aria-label="Search pupils" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search pupils…" className="h-9 bg-white pl-9 dark:bg-slate-900" />
               </div>
             </div>
           </CardHeader>
           <CardContent className="p-0">
             {activePupils.length === 0 ? (
-              <div className="p-10 text-center text-slate-500">No active pupils are currently enrolled in this class.</div>
+              <div className="p-10 text-center text-slate-500 dark:text-slate-400">No active pupils are currently enrolled in this class.</div>
             ) : (
               <div className="max-h-[62vh] divide-y overflow-y-auto">
                 {filteredPupils.map((pupil, index) => {
@@ -401,30 +401,30 @@ export default function ClassStreamSetupPage() {
                   const assignedStream = definitions.find(stream => stream.id === assignedStreamId);
                   const focusChecked = assignedStreamId === focusStreamId;
                   return (
-                    <div key={pupil.id} className="grid min-h-16 items-center gap-3 px-3 py-2 hover:bg-slate-50 sm:grid-cols-[2.25rem_minmax(0,1fr)_15rem] sm:px-4">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold tabular-nums text-slate-600">{index + 1}</span>
+                    <div key={pupil.id} className="grid min-h-16 items-center gap-3 px-3 py-2 hover:bg-slate-50 sm:grid-cols-[2.25rem_minmax(0,1fr)_15rem] sm:px-4 dark:hover:bg-slate-900">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold tabular-nums text-slate-600 dark:bg-slate-900 dark:text-slate-300">{index + 1}</span>
                       <div className="min-w-0">
-                        <p className="truncate font-semibold text-slate-900">{formatPupilDisplayName(pupil)}</p>
-                        <p className="truncate text-xs text-slate-500">{pupil.admissionNumber}</p>
+                        <p className="truncate font-semibold text-slate-900 dark:text-slate-100">{formatPupilDisplayName(pupil)}</p>
+                        <p className="truncate text-xs text-slate-500 dark:text-slate-400">{pupil.admissionNumber}</p>
                       </div>
                       {activeStreams.length === 2 ? (
-                        <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white px-3">
+                        <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-900">
                           <Checkbox checked={focusChecked} onCheckedChange={checked => toggleTwoStreamPupil(pupil.id, checked === true)} aria-label={`Assign ${formatPupilDisplayName(pupil)} to ${activeStreams.find(stream => stream.id === focusStreamId)?.name}`} />
                           <span className="min-w-0 flex-1 truncate text-sm font-medium">{assignedStream?.name || 'Choose stream'}</span>
-                          {assignedStream ? <Check className="h-4 w-4 text-emerald-600" /> : null}
+                          {assignedStream ? <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> : null}
                         </label>
                       ) : activeStreams.length > 2 ? (
                         <Select value={assignedStreamId || undefined} onValueChange={value => { setAssignments(current => ({ ...current, [pupil.id]: value })); setErrors([]); }}>
-                          <SelectTrigger className="h-11 bg-white" aria-label={`Choose stream for ${formatPupilDisplayName(pupil)}`} aria-invalid={!assignedStreamId}><SelectValue placeholder="Choose stream" /></SelectTrigger>
+                          <SelectTrigger className="h-11 bg-white dark:bg-slate-900" aria-label={`Choose stream for ${formatPupilDisplayName(pupil)}`} aria-invalid={!assignedStreamId}><SelectValue placeholder="Choose stream" /></SelectTrigger>
                           <SelectContent>{activeStreams.map(stream => <SelectItem key={stream.id} value={stream.id}>{stream.name} ({stream.code})</SelectItem>)}</SelectContent>
                         </Select>
                       ) : (
-                        <div className="flex min-h-11 items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-900">{assignedStream?.name || activeStreams[0]?.name || 'No stream active'}</div>
+                        <div className="flex min-h-11 items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-900 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-200">{assignedStream?.name || activeStreams[0]?.name || 'No stream active'}</div>
                       )}
                     </div>
                   );
                 })}
-                {filteredPupils.length === 0 ? <div className="p-10 text-center text-slate-500">No pupils match your search.</div> : null}
+                {filteredPupils.length === 0 ? <div className="p-10 text-center text-slate-500 dark:text-slate-400">No pupils match your search.</div> : null}
               </div>
             )}
           </CardContent>
@@ -442,7 +442,7 @@ export default function ClassStreamSetupPage() {
         <Button
           asChild
           variant="outline"
-          className="flex h-16 w-16 flex-col gap-1 rounded-full border-slate-300 bg-white/95 p-0 text-slate-700 shadow-[0_10px_28px_rgba(15,23,42,0.18)] backdrop-blur transition-[background-color,border-color,box-shadow] hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 hover:shadow-xl focus-visible:ring-2 focus-visible:ring-slate-500"
+          className="flex h-16 w-16 flex-col gap-1 rounded-full border-slate-300 bg-white/95 p-0 text-slate-700 shadow-[0_10px_28px_rgba(15,23,42,0.18)] backdrop-blur transition-[background-color,border-color,box-shadow] hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 hover:shadow-xl focus-visible:ring-2 focus-visible:ring-slate-500 dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-100"
         >
           <Link href={`/class-detail?id=${encodeURIComponent(classId)}`} aria-label="Cancel stream setup and return to class details">
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />

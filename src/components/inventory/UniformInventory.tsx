@@ -233,7 +233,7 @@ export function UniformInventory() {
                     </Link>
                     <div>
                         <h1 className="text-2xl font-bold flex items-center gap-2">
-                            <Shirt className="h-6 w-6 text-purple-500" />
+                            <Shirt className="h-6 w-6 text-purple-500 dark:text-purple-400" />
                             Uniform Inventory
                         </h1>
                         <p className="text-muted-foreground">Manage stock levels by size for each uniform item</p>
@@ -318,7 +318,7 @@ export function UniformInventory() {
                             <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
-                                        <Package className="h-5 w-5 text-green-500" />
+                                        <Package className="h-5 w-5 text-green-500 dark:text-green-400" />
                                         Stock Management
                                     </CardTitle>
                                     <CardDescription>
@@ -357,7 +357,7 @@ export function UniformInventory() {
                                                     <div className="flex items-center gap-4">
                                                         <div className="text-right">
                                                             <p className="text-sm text-muted-foreground">Total Stock</p>
-                                                            <p className="text-xl font-bold text-green-600">{inv?.totalStock || 0}</p>
+                                                            <p className="text-xl font-bold text-green-600 dark:text-green-400">{inv?.totalStock || 0}</p>
                                                         </div>
                                                         <Button
                                                             variant="outline"
@@ -394,14 +394,14 @@ export function UniformInventory() {
                                                                         onClick={() => handleSaveStock(inv.uniformId, size)}
                                                                         disabled={updateStock.isPending}
                                                                     >
-                                                                        <Check className="h-4 w-4 text-green-500" />
+                                                                        <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
                                                                     </Button>
                                                                 </div>
                                                             ) : (
                                                                 <p
                                                                     className={cn(
-                                                                        "text-2xl font-bold cursor-pointer hover:text-purple-600 transition-colors",
-                                                                        quantity === 0 && "text-red-500"
+                                                                        "text-2xl font-bold cursor-pointer hover:text-purple-600 transition-colors dark:hover:text-purple-400",
+                                                                        quantity === 0 && "text-red-500 dark:text-red-400"
                                                                     )}
                                                                     onClick={() => handleStartEditStock(inv)}
                                                                 >
@@ -446,7 +446,7 @@ export function UniformInventory() {
                             <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
-                                        <Settings2 className="h-5 w-5 text-amber-500" />
+                                        <Settings2 className="h-5 w-5 text-amber-500 dark:text-amber-400" />
                                         Configure Sizes
                                     </CardTitle>
                                     <CardDescription>
@@ -539,7 +539,7 @@ export function UniformInventory() {
                                             {size}
                                             <button
                                                 onClick={() => handleRemoveSize(size)}
-                                                className="ml-1 hover:text-red-500"
+                                                className="ml-1 hover:text-red-500 dark:hover:text-red-400"
                                             >
                                                 <X className="h-3 w-3" />
                                             </button>

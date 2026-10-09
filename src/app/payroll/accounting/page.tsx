@@ -154,7 +154,7 @@ export default function PayrollAccountingPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CalendarRange className="h-5 w-5 text-emerald-700" />
+              <CalendarRange className="h-5 w-5 text-emerald-700 dark:text-emerald-300" />
               Accounting period
             </CardTitle>
             <CardDescription>
@@ -271,8 +271,8 @@ export default function PayrollAccountingPage() {
         </Card>
 
         {!range && (
-          <Card className="border-amber-200 bg-amber-50/70">
-            <CardContent role="alert" className="p-5 text-sm text-amber-900">
+          <Card className="border-amber-200 bg-amber-50/70 dark:border-amber-800/60 dark:bg-amber-950/70">
+            <CardContent role="alert" className="p-5 text-sm text-amber-900 dark:text-amber-200">
               {period === "custom"
                 ? "Choose an end date on or after the start date."
                 : "Set up an academic year and its terms to report on this period."}
@@ -285,8 +285,8 @@ export default function PayrollAccountingPage() {
         )}
 
         {range && accounting.error && (
-          <Card className="border-red-200">
-            <CardContent role="alert" className="p-5 text-sm text-red-700">
+          <Card className="border-red-200 dark:border-red-800/60">
+            <CardContent role="alert" className="p-5 text-sm text-red-700 dark:text-red-300">
               {accounting.error instanceof Error
                 ? accounting.error.message
                 : "Unable to load salary spending."}
@@ -297,20 +297,20 @@ export default function PayrollAccountingPage() {
         {range && accounting.data && (
           <>
             <div className="grid gap-3 sm:grid-cols-3">
-              <Card className="border-emerald-200 bg-emerald-50/60">
+              <Card className="border-emerald-200 bg-emerald-50/60 dark:border-emerald-800/60 dark:bg-emerald-950/60">
                 <CardContent className="p-5">
-                  <CircleDollarSign className="mb-3 h-5 w-5 text-emerald-700" />
-                  <p className="text-xs font-medium text-emerald-800">
+                  <CircleDollarSign className="mb-3 h-5 w-5 text-emerald-700 dark:text-emerald-300" />
+                  <p className="text-xs font-medium text-emerald-800 dark:text-emerald-200">
                     Salary spending
                   </p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-950">
+                  <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-950 dark:text-emerald-100">
                     {formatCurrency(accounting.data.totalAmount)}
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-5">
-                  <BarChart3 className="mb-3 h-5 w-5 text-blue-700" />
+                  <BarChart3 className="mb-3 h-5 w-5 text-blue-700 dark:text-blue-300" />
                   <p className="text-xs font-medium text-muted-foreground">
                     Payments recorded
                   </p>
@@ -321,7 +321,7 @@ export default function PayrollAccountingPage() {
               </Card>
               <Card>
                 <CardContent className="p-5">
-                  <Users className="mb-3 h-5 w-5 text-violet-700" />
+                  <Users className="mb-3 h-5 w-5 text-violet-700 dark:text-violet-300" />
                   <p className="text-xs font-medium text-muted-foreground">
                     Staff paid
                   </p>

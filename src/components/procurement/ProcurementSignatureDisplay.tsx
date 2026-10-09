@@ -29,7 +29,7 @@ export function ProcurementSignatureDisplay({
 
   if (error) {
     return (
-      <div className="text-xs text-red-500">
+      <div className="text-xs text-red-500 dark:text-red-400">
         Signature error
       </div>
     );
@@ -75,7 +75,7 @@ export function ProcurementSignatureDisplay({
       <div className={`space-y-2 ${className}`}>
         {creationSignature && (
           <div className="flex items-center gap-2">
-            <ShoppingCart className="w-4 h-4 text-green-600" />
+            <ShoppingCart className="w-4 h-4 text-green-600 dark:text-green-400" />
             <DetailedSignature
               signature={creationSignature.signature}
               action="Purchased"
@@ -86,7 +86,7 @@ export function ProcurementSignatureDisplay({
         
         {modificationSignatures.map((modSig, index) => (
           <div key={modSig.id} className="flex items-center gap-2">
-            <Edit3 className="w-4 h-4 text-blue-600" />
+            <Edit3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <DetailedSignature
               signature={modSig.signature}
               action="Modified"
@@ -97,7 +97,7 @@ export function ProcurementSignatureDisplay({
         
         {deletionSignature && (
           <div className="flex items-center gap-2">
-            <Trash2 className="w-4 h-4 text-red-600" />
+            <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
             <DetailedSignature
               signature={deletionSignature.signature}
               action="Deleted"
@@ -146,7 +146,7 @@ export function ItemSignatureDisplay({
 
   if (error) {
     return (
-      <div className="text-xs text-red-500">
+      <div className="text-xs text-red-500 dark:text-red-400">
         Signature error
       </div>
     );
@@ -187,7 +187,7 @@ export function ItemSignatureDisplay({
       <div className={`space-y-2 ${className}`}>
         {creationSignature && (
           <div className="flex items-center gap-2">
-            <Package className="w-4 h-4 text-green-600" />
+            <Package className="w-4 h-4 text-green-600 dark:text-green-400" />
             <DetailedSignature
               signature={creationSignature.signature}
               action="Created"
@@ -198,7 +198,7 @@ export function ItemSignatureDisplay({
         
         {latestModification && (
           <div className="flex items-center gap-2">
-            <Edit3 className="w-4 h-4 text-blue-600" />
+            <Edit3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <DetailedSignature
               signature={latestModification.signature}
               action="Last Modified"
@@ -256,7 +256,7 @@ export function ProcurementAuditTrail({
 
   if (error) {
     return (
-      <div className="text-sm text-red-500">
+      <div className="text-sm text-red-500 dark:text-red-400">
         Signature error
       </div>
     );
@@ -280,15 +280,15 @@ export function ProcurementAuditTrail({
       case 'purchase_created':
       case 'item_created':
       case 'budget_created':
-        return <ShoppingCart className="w-4 h-4 text-green-600" />;
+        return <ShoppingCart className="w-4 h-4 text-green-600 dark:text-green-400" />;
       case 'purchase_modified':
       case 'item_modified':
       case 'budget_modified':
-        return <Edit3 className="w-4 h-4 text-blue-600" />;
+        return <Edit3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
       case 'purchase_deleted':
-        return <Trash2 className="w-4 h-4 text-red-600" />;
+        return <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />;
       default:
-        return <Package className="w-4 h-4 text-gray-600" />;
+        return <Package className="w-4 h-4 text-gray-600 dark:text-slate-300" />;
     }
   };
 

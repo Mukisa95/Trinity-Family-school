@@ -257,7 +257,7 @@ export function AssignmentTimeManagementForm({
       {settings.termApplicability === 'specific_terms' && (
         <div>
           <Label>Select Applicable Terms</Label>
-          <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50/50 p-1.5">
+          <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50/50 p-1.5 dark:border-slate-700 dark:bg-slate-900/50">
             {sortedAcademicYears.map((year) => {
               const isExpanded = expandedYearIds.has(year.id);
               const isCurrentYear = year.id === currentAcademicYear?.id;
@@ -276,7 +276,7 @@ export function AssignmentTimeManagementForm({
                   ref={(el) => {
                     yearRefs.current[year.id] = el;
                   }}
-                  className="scroll-mt-1 overflow-hidden rounded-md border border-slate-200/80 bg-white"
+                  className="scroll-mt-1 overflow-hidden rounded-md border border-slate-200/80 bg-white dark:border-slate-700/80 dark:bg-slate-900"
                 >
                   <Collapsible
                     open={isExpanded}
@@ -289,13 +289,13 @@ export function AssignmentTimeManagementForm({
                       });
                     }}
                   >
-                    <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left text-sm font-medium text-slate-800 hover:bg-slate-50">
+                    <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left text-sm font-medium text-slate-800 hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-900">
                       <span className="flex min-w-0 flex-1 items-center gap-2">
                         <span className="truncate">{year.name}</span>
                         {isCurrentYear && (
                           <Badge
                             variant="outline"
-                            className="shrink-0 border-indigo-200 bg-indigo-50 text-[10px] text-indigo-700"
+                            className="shrink-0 border-indigo-200 bg-indigo-50 text-[10px] text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-950/40 dark:text-indigo-300"
                           >
                             Current year
                           </Badge>
@@ -307,10 +307,10 @@ export function AssignmentTimeManagementForm({
                         )}
                       </span>
                       <ChevronDown
-                        className={`h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                        className={`h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200  dark:text-slate-400${isExpanded ? 'rotate-180' : ''}`}
                       />
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="border-t border-slate-100 px-2 pb-2 pt-1">
+                    <CollapsibleContent className="border-t border-slate-100 px-2 pb-2 pt-1 dark:border-slate-700">
                       {year.terms.map((term) => {
                         const isAllowed = settings.allowedTermIds ? settings.allowedTermIds.includes(term.id) : true;
                         if (!isAllowed) return null;
@@ -323,7 +323,7 @@ export function AssignmentTimeManagementForm({
                         return (
                           <div
                             key={term.id}
-                            className={`flex items-center space-x-2 rounded-md py-1 pl-1 pr-0.5 ${isCurrentTerm && isChecked ? 'bg-indigo-50' : ''}`}
+                            className={`flex items-center space-x-2 rounded-md py-1 pl-1 pr-0.5 ${isCurrentTerm && isChecked ? 'bg-indigo-50 dark:bg-indigo-950/40' : ''}`}
                           >
                             <Checkbox
                               id={checkboxId}
@@ -340,11 +340,11 @@ export function AssignmentTimeManagementForm({
                             />
                             <Label
                               htmlFor={checkboxId}
-                              className={`text-sm ${isCurrentTerm ? 'font-medium text-indigo-800' : ''}`}
+                              className={`text-sm ${isCurrentTerm ? 'font-medium text-indigo-800 dark:text-indigo-200' : ''}`}
                             >
                               {term.name}
                               {isCurrentTerm && (
-                                <span className="ml-1.5 text-[10px] font-normal text-indigo-600">
+                                <span className="ml-1.5 text-[10px] font-normal text-indigo-600 dark:text-indigo-400">
                                   (current)
                                 </span>
                               )}

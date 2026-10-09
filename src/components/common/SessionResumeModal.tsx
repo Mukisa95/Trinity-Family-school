@@ -114,22 +114,22 @@ export default function SessionResumeModal({
         aria-modal="true"
         aria-labelledby="session-resume-title"
         aria-describedby="session-resume-description"
-        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl motion-reduce:transition-none"
+        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl motion-reduce:transition-none dark:border-slate-700 dark:bg-slate-900"
       >
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-950/40">
             {mode === 'switch' ? (
-              <UserSwitch size={24} className="text-blue-700" weight="duotone" />
+              <UserSwitch size={24} className="text-blue-700 dark:text-blue-300" weight="duotone" />
             ) : (
               requiresDeviceUnlock
-                ? <Fingerprint size={24} className="text-blue-700" weight="duotone" />
-                : <Lock size={24} className="text-blue-700" weight="duotone" />
+                ? <Fingerprint size={24} className="text-blue-700 dark:text-blue-300" weight="duotone" />
+                : <Lock size={24} className="text-blue-700 dark:text-blue-300" weight="duotone" />
             )}
           </div>
-          <h2 id="session-resume-title" className="text-lg font-semibold text-slate-950">
+          <h2 id="session-resume-title" className="text-lg font-semibold text-slate-950 dark:text-slate-100">
             {mode === 'switch' ? 'Switch user' : 'Session privacy lock'}
           </h2>
-          <p id="session-resume-description" className="mt-2 text-sm leading-6 text-slate-600">
+          <p id="session-resume-description" className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
             {mode === 'switch'
               ? 'Sign in with a different account. This replaces the current signed session.'
               : requiresDeviceUnlock
@@ -137,7 +137,7 @@ export default function SessionResumeModal({
                 : 'Your signed session and mounted dashboard are still available. Resume without entering your password again.'}
           </p>
           {mode === 'resume' && username && (
-            <p className="mt-2 text-xs font-medium text-slate-500">
+            <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
               Signed in as {username}
             </p>
           )}
@@ -153,7 +153,7 @@ export default function SessionResumeModal({
               className="flex w-full items-center justify-center rounded-full bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoading ? (
-                <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent dark:border-slate-700" />
               ) : (
                 requiresDeviceUnlock
                   ? <Fingerprint size={18} className="mr-2" weight="bold" />
@@ -162,7 +162,7 @@ export default function SessionResumeModal({
               {isLoading ? 'Unlocking…' : requiresDeviceUnlock ? 'Unlock with this device' : 'Resume session'}
             </button>
 
-            <p className="text-center text-xs leading-5 text-slate-500">
+            <p className="text-center text-xs leading-5 text-slate-500 dark:text-slate-400">
               {requiresDeviceUnlock
                 ? 'The device verifies you locally. Account access changes are checked in the background when a connection is available.'
                 : 'Access changes made by an administrator are checked through Firebase Authentication in the background, without a Firestore user read.'}
@@ -171,7 +171,7 @@ export default function SessionResumeModal({
         ) : (
           <form onSubmit={handleSwitchUser} className="space-y-4">
             <div>
-              <label htmlFor="switch-username" className="mb-2 block text-sm font-medium text-slate-700">
+              <label htmlFor="switch-username" className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
                 Username
               </label>
               <input
@@ -179,7 +179,7 @@ export default function SessionResumeModal({
                 id="switch-username"
                 value={switchUsername}
                 onChange={event => setSwitchUsername(event.target.value)}
-                className="w-full rounded-full border border-slate-300 px-4 py-2.5 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full rounded-full border border-slate-300 px-4 py-2.5 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-600 dark:border-slate-700"
                 placeholder="Enter username"
                 autoComplete="username"
                 autoFocus
@@ -189,7 +189,7 @@ export default function SessionResumeModal({
             </div>
 
             <div>
-              <label htmlFor="switch-password" className="mb-2 block text-sm font-medium text-slate-700">
+              <label htmlFor="switch-password" className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
                 Password
               </label>
               <div className="relative">
@@ -198,7 +198,7 @@ export default function SessionResumeModal({
                   id="switch-password"
                   value={password}
                   onChange={event => setPassword(event.target.value)}
-                  className="w-full rounded-full border border-slate-300 px-4 py-2.5 pr-11 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="w-full rounded-full border border-slate-300 px-4 py-2.5 pr-11 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-600 dark:border-slate-700"
                   placeholder="Enter password"
                   autoComplete="current-password"
                   disabled={isLoading}
@@ -208,7 +208,7 @@ export default function SessionResumeModal({
                 <button
                   type="button"
                   onClick={() => setShowPassword(current => !current)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 dark:text-slate-400 dark:hover:text-slate-200"
                   disabled={isLoading}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
@@ -233,20 +233,20 @@ export default function SessionResumeModal({
             id="session-resume-error"
             role="alert"
             aria-live="assertive"
-            className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+            className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300"
           >
             {error}
           </p>
         )}
 
         {(onSwitchUser || onSignOut) && (
-          <div className={`mt-5 grid gap-2 border-t border-slate-200 pt-4 ${onSwitchUser && onSignOut ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          <div className={`mt-5 grid gap-2 border-t border-slate-200 pt-4  dark:border-slate-700${onSwitchUser && onSignOut ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {onSwitchUser && (
               <button
                 type="button"
                 onClick={toggleMode}
                 disabled={isLoading}
-                className="flex items-center justify-center rounded-full bg-slate-100 px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50 sm:text-sm"
+                className="flex items-center justify-center rounded-full bg-slate-100 px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50 sm:text-sm dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
               >
                 {mode === 'switch' ? (
                   <ArrowCounterClockwise size={17} className="mr-1.5" />
@@ -270,7 +270,7 @@ export default function SessionResumeModal({
                   }
                 }}
                 disabled={isLoading}
-                className="flex items-center justify-center rounded-full bg-red-50 px-3 py-2.5 text-xs font-semibold text-red-700 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 disabled:opacity-50 sm:text-sm"
+                className="flex items-center justify-center rounded-full bg-red-50 px-3 py-2.5 text-xs font-semibold text-red-700 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 disabled:opacity-50 sm:text-sm dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/40"
               >
                 <SignOut size={17} className="mr-1.5" />
                 Sign out

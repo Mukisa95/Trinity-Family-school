@@ -222,8 +222,8 @@ export default function ClassHistoryPage() {
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="h-3 w-3 opacity-40" />;
     return sortDir === 'asc'
-      ? <ArrowUp className="h-3 w-3 text-blue-600" />
-      : <ArrowDown className="h-3 w-3 text-blue-600" />;
+      ? <ArrowUp className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+      : <ArrowDown className="h-3 w-3 text-blue-600 dark:text-blue-400" />;
   };
 
   // Filter & sort
@@ -311,7 +311,7 @@ export default function ClassHistoryPage() {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Loading class history...</p>
+            <p className="text-gray-600 dark:text-slate-300">Loading class history...</p>
           </div>
         </div>
       </div>
@@ -323,11 +323,11 @@ export default function ClassHistoryPage() {
       <div className="p-4 sm:p-6 space-y-6">
         <PageHeader title="Class History" />
         <Card className="p-8 text-center">
-          <div className="text-red-600 mb-4">
+          <div className="text-red-600 mb-4 dark:text-red-400">
             <History className="w-16 h-16 mx-auto" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Class Not Found</h3>
-          <p className="text-gray-600 mb-4">The requested class could not be found.</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2 dark:text-slate-100">Class Not Found</h3>
+          <p className="text-gray-600 mb-4 dark:text-slate-300">The requested class could not be found.</p>
           <SmartBackButton fallbackHref="/classes" className="mr-2 h-4 w-4">
   <ArrowLeft className="mr-2 h-4 w-4" />
   Back to Classes
@@ -338,12 +338,12 @@ export default function ClassHistoryPage() {
   }
 
   const statusColors: Record<string, string> = {
-    'Active': 'bg-green-100 text-green-800 border-green-200',
-    'Inactive': 'bg-gray-100 text-gray-800 border-gray-200',
-    'Graduated': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    'Transferred': 'bg-blue-100 text-blue-800 border-blue-200',
-    'Suspended': 'bg-red-100 text-red-800 border-red-200',
-    'Pending': 'bg-amber-100 text-amber-800 border-amber-200',
+    'Active': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60',
+    'Inactive': 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700',
+    'Graduated': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60',
+    'Transferred': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60',
+    'Suspended': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60',
+    'Pending': 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60',
   };
 
   return (
@@ -355,8 +355,8 @@ export default function ClassHistoryPage() {
               <History className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Class History</h1>
-              <p className="text-sm text-gray-600">{currentClass.name} ({currentClass.code})</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Class History</h1>
+              <p className="text-sm text-gray-600 dark:text-slate-300">{currentClass.name} ({currentClass.code})</p>
             </div>
           </div>
         }
@@ -372,18 +372,18 @@ export default function ClassHistoryPage() {
       />
 
       {/* Filters */}
-      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800/60">
         <CardContent className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="academicYear" className="text-sm font-medium text-gray-700">
+              <Label htmlFor="academicYear" className="text-sm font-medium text-gray-700 dark:text-slate-200">
                 Academic Year
               </Label>
               <Select
                 value={selectedAcademicYearId}
                 onValueChange={setSelectedAcademicYearId}
               >
-                <SelectTrigger id="academicYear" className="bg-white">
+                <SelectTrigger id="academicYear" className="bg-white dark:bg-slate-900">
                   <SelectValue placeholder="Select academic year" />
                 </SelectTrigger>
                 <SelectContent>
@@ -397,17 +397,17 @@ export default function ClassHistoryPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="search" className="text-sm font-medium text-gray-700">
+              <Label htmlFor="search" className="text-sm font-medium text-gray-700 dark:text-slate-200">
                 Search Pupils
               </Label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-slate-400" />
                 <Input
                   id="search"
                   placeholder="Search by name, admission number..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-10 bg-white"
+                  className="pl-10 pr-10 bg-white dark:bg-slate-900"
                 />
                 {searchQuery && (
                   <Button
@@ -428,42 +428,42 @@ export default function ClassHistoryPage() {
       {/* Statistics */}
       {selectedAcademicYear && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 dark:from-blue-950/40 dark:to-blue-950/40 dark:border-blue-800/60">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-blue-600 font-medium">Total Pupils</p>
-                  <p className="text-2xl font-bold text-blue-700">{getHistoricalPupils.length}</p>
+                  <p className="text-sm text-blue-600 font-medium dark:text-blue-400">Total Pupils</p>
+                  <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{getHistoricalPupils.length}</p>
                 </div>
-                <Users className="w-8 h-8 text-blue-500" />
+                <Users className="w-8 h-8 text-blue-500 dark:text-blue-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-950/40 dark:to-green-950/40 dark:border-green-800/60">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-green-600 font-medium">Still Active</p>
-                  <p className="text-2xl font-bold text-green-700">
+                  <p className="text-sm text-green-600 font-medium dark:text-green-400">Still Active</p>
+                  <p className="text-2xl font-bold text-green-700 dark:text-green-300">
                     {getHistoricalPupils.filter(hp => hp.pupil.status === 'Active').length}
                   </p>
                 </div>
-                <User className="w-8 h-8 text-green-500" />
+                <User className="w-8 h-8 text-green-500 dark:text-green-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 dark:from-purple-950/40 dark:to-purple-950/40 dark:border-purple-800/60">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-purple-600 font-medium">Selected Year</p>
-                  <p className="text-lg font-bold text-purple-700">
+                  <p className="text-sm text-purple-600 font-medium dark:text-purple-400">Selected Year</p>
+                  <p className="text-lg font-bold text-purple-700 dark:text-purple-300">
                     {selectedAcademicYear.name}
                   </p>
                 </div>
-                <Calendar className="w-8 h-8 text-purple-500" />
+                <Calendar className="w-8 h-8 text-purple-500 dark:text-purple-400" />
               </div>
             </CardContent>
           </Card>
@@ -473,15 +473,15 @@ export default function ClassHistoryPage() {
       {/* Pupils Table */}
       {!selectedAcademicYear ? (
         <Card className="p-8 text-center">
-          <History className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Select an Academic Year</h3>
-          <p className="text-gray-600">Please select an academic year to view class history.</p>
+          <History className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-slate-400" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2 dark:text-slate-100">Select an Academic Year</h3>
+          <p className="text-gray-600 dark:text-slate-300">Please select an academic year to view class history.</p>
         </Card>
       ) : filteredAndSorted.length === 0 && getHistoricalPupils.length === 0 ? (
         <Card className="p-8 text-center">
-          <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Pupils Found</h3>
-          <p className="text-gray-600">
+          <Users className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-slate-400" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2 dark:text-slate-100">No Pupils Found</h3>
+          <p className="text-gray-600 dark:text-slate-300">
             No pupils were in {currentClass.name} during {selectedAcademicYear.name}.
           </p>
         </Card>
@@ -490,7 +490,7 @@ export default function ClassHistoryPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-600" />
+                <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 <CardTitle>
                   Class History — {selectedAcademicYear.name}
                 </CardTitle>
@@ -513,7 +513,7 @@ export default function ClassHistoryPage() {
             {showFilters && (
               <div className="mt-3 flex items-end gap-3 flex-wrap animate-in slide-in-from-top-1 fade-in duration-150">
                 <div className="space-y-1">
-                  <Label className="text-xs text-gray-500">Gender</Label>
+                  <Label className="text-xs text-gray-500 dark:text-slate-400">Gender</Label>
                   <Select value={filterGender} onValueChange={setFilterGender}>
                     <SelectTrigger className="h-8 w-32 text-xs">
                       <SelectValue />
@@ -526,7 +526,7 @@ export default function ClassHistoryPage() {
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-gray-500">Status</Label>
+                  <Label className="text-xs text-gray-500 dark:text-slate-400">Status</Label>
                   <Select value={filterStatus} onValueChange={setFilterStatus}>
                     <SelectTrigger className="h-8 w-36 text-xs">
                       <SelectValue />
@@ -561,7 +561,7 @@ export default function ClassHistoryPage() {
             {filteredAndSorted.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p className="text-gray-500">No pupils match the current filters.</p>
+                <p className="text-gray-500 dark:text-slate-400">No pupils match the current filters.</p>
                 <Button variant="outline" size="sm" className="mt-3" onClick={() => { setSearchQuery(''); setFilterGender('all'); setFilterStatus('all'); }}>
                   Clear all filters
                 </Button>
@@ -570,12 +570,12 @@ export default function ClassHistoryPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gray-50/80">
+                    <TableRow className="bg-gray-50/80 dark:bg-slate-900/80">
                       <TableHead className="w-[40px] text-xs">#</TableHead>
                       <TableHead>
                         <button
                           onClick={() => handleSort('name')}
-                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide"
+                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-blue-400"
                         >
                           Pupil <SortIcon field="name" />
                         </button>
@@ -583,7 +583,7 @@ export default function ClassHistoryPage() {
                       <TableHead>
                         <button
                           onClick={() => handleSort('admissionNumber')}
-                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide"
+                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-blue-400"
                         >
                           Adm. No. <SortIcon field="admissionNumber" />
                         </button>
@@ -591,7 +591,7 @@ export default function ClassHistoryPage() {
                       <TableHead>
                         <button
                           onClick={() => handleSort('gender')}
-                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide"
+                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-blue-400"
                         >
                           Gender <SortIcon field="gender" />
                         </button>
@@ -599,7 +599,7 @@ export default function ClassHistoryPage() {
                       <TableHead>
                         <button
                           onClick={() => handleSort('joined')}
-                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide"
+                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-blue-400"
                         >
                           Joined School <SortIcon field="joined" />
                         </button>
@@ -608,7 +608,7 @@ export default function ClassHistoryPage() {
                       <TableHead>
                         <button
                           onClick={() => handleSort('status')}
-                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide"
+                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-blue-400"
                         >
                           Status <SortIcon field="status" />
                         </button>
@@ -616,7 +616,7 @@ export default function ClassHistoryPage() {
                       <TableHead>
                         <button
                           onClick={() => handleSort('terms')}
-                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide"
+                          className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-xs uppercase tracking-wide dark:hover:text-blue-400"
                         >
                           Terms in Class <SortIcon field="terms" />
                         </button>
@@ -630,11 +630,11 @@ export default function ClassHistoryPage() {
                       const joinedClass = historicalPupil.joinedClassId
                         ? allClasses.find(c => c.id === historicalPupil.joinedClassId)
                         : null;
-                      const statusColor = statusColors[pupil.status as string] || 'bg-gray-100 text-gray-800';
+                      const statusColor = statusColors[pupil.status as string] || 'bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100';
 
                       return (
-                        <TableRow key={pupil.id} className="hover:bg-blue-50/50">
-                          <TableCell className="font-medium text-gray-400 text-xs">
+                        <TableRow key={pupil.id} className="hover:bg-blue-50/50 dark:hover:bg-blue-950/50">
+                          <TableCell className="font-medium text-gray-400 text-xs dark:text-slate-400">
                             {index + 1}
                           </TableCell>
                           <TableCell>
@@ -654,17 +654,17 @@ export default function ClassHistoryPage() {
                               <div>
                                 <Link
                                   href={`/pupil-detail?id=${pupil.id}`}
-                                  className="font-semibold text-gray-900 hover:text-blue-600 hover:underline transition-colors text-sm"
+                                  className="font-semibold text-gray-900 hover:text-blue-600 hover:underline transition-colors text-sm dark:text-slate-100 dark:hover:text-blue-400"
                                 >
                                   {formatPupilDisplayName(pupil)}
                                 </Link>
                                 {pupil.otherNames && (
-                                  <p className="text-xs text-gray-400">{pupil.otherNames}</p>
+                                  <p className="text-xs text-gray-400 dark:text-slate-400">{pupil.otherNames}</p>
                                 )}
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="font-mono text-xs text-gray-600">
+                          <TableCell className="font-mono text-xs text-gray-600 dark:text-slate-300">
                             {pupil.admissionNumber}
                           </TableCell>
                           <TableCell>
@@ -675,7 +675,7 @@ export default function ClassHistoryPage() {
                           <TableCell>
                             {historicalPupil.joinedDate ? (
                               <div className="text-xs">
-                                <div className="font-medium text-gray-800">
+                                <div className="font-medium text-gray-800 dark:text-slate-100">
                                   {(() => {
                                     try {
                                       return format(new Date(historicalPupil.joinedDate), 'dd MMM yyyy');
@@ -685,11 +685,11 @@ export default function ClassHistoryPage() {
                                   })()}
                                 </div>
                                 {joinedClass && (
-                                  <div className="text-gray-500 mt-0.5">
+                                  <div className="text-gray-500 mt-0.5 dark:text-slate-400">
                                     in{' '}
                                     <Link
                                       href={`/class-detail?id=${joinedClass.id}`}
-                                      className="text-blue-500 hover:underline font-medium"
+                                      className="text-blue-500 hover:underline font-medium dark:text-blue-400"
                                     >
                                       {joinedClass.name}
                                     </Link>
@@ -697,19 +697,19 @@ export default function ClassHistoryPage() {
                                 )}
                               </div>
                             ) : (
-                              <span className="text-xs text-gray-400">Not recorded</span>
+                              <span className="text-xs text-gray-400 dark:text-slate-400">Not recorded</span>
                             )}
                           </TableCell>
                           <TableCell>
                             {pupilCurrentClass ? (
                               <Link
                                 href={`/class-detail?id=${pupilCurrentClass.id}`}
-                                className="text-sm font-medium text-blue-600 hover:underline"
+                                className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
                               >
                                 {pupilCurrentClass.name}
                               </Link>
                             ) : (
-                              <span className="text-sm text-gray-400">Not Assigned</span>
+                              <span className="text-sm text-gray-400 dark:text-slate-400">Not Assigned</span>
                             )}
                           </TableCell>
                           <TableCell>
@@ -728,7 +728,7 @@ export default function ClassHistoryPage() {
                                   <Badge
                                     key={termId}
                                     variant="outline"
-                                    className="text-xs bg-blue-50 text-blue-700 border-blue-200 min-w-[1.5rem] justify-center"
+                                    className="text-xs bg-blue-50 text-blue-700 border-blue-200 min-w-[1.5rem] justify-center dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60"
                                     title={selectedAcademicYear.terms.find(t => t.id === termId)?.name}
                                   >
                                     {termNum}

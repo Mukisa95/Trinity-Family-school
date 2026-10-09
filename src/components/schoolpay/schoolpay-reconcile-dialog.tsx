@@ -82,13 +82,13 @@ export function SchoolPayReconcileDialog() {
   return (
     <Dialog open={open} onOpenChange={recovering ? undefined : setOpen}>
       <DialogTrigger asChild>
-        <Button type="button" variant="outline" size="sm" className="bg-white/90 border-violet-200 text-violet-800 hover:bg-violet-50">
+        <Button type="button" variant="outline" size="sm" className="bg-white/90 border-violet-200 text-violet-800 hover:bg-violet-50 dark:bg-slate-900/90 dark:border-violet-800/60 dark:text-violet-200 dark:hover:bg-violet-950/40">
           <CalendarSearch /> Recover missing payments
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><CalendarSearch className="text-violet-700" /> Recover SchoolPay payments</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><CalendarSearch className="text-violet-700 dark:text-violet-300" /> Recover SchoolPay payments</DialogTitle>
           <DialogDescription>
             Fetch successful SchoolPay transactions for a date range and add only those that are genuinely missing.
             Existing receipts and transaction IDs are checked before any pupil balance changes.
@@ -107,17 +107,17 @@ export function SchoolPayReconcileDialog() {
             </div>
           </div>
 
-          <div className="flex gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+          <div className="flex gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-200">
             <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5" />
             <p>Duplicate protection compares receipt number, transaction ID, pupil, and total amount. Conflicts are stopped and shown for review.</p>
           </div>
 
-          {(error || rangeError) && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error || rangeError}</p>}
+          {(error || rangeError) && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200">{error || rangeError}</p>}
           {result && (
-            <div aria-live="polite" className="grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3 text-center">
-              <div><p className="text-lg font-bold text-emerald-700">{result.processed}</p><p className="text-[11px] text-slate-600">Added</p></div>
-              <div><p className="text-lg font-bold text-blue-700">{result.duplicates}</p><p className="text-[11px] text-slate-600">Already recorded</p></div>
-              <div><p className="text-lg font-bold text-amber-700">{result.failed}</p><p className="text-[11px] text-slate-600">Need review</p></div>
+            <div aria-live="polite" className="grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3 text-center dark:bg-slate-900">
+              <div><p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{result.processed}</p><p className="text-[11px] text-slate-600 dark:text-slate-300">Added</p></div>
+              <div><p className="text-lg font-bold text-blue-700 dark:text-blue-300">{result.duplicates}</p><p className="text-[11px] text-slate-600 dark:text-slate-300">Already recorded</p></div>
+              <div><p className="text-lg font-bold text-amber-700 dark:text-amber-300">{result.failed}</p><p className="text-[11px] text-slate-600 dark:text-slate-300">Need review</p></div>
             </div>
           )}
         </div>

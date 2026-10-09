@@ -2209,20 +2209,18 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
 }
 
 /* Enhanced Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  .auto-dark-mode {
+.dark .auto-dark-mode {
     color-scheme: dark;
   }
 
-  .card-glass {
+.dark .card-glass {
     background: rgba(0, 0, 0, 0.3);
     border-color: rgba(255, 255, 255, 0.1);
   }
 
-  .card-gradient {
+.dark .card-gradient {
     background: linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1));
   }
-}
 
 /* Performance Optimizations */
 .will-change-transform {
@@ -3518,19 +3516,17 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
 }
 
 /* Dark-mode overrides */
-@media (prefers-color-scheme: dark) {
-  .attendance-autosave-indicator.saving {
+.dark .attendance-autosave-indicator.saving {
     color: #fbbf24;
     background-color: rgba(217, 119, 6, 0.15);
     border-color: rgba(252, 211, 77, 0.3);
   }
 
-  .attendance-autosave-indicator.saved {
+.dark .attendance-autosave-indicator.saved {
     color: #34d399;
     background-color: rgba(5, 150, 105, 0.15);
     border-color: rgba(110, 231, 183, 0.3);
   }
-}
 
 /* ================================================================
    DASHBOARD BACKGROUND IMAGE & CURVED SIDEBAR ↔ TOPBAR BLENDING

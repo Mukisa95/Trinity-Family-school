@@ -93,7 +93,7 @@ export default function AdminSetupPage() {
             <div className="mx-auto h-16 w-16 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full flex items-center justify-center mb-4">
               <CheckCircle className="h-8 w-8 text-white" />
             </div>
-            <CardTitle className="text-2xl font-bold text-green-600">Setup Complete!</CardTitle>
+            <CardTitle className="text-2xl font-bold text-green-600 dark:text-green-400">Setup Complete!</CardTitle>
             <CardDescription>
               Your administrator account has been created successfully.
             </CardDescription>
@@ -198,7 +198,7 @@ export default function AdminSetupPage() {
               >
                 {isLoading ? (
                   <>
-                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent dark:border-slate-700" />
                     Creating Admin...
                   </>
                 ) : (

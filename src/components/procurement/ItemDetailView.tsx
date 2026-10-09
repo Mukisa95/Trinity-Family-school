@@ -64,7 +64,7 @@ export function ItemDetailView({ itemId, item, purchases, onBack }: ItemDetailVi
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <p className="text-gray-600">This procurement item is no longer available.</p>
+          <p className="text-gray-600 dark:text-slate-300">This procurement item is no longer available.</p>
           <Button className="mt-4" variant="outline" onClick={onBack}>Back to Procurement</Button>
         </div>
       </div>
@@ -191,9 +191,9 @@ export function ItemDetailView({ itemId, item, purchases, onBack }: ItemDetailVi
                         {priceDiff !== 0 && (
                           <div className="flex items-center">
                             {priceDiff > 0 ? (
-                              <TrendingUp className="w-3 h-3 text-red-500" />
+                              <TrendingUp className="w-3 h-3 text-red-500 dark:text-red-400" />
                             ) : (
-                              <TrendingDown className="w-3 h-3 text-green-500" />
+                              <TrendingDown className="w-3 h-3 text-green-500 dark:text-green-400" />
                             )}
                           </div>
                         )}
@@ -205,7 +205,7 @@ export function ItemDetailView({ itemId, item, purchases, onBack }: ItemDetailVi
                     <TableCell>
                       <div className="text-xs">
                         <div>{purchase.termName}</div>
-                        <div className="text-gray-500">{purchase.academicYearName}</div>
+                        <div className="text-gray-500 dark:text-slate-400">{purchase.academicYearName}</div>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -213,7 +213,7 @@ export function ItemDetailView({ itemId, item, purchases, onBack }: ItemDetailVi
               })}
               {itemPurchases.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-4 text-gray-500">
+                  <TableCell colSpan={7} className="text-center py-4 text-gray-500 dark:text-slate-400">
                     No purchase records found for this item
                   </TableCell>
                 </TableRow>
@@ -232,25 +232,25 @@ export function ItemDetailView({ itemId, item, purchases, onBack }: ItemDetailVi
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h4 className="font-medium mb-2">Description</h4>
-              <p className="text-gray-600">{item?.description || item?.useCase || 'No description available'}</p>
+              <p className="text-gray-600 dark:text-slate-300">{item?.description || item?.useCase || 'No description available'}</p>
             </div>
             <div>
               <h4 className="font-medium mb-2">Item Specifications</h4>
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Category:</span>
+                  <span className="text-gray-500 dark:text-slate-400">Category:</span>
                   <span>{item?.category}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Unit of Measurement:</span>
+                  <span className="text-gray-500 dark:text-slate-400">Unit of Measurement:</span>
                   <span>{item ? getUnitText(item) : ''}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Created:</span>
+                  <span className="text-gray-500 dark:text-slate-400">Created:</span>
                   <span>{item?.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Status:</span>
+                  <span className="text-gray-500 dark:text-slate-400">Status:</span>
                   <Badge variant={item?.isActive ? 'default' : 'secondary'}>
                     {item?.isActive ? 'Active' : 'Inactive'}
                   </Badge>

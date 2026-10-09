@@ -35,7 +35,7 @@ export function SmartBackButton({
   };
 
   // Default transparent/minimalist styling typical of standard back links
-  const defaultClassName = "inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors";
+  const defaultClassName = "inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors dark:text-slate-300 dark:hover:text-slate-100";
   
   return (
     <button 

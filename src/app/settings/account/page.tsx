@@ -283,10 +283,10 @@ export default function AccountSettingsPage() {
         <div className="lg:col-span-2"><PasskeySettings /></div>
         {/* Account Information Card */}
         <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b dark:from-blue-950/40 dark:to-indigo-950/40">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <User className="h-5 w-5 text-blue-600" />
+              <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/40">
+                <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               Account Information
             </CardTitle>
@@ -296,20 +296,20 @@ export default function AccountSettingsPage() {
           </CardHeader>
           <CardContent className="pt-6 space-y-4">
             <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+              <div className="p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
                 <Label className="text-xs font-medium text-muted-foreground mb-2 block">Display Name</Label>
-                <p className="text-lg font-semibold text-gray-900">{getUserDisplayName()}</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-slate-100">{getUserDisplayName()}</p>
               </div>
               
-              <div className="p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+              <div className="p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
                 <Label className="text-xs font-medium text-muted-foreground mb-2 block">Role</Label>
-                <p className="text-sm font-medium text-gray-900">{user.role}</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-slate-100">{user.role}</p>
               </div>
 
               {user.email && (
-                <div className="p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                <div className="p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
                   <Label className="text-xs font-medium text-muted-foreground mb-2 block">Email</Label>
-                  <p className="text-sm text-gray-900">{user.email}</p>
+                  <p className="text-sm text-gray-900 dark:text-slate-100">{user.email}</p>
                 </div>
               )}
             </div>
@@ -318,10 +318,10 @@ export default function AccountSettingsPage() {
 
         {/* Username Settings Card */}
         <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b">
+          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b dark:from-purple-950/40 dark:to-pink-950/40">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <User className="h-5 w-5 text-purple-600" />
+              <div className="p-2 bg-purple-100 rounded-lg dark:bg-purple-950/40">
+                <User className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
               Username Settings
             </CardTitle>
@@ -370,10 +370,10 @@ export default function AccountSettingsPage() {
 
         {/* Password Settings Card */}
         <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow lg:col-span-2">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b">
+          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b dark:from-green-950/40 dark:to-emerald-950/40">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <KeyRound className="h-5 w-5 text-green-600" />
+              <div className="p-2 bg-green-100 rounded-lg dark:bg-green-950/40">
+                <KeyRound className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
               Password Settings
             </CardTitle>
@@ -494,10 +494,10 @@ export default function AccountSettingsPage() {
 
         {/* Auto Lock Settings Card */}
         <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow lg:col-span-2">
-          <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 border-b">
+          <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 border-b dark:from-amber-950/40 dark:to-orange-950/40">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <LockIcon size={20} weight="duotone" className="text-amber-600" />
+              <div className="p-2 bg-amber-100 rounded-lg dark:bg-amber-950/40">
+                <LockIcon size={20} weight="duotone" className="text-amber-600 dark:text-amber-400" />
               </div>
               Auto Lock Settings
             </CardTitle>
@@ -507,13 +507,13 @@ export default function AccountSettingsPage() {
           </CardHeader>
           <CardContent className="pt-6">
             <div className="space-y-6">
-              <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+              <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
                 <div className="flex items-center gap-4">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <LockIcon size={20} className="text-blue-600" weight="duotone" />
+                  <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/40">
+                    <LockIcon size={20} className="text-blue-600 dark:text-blue-400" weight="duotone" />
                   </div>
                   <div>
-                    <Label className="text-sm font-semibold text-gray-900">Auto Lock</Label>
+                    <Label className="text-sm font-semibold text-gray-900 dark:text-slate-100">Auto Lock</Label>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Enable automatic locking when closing or leaving the browser
                     </p>
@@ -527,7 +527,7 @@ export default function AccountSettingsPage() {
                   type="button"
                 >
                   <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-lg ${
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-lg  dark:bg-slate-900${
                       autoLockEnabled ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />
@@ -537,10 +537,10 @@ export default function AccountSettingsPage() {
               {autoLockEnabled && (
                 <>
                   <Separator />
-                  <div className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100">
+                  <div className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800/60">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="flex-1">
-                        <Label className="text-sm font-semibold text-gray-900 block mb-1">Current Preference</Label>
+                        <Label className="text-sm font-semibold text-gray-900 block mb-1 dark:text-slate-100">Current Preference</Label>
                         <p className="text-sm text-muted-foreground">
                           {autoLockAction === 'lock-on-close' 
                             ? '🔒 Locks on close' 
@@ -554,7 +554,7 @@ export default function AccountSettingsPage() {
                       <Button
                         onClick={() => setShowLockModal(true)}
                         variant="outline"
-                        className="flex items-center gap-2 border-2 hover:bg-white rounded-full"
+                        className="flex items-center gap-2 border-2 hover:bg-white rounded-full dark:hover:bg-slate-900"
                       >
                         <Shield className="h-4 w-4" />
                         {autoLockAction ? 'Change Preference' : 'Set Preference'}
@@ -589,29 +589,29 @@ export default function AccountSettingsPage() {
         </Card>
 
         {/* Security Tips Card */}
-        <Card className="border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 shadow-lg lg:col-span-2">
+        <Card className="border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 shadow-lg lg:col-span-2 dark:border-amber-800/60 dark:from-amber-950/40 dark:to-yellow-950/40">
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-amber-100 rounded-lg flex-shrink-0">
-                <AlertCircle className="h-6 w-6 text-amber-600" />
+              <div className="p-3 bg-amber-100 rounded-lg flex-shrink-0 dark:bg-amber-950/40">
+                <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
               </div>
               <div className="flex-1">
-                <h4 className="font-semibold text-amber-900 mb-3 text-lg">Security Tips</h4>
-                <ul className="space-y-2 text-sm text-amber-800">
+                <h4 className="font-semibold text-amber-900 mb-3 text-lg dark:text-amber-200">Security Tips</h4>
+                <ul className="space-y-2 text-sm text-amber-800 dark:text-amber-200">
                   <li className="flex items-start gap-2">
-                    <span className="text-amber-600 mt-1">•</span>
+                    <span className="text-amber-600 mt-1 dark:text-amber-400">•</span>
                     <span>Use a strong, unique password</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-amber-600 mt-1">•</span>
+                    <span className="text-amber-600 mt-1 dark:text-amber-400">•</span>
                     <span>Don't share your login credentials with others</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-amber-600 mt-1">•</span>
+                    <span className="text-amber-600 mt-1 dark:text-amber-400">•</span>
                     <span>Log out when using shared computers</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-amber-600 mt-1">•</span>
+                    <span className="text-amber-600 mt-1 dark:text-amber-400">•</span>
                     <span>Contact an administrator if you suspect unauthorized access</span>
                   </li>
                 </ul>
@@ -635,22 +635,22 @@ export default function AccountSettingsPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 max-w-md w-full"
+              className="bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 max-w-md w-full dark:bg-slate-900 dark:border-slate-700"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center mb-6">
-                <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 mb-4">
-                  <LockIcon size={28} className="text-blue-600" weight="duotone" />
+                <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 mb-4 dark:from-blue-950/40 dark:to-indigo-950/40">
+                  <LockIcon size={28} className="text-blue-600 dark:text-blue-400" weight="duotone" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                <h3 className="text-xl font-bold text-gray-900 mb-2 dark:text-slate-100">
                   Set Auto Lock Preference
                 </h3>
-                <p className="text-sm text-gray-600 mb-3">
+                <p className="text-sm text-gray-600 mb-3 dark:text-slate-300">
                   Choose what happens when you interact with the browser window
                 </p>
                 {autoLockAction && (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full">
-                    <span className="text-xs font-medium text-blue-700">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full dark:bg-blue-950/40">
+                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
                       Current: {
                         autoLockAction === 'lock-on-close' ? 'Lock on Close' :
                         autoLockAction === 'lock-on-leave' ? 'Lock on Leave' :

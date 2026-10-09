@@ -57,16 +57,16 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
 
   if (isLoading) {
     return (
-      <Card className={`bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 ${className}`}>
+      <Card className={`bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200  dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800/60${className}`}>
         <CardContent className="p-2.5">
           <div className="animate-pulse">
-            <div className="h-3 bg-blue-200 rounded mb-1.5"></div>
-            <div className="h-2 bg-blue-200 rounded mb-1.5"></div>
-            <div className="h-1.5 bg-blue-200 rounded mb-2"></div>
+            <div className="h-3 bg-blue-200 rounded mb-1.5 dark:bg-blue-900/40"></div>
+            <div className="h-2 bg-blue-200 rounded mb-1.5 dark:bg-blue-900/40"></div>
+            <div className="h-1.5 bg-blue-200 rounded mb-2 dark:bg-blue-900/40"></div>
             <div className="grid grid-cols-3 gap-1.5">
-              <div className="h-8 bg-blue-200 rounded"></div>
-              <div className="h-8 bg-blue-200 rounded"></div>
-              <div className="h-8 bg-blue-200 rounded"></div>
+              <div className="h-8 bg-blue-200 rounded dark:bg-blue-900/40"></div>
+              <div className="h-8 bg-blue-200 rounded dark:bg-blue-900/40"></div>
+              <div className="h-8 bg-blue-200 rounded dark:bg-blue-900/40"></div>
             </div>
           </div>
         </CardContent>
@@ -76,15 +76,15 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
 
   if (!activeYear || !progress) {
     return (
-      <Card className={`bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200 ${className}`}>
+      <Card className={`bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200  dark:from-slate-900 dark:to-slate-900 dark:border-slate-700${className}`}>
         <CardContent className="p-2.5">
           {isRecessMode ? (
-            <div className="flex items-center justify-center text-amber-600 text-sm">
+            <div className="flex items-center justify-center text-amber-600 text-sm dark:text-amber-400">
               <Calendar className="h-4 w-4 mr-2" />
               Learners on recess • {effectiveTerm.term?.name || 'Previous term'} data
             </div>
           ) : (
-            <div className="flex items-center justify-center text-gray-500 text-sm">
+            <div className="flex items-center justify-center text-gray-500 text-sm dark:text-slate-400">
               <Calendar className="h-4 w-4 mr-2" />
               Academic year data not available
             </div>
@@ -112,21 +112,21 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-xs leading-none">
                   {activeYear.name}
                 </h3>
-                <span className="text-gray-400">•</span>
+                <span className="text-gray-400 dark:text-slate-400">•</span>
                 <span className="text-xs text-blue-600 dark:text-blue-400 leading-none">
                   Term {progress.termNumber}
                 </span>
                 {isRecessMode ? (
                   <Badge 
                     variant="secondary" 
-                    className="bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/50 dark:text-amber-300 text-xs px-1.5 py-0 h-4"
+                    className="bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/50 dark:text-amber-300 text-xs px-1.5 py-0 h-4 dark:border-amber-800/60"
                   >
                     Recess
                   </Badge>
                 ) : (
                   <Badge 
                     variant="secondary" 
-                    className="bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/50 dark:text-blue-300 text-xs px-1.5 py-0 h-4"
+                    className="bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/50 dark:text-blue-300 text-xs px-1.5 py-0 h-4 dark:border-blue-800/60"
                   >
                     Active
                   </Badge>
@@ -142,9 +142,9 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
               className="h-6 w-6 p-0 hover:bg-blue-100 dark:hover:bg-blue-900/30"
             >
               {isExpanded ? (
-                <ChevronUp className="h-3 w-3 text-blue-600" />
+                <ChevronUp className="h-3 w-3 text-blue-600 dark:text-blue-400" />
               ) : (
-                <ChevronDown className="h-3 w-3 text-blue-600" />
+                <ChevronDown className="h-3 w-3 text-blue-600 dark:text-blue-400" />
               )}
             </Button>
           </div>
@@ -156,7 +156,7 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
                 <span className="text-xs text-gray-600 dark:text-gray-400">
                   {isRecessMode ? effectiveTerm.term?.name || 'Previous term' : progress.currentTerm.name}
                 </span>
-                <span className="text-gray-400">•</span>
+                <span className="text-gray-400 dark:text-slate-400">•</span>
                 <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
                   {isRecessMode ? 'Recess period' : `${Math.round(progress.progressPercentage)}% complete`}
                 </span>
@@ -189,7 +189,7 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
                 <div className="grid grid-cols-3 gap-1.5 mb-1.5">
                   <div className="text-center bg-white/60 dark:bg-gray-800/40 rounded-md p-1">
                     <div className="flex items-center justify-center gap-1">
-                      <TrendingUp className="h-2 w-2 text-green-500" />
+                      <TrendingUp className="h-2 w-2 text-green-500 dark:text-green-400" />
                       <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
                         {progress.daysCovered}
                       </div>
@@ -201,7 +201,7 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
                   
                   <div className="text-center bg-white/60 dark:bg-gray-800/40 rounded-md p-1">
                     <div className="flex items-center justify-center gap-1">
-                      <Clock className="h-2 w-2 text-orange-500" />
+                      <Clock className="h-2 w-2 text-orange-500 dark:text-orange-400" />
                       <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
                         {progress.remainingDays}
                       </div>
@@ -213,7 +213,7 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
                   
                   <div className="text-center bg-white/60 dark:bg-gray-800/40 rounded-md p-1">
                     <div className="flex items-center justify-center gap-1">
-                      <Calendar className="h-2 w-2 text-blue-500" />
+                      <Calendar className="h-2 w-2 text-blue-500 dark:text-blue-400" />
                       <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
                         {progress.totalDays}
                       </div>
@@ -228,7 +228,7 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
                 <div className="pt-1.5 border-t border-blue-200/50 dark:border-blue-800/50">
                   <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
                     <div className="flex items-center gap-1">
-                      <span className="text-gray-400">📅</span>
+                      <span className="text-gray-400 dark:text-slate-400">📅</span>
                       <span>
                         {new Date(progress.currentTerm.startDate).toLocaleDateString('en-US', { 
                           month: 'short', 
@@ -236,7 +236,7 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
                         })}
                       </span>
                     </div>
-                    <span className="text-gray-400">→</span>
+                    <span className="text-gray-400 dark:text-slate-400">→</span>
                     <div className="flex items-center gap-1">
                       <span>
                         {new Date(progress.currentTerm.endDate).toLocaleDateString('en-US', { 
@@ -244,7 +244,7 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
                           day: 'numeric'
                         })}
                       </span>
-                      <span className="text-gray-400">🏁</span>
+                      <span className="text-gray-400 dark:text-slate-400">🏁</span>
                     </div>
                   </div>
                 </div>

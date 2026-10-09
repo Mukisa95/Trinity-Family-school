@@ -105,11 +105,11 @@ const defaultComments = {
 };
 
 const performanceStatuses = [
-  { key: 'good', label: 'Good', color: 'bg-green-100 text-green-800' },
-  { key: 'fair', label: 'Fair', color: 'bg-yellow-100 text-yellow-800' },
-  { key: 'weak', label: 'Weak', color: 'bg-red-100 text-red-800' },
-  { key: 'young', label: 'Young', color: 'bg-blue-100 text-blue-800' },
-  { key: 'irregular', label: 'Irregular', color: 'bg-purple-100 text-purple-800' },
+  { key: 'good', label: 'Good', color: 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200' },
+  { key: 'fair', label: 'Fair', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200' },
+  { key: 'weak', label: 'Weak', color: 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200' },
+  { key: 'young', label: 'Young', color: 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200' },
+  { key: 'irregular', label: 'Irregular', color: 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-200' },
 ];
 
 const statusLabels = {
@@ -561,18 +561,18 @@ export default function CommentaryManagementPage() {
   };
 
   const CommentCard = ({ comment }: { comment: CommentTemplate }) => (
-    <Card className={`mb-2 ${!comment.isActive ? 'opacity-60 bg-gray-50' : ''}`}>
+    <Card className={`mb-2 ${!comment.isActive ? 'opacity-60 bg-gray-50 dark:bg-slate-900' : ''}`}>
       <CardContent className="p-3">
         <div className="flex flex-col h-full">
           <div className="flex-1 min-w-0">
-            <p className={`text-sm break-words ${!comment.isActive ? 'text-gray-500' : 'text-gray-700'}`}>
+            <p className={`text-sm break-words ${!comment.isActive ? 'text-gray-500 dark:text-slate-400' : 'text-gray-700 dark:text-slate-200'}`}>
               {comment.comment}
             </p>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <Badge variant={comment.isActive ? "default" : "secondary"}>
                 {comment.isActive ? "Active" : "Disabled"}
               </Badge>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-500 dark:text-slate-400">
                 {comment.type === 'class_teacher' ? 'Class Teacher' :
                   comment.type === 'head_teacher' ? 'Head Teacher' : ''}
               </span>
@@ -597,7 +597,7 @@ export default function CommentaryManagementPage() {
               variant="ghost"
               size="sm"
               onClick={() => handleToggleActive(comment)}
-              className={comment.isActive ? "text-orange-600 hover:text-orange-700" : "text-green-600 hover:text-green-700"}
+              className={comment.isActive ? "text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300" : "text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"}
             >
               {comment.isActive ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
             </Button>
@@ -605,7 +605,7 @@ export default function CommentaryManagementPage() {
               variant="ghost"
               size="sm"
               onClick={() => handleDeleteComment(comment)}
-              className="text-red-600 hover:text-red-700"
+              className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -629,7 +629,7 @@ export default function CommentaryManagementPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="flex justify-center items-center h-64">
-          <div className="text-lg text-red-600">Error: {error}</div>
+          <div className="text-lg text-red-600 dark:text-red-400">Error: {error}</div>
         </div>
       </div>
     );
@@ -690,33 +690,33 @@ export default function CommentaryManagementPage() {
                 <CardTitle className="flex items-center gap-2">
                   <div className={`w-3 h-3 rounded-full ${statusColors[status as keyof typeof statusColors]}`} />
                   <span className="flex-1">{label}</span>
-                  <span className="text-xs font-normal text-gray-400">{totalCount} comment{totalCount !== 1 ? 's' : ''}</span>
+                  <span className="text-xs font-normal text-gray-400 dark:text-slate-400">{totalCount} comment{totalCount !== 1 ? 's' : ''}</span>
                   {isExpanded
-                    ? <ChevronDown className="h-4 w-4 text-gray-400" />
-                    : <ChevronRight className="h-4 w-4 text-gray-400" />}
+                    ? <ChevronDown className="h-4 w-4 text-gray-400 dark:text-slate-400" />
+                    : <ChevronRight className="h-4 w-4 text-gray-400 dark:text-slate-400" />}
                 </CardTitle>
               </CardHeader>
               {isExpanded && (
                 <CardContent className="p-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <h4 className="font-semibold mb-2 text-blue-700">Class Teacher Comments</h4>
+                      <h4 className="font-semibold mb-2 text-blue-700 dark:text-blue-300">Class Teacher Comments</h4>
                       {statusData?.classTeacherComments?.length > 0 ? (
                         statusData.classTeacherComments.map((comment) => (
                           <CommentCard key={comment.id} comment={comment} />
                         ))
                       ) : (
-                        <p className="text-gray-500 text-sm">No class teacher comments available</p>
+                        <p className="text-gray-500 text-sm dark:text-slate-400">No class teacher comments available</p>
                       )}
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-2 text-green-700">Head Teacher Comments</h4>
+                      <h4 className="font-semibold mb-2 text-green-700 dark:text-green-300">Head Teacher Comments</h4>
                       {statusData?.headTeacherComments?.length > 0 ? (
                         statusData.headTeacherComments.map((comment) => (
                           <CommentCard key={comment.id} comment={comment} />
                         ))
                       ) : (
-                        <p className="text-gray-500 text-sm">No head teacher comments available</p>
+                        <p className="text-gray-500 text-sm dark:text-slate-400">No head teacher comments available</p>
                       )}
                     </div>
                   </div>
@@ -737,7 +737,7 @@ export default function CommentaryManagementPage() {
           <CardContent className="p-4">
             {/* Filters */}
             <div className="flex flex-wrap items-center gap-3 mb-4 pb-3 border-b">
-              <span className="text-xs font-medium text-gray-500 shrink-0">Filter:</span>
+              <span className="text-xs font-medium text-gray-500 shrink-0 dark:text-slate-400">Filter:</span>
               {/* Class filter */}
               <Select value={filterClass} onValueChange={setFilterClass}>
                 <SelectTrigger className="h-7 text-xs w-auto min-w-[140px]">
@@ -771,8 +771,8 @@ export default function CommentaryManagementPage() {
             </div>
             {/* Push toolbar */}
             {selectedIds.size > 0 && (
-              <div className="flex items-center justify-between bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 mb-4">
-                <span className="text-sm font-medium text-purple-700">{selectedIds.size} comment{selectedIds.size !== 1 ? 's' : ''} selected</span>
+              <div className="flex items-center justify-between bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 mb-4 dark:bg-purple-950/40 dark:border-purple-800/60">
+                <span className="text-sm font-medium text-purple-700 dark:text-purple-300">{selectedIds.size} comment{selectedIds.size !== 1 ? 's' : ''} selected</span>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())} className="text-xs">Clear</Button>
                   <Button size="sm" onClick={() => setIsPushModalOpen(true)} className="gap-1.5 text-xs bg-purple-600 hover:bg-purple-700">
@@ -804,9 +804,9 @@ export default function CommentaryManagementPage() {
                       disabled={allSubjectVisibleIds.length === 0}
                       className="shrink-0"
                     />
-                    <h4 className="font-semibold text-purple-700">{subject.label}</h4>
+                    <h4 className="font-semibold text-purple-700 dark:text-purple-300">{subject.label}</h4>
                     {allSubjectVisibleIds.length > 0 && (
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-400 dark:text-slate-400">
                         {allSubjectVisibleIds.filter(id => selectedIds.has(id)).length}/{allSubjectVisibleIds.length} selected
                       </span>
                     )}
@@ -855,19 +855,19 @@ export default function CommentaryManagementPage() {
                               className="shrink-0"
                             />
                             <Badge className={status.color}>{status.label}</Badge>
-                            <span className="text-xs text-gray-500">({subjectComments.length})</span>
+                            <span className="text-xs text-gray-500 dark:text-slate-400">({subjectComments.length})</span>
                           </div>
                           {subjectComments.length > 0 ? (
                             <div className="space-y-1">
                               {Object.entries(commentsByClass).map(([classKey, comments]) => (
                                 <div key={classKey}>
                                   {classKey !== 'general' && (
-                                    <p className="text-xs font-medium text-gray-700 mb-1">
+                                    <p className="text-xs font-medium text-gray-700 mb-1 dark:text-slate-200">
                                       {nurseryClasses.find(c => c.id === classKey)?.name || 'Class'}
                                     </p>
                                   )}
                                   {classKey === 'general' && (
-                                    <p className="text-xs font-medium text-gray-500 mb-1">General (All Nursery Classes)</p>
+                                    <p className="text-xs font-medium text-gray-500 mb-1 dark:text-slate-400">General (All Nursery Classes)</p>
                                   )}
                                   {comments.slice(0, expandedSubjectCommentGroups.has(`${subjectKey}_${classKey}`) ? comments.length : 1).map((comment: CommentTemplate) => (
                                     <div key={comment.id} className="flex items-start gap-1">
@@ -886,7 +886,7 @@ export default function CommentaryManagementPage() {
                                       type="button"
                                       variant="ghost"
                                       size="sm"
-                                      className="mt-1 h-7 px-1.5 text-xs text-violet-700 hover:text-violet-900"
+                                      className="mt-1 h-7 px-1.5 text-xs text-violet-700 hover:text-violet-900 dark:text-violet-300 dark:hover:text-violet-200"
                                       onClick={() => toggleSubjectCommentGroup(`${subjectKey}_${classKey}`)}
                                     >
                                       {expandedSubjectCommentGroups.has(`${subjectKey}_${classKey}`) ? (
@@ -903,7 +903,7 @@ export default function CommentaryManagementPage() {
                               ))}
                             </div>
                           ) : (
-                            <p className="text-gray-500 text-xs">No comments available</p>
+                            <p className="text-gray-500 text-xs dark:text-slate-400">No comments available</p>
                           )}
                         </div>
                         );
@@ -1014,7 +1014,7 @@ export default function CommentaryManagementPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Class <span className="text-gray-500 text-xs">(Optional - leave empty for all classes)</span>
+                    Class <span className="text-gray-500 text-xs dark:text-slate-400">(Optional - leave empty for all classes)</span>
                   </label>
                   <Select
                     value={newComment.classId || 'all'}
@@ -1035,7 +1035,7 @@ export default function CommentaryManagementPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Applicable Terms <span className="text-gray-500 text-xs">(Select terms this comment applies to)</span>
+                    Applicable Terms <span className="text-gray-500 text-xs dark:text-slate-400">(Select terms this comment applies to)</span>
                   </label>
                   <div className="space-y-2">
                     <div className="flex items-center space-x-4">
@@ -1119,7 +1119,7 @@ export default function CommentaryManagementPage() {
                 checked={continuousMode}
                 onCheckedChange={(checked) => setContinuousMode(checked === true)}
               />
-              <label htmlFor="continuousMode" className="text-sm text-gray-700 cursor-pointer">
+              <label htmlFor="continuousMode" className="text-sm text-gray-700 cursor-pointer dark:text-slate-200">
                 Keep form open for continuous creation
               </label>
             </div>
@@ -1193,7 +1193,7 @@ export default function CommentaryManagementPage() {
         <ModernDialogContent open={isPushModalOpen} onOpenChange={(open) => { if (!open) setIsPushModalOpen(false); }}>
           <ModernDialogHeader>
             <ModernDialogTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5 text-purple-600" />
+              <Send className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               Push {selectedIds.size} Comment{selectedIds.size !== 1 ? 's' : ''} To…
             </ModernDialogTitle>
           </ModernDialogHeader>
@@ -1201,11 +1201,11 @@ export default function CommentaryManagementPage() {
             {/* Target Classes */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                Target Classes <span className="text-gray-400 font-normal text-xs">(leave unchecked for All Nursery Classes)</span>
+                Target Classes <span className="text-gray-400 font-normal text-xs dark:text-slate-400">(leave unchecked for All Nursery Classes)</span>
               </label>
               <div className="border rounded-lg p-3 space-y-2 max-h-48 overflow-y-auto">
                 {nurseryClasses.length === 0 ? (
-                  <p className="text-sm text-gray-400">No nursery classes found</p>
+                  <p className="text-sm text-gray-400 dark:text-slate-400">No nursery classes found</p>
                 ) : (
                   nurseryClasses.map((cls) => (
                     <label key={cls.id} className="flex items-center gap-2 cursor-pointer select-none">
@@ -1219,7 +1219,7 @@ export default function CommentaryManagementPage() {
                 )}
               </div>
               {pushTargetClasses.length === 0 && (
-                <p className="text-xs text-gray-500 mt-1">→ Will push as General (All Nursery Classes)</p>
+                <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">→ Will push as General (All Nursery Classes)</p>
               )}
             </div>
 

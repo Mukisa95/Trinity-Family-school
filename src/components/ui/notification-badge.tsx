@@ -162,7 +162,7 @@ export const FloatingNotificationBadge: React.FC<NotificationBadgeProps & {
         variantClasses[variant],
         positionClasses[position],
         'animate-in fade-in-0 zoom-in-95 duration-200',
-        'shadow-lg border-2 border-white',
+        'shadow-lg border-2 border-white dark:border-slate-700',
         className
       )}
       role="status"
@@ -203,7 +203,7 @@ export const LoadingNotificationBadge: React.FC<{
       role="status"
       aria-label="Loading notifications"
     >
-      <div className="w-2 h-2 bg-white rounded-full animate-ping" />
+      <div className="w-2 h-2 bg-white rounded-full animate-ping dark:bg-slate-900" />
     </div>
   );
 };

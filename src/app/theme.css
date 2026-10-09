@@ -1,0 +1,156 @@
+/* Appearance tokens: the same surfaces serve desktop, mobile and portal overlays. */
+:root {
+  --glass-surface: 255 255 255;
+  --glass-edge: 255 255 255;
+  --glass-shadow: 15 23 42;
+  --sidebar-background: 210 40% 98%;
+  --sidebar-accent: 214 32% 94%;
+  --sidebar-border: 214 32% 91%;
+  --theme-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.dark {
+  --background: 222 49% 8%;
+  --foreground: 214 32% 91%;
+  --card: 222 40% 12%;
+  --card-foreground: 214 32% 91%;
+  --popover: 222 40% 12%;
+  --popover-foreground: 214 32% 91%;
+  --muted: 218 30% 18%;
+  --muted-foreground: 215 20% 70%;
+  --secondary: 218 30% 18%;
+  --secondary-foreground: 214 32% 91%;
+  --accent: 217 33% 20%;
+  --accent-foreground: 214 32% 91%;
+  --border: 217 28% 25%;
+  --input: 217 28% 25%;
+  --ring: 213 94% 68%;
+  --glass-surface: 15 23 42;
+  --glass-edge: 100 116 139;
+  --glass-shadow: 0 0 0;
+  --sidebar-background: 222 40% 12%;
+  --sidebar-foreground: 214 32% 91%;
+  --sidebar-primary: 217 91% 60%;
+  --sidebar-accent: 217 33% 20%;
+  --sidebar-accent-foreground: 214 32% 91%;
+  --sidebar-border: 217 28% 25%;
+  --sidebar-ring: 213 94% 68%;
+}
+
+/* Both snapshots stay still while the new palette opens from the switch. */
+html[data-theme-reveal]::view-transition-old(root),
+html[data-theme-reveal]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html[data-theme-reveal]::view-transition-group(root) { animation: none; }
+html[data-theme-reveal]::view-transition-old(root) { z-index: 1; }
+html[data-theme-reveal]::view-transition-new(root) { z-index: 2; }
+
+.theme-toggle-thumb { transition: transform 220ms var(--theme-ease-out); }
+.theme-toggle-track { transition: background-color 180ms ease, border-color 180ms ease; }
+.theme-toggle:active .theme-toggle-track { transform: scale(0.96); }
+@media (hover: hover) and (pointer: fine) {
+  .theme-toggle:hover .theme-toggle-track { border-color: hsl(var(--ring)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle-thumb { transition: none; }
+  .theme-toggle:active .theme-toggle-track { transform: none; }
+}
+
+/* Preserve the existing glass construction and replace its light-only materials. */
+.dark [data-sidebar="sidebar"],
+.dark .dashboard-bg-wrapper [data-sidebar="sidebar"],
+.dark .dashboard-bg-wrapper [data-sidebar="inset"] > header {
+  background: rgb(var(--glass-surface) / 0.88) !important;
+  border-color: rgb(var(--glass-edge) / 0.28) !important;
+  box-shadow: 0 8px 28px rgb(var(--glass-shadow) / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.06) !important;
+}
+.dark [data-sidebar="menu-button"],
+.dark .dashboard-bg-wrapper [data-sidebar="menu-button"] {
+  background: linear-gradient(135deg, rgb(30 41 59 / 0.8), rgb(15 23 42 / 0.65)) !important;
+  border-color: rgb(100 116 139 / 0.2) !important;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
+}
+.dark [data-sidebar="menu-button"]:hover,
+.dark .dashboard-bg-wrapper [data-sidebar="menu-button"]:hover,
+.dark [data-sidebar="menu-button"][data-active="true"] {
+  background: linear-gradient(135deg, rgb(37 99 235 / 0.24), rgb(99 102 241 / 0.18)) !important;
+  border-color: rgb(96 165 250 / 0.38) !important;
+}
+.dark .dashboard-bg-wrapper {
+  background-color: hsl(var(--background));
+  background-image: linear-gradient(rgb(2 6 23 / 0.86), rgb(15 23 42 / 0.92)), url('/images/D.B%20background.png?v=1.1');
+}
+.dark .dashboard-bg-wrapper [data-sidebar="inset"] .min-h-screen :is(h1, p) { text-shadow: none; }
+.dark .card-glass { background: rgb(var(--glass-surface) / 0.72); border-color: rgb(var(--glass-edge) / 0.25); }
+.dark .card-gradient { background: linear-gradient(135deg, rgb(30 41 59 / 0.8), rgb(15 23 42 / 0.6)); }
+.dark .theme-dashboard-surface { background: hsl(var(--card)) !important; }
+
+/* Parent subject colours remain accents; neutral surfaces follow appearance. */
+.dark .parent-theme-surface { background: hsl(var(--background)) !important; }
+.dark [style*="--theme-primary"] :is(.theme-card, .Card, [class*="card"], .bg-white),
+.dark [style*="--theme-primary"] .theme-bg,
+.dark .theme-card,
+.dark .theme-bg {
+  background: rgb(var(--glass-surface) / 0.9) !important;
+  border-color: hsl(var(--border)) !important;
+}
+.dark [style*="--theme-primary"] :is(.bg-blue-50, .bg-green-50, .bg-yellow-50, .bg-purple-50, .bg-red-50, .bg-orange-50) {
+  background: rgb(30 41 59 / 0.8) !important;
+}
+.dark [style*="--theme-primary"] .theme-text-primary { color: hsl(var(--foreground)) !important; }
+.dark .attendance-autosave-indicator.saving { color: #fbbf24; background-color: rgb(217 119 6 / 0.15); border-color: rgb(252 211 77 / 0.3); }
+.dark .attendance-autosave-indicator.saved { color: #34d399; background-color: rgb(5 150 105 / 0.15); border-color: rgb(110 231 183 / 0.3); }
+
+.dark .fc {
+  --fc-page-bg-color: hsl(var(--card));
+  --fc-neutral-bg-color: hsl(var(--muted));
+  --fc-neutral-text-color: hsl(var(--muted-foreground));
+  --fc-border-color: hsl(var(--border));
+  --fc-list-event-hover-bg-color: hsl(var(--accent));
+  --fc-today-bg-color: rgb(59 130 246 / 0.12);
+}
+.dark .recharts-cartesian-axis-tick-value { fill: hsl(var(--muted-foreground)); }
+
+/* Paper stays white; PDFs are document content, independent of the viewer theme. */
+.dark .pdf-workspace-solid-surface,
+.dark [style*="--theme-primary"] .pdf-workspace-solid-surface {
+  background: hsl(var(--card)) !important;
+}
+.dark .pdf-legacy-chrome {
+  background: hsl(var(--card)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+.dark .pdf-legacy-viewport {
+  background: hsl(var(--background)) !important;
+}
+.dark [style*="--theme-primary"] [data-theme-surface="paper"],
+[style*="--theme-primary"] [data-theme-surface="paper"],
+[data-theme-surface="paper"] {
+  color-scheme: light;
+  background: white !important;
+  color: #0f172a;
+}
+.dark [style*="--theme-primary"] [data-theme-surface="paper-error"],
+[style*="--theme-primary"] [data-theme-surface="paper-error"],
+[data-theme-surface="paper-error"] {
+  color-scheme: light;
+  background: white !important;
+}
+[data-theme-surface="paper-overlay"] {
+  color-scheme: light;
+  background: rgb(255 255 255 / 0.75) !important;
+}
+@media print {
+  :root, .dark {
+    color-scheme: light !important;
+    --background: 0 0% 100%; --foreground: 222 47% 11%;
+    --card: 0 0% 100%; --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%; --popover-foreground: 222 47% 11%;
+    --muted: 210 40% 96%; --muted-foreground: 215 16% 35%;
+    --border: 214 32% 91%; --glass-surface: 255 255 255;
+  }
+  .theme-toggle { display: none !important; }
+  .dashboard-bg-wrapper { background-image: none !important; }
+}

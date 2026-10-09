@@ -286,8 +286,8 @@ export default function FirebaseUsagePage() {
     return (
       <div className="mx-auto max-w-3xl py-8">
         <PageHeader title="Firebase Usage" description="Resource usage is restricted to system administrators." />
-        <Card className="border-amber-200 bg-amber-50/50">
-          <CardContent className="flex gap-3 p-6 text-amber-900">
+        <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800/60 dark:bg-amber-950/50">
+          <CardContent className="flex gap-3 p-6 text-amber-900 dark:text-amber-200">
             <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
             <p>You do not have permission to view project resource usage.</p>
           </CardContent>
@@ -303,14 +303,14 @@ export default function FirebaseUsagePage() {
         description="Manual, administrator-only usage and expenditure reporting. Nothing refreshes in the background."
       />
 
-      <Card className="border-blue-100 bg-gradient-to-r from-blue-50/80 to-white">
+      <Card className="border-blue-100 bg-gradient-to-r from-blue-50/80 to-white dark:border-blue-800/60 dark:from-blue-950/80 dark:to-slate-900">
         <CardContent className="p-4 sm:p-5">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div className="grid gap-3 sm:grid-cols-3">
-              <label className="space-y-1.5 text-sm font-medium text-slate-700">
-                <span className="flex items-center gap-2"><CalendarRange className="h-4 w-4 text-blue-700" />Date range</span>
+              <label className="space-y-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+                <span className="flex items-center gap-2"><CalendarRange className="h-4 w-4 text-blue-700 dark:text-blue-300" />Date range</span>
                 <Select value={rangePreset} onValueChange={value => setRangePreset(value as UsageRangePreset)}>
-                  <SelectTrigger className="h-11 bg-white" aria-label="Usage date range"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-900" aria-label="Usage date range"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="24h">Last 24 hours</SelectItem>
                     <SelectItem value="7d">Last 7 days</SelectItem>
@@ -322,13 +322,13 @@ export default function FirebaseUsagePage() {
               </label>
               {rangePreset === 'custom' && (
                 <>
-                  <label className="space-y-1.5 text-sm font-medium text-slate-700">
+                  <label className="space-y-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
                     <span>Start date</span>
-                    <Input type="date" value={customStart} max={customEnd} onChange={event => setCustomStart(event.target.value)} className="h-11 bg-white" />
+                    <Input type="date" value={customStart} max={customEnd} onChange={event => setCustomStart(event.target.value)} className="h-11 bg-white dark:bg-slate-900" />
                   </label>
-                  <label className="space-y-1.5 text-sm font-medium text-slate-700">
+                  <label className="space-y-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
                     <span>End date</span>
-                    <Input type="date" value={customEnd} min={customStart} max={toDateInputValue(new Date())} onChange={event => setCustomEnd(event.target.value)} className="h-11 bg-white" />
+                    <Input type="date" value={customEnd} min={customStart} max={toDateInputValue(new Date())} onChange={event => setCustomEnd(event.target.value)} className="h-11 bg-white dark:bg-slate-900" />
                   </label>
                 </>
               )}
@@ -338,16 +338,16 @@ export default function FirebaseUsagePage() {
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 {stats ? `Refresh selected (${selectedSections.length})` : `Load selected (${selectedSections.length})`}
               </Button>
-              <p className="text-center text-xs text-slate-500 lg:text-right">Every request includes 1 admin-check read · 0 writes</p>
+              <p className="text-center text-xs text-slate-500 lg:text-right dark:text-slate-400">Every request includes 1 admin-check read · 0 writes</p>
             </div>
           </div>
-          <fieldset className="mt-5 border-t border-blue-100 pt-4">
-            <legend className="px-1 text-sm font-semibold text-slate-800">Choose exactly what to refresh</legend>
+          <fieldset className="mt-5 border-t border-blue-100 pt-4 dark:border-blue-800/60">
+            <legend className="px-1 text-sm font-semibold text-slate-800 dark:text-slate-100">Choose exactly what to refresh</legend>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               {REFRESH_CHOICES.map(choice => {
                 const checked = refreshSelection[choice.id];
                 return (
-                  <label key={choice.id} className={`flex cursor-pointer gap-3 rounded-lg border p-3.5 transition-colors ${checked ? 'border-blue-300 bg-white shadow-sm' : 'border-slate-200 bg-slate-50/70'}`}>
+                  <label key={choice.id} className={`flex cursor-pointer gap-3 rounded-lg border p-3.5 transition-colors ${checked ? 'border-blue-300 bg-white shadow-sm dark:border-blue-800/60 dark:bg-slate-900' : 'border-slate-200 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-900/70'}`}>
                     <Checkbox
                       checked={checked}
                       onCheckedChange={value => toggleRefreshSection(choice.id, value === true)}
@@ -355,18 +355,18 @@ export default function FirebaseUsagePage() {
                       className="mt-0.5"
                     />
                     <span className="min-w-0">
-                      <span className="block text-sm font-semibold text-slate-900">{choice.title}</span>
-                      <span className="mt-1 block text-xs leading-relaxed text-slate-600">{choice.description}</span>
-                      <span className={`mt-2 block text-[11px] font-medium leading-relaxed ${choice.id === 'collections' ? 'text-amber-700' : 'text-emerald-700'}`}>{choice.cost}</span>
+                      <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">{choice.title}</span>
+                      <span className="mt-1 block text-xs leading-relaxed text-slate-600 dark:text-slate-300">{choice.description}</span>
+                      <span className={`mt-2 block text-[11px] font-medium leading-relaxed ${choice.id === 'collections' ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'}`}>{choice.cost}</span>
                     </span>
                   </label>
                 );
               })}
             </div>
-            {!selectedSections.length && <p className="mt-3 text-xs font-medium text-rose-700">Select at least one item before loading.</p>}
+            {!selectedSections.length && <p className="mt-3 text-xs font-medium text-rose-700 dark:text-rose-300">Select at least one item before loading.</p>}
           </fieldset>
           {filtersChanged && (
-            <p className="mt-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+            <p className="mt-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-200">
               Filters changed. Press <strong>Refresh usage</strong> to apply them; the displayed data has not changed yet.
             </p>
           )}
@@ -374,10 +374,10 @@ export default function FirebaseUsagePage() {
       </Card>
 
       {error && (
-        <Card className="border-amber-200 bg-amber-50/50">
-          <CardContent className="flex gap-3 p-5 text-sm text-amber-950">
+        <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800/60 dark:bg-amber-950/50">
+          <CardContent className="flex gap-3 p-5 text-sm text-amber-950 dark:text-amber-100">
             <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-            <div><p className="font-semibold">Usage data could not be refreshed</p><p className="mt-1 text-amber-800">{error}</p></div>
+            <div><p className="font-semibold">Usage data could not be refreshed</p><p className="mt-1 text-amber-800 dark:text-amber-200">{error}</p></div>
           </CardContent>
         </Card>
       )}
@@ -385,7 +385,7 @@ export default function FirebaseUsagePage() {
       {!stats && !loading && !error && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center px-6 py-12 text-center">
-            <BarChart3 className="h-10 w-10 text-blue-700" />
+            <BarChart3 className="h-10 w-10 text-blue-700 dark:text-blue-300" />
             <h2 className="mt-4 text-lg font-semibold">Choose a range, then load usage</h2>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
               This page never fetches usage automatically. Loading data requires one deliberate press of the button above.
@@ -412,7 +412,7 @@ export default function FirebaseUsagePage() {
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.75fr)]">
             <Card>
-              <CardHeader className="border-b bg-slate-50/80">
+              <CardHeader className="border-b bg-slate-50/80 dark:bg-slate-900/80">
                 <CardTitle className="text-lg">Firestore operations</CardTitle>
                 <CardDescription>Reads, writes, and deletes for the selected range.</CardDescription>
               </CardHeader>
@@ -420,9 +420,9 @@ export default function FirebaseUsagePage() {
                 {!operationsCurrent ? (
                   <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">{loadedSections.has('operations') ? 'Refresh Reads, writes & deletes for this date range.' : 'Select Reads, writes & deletes and press refresh to load this section.'}</p>
                 ) : <><div className="grid gap-3 sm:grid-cols-3">
-                  <OperationCard icon={TrendingDown} label="Reads" value={stats.operations.reads} className="text-blue-700" />
-                  <OperationCard icon={TrendingUp} label="Writes" value={stats.operations.writes} className="text-emerald-700" />
-                  <OperationCard icon={FileStack} label="Deletes" value={stats.operations.deletes} className="text-rose-700" />
+                  <OperationCard icon={TrendingDown} label="Reads" value={stats.operations.reads} className="text-blue-700 dark:text-blue-300" />
+                  <OperationCard icon={TrendingUp} label="Writes" value={stats.operations.writes} className="text-emerald-700 dark:text-emerald-300" />
+                  <OperationCard icon={FileStack} label="Deletes" value={stats.operations.deletes} className="text-rose-700 dark:text-rose-300" />
                 </div>
                 {stats.operations.trend.length > 0 ? (
                   <div className="h-72 w-full" aria-label="Firestore operations trend chart">
@@ -445,7 +445,7 @@ export default function FirebaseUsagePage() {
 
             <div className="space-y-6">
               <Card>
-                <CardHeader className="border-b bg-slate-50/80"><CardTitle className="text-lg">Expenditure</CardTitle><CardDescription>Actual Cloud Billing export values after credits.</CardDescription></CardHeader>
+                <CardHeader className="border-b bg-slate-50/80 dark:bg-slate-900/80"><CardTitle className="text-lg">Expenditure</CardTitle><CardDescription>Actual Cloud Billing export values after credits.</CardDescription></CardHeader>
                 <CardContent className="space-y-3 p-5 text-sm">
                   {!billingCurrent ? (
                     <div className="rounded-md border border-dashed p-3 text-xs leading-relaxed text-muted-foreground">{loadedSections.has('billing') ? 'Refresh Exact expenditure for this date range.' : 'Select Exact expenditure and press refresh to load this section.'}</div>
@@ -457,13 +457,13 @@ export default function FirebaseUsagePage() {
                       {stats.billing.services.slice(0, 5).map(service => <MetricRow key={service.name} label={service.name} value={formatCurrency(service.cost, stats.billing.currency)} />)}
                     </>
                   ) : (
-                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">{stats.billing.message}</div>
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">{stats.billing.message}</div>
                   )}
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="border-b bg-slate-50/80"><CardTitle className="text-lg">Data safeguards</CardTitle><CardDescription>How this refresh stayed controlled.</CardDescription></CardHeader>
+                <CardHeader className="border-b bg-slate-50/80 dark:bg-slate-900/80"><CardTitle className="text-lg">Data safeguards</CardTitle><CardDescription>How this refresh stayed controlled.</CardDescription></CardHeader>
                 <CardContent className="space-y-3 p-5 text-sm">
                   <MetricRow label="Cloud Monitoring" value={!stats.monitoring.ran ? 'Not run' : stats.monitoring.available ? 'Connected' : 'Partial'} />
                   <MetricRow label="Selected this refresh" value={stats.refreshed.join(', ') || 'None'} />
@@ -472,21 +472,21 @@ export default function FirebaseUsagePage() {
                   <MetricRow label="Sample reads if cold" value={stats.refreshed.includes('collections') ? formatNumber(stats.firestore.collectionSampleReads) : 'Not run'} />
                   <MetricRow label="Collection cache" value={stats.refreshed.includes('collections') ? (stats.firestore.collectionStatsServedFromCache || stats.servedFromCache ? 'Reused' : 'Refreshed') : 'Not run'} />
                   <MetricRow label="BigQuery scan" value={loadedSections.has('billing') && stats.billing.available ? formatBytes(stats.billing.bytesProcessed) : 'Not run'} />
-                  {stats.monitoring.message && <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">{stats.monitoring.message}</p>}
+                  {stats.monitoring.message && <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">{stats.monitoring.message}</p>}
                 </CardContent>
               </Card>
             </div>
           </div>
 
           <Card>
-            <CardHeader className="border-b bg-slate-50/80">
+            <CardHeader className="border-b bg-slate-50/80 dark:bg-slate-900/80">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div><CardTitle className="text-lg">Database collections</CardTitle><CardDescription>Exact document counts with sampled document-data size estimates. Index bytes remain included only in the database total above.</CardDescription></div>
                 <Badge variant="outline" className="w-fit">Maximum 250 sample reads</Badge>
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="hidden grid-cols-[minmax(0,1fr)_120px_150px_120px] gap-4 border-b bg-slate-50 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 sm:grid">
+              <div className="hidden grid-cols-[minmax(0,1fr)_120px_150px_120px] gap-4 border-b bg-slate-50 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 sm:grid dark:bg-slate-900 dark:text-slate-400">
                 <span>Collection</span><span className="text-right">Documents</span><span className="text-right">Estimated data</span><span className="text-right">Sampled</span>
               </div>
               <div className="divide-y">
@@ -505,8 +505,8 @@ export default function FirebaseUsagePage() {
             </CardContent>
           </Card>
 
-          <div className="flex gap-2 rounded-lg border bg-slate-50 p-4 text-xs leading-relaxed text-slate-600">
-            <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-700" />
+          <div className="flex gap-2 rounded-lg border bg-slate-50 p-4 text-xs leading-relaxed text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-700 dark:text-blue-300" />
             <p>Collection sizes are estimates derived from at most five sampled documents per collection and exclude index entries. Expenditure comes from Cloud Billing export and can lag behind current activity. Nothing on this page refreshes until you press the button.</p>
           </div>
         </>
@@ -524,11 +524,11 @@ function UsageCard({ icon: Icon, label, value, detail, tone, progress }: {
   progress?: number;
 }) {
   const colors = {
-    blue: 'bg-blue-100 text-blue-700',
-    violet: 'bg-violet-100 text-violet-700',
-    emerald: 'bg-emerald-100 text-emerald-700',
-    amber: 'bg-amber-100 text-amber-700',
-    rose: 'bg-rose-100 text-rose-700',
+    blue: 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
+    violet: 'bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300',
+    emerald: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
+    amber: 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
+    rose: 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300',
   };
   return (
     <Card><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-sm font-medium text-muted-foreground">{label}</p><p className="mt-2 truncate text-2xl font-bold tracking-tight tabular-nums">{value}</p></div><div className={`shrink-0 rounded-lg p-2.5 ${colors[tone]}`}><Icon className="h-5 w-5" /></div></div>{progress !== undefined && <Progress value={progress} className="mt-3 h-2" />}<p className="mt-3 text-xs leading-relaxed text-muted-foreground">{detail}</p></CardContent></Card>

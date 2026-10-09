@@ -390,12 +390,12 @@ export default function ProcurementPage() {
       {/* Inline search */}
       {(activeTab === 'overview' || activeTab === 'items') && (
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3 h-3 pointer-events-none" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3 h-3 pointer-events-none dark:text-slate-400" />
           <input
             placeholder="Search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-7 pr-2 h-[28px] w-28 focus:w-40 transition-all duration-200 rounded-full border border-blue-200/60 bg-white/90 text-[10px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 placeholder:text-gray-400"
+            className="pl-7 pr-2 h-[28px] w-28 focus:w-40 transition-all duration-200 rounded-full border border-blue-200/60 bg-white/90 text-[10px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 placeholder:text-gray-400 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-slate-200 dark:placeholder:text-slate-400"
           />
         </div>
       )}
@@ -408,7 +408,7 @@ export default function ProcurementPage() {
           else if (newPeriod === 'Month' && currentMonth === 0) setCurrentMonth(getCurrentMonthNumber());
           else if (newPeriod === 'Term' && !currentTerm && availableTerms.length > 0) setCurrentTerm(availableTerms[0].id);
         }}
-        className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+        className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
       >
         <option value="Week">Week</option>
         <option value="Month">Month</option>
@@ -419,7 +419,7 @@ export default function ProcurementPage() {
         <select
           value={currentAcademicYear}
           onChange={(e) => setCurrentAcademicYear(e.target.value)}
-          className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+          className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
           style={{ maxWidth: '110px' }}
         >
           {academicYears.map(year => {
@@ -436,7 +436,7 @@ export default function ProcurementPage() {
         <select
           value={currentTerm}
           onChange={(e) => setCurrentTerm(e.target.value)}
-          className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+          className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
           style={{ maxWidth: '130px' }}
         >
           {availableTerms.map(term => {
@@ -449,7 +449,7 @@ export default function ProcurementPage() {
         <select
           value={currentMonth}
           onChange={(e) => setCurrentMonth(parseInt(e.target.value))}
-          className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+          className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
           style={{ maxWidth: '130px' }}
         >
           {getMonthsInYear(currentAcademicYear).map(month => (
@@ -461,7 +461,7 @@ export default function ProcurementPage() {
         <select
           value={currentWeek}
           onChange={(e) => setCurrentWeek(parseInt(e.target.value))}
-          className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+          className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
           style={{ maxWidth: '150px' }}
         >
           {(() => {
@@ -486,7 +486,7 @@ export default function ProcurementPage() {
       <select
         value={activeTab}
         onChange={(e) => setActiveTab(e.target.value)}
-        className="h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-2 text-[10px] font-bold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 uppercase tracking-wider"
+        className="h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-2 text-[10px] font-bold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 uppercase tracking-wider dark:border-indigo-800/60 dark:bg-slate-900/90 dark:text-indigo-300"
       >
         <option value="overview">OVERVIEW</option>
         <option value="purchases">PURCHASES</option>
@@ -499,17 +499,17 @@ export default function ProcurementPage() {
       {/* Separator */}
       {(activeTab === 'overview' || activeTab === 'items') && (
         <>
-          <div className="w-px h-5 bg-white/40 mx-0.5" />
+          <div className="w-px h-5 bg-white/40 mx-0.5 dark:bg-slate-900/40" />
 
           {/* Filter toggle */}
           <button
             onClick={() => setFiltersExpanded(!filtersExpanded)}
             className={`h-[30px] flex items-center gap-1 px-2.5 rounded-full border text-[10px] font-bold shadow-sm transition-all duration-200 ${
               hasActiveFilters
-                ? 'bg-blue-100 border-blue-400 text-blue-700 ring-2 ring-blue-300/40'
+                ? 'bg-blue-100 border-blue-400 text-blue-700 ring-2 ring-blue-300/40 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-800/40'
                 : filtersExpanded
-                ? 'bg-white/90 border-blue-300 text-blue-600'
-                : 'bg-white/80 border-white/60 text-gray-600 hover:bg-white hover:text-blue-600'
+                ? 'bg-white/90 border-blue-300 text-blue-600 dark:bg-slate-900/90 dark:border-blue-800/60 dark:text-blue-400'
+                : 'bg-white/80 border-white/60 text-gray-600 hover:bg-white hover:text-blue-600 dark:bg-slate-900/80 dark:border-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-blue-400'
             }`}
             title={filtersExpanded ? 'Collapse filters' : 'Expand filters'}
           >
@@ -524,11 +524,11 @@ export default function ProcurementPage() {
 
           {/* View mode toggle (overview only) */}
           {activeTab === 'overview' && (
-            <div className="flex items-center bg-white/60 border border-white/50 rounded-full p-0.5 h-[30px] shadow-sm">
+            <div className="flex items-center bg-white/60 border border-white/50 rounded-full p-0.5 h-[30px] shadow-sm dark:bg-slate-900/60 dark:border-slate-700/50">
               <button
                 onClick={() => setViewMode('cards')}
                 className={`w-6 h-full rounded-full flex items-center justify-center transition-all duration-150 ${
-                  viewMode === 'cards' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-700'
+                  viewMode === 'cards' ? 'bg-white shadow text-blue-600 dark:bg-slate-900 dark:text-blue-400' : 'text-gray-400 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
                 title="Card view"
               >
@@ -537,7 +537,7 @@ export default function ProcurementPage() {
               <button
                 onClick={() => setViewMode('table')}
                 className={`w-6 h-full rounded-full flex items-center justify-center transition-all duration-150 ${
-                  viewMode === 'table' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-700'
+                  viewMode === 'table' ? 'bg-white shadow text-blue-600 dark:bg-slate-900 dark:text-blue-400' : 'text-gray-400 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
                 title="Table view"
               >
@@ -593,7 +593,7 @@ export default function ProcurementPage() {
       <GlassSummaryBar
         left={
           <div className="flex items-center gap-2">
-            <ShoppingCart className="h-4 w-4 text-indigo-500" />
+            <ShoppingCart className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
             <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
               Procurement Overview
             </span>
@@ -633,12 +633,12 @@ export default function ProcurementPage() {
 
         {/* Expanded Filters Panel (when filter open from topbar) */}
         {(activeTab === 'overview' || activeTab === 'items') && filtersExpanded && (
-          <div className="bg-white/80 backdrop-blur-sm border border-blue-100/50 rounded-xl px-4 py-3 shadow-sm animate-in slide-in-from-top-2 duration-200">
+          <div className="bg-white/80 backdrop-blur-sm border border-blue-100/50 rounded-xl px-4 py-3 shadow-sm animate-in slide-in-from-top-2 duration-200 dark:bg-slate-900/80 dark:border-blue-800/50">
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Category</Label>
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="bg-white h-9">
+                  <SelectTrigger className="bg-white h-9 dark:bg-slate-900">
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
@@ -652,7 +652,7 @@ export default function ProcurementPage() {
               <div className="space-y-1.5">
                 <Label className="text-xs">Status</Label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="bg-white h-9">
+                  <SelectTrigger className="bg-white h-9 dark:bg-slate-900">
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -664,7 +664,7 @@ export default function ProcurementPage() {
               </div>
               {hasActiveFilters && (
                 <div className="sm:col-span-2 flex justify-end">
-                  <Button variant="ghost" onClick={clearFilters} className="text-red-600 hover:bg-red-50 hover:text-red-700 h-8 text-sm">
+                  <Button variant="ghost" onClick={clearFilters} className="text-red-600 hover:bg-red-50 hover:text-red-700 h-8 text-sm dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300">
                     <X className="w-3.5 h-3.5 mr-1.5" /> Clear Filters
                   </Button>
                 </div>
@@ -849,22 +849,22 @@ function OverviewTab({
             {purchases.slice(0, 5).length > 0 ? (
               <div className="space-y-3">
                 {purchases.slice(0, 5).map((purchase: ProcurementPurchase, index: number) => (
-                  <div key={purchase.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={purchase.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg dark:bg-slate-900">
                     <div>
                       <p className="font-medium text-sm">{purchase.itemName}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-slate-400">
                         {new Date(purchase.purchaseDate).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-sm">{formatCurrency(purchase.totalCost || 0)}</p>
-                      <p className="text-xs text-gray-500">Qty: {purchase.quantity}</p>
+                      <p className="text-xs text-gray-500 dark:text-slate-400">Qty: {purchase.quantity}</p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-center text-gray-500 py-4">No recent purchases</p>
+              <p className="text-center text-gray-500 py-4 dark:text-slate-400">No recent purchases</p>
             )}
           </CardContent>
         </Card>
@@ -881,7 +881,7 @@ function OverviewTab({
             {budgets.length > 0 ? (
               <div className="space-y-3">
                 {budgets.slice(0, 3).map((budget: ProcurementBudget, index: number) => (
-                  <div key={budget.id} className="p-3 bg-gray-50 rounded-lg">
+                  <div key={budget.id} className="p-3 bg-gray-50 rounded-lg dark:bg-slate-900">
                     <div className="flex items-center justify-between mb-2">
                       <p className="font-medium text-sm">{budget.name}</p>
                       <Badge variant={budget.status === 'Active' ? 'default' : 'secondary'}>
@@ -889,7 +889,7 @@ function OverviewTab({
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-slate-400">
                         {formatCurrency(0)} / {formatCurrency(budget.totalEstimatedCost)}
                       </p>
                       <p className="text-xs font-medium">
@@ -900,7 +900,7 @@ function OverviewTab({
                 ))}
               </div>
             ) : (
-              <p className="text-center text-gray-500 py-4">No budget plan exists for this selected period.</p>
+              <p className="text-center text-gray-500 py-4 dark:text-slate-400">No budget plan exists for this selected period.</p>
             )}
           </CardContent>
         </Card>

@@ -45,30 +45,30 @@ export function PupilTableRow({
 
   if (isLoading) {
     return (
-      <tr className="hover:bg-gray-50 transition-colors animate-pulse">
+      <tr className="hover:bg-gray-50 transition-colors animate-pulse dark:hover:bg-slate-900">
         <td className="px-2 sm:px-4 py-2 sm:py-3">
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gray-200 flex-shrink-0" />
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gray-200 flex-shrink-0 dark:bg-slate-800" />
             <div className="min-w-0 flex-1">
-              <div className="h-4 bg-gray-200 rounded w-32 mb-1" />
-              <div className="h-3 bg-gray-200 rounded w-24" />
+              <div className="h-4 bg-gray-200 rounded w-32 mb-1 dark:bg-slate-800" />
+              <div className="h-3 bg-gray-200 rounded w-24 dark:bg-slate-800" />
             </div>
           </div>
         </td>
         <td className="hidden sm:table-cell px-4 py-3">
-          <div className="h-4 bg-gray-200 rounded w-16" />
+          <div className="h-4 bg-gray-200 rounded w-16 dark:bg-slate-800" />
         </td>
         <td className="hidden md:table-cell px-4 py-3">
-          <div className="h-4 bg-gray-200 rounded w-20" />
+          <div className="h-4 bg-gray-200 rounded w-20 dark:bg-slate-800" />
         </td>
         <td className="px-2 sm:px-4 py-2 sm:py-3">
-          <div className="h-4 bg-gray-200 rounded w-24" />
+          <div className="h-4 bg-gray-200 rounded w-24 dark:bg-slate-800" />
         </td>
         <td className="hidden md:table-cell px-4 py-3">
-          <div className="h-4 bg-gray-200 rounded w-16" />
+          <div className="h-4 bg-gray-200 rounded w-16 dark:bg-slate-800" />
         </td>
         <td className="px-2 sm:px-4 py-2 sm:py-3 text-right">
-          <div className="h-8 w-8 bg-gray-200 rounded ml-auto" />
+          <div className="h-8 w-8 bg-gray-200 rounded ml-auto dark:bg-slate-800" />
         </td>
       </tr>
     );
@@ -105,7 +105,7 @@ export function PupilTableRow({
             >
               {formatPupilDisplayName(pupil)}
             </Link>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs text-gray-500">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs text-gray-500 dark:text-slate-400">
               <span className="truncate">{pupil.learnerIdentificationNumber || pupil.admissionNumber}</span>
               <span className="hidden sm:inline">•</span>
               <div className="flex items-center gap-2">
@@ -124,45 +124,45 @@ export function PupilTableRow({
       <td className="hidden sm:table-cell px-4 py-3">
         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
           pupil.status === 'Active' 
-            ? 'bg-green-100 text-green-800' 
+            ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200'
             : pupil.status === 'Inactive'
-            ? 'bg-red-100 text-red-800'
+            ? 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200'
             : pupil.status === 'Graduated'
-            ? 'bg-blue-100 text-blue-800'
-            : 'bg-gray-100 text-gray-800'
+            ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200'
+            : 'bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100'
         }`}>
           {pupil.status}
         </span>
       </td>
       <td className="hidden md:table-cell px-4 py-3">
         {pupilHouse ? (
-          <span className="text-sm text-gray-900">{pupilHouse.name}</span>
+          <span className="text-sm text-gray-900 dark:text-slate-100">{pupilHouse.name}</span>
         ) : (
-          <span className="text-sm text-gray-400">No House</span>
+          <span className="text-sm text-gray-400 dark:text-slate-400">No House</span>
         )}
       </td>
       <td className="px-2 sm:px-4 py-2 sm:py-3">
         <div className="flex flex-col gap-1">
-          <span className="text-xs sm:text-sm font-medium text-gray-900">
+          <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-slate-100">
             {classDisplay.name || getClassName(pupil.classId)}
           </span>
           <span className={`text-xs px-1.5 py-0.5 rounded-full ${
             pupil.section === 'Boarding' 
-              ? 'bg-purple-100 text-purple-700' 
-              : 'bg-blue-100 text-blue-700'
+              ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300'
+              : 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
           }`}>
             {pupil.section === 'Boarding' ? 'Boarding' : 'Day'}
           </span>
         </div>
       </td>
       <td className="hidden md:table-cell px-4 py-3">
-        <div className="text-sm text-gray-900">
+        <div className="text-sm text-gray-900 dark:text-slate-100">
           {siblings.length > 0 ? (
-            <span className="text-indigo-600 font-medium">
+            <span className="text-indigo-600 font-medium dark:text-indigo-400">
               {siblings.length} sibling{siblings.length !== 1 ? 's' : ''}
             </span>
           ) : (
-            <span className="text-gray-400">No siblings</span>
+            <span className="text-gray-400 dark:text-slate-400">No siblings</span>
           )}
         </div>
       </td>
@@ -199,7 +199,7 @@ export function PupilTableRow({
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={() => onDelete(pupil.id, `${formatPupilDisplayName(pupil)}`)}
-              className="text-red-600"
+              className="text-red-600 dark:text-red-400"
             >
               <Trash className="mr-2 h-4 w-4" />
               Delete

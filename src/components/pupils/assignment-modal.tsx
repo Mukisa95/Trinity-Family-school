@@ -665,17 +665,17 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
         <ModernDialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <div className="flex justify-between items-start mb-3 -mt-4 -ml-2 relative">
             <ModernDialogHeader className="text-left space-y-0.5 m-0 p-0">
-              <ModernDialogTitle className="flex items-center gap-1.5 text-sm font-bold leading-none text-indigo-900">
-                <Tag className="h-4 w-4 text-blue-600" />
+              <ModernDialogTitle className="flex items-center gap-1.5 text-sm font-bold leading-none text-indigo-900 dark:text-indigo-200">
+                <Tag className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 Manage Fee Assignments & Discounts
               </ModernDialogTitle>
-              <ModernDialogDescription className="text-[11px] font-medium text-gray-500 leading-tight">
+              <ModernDialogDescription className="text-[11px] font-medium text-gray-500 leading-tight dark:text-slate-400">
                 Assign special fees and discounts to {formatPupilDisplayName(pupil)} with time management and status control.
               </ModernDialogDescription>
             </ModernDialogHeader>
             <div className="flex items-center gap-1.5 pt-0.5 pr-8">
               {!isAddingNew && (
-                <Button variant="outline" size="sm" onClick={() => setIsAddingNew(true)} className="rounded-full h-6 px-2.5 text-[10px] font-medium flex items-center gap-1 border-indigo-200 text-indigo-700 hover:bg-indigo-50">
+                <Button variant="outline" size="sm" onClick={() => setIsAddingNew(true)} className="rounded-full h-6 px-2.5 text-[10px] font-medium flex items-center gap-1 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">
                   <Plus className="h-3 w-3" />
                   Add New
                 </Button>
@@ -719,7 +719,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                                     {feeStructure.category === 'Discount' ? 'Discount' : 'Assignment Fee'}
                                   </Badge>
                                   {assignment.inlineDiscount && (
-                                    <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-slate-100 border-slate-300 text-slate-700 font-semibold">
+                                    <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-slate-100 border-slate-300 text-slate-700 font-semibold dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200">
                                       Pupil-Specific
                                     </Badge>
                                   )}
@@ -735,7 +735,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                                     </Badge>
                                   )}
                                   {feeStructure.category !== 'Discount' && (
-                                    <span className="font-semibold text-green-600 text-sm ml-auto">
+                                    <span className="font-semibold text-green-600 text-sm ml-auto dark:text-green-400">
                                       {formatCurrency(feeStructure.amount)}
                                     </span>
                                   )}
@@ -753,7 +753,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                                     </span>
                                   </div>
                                   {feeStructure.category === 'Discount' && (feeStructure.linkedFeeId || (feeStructure.linkedFeeIds && feeStructure.linkedFeeIds.length > 0)) && (
-                                    <div className="flex items-center gap-1 text-blue-600">
+                                    <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
                                       <span className="font-medium">Linked:</span>
                                       <span className="truncate max-w-[200px]" title={
                                         (feeStructure.linkedFeeIds && feeStructure.linkedFeeIds.length > 0)
@@ -771,7 +771,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                                 </div>
 
                                 {assignment.notes && (
-                                  <div className="mt-1.5 text-xs text-gray-600 bg-gray-50 p-1.5 rounded line-clamp-1" title={assignment.notes}>
+                                  <div className="mt-1.5 text-xs text-gray-600 bg-gray-50 p-1.5 rounded line-clamp-1 dark:text-slate-300 dark:bg-slate-900" title={assignment.notes}>
                                     <span className="font-medium mr-1">Note:</span> {assignment.notes}
                                   </div>
                                 )}
@@ -793,7 +793,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-7 w-7 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                                      className="h-7 w-7 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:text-indigo-300 dark:hover:bg-indigo-950/40"
                                       title="Push / Fetch to another term"
                                       onClick={() => handleOpenPushFetch(assignment.id)}
                                     >
@@ -805,7 +805,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/40"
                                   title="Edit Time Settings"
                                   onClick={() => handleEditTimeSettings(assignment.id)}
                                 >
@@ -816,7 +816,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                    className="h-7 w-7 text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:text-orange-300 dark:hover:bg-orange-950/40"
                                     title="Disable Assignment"
                                     onClick={() => handleDisableAssignment(assignment.id)}
                                   >
@@ -826,7 +826,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-950/40"
                                     title="Enable Assignment"
                                     onClick={() => handleEnableAssignment(assignment.id)}
                                   >
@@ -837,7 +837,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/40"
                                   title="Remove Assignment"
                                   onClick={() => handleRemoveAssignment(assignment.id)}
                                 >
@@ -849,7 +849,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-7 w-7 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                                      className="h-7 w-7 text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-900"
                                       title={`View History (${assignment.statusHistory.length})`}
                                     >
                                       <History className="h-3.5 w-3.5" />
@@ -861,7 +861,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                             
                             {/* Status History Content */}
                             {assignment.statusHistory && assignment.statusHistory.length > 0 && (
-                              <CollapsibleContent className="mt-2 pt-2 border-t border-slate-100">
+                              <CollapsibleContent className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
                                 <div className="space-y-1 text-[10px]">
                                   {assignment.statusHistory
                                     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -901,17 +901,17 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                 <Card>
                   {showPivotForm ? null : (
                     <CardHeader className="pb-3 border-b px-4 py-3">
-                      <div className="flex bg-slate-100 p-1 rounded-md w-max">
+                      <div className="flex bg-slate-100 p-1 rounded-md w-max dark:bg-slate-900">
                         <button 
                           type="button"
-                          className={cn("px-4 py-1.5 text-sm font-medium rounded-sm transition-colors", addMode === 'assign' ? "bg-white shadow-sm text-indigo-900" : "text-slate-600 hover:text-slate-900")} 
+                          className={cn("px-4 py-1.5 text-sm font-medium rounded-sm transition-colors", addMode === 'assign' ? "bg-white shadow-sm text-indigo-900 dark:bg-slate-900 dark:text-indigo-200" : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100")}
                           onClick={() => { setAddMode('assign'); setSelectedFeeId(''); setDirectFeeId(''); }}
                         >
                           Assign Mode
                         </button>
                         <button 
                           type="button"
-                          className={cn("px-4 py-1.5 text-sm font-medium rounded-sm transition-colors", addMode === 'direct' ? "bg-white shadow-sm text-indigo-900" : "text-slate-600 hover:text-slate-900")} 
+                          className={cn("px-4 py-1.5 text-sm font-medium rounded-sm transition-colors", addMode === 'direct' ? "bg-white shadow-sm text-indigo-900 dark:bg-slate-900 dark:text-indigo-200" : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100")}
                           onClick={() => { setAddMode('direct'); setSelectedFeeId(''); }}
                         >
                           Direct Mode
@@ -1016,7 +1016,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
         <ModernDialogContent size="md">
           <ModernDialogHeader>
             <ModernDialogTitle className="flex items-center">
-              <PowerOff className="mr-2 h-5 w-5 text-orange-600" />
+              <PowerOff className="mr-2 h-5 w-5 text-orange-600 dark:text-orange-400" />
               Disable Assignment
             </ModernDialogTitle>
             <ModernDialogDescription>
@@ -1090,7 +1090,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
       <ModernDialog open={showUnsavedWarning} onOpenChange={setShowUnsavedWarning}>
         <ModernDialogContent size="sm">
           <ModernDialogHeader>
-            <ModernDialogTitle className="flex items-center gap-2 text-orange-600">
+            <ModernDialogTitle className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
               <AlertCircle className="h-5 w-5" />
               Unsaved Changes
             </ModernDialogTitle>
@@ -1120,7 +1120,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
         <ModernDialogContent size="lg">
           <ModernDialogHeader>
             <ModernDialogTitle className="flex items-center">
-              <Clock className="mr-2 h-5 w-5 text-blue-600" />
+              <Clock className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
               Edit Time Settings
             </ModernDialogTitle>
             <ModernDialogDescription>

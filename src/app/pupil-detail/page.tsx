@@ -2654,7 +2654,7 @@ function PupilDetailContent() {
         }}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-              <Printer className="h-5 w-5 text-blue-600" />
+              <Printer className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               Print Reports
             </DialogTitle>
             <DialogDescription>
@@ -2665,35 +2665,35 @@ function PupilDetailContent() {
           {isGenerating ? (
             <div className="py-4">
               <div className="text-center">
-                <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto mb-4 animate-spin"></div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Generating Report</h3>
-                <p className="text-sm text-blue-600 font-medium mb-4">{generationStatus}</p>
-                <div className="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden border">
+                <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto mb-4 animate-spin dark:border-blue-800/60"></div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2 dark:text-slate-100">Generating Report</h3>
+                <p className="text-sm text-blue-600 font-medium mb-4 dark:text-blue-400">{generationStatus}</p>
+                <div className="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden border dark:bg-slate-900">
                   <div
                     className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${generationProgress}%` }}
                   />
                 </div>
                 <div className="flex justify-between items-center mb-4 text-sm">
-                  <span className="font-semibold text-gray-800">{generationProgress}% Complete</span>
-                  <span className="text-blue-600 font-medium">{eta}</span>
+                  <span className="font-semibold text-gray-800 dark:text-slate-100">{generationProgress}% Complete</span>
+                  <span className="text-blue-600 font-medium dark:text-blue-400">{eta}</span>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">💡 Report will download automatically when ready</p>
+                <p className="text-xs text-gray-500 mt-2 dark:text-slate-400">💡 Report will download automatically when ready</p>
               </div>
             </div>
           ) : (
             <div className="space-y-3">
               <button
                 onClick={onPrintTrans}
-                className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+                className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors dark:border-slate-700 dark:hover:bg-slate-900"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <FileText className="h-5 w-5 text-orange-600" />
+                  <div className="p-2 bg-orange-100 rounded-lg dark:bg-orange-950/40">
+                    <FileText className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">TRANS</h3>
-                    <p className="text-sm text-gray-600">Individual pupil reports (Enhanced design)</p>
+                    <h3 className="font-semibold text-gray-900 dark:text-slate-100">TRANS</h3>
+                    <p className="text-sm text-gray-600 dark:text-slate-300">Individual pupil reports (Enhanced design)</p>
                   </div>
                 </div>
               </button>
@@ -3848,10 +3848,10 @@ function PupilDetailContent() {
         }
         meta={
           <Badge variant="outline" className={`text-xs border shadow-sm ${
-            pupil?.status === 'Active' ? 'bg-green-100 text-green-800 border-green-300' :
-            pupil?.status === 'Inactive' ? 'bg-gray-100 text-gray-800 border-gray-300' :
-            pupil?.status === 'Graduated' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
-            'bg-blue-100 text-blue-800 border-blue-300'
+            pupil?.status === 'Active' ? 'bg-green-100 text-green-800 border-green-300 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60' :
+            pupil?.status === 'Inactive' ? 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700' :
+            pupil?.status === 'Graduated' ? 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60' :
+            'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60'
           }`}>
             {pupil?.status || 'Active'}
           </Badge>
@@ -3861,12 +3861,12 @@ function PupilDetailContent() {
         actions={
           <GlassActionDock className="w-auto px-1.5 py-1 [&_button]:!rounded-[18px] [&_button]:!border-transparent [&_button]:!bg-transparent [&_button]:!shadow-none sm:[&_button]:!rounded-full sm:[&_button]:!border sm:[&_button]:!bg-white sm:[&_button]:!shadow-sm">
             {isEditMode ? (
-              <div className="flex items-center gap-1 rounded-full bg-transparent sm:border sm:border-gray-300 sm:bg-white sm:px-2 sm:py-1.5 sm:shadow-lg sm:backdrop-blur-sm">
+              <div className="flex items-center gap-1 rounded-full bg-transparent sm:border sm:border-gray-300 sm:bg-white sm:px-2 sm:py-1.5 sm:shadow-lg sm:backdrop-blur-sm dark:sm:border-slate-700 dark:sm:bg-slate-900">
                 {/* Save Button */}
                 <ActionGuard module="pupils" page="detail" action="edit_details">
                   <button
                     onClick={handleSaveEdits}
-                    className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-green-600 border border-green-400 shadow-sm hover:bg-gradient-to-br hover:from-green-400 hover:via-emerald-500 hover:to-green-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                    className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-green-600 border border-green-400 shadow-sm hover:bg-gradient-to-br hover:from-green-400 hover:via-emerald-500 hover:to-green-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-green-400"
                     aria-label="Save Changes"
                   >
                     <Edit className="w-4 h-4 mb-0.5" />
@@ -3881,7 +3881,7 @@ function PupilDetailContent() {
                     setEditableFields({});
                     setEditableGuardians([]);
                   }}
-                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-red-600 border border-red-400 shadow-sm hover:bg-gradient-to-br hover:from-red-400 hover:via-pink-500 hover:to-red-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-red-600 border border-red-400 shadow-sm hover:bg-gradient-to-br hover:from-red-400 hover:via-pink-500 hover:to-red-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-red-400"
                   aria-label="Cancel Editing"
                 >
                   <X className="w-4 h-4 mb-0.5" />
@@ -3893,7 +3893,7 @@ function PupilDetailContent() {
                   onClick={() => {
                     window.location.href = `/pupils/edit?id=${pupil.id}`;
                   }}
-                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-blue-400"
                   aria-label="Open Edit Form"
                 >
                   <FileText className="w-4 h-4 mb-0.5" />
@@ -3901,12 +3901,12 @@ function PupilDetailContent() {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1 rounded-full bg-transparent sm:border sm:border-gray-300 sm:bg-white sm:px-2 sm:py-1.5 sm:shadow-lg sm:backdrop-blur-sm">
+              <div className="flex items-center gap-1 rounded-full bg-transparent sm:border sm:border-gray-300 sm:bg-white sm:px-2 sm:py-1.5 sm:shadow-lg sm:backdrop-blur-sm dark:sm:border-slate-700 dark:sm:bg-slate-900">
                 {/* Fees Collection Button */}
                 <ActionGuard module="pupils" page="detail" action="fee_collection">
                   <Link href={`/fees/collect?pupilId=${pupil.id}`}>
                     <button
-                      className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-emerald-600 border border-emerald-400 shadow-sm hover:bg-gradient-to-br hover:from-emerald-400 hover:via-emerald-500 hover:to-emerald-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                      className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-emerald-600 border border-emerald-400 shadow-sm hover:bg-gradient-to-br hover:from-emerald-400 hover:via-emerald-500 hover:to-emerald-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-emerald-400"
                       aria-label="Fees"
                     >
                       <span className="font-bold text-xs mb-0.5">Shs.</span>
@@ -3919,7 +3919,7 @@ function PupilDetailContent() {
                 {pupil.familyId && actualSiblings.length > 0 && (
                   <button
                     onClick={() => setIsFamilyModalOpen(true)}
-                    className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-teal-600 border border-teal-400 shadow-sm hover:bg-gradient-to-br hover:from-teal-400 hover:via-teal-500 hover:to-teal-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 group"
+                    className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-teal-600 border border-teal-400 shadow-sm hover:bg-gradient-to-br hover:from-teal-400 hover:via-teal-500 hover:to-teal-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 group dark:bg-slate-900 dark:text-teal-400"
                     aria-label="Family Account"
                   >
                     <div className="w-4 h-4 mb-0.5 flex items-center justify-center font-bold text-xs">
@@ -3937,7 +3937,7 @@ function PupilDetailContent() {
                 <ActionGuard module="pupils" page="detail" action="manage_assignments">
                   <button
                     onClick={() => setIsAssignmentModalOpen(true)}
-                    className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-purple-600 border border-purple-400 shadow-sm hover:bg-gradient-to-br hover:from-purple-400 hover:via-violet-500 hover:to-purple-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                    className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-purple-600 border border-purple-400 shadow-sm hover:bg-gradient-to-br hover:from-purple-400 hover:via-violet-500 hover:to-purple-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-purple-400"
                     aria-label="Assign"
                   >
                     <Tag className="w-4 h-4 mb-0.5" />
@@ -3949,7 +3949,7 @@ function PupilDetailContent() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                      className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-blue-400"
                       aria-label="Tracking Options"
                     >
                       <BarChart3 className="w-4 h-4 mb-0.5" />
@@ -3961,13 +3961,13 @@ function PupilDetailContent() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link href={`/uniform-tracking?id=${pupil.id}`} className="cursor-pointer">
-                        <Shirt className="mr-2 h-4 w-4 text-blue-600" />
+                        <Shirt className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
                         Uniform Tracking
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href={`/requirement-tracking?id=${pupil.id}`} className="cursor-pointer">
-                        <BookOpen className="mr-2 h-4 w-4 text-purple-600" />
+                        <BookOpen className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" />
                         Requirements Tracking
                       </Link>
                     </DropdownMenuItem>
@@ -3979,7 +3979,7 @@ function PupilDetailContent() {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
-                        className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-amber-600 border border-amber-400 shadow-sm hover:bg-gradient-to-br hover:from-amber-400 hover:via-orange-500 hover:to-amber-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                        className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-amber-600 border border-amber-400 shadow-sm hover:bg-gradient-to-br hover:from-amber-400 hover:via-orange-500 hover:to-amber-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-amber-400"
                         aria-label="Print Options"
                       >
                         <Printer className="w-4 h-4 mb-0.5" />
@@ -4017,7 +4017,7 @@ function PupilDetailContent() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                      className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-slate-300"
                       aria-label="Settings"
                     >
                       <Settings className="w-4 h-4 mb-0.5" />
@@ -4058,25 +4058,25 @@ function PupilDetailContent() {
                             : [{ id: `g-${Date.now()}`, firstName: '', lastName: '', relationship: '', phone: '', secondaryPhone: '', email: '', occupation: '', address: '', nationalId: '' }]
                         );
                       }}>
-                        <Edit className="mr-2 h-4 w-4 text-blue-600" />
+                        <Edit className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
                         Edit Pupil Details
                       </DropdownMenuItem>
                     </ActionGuard>
                     <ActionGuard module="pupils" page="detail" action="change_status">
                       <DropdownMenuItem onClick={handleStatusChange}>
-                        <Shield className="mr-2 h-4 w-4 text-orange-600" />
+                        <Shield className="mr-2 h-4 w-4 text-orange-600 dark:text-orange-400" />
                         Change Status
                       </DropdownMenuItem>
                     </ActionGuard>
                     <ActionGuard module="pupils" page="detail" action="manage_id_codes">
                       <DropdownMenuItem onClick={() => setIsManageIdCodesModalOpen(true)}>
-                        <CreditCard className="mr-2 h-4 w-4 text-green-600" />
+                        <CreditCard className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
                         ID Codes
                       </DropdownMenuItem>
                     </ActionGuard>
                     <ActionGuard module="pupils" page="detail" action="manage_id_codes">
                       <DropdownMenuItem onClick={() => setIsManagePayCodeModalOpen(true)}>
-                        <Tag className="mr-2 h-4 w-4 text-emerald-600" />
+                        <Tag className="mr-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         Pay Code (SchoolPay)
                       </DropdownMenuItem>
                     </ActionGuard>
@@ -4084,7 +4084,7 @@ function PupilDetailContent() {
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => setIsLinkedAccountOpen(true)}>
-                          <UserPlus className="mr-2 h-4 w-4 text-violet-600" />
+                          <UserPlus className="mr-2 h-4 w-4 text-violet-600 dark:text-violet-400" />
                           Parent Account
                         </DropdownMenuItem>
                       </>
@@ -4099,7 +4099,7 @@ function PupilDetailContent() {
                         });
                         router.push(`/pupils/new?${siblingParams.toString()}`);
                       }}>
-                        <UserPlus className="mr-2 h-4 w-4 text-indigo-600" />
+                        <UserPlus className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                         Add Sibling
                       </DropdownMenuItem>
                     </ActionGuard>
@@ -4107,7 +4107,7 @@ function PupilDetailContent() {
                     <ActionGuard module="pupils" page="detail" action="delete_pupil">
                       <DropdownMenuItem
                         onClick={() => alert("Delete action for " + pupil.id)}
-                        className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                        className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:text-red-400 dark:focus:text-red-400 dark:focus:bg-red-950/40"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete Pupil
@@ -4169,7 +4169,7 @@ function PupilDetailContent() {
                     <button
                       type="button"
                       aria-label="Text pupil guardian"
-                      className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 shadow-sm transition-colors hover:border-sky-300 hover:bg-sky-100 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+                      className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 shadow-sm transition-colors hover:border-sky-300 hover:bg-sky-100 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 dark:border-sky-800/60 dark:bg-sky-950/40 dark:text-sky-300 dark:hover:border-sky-800/60 dark:hover:bg-sky-950/40 dark:hover:text-sky-200"
                     >
                       <MessageSquareText className="h-3.5 w-3.5" />
                       Text
@@ -4179,18 +4179,18 @@ function PupilDetailContent() {
                     <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Choose message</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => setSelectedPupilSmsTemplate('profile')}>
-                      <User className="mr-2 h-4 w-4 text-sky-600" />
+                      <User className="mr-2 h-4 w-4 text-sky-600 dark:text-sky-400" />
                       <span>Profile</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       disabled={!getSchoolPayCode(pupil)}
                       onClick={() => setSelectedPupilSmsTemplate('pay-code')}
                     >
-                      <Tag className="mr-2 h-4 w-4 text-emerald-600" />
+                      <Tag className="mr-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                       <span>{getSchoolPayCode(pupil) ? 'Pay Code' : 'Pay Code (not available)'}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setSelectedPupilSmsTemplate('custom')}>
-                      <Edit className="mr-2 h-4 w-4 text-violet-600" />
+                      <Edit className="mr-2 h-4 w-4 text-violet-600 dark:text-violet-400" />
                       <span>Custom</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -4299,8 +4299,8 @@ function PupilDetailContent() {
                       onClick={() => setIsManagePayCodeModalOpen(true)}
                       title="Click to manage pay code"
                     >
-                      <Tag className="h-3.5 w-3.5 text-emerald-600" />
-                      <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-mono tracking-wide">
+                      <Tag className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-mono tracking-wide dark:text-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800/60">
                         Pay Code: {payCode}
                       </span>
                     </div>
@@ -4322,7 +4322,7 @@ function PupilDetailContent() {
                     <div className="flex flex-wrap gap-2 items-center">
                       <Badge
                         variant="outline"
-                        className="text-xs bg-purple-50 text-purple-700 border-purple-300 hover:bg-purple-100 cursor-pointer transition-colors"
+                        className="text-xs bg-purple-50 text-purple-700 border-purple-300 hover:bg-purple-100 cursor-pointer transition-colors dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/60 dark:hover:bg-purple-950/40"
                         onClick={() => setShowPLEDialog(!showPLEDialog)}
                       >
                         <BookOpen className="mr-1 h-3 w-3" />
@@ -4331,18 +4331,18 @@ function PupilDetailContent() {
                       {graduationDisplay?.href ? (
                         <Link
                           href={graduationDisplay.href}
-                          className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-md text-xs text-yellow-700 hover:bg-yellow-100 transition-colors duration-200"
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-md text-xs text-yellow-700 hover:bg-yellow-100 transition-colors duration-200 dark:from-yellow-950/40 dark:to-orange-950/40 dark:border-yellow-800/60 dark:text-yellow-300 dark:hover:bg-yellow-950/40"
                         >
                           <Award className="h-3 w-3" />
                           <span>{graduationDisplay.name}</span>
                         </Link>
                       ) : (
-                        <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-600 border-yellow-200">
+                        <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-600 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-400 dark:border-yellow-800/60">
                           {graduationDisplay?.name}
                         </Badge>
                       )}
                       {pupil.graduationDate && (
-                        <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">
+                        <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700">
                           {new Date(pupil.graduationDate).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'short',
@@ -4371,67 +4371,67 @@ function PupilDetailContent() {
             {/* PLE Results Card - Inline, appears when badge is clicked */}
             {showPLEDialog && (
               <Card
-                className="shadow-lg border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 overflow-hidden transition-all duration-500 ease-out"
+                className="shadow-lg border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 overflow-hidden transition-all duration-500 ease-out dark:border-purple-800/60 dark:from-purple-950/40 dark:to-indigo-950/40"
                 style={{
                   animation: 'slideDown 0.5s ease-out'
                 }}
               >
-                <CardHeader className="pb-3 border-b border-purple-200">
+                <CardHeader className="pb-3 border-b border-purple-200 dark:border-purple-800/60">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center text-lg lg:text-xl text-purple-900">
-                      <BookOpen className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-purple-600" />
+                    <CardTitle className="flex items-center text-lg lg:text-xl text-purple-900 dark:text-purple-200">
+                      <BookOpen className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-purple-600 dark:text-purple-400" />
                       PLE Results - {formatPupilDisplayName(pupil)}
                     </CardTitle>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowPLEDialog(false)}
-                      className="h-8 w-8 p-0 hover:bg-purple-100"
+                      className="h-8 w-8 p-0 hover:bg-purple-100 dark:hover:bg-purple-950/40"
                     >
-                      <X className="h-4 w-4 text-purple-600" />
+                      <X className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-4">
                   {isLoadingPLEResults ? (
                     <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-purple-600 mr-2" />
-                      <span className="text-sm text-gray-600">Loading PLE results...</span>
+                      <Loader2 className="h-6 w-6 animate-spin text-purple-600 mr-2 dark:text-purple-400" />
+                      <span className="text-sm text-gray-600 dark:text-slate-300">Loading PLE results...</span>
                     </div>
                   ) : pupilPLEResults.length === 0 ? (
                     <div className="text-center py-8">
-                      <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-sm text-gray-500">No PLE results found for this pupil.</p>
+                      <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-3 dark:text-slate-400" />
+                      <p className="text-sm text-gray-500 dark:text-slate-400">No PLE results found for this pupil.</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {pupilPLEResults.map(({ pleRecord, pupilResult }) => {
                         const getDivisionColor = (division: string) => {
                           switch (division) {
-                            case 'I': return 'bg-green-100 text-green-800 border-green-200';
-                            case 'II': return 'bg-blue-100 text-blue-800 border-blue-200';
-                            case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-                            case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200';
-                            case 'U': return 'bg-red-100 text-red-800 border-red-200';
-                            default: return 'bg-gray-100 text-gray-800 border-gray-200';
+                            case 'I': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
+                            case 'II': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+                            case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
+                            case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60';
+                            case 'U': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60';
+                            default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
                           }
                         };
 
                         const getAggregateColor = (aggregate: string | number | undefined) => {
-                          if (!aggregate) return 'bg-gray-100 text-gray-800';
+                          if (!aggregate) return 'bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100';
                           const aggregateStr = String(aggregate);
-                          if (aggregateStr.startsWith('D')) return 'bg-green-100 text-green-800';
-                          if (aggregateStr.startsWith('C')) return 'bg-blue-100 text-blue-800';
-                          if (aggregateStr.startsWith('P')) return 'bg-yellow-100 text-yellow-800';
-                          return 'bg-red-100 text-red-800';
+                          if (aggregateStr.startsWith('D')) return 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200';
+                          if (aggregateStr.startsWith('C')) return 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200';
+                          if (aggregateStr.startsWith('P')) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200';
+                          return 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200';
                         };
 
                         return (
-                          <div key={pleRecord.id} className="bg-white rounded-lg p-4 border border-purple-200 shadow-sm">
+                          <div key={pleRecord.id} className="bg-white rounded-lg p-4 border border-purple-200 shadow-sm dark:bg-slate-900 dark:border-purple-800/60">
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-2">
-                                <Award className="h-5 w-5 text-purple-600" />
-                                <h3 className="font-semibold text-lg text-gray-900">PLE {pleRecord.year}</h3>
+                                <Award className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                <h3 className="font-semibold text-lg text-gray-900 dark:text-slate-100">PLE {pleRecord.year}</h3>
                               </div>
                               <Button
                                 variant="outline"
@@ -4439,7 +4439,7 @@ function PupilDetailContent() {
                                 onClick={() => {
                                   router.push(`/exams/ple-results/pupil/${pupilResult.pupilId}/${pleRecord.id}`);
                                 }}
-                                className="border-purple-200 text-purple-700 hover:bg-purple-50"
+                                className="border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800/60 dark:text-purple-300 dark:hover:bg-purple-950/40"
                               >
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Details
@@ -4448,7 +4448,7 @@ function PupilDetailContent() {
 
                             {pupilResult.status === 'missed' ? (
                               <div className="text-center py-4">
-                                <Badge variant="outline" className="text-sm bg-red-50 text-red-700 border-red-200">
+                                <Badge variant="outline" className="text-sm bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800/60">
                                   Missed Examination
                                 </Badge>
                               </div>
@@ -4469,7 +4469,7 @@ function PupilDetailContent() {
 
                                 {pupilResult.subjects && Object.keys(pupilResult.subjects).length > 0 && (
                                   <div className="mt-3">
-                                    <p className="text-sm font-semibold text-gray-700 mb-2">Subject Grades:</p>
+                                    <p className="text-sm font-semibold text-gray-700 mb-2 dark:text-slate-200">Subject Grades:</p>
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                       {Object.entries(pupilResult.subjects).map(([subject, grade]) => {
                                         const subjectCodes: Record<string, string> = {
@@ -4480,9 +4480,9 @@ function PupilDetailContent() {
                                           'social_studies': 'SST'
                                         };
                                         return (
-                                          <div key={subject} className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-md p-2 border border-purple-100">
-                                            <p className="text-xs text-gray-600 font-medium">{subjectCodes[subject] || subject.toUpperCase()}</p>
-                                            <p className="text-sm font-bold text-purple-700">{grade}</p>
+                                          <div key={subject} className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-md p-2 border border-purple-100 dark:from-purple-950/40 dark:to-indigo-950/40 dark:border-purple-800/60">
+                                            <p className="text-xs text-gray-600 font-medium dark:text-slate-300">{subjectCodes[subject] || subject.toUpperCase()}</p>
+                                            <p className="text-sm font-bold text-purple-700 dark:text-purple-300">{grade}</p>
                                           </div>
                                         );
                                       })}
@@ -4506,7 +4506,7 @@ function PupilDetailContent() {
                   <UserSquare className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-primary" />
                   Personal Details
                   {isEditMode && (
-                    <Badge variant="outline" className="ml-2 text-xs bg-blue-50 text-blue-600 border-blue-200">
+                    <Badge variant="outline" className="ml-2 text-xs bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/60">
                       <Edit className="mr-1 h-3 w-3" />
                       Editing
                     </Badge>
@@ -4723,7 +4723,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                                     asChild
                                     size="sm"
                                     variant="outline"
-                                    className="h-6 rounded-full px-2 text-[10px] font-semibold border-emerald-300 text-emerald-700 hover:bg-emerald-50 shrink-0"
+                                    className="h-6 rounded-full px-2 text-[10px] font-semibold border-emerald-300 text-emerald-700 hover:bg-emerald-50 shrink-0 dark:border-emerald-800/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
                                   >
                                     <Link href={`/fees/collect/${sibling.id}`}>
                                       <span className="font-bold text-[10px] mr-0.5 pt-px">Shs.</span>
@@ -4734,7 +4734,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                                     asChild
                                     size="sm"
                                     variant="outline"
-                                    className="h-6 rounded-full px-2 text-[10px] font-semibold border-indigo-300 text-indigo-700 hover:bg-indigo-50 shrink-0"
+                                    className="h-6 rounded-full px-2 text-[10px] font-semibold border-indigo-300 text-indigo-700 hover:bg-indigo-50 shrink-0 dark:border-indigo-800/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
                                   >
                                     <Link href={`/pupil-detail?id=${sibling.id}#exams-card`}>
                                       <BookOpen className="h-2.5 w-2.5 mr-0.5" />
@@ -4745,7 +4745,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <button
-                                        className="flex items-center justify-center h-6 w-6 rounded-full border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 transition-all shrink-0"
+                                        className="flex items-center justify-center h-6 w-6 rounded-full border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 transition-all shrink-0 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:border-slate-700 dark:hover:text-slate-200"
                                         title="Sibling actions"
                                       >
                                         <Settings className="h-3 w-3" />
@@ -4756,19 +4756,19 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem asChild>
                                         <Link href={`/pupil-detail?id=${sibling.id}`} className="flex items-center cursor-pointer">
-                                          <Eye className="mr-2 h-3.5 w-3.5 text-blue-600" />
+                                          <Eye className="mr-2 h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                                           View Profile
                                         </Link>
                                       </DropdownMenuItem>
                                       <DropdownMenuItem asChild>
                                         <Link href={`/fees/collect/${sibling.id}`} className="flex items-center cursor-pointer">
-                                          <span className="mr-2 font-bold text-[10px] text-emerald-600">Shs.</span>
+                                          <span className="mr-2 font-bold text-[10px] text-emerald-600 dark:text-emerald-400">Shs.</span>
                                           Collect Fees
                                         </Link>
                                       </DropdownMenuItem>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem
-                                        className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
+                                        className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer dark:text-red-400 dark:focus:text-red-300 dark:focus:bg-red-950/40"
                                         onClick={() => {
                                           const remaining = actualSiblings.filter(s => s.id !== sibling.id);
                                           setUnlinkSiblingConfirm({ siblingToUnlink: sibling, remainingSiblings: remaining });
@@ -4857,17 +4857,17 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                 </ModernDialogHeader>
                 {unlinkSiblingConfirm && (
                   <div className="flex items-center gap-3 px-1 py-2">
-                    <Avatar className="h-10 w-10 border-2 border-red-200">
+                    <Avatar className="h-10 w-10 border-2 border-red-200 dark:border-red-800/60">
                       {unlinkSiblingConfirm.siblingToUnlink.photo && (
                         <AvatarImage src={unlinkSiblingConfirm.siblingToUnlink.photo} alt={`${unlinkSiblingConfirm.siblingToUnlink.firstName}`} />
                       )}
-                      <AvatarFallback className="text-xs bg-red-100 text-red-700">
+                      <AvatarFallback className="text-xs bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300">
                         {unlinkSiblingConfirm.siblingToUnlink.firstName.charAt(0)}{unlinkSiblingConfirm.siblingToUnlink.lastName.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-semibold text-gray-900">{formatPupilDisplayName(unlinkSiblingConfirm.siblingToUnlink)}</p>
-                      <p className="text-xs text-gray-500">{unlinkSiblingConfirm.siblingToUnlink.admissionNumber}</p>
+                      <p className="font-semibold text-gray-900 dark:text-slate-100">{formatPupilDisplayName(unlinkSiblingConfirm.siblingToUnlink)}</p>
+                      <p className="text-xs text-gray-500 dark:text-slate-400">{unlinkSiblingConfirm.siblingToUnlink.admissionNumber}</p>
                     </div>
                   </div>
                 )}
@@ -4901,18 +4901,18 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
               <Card className="shadow-lg" style={{ borderLeft: currentHouse?.themeColor ? `4px solid ${currentHouse.themeColor}` : undefined }}>
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center text-base">
-                    <Briefcase className="mr-2 h-4 w-4 text-indigo-600" /> Staff Relative
+                    <Briefcase className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" /> Staff Relative
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-1.5 text-xs">
                   <div className="flex items-center gap-2 py-1">
                     {assignedStaff.photo && (
-                      <Avatar className="h-8 w-8 border border-indigo-200">
+                      <Avatar className="h-8 w-8 border border-indigo-200 dark:border-indigo-800/60">
                         <AvatarImage
                           src={assignedStaff.photo && assignedStaff.photo.trim() !== '' ? assignedStaff.photo : undefined}
                           alt={`${assignedStaff.firstName} ${assignedStaff.lastName}`}
                         />
-                        <AvatarFallback className="text-xs bg-indigo-100 text-indigo-700">
+                        <AvatarFallback className="text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
                           {assignedStaff.firstName?.[0] || 'S'}{assignedStaff.lastName?.[0] || 'S'}
                         </AvatarFallback>
                       </Avatar>
@@ -4929,7 +4929,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                       )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-1 border-t border-gray-100">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-1 border-t border-gray-100 dark:border-slate-700">
                     {assignedStaff.employeeId && (
                       <div>
                         <span className="text-muted-foreground">ID: </span>
@@ -5190,11 +5190,11 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="text-xs">Total: {totalMarks}</span>
                                   <span className="text-xs">Avg: {averageMarks}%</span>
-                                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${division === "DIV I" ? "bg-green-100 text-green-800" :
-                                    division === "DIV II" ? "bg-blue-100 text-blue-800" :
-                                      division === "DIV III" ? "bg-yellow-100 text-yellow-800" :
-                                        division === "DIV IV" ? "bg-orange-100 text-orange-800" :
-                                          "bg-red-100 text-red-800"
+                                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${division === "DIV I" ? "bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200" :
+                                    division === "DIV II" ? "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200" :
+                                      division === "DIV III" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200" :
+                                        division === "DIV IV" ? "bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-200" :
+                                          "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200"
                                     }`}>
                                     {division} ({totalAggregates})
                                   </span>
@@ -5319,7 +5319,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
               <ModernDialogContent className="max-w-md">
                 <ModernDialogHeader>
                   <ModernDialogTitle className="flex items-center gap-2">
-                    <GuardianIconLucide className="h-5 w-5 text-teal-600" />
+                    <GuardianIconLucide className="h-5 w-5 text-teal-600 dark:text-teal-400" />
                     Family Account Options
                   </ModernDialogTitle>
                   <ModernDialogDescription>
@@ -5332,18 +5332,18 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                   <Link
                     href={`/fees/family/${pupil?.familyId}`}
                     onClick={() => setIsFamilyModalOpen(false)}
-                    className="flex items-center justify-between p-4 rounded-xl border border-teal-100 bg-teal-50/50 hover:bg-teal-50 hover:border-teal-200 transition-all group"
+                    className="flex items-center justify-between p-4 rounded-xl border border-teal-100 bg-teal-50/50 hover:bg-teal-50 hover:border-teal-200 transition-all group dark:border-teal-800/60 dark:bg-teal-950/50 dark:hover:bg-teal-950/40 dark:hover:border-teal-800/60"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-teal-100 text-teal-700">
+                      <div className="p-2 rounded-lg bg-teal-100 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">
                         <GuardianIconLucide className="h-5 w-5" />
                       </div>
                       <div className="text-left">
-                        <p className="font-semibold text-sm text-teal-900">View Family Account</p>
-                        <p className="text-xs text-teal-700/80">Combined school fees statement for all siblings</p>
+                        <p className="font-semibold text-sm text-teal-900 dark:text-teal-200">View Family Account</p>
+                        <p className="text-xs text-teal-700/80 dark:text-teal-300/80">Combined school fees statement for all siblings</p>
                       </div>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-teal-500 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="h-4 w-4 text-teal-500 group-hover:translate-x-1 transition-transform dark:text-teal-400" />
                   </Link>
 
                   {/* Sibling Fees Links */}
@@ -5376,7 +5376,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                               </p>
                             </div>
                           </div>
-                          <span className="font-bold text-xs text-muted-foreground group-hover:text-emerald-600 transition-colors">Shs.</span>
+                          <span className="font-bold text-xs text-muted-foreground group-hover:text-emerald-600 transition-colors dark:group-hover:text-emerald-400">Shs.</span>
                         </Link>
                       ))}
                     </div>
@@ -5420,11 +5420,11 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                           <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Class Options</DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => router.push(`/class-detail?id=${pupil.classId}`)}>
-                            <Settings className="mr-2 h-4 w-4 text-blue-600" />
+                            <Settings className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
                             View Class Details
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={handlePupilClassChange}>
-                            <Edit className="mr-2 h-4 w-4 text-orange-600" />
+                            <Edit className="mr-2 h-4 w-4 text-orange-600 dark:text-orange-400" />
                             Change Class
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -5491,7 +5491,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                     <GuardianIconLucide className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-primary" />
                     Guardian Information
                     {isEditMode && (
-                      <Badge variant="outline" className="ml-2 text-xs bg-blue-50 text-blue-600 border-blue-200">
+                      <Badge variant="outline" className="ml-2 text-xs bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/60">
                         <Edit className="mr-1 h-3 w-3" />
                         Editing
                       </Badge>
@@ -5561,7 +5561,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                             onClick={() => {
                               setEditableGuardians(editableGuardians.filter((_, i) => i !== index));
                             }}
-                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/40"
                           >
                             <X className="h-3 w-3" />
                           </Button>
@@ -5771,7 +5771,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
               <Card className="shadow-lg" style={{ borderLeft: currentHouse?.themeColor ? `4px solid ${currentHouse.themeColor}` : undefined }}>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center text-lg lg:text-xl">
-                    <Shield className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-orange-600" />
+                    <Shield className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-orange-600 dark:text-orange-400" />
                     Status Change History
                   </CardTitle>
                 </CardHeader>
@@ -5782,7 +5782,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                       <div key={index} className="p-2 px-3 rounded-md border bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800 text-xs">
                         <div className="flex flex-row items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
                           <div className="flex items-center gap-2 shrink-0">
-                            <Badge variant="outline" className="text-[10px] py-0 px-1.5 bg-orange-100 text-orange-800 border-orange-300">
+                            <Badge variant="outline" className="text-[10px] py-0 px-1.5 bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60">
                               {entry.fromStatus} → {entry.toStatus}
                             </Badge>
                             <span className="text-[11px] text-muted-foreground flex items-center">
@@ -5795,7 +5795,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                               <span className="truncate">Reason: {entry.reason}</span>
                             )}
                             {entry.processedBy && (
-                              <span className="shrink-0 text-gray-500">By: {entry.processedBy}</span>
+                              <span className="shrink-0 text-gray-500 dark:text-slate-400">By: {entry.processedBy}</span>
                             )}
                           </div>
                         </div>
@@ -5810,7 +5810,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
               <Card className="shadow-lg" style={{ borderLeft: currentHouse?.themeColor ? `4px solid ${currentHouse.themeColor}` : undefined }}>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center text-lg lg:text-xl">
-                    <GraduationCap className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
+                    <GraduationCap className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-blue-600 dark:text-blue-400" />
                     Class Changes & Promotions
                   </CardTitle>
                 </CardHeader>
@@ -5822,15 +5822,15 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                         <div className="flex flex-row items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
                           <div className="flex items-center gap-2 shrink-0">
                             <div className="flex items-center">
-                              {entry.type === 'Promotion' && <TrendingUp className="mr-1 h-3 w-3 text-green-600" />}
-                              {entry.type === 'Demotion' && <TrendingDown className="mr-1 h-3 w-3 text-red-600" />}
-                              {entry.type === 'Graduation' && <GraduationCap className="mr-1 h-3 w-3 text-yellow-600" />}
-                              {(entry.type === 'Transfer' || entry.type === 'Initial Placement') && <ArrowRight className="mr-1 h-3 w-3 text-blue-600" />}
+                              {entry.type === 'Promotion' && <TrendingUp className="mr-1 h-3 w-3 text-green-600 dark:text-green-400" />}
+                              {entry.type === 'Demotion' && <TrendingDown className="mr-1 h-3 w-3 text-red-600 dark:text-red-400" />}
+                              {entry.type === 'Graduation' && <GraduationCap className="mr-1 h-3 w-3 text-yellow-600 dark:text-yellow-400" />}
+                              {(entry.type === 'Transfer' || entry.type === 'Initial Placement') && <ArrowRight className="mr-1 h-3 w-3 text-blue-600 dark:text-blue-400" />}
                               <Badge variant="outline" className={`text-[10px] py-0 px-1.5 ${
-                                entry.type === 'Promotion' ? 'bg-green-100 text-green-800 border-green-300' :
-                                entry.type === 'Demotion' ? 'bg-red-100 text-red-800 border-red-300' :
-                                entry.type === 'Graduation' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
-                                'bg-blue-100 text-blue-800 border-blue-300'
+                                entry.type === 'Promotion' ? 'bg-green-100 text-green-800 border-green-300 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60' :
+                                entry.type === 'Demotion' ? 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60' :
+                                entry.type === 'Graduation' ? 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60' :
+                                'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60'
                               }`}>
                                 {entry.type}
                               </Badge>
@@ -5844,11 +5844,11 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                           <div className="flex items-center gap-2 text-[11px] font-medium text-gray-800 dark:text-gray-200 overflow-hidden text-ellipsis whitespace-nowrap">
                             {entry.type === 'Graduation' ? (
                               <div className="flex items-center gap-2">
-                                <span className="text-yellow-700">Graduated from {entry.fromClassName || 'N/A'}</span>
+                                <span className="text-yellow-700 dark:text-yellow-300">Graduated from {entry.fromClassName || 'N/A'}</span>
                                 {entry.graduationYear && entry.toClassId && (
                                   <Link
                                     href={`/classes/graduates/${entry.toClassId}`}
-                                    className="text-[10px] text-yellow-600 hover:text-yellow-700 underline flex items-center gap-0.5 shrink-0"
+                                    className="text-[10px] text-yellow-600 hover:text-yellow-700 underline flex items-center gap-0.5 shrink-0 dark:text-yellow-400 dark:hover:text-yellow-300"
                                   >
                                     <Award className="h-2.5 w-2.5" />
                                     Class of {entry.graduationYear}
@@ -5985,7 +5985,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
         <ModernDialogContent size="md" open={isStatusChangeModalOpen} onOpenChange={(open) => !open && setIsStatusChangeModalOpen(false)}>
           <ModernDialogHeader>
             <ModernDialogTitle className="flex items-center">
-              <Shield className="mr-2 h-5 w-5 text-orange-600" />
+              <Shield className="mr-2 h-5 w-5 text-orange-600 dark:text-orange-400" />
               Change Pupil Status
             </ModernDialogTitle>
             <ModernDialogDescription>
@@ -6153,7 +6153,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                       variant="ghost"
                       size="sm"
                       onClick={() => handleRemoveGuardian(index)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/40"
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
                       Remove
@@ -6350,7 +6350,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-              <FileTextIcon className="h-5 w-5 text-orange-600" />
+              <FileTextIcon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
               Select Full Report Type
             </DialogTitle>
             <DialogDescription>
@@ -6361,30 +6361,30 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
           <div className="space-y-3 py-4">
             <button
               onClick={() => handleTransTypeSelection('grading')}
-              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors dark:border-slate-700 dark:hover:bg-slate-900"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <BarChart3 className="h-5 w-5 text-blue-600" />
+                <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/40">
+                  <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Grading Scale</h3>
-                  <p className="text-sm text-gray-600">Show grading scale on reports</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-slate-100">Grading Scale</h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-300">Show grading scale on reports</p>
                 </div>
               </div>
             </button>
 
             <button
               onClick={() => handleTransTypeSelection('progress')}
-              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors dark:border-slate-700 dark:hover:bg-slate-900"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-green-600" />
+                <div className="p-2 bg-green-100 rounded-lg dark:bg-green-950/40">
+                  <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Progress Assessment</h3>
-                  <p className="text-sm text-gray-600">Compare with previous exam results</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-slate-100">Progress Assessment</h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-300">Compare with previous exam results</p>
                 </div>
               </div>
             </button>
@@ -6403,7 +6403,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-              <FileTextIcon className="h-5 w-5 text-orange-600" />
+              <FileTextIcon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
               Configure Report Elements
             </DialogTitle>
             <DialogDescription>
@@ -6656,7 +6656,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                   <TableRow>
                     <TableCell colSpan={4} className="pt-0 pb-2">
                       <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-gray-700 w-32">Custom Date:</label>
+                        <label className="text-sm font-medium text-gray-700 w-32 dark:text-slate-200">Custom Date:</label>
                         <DatePicker
                           date={customDates.createdOn ? new Date(customDates.createdOn) : undefined}
                           setDate={(d) => setCustomDates(prev => ({ ...prev, createdOn: d ? format(d, 'yyyy-MM-dd') : '' }))}
@@ -6708,7 +6708,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                   <TableRow>
                     <TableCell colSpan={4} className="pt-0 pb-2">
                       <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-gray-700 w-32">Custom Date:</label>
+                        <label className="text-sm font-medium text-gray-700 w-32 dark:text-slate-200">Custom Date:</label>
                         <DatePicker
                           date={customDates.nextTermBegins ? new Date(customDates.nextTermBegins) : undefined}
                           setDate={(d) => setCustomDates(prev => ({ ...prev, nextTermBegins: d ? format(d, 'yyyy-MM-dd') : '' }))}
@@ -6760,7 +6760,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                   <TableRow>
                     <TableCell colSpan={4} className="pt-0 pb-2">
                       <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-gray-700 w-32">Custom Date:</label>
+                        <label className="text-sm font-medium text-gray-700 w-32 dark:text-slate-200">Custom Date:</label>
                         <DatePicker
                           date={customDates.nextTermEnds ? new Date(customDates.nextTermEnds) : undefined}
                           setDate={(d) => setCustomDates(prev => ({ ...prev, nextTermEnds: d ? format(d, 'yyyy-MM-dd') : '' }))}
@@ -6793,7 +6793,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-              <TrendingUp className="h-5 w-5 text-green-600" />
+              <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
               Select Comparison Exams
             </DialogTitle>
             <DialogDescription>
@@ -6803,13 +6803,13 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
 
           {isLoadingComparisonExams ? (
             <div className="py-8 text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600 mb-2" />
-              <p className="text-sm text-gray-600">Loading available exams...</p>
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600 mb-2 dark:text-blue-400" />
+              <p className="text-sm text-gray-600 dark:text-slate-300">Loading available exams...</p>
             </div>
           ) : availableComparisonExams.length === 0 ? (
             <div className="py-8 text-center">
-              <AlertTriangle className="h-8 w-8 mx-auto text-yellow-600 mb-2" />
-              <p className="text-sm text-gray-600">No comparison exams found for this term, class, and academic year.</p>
+              <AlertTriangle className="h-8 w-8 mx-auto text-yellow-600 mb-2 dark:text-yellow-400" />
+              <p className="text-sm text-gray-600 dark:text-slate-300">No comparison exams found for this term, class, and academic year.</p>
             </div>
           ) : (
             <div className="space-y-2 max-h-96 overflow-y-auto py-4">
@@ -6834,10 +6834,10 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                       }
                     }}
                     className={`w-full p-3 border rounded-lg text-left transition-colors cursor-pointer ${isSelected
-                      ? 'border-blue-500 bg-blue-50'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40'
                       : canSelect
-                        ? 'border-gray-200 hover:bg-gray-50'
-                        : 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed'
+                        ? 'border-gray-200 hover:bg-gray-50 dark:border-slate-700 dark:hover:bg-slate-900'
+                        : 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed dark:border-slate-700 dark:bg-slate-900'
                       }`}
                   >
                     <div className="flex items-center justify-between">
@@ -6857,14 +6857,14 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 truncate">{exam.name}</h3>
-                          <p className="text-sm text-gray-600">
+                          <h3 className="font-semibold text-gray-900 truncate dark:text-slate-100">{exam.name}</h3>
+                          <p className="text-sm text-gray-600 dark:text-slate-300">
                             {exam.examTypeName || 'Exam'} • {exam.startDate ? new Date(exam.startDate).toLocaleDateString() : 'No date'}
                           </p>
                         </div>
                       </div>
                       {isSelected && (
-                        <div className="ml-2 text-blue-600">
+                        <div className="ml-2 text-blue-600 dark:text-blue-400">
                           <Check className="h-5 w-5" />
                         </div>
                       )}
@@ -6877,17 +6877,17 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
 
           {selectedComparisonExams.length > 0 && (
             <div className="mt-4 space-y-3">
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800 mb-3">
+              <div className="p-3 bg-blue-50 rounded-lg dark:bg-blue-950/40">
+                <p className="text-sm text-blue-800 mb-3 dark:text-blue-200">
                   <span className="font-semibold">{selectedComparisonExams.length}</span> of 2 exams selected
                 </p>
-                <p className="text-xs text-blue-700 mb-2">Customize exam names (optional):</p>
+                <p className="text-xs text-blue-700 mb-2 dark:text-blue-300">Customize exam names (optional):</p>
                 <div className="space-y-2">
                   {selectedComparisonExams.map((examId, index) => {
                     const exam = availableComparisonExams.find(e => e.id === examId);
                     return (
                       <div key={examId} className="space-y-1">
-                        <label className="text-xs font-medium text-gray-700">
+                        <label className="text-xs font-medium text-gray-700 dark:text-slate-200">
                           Exam {index + 1}:
                         </label>
                         <Input

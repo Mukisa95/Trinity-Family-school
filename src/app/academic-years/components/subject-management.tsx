@@ -159,7 +159,7 @@ export function SubjectManagement({ addTrigger }: SubjectManagementProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
         <span className="ml-2">Loading subjects data...</span>
       </div>
     );
@@ -175,7 +175,7 @@ export function SubjectManagement({ addTrigger }: SubjectManagementProps) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden">
+      <div className="rounded-lg border bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden dark:bg-slate-900/80">
         <Table>
           <TableHeader>
             <TableRow>
@@ -262,7 +262,7 @@ export function SubjectManagement({ addTrigger }: SubjectManagementProps) {
           </div>
           
           {/* Academic Context Banner */}
-          <div className={`mx-1 sm:mx-2 mt-1 sm:mt-2 p-1 border rounded-md text-[0.6rem] ${editingSubject ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'}`}>
+          <div className={`mx-1 sm:mx-2 mt-1 sm:mt-2 p-1 border rounded-md text-[0.6rem] ${editingSubject ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800/60' : 'bg-green-50 border-green-200 dark:bg-green-950/40 dark:border-green-800/60'}`}>
             <div className="flex flex-wrap gap-1 items-center">
               <div className="flex items-center gap-0.5">
                 <BookOpen className="h-2.5 w-2.5 text-muted-foreground" />
@@ -271,7 +271,7 @@ export function SubjectManagement({ addTrigger }: SubjectManagementProps) {
               <div>
                 <strong>Date:</strong> {format(new Date(), "MMM dd, yyyy")}
               </div>
-              <div className={`text-[0.5rem] px-1 py-0.5 rounded ml-auto ${editingSubject ? 'text-amber-700 bg-amber-100' : 'text-green-700 bg-green-100'}`}>
+              <div className={`text-[0.5rem] px-1 py-0.5 rounded ml-auto ${editingSubject ? 'text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-950/40' : 'text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-950/40'}`}>
                 {editingSubject ? 'Edit Mode' : 'Create Mode'}
               </div>
             </div>

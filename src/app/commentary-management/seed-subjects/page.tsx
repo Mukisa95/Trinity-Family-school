@@ -173,7 +173,7 @@ export default function SeedSubjectsPage() {
         </SmartBackButton>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">Seed Subject Comments</h1>
-          <p className="text-gray-500 text-sm mt-0.5">
+          <p className="text-gray-500 text-sm mt-0.5 dark:text-slate-400">
             Add comments for all subjects at once. Choose a status, which classes and which terms they apply to.
           </p>
         </div>
@@ -208,11 +208,11 @@ export default function SeedSubjectsPage() {
           {/* Multi-class selector */}
           <div>
             <label className="block text-sm font-medium mb-1">
-              Classes <span className="text-gray-400 font-normal">(leave all unchecked for All Nursery Classes)</span>
+              Classes <span className="text-gray-400 font-normal dark:text-slate-400">(leave all unchecked for All Nursery Classes)</span>
             </label>
             <div className="border rounded-lg p-3 flex flex-wrap gap-4 max-h-40 overflow-y-auto">
               {nurseryClasses.length === 0 ? (
-                <p className="text-sm text-gray-400">No nursery classes found</p>
+                <p className="text-sm text-gray-400 dark:text-slate-400">No nursery classes found</p>
               ) : (
                 nurseryClasses.map((cls) => (
                   <label key={cls.id} className="flex items-center gap-2 cursor-pointer select-none">
@@ -226,9 +226,9 @@ export default function SeedSubjectsPage() {
               )}
             </div>
             {selectedClassIds.length === 0 ? (
-              <p className="text-xs text-gray-500 mt-1">→ Saving as General (All Nursery Classes)</p>
+              <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">→ Saving as General (All Nursery Classes)</p>
             ) : (
-              <p className="text-xs text-purple-600 mt-1">
+              <p className="text-xs text-purple-600 mt-1 dark:text-purple-400">
                 → Saving for {selectedClassIds.length} class{selectedClassIds.length !== 1 ? 'es' : ''}: {selectedClassIds.map(id => nurseryClasses.find(c => c.id === id)?.name).filter(Boolean).join(', ')}
               </p>
             )}
@@ -237,7 +237,7 @@ export default function SeedSubjectsPage() {
           {/* Applicable Terms */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              Applicable Terms <span className="text-gray-400 font-normal text-xs">(select which terms this applies to)</span>
+              Applicable Terms <span className="text-gray-400 font-normal text-xs dark:text-slate-400">(select which terms this applies to)</span>
             </label>
             <div className="flex flex-wrap gap-4">
               {TERM_OPTIONS.map((t) => (
@@ -287,7 +287,7 @@ export default function SeedSubjectsPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => removeCommentField(subject.value, field.id)}
-                        className="text-red-500 hover:text-red-600 hover:bg-red-50 mt-0.5 shrink-0"
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50 mt-0.5 shrink-0 dark:text-red-400 dark:hover:text-red-400 dark:hover:bg-red-950/40"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

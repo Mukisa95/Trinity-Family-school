@@ -1,5 +1,7 @@
 "use client";
 
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -179,7 +181,7 @@ export function ParentSidebar({
           </div>
         </div>
       </div>
-                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                  <ChevronDown className="h-4 w-4 text-gray-400 dark:text-slate-400" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-80">
@@ -334,6 +336,7 @@ export function ParentSidebar({
                   </p>
         </div>
       )}
+      <ThemeToggle compact={isCollapsed} />
     </div>
         </div>
 

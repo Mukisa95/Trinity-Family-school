@@ -26,7 +26,7 @@ export function UniformSignatureDisplay({
 
   if (error) {
     return (
-      <div className="text-xs text-red-500">
+      <div className="text-xs text-red-500 dark:text-red-400">
         Signature error
       </div>
     );
@@ -89,7 +89,7 @@ export function UniformPaymentSignature({
 
   if (error) {
     return (
-      <div className="text-xs text-red-500">
+      <div className="text-xs text-red-500 dark:text-red-400">
         Signature error
       </div>
     );
@@ -105,7 +105,7 @@ export function UniformPaymentSignature({
 
   return (
     <div className={`flex items-center gap-1 ${className}`}>
-      <CreditCard className="w-3 h-3 text-green-600" />
+      <CreditCard className="w-3 h-3 text-green-600 dark:text-green-400" />
       <DigitalSignatureDisplay
         signature={paymentSignature.signature}
         action="paid by"
@@ -135,7 +135,7 @@ export function UniformCollectionSignature({
 
   if (error) {
     return (
-      <div className="text-xs text-red-500">
+      <div className="text-xs text-red-500 dark:text-red-400">
         Signature error
       </div>
     );
@@ -151,7 +151,7 @@ export function UniformCollectionSignature({
 
   return (
     <div className={`flex items-center gap-1 ${className}`}>
-      <Package className="w-3 h-3 text-blue-600" />
+      <Package className="w-3 h-3 text-blue-600 dark:text-blue-400" />
       <DigitalSignatureDisplay
         signature={collectionSignature.signature}
         action="collected by"

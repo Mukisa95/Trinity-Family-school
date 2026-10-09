@@ -26,7 +26,7 @@ export function SchoolSettingsLoader() {
         
         {/* Shimmer effect */}
         <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent dark:via-slate-900/40"
           animate={{
             x: ['-100%', '200%'],
           }}
@@ -55,7 +55,7 @@ export function SchoolSettingsLoader() {
         
         {/* Shimmer effect */}
         <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent"
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent dark:via-slate-900/50"
           animate={{
             x: ['-100%', '200%'],
           }}
@@ -80,7 +80,7 @@ export function SchoolSettingsLoader() {
         
         {/* Shimmer effect */}
         <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent dark:via-slate-900/40"
           animate={{
             x: ['-100%', '200%'],
           }}

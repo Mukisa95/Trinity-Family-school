@@ -44,7 +44,7 @@ export function VersionLink() {
           >
             <Link 
               href="/changelog" 
-              className="text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors px-2.5 py-1 hover:bg-gray-100 rounded-md whitespace-nowrap"
+              className="text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors px-2.5 py-1 hover:bg-gray-100 rounded-md whitespace-nowrap dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-slate-900"
             >
               v{APP_VERSION}
             </Link>

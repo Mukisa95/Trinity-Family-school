@@ -103,7 +103,7 @@ function SessionStaleBanner({
   };
 
   return (
-    <div className="mx-3 my-3 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm sm:mx-4">
+    <div className="mx-3 my-3 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm sm:mx-4 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-100">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-semibold">Session permissions need refresh</p>
@@ -112,7 +112,7 @@ function SessionStaleBanner({
           </p>
         </div>
         {requiresSignIn ? (
-          <Button asChild size="sm" variant="outline" className="border-amber-400 bg-white text-amber-950 hover:bg-amber-100">
+          <Button asChild size="sm" variant="outline" className="border-amber-400 bg-white text-amber-950 hover:bg-amber-100 dark:bg-slate-900 dark:text-amber-100 dark:hover:bg-amber-950/40">
             <Link href="/login?reauth=1">Sign In Securely</Link>
           </Button>
         ) : (
@@ -122,7 +122,7 @@ function SessionStaleBanner({
             variant="outline"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="border-amber-400 bg-white text-amber-950 hover:bg-amber-100"
+            className="border-amber-400 bg-white text-amber-950 hover:bg-amber-100 dark:bg-slate-900 dark:text-amber-100 dark:hover:bg-amber-950/40"
           >
             {isRefreshing && <Loader2 className="h-4 w-4 animate-spin" />}
             Refresh Session
@@ -137,13 +137,13 @@ function SessionVerificationBanner({ message }: { message?: string | null }) {
   return (
     <div
       role="status"
-      className="mx-3 my-3 rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-950 shadow-sm sm:mx-4"
+      className="mx-3 my-3 rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-950 shadow-sm sm:mx-4 dark:border-orange-800/60 dark:bg-orange-950/40 dark:text-orange-100"
     >
       <p className="text-sm font-semibold">Live session check delayed</p>
       <p className="mt-1 text-sm">
         {message || 'Firebase Authentication could not refresh the signed session yet. The current signed session remains available.'}
       </p>
-      <p className="mt-1 text-xs text-orange-900">
+      <p className="mt-1 text-xs text-orange-900 dark:text-orange-200">
         This check does not read Firestore and will retry after the connection recovers.
       </p>
     </div>
@@ -170,7 +170,7 @@ const SidebarHeaderWrapper = ({ isLoadingSettings, currentSettings }: { isLoadin
   return (
     <SidebarHeader
       className={cn(
-        "p-3 flex flex-row items-center border-b border-gray-100 transition-all duration-300 ease-in-out min-h-[56px] relative",
+        "p-3 flex flex-row items-center border-b border-gray-100 transition-all duration-300 ease-in-out min-h-[56px] relative dark:border-slate-700",
         (isCollapsed || !showName) ? "justify-center" : "justify-start gap-2.5"
       )}
     >
@@ -218,7 +218,7 @@ const SidebarHeaderWrapper = ({ isLoadingSettings, currentSettings }: { isLoadin
             <div className="w-[180px]">
               <AnimatePresence mode="wait">
                 {isLoadingSettings ? (
-                  <div className="h-8 w-24 bg-gray-100 animate-pulse rounded" />
+                  <div className="h-8 w-24 bg-gray-100 animate-pulse rounded dark:bg-slate-900" />
                 ) : (
                   <motion.div
                     key="text-content"
@@ -228,7 +228,7 @@ const SidebarHeaderWrapper = ({ isLoadingSettings, currentSettings }: { isLoadin
                     transition={{ duration: 0.2 }}
                     className="flex flex-col items-start min-w-0 w-full"
                   >
-                    <h2 className="text-sm font-bold text-gray-900 leading-tight w-full break-words">
+                    <h2 className="text-sm font-bold text-gray-900 leading-tight w-full break-words dark:text-slate-100">
                       {currentSettings.generalInfo.name || "School Name"}
                     </h2>
                   </motion.div>
@@ -543,7 +543,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   if (isMobile) {
     return (
       <NavigationWrapper>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-blue-950/40 dark:via-slate-900 dark:to-purple-950/40">
           <EnhancedHeader
             onMenuClick={handleMobileMenuClick}
             showMenuButton={true}
@@ -592,7 +592,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
             <SidebarContent>
               <SidebarNav items={navItems} />
             </SidebarContent>
-            <SidebarFooter className="p-3 group-data-[state=collapsed]:p-1.5 border-t border-gray-100">
+            <SidebarFooter className="p-3 group-data-[state=collapsed]:p-1.5 border-t border-gray-100 dark:border-slate-700">
               <SidebarUserFooter />
             </SidebarFooter>
           </Sidebar>

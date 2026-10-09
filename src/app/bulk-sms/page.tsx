@@ -658,14 +658,14 @@ const BulkSMS: React.FC = () => {
         meta={
           <div className={`flex items-center gap-2 px-3 py-1 rounded-full border shadow-sm transition-colors text-xs font-semibold ${
             balanceLoading 
-              ? 'bg-gray-50 border-gray-200' 
+              ? 'bg-gray-50 border-gray-200 dark:bg-slate-900 dark:border-slate-700'
               : wizaBalance && Number(wizaBalance) < 1000 
-                ? 'bg-red-50 border-red-200 text-red-700' 
-                : 'bg-green-50 border-green-200 text-green-700'
+                ? 'bg-red-50 border-red-200 text-red-700 dark:bg-red-950/40 dark:border-red-800/60 dark:text-red-300'
+                : 'bg-green-50 border-green-200 text-green-700 dark:bg-green-950/40 dark:border-green-800/60 dark:text-green-300'
           }`}>
             <Wallet className="h-3.5 w-3.5" />
             {balanceLoading ? (
-              <div className="flex items-center gap-1.5 text-gray-500">
+              <div className="flex items-center gap-1.5 text-gray-500 dark:text-slate-400">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 <span>Checking...</span>
               </div>
@@ -675,7 +675,7 @@ const BulkSMS: React.FC = () => {
                   UGX {Number(availableBalance || wizaBalance).toLocaleString()}
                 </span>
                 {lockedBalance > 0 ? (
-                  <span className="text-[9px] opacity-80 font-medium text-amber-600">
+                  <span className="text-[9px] opacity-80 font-medium text-amber-600 dark:text-amber-400">
                     ({lockedBalance.toLocaleString()} locked)
                   </span>
                 ) : (
@@ -685,16 +685,16 @@ const BulkSMS: React.FC = () => {
                 )}
               </div>
             ) : (
-              <span className="text-gray-500">Balance unavailable</span>
+              <span className="text-gray-500 dark:text-slate-400">Balance unavailable</span>
             )}
             <button
               onClick={fetchWizaBalance}
               className={`ml-0.5 pt-0.5 rounded-full transition-all ${
                 balanceLoading 
-                  ? 'text-gray-400 cursor-not-allowed' 
+                  ? 'text-gray-400 cursor-not-allowed dark:text-slate-400'
                   : wizaBalance && Number(wizaBalance) < 1000 
-                    ? 'text-red-600 hover:bg-red-100' 
-                    : 'text-green-600 hover:bg-green-100'
+                    ? 'text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-950/40'
+                    : 'text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-950/40'
               }`}
               title="Refresh balance"
               disabled={balanceLoading}
@@ -722,18 +722,18 @@ const BulkSMS: React.FC = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 font-medium">
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">SMS Tools</DropdownMenuLabel>
-                <DropdownMenuSeparator className="my-1 border-gray-100" />
+                <DropdownMenuSeparator className="my-1 border-gray-100 dark:border-slate-700" />
                 <DropdownMenuItem onClick={() => router.push('/sms-templates')} className="cursor-pointer py-2.5">
-                  <FileText className="mr-2 h-4 w-4 text-blue-600" />
+                  <FileText className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
                   <span>Message Templates</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowWizaDashboard(true)} className="cursor-pointer py-2.5">
-                  <Monitor className="mr-2 h-4 w-4 text-purple-600" />
+                  <Monitor className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" />
                   <span>Wiza SMS Dashboard</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="my-1 border-gray-100" />
+                <DropdownMenuSeparator className="my-1 border-gray-100 dark:border-slate-700" />
                 <DropdownMenuItem onClick={() => setShowSettings(true)} className="cursor-pointer py-2.5">
-                  <Settings className="mr-2 h-4 w-4 text-gray-600" />
+                  <Settings className="mr-2 h-4 w-4 text-gray-600 dark:text-slate-300" />
                   <span>Provider Settings</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -827,7 +827,7 @@ const BulkSMS: React.FC = () => {
                     {selectedClasses.length === classes.length ? 'Deselect All' : 'Select All'}
                   </Button>
                 </div>
-                <div className="flex flex-row justify-between w-full gap-1 p-3 bg-gray-50 rounded-lg min-h-[50px]">
+                <div className="flex flex-row justify-between w-full gap-1 p-3 bg-gray-50 rounded-lg min-h-[50px] dark:bg-slate-900">
                   {classes.map((cls) => (
                     <Badge
                       key={cls.id}
@@ -840,7 +840,7 @@ const BulkSMS: React.FC = () => {
                   ))}
                 </div>
                 {selectedClasses.length === 0 && (
-                  <p className="text-xs text-red-500">Please select at least one class to continue</p>
+                  <p className="text-xs text-red-500 dark:text-red-400">Please select at least one class to continue</p>
                 )}
               </div>
 
@@ -849,7 +849,7 @@ const BulkSMS: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3">
                     {/* Selection Mode */}
                     <div className="space-y-1.5">
-                      <p className="text-xs font-medium text-gray-700">Selection Method</p>
+                      <p className="text-xs font-medium text-gray-700 dark:text-slate-200">Selection Method</p>
                       <div className="flex gap-1.5">
                         <Badge
                           variant={selectionMode === 'class' ? "default" : "outline"}
@@ -873,7 +873,7 @@ const BulkSMS: React.FC = () => {
 
                     {/* Guardian Selection - Always show this */}
                     <div className="space-y-1.5">
-                      <p className="text-xs font-medium text-gray-700">Guardian Types <span className="text-red-500">*</span></p>
+                      <p className="text-xs font-medium text-gray-700 dark:text-slate-200">Guardian Types <span className="text-red-500 dark:text-red-400">*</span></p>
                       <div className="flex gap-1.5">
                         <Badge
                           variant={selectedGuardians.includes('primary') ? "default" : "outline"}
@@ -891,7 +891,7 @@ const BulkSMS: React.FC = () => {
                         </Badge>
                       </div>
                       {selectedGuardians.length === 0 && (
-                        <p className="text-[9px] text-red-500 mt-1">Required</p>
+                        <p className="text-[9px] text-red-500 mt-1 dark:text-red-400">Required</p>
                       )}
                     </div>
                   </div>
@@ -899,7 +899,7 @@ const BulkSMS: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3">
                     {/* Section Selection */}
                     <div className="space-y-1.5">
-                      <p className="text-xs font-medium text-gray-700">Section</p>
+                      <p className="text-xs font-medium text-gray-700 dark:text-slate-200">Section</p>
                       <div className="flex gap-1.5">
                         <Badge
                           variant={selectedSections.includes('Boarding') ? "default" : "outline"}
@@ -920,7 +920,7 @@ const BulkSMS: React.FC = () => {
 
                     {/* Gender Selection */}
                     <div className="space-y-1.5">
-                      <p className="text-xs font-medium text-gray-700">Gender</p>
+                      <p className="text-xs font-medium text-gray-700 dark:text-slate-200">Gender</p>
                       <div className="flex gap-1.5">
                         <Badge
                           variant={selectedGenders.includes('Male') ? "default" : "outline"}
@@ -943,7 +943,7 @@ const BulkSMS: React.FC = () => {
                   {selectionMode === 'individual' && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-gray-700">Select Pupils</p>
+                        <p className="text-sm font-medium text-gray-700 dark:text-slate-200">Select Pupils</p>
                         <Button
                           variant="outline"
                           size="sm"
@@ -960,27 +960,27 @@ const BulkSMS: React.FC = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="mb-1 h-8 text-sm"
                       />
-                      <div className="max-h-[250px] overflow-y-auto border rounded-lg bg-gray-50">
+                      <div className="max-h-[250px] overflow-y-auto border rounded-lg bg-gray-50 dark:bg-slate-900">
                         {filteredPupils
                           .filter(pupil => selectedClasses.includes(pupil.classId))
                           .map((pupil) => (
                             <div
                               key={pupil.id}
-                              className="flex items-center space-x-2 p-2 hover:bg-gray-100 transition-colors border-b last:border-b-0"
+                              className="flex items-center space-x-2 p-2 hover:bg-gray-100 transition-colors border-b last:border-b-0 dark:hover:bg-slate-900"
                             >
                               <input
                                 type="checkbox"
                                 checked={selectedPupilIds.includes(pupil.id)}
                                 onChange={() => handlePupilSelect(pupil.id)}
-                                className="rounded border-gray-300 text-primary focus:ring-primary w-3.5 h-3.5"
+                                className="rounded border-gray-300 text-primary focus:ring-primary w-3.5 h-3.5 dark:border-slate-700"
                               />
                               <span className="flex-1 text-sm">{formatPupilDisplayName(pupil)}</span>
                               <div className="flex flex-col items-end">
-                                <span className="text-sm text-gray-500">
+                                <span className="text-sm text-gray-500 dark:text-slate-400">
                                   {getPupilClassDisplay(pupil, classes.find(c => c.id === pupil.classId)).code || pupil.classId}
                                 </span>
                                 {pupil.gender && pupil.section && (
-                                  <span className="text-xs text-gray-400">
+                                  <span className="text-xs text-gray-400 dark:text-slate-400">
                                     {pupil.gender} • {pupil.section}
                                   </span>
                                 )}
@@ -995,16 +995,16 @@ const BulkSMS: React.FC = () => {
 
               {/* Manual Numbers Chips List */}
               {manualNumbers.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 p-2.5 bg-gray-50 rounded-lg">
+                <div className="flex flex-wrap gap-1.5 p-2.5 bg-gray-50 rounded-lg dark:bg-slate-900">
                   {manualNumbers.map((number) => (
                     <div
                       key={number}
-                      className="flex items-center gap-1 bg-white border px-2 py-0.5 rounded-full text-xs shadow-sm"
+                      className="flex items-center gap-1 bg-white border px-2 py-0.5 rounded-full text-xs shadow-sm dark:bg-slate-900"
                     >
                       {number}
                       <button
                         onClick={() => handleRemoveNumber(number)}
-                        className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+                        className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 dark:text-slate-400 dark:hover:text-slate-300"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -1031,7 +1031,7 @@ const BulkSMS: React.FC = () => {
                 />
                 <FieldError error={sendValidation.getFieldError('bulk-message')} />
                 <div className="flex flex-col space-y-2">
-                  <div className="flex items-center justify-between text-sm px-1 text-gray-500">
+                  <div className="flex items-center justify-between text-sm px-1 text-gray-500 dark:text-slate-400">
                     <div className="flex items-center gap-2">
                       <span className="font-mono tabular-nums font-medium">
                         <span style={{ color: characterCountColor, transition: 'color 0.2s ease' }}>
@@ -1040,17 +1040,17 @@ const BulkSMS: React.FC = () => {
                         <span>/160</span>
                       </span>
                       {characterCount > 160 && (
-                        <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs font-medium">
+                        <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs font-medium dark:bg-red-950/40 dark:text-red-400">
                           Exceeds 160 limit
                         </span>
                       )}
                     </div>
                     <span>
-                      Message count: <span className={characterCount > 160 ? 'font-bold text-red-600' : ''}>{messageCount}</span>
+                      Message count: <span className={characterCount > 160 ? 'font-bold text-red-600 dark:text-red-400' : ''}>{messageCount}</span>
                     </span>
                   </div>
 
-                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden dark:bg-slate-900">
                     <div
                       className="h-full"
                       style={{
@@ -1062,7 +1062,7 @@ const BulkSMS: React.FC = () => {
                   </div>
 
                   {characterCount > 160 && (
-                    <div className="text-xs text-red-500 bg-red-50 p-2 rounded-md">
+                    <div className="text-xs text-red-500 bg-red-50 p-2 rounded-md dark:text-red-400 dark:bg-red-950/40">
                       Warning: Your message exceeds 160 characters and will be charged as {messageCount} separate SMS messages.
                     </div>
                   )}
@@ -1117,11 +1117,11 @@ const BulkSMS: React.FC = () => {
                       <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">SMS Scheduling</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => setShowSchedule(true)} className="cursor-pointer">
-                        <Calendar className="mr-2 h-4 w-4 text-blue-600" />
+                        <Calendar className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
                         Schedule SMS
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setShowScheduleList(true)} className="cursor-pointer">
-                        <Settings className="mr-2 h-4 w-4 text-indigo-600" />
+                        <Settings className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                         Schedule List
                       </DropdownMenuItem>
                     </DropdownMenuContent>

@@ -109,7 +109,10 @@
     "repopulate-academic-years": "npx tsx src/scripts/repopulate-academic-years.ts",
     "fix-academic-year-term-dates": "npx tsx src/scripts/fix-academic-year-term-dates.ts",
     "convert-term-dates-to-iso": "npx tsx src/scripts/convert-term-dates-to-iso.ts",
-    "test:fee-reminders": "node scripts/build-custom-fee-engine.cjs && node --import tsx --test tests/fee-reminders.test.ts tests/fee-reminders-server.test.ts tests/fee-reminders-ui.test.ts tests/fee-reminders-worker.test.ts tests/fee-reminders-events.test.ts tests/fee-reminder-callback.test.ts tests/custom-fee-notes.test.ts tests/fee-notes-switch.test.ts tests/fee-note-date-normalization.test.ts"
+    "test:fee-reminders": "node scripts/build-custom-fee-engine.cjs && node --import tsx --test tests/fee-reminders.test.ts tests/fee-reminders-server.test.ts tests/fee-reminders-ui.test.ts tests/fee-reminders-worker.test.ts tests/fee-reminders-events.test.ts tests/fee-reminder-callback.test.ts tests/custom-fee-notes.test.ts tests/fee-notes-switch.test.ts tests/fee-note-date-normalization.test.ts",
+    "test:theme-types": "tsc --project tsconfig.theme-check.json --noEmit",
+    "test:theme-browser": "node scripts/test-theme-browser.cjs",
+    "test:pdf-theme-browser": "node scripts/test-pdf-theme-browser.cjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -177,6 +180,7 @@
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.475.0",
     "next": "^15.5.7",
+    "next-themes": "^0.4.6",
     "patch-package": "^8.0.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.2.108",

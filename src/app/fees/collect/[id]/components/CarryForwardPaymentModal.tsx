@@ -170,7 +170,7 @@ export function CarryForwardPaymentModal({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span className="font-bold text-sm text-indigo-600">Shs.</span>
+            <span className="font-bold text-sm text-indigo-600 dark:text-indigo-400">Shs.</span>
             Record Carry Forward Payment
           </DialogTitle>
         </DialogHeader>
@@ -178,16 +178,16 @@ export function CarryForwardPaymentModal({
         <div className="py-4 space-y-6">
           <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
           {/* Fee Information */}
-          <div className="bg-indigo-50 rounded-lg p-4">
-            <h3 className="font-medium text-indigo-900 mb-2">{fee.name}</h3>
+          <div className="bg-indigo-50 rounded-lg p-4 dark:bg-indigo-950/40">
+            <h3 className="font-medium text-indigo-900 mb-2 dark:text-indigo-200">{fee.name}</h3>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
-                <span className="text-indigo-700">Total Outstanding:</span>
-                <span className="font-bold text-red-600">
+                <span className="text-indigo-700 dark:text-indigo-300">Total Outstanding:</span>
+                <span className="font-bold text-red-600 dark:text-red-400">
                   {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(balance)}
                 </span>
               </div>
-              <div className="text-indigo-700 text-xs">
+              <div className="text-indigo-700 text-xs dark:text-indigo-300">
                 {fee.feeBreakdown?.length || 0} item(s) from previous terms
               </div>
             </div>
@@ -196,7 +196,7 @@ export function CarryForwardPaymentModal({
           {/* Payment Type Selection */}
           {hasMultipleItems && (
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 dark:text-slate-400">
                 Payment Type
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -205,8 +205,8 @@ export function CarryForwardPaymentModal({
                   onClick={() => handlePaymentTypeChange('general')}
                   className={`p-2.5 border rounded-full text-center transition-all flex items-center justify-center gap-2 ${
                     paymentType === 'general' 
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-900 shadow-sm ring-1 ring-indigo-500/30' 
-                      : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-900 shadow-sm ring-1 ring-indigo-500/30 dark:bg-indigo-950/40 dark:text-indigo-200'
+                      : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700 dark:border-slate-700 dark:hover:border-slate-700 dark:bg-slate-900 dark:text-slate-200'
                   }`}
                 >
                   <Calculator className="w-4 h-4" />
@@ -218,8 +218,8 @@ export function CarryForwardPaymentModal({
                   onClick={() => handlePaymentTypeChange('item-specific')}
                   className={`p-2.5 border rounded-full text-center transition-all flex items-center justify-center gap-2 ${
                     paymentType === 'item-specific' 
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-900 shadow-sm ring-1 ring-indigo-500/30' 
-                      : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-900 shadow-sm ring-1 ring-indigo-500/30 dark:bg-indigo-950/40 dark:text-indigo-200'
+                      : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700 dark:border-slate-700 dark:hover:border-slate-700 dark:bg-slate-900 dark:text-slate-200'
                   }`}
                 >
                   <Target className="w-4 h-4" />
@@ -232,7 +232,7 @@ export function CarryForwardPaymentModal({
           {/* Item Selection for Item-Specific Payment */}
           {paymentType === 'item-specific' && fee.feeBreakdown && (
             <div id="carryPaymentItem" tabIndex={-1} aria-invalid={Boolean(formValidation.getFieldError('carryPaymentItem'))} aria-describedby={formValidation.getFieldError('carryPaymentItem') ? 'carryPaymentItem-error' : undefined} className="rounded-md aria-invalid:border aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:p-2">
-              <label className={`block text-sm font-medium mb-3 ${formValidation.getFieldError('carryPaymentItem') ? 'text-red-700' : 'text-gray-700'}`}>
+              <label className={`block text-sm font-medium mb-3 ${formValidation.getFieldError('carryPaymentItem') ? 'text-red-700 dark:text-red-300' : 'text-gray-700 dark:text-slate-200'}`}>
                 Select Item to Pay:
               </label>
               <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -243,20 +243,20 @@ export function CarryForwardPaymentModal({
                     onClick={() => handleItemSelect(item)}
                     className={`w-full p-3 border rounded-lg text-left transition-all ${
                       selectedItem === item 
-                        ? 'border-indigo-500 bg-indigo-50' 
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40'
+                        : 'border-gray-200 hover:border-gray-300 dark:border-slate-700 dark:hover:border-slate-700'
                     }`}
                   >
                     <div className="flex justify-between items-start">
                       <div>
-                        <div className="font-medium text-gray-900">{item.name}</div>
-                        <div className="text-sm text-gray-600">{item.term} - {item.year}</div>
+                        <div className="font-medium text-gray-900 dark:text-slate-100">{item.name}</div>
+                        <div className="text-sm text-gray-600 dark:text-slate-300">{item.term} - {item.year}</div>
                       </div>
                       <div className="text-right">
-                        <div className="font-medium text-red-600">
+                        <div className="font-medium text-red-600 dark:text-red-400">
                           {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(item.balance)}
                         </div>
-                        <div className="text-xs text-gray-500">Balance</div>
+                        <div className="text-xs text-gray-500 dark:text-slate-400">Balance</div>
                       </div>
                     </div>
                   </button>
@@ -269,7 +269,7 @@ export function CarryForwardPaymentModal({
           {/* Payment Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="carryPaymentAmount" className={`block text-sm font-medium mb-2 ${formValidation.getFieldError('carryPaymentAmount') ? 'text-red-700' : 'text-gray-700'}`}>
+              <label htmlFor="carryPaymentAmount" className={`block text-sm font-medium mb-2 ${formValidation.getFieldError('carryPaymentAmount') ? 'text-red-700 dark:text-red-300' : 'text-gray-700 dark:text-slate-200'}`}>
                 Payment Amount (UGX)
               </label>
               <input
@@ -280,7 +280,7 @@ export function CarryForwardPaymentModal({
                 placeholder="Enter amount"
                 {...formValidation.getFieldProps('carryPaymentAmount')}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-red-200 ${
-                  formValidation.getFieldError('carryPaymentAmount') ? 'border-red-600' : 'border-gray-300'
+                  formValidation.getFieldError('carryPaymentAmount') ? 'border-red-600' : 'border-gray-300 dark:border-slate-700'
                 }`}
                 disabled={isProcessing}
               />
@@ -290,7 +290,7 @@ export function CarryForwardPaymentModal({
             {/* Suggested Amounts */}
             {suggestedAmounts.length > 0 && (
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 dark:text-slate-400">
                   Quick Select:
                 </label>
                 <div className="flex gap-2 flex-nowrap overflow-x-auto pb-1 scrollbar-thin">
@@ -299,11 +299,11 @@ export function CarryForwardPaymentModal({
                       key={suggestion.label}
                       type="button"
                       onClick={() => handleAmountChange(formatMoneyInput(suggestion.value.toString()))}
-                      className="px-2.5 py-1 text-xs border border-indigo-200 rounded-full hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white whitespace-nowrap"
+                      className="px-2.5 py-1 text-xs border border-indigo-200 rounded-full hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white whitespace-nowrap dark:border-indigo-800/60 dark:hover:bg-indigo-950/40 dark:bg-slate-900"
                       disabled={isProcessing}
                     >
-                      <span className="font-medium text-indigo-900">{suggestion.label}</span>
-                      <span className="text-gray-500 ml-1">
+                      <span className="font-medium text-indigo-900 dark:text-indigo-200">{suggestion.label}</span>
+                      <span className="text-gray-500 ml-1 dark:text-slate-400">
                         ({new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(suggestion.value)})
                       </span>
                     </button>
@@ -314,13 +314,13 @@ export function CarryForwardPaymentModal({
 
             {/* Distribution Preview for General Payment */}
             {paymentType === 'general' && distributionPreview && amount && !formValidation.getFieldError('carryPaymentAmount') && (
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-3">Payment Distribution Preview:</h4>
+              <div className="bg-gray-50 rounded-lg p-4 dark:bg-slate-900">
+                <h4 className="font-medium text-gray-900 mb-3 dark:text-slate-100">Payment Distribution Preview:</h4>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
                   {distributionPreview.map((item, index) => (
                     <div key={index} className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600">{item.name} ({item.term})</span>
-                      <span className="font-medium text-gray-900">
+                      <span className="text-gray-600 dark:text-slate-300">{item.name} ({item.term})</span>
+                      <span className="font-medium text-gray-900 dark:text-slate-100">
                         {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(item.allocation)}
                       </span>
                     </div>
@@ -331,15 +331,15 @@ export function CarryForwardPaymentModal({
 
             {/* Payment Type Indicator */}
             {amount && !formValidation.getFieldError('carryPaymentAmount') && (
-              <div className="bg-gray-50 rounded-lg p-3">
+              <div className="bg-gray-50 rounded-lg p-3 dark:bg-slate-900">
                 <div className="text-sm">
-                  <span className="text-gray-600">Payment Type: </span>
-                  <span className="font-medium text-indigo-600">
+                  <span className="text-gray-600 dark:text-slate-300">Payment Type: </span>
+                  <span className="font-medium text-indigo-600 dark:text-indigo-400">
                     {paymentType === 'general' ? 'General Distribution' : 'Item Specific'}
                   </span>
                 </div>
                 {paymentType === 'item-specific' && selectedItem && (
-                  <div className="text-sm text-gray-600 mt-1">
+                  <div className="text-sm text-gray-600 mt-1 dark:text-slate-300">
                     Target: {selectedItem.name} ({selectedItem.term} - {selectedItem.year})
                   </div>
                 )}
@@ -364,7 +364,7 @@ export function CarryForwardPaymentModal({
               >
                 {isProcessing ? (
                   <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white dark:border-slate-700"></div>
                     Processing...
                   </div>
                 ) : (

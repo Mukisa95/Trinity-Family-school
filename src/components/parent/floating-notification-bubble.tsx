@@ -37,10 +37,10 @@ const TYPE_ICONS = {
 };
 
 const PRIORITY_COLORS = {
-  low: 'bg-gray-100 text-gray-800',
-  medium: 'bg-blue-100 text-blue-800',
-  high: 'bg-orange-100 text-orange-800',
-  urgent: 'bg-red-100 text-red-800',
+  low: 'bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100',
+  medium: 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200',
+  high: 'bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-200',
+  urgent: 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200',
 };
 
 interface FloatingNotificationBubbleProps {
@@ -107,7 +107,7 @@ export function FloatingNotificationBubble({ className = '' }: FloatingNotificat
           transition={{ type: "spring", duration: 0.5 }}
           className={`fixed bottom-20 right-4 z-50 max-w-xs ${className}`}
         >
-          <Card className="cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-blue-200 bg-white shadow-lg">
+          <Card className="cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-blue-200 bg-white shadow-lg dark:border-blue-800/60 dark:bg-slate-900">
             <CardContent className="p-3">
               {/* Header with priority badge and dismiss button */}
               <div className="flex items-center justify-between mb-2">
@@ -115,12 +115,12 @@ export function FloatingNotificationBubble({ className = '' }: FloatingNotificat
                   <Badge className={PRIORITY_COLORS[recentNotification.priority]} variant="secondary">
                     {recentNotification.priority.toUpperCase()}
                   </Badge>
-                  <span className="text-xs text-gray-500">{formatDate(recentNotification.createdAt)}</span>
+                  <span className="text-xs text-gray-500 dark:text-slate-400">{formatDate(recentNotification.createdAt)}</span>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-5 w-5 p-0 hover:bg-gray-100"
+                  className="h-5 w-5 p-0 hover:bg-gray-100 dark:hover:bg-slate-900"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDismiss();
@@ -132,23 +132,23 @@ export function FloatingNotificationBubble({ className = '' }: FloatingNotificat
 
               {/* Notification title only */}
               <div onClick={handleBubbleClick} className="space-y-2">
-                <h4 className="font-semibold text-sm text-gray-900 line-clamp-2 leading-tight">
+                <h4 className="font-semibold text-sm text-gray-900 line-clamp-2 leading-tight dark:text-slate-100">
                   {recentNotification.title}
                 </h4>
                 
                 {/* Click hint */}
                 <div className="flex items-center justify-between pt-1">
                   <div className="flex items-center space-x-2">
-                    <Bell className="h-3 w-3 text-blue-500" />
-                    <span className="text-xs text-blue-600 font-medium">Click to view</span>
+                    <Bell className="h-3 w-3 text-blue-500 dark:text-blue-400" />
+                    <span className="text-xs text-blue-600 font-medium dark:text-blue-400">Click to view</span>
                   </div>
-                  <ChevronRight className="h-3 w-3 text-gray-400" />
+                  <ChevronRight className="h-3 w-3 text-gray-400 dark:text-slate-400" />
                 </div>
               </div>
 
               {/* Unread count indicator */}
               {unreadCount > 1 && (
-                <div className="absolute -top-2 -left-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-semibold border-2 border-white">
+                <div className="absolute -top-2 -left-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-semibold border-2 border-white dark:border-slate-700">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </div>
               )}

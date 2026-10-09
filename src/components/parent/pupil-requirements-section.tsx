@@ -360,28 +360,28 @@ export function PupilRequirementsSection({ pupilId }: PupilRequirementsSectionPr
   const getStatusIcon = (status: RequirementWithStatus['status']) => {
     switch (status) {
       case 'paid':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
+        return <CheckCircle className="w-4 h-4 text-green-500 dark:text-green-400" />;
       case 'pending':
-        return <Clock className="w-4 h-4 text-yellow-500" />;
+        return <Clock className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />;
       case 'partial':
-        return <XCircle className="w-4 h-4 text-red-500" />;
+        return <XCircle className="w-4 h-4 text-red-500 dark:text-red-400" />;
       case 'not_assigned':
         return null;
       default:
-        return <AlertTriangle className="w-4 h-4 text-gray-400" />;
+        return <AlertTriangle className="w-4 h-4 text-gray-400 dark:text-slate-400" />;
     }
   };
 
   const getStatusBadge = (status: RequirementWithStatus['status'], balance: number) => {
     switch (status) {
       case 'paid':
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Paid</Badge>;
+        return <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60">Paid</Badge>;
       case 'partial':
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Partially Paid</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60">Partially Paid</Badge>;
       case 'pending':
-        return <Badge className="bg-red-100 text-red-800 border-red-200">Pending</Badge>;
+        return <Badge className="bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60">Pending</Badge>;
       case 'not_assigned':
-        return <Badge variant="outline" className="border-gray-300 text-gray-600">Not Assigned</Badge>;
+        return <Badge variant="outline" className="border-gray-300 text-gray-600 dark:border-slate-700 dark:text-slate-300">Not Assigned</Badge>;
       default:
         return <Badge variant="outline">Unknown</Badge>;
     }
@@ -389,21 +389,21 @@ export function PupilRequirementsSection({ pupilId }: PupilRequirementsSectionPr
 
   const getRequirementIcon = (group: string) => {
     const iconMap: Record<string, React.ReactNode> = {
-      'fees': <DollarSign className="w-4 h-4 text-green-600" />,
-      'uniforms': <Package className="w-4 h-4 text-blue-600" />,
-      'stationery': <BookOpen className="w-4 h-4 text-purple-600" />,
-      'books': <BookOpen className="w-4 h-4 text-orange-600" />,
-      'equipment': <Package className="w-4 h-4 text-gray-600" />,
-      'other': <ClipboardList className="w-4 h-4 text-gray-600" />
+      'fees': <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />,
+      'uniforms': <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />,
+      'stationery': <BookOpen className="w-4 h-4 text-purple-600 dark:text-purple-400" />,
+      'books': <BookOpen className="w-4 h-4 text-orange-600 dark:text-orange-400" />,
+      'equipment': <Package className="w-4 h-4 text-gray-600 dark:text-slate-300" />,
+      'other': <ClipboardList className="w-4 h-4 text-gray-600 dark:text-slate-300" />
     };
-    return iconMap[group.toLowerCase()] || <ClipboardList className="w-4 h-4 text-gray-600" />;
+    return iconMap[group.toLowerCase()] || <ClipboardList className="w-4 h-4 text-gray-600 dark:text-slate-300" />;
   };
 
   // Main component render
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-40">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400 dark:text-slate-400" />
       </div>
     );
   }
@@ -499,13 +499,13 @@ export function PupilRequirementsSection({ pupilId }: PupilRequirementsSectionPr
         {requirementsWithStatus.length === 0 && !isFetchingData && (
           <div className="text-center py-10">
             <div className="max-w-sm mx-auto">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ClipboardList className="w-8 h-8 text-gray-400" />
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-slate-900">
+                <ClipboardList className="w-8 h-8 text-gray-400 dark:text-slate-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2 dark:text-slate-100">
                 No Requirements Found
               </h3>
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-sm text-gray-500 mb-4 dark:text-slate-400">
                 No requirements are applicable for the selected term. This could be because:
                 <br />• No requirements have been created for this term yet
                 <br />• All requirements for this term have been completed
@@ -543,14 +543,14 @@ export function PupilRequirementsSection({ pupilId }: PupilRequirementsSectionPr
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             {getRequirementIcon(requirement.group)}
-                            <h4 className="font-semibold text-gray-900">
+                            <h4 className="font-semibold text-gray-900 dark:text-slate-100">
                                 {requirement.name}
                             </h4>
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
                            <div className="hidden sm:block text-right flex-shrink-0">
-                              <p className="text-xs text-gray-500">Status</p>
+                              <p className="text-xs text-gray-500 dark:text-slate-400">Status</p>
                               {getStatusBadge(status, balance)}
                            </div>
                            <div className="flex-shrink-0">
@@ -568,23 +568,23 @@ export function PupilRequirementsSection({ pupilId }: PupilRequirementsSectionPr
                         {/* Enhanced Summary */}
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           <div>
-                            <p className="text-gray-600">Total Amount</p>
-                             <p className="font-semibold text-gray-800">{formatCurrency(totalAmount)}</p>
+                            <p className="text-gray-600 dark:text-slate-300">Total Amount</p>
+                             <p className="font-semibold text-gray-800 dark:text-slate-100">{formatCurrency(totalAmount)}</p>
                           </div>
                            <div>
-                            <p className="text-gray-600">Paid</p>
-                            <p className="font-semibold text-green-600">{formatCurrency(paidAmount)}</p>
+                            <p className="text-gray-600 dark:text-slate-300">Paid</p>
+                            <p className="font-semibold text-green-600 dark:text-green-400">{formatCurrency(paidAmount)}</p>
                           </div>
                            <div>
-                            <p className="text-gray-600">Balance</p>
-                            <p className={`font-semibold ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            <p className="text-gray-600 dark:text-slate-300">Balance</p>
+                            <p className={`font-semibold ${balance > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                               {formatCurrency(balance)}
                             </p>
                           </div>
                           {requirement.quantity && requirement.quantity > 0 && (
                             <div>
-                              <p className="text-gray-600">Items Received</p>
-                              <p className="font-semibold text-gray-800">
+                              <p className="text-gray-600 dark:text-slate-300">Items Received</p>
+                              <p className="font-semibold text-gray-800 dark:text-slate-100">
                                 {trackingRecord?.itemQuantityReceived || 0} of {requirement.quantity}
                               </p>
                             </div>
@@ -599,7 +599,7 @@ export function PupilRequirementsSection({ pupilId }: PupilRequirementsSectionPr
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.3, ease: "easeInOut" }}
-                    className="px-6 pb-4 bg-gray-50/50"
+                    className="px-6 pb-4 bg-gray-50/50 dark:bg-slate-900/50"
                   >
                     <div className="border-t pt-4 space-y-4">
                       {/* Payment History Section */}
@@ -615,7 +615,7 @@ export function PupilRequirementsSection({ pupilId }: PupilRequirementsSectionPr
                             )}
                           </h4>
                           {trackingRecord && trackingRecord.history && trackingRecord.history.length > 0 && (
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-gray-500 dark:text-slate-400">
                               {getPaymentHistory(trackingRecord, true).length} entries
                             </span>
                           )}
@@ -636,11 +636,11 @@ export function PupilRequirementsSection({ pupilId }: PupilRequirementsSectionPr
                                     : null;
                                   
                                   return (
-                                    <div key={idx} className="bg-white rounded-md border p-3 hover:shadow-sm transition-shadow">
+                                    <div key={idx} className="bg-white rounded-md border p-3 hover:shadow-sm transition-shadow dark:bg-slate-900">
                                       <div className="flex justify-between items-start mb-2">
                                         <div className="flex items-center gap-2">
-                                          <Calendar className="w-3 h-3 text-gray-400" />
-                                          <span className="text-xs text-gray-600">
+                                          <Calendar className="w-3 h-3 text-gray-400 dark:text-slate-400" />
+                                          <span className="text-xs text-gray-600 dark:text-slate-300">
                                             {historyItem.date.toLocaleDateString('en-GB', {
                                               day: '2-digit',
                                               month: 'short',
@@ -656,26 +656,26 @@ export function PupilRequirementsSection({ pupilId }: PupilRequirementsSectionPr
                                           )}
                                         </div>
                                         {(entry?.paidAmount || 0) > 0 && (
-                                          <span className="font-medium text-green-600 text-sm">
+                                          <span className="font-medium text-green-600 text-sm dark:text-green-400">
                                             {formatCurrency(entry?.paidAmount || 0)}
                                           </span>
                                         )}
                                       </div>
-                                      <div className="text-sm text-gray-700 mb-1">
+                                      <div className="text-sm text-gray-700 mb-1 dark:text-slate-200">
                                         {historyItem.actionText}
                                       </div>
                                       {historyItem.balanceText && (
-                                        <div className="text-xs text-gray-500">
+                                        <div className="text-xs text-gray-500 dark:text-slate-400">
                                           {historyItem.balanceText}
                                         </div>
                                       )}
                                       {entry?.receivedBy && (
-                                        <div className="text-xs text-gray-500 mt-1">
+                                        <div className="text-xs text-gray-500 mt-1 dark:text-slate-400">
                                           Received by: {entry.receivedBy}
                                         </div>
                                       )}
                                       {entry?.itemQuantityReceived && entry.itemQuantityReceived > 0 && (
-                                        <div className="text-xs text-blue-600 mt-1">
+                                        <div className="text-xs text-blue-600 mt-1 dark:text-blue-400">
                                           Items received: {entry.itemQuantityReceived}
                                         </div>
                                       )}
@@ -684,7 +684,7 @@ export function PupilRequirementsSection({ pupilId }: PupilRequirementsSectionPr
                                 })}
                               </div>
                             ) : (
-                              <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-md text-center">
+                              <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-md text-center dark:text-slate-400 dark:bg-slate-900">
                                 No transaction history for this term.
                                 {trackingRecord.history && trackingRecord.history.length > 0 && (
                                   <div className="text-xs mt-1">
@@ -695,7 +695,7 @@ export function PupilRequirementsSection({ pupilId }: PupilRequirementsSectionPr
                             );
                           })()
                         ) : (
-                          <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded-md text-center">
+                          <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded-md text-center dark:text-slate-400 dark:bg-slate-900">
                             No payment history available.
                           </p>
                         )}

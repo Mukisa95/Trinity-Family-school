@@ -50,11 +50,11 @@ function formatFileSize(bytes: number): string {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center h-full py-24 px-8 text-center">
-      <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center mb-6 shadow-inner">
+      <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center mb-6 shadow-inner dark:from-blue-950/40 dark:to-indigo-950/40">
         <Bell className="h-9 w-9 text-blue-400" />
       </div>
-      <h3 className="text-lg font-semibold text-gray-700 mb-2">Select a notification</h3>
-      <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
+      <h3 className="text-lg font-semibold text-gray-700 mb-2 dark:text-slate-200">Select a notification</h3>
+      <p className="text-sm text-gray-400 max-w-xs leading-relaxed dark:text-slate-400">
         Click any message in the list to read the full notification here.
       </p>
     </div>
@@ -122,7 +122,7 @@ export function NotificationDetailPanel({
 
   if (!notification) {
     return (
-      <div className="flex-1 bg-white h-full flex flex-col">
+      <div className="flex-1 bg-white h-full flex flex-col dark:bg-slate-900">
         <EmptyState />
       </div>
     );
@@ -165,14 +165,14 @@ export function NotificationDetailPanel({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white overflow-hidden">
+    <div className="flex flex-col h-full bg-white overflow-hidden dark:bg-slate-900">
       {/* ── Top toolbar ─────────────────────────────────── */}
-      <div className="flex min-h-[4.25rem] items-center gap-2 border-b border-gray-100 bg-white/90 px-3 py-2 backdrop-blur-sm shrink-0 sm:px-4">
+      <div className="flex min-h-[4.25rem] items-center gap-2 border-b border-gray-100 bg-white/90 px-3 py-2 backdrop-blur-sm shrink-0 sm:px-4 dark:border-slate-700 dark:bg-slate-900/90">
         {/* Back button (mobile) */}
         {(isMobile || onClose) && (
           <button
             onClick={onClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-900"
             aria-label="Back to notifications"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -180,11 +180,11 @@ export function NotificationDetailPanel({
         )}
 
         <div className="grid min-w-0 flex-1 grid-rows-2 content-center gap-0.5">
-          <h2 className="truncate text-sm font-bold leading-5 text-slate-900 sm:text-[15px]" title={notification.title}>
+          <h2 className="truncate text-sm font-bold leading-5 text-slate-900 sm:text-[15px] dark:text-slate-100" title={notification.title}>
             {notification.threadSubject || notification.title.replace(/^Re:\s*/i, '')}
           </h2>
-          <p className="truncate text-xs leading-4 text-slate-500" title={`${isSender ? 'You' : senderName} - ${compactDate}`}>
-            <span className="font-semibold text-slate-700">{isSender ? 'You' : senderName}</span>
+          <p className="truncate text-xs leading-4 text-slate-500 dark:text-slate-400" title={`${isSender ? 'You' : senderName} - ${compactDate}`}>
+            <span className="font-semibold text-slate-700 dark:text-slate-200">{isSender ? 'You' : senderName}</span>
             <span className="px-1 text-slate-300" aria-hidden="true">-</span>
             {compactDate}
           </p>
@@ -200,8 +200,8 @@ export function NotificationDetailPanel({
               aria-controls="notification-reply-composer"
               title={isReplyComposerOpen ? 'Close reply' : 'Reply'}
               className={cn(
-                'inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-colors focus:outline-none focus:ring-4 focus:ring-blue-100',
-                isReplyComposerOpen ? 'bg-blue-100 text-blue-700' : 'text-blue-600 hover:bg-blue-50',
+                'inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-colors focus:outline-none focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-800/60',
+                isReplyComposerOpen ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300' : 'text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40',
               )}
             >
               <MessageCircle className="h-4 w-4" />
@@ -214,7 +214,7 @@ export function NotificationDetailPanel({
               onClick={() => onViewRecipients(notification)}
               title="View recipients"
               aria-label="View recipients"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-300 dark:focus:ring-blue-800/60"
             >
               <Users className="h-4 w-4" />
             </button>
@@ -224,7 +224,7 @@ export function NotificationDetailPanel({
             <button
               onClick={() => onResend(notification)}
               title="Resend"
-              className="flex items-center justify-center h-8 w-8 rounded-full text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+              className="flex items-center justify-center h-8 w-8 rounded-full text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors dark:text-slate-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-400"
             >
               <RefreshCw className="h-4 w-4" />
             </button>
@@ -236,16 +236,16 @@ export function NotificationDetailPanel({
               <button
                 onClick={() => setShowRemindMenu((v) => !v)}
                 title="Set Reminder"
-                className="flex items-center justify-center h-8 w-8 rounded-full text-gray-500 hover:bg-amber-50 hover:text-amber-600 transition-colors"
+                className="flex items-center justify-center h-8 w-8 rounded-full text-gray-500 hover:bg-amber-50 hover:text-amber-600 transition-colors dark:text-slate-400 dark:hover:bg-amber-950/40 dark:hover:text-amber-400"
               >
                 <Clock className="h-4 w-4" />
               </button>
               {showRemindMenu && (
-                <div className="absolute right-0 top-10 z-50 bg-white rounded-xl shadow-xl border border-gray-100 py-1 w-44 text-sm">
+                <div className="absolute right-0 top-10 z-50 bg-white rounded-xl shadow-xl border border-gray-100 py-1 w-44 text-sm dark:bg-slate-900 dark:border-slate-700">
                   {[15, 30, 60, 240].map((min) => (
                     <button
                       key={min}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700 transition-colors"
+                      className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700 transition-colors dark:hover:bg-slate-900 dark:text-slate-200"
                       onClick={() => {
                         onRemind(notification, min);
                         setShowRemindMenu(false);
@@ -265,21 +265,21 @@ export function NotificationDetailPanel({
               <button
                 onClick={() => setShowDeleteMenu((v) => !v)}
                 title="Delete"
-                className="flex items-center justify-center h-8 w-8 rounded-full text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+                className="flex items-center justify-center h-8 w-8 rounded-full text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors dark:text-slate-400 dark:hover:bg-red-950/40 dark:hover:text-red-400"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
               {showDeleteMenu && (
-                <div className="absolute right-0 top-10 z-50 bg-white rounded-xl shadow-xl border border-gray-100 py-1 w-44 text-sm">
+                <div className="absolute right-0 top-10 z-50 bg-white rounded-xl shadow-xl border border-gray-100 py-1 w-44 text-sm dark:bg-slate-900 dark:border-slate-700">
                   <button
-                    className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700 transition-colors"
+                    className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700 transition-colors dark:hover:bg-slate-900 dark:text-slate-200"
                     onClick={() => { onDelete(notification, 'me'); setShowDeleteMenu(false); }}
                   >
                     Remove from my inbox
                   </button>
                   {canDeletePermanently && (
                     <button
-                      className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 transition-colors"
+                      className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 transition-colors dark:hover:bg-red-950/40 dark:text-red-400"
                       onClick={() => { onDelete(notification, 'everyone'); setShowDeleteMenu(false); }}
                     >
                       Delete from database
@@ -297,7 +297,7 @@ export function NotificationDetailPanel({
         <div className="px-5 pt-6 pb-10 max-w-3xl mx-auto">
           {isThread && (
             <section className="mb-6 space-y-3" aria-label="Conversation">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Conversation</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400">Conversation</p>
               {conversation.map(message => {
                 const authoredByCurrentUser = message.createdBy === currentUserId || message._isSender;
                 const body = message.description || message.richContent?.longMessage || 'No message body.';
@@ -307,11 +307,11 @@ export function NotificationDetailPanel({
                     className={cn(
                       'max-w-[92%] rounded-2xl border px-4 py-3 text-sm shadow-sm',
                       authoredByCurrentUser
-                        ? 'ml-auto border-blue-200 bg-blue-50 text-slate-800'
-                        : 'border-slate-200 bg-white text-slate-700',
+                        ? 'ml-auto border-blue-200 bg-blue-50 text-slate-800 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-slate-100'
+                        : 'border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200',
                     )}
                   >
-                    <div className="mb-1 flex items-center justify-between gap-3 text-[11px] font-semibold text-slate-500">
+                    <div className="mb-1 flex items-center justify-between gap-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                       <span>{authoredByCurrentUser ? 'You' : message.senderSnapshot?.displayName || 'Trinity Family School'}</span>
                       <time>{format(new Date(message.createdAt), 'MMM d, h:mm a')}</time>
                     </div>
@@ -325,7 +325,7 @@ export function NotificationDetailPanel({
           {/* Message body */}
           {!isThread && notification.description && (
             <div className="mb-4">
-              <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+              <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap dark:text-slate-200">
                 {notification.description}
               </p>
             </div>
@@ -333,8 +333,8 @@ export function NotificationDetailPanel({
 
           {/* Long message (flow type) */}
           {!isThread && longMessage && (
-            <div className="mb-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
-              <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+            <div className="mb-4 p-4 rounded-xl bg-gray-50 border border-gray-100 dark:bg-slate-900 dark:border-slate-700">
+              <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap dark:text-slate-200">
                 {longMessage}
               </p>
             </div>
@@ -343,7 +343,7 @@ export function NotificationDetailPanel({
           {safeDestinationUrl && (
             <a
               href={safeDestinationUrl}
-              className="mt-5 inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2.5 text-sm font-semibold text-blue-700 transition hover:border-blue-300 hover:bg-blue-100"
+              className="mt-5 inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2.5 text-sm font-semibold text-blue-700 transition hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:border-blue-800/60 dark:hover:bg-blue-950/40"
             >
               <ExternalLink className="h-4 w-4" />
               {destinationLabel}
@@ -353,23 +353,23 @@ export function NotificationDetailPanel({
           {/* Attachments */}
           {attachments.length > 0 && (
             <div className="mt-6">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 dark:text-slate-400">
                 {attachments.length} Attachment{attachments.length > 1 ? 's' : ''}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {attachments.map((att) => (
                   <div
                     key={att.id}
-                    className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white hover:bg-gray-50 transition-colors dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-900"
                   >
                     <div
                       className={cn(
                         'h-9 w-9 rounded-lg flex items-center justify-center shrink-0',
                         att.type === 'pdf'
-                          ? 'bg-red-50 text-red-500'
+                          ? 'bg-red-50 text-red-500 dark:bg-red-950/40 dark:text-red-400'
                           : att.type === 'image'
-                            ? 'bg-blue-50 text-blue-500'
-                            : 'bg-gray-100 text-gray-500',
+                            ? 'bg-blue-50 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400'
+                            : 'bg-gray-100 text-gray-500 dark:bg-slate-900 dark:text-slate-400',
                       )}
                     >
                       {att.type === 'pdf' ? (
@@ -385,13 +385,13 @@ export function NotificationDetailPanel({
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-800 truncate">{att.name}</p>
-                      <p className="text-[10px] text-gray-400">{formatFileSize(att.size)}</p>
+                      <p className="text-xs font-semibold text-gray-800 truncate dark:text-slate-100">{att.name}</p>
+                      <p className="text-[10px] text-gray-400 dark:text-slate-400">{formatFileSize(att.size)}</p>
                     </div>
                     <a
                       href={att.downloadUrl || att.url}
                       download={att.name}
-                      className="h-7 w-7 rounded-full flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                      className="h-7 w-7 rounded-full flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-950/40"
                     >
                       <Download className="h-3.5 w-3.5" />
                     </a>
@@ -406,15 +406,15 @@ export function NotificationDetailPanel({
               ref={replySectionRef}
               id="notification-reply-composer"
               onSubmit={submitReply}
-              className="mt-8 scroll-mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5"
+              className="mt-8 scroll-mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 dark:border-slate-700 dark:bg-slate-900"
             >
               <div className="flex items-center gap-2">
-                <MessageCircle className="h-4 w-4 text-blue-600" />
-                <h3 className="text-sm font-bold text-slate-800">Reply</h3>
+                <MessageCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Reply</h3>
                 <button
                   type="button"
                   onClick={() => setIsReplyComposerOpen(false)}
-                  className="ml-auto rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 transition hover:bg-slate-200 hover:text-slate-700"
+                  className="ml-auto rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 transition hover:bg-slate-200 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                 >
                   Close
                 </button>
@@ -425,8 +425,8 @@ export function NotificationDetailPanel({
                   onClick={() => setReplyMode('sender')}
                   disabled={!canReplyToSender}
                   className={cn(
-                    'rounded-lg px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-45',
-                    replyMode === 'sender' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-100',
+                    'rounded-lg px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-45 dark:focus:ring-blue-800/60',
+                    replyMode === 'sender' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-900',
                   )}
                 >
                   Reply to sender
@@ -437,15 +437,15 @@ export function NotificationDetailPanel({
                   disabled={!canUseReplyAll}
                   title={canUseReplyAll ? 'Reply to the sender and every original recipient' : 'Reply all is only available to staff and administrators'}
                   className={cn(
-                    'rounded-lg px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-45',
-                    replyMode === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-100',
+                    'rounded-lg px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-45 dark:focus:ring-blue-800/60',
+                    replyMode === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-900',
                   )}
                 >
                   Reply all
                 </button>
               </div>
               {!canUseReplyAll && (
-                <p className="mt-2 text-xs text-slate-500">Reply all is reserved for staff and administrators to protect recipient privacy.</p>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Reply all is reserved for staff and administrators to protect recipient privacy.</p>
               )}
               <textarea
                 value={replyMessage}
@@ -453,11 +453,11 @@ export function NotificationDetailPanel({
                 placeholder="Write a reply..."
                 rows={4}
                 maxLength={12000}
-                className="mt-3 min-h-28 w-full resize-y rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm leading-6 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                className="mt-3 min-h-28 w-full resize-y rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm leading-6 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-blue-800/60"
               />
-              {replyError && <p className="mt-2 text-xs font-medium text-red-600">{replyError}</p>}
+              {replyError && <p className="mt-2 text-xs font-medium text-red-600 dark:text-red-400">{replyError}</p>}
               <div className="mt-3 flex items-center justify-between gap-3">
-                <span className="text-xs text-slate-400">{replyMessage.length.toLocaleString()} / 12,000</span>
+                <span className="text-xs text-slate-400 dark:text-slate-400">{replyMessage.length.toLocaleString()} / 12,000</span>
                 <Button type="submit" size="sm" disabled={!replyMessage.trim() || isReplying} className="gap-2">
                   <SendHorizontal className="h-3.5 w-3.5" />
                   {isReplying ? 'Sending...' : replyMode === 'all' ? 'Send to all' : 'Send reply'}
@@ -468,7 +468,7 @@ export function NotificationDetailPanel({
 
           {/* Scheduled info */}
           {notification.scheduledFor && (
-            <div className="mt-5 flex items-center gap-2 text-xs text-gray-400">
+            <div className="mt-5 flex items-center gap-2 text-xs text-gray-400 dark:text-slate-400">
               <Calendar className="h-3.5 w-3.5" />
               <span>
                 Scheduled for{' '}

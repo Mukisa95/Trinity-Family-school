@@ -728,7 +728,7 @@ export function UniformTrackingModal({
                     </SelectContent>
                   </Select>
                   {formData.academicYearId && availableTerms.length === 0 && (
-                    <p className="text-xs text-red-500 mt-1">No terms available for selected academic year</p>
+                    <p className="text-xs text-red-500 mt-1 dark:text-red-400">No terms available for selected academic year</p>
                   )}
                 </div>
               </div>
@@ -776,7 +776,7 @@ export function UniformTrackingModal({
                                     <span className="truncate">{uniform.name}</span>
                                     <span className="font-semibold ml-2">{formatCurrency(uniform.price * (isSelected ? quantity : 1))}</span>
                                   </div>
-                                  <div className="text-xs text-gray-500">{uniform.group}</div>
+                                  <div className="text-xs text-gray-500 dark:text-slate-400">{uniform.group}</div>
                                 </Label>
                               </div>
 
@@ -786,7 +786,7 @@ export function UniformTrackingModal({
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="h-6 w-6 rounded-full hover:bg-slate-200 text-xs font-bold"
+                                    className="h-6 w-6 rounded-full hover:bg-slate-200 text-xs font-bold dark:hover:bg-slate-800"
                                     onClick={(e) => {
                                       e.preventDefault();
                                       handleQuantityChange(uniform.id, Math.max(1, quantity - 1));
@@ -801,7 +801,7 @@ export function UniformTrackingModal({
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="h-6 w-6 rounded-full hover:bg-slate-200 text-xs font-bold"
+                                    className="h-6 w-6 rounded-full hover:bg-slate-200 text-xs font-bold dark:hover:bg-slate-800"
                                     onClick={(e) => {
                                       e.preventDefault();
                                       handleQuantityChange(uniform.id, quantity + 1);
@@ -835,7 +835,7 @@ export function UniformTrackingModal({
 
                 return (
                   <div className="mt-2.5">
-                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2 dark:text-slate-400">
                       Size Selection
                     </Label>
                     <ScrollArea className="max-h-36 border rounded-md p-2 mt-1.5">
@@ -870,9 +870,9 @@ export function UniformTrackingModal({
                                         key={size}
                                         value={size}
                                       >
-                                        <span className={isOutOfStock ? 'text-gray-400' : ''}>
+                                        <span className={isOutOfStock ? 'text-gray-400 dark:text-slate-400' : ''}>
                                           {size}
-                                          <span className={`ml-1 text-xs ${isOutOfStock ? 'text-red-500' : qty < 3 ? 'text-orange-500' : 'text-green-600'}`}>
+                                          <span className={`ml-1 text-xs ${isOutOfStock ? 'text-red-500 dark:text-red-400' : qty < 3 ? 'text-orange-500 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
                                             ({qty})
                                           </span>
                                         </span>
@@ -883,11 +883,11 @@ export function UniformTrackingModal({
                               </Select>
                               {selectedSize && selectedSizeStock !== null && (
                                 selectedSizeStock > 0 ? (
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 py-0 px-1.5 text-[10px] rounded-full">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 py-0 px-1.5 text-[10px] rounded-full dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/60">
                                     ✓ In Stock
                                   </Badge>
                                 ) : (
-                                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 py-0 px-1.5 text-[10px] rounded-full">
+                                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 py-0 px-1.5 text-[10px] rounded-full dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60">
                                     ⚠ Out
                                   </Badge>
                                 )
@@ -898,7 +898,7 @@ export function UniformTrackingModal({
                       </div>
                     </ScrollArea>
                     {uniformsForSizeSelection.some(u => !formData.selectedSizes[u.id]) && (
-                      <p className="text-[10px] text-amber-600 mt-1.5 flex items-center gap-1">
+                      <p className="text-[10px] text-amber-600 mt-1.5 flex items-center gap-1 dark:text-amber-400">
                         <AlertCircle className="h-3 w-3" />
                         Select sizes before marking as collected
                       </p>
@@ -941,12 +941,12 @@ export function UniformTrackingModal({
 
                 {/* Dynamic Discount Auto-Apply Notification */}
                 {bestDynamicDiscount && !selectedRecord && !formData.hasDiscount && !isDynamicDiscountHalted && (
-                  <Alert className="border-green-200 bg-green-50 p-2.5 rounded-xl">
-                    <AlertDescription className="text-green-800 text-xs">
+                  <Alert className="border-green-200 bg-green-50 p-2.5 rounded-xl dark:border-green-800/60 dark:bg-green-950/40">
+                    <AlertDescription className="text-green-800 text-xs dark:text-green-200">
                       <div className="flex justify-between items-center gap-3">
                         <div className="space-y-0.5">
                           <span className="font-bold block">Dynamic Discount Available!</span>
-                          <span className="text-[11px] leading-tight block text-green-700">
+                          <span className="text-[11px] leading-tight block text-green-700 dark:text-green-300">
                             <strong>{formatCurrency(bestDynamicDiscount.valueType === 'percentage'
                               ? (getTotalAmount() * bestDynamicDiscount.value) / 100
                               : bestDynamicDiscount.value)} off</strong> for {bestDynamicDiscount.reason} ({pupil?.className || 'N/A'}, {pupil?.section || 'N/A'})
@@ -971,7 +971,7 @@ export function UniformTrackingModal({
                             type="button"
                             variant="outline"
                             onClick={() => setIsDynamicDiscountHalted(true)}
-                            className="border-green-300 text-green-800 hover:bg-green-100/80 h-7 text-xs rounded-full px-3"
+                            className="border-green-300 text-green-800 hover:bg-green-100/80 h-7 text-xs rounded-full px-3 dark:border-green-800/60 dark:text-green-200 dark:hover:bg-green-950/80"
                           >
                             Halt
                           </Button>
@@ -983,12 +983,12 @@ export function UniformTrackingModal({
 
                 {/* Dynamic Discount Halted Notification */}
                 {bestDynamicDiscount && !selectedRecord && !formData.hasDiscount && isDynamicDiscountHalted && (
-                  <Alert className="border-amber-200 bg-amber-50 p-2.5 rounded-xl">
-                    <AlertDescription className="text-amber-800 text-xs">
+                  <Alert className="border-amber-200 bg-amber-50 p-2.5 rounded-xl dark:border-amber-800/60 dark:bg-amber-950/40">
+                    <AlertDescription className="text-amber-800 text-xs dark:text-amber-200">
                       <div className="flex justify-between items-center gap-3">
                         <div className="space-y-0.5">
                           <span className="font-bold block">Dynamic Discount Halted</span>
-                          <span className="text-[11px] leading-tight block text-amber-700">
+                          <span className="text-[11px] leading-tight block text-amber-700 dark:text-amber-300">
                             Auto-application of <strong>{bestDynamicDiscount.reason}</strong> is paused for this record.
                           </span>
                         </div>
@@ -996,7 +996,7 @@ export function UniformTrackingModal({
                           type="button"
                           variant="outline"
                           onClick={() => setIsDynamicDiscountHalted(false)}
-                          className="border-amber-300 text-amber-800 hover:bg-amber-100 h-7 text-xs rounded-full shrink-0 px-3"
+                          className="border-amber-300 text-amber-800 hover:bg-amber-100 h-7 text-xs rounded-full shrink-0 px-3 dark:border-amber-800/60 dark:text-amber-200 dark:hover:bg-amber-950/40"
                         >
                           Restore
                         </Button>
@@ -1013,7 +1013,7 @@ export function UniformTrackingModal({
                         Apply Discount
                       </Label>
                       {bestDynamicDiscount && !selectedRecord && (
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-gray-500 mt-1 dark:text-slate-400">
                           {isDynamicDiscountHalted
                             ? 'Auto-applied dynamic discount is currently halted for this pupil'
                             : 'You can override or disable the auto-applied discount'}
@@ -1028,10 +1028,10 @@ export function UniformTrackingModal({
                   </div>
 
                   {formData.hasDiscount && (
-                    <Card className="p-4 space-y-4 border-blue-200 bg-blue-50">
+                    <Card className="p-4 space-y-4 border-blue-200 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/40">
                       <div className="flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm font-medium text-blue-800">Discount Configuration</span>
+                        <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <span className="text-sm font-medium text-blue-800 dark:text-blue-200">Discount Configuration</span>
                       </div>
 
                       {/* Discount Type */}
@@ -1136,15 +1136,15 @@ export function UniformTrackingModal({
 
              {/* Summary */}
              <div className="space-y-4">
-               <Card className="shadow-none border border-gray-200">
+               <Card className="shadow-none border border-gray-200 dark:border-slate-700">
                  <CardHeader className="pb-1.5 pt-3.5 px-4">
-                   <CardTitle className="text-sm font-semibold text-gray-900">Order Summary</CardTitle>
+                   <CardTitle className="text-sm font-semibold text-gray-900 dark:text-slate-100">Order Summary</CardTitle>
                  </CardHeader>
                  <CardContent className="space-y-2.5 px-4 pb-3.5 pt-1">
                    <div className="space-y-1">
-                     <Label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider block mb-1">Selected Items:</Label>
+                     <Label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider block mb-1 dark:text-slate-400">Selected Items:</Label>
                      {getSelectedUniformsDisplay().length > 0 ? (
-                       <ul className="divide-y divide-gray-100 text-xs">
+                       <ul className="divide-y divide-gray-100 text-xs dark:divide-slate-700">
                          {getSelectedUniformsDisplay().map((uniform) => {
                            const qty = formData.selectionMode === 'partial'
                              ? (formData.selectedQuantities?.[uniform.id] || 1)
@@ -1152,24 +1152,24 @@ export function UniformTrackingModal({
 
                            return (
                              <li key={uniform.id} className="py-1 flex justify-between items-center text-xs">
-                               <span className="text-gray-800 font-medium">
+                               <span className="text-gray-800 font-medium dark:text-slate-100">
                                  {qty > 1 ? `${qty} x ${uniform.name}` : uniform.name}{' '}
-                                 <span className="text-[10px] text-gray-400 font-normal">({uniform.group})</span>
+                                 <span className="text-[10px] text-gray-400 font-normal dark:text-slate-400">({uniform.group})</span>
                                </span>
-                               <span className="font-semibold text-gray-900">{formatCurrency(uniform.price * qty)}</span>
+                               <span className="font-semibold text-gray-900 dark:text-slate-100">{formatCurrency(uniform.price * qty)}</span>
                              </li>
                            );
                          })}
                        </ul>
                      ) : (
-                       <div className="text-xs text-gray-400">No items selected</div>
+                       <div className="text-xs text-gray-400 dark:text-slate-400">No items selected</div>
                      )}
                    </div>
  
                    <div className="border-t pt-2 space-y-1.5 text-xs">
-                     <div className="flex justify-between items-center text-gray-600">
+                     <div className="flex justify-between items-center text-gray-600 dark:text-slate-300">
                        <span>Original Amount:</span>
-                       <span className="font-semibold text-gray-900">{formatCurrency(getTotalAmount())}</span>
+                       <span className="font-semibold text-gray-900 dark:text-slate-100">{formatCurrency(getTotalAmount())}</span>
                      </div>
  
                      {/* Discount Display */}
@@ -1180,7 +1180,7 @@ export function UniformTrackingModal({
                         <>
                           {discountAmount > 0 && (
                             <>
-                              <div className="flex justify-between items-center text-green-600">
+                              <div className="flex justify-between items-center text-green-600 dark:text-green-400">
                                 <span>
                                   Discount ({discountSource}):
                                   {formData.hasDiscount && (
@@ -1197,16 +1197,16 @@ export function UniformTrackingModal({
                           <div className="border-t pt-1.5">
                             <div className="flex justify-between items-center font-bold text-xs">
                               <span>Final Amount:</span>
-                              <span className={`text-sm font-bold ${discountAmount > 0 ? 'text-green-600' : 'text-gray-900'}`}>{formatCurrency(finalAmount)}</span>
+                              <span className={`text-sm font-bold ${discountAmount > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-slate-100'}`}>{formatCurrency(finalAmount)}</span>
                             </div>
                           </div>
                         </>
                       );
                     })()}
 
-                    <div className="flex justify-between items-center text-xs border-t pt-1.5 text-gray-600">
+                    <div className="flex justify-between items-center text-xs border-t pt-1.5 text-gray-600 dark:text-slate-300">
                       <span>Paid Amount:</span>
-                      <span className="font-semibold text-gray-900">{formatCurrency(formData.paidAmount ? parseFormattedMoney(formData.paidAmount) : 0)}</span>
+                      <span className="font-semibold text-gray-900 dark:text-slate-100">{formatCurrency(formData.paidAmount ? parseFormattedMoney(formData.paidAmount) : 0)}</span>
                     </div>
 
                     {(() => {
@@ -1215,9 +1215,9 @@ export function UniformTrackingModal({
                       const balance = finalAmount - paidAmount;
 
                       return (
-                        <div className="flex justify-between items-center text-xs text-gray-600">
+                        <div className="flex justify-between items-center text-xs text-gray-600 dark:text-slate-300">
                           <span>Balance:</span>
-                          <span className={`font-bold ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          <span className={`font-bold ${balance > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                             {formatCurrency(balance)}
                           </span>
                         </div>
@@ -1226,7 +1226,7 @@ export function UniformTrackingModal({
                   </div>
 
                   <div className="border-t pt-2">
-                    <div className="flex justify-between items-center text-xs text-gray-600">
+                    <div className="flex justify-between items-center text-xs text-gray-600 dark:text-slate-300">
                       <span>Payment Status:</span>
                       {(() => {
                         const finalAmount = computedPricing.finalAmount;

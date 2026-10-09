@@ -72,7 +72,7 @@ export const CommentTemplateCard: React.FC<CommentTemplateCardProps> = ({
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={() => onDelete(template.id)}
-                className="text-red-600 focus:text-red-600"
+                className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
@@ -83,11 +83,11 @@ export const CommentTemplateCard: React.FC<CommentTemplateCardProps> = ({
       </CardHeader>
       
       <CardContent>
-        <p className="text-sm text-gray-700 mb-3 leading-relaxed">
+        <p className="text-sm text-gray-700 mb-3 leading-relaxed dark:text-slate-200">
           {template.comment}
         </p>
         
-        <div className="text-xs text-gray-500 space-y-1">
+        <div className="text-xs text-gray-500 space-y-1 dark:text-slate-400">
           <p>Created: {formatDate(template.createdAt)}</p>
           {template.updatedAt !== template.createdAt && (
             <p>Updated: {formatDate(template.updatedAt)}</p>

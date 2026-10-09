@@ -4,8 +4,10 @@ import type { Metadata } from 'next';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import './globals.css';
+import './theme.css';
 import { Toaster } from "@/components/ui/toaster";
 import { QueryProvider } from '@/components/providers/query-provider';
+import { ThemeProvider } from '@/components/providers/theme-provider';
 import { AuthProvider } from '@/lib/contexts/auth-context';
 import { SyncProvider } from '@/context/SyncContext';
 import { AppLayout } from '@/components/layout/app-layout';
@@ -167,7 +169,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-        <meta name="theme-color" content="#000000" />
+        <meta name="theme-color" content="#f1f7ff" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -176,6 +178,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+        <ThemeProvider>
         <QueryProvider>
           <AuthProvider>
             <PrintProvider>
@@ -196,6 +199,7 @@ export default function RootLayout({
           </AuthProvider>
         </QueryProvider>
         <Analytics />
+        </ThemeProvider>
       </body>
     </html>
   );

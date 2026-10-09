@@ -258,7 +258,7 @@ export function ItemManagement({
             <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={formValidation.focusField} />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                    <Label htmlFor="name" className={formValidation.getFieldError('name') ? 'text-red-700' : undefined}>Item Name <span className="text-red-600">*</span></Label>
+                    <Label htmlFor="name" className={formValidation.getFieldError('name') ? 'text-red-700 dark:text-red-300' : undefined}>Item Name <span className="text-red-600 dark:text-red-400">*</span></Label>
                     <Input
                         id="name"
                         value={formData.name || ''}
@@ -346,7 +346,7 @@ export function ItemManagement({
                 )}
 
                 {!isEdit && (
-                    <div className="space-y-3 rounded-md border border-sky-100 bg-sky-50/50 p-3 sm:col-span-2">
+                    <div className="space-y-3 rounded-md border border-sky-100 bg-sky-50/50 p-3 sm:col-span-2 dark:border-sky-800/60 dark:bg-sky-950/50">
                         <div>
                             <Label htmlFor="inventory-purchaseUnit">Purchase pack</Label>
                             <Select value={formData.purchaseUnit || formData.unit} onValueChange={(value) => handleInputChange('purchaseUnit', value)}>
@@ -655,7 +655,7 @@ export function ItemManagement({
                                             </div>
                                         </div>
                                         {item.reorderLevel && item.quantity <= item.reorderLevel && (
-                                            <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
+                                            <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 dark:text-amber-400" />
                                         )}
                                     </div>
                                 </CardHeader>
@@ -707,7 +707,7 @@ export function ItemManagement({
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => setDeleteItemId(item.id)}
-                                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                            className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-400 dark:hover:bg-red-950/40"
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
@@ -738,7 +738,7 @@ export function ItemManagement({
                                         <div className="flex items-center gap-2">
                                             {item.name}
                                             {item.reorderLevel && item.quantity <= item.reorderLevel && (
-                                                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                                                <AlertTriangle className="h-4 w-4 text-amber-500 dark:text-amber-400" />
                                             )}
                                         </div>
                                     </TableCell>
@@ -763,7 +763,7 @@ export function ItemManagement({
                                                 variant="ghost"
                                                 size="icon"
                                                 onClick={() => setDeleteItemId(item.id)}
-                                                className="text-red-500 hover:text-red-600"
+                                                className="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>

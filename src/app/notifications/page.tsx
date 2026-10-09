@@ -161,10 +161,10 @@ function ComposeForm({
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-5">
       {/* Academic context banner */}
-      <div className="p-2 border rounded-lg text-[0.65rem] bg-amber-50 border-amber-200 flex items-center gap-2">
-        <Bell className="h-3 w-3 text-amber-600 shrink-0" />
-        <span className="font-medium text-amber-700">Notification Management</span>
-        <span className="ml-auto text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">
+      <div className="p-2 border rounded-lg text-[0.65rem] bg-amber-50 border-amber-200 flex items-center gap-2 dark:bg-amber-950/40 dark:border-amber-800/60">
+        <Bell className="h-3 w-3 text-amber-600 shrink-0 dark:text-amber-400" />
+        <span className="font-medium text-amber-700 dark:text-amber-300">Notification Management</span>
+        <span className="ml-auto text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full dark:text-amber-400 dark:bg-amber-950/40">
           {format(new Date(), "MMM dd, yyyy")}
         </span>
       </div>
@@ -172,7 +172,7 @@ function ComposeForm({
       {/* Title */}
       <div className="space-y-1.5">
         <Label htmlFor="compose-title" className="text-sm font-semibold">
-          Subject <span className="text-red-500">*</span>
+          Subject <span className="text-red-500 dark:text-red-400">*</span>
         </Label>
         <Input
           id="compose-title"
@@ -254,7 +254,7 @@ function ComposeForm({
         <>
           <div className="space-y-1.5">
             <Label htmlFor="compose-long-msg" className="text-sm font-semibold">
-              Long Message <span className="text-gray-400 text-xs font-normal">(up to 5000 chars)</span>
+              Long Message <span className="text-gray-400 text-xs font-normal dark:text-slate-400">(up to 5000 chars)</span>
             </Label>
             <Textarea
               id="compose-long-msg"
@@ -265,7 +265,7 @@ function ComposeForm({
               className="rounded-xl resize-vertical"
               maxLength={5000}
             />
-            <p className="text-xs text-gray-400">{formData.longMessage.length}/5000</p>
+            <p className="text-xs text-gray-400 dark:text-slate-400">{formData.longMessage.length}/5000</p>
           </div>
 
           {/* File upload */}
@@ -300,29 +300,29 @@ function ComposeForm({
             {isUploadingFile && (
               <div className="space-y-1">
                 <Progress value={uploadProgress} className="w-full h-1.5" />
-                <p className="text-xs text-gray-400">{uploadProgress}%</p>
+                <p className="text-xs text-gray-400 dark:text-slate-400">{uploadProgress}%</p>
               </div>
             )}
 
             {formData.attachments.length > 0 && (
               <div className="space-y-1.5">
                 {formData.attachments.map((att: any) => (
-                  <div key={att.id} className="flex items-center gap-2 p-2.5 border rounded-xl bg-gray-50">
+                  <div key={att.id} className="flex items-center gap-2 p-2.5 border rounded-xl bg-gray-50 dark:bg-slate-900">
                     {att.type === 'pdf' ? (
-                      <FileText className="h-4 w-4 text-red-500 shrink-0" />
+                      <FileText className="h-4 w-4 text-red-500 shrink-0 dark:text-red-400" />
                     ) : att.type === 'image' ? (
                       <img src={att.url} alt={att.name} className="h-6 w-6 object-cover rounded" />
                     ) : (
-                      <Paperclip className="h-4 w-4 text-blue-500 shrink-0" />
+                      <Paperclip className="h-4 w-4 text-blue-500 shrink-0 dark:text-blue-400" />
                     )}
                     <span className="flex-1 text-xs truncate">{att.name}</span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-400 dark:text-slate-400">
                       {(att.size / 1024 / 1024).toFixed(1)} MB
                     </span>
                     <button
                       type="button"
                       onClick={() => handleRemoveAttachment(att.id)}
-                      className="h-5 w-5 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
+                      className="h-5 w-5 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors dark:text-slate-400 dark:hover:text-red-400"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -349,7 +349,7 @@ function ComposeForm({
       {/* Recipients */}
       <div className="space-y-1.5">
         <Label className="text-sm font-semibold">
-          Recipients <span className="text-red-500">*</span>
+          Recipients <span className="text-red-500 dark:text-red-400">*</span>
         </Label>
         <AdvancedRecipientPicker
           selectedRecipients={formData.recipients}
@@ -363,9 +363,9 @@ function ComposeForm({
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-sm font-semibold">Push Notifications</Label>
-              <p className="text-xs text-gray-400">Send to devices in real-time</p>
+              <p className="text-xs text-gray-400 dark:text-slate-400">Send to devices in real-time</p>
               {pushPermission !== 'granted' && (
-                <p className="text-xs text-amber-600 mt-0.5">⚠️ Browser permission required</p>
+                <p className="text-xs text-amber-600 mt-0.5 dark:text-amber-400">⚠️ Browser permission required</p>
               )}
             </div>
             <input
@@ -378,12 +378,12 @@ function ComposeForm({
           </div>
 
           {pushPermission !== 'granted' && formData.enablePush && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm dark:bg-amber-950/40 dark:border-amber-800/60">
               <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0 dark:text-amber-400" />
                 <div>
-                  <p className="font-medium text-amber-800 text-xs">Permission Required</p>
-                  <p className="text-amber-700 text-xs mt-0.5">
+                  <p className="font-medium text-amber-800 text-xs dark:text-amber-200">Permission Required</p>
+                  <p className="text-amber-700 text-xs mt-0.5 dark:text-amber-300">
                     {pushPermission === 'default'
                       ? 'You\'ll be prompted for permission when you send.'
                       : 'Push notifications are blocked in browser settings.'
@@ -409,7 +409,7 @@ function ComposeForm({
           )}
 
           {formData.enablePush && pushPermission === 'granted' && (
-            <div className="space-y-3 pl-3 border-l-2 border-blue-200">
+            <div className="space-y-3 pl-3 border-l-2 border-blue-200 dark:border-blue-800/60">
               <div>
                 <Label htmlFor="compose-push-title" className="text-xs font-medium">Push Title (optional)</Label>
                 <Input
@@ -452,7 +452,7 @@ function ComposeForm({
           type="button"
           variant="ghost"
           onClick={onCancel}
-          className="rounded-full text-gray-500 hover:text-gray-700"
+          className="rounded-full text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
         >
           Cancel
         </Button>
@@ -511,21 +511,21 @@ function PushSettingsDialog({
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-base font-medium">Permission Status</Label>
-                <p className="text-sm text-gray-500">Current browser permission</p>
+                <p className="text-sm text-gray-500 dark:text-slate-400">Current browser permission</p>
               </div>
               <Badge className={
                 pushPermission === 'granted'
-                  ? 'bg-green-100 text-green-800 border-green-200'
+                  ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60'
                   : pushPermission === 'denied'
-                    ? 'bg-red-100 text-red-800 border-red-200'
-                    : 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                    ? 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60'
+                    : 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60'
               }>
                 {pushPermission === 'granted' ? 'Granted' : pushPermission === 'denied' ? 'Denied' : 'Not Requested'}
               </Badge>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
               <span>Subscription:</span>
-              <Badge variant="outline" className={userPushSubscription ? 'text-green-600' : 'text-gray-600'}>
+              <Badge variant="outline" className={userPushSubscription ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-slate-300'}>
                 {userPushSubscription ? 'Active' : 'Inactive'}
               </Badge>
             </div>
@@ -535,7 +535,7 @@ function PushSettingsDialog({
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-base font-medium">Push Notifications</Label>
-                <p className="text-sm text-gray-500">Receive alerts even when browser is closed</p>
+                <p className="text-sm text-gray-500 dark:text-slate-400">Receive alerts even when browser is closed</p>
               </div>
               <div className="flex items-center gap-2">
                 {pushPermission === 'default' && (
@@ -568,7 +568,7 @@ function PushSettingsDialog({
                   </Button>
                 )}
                 {pushPermission === 'denied' && (
-                  <div className="text-sm text-red-600 text-right">
+                  <div className="text-sm text-red-600 text-right dark:text-red-400">
                     <p>Blocked</p>
                     <p className="text-xs">Enable in browser settings</p>
                   </div>
@@ -578,14 +578,14 @@ function PushSettingsDialog({
           </div>
 
           {userPushSubscription && pushPermission === 'granted' && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 dark:bg-blue-950/40 dark:border-blue-800/60">
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Smartphone className="h-5 w-5 text-blue-600" />
+                <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/40">
+                  <Smartphone className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="font-medium text-blue-900 mb-1.5">How Background Notifications Work</p>
-                  <ul className="text-sm text-blue-700 space-y-1">
+                  <p className="font-medium text-blue-900 mb-1.5 dark:text-blue-200">How Background Notifications Work</p>
+                  <ul className="text-sm text-blue-700 space-y-1 dark:text-blue-300">
                     {[
                       'Browser Closed: Notifications still appear via service worker',
                       'Signed In: Works as long as you\'re logged into the app',
@@ -604,8 +604,8 @@ function PushSettingsDialog({
           )}
 
           {!isPushSupported && (
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 flex items-start gap-2 text-sm text-gray-700">
-              <AlertCircle className="h-4 w-4 text-gray-600 mt-0.5" />
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 flex items-start gap-2 text-sm text-gray-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200">
+              <AlertCircle className="h-4 w-4 text-gray-600 mt-0.5 dark:text-slate-300" />
               <div>
                 <p className="font-medium">Push Notifications Not Supported</p>
                 <p>Your browser doesn't support push notifications. Notifications will only appear when the app is open.</p>
@@ -1045,11 +1045,11 @@ export default function NotificationsPage() {
         meta={
           <div className="flex items-center gap-1.5">
             {isOnline ? (
-              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200/60 text-[10px] font-bold flex items-center gap-1">
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200/60 text-[10px] font-bold flex items-center gap-1 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60">
                 <Wifi className="h-3 w-3" /> Online
               </Badge>
             ) : (
-              <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200/60 text-[10px] font-bold flex items-center gap-1">
+              <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200/60 text-[10px] font-bold flex items-center gap-1 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60">
                 <WifiOff className="h-3 w-3" /> Offline
               </Badge>
             )}
@@ -1088,13 +1088,13 @@ export default function NotificationsPage() {
 
       {/* ── Main content area ────────────────────────────────────────────────── */}
       <div className="flex-1 max-w-7xl mx-auto w-full px-2 sm:px-4 lg:px-6 py-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden dark:bg-slate-900 dark:border-slate-700"
           style={{ height: 'calc(100vh - 140px)', minHeight: 500 }}>
 
           <div className="flex h-full min-h-0">
             {/* ── LEFT: Notification List ─────────────────────────────────── */}
             <div className={cn(
-              'flex min-h-0 flex-col border-r border-gray-100 bg-white transition-all duration-300',
+              'flex min-h-0 flex-col border-r border-gray-100 bg-white transition-all duration-300 dark:border-slate-700 dark:bg-slate-900',
               // On mobile: show list OR detail, not both
               isMobile
                 ? showDetailMobile ? 'hidden' : 'w-full'
@@ -1103,19 +1103,19 @@ export default function NotificationsPage() {
               {/* Search bar */}
               <div className="px-3 pt-3 pb-2 shrink-0">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none dark:text-slate-400" />
                   <input
                     type="text"
                     placeholder="Search messages…"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 bg-gray-100 rounded-full text-sm placeholder-gray-400 text-gray-700 border-0 focus:outline-none focus:ring-2 focus:ring-blue-400/40 transition-all"
+                    className="w-full pl-9 pr-4 py-2 bg-gray-100 rounded-full text-sm placeholder-gray-400 text-gray-700 border-0 focus:outline-none focus:ring-2 focus:ring-blue-400/40 transition-all dark:bg-slate-900 dark:text-slate-200"
                   />
                 </div>
               </div>
 
               {/* Filter tabs */}
-              <div className="flex items-center gap-1 px-3 pb-2 shrink-0 border-b border-gray-100">
+              <div className="flex items-center gap-1 px-3 pb-2 shrink-0 border-b border-gray-100 dark:border-slate-700">
                 {([
                   { id: 'all',    label: 'All' },
                   { id: 'unread', label: 'Unread' },
@@ -1128,12 +1128,12 @@ export default function NotificationsPage() {
                       'px-3 py-1 rounded-full text-xs font-semibold transition-all duration-150',
                       activeTab === tab.id
                         ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-gray-500 hover:bg-gray-100',
+                        : 'text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-900',
                     )}
                   >
                     {tab.label}
                     {tab.id === 'unread' && unreadCount > 0 && (
-                      <span className="ml-1.5 bg-white text-blue-600 rounded-full text-[10px] px-1.5 py-px font-bold">
+                      <span className="ml-1.5 bg-white text-blue-600 rounded-full text-[10px] px-1.5 py-px font-bold dark:bg-slate-900 dark:text-blue-400">
                         {unreadCount}
                       </span>
                     )}
@@ -1145,18 +1145,18 @@ export default function NotificationsPage() {
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                 {isListLoading ? (
                   <div className="flex flex-col items-center justify-center py-16 gap-3">
-                    <Loader2 className="h-7 w-7 animate-spin text-blue-500" />
-                    <p className="text-sm text-gray-400">Loading messages…</p>
+                    <Loader2 className="h-7 w-7 animate-spin text-blue-500 dark:text-blue-400" />
+                    <p className="text-sm text-gray-400 dark:text-slate-400">Loading messages…</p>
                   </div>
                 ) : filteredNotifications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-                    <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center mb-4">
+                    <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center mb-4 dark:from-blue-950/40 dark:to-indigo-950/40">
                       <Bell className="h-6 w-6 text-blue-400" />
                     </div>
-                    <p className="text-sm font-semibold text-gray-600 mb-1">
+                    <p className="text-sm font-semibold text-gray-600 mb-1 dark:text-slate-300">
                       {search ? 'No results found' : activeTab === 'unread' ? 'All caught up!' : 'No notifications yet'}
                     </p>
-                    <p className="text-xs text-gray-400 leading-relaxed">
+                    <p className="text-xs text-gray-400 leading-relaxed dark:text-slate-400">
                       {search
                         ? 'Try a different search term'
                         : activeTab === 'unread'
@@ -1186,7 +1186,7 @@ export default function NotificationsPage() {
 
             {/* ── RIGHT: Detail panel (desktop always visible; mobile conditionally) ── */}
             <div className={cn(
-              'min-h-0 flex-1 bg-white overflow-hidden',
+              'min-h-0 flex-1 bg-white overflow-hidden dark:bg-slate-900',
               isMobile && !showDetailMobile ? 'hidden' : 'flex flex-col',
             )}>
               <NotificationDetailPanel
@@ -1225,16 +1225,16 @@ export default function NotificationsPage() {
 
       {/* ── Compose: MOBILE full-screen ───────────────────────────────────── */}
       {isMobile && isComposeOpen && (
-        <div className="fixed inset-0 z-50 bg-white flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-white flex flex-col overflow-hidden dark:bg-slate-900">
           {/* Mobile compose header */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 shrink-0 bg-white shadow-sm">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 shrink-0 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <button
               onClick={handleCloseCompose}
-              className="h-8 w-8 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
+              className="h-8 w-8 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors dark:text-slate-400 dark:hover:bg-slate-900"
             >
               <X className="h-5 w-5" />
             </button>
-            <h2 className="text-base font-bold text-gray-900 flex-1">New Notification</h2>
+            <h2 className="text-base font-bold text-gray-900 flex-1 dark:text-slate-100">New Notification</h2>
             <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
               <Edit3 className="h-4 w-4 text-white" />
             </div>

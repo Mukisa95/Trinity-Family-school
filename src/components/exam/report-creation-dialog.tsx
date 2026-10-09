@@ -80,16 +80,16 @@ export function ReportCreationDialogFrame({
         "w-[calc(100vw-2rem)] !max-w-none gap-0 overflow-hidden !rounded-[32px] !border-slate-200 !bg-white !p-0 !text-slate-950 shadow-[0_32px_90px_rgba(15,23,42,0.24)] sm:!w-[min(50rem,calc(100vw-3rem))] dark:!border-slate-200 dark:!bg-white dark:!text-slate-950",
         maxWidthClassName,
       )}>
-        <DialogHeader className="border-b border-slate-100 px-5 py-4 sm:px-6">
+        <DialogHeader className="border-b border-slate-100 px-5 py-4 sm:px-6 dark:border-slate-700">
           <div className="flex min-w-0 items-center gap-3 pr-8">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700 ring-4 ring-blue-50/80">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700 ring-4 ring-blue-50/80 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-800/80">
               <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
             </div>
             <div className="min-w-0 space-y-1">
-              <DialogTitle className="text-lg font-semibold tracking-tight text-slate-950 sm:text-xl">
+              <DialogTitle className="text-lg font-semibold tracking-tight text-slate-950 sm:text-xl dark:text-slate-100">
                 {title}
               </DialogTitle>
-              <DialogDescription className="truncate text-sm font-medium text-slate-600">
+              <DialogDescription className="truncate text-sm font-medium text-slate-600 dark:text-slate-300">
                 {scope}
               </DialogDescription>
             </div>
@@ -97,7 +97,7 @@ export function ReportCreationDialogFrame({
           <p className="sr-only">{description}</p>
         </DialogHeader>
 
-        <div className="border-b border-slate-100 bg-slate-50/60 px-5 py-3 sm:px-6">
+        <div className="border-b border-slate-100 bg-slate-50/60 px-5 py-3 sm:px-6 dark:border-slate-700 dark:bg-slate-900/60">
           <ol
             className="grid gap-2"
             style={{ gridTemplateColumns: `repeat(${flowSteps.length}, minmax(0, 1fr))` }}
@@ -114,17 +114,17 @@ export function ReportCreationDialogFrame({
                         "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-bold",
                         isComplete || isCurrent
                           ? "border-blue-600 bg-blue-600 text-white"
-                          : "border-slate-200 bg-white text-slate-500",
+                          : "border-slate-200 bg-white text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400",
                       )}
                       aria-current={isCurrent ? "step" : undefined}
                     >
                       {isComplete ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : index + 1}
                     </span>
                     {index < flowSteps.length - 1 && (
-                      <span className={cn("hidden h-px flex-1 sm:block", index < step ? "bg-blue-300" : "bg-slate-200")} />
+                      <span className={cn("hidden h-px flex-1 sm:block", index < step ? "bg-blue-300" : "bg-slate-200 dark:bg-slate-800")} />
                     )}
                   </div>
-                  <span className={cn("mt-1 block text-[11px] font-semibold", isCurrent ? "text-blue-700" : "text-slate-500")}>
+                  <span className={cn("mt-1 block text-[11px] font-semibold", isCurrent ? "text-blue-700 dark:text-blue-300" : "text-slate-500 dark:text-slate-400")}>
                     {flowStep}
                   </span>
                 </li>
@@ -137,7 +137,7 @@ export function ReportCreationDialogFrame({
           {children}
         </div>
 
-        <DialogFooter className="mt-0 min-h-16 border-t border-slate-100 bg-slate-50/70 px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:space-x-0 sm:px-6">
+        <DialogFooter className="mt-0 min-h-16 border-t border-slate-100 bg-slate-50/70 px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:space-x-0 sm:px-6 dark:border-slate-700 dark:bg-slate-900/70">
           {footer}
         </DialogFooter>
       </DialogContent>
@@ -174,7 +174,7 @@ export function ReportCreationDialog({
         value: "assessment",
         title: "Assessment report",
         icon: FileSpreadsheet,
-        iconClassName: "bg-sky-50 text-sky-700",
+        iconClassName: "bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300",
       });
     }
 
@@ -182,7 +182,7 @@ export function ReportCreationDialog({
       value: "mini",
       title: "Mini report",
       icon: FileText,
-      iconClassName: "bg-teal-50 text-teal-700",
+      iconClassName: "bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300",
     });
 
     if (!isNursery) {
@@ -191,13 +191,13 @@ export function ReportCreationDialog({
           value: "full",
           title: "Full report",
           icon: FileText,
-          iconClassName: "bg-blue-50 text-blue-700",
+          iconClassName: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",
         },
         {
           value: "bespoke",
           title: "Bespoke report",
           icon: FileText,
-          iconClassName: "bg-indigo-50 text-indigo-700",
+          iconClassName: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300",
         },
       );
     }
@@ -240,7 +240,7 @@ export function ReportCreationDialog({
             type="button"
             variant="ghost"
             onClick={onClose}
-            className="min-h-11 rounded-full px-4 font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-950"
+            className="min-h-11 rounded-full px-4 font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-100"
           >
             Cancel
           </Button>
@@ -270,22 +270,22 @@ export function ReportCreationDialog({
                 "group flex min-h-16 w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-[border-color,background-color,box-shadow,transform] duration-200 motion-reduce:transition-none",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2",
                 selected
-                  ? "border-blue-600 bg-blue-50/70 shadow-[0_8px_24px_rgba(37,99,235,0.10)]"
-                  : "border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50 active:scale-[0.99]",
+                  ? "border-blue-600 bg-blue-50/70 shadow-[0_8px_24px_rgba(37,99,235,0.10)] dark:bg-blue-950/70"
+                  : "border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50 active:scale-[0.99] dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-800/60 dark:hover:bg-slate-900",
               )}
             >
               <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", option.iconClassName)}>
                 <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-base font-semibold text-slate-950">{option.title}</span>
+                <span className="block text-base font-semibold text-slate-950 dark:text-slate-100">{option.title}</span>
               </span>
               {selected ? (
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white" aria-label="Selected">
                   <Check className="h-4 w-4" aria-hidden="true" />
                 </span>
               ) : (
-                <ChevronRight className="h-5 w-5 shrink-0 text-slate-400 transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none" aria-hidden="true" />
+                <ChevronRight className="h-5 w-5 shrink-0 text-slate-400 transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none dark:text-slate-400" aria-hidden="true" />
               )}
             </button>
           );
@@ -293,15 +293,15 @@ export function ReportCreationDialog({
       </div>
 
       {isNursery && !isIndividualReport && (
-        <div className="mt-4 flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+        <div className="mt-4 flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/60 p-4 dark:border-blue-800/60 dark:bg-blue-950/60">
           <Checkbox
             id="omit-nursery-teacher-comment"
             checked={omitNurseryTeacherComment}
             onCheckedChange={(checked) => onOmitNurseryTeacherCommentChange(checked === true)}
-            className="mt-0.5 h-5 w-5 border-blue-300"
+            className="mt-0.5 h-5 w-5 border-blue-300 dark:border-blue-800/60"
           />
           <div>
-            <Label htmlFor="omit-nursery-teacher-comment" className="cursor-pointer text-sm font-semibold text-slate-900">
+            <Label htmlFor="omit-nursery-teacher-comment" className="cursor-pointer text-sm font-semibold text-slate-900 dark:text-slate-100">
               Leave the class teacher&apos;s comment blank
             </Label>
           </div>

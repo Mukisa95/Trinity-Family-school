@@ -234,7 +234,7 @@ const FeeStructureModal: React.FC<FeeStructureModalProps> = ({
         </ModernDialogHeader>
         
         {/* Academic Context Banner */}
-        <div className={`mx-1 sm:mx-2 mt-1 sm:mt-2 p-1 border rounded-md text-[0.6rem] ${mode === 'edit' ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'}`}>
+        <div className={`mx-1 sm:mx-2 mt-1 sm:mt-2 p-1 border rounded-md text-[0.6rem] ${mode === 'edit' ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800/60' : 'bg-green-50 border-green-200 dark:bg-green-950/40 dark:border-green-800/60'}`}>
           <div className="flex flex-wrap gap-1 items-center">
             <div className="flex items-center gap-0.5">
               <span className="font-bold text-[9px] text-muted-foreground pt-0.5">Shs.</span>
@@ -243,7 +243,7 @@ const FeeStructureModal: React.FC<FeeStructureModalProps> = ({
             <div>
               <strong>Date:</strong> {format(new Date(), "MMM dd, yyyy")}
             </div>
-            <div className={`text-[0.5rem] px-1 py-0.5 rounded ml-auto ${mode === 'edit' ? 'text-amber-700 bg-amber-100' : 'text-green-700 bg-green-100'}`}>
+            <div className={`text-[0.5rem] px-1 py-0.5 rounded ml-auto ${mode === 'edit' ? 'text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-950/40' : 'text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-950/40'}`}>
               {mode === 'edit' ? 'Edit Mode' : 'Create Mode'}
             </div>
           </div>

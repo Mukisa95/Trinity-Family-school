@@ -20,34 +20,34 @@ interface StatCardProps {
 
 const colorClasses = {
   blue: {
-    bg: 'from-blue-50 to-blue-100',
-    icon: 'text-blue-600 bg-blue-100',
-    text: 'text-blue-900',
-    subtitle: 'text-blue-600'
+    bg: 'from-blue-50 to-blue-100 dark:from-blue-950/40 dark:to-blue-950/40',
+    icon: 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-950/40',
+    text: 'text-blue-900 dark:text-blue-200',
+    subtitle: 'text-blue-600 dark:text-blue-400'
   },
   green: {
-    bg: 'from-green-50 to-green-100',
-    icon: 'text-green-600 bg-green-100',
-    text: 'text-green-900',
-    subtitle: 'text-green-600'
+    bg: 'from-green-50 to-green-100 dark:from-green-950/40 dark:to-green-950/40',
+    icon: 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-950/40',
+    text: 'text-green-900 dark:text-green-200',
+    subtitle: 'text-green-600 dark:text-green-400'
   },
   orange: {
-    bg: 'from-orange-50 to-orange-100',
-    icon: 'text-orange-600 bg-orange-100',
-    text: 'text-orange-900',
-    subtitle: 'text-orange-600'
+    bg: 'from-orange-50 to-orange-100 dark:from-orange-950/40 dark:to-orange-950/40',
+    icon: 'text-orange-600 bg-orange-100 dark:text-orange-400 dark:bg-orange-950/40',
+    text: 'text-orange-900 dark:text-orange-200',
+    subtitle: 'text-orange-600 dark:text-orange-400'
   },
   red: {
-    bg: 'from-red-50 to-red-100',
-    icon: 'text-red-600 bg-red-100',
-    text: 'text-red-900',
-    subtitle: 'text-red-600'
+    bg: 'from-red-50 to-red-100 dark:from-red-950/40 dark:to-red-950/40',
+    icon: 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-950/40',
+    text: 'text-red-900 dark:text-red-200',
+    subtitle: 'text-red-600 dark:text-red-400'
   },
   purple: {
-    bg: 'from-purple-50 to-purple-100',
-    icon: 'text-purple-600 bg-purple-100',
-    text: 'text-purple-900',
-    subtitle: 'text-purple-600'
+    bg: 'from-purple-50 to-purple-100 dark:from-purple-950/40 dark:to-purple-950/40',
+    icon: 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-950/40',
+    text: 'text-purple-900 dark:text-purple-200',
+    subtitle: 'text-purple-600 dark:text-purple-400'
   }
 };
 
@@ -67,9 +67,9 @@ export function StatCard({
       <Card className="border-0 shadow-lg overflow-hidden">
         <CardContent className={`p-6 bg-gradient-to-br ${colors.bg}`}>
           <div className="animate-pulse space-y-3">
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2 dark:bg-slate-800"></div>
+            <div className="h-8 bg-gray-200 rounded w-3/4 dark:bg-slate-800"></div>
+            <div className="h-3 bg-gray-200 rounded w-1/3 dark:bg-slate-800"></div>
           </div>
         </CardContent>
       </Card>
@@ -85,7 +85,7 @@ export function StatCard({
       <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden group">
         <CardContent className={`p-6 bg-gradient-to-br ${colors.bg} relative`}>
           {/* Background decoration */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500 dark:bg-slate-900/20"></div>
           
           <div className="relative z-10">
             {/* Icon */}
@@ -94,7 +94,7 @@ export function StatCard({
             </div>
 
             {/* Title */}
-            <h3 className="text-sm font-medium text-gray-600 mb-2">{title}</h3>
+            <h3 className="text-sm font-medium text-gray-600 mb-2 dark:text-slate-300">{title}</h3>
 
             {/* Value */}
             <div className={`text-3xl font-bold ${colors.text} mb-1`}>
@@ -108,11 +108,11 @@ export function StatCard({
 
             {trend && (
               <div className="flex items-center gap-1 mt-2">
-                <span className={`text-sm font-medium ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                <span className={`text-sm font-medium ${trend.isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                   {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%
                 </span>
                 {trend.label && (
-                  <span className="text-xs text-gray-500">{trend.label}</span>
+                  <span className="text-xs text-gray-500 dark:text-slate-400">{trend.label}</span>
                 )}
               </div>
             )}

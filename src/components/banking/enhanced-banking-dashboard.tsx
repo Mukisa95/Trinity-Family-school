@@ -216,7 +216,7 @@ export function EnhancedBankingDashboard({
               ) : enhancedAccount ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                       UGX {enhancedAccount.balance.toLocaleString()}
                     </div>
                     <div className="text-sm text-muted-foreground">Current Balance</div>
@@ -258,12 +258,12 @@ export function EnhancedBankingDashboard({
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-green-600">
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                         UGX {summaryStats.totalDeposits.toLocaleString()}
                       </div>
                       <div className="text-sm text-muted-foreground">Total Deposits</div>
                     </div>
-                    <TrendingUp className="h-8 w-8 text-green-600" />
+                    <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
                   </div>
                 </CardContent>
               </Card>
@@ -272,12 +272,12 @@ export function EnhancedBankingDashboard({
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-red-600">
+                      <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                         UGX {summaryStats.totalWithdrawals.toLocaleString()}
                       </div>
                       <div className="text-sm text-muted-foreground">Total Withdrawals</div>
                     </div>
-                    <TrendingDown className="h-8 w-8 text-red-600" />
+                    <TrendingDown className="h-8 w-8 text-red-600 dark:text-red-400" />
                   </div>
                 </CardContent>
               </Card>
@@ -286,12 +286,12 @@ export function EnhancedBankingDashboard({
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-amber-600">
+                      <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
                         UGX {summaryStats.outstandingLoans.toLocaleString()}
                       </div>
                       <div className="text-sm text-muted-foreground">Outstanding Loans</div>
                     </div>
-                    <Clock className="h-8 w-8 text-amber-600" />
+                    <Clock className="h-8 w-8 text-amber-600 dark:text-amber-400" />
                   </div>
                 </CardContent>
               </Card>
@@ -300,12 +300,12 @@ export function EnhancedBankingDashboard({
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-blue-600">
+                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                         UGX {summaryStats.availableBalance.toLocaleString()}
                       </div>
                       <div className="text-sm text-muted-foreground">Available Balance</div>
                     </div>
-                    <CheckCircle className="h-8 w-8 text-blue-600" />
+                    <CheckCircle className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                   </div>
                 </CardContent>
               </Card>
@@ -350,8 +350,8 @@ export function EnhancedBankingDashboard({
                         <div className="text-right">
                           <div className={`font-semibold ${
                             ['DEPOSIT', 'LOAN_DISBURSEMENT'].includes(transaction.type) 
-                              ? 'text-green-600' 
-                              : 'text-red-600'
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-red-600 dark:text-red-400'
                           }`}>
                             {['DEPOSIT', 'LOAN_DISBURSEMENT'].includes(transaction.type) ? '+' : '-'}
                             UGX {transaction.amount.toLocaleString()}
@@ -401,19 +401,19 @@ export function EnhancedBankingDashboard({
                           <CardContent className="space-y-2">
                             <div className="flex justify-between">
                               <span className="text-sm">Deposits:</span>
-                              <span className="font-medium text-green-600">
+                              <span className="font-medium text-green-600 dark:text-green-400">
                                 UGX {yearData.totalDeposits.toLocaleString()}
                               </span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-sm">Withdrawals:</span>
-                              <span className="font-medium text-red-600">
+                              <span className="font-medium text-red-600 dark:text-red-400">
                                 UGX {yearData.totalWithdrawals.toLocaleString()}
                               </span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-sm">Loans:</span>
-                              <span className="font-medium text-amber-600">
+                              <span className="font-medium text-amber-600 dark:text-amber-400">
                                 UGX {yearData.totalLoans.toLocaleString()}
                               </span>
                             </div>

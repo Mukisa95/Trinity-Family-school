@@ -177,17 +177,17 @@ const EnhancedInput = React.forwardRef<HTMLInputElement, EnhancedInputProps>(
 
     // State colors
     const getStateColor = () => {
-      if (hasError) return "border-red-300 focus:border-red-500 focus:ring-red-200"
-      if (isValid) return "border-green-300 focus:border-green-500 focus:ring-green-200"
-      if (isFocused) return "border-blue-500 focus:border-blue-600 focus:ring-blue-200"
-      return "border-gray-300 focus:border-blue-500 focus:ring-blue-200"
+      if (hasError) return "border-red-300 focus:border-red-500 focus:ring-red-200 dark:border-red-800/60 dark:focus:ring-red-800/60"
+      if (isValid) return "border-green-300 focus:border-green-500 focus:ring-green-200 dark:border-green-800/60 dark:focus:ring-green-800/60"
+      if (isFocused) return "border-blue-500 focus:border-blue-600 focus:ring-blue-200 dark:focus:ring-blue-800/60"
+      return "border-gray-300 focus:border-blue-500 focus:ring-blue-200 dark:border-slate-700 dark:focus:ring-blue-800/60"
     }
 
     // Icon components
     const PasswordToggleIcon = () => (
       <button
         type="button"
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors dark:text-slate-400 dark:hover:text-slate-300"
         onClick={() => setShowPassword(!showPassword)}
         tabIndex={-1}
       >
@@ -197,13 +197,13 @@ const EnhancedInput = React.forwardRef<HTMLInputElement, EnhancedInputProps>(
 
     const ValidationIcon = () => {
       if (isValidating) {
-        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin dark:text-blue-400" />
       }
       if (hasError) {
-        return <AlertCircle className="h-4 w-4 text-red-500" />
+        return <AlertCircle className="h-4 w-4 text-red-500 dark:text-red-400" />
       }
       if (isValid) {
-        return <Check className="h-4 w-4 text-green-500" />
+        return <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
       }
       return null
     }
@@ -224,12 +224,12 @@ const EnhancedInput = React.forwardRef<HTMLInputElement, EnhancedInputProps>(
               htmlFor={props.id}
               className={cn(
                 "text-sm font-medium transition-colors",
-                hasError ? "text-red-700" : "text-gray-700 dark:text-gray-300"
+                hasError ? "text-red-700 dark:text-red-300" : "text-gray-700 dark:text-gray-300"
               )}
             >
               {label}
               {validationRules?.required && (
-                <span className="text-red-500 ml-1">*</span>
+                <span className="text-red-500 ml-1 dark:text-red-400">*</span>
               )}
             </Label>
           </motion.div>
@@ -239,14 +239,14 @@ const EnhancedInput = React.forwardRef<HTMLInputElement, EnhancedInputProps>(
         <div className="relative">
           {/* Left Icon */}
           {leftIcon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-400">
               {leftIcon}
             </div>
           )}
 
           {/* Search Icon for search variant */}
           {variant === "search" && !leftIcon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-400">
               <Search className="h-4 w-4" />
             </div>
           )}
@@ -259,7 +259,7 @@ const EnhancedInput = React.forwardRef<HTMLInputElement, EnhancedInputProps>(
                 "absolute left-3 transition-all duration-200 ease-out pointer-events-none",
                 isFloatingActive
                   ? "top-2 text-xs font-medium text-blue-600 dark:text-blue-400"
-                  : "top-1/2 -translate-y-1/2 text-sm text-gray-500"
+                  : "top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-slate-400"
               )}
               animate={{
                 y: isFloatingActive ? "-0.75rem" : "0",
@@ -271,7 +271,7 @@ const EnhancedInput = React.forwardRef<HTMLInputElement, EnhancedInputProps>(
             >
               {label}
               {validationRules?.required && (
-                <span className="text-red-500 ml-1">*</span>
+                <span className="text-red-500 ml-1 dark:text-red-400">*</span>
               )}
             </motion.label>
           )}
@@ -299,7 +299,7 @@ const EnhancedInput = React.forwardRef<HTMLInputElement, EnhancedInputProps>(
           {/* Right Icons */}
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1">
             {enableRealTimeValidation && <ValidationIcon />}
-            {rightIcon && <div className="text-gray-400">{rightIcon}</div>}
+            {rightIcon && <div className="text-gray-400 dark:text-slate-400">{rightIcon}</div>}
             {showPasswordToggle && type === "password" && <PasswordToggleIcon />}
           </div>
 
@@ -351,7 +351,7 @@ const EnhancedInput = React.forwardRef<HTMLInputElement, EnhancedInputProps>(
           <motion.div
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-1 flex items-center text-xs text-gray-500"
+            className="mt-1 flex items-center text-xs text-gray-500 dark:text-slate-400"
           >
             <Info className="h-3 w-3 mr-1" />
             {description}
@@ -365,7 +365,7 @@ const EnhancedInput = React.forwardRef<HTMLInputElement, EnhancedInputProps>(
               initial={{ opacity: 0, y: -5, height: 0 }}
               animate={{ opacity: 1, y: 0, height: "auto" }}
               exit={{ opacity: 0, y: -5, height: 0 }}
-              className="mt-1 flex items-center text-xs text-red-600"
+              className="mt-1 flex items-center text-xs text-red-600 dark:text-red-400"
             >
               <AlertCircle className="h-3 w-3 mr-1 flex-shrink-0" />
               <span>{error || internalError}</span>
@@ -380,7 +380,7 @@ const EnhancedInput = React.forwardRef<HTMLInputElement, EnhancedInputProps>(
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
-              className="mt-1 flex items-center text-xs text-green-600"
+              className="mt-1 flex items-center text-xs text-green-600 dark:text-green-400"
             >
               <Check className="h-3 w-3 mr-1" />
               <span>Looks good!</span>

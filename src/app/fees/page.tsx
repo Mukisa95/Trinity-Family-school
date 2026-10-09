@@ -1098,7 +1098,7 @@ export function FeesManagementPageContent() {
       } else if (latestDisable.disableType === 'immediate_indefinite') {
         info += ` (indefinitely)`;
       }
-      return <div className="text-xs text-red-500 mt-1">{info}</div>;
+      return <div className="text-xs text-red-500 mt-1 dark:text-red-400">{info}</div>;
     }
     return null;
   };
@@ -1145,7 +1145,7 @@ export function FeesManagementPageContent() {
                           <div key={`${linkedFee.id}-${index}`} className="border-b last:border-0 pb-2 last:pb-0">
                             <div className="font-medium">{linkedFee.name}</div>
                             <div className="text-xs text-muted-foreground">{formatCurrency(currentLinkedFeeAmount)}</div>
-                            <div className="text-xs text-blue-600 font-medium">{getTermName(linkedFee)}</div>
+                            <div className="text-xs text-blue-600 font-medium dark:text-blue-400">{getTermName(linkedFee)}</div>
                           </div>
                         );
                       })}
@@ -1187,11 +1187,11 @@ export function FeesManagementPageContent() {
                       </DropdownMenuItem>
                       {fee.status === 'active' ? (
                         <DropdownMenuItem onClick={() => handleOpenDisableModal(fee)}>
-                          <Power className="mr-2 h-4 w-4 text-orange-500" /> Disable Discount
+                          <Power className="mr-2 h-4 w-4 text-orange-500 dark:text-orange-400" /> Disable Discount
                         </DropdownMenuItem>
                       ) : (
                         <DropdownMenuItem onClick={() => handleEnableFee(fee.id)}>
-                          <PlusCircle className="mr-2 h-4 w-4 text-green-500" /> Enable Discount
+                          <PlusCircle className="mr-2 h-4 w-4 text-green-500 dark:text-green-400" /> Enable Discount
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuSeparator />
@@ -1264,11 +1264,11 @@ export function FeesManagementPageContent() {
                     </DropdownMenuItem>
                     {fee.status === 'active' ? (
                       <DropdownMenuItem onClick={() => handleOpenDisableModal(fee)}>
-                        <Power className="mr-2 h-4 w-4 text-orange-500" /> Disable Fee
+                        <Power className="mr-2 h-4 w-4 text-orange-500 dark:text-orange-400" /> Disable Fee
                       </DropdownMenuItem>
                     ) : (
                       <DropdownMenuItem onClick={() => handleEnableFee(fee.id)}>
-                        <PlusCircle className="mr-2 h-4 w-4 text-green-500" /> Enable Fee
+                        <PlusCircle className="mr-2 h-4 w-4 text-green-500 dark:text-green-400" /> Enable Fee
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
@@ -1376,11 +1376,11 @@ export function FeesManagementPageContent() {
                               </DropdownMenuItem>
                               {fee.status === 'active' ? (
                                 <DropdownMenuItem onClick={() => handleOpenDisableModal(fee)}>
-                                  <Power className="mr-2 h-4 w-4 text-orange-500" /> Disable Fee
+                                  <Power className="mr-2 h-4 w-4 text-orange-500 dark:text-orange-400" /> Disable Fee
                                 </DropdownMenuItem>
                               ) : (
                                 <DropdownMenuItem onClick={() => handleEnableFee(fee.id)}>
-                                  <PlusCircle className="mr-2 h-4 w-4 text-green-500" /> Enable Fee
+                                  <PlusCircle className="mr-2 h-4 w-4 text-green-500 dark:text-green-400" /> Enable Fee
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
@@ -1422,7 +1422,7 @@ export function FeesManagementPageContent() {
         value={activeFilter}
         onChange={(event) => setActiveFilter(event.target.value as ActiveFilter)}
         aria-label="Choose fee type"
-        className="h-[34px] min-w-0 max-w-[35vw] rounded-full border border-violet-200/70 bg-white/95 px-2.5 text-[10px] font-bold text-violet-700 shadow-sm outline-none transition-colors hover:bg-violet-50 focus:ring-2 focus:ring-violet-400/60 lg:max-w-none"
+        className="h-[34px] min-w-0 max-w-[35vw] rounded-full border border-violet-200/70 bg-white/95 px-2.5 text-[10px] font-bold text-violet-700 shadow-sm outline-none transition-colors hover:bg-violet-50 focus:ring-2 focus:ring-violet-400/60 lg:max-w-none dark:border-violet-800/70 dark:bg-slate-900/95 dark:text-violet-300 dark:hover:bg-violet-950/40"
       >
         <option value="general">General</option>
         <option value="assignment">Assignment</option>
@@ -1437,7 +1437,7 @@ export function FeesManagementPageContent() {
             setSelectedAcademicYearId(event.target.value);
           }}
           aria-label="Choose academic year"
-          className="h-[34px] min-w-0 max-w-[42vw] rounded-full border border-blue-200/70 bg-white/95 px-2.5 text-[10px] font-bold text-blue-700 shadow-sm outline-none transition-colors hover:bg-blue-50 focus:ring-2 focus:ring-blue-400/60 lg:max-w-none"
+          className="h-[34px] min-w-0 max-w-[42vw] rounded-full border border-blue-200/70 bg-white/95 px-2.5 text-[10px] font-bold text-blue-700 shadow-sm outline-none transition-colors hover:bg-blue-50 focus:ring-2 focus:ring-blue-400/60 lg:max-w-none dark:border-blue-800/70 dark:bg-slate-900/95 dark:text-blue-300 dark:hover:bg-blue-950/40"
         >
           {availableAcademicYears.map((year) => {
             const isCurrent = year.id === currentAcademicYear?.id;
@@ -1527,50 +1527,50 @@ export function FeesManagementPageContent() {
       <GlassSummaryBar
         left={
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-bold text-xs text-indigo-500">Shs.</span>
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 uppercase mr-2">
+            <span className="font-bold text-xs text-indigo-500 dark:text-indigo-400">Shs.</span>
+            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 uppercase mr-2 dark:text-indigo-200">
               Accounts Overview
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
               {activeSettingTab === 'fees' && (
                 <>
-                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="font-bold text-blue-700">{totalFeesCount}</span>
-                    <span className="text-blue-700/85 font-medium">total fee structures</span>
+                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-blue-950/80 dark:border-blue-800/50">
+                    <span className="font-bold text-blue-700 dark:text-blue-300">{totalFeesCount}</span>
+                    <span className="text-blue-700/85 font-medium dark:text-blue-300/85">total fee structures</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-green-50/80 border border-green-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="font-bold text-green-700">{activeFeesCount}</span>
-                    <span className="text-green-700/85 font-medium">active structures</span>
+                  <div className="flex items-center gap-1 bg-green-50/80 border border-green-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-green-950/80 dark:border-green-800/50">
+                    <span className="font-bold text-green-700 dark:text-green-300">{activeFeesCount}</span>
+                    <span className="text-green-700/85 font-medium dark:text-green-300/85">active structures</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="font-bold text-amber-700">{discountsCount}</span>
-                    <span className="text-amber-700/85 font-medium">discounts configured</span>
+                  <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-amber-950/80 dark:border-amber-800/50">
+                    <span className="font-bold text-amber-700 dark:text-amber-300">{discountsCount}</span>
+                    <span className="text-amber-700/85 font-medium dark:text-amber-300/85">discounts configured</span>
                   </div>
                 </>
               )}
 
               {activeSettingTab === 'uniforms' && (
                 uniformSummaryLoading ? (
-                  <span className="text-xs text-purple-700" role="status">Loading uniform items...</span>
+                  <span className="text-xs text-purple-700 dark:text-purple-300" role="status">Loading uniform items...</span>
                 ) : uniformsError ? (
-                  <span className="text-xs text-red-700">Uniform data unavailable</span>
+                  <span className="text-xs text-red-700 dark:text-red-300">Uniform data unavailable</span>
                 ) : (
                 <>
-                  <div className="flex items-center gap-1 bg-purple-50/80 border border-purple-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="font-bold text-purple-700">{totalUniforms}</span>
-                    <span className="text-purple-700/85 font-medium">uniform items</span>
+                  <div className="flex items-center gap-1 bg-purple-50/80 border border-purple-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-purple-950/80 dark:border-purple-800/50">
+                    <span className="font-bold text-purple-700 dark:text-purple-300">{totalUniforms}</span>
+                    <span className="text-purple-700/85 font-medium dark:text-purple-300/85">uniform items</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="font-bold text-blue-700">{activeUniforms}</span>
-                    <span className="text-blue-700/85 font-medium">active items</span>
+                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-blue-950/80 dark:border-blue-800/50">
+                    <span className="font-bold text-blue-700 dark:text-blue-300">{activeUniforms}</span>
+                    <span className="text-blue-700/85 font-medium dark:text-blue-300/85">active items</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-green-50/80 border border-green-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="font-bold text-green-700">{uniqueUniformGroups.length}</span>
-                    <span className="text-green-700/85 font-medium">groups</span>
+                  <div className="flex items-center gap-1 bg-green-50/80 border border-green-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-green-950/80 dark:border-green-800/50">
+                    <span className="font-bold text-green-700 dark:text-green-300">{uniqueUniformGroups.length}</span>
+                    <span className="text-green-700/85 font-medium dark:text-green-300/85">groups</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="text-amber-700/85 font-medium">avg price:</span>
-                    <span className="font-bold text-amber-700">{formatCurrency(averageUniformPrice)}</span>
+                  <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-amber-950/80 dark:border-amber-800/50">
+                    <span className="text-amber-700/85 font-medium dark:text-amber-300/85">avg price:</span>
+                    <span className="font-bold text-amber-700 dark:text-amber-300">{formatCurrency(averageUniformPrice)}</span>
                   </div>
                 </>
                 )
@@ -1578,21 +1578,21 @@ export function FeesManagementPageContent() {
 
               {activeSettingTab === 'requirements' && (
                 <>
-                  <div className="flex items-center gap-1 bg-emerald-50/80 border border-emerald-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="font-bold text-emerald-700">{totalRequirements}</span>
-                    <span className="text-emerald-700/85 font-medium">requirement items</span>
+                  <div className="flex items-center gap-1 bg-emerald-50/80 border border-emerald-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-emerald-950/80 dark:border-emerald-800/50">
+                    <span className="font-bold text-emerald-700 dark:text-emerald-300">{totalRequirements}</span>
+                    <span className="text-emerald-700/85 font-medium dark:text-emerald-300/85">requirement items</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="font-bold text-blue-700">{activeRequirements}</span>
-                    <span className="text-blue-700/85 font-medium">active items</span>
+                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-blue-950/80 dark:border-blue-800/50">
+                    <span className="font-bold text-blue-700 dark:text-blue-300">{activeRequirements}</span>
+                    <span className="text-blue-700/85 font-medium dark:text-blue-300/85">active items</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-green-50/80 border border-green-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="font-bold text-green-700">{uniqueRequirementGroups.length}</span>
-                    <span className="text-green-700/85 font-medium">groups</span>
+                  <div className="flex items-center gap-1 bg-green-50/80 border border-green-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-green-950/80 dark:border-green-800/50">
+                    <span className="font-bold text-green-700 dark:text-green-300">{uniqueRequirementGroups.length}</span>
+                    <span className="text-green-700/85 font-medium dark:text-green-300/85">groups</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="text-amber-700/85 font-medium">total value:</span>
-                    <span className="font-bold text-amber-700">{formatCurrency(totalRequirementsValue)}</span>
+                  <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-amber-950/80 dark:border-amber-800/50">
+                    <span className="text-amber-700/85 font-medium dark:text-amber-300/85">total value:</span>
+                    <span className="font-bold text-amber-700 dark:text-amber-300">{formatCurrency(totalRequirementsValue)}</span>
                   </div>
                 </>
               )}
@@ -1600,7 +1600,7 @@ export function FeesManagementPageContent() {
           </div>
         }
         right={
-          <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-full border border-slate-200/50 backdrop-blur-sm">
+          <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-full border border-slate-200/50 backdrop-blur-sm dark:bg-slate-900/80 dark:border-slate-700/50">
             {[
               { id: 'fees', label: 'Fees' },
               { id: 'uniforms', label: 'Uniforms' },
@@ -1614,8 +1614,8 @@ export function FeesManagementPageContent() {
                   className={cn(
                     "rounded-full px-3 py-1 text-xs font-semibold transition-all duration-300",
                     isActive
-                      ? "bg-white text-indigo-700 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
+                      ? "bg-white text-indigo-700 shadow-sm dark:bg-slate-900 dark:text-indigo-300"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-white/50 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-900/50"
                   )}
                 >
                   {tab.label}
@@ -1632,11 +1632,11 @@ export function FeesManagementPageContent() {
             <RecessStatusBanner />
 
             {activeFilter === 'assignment' ? (
-              <div className="rounded-lg border shadow-sm mt-4 bg-white/60 backdrop-blur-md">
+              <div className="rounded-lg border shadow-sm mt-4 bg-white/60 backdrop-blur-md dark:bg-slate-900/60">
                 {renderTableForAssignmentFees()}
               </div>
             ) : activeFilter === 'discounts' ? (
-              <div className="rounded-lg border shadow-sm mt-4 bg-white/60 backdrop-blur-md">
+              <div className="rounded-lg border shadow-sm mt-4 bg-white/60 backdrop-blur-md dark:bg-slate-900/60">
                 {renderTableForDiscounts()}
               </div>
             ) : (
@@ -1646,12 +1646,12 @@ export function FeesManagementPageContent() {
             )}
 
             {(activeFilter === 'general' && groupedFeesByTerm.length === 0 && filteredFeeStructures.length > 0) && (
-              <p className="text-center text-muted-foreground mt-6 bg-white/50 backdrop-blur-sm p-4 rounded-xl">
+              <p className="text-center text-muted-foreground mt-6 bg-white/50 backdrop-blur-sm p-4 rounded-xl dark:bg-slate-900/50">
                 No {activeFilter} fees found for the current academic year terms.
               </p>
             )}
             {filteredFeeStructures.length === 0 && (
-              <p className="text-center text-muted-foreground mt-6 bg-white/50 backdrop-blur-sm p-4 rounded-xl">
+              <p className="text-center text-muted-foreground mt-6 bg-white/50 backdrop-blur-sm p-4 rounded-xl dark:bg-slate-900/50">
                 No fee items defined yet. Click the button above to start.
               </p>
             )}

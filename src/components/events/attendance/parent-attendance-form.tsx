@@ -298,7 +298,7 @@ export function ParentAttendanceForm({ eventId, event }: ParentAttendanceFormPro
                       return (
                         <div 
                           key={pupil.id}
-                          className={`p-2 rounded-md cursor-pointer hover:bg-muted ${isSelected ? 'bg-green-50 border border-green-200' : ''}`}
+                          className={`p-2 rounded-md cursor-pointer hover:bg-muted ${isSelected ? 'bg-green-50 border border-green-200 dark:bg-green-950/40 dark:border-green-800/60' : ''}`}
                           onClick={() => !isSelected && addPupilToSelection(pupil)}
                         >
                           <div className="font-medium">
@@ -327,7 +327,7 @@ export function ParentAttendanceForm({ eventId, event }: ParentAttendanceFormPro
                     <Badge key={pupil.pupilId} variant="outline" className="flex items-center gap-1">
                       {pupil.pupilName} ({pupil.className})
                       <X 
-                        className="h-3 w-3 cursor-pointer hover:text-red-600"
+                        className="h-3 w-3 cursor-pointer hover:text-red-600 dark:hover:text-red-400"
                         onClick={() => removePupilFromSelection(pupil.pupilId)}
                       />
                     </Badge>
@@ -362,7 +362,7 @@ export function ParentAttendanceForm({ eventId, event }: ParentAttendanceFormPro
                 variant="outline"
                 size="sm"
                 onClick={() => removeGroup(group.id)}
-                className="text-red-600 hover:text-red-700"
+                className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -382,7 +382,7 @@ export function ParentAttendanceForm({ eventId, event }: ParentAttendanceFormPro
                         variant="outline"
                         size="sm"
                         onClick={() => removeAttendee(group.id, attendee.id)}
-                        className="text-red-600 hover:text-red-700"
+                        className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                       >
                         <X className="h-4 w-4" />
                       </Button>

@@ -23,19 +23,19 @@ const PLE_SUBJECTS = [
 
 const getDivisionColor = (division: string) => {
   switch (division) {
-    case 'I': return 'bg-green-100 text-green-800 border-green-200';
-    case 'II': return 'bg-blue-100 text-blue-800 border-blue-200';
-    case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200';
-    default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    case 'I': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
+    case 'II': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+    case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
+    case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60';
+    default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
   }
 };
 
 const getAggregateColor = (aggregate: string) => {
-  if (aggregate.startsWith('D')) return 'bg-green-100 text-green-800';
-  if (aggregate.startsWith('C')) return 'bg-blue-100 text-blue-800';
-  if (aggregate.startsWith('P')) return 'bg-yellow-100 text-yellow-800';
-  return 'bg-red-100 text-red-800';
+  if (aggregate.startsWith('D')) return 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200';
+  if (aggregate.startsWith('C')) return 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200';
+  if (aggregate.startsWith('P')) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200';
+  return 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200';
 };
 
 export default function PLEResultsCard({ pleRecord, pupilResult, className = '' }: PLEResultsCardProps) {
@@ -50,7 +50,7 @@ export default function PLEResultsCard({ pleRecord, pupilResult, className = '' 
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <GraduationCap className="h-5 w-5 text-purple-600" />
+            <GraduationCap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             PLE Results {pleRecord.year}
           </CardTitle>
           <div className="flex items-center gap-2">
@@ -84,7 +84,7 @@ export default function PLEResultsCard({ pleRecord, pupilResult, className = '' 
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center justify-center gap-1 mb-1">
-                  <Trophy className="h-4 w-4 text-amber-600" />
+                  <Trophy className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Total Aggregate
                   </span>
@@ -96,7 +96,7 @@ export default function PLEResultsCard({ pleRecord, pupilResult, className = '' 
               
               <div className="text-center p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center justify-center gap-1 mb-1">
-                  <TrendingUp className="h-4 w-4 text-blue-600" />
+                  <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Division
                   </span>

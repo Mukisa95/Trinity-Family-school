@@ -14,11 +14,11 @@ interface ViewCommentModalProps {
 }
 
 const statusColors = {
-  good: 'bg-green-100 text-green-800',
-  fair: 'bg-yellow-100 text-yellow-800',
-  weak: 'bg-red-100 text-red-800',
-  young: 'bg-blue-100 text-blue-800',
-  irregular: 'bg-purple-100 text-purple-800',
+  good: 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200',
+  fair: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200',
+  weak: 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200',
+  young: 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200',
+  irregular: 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-200',
 };
 
 const statusLabels = {
@@ -38,7 +38,7 @@ const typeLabels = {
 export function ViewCommentModal({ isOpen, onClose, comment }: ViewCommentModalProps) {
   if (!comment) return null;
 
-  const statusColor = statusColors[comment.status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800';
+  const statusColor = statusColors[comment.status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100';
   const statusLabel = statusLabels[comment.status as keyof typeof statusLabels] || comment.status;
   const typeLabel = typeLabels[comment.type as keyof typeof typeLabels] || comment.type;
 
@@ -47,7 +47,7 @@ export function ViewCommentModal({ isOpen, onClose, comment }: ViewCommentModalP
       <ModernDialogContent open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
         <ModernDialogHeader>
           <ModernDialogTitle className="flex items-center gap-2">
-            <Eye className="h-5 w-5 text-blue-600" />
+            <Eye className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             View Comment Template
           </ModernDialogTitle>
         </ModernDialogHeader>
@@ -57,19 +57,19 @@ export function ViewCommentModal({ isOpen, onClose, comment }: ViewCommentModalP
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-600">Performance Status:</span>
+                <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Performance Status:</span>
                 <Badge className={statusColor} variant="secondary">
                   {statusLabel}
                 </Badge>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-600">Comment Type:</span>
+                <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Comment Type:</span>
                 <div className="flex items-center gap-1">
                   {comment.type === 'class_teacher' ? (
-                    <Users className="h-4 w-4 text-blue-600" />
+                    <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   ) : (
-                    <GraduationCap className="h-4 w-4 text-purple-600" />
+                    <GraduationCap className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                   )}
                   <Badge variant="outline">
                     {typeLabel}
@@ -81,15 +81,15 @@ export function ViewCommentModal({ isOpen, onClose, comment }: ViewCommentModalP
             {/* Applicable Terms (for Subject Comments) */}
             {comment.type === 'subject' && (
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-600">Applicable Terms:</span>
+                <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Applicable Terms:</span>
                 <div className="flex flex-wrap gap-1">
                   {(!comment.applicableTerms || comment.applicableTerms.includes('all') || comment.applicableTerms.length === 0) ? (
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">
                       All Terms
                     </Badge>
                   ) : (
                     comment.applicableTerms.map(term => (
-                      <Badge key={term} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      <Badge key={term} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">
                         {term.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </Badge>
                     ))
@@ -99,15 +99,15 @@ export function ViewCommentModal({ isOpen, onClose, comment }: ViewCommentModalP
             )}
 
             <div className="space-y-2">
-              <span className="text-sm font-medium text-gray-600">Comment Text:</span>
-              <div className="bg-gray-50 border rounded-lg p-4">
-                <p className="text-gray-900 leading-relaxed">
+              <span className="text-sm font-medium text-gray-600 dark:text-slate-300">Comment Text:</span>
+              <div className="bg-gray-50 border rounded-lg p-4 dark:bg-slate-900">
+                <p className="text-gray-900 leading-relaxed dark:text-slate-100">
                   {comment.comment}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 text-sm text-gray-500">
+            <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-slate-400">
               <span>Template ID: {comment.id}</span>
               <span>•</span>
               <span>Status: {comment.isActive ? 'Active' : 'Disabled'}</span>

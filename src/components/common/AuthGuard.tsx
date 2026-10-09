@@ -53,11 +53,11 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   if (isLocked) {
     return (
       <>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center dark:bg-slate-900">
           <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4 dark:bg-blue-950/40">
               <svg
-                className="h-8 w-8 text-blue-600"
+                className="h-8 w-8 text-blue-600 dark:text-blue-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -70,10 +70,10 @@ export default function AuthGuard({ children }: AuthGuardProps) {
                 />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2 dark:text-slate-100">
               Account Locked
             </h2>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 mb-4 dark:text-slate-300">
               Your signed session is still active. Resume it without signing in again.
             </p>
             <button

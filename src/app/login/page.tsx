@@ -1473,7 +1473,7 @@ export default function LoginPage() {
                 </div>
                 <h4>Our Location</h4>
                 <p>{settings.address.physical || "123 Education Lane, Kampala"}</p>
-                <p className="text-xs text-slate-400 mt-2 block">
+                <p className="text-xs text-slate-400 mt-2 block dark:text-slate-400">
                   {settings.address.postal || "P.O. Box 789, Kampala"}
                 </p>
               </div>
@@ -1581,7 +1581,7 @@ export default function LoginPage() {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       disabled={isSubmitting}
-                      className="w-full py-3.5 pl-[44px] pr-3.5 bg-white/7 border border-white/12 rounded-full text-white text-sm outline-none transition-all duration-200 focus:bg-[#4F63FF]/15 focus:border-[#4F63FF]"
+                      className="w-full py-3.5 pl-[44px] pr-3.5 bg-white/7 border border-white/12 rounded-full text-white text-sm outline-none transition-all duration-200 focus:bg-[#4F63FF]/15 focus:border-[#4F63FF] dark:bg-slate-900/7 dark:border-slate-700/12"
                     />
                   </div>
                 </div>
@@ -1599,7 +1599,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       disabled={isSubmitting}
-                      className="w-full py-3.5 pl-[44px] pr-[44px] bg-white/7 border border-white/12 rounded-full text-white text-sm outline-none transition-all duration-200 focus:bg-[#4F63FF]/15 focus:border-[#4F63FF]"
+                      className="w-full py-3.5 pl-[44px] pr-[44px] bg-white/7 border border-white/12 rounded-full text-white text-sm outline-none transition-all duration-200 focus:bg-[#4F63FF]/15 focus:border-[#4F63FF] dark:bg-slate-900/7 dark:border-slate-700/12"
                     />
                     <span
                       className="eye-btn absolute right-[16px] top-1/2 -translate-y-1/2 cursor-pointer text-white/35 hover:text-white"
@@ -1626,7 +1626,7 @@ export default function LoginPage() {
                 >
                   {isSubmitting ? (
                     <>
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-1" />
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-1 dark:border-slate-700" />
                       <span>Signing In...</span>
                     </>
                   ) : (

@@ -358,7 +358,7 @@ function EditPupilContent() {
             <Card className="shadow-lg border-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm">
               <CardHeader className="text-center pb-4">
                 <CardTitle className="flex items-center justify-center text-xl">
-                  <User className="mr-3 h-6 w-6 text-blue-600" />
+                  <User className="mr-3 h-6 w-6 text-blue-600 dark:text-blue-400" />
                   Pupil Photo
                 </CardTitle>
               </CardHeader>
@@ -374,7 +374,7 @@ function EditPupilContent() {
             <Card className="shadow-lg border-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center text-xl">
-                  <User className="mr-3 h-6 w-6 text-blue-600" />
+                  <User className="mr-3 h-6 w-6 text-blue-600 dark:text-blue-400" />
                   Basic Information
                 </CardTitle>
               </CardHeader>
@@ -521,7 +521,7 @@ function EditPupilContent() {
             <Card className="shadow-lg border-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center text-xl">
-                  <GraduationCap className="mr-3 h-6 w-6 text-green-600" />
+                  <GraduationCap className="mr-3 h-6 w-6 text-green-600 dark:text-green-400" />
                   Academic Information
                 </CardTitle>
               </CardHeader>
@@ -604,7 +604,7 @@ function EditPupilContent() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between text-xl">
                   <div className="flex items-center">
-                    <Users className="mr-3 h-6 w-6 text-purple-600" />
+                    <Users className="mr-3 h-6 w-6 text-purple-600 dark:text-purple-400" />
                     Guardian Information
                   </div>
                   {guardians.length < 2 && (
@@ -612,7 +612,7 @@ function EditPupilContent() {
                       variant="outline"
                       size="sm"
                       onClick={addGuardian}
-                      className="text-purple-600 border-purple-600 hover:bg-purple-50"
+                      className="text-purple-600 border-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950/40"
                     >
                       Add Guardian
                     </Button>
@@ -700,7 +700,7 @@ function EditPupilContent() {
                       {/* Additional Phone Numbers - Full width */}
                       <div className="border-t pt-4">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-                          <Label className="text-sm font-medium text-gray-600">
+                          <Label className="text-sm font-medium text-gray-600 dark:text-slate-300">
                             Additional Phone Numbers
                           </Label>
                           <Button
@@ -730,7 +730,7 @@ function EditPupilContent() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => removeAdditionalPhone(index, phoneIndex)}
-                                  className="h-9 w-9 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 self-start sm:self-auto"
+                                  className="h-9 w-9 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 self-start sm:self-auto dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/40"
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
@@ -800,7 +800,7 @@ function EditPupilContent() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">
                       First guardian is automatically selected as emergency contact
                     </p>
                   </div>
@@ -812,7 +812,7 @@ function EditPupilContent() {
             <Card className="shadow-lg border-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center text-xl">
-                  <Heart className="mr-3 h-6 w-6 text-red-600" />
+                  <Heart className="mr-3 h-6 w-6 text-red-600 dark:text-red-400" />
                   Medical Information
                 </CardTitle>
               </CardHeader>

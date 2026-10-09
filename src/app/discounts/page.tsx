@@ -105,11 +105,11 @@ export default function DiscountsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Discounts</p>
+                <p className="text-sm text-gray-600 dark:text-slate-300">Total Discounts</p>
                 <p className="text-2xl font-bold">{discounts.length}</p>
               </div>
-              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <Percent className="h-4 w-4 text-blue-600" />
+              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center dark:bg-blue-950/40">
+                <Percent className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </CardContent>
@@ -119,11 +119,11 @@ export default function DiscountsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Active Discounts</p>
+                <p className="text-sm text-gray-600 dark:text-slate-300">Active Discounts</p>
                 <p className="text-2xl font-bold">{discounts.filter(d => d.isActive).length}</p>
               </div>
-              <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                <ToggleRight className="h-4 w-4 text-green-600" />
+              <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center dark:bg-green-950/40">
+                <ToggleRight className="h-4 w-4 text-green-600 dark:text-green-400" />
               </div>
             </div>
           </CardContent>
@@ -133,11 +133,11 @@ export default function DiscountsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Uniform-Specific</p>
+                <p className="text-sm text-gray-600 dark:text-slate-300">Uniform-Specific</p>
                 <p className="text-2xl font-bold">{discounts.filter(d => d.uniformId).length}</p>
               </div>
-              <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
-                <BookOpen className="h-4 w-4 text-purple-600" />
+              <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center dark:bg-purple-950/40">
+                <BookOpen className="h-4 w-4 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
           </CardContent>
@@ -147,11 +147,11 @@ export default function DiscountsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Class-Specific</p>
+                <p className="text-sm text-gray-600 dark:text-slate-300">Class-Specific</p>
                 <p className="text-2xl font-bold">{discounts.filter(d => d.classId).length}</p>
               </div>
-              <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center">
-                <Users className="h-4 w-4 text-orange-600" />
+              <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center dark:bg-orange-950/40">
+                <Users className="h-4 w-4 text-orange-600 dark:text-orange-400" />
               </div>
             </div>
           </CardContent>
@@ -167,7 +167,7 @@ export default function DiscountsPage() {
             <div className="text-center py-8">Loading discounts...</div>
           ) : discounts.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">No dynamic discounts found.</p>
+              <p className="text-gray-500 dark:text-slate-400">No dynamic discounts found.</p>
               <Button className="mt-4" onClick={() => {/* TODO: Open create modal */}}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create First Discount
@@ -193,7 +193,7 @@ export default function DiscountsPage() {
                       <TableCell>
                         <div className="space-y-1">
                           <div className="font-medium">{discount.reason}</div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-gray-500 dark:text-slate-400">
                             {getUniformNames(discount.uniformId)}
                           </div>
                         </div>
@@ -201,9 +201,9 @@ export default function DiscountsPage() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {discount.valueType === 'percentage' ? (
-                            <Percent className="h-4 w-4 text-blue-500" />
+                            <Percent className="h-4 w-4 text-blue-500 dark:text-blue-400" />
                           ) : (
-                            <DollarSign className="h-4 w-4 text-green-500" />
+                            <DollarSign className="h-4 w-4 text-green-500 dark:text-green-400" />
                           )}
                           <span className="font-medium">
                             {formatDiscountDisplay(discount.valueType, discount.value)}

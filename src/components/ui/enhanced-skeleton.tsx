@@ -129,7 +129,7 @@ const EnhancedSkeleton = React.forwardRef<HTMLDivElement, EnhancedSkeletonProps>
               }}
             >
               {showShimmer && animation === "shimmer" && (
-                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer-pass" />
+                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer-pass dark:via-slate-900/60" />
               )}
             </motion.div>
           ))}
@@ -157,7 +157,7 @@ const EnhancedSkeleton = React.forwardRef<HTMLDivElement, EnhancedSkeletonProps>
         {...props}
       >
         {showShimmer && animation === "shimmer" && (
-          <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/70 to-transparent animate-shimmer-pass" />
+          <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/70 to-transparent animate-shimmer-pass dark:via-slate-900/70" />
         )}
       </motion.div>
     )

@@ -92,22 +92,22 @@ export function EnhancedAttendanceSelector({
   const getStatusIcon = (status: 'past' | 'current' | 'future') => {
     switch (status) {
       case 'past':
-        return <Camera className="h-4 w-4 text-blue-600" />;
+        return <Camera className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
       case 'current':
-        return <Database className="h-4 w-4 text-green-600" />;
+        return <Database className="h-4 w-4 text-green-600 dark:text-green-400" />;
       case 'future':
-        return <Clock className="h-4 w-4 text-orange-600" />;
+        return <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400" />;
     }
   };
 
   const getStatusBadge = (status: 'past' | 'current' | 'future') => {
     switch (status) {
       case 'past':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Historical Data</Badge>;
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">Historical Data</Badge>;
       case 'current':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Live Data</Badge>;
+        return <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200">Live Data</Badge>;
       case 'future':
-        return <Badge variant="outline" className="bg-orange-100 text-orange-800">Future Term</Badge>;
+        return <Badge variant="outline" className="bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-200">Future Term</Badge>;
     }
   };
 
@@ -216,7 +216,7 @@ export function EnhancedAttendanceSelector({
           {!isLoading && !error && attendanceRecords.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-4">
-                <CheckCircle className="h-4 w-4 text-green-600" />
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                 <span className="text-sm font-medium">
                   {attendanceRecords.length} attendance records found
                 </span>

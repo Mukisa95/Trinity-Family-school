@@ -567,24 +567,24 @@ export function RequirementReceptionModal({
       <ModernDialogContent open={isOpen} onOpenChange={onClose}>
         <ModernDialogHeader>
           <ModernDialogTitle className="flex items-center gap-3">
-            <Package className="w-5 h-5 text-blue-600" />
+            <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             Receive Class Requirements
           </ModernDialogTitle>
 
           {/* Pupil and Context Info */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border dark:from-blue-950/40 dark:to-indigo-950/40">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-blue-600" />
-                  <span className="font-semibold text-gray-900">
+                  <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="font-semibold text-gray-900 dark:text-slate-100">
                     {formatPupilDisplayName(pupil)}
                   </span>
                   <Badge variant="outline" className="text-xs">
                     {pupil.admissionNumber}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
                   <GraduationCap className="w-4 h-4" />
                   <span>{className} • {pupil.section}</span>
                 </div>
@@ -592,7 +592,7 @@ export function RequirementReceptionModal({
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-600" />
+                  <Calendar className="w-4 h-4 text-gray-600 dark:text-slate-300" />
                   <Select
                     value={selectedAcademicYearId}
                     onValueChange={(value) => {
@@ -631,7 +631,7 @@ export function RequirementReceptionModal({
                   </Select>
                 </div>
                 <div className="flex items-center gap-2">
-                  <School className="w-4 h-4 text-gray-600" />
+                  <School className="w-4 h-4 text-gray-600 dark:text-slate-300" />
                   <Select
                     value={selectedTermId}
                     onValueChange={setSelectedTermId}
@@ -676,13 +676,13 @@ export function RequirementReceptionModal({
                 const isCompleted = received >= totalRequired;
 
                 return (
-                  <Card key={item.requirement.id} className={`border ${isCompleted ? 'border-green-200 bg-green-50' : 'border-gray-200'} mb-1`}>
+                  <Card key={item.requirement.id} className={`border ${isCompleted ? 'border-green-200 bg-green-50 dark:border-green-800/60 dark:bg-green-950/40' : 'border-gray-200 dark:border-slate-700'} mb-1`}>
                     <CardContent className="p-2">
                       {/* Main Content - Ultra compact single row */}
                       <div className="flex items-center justify-between gap-2">
                         {/* Left side - Basic info */}
                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <BookOpen className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                          <BookOpen className="w-3 h-3 text-blue-600 flex-shrink-0 dark:text-blue-400" />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="font-medium text-sm truncate">{item.requirement.name}</span>
@@ -690,20 +690,20 @@ export function RequirementReceptionModal({
                                 {item.requirement.group}
                               </Badge>
                               {item.isNewRecord && (
-                                <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200 h-4 flex-shrink-0">
+                                <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200 h-4 flex-shrink-0 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60">
                                   New
                                 </Badge>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-gray-600">
+                            <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-300">
                               <span>{formatCurrency(item.requirement.price)}</span>
                               <span>•</span>
                               <span>{received}/{totalRequired} ({Math.round(progress)}%)</span>
                               <Progress value={progress} className="h-1 w-16 flex-shrink-0" />
                               {isCompleted ? (
-                                <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                                <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0 dark:text-green-400" />
                               ) : (
-                                <Clock className="w-3 h-3 text-amber-600 flex-shrink-0" />
+                                <Clock className="w-3 h-3 text-amber-600 flex-shrink-0 dark:text-amber-400" />
                               )}
                             </div>
                           </div>
@@ -712,7 +712,7 @@ export function RequirementReceptionModal({
                         {/* Right side - Actions */}
                         {!isCompleted && (
                           <div className="flex items-center gap-1 flex-shrink-0">
-                            <Label htmlFor={`quantity-${item.requirement.id}`} className="text-xs text-gray-600 whitespace-nowrap">
+                            <Label htmlFor={`quantity-${item.requirement.id}`} className="text-xs text-gray-600 whitespace-nowrap dark:text-slate-300">
                               Max {remaining}:
                             </Label>
                             <Button
@@ -761,7 +761,7 @@ export function RequirementReceptionModal({
                         )}
 
                         {isCompleted && (
-                          <div className="flex items-center gap-1 text-xs text-green-700 flex-shrink-0">
+                          <div className="flex items-center gap-1 text-xs text-green-700 flex-shrink-0 dark:text-green-300">
                             <CheckCircle className="w-3 h-3" />
                             <span>Complete</span>
                           </div>
@@ -770,14 +770,14 @@ export function RequirementReceptionModal({
 
                       {/* Bottom row - Show only when relevant */}
                       {(item.quantityToReceive > 0 || errors[item.requirement.id]) && (
-                        <div className="mt-1 pt-1 border-t border-gray-100">
+                        <div className="mt-1 pt-1 border-t border-gray-100 dark:border-slate-700">
                           {item.quantityToReceive > 0 && (
-                            <div className="text-xs text-green-700 bg-green-50 px-1 py-0.5 rounded inline-block">
+                            <div className="text-xs text-green-700 bg-green-50 px-1 py-0.5 rounded inline-block dark:text-green-300 dark:bg-green-950/40">
                               Cash equivalent: {formatCurrency(getCashEquivalent(item.requirement, item.quantityToReceive))}
                             </div>
                           )}
                           {errors[item.requirement.id] && (
-                            <p className="text-xs text-red-600 mt-1">{errors[item.requirement.id]}</p>
+                            <p className="text-xs text-red-600 mt-1 dark:text-red-400">{errors[item.requirement.id]}</p>
                           )}
                         </div>
                       )}

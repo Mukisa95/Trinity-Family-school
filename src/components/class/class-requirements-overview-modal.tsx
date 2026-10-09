@@ -115,7 +115,7 @@ export function ClassRequirementsOverviewModal({
             </div>
             <div>
               <div className="font-bold">Class Requirements Overview</div>
-              <div className="text-sm text-gray-600 font-normal">
+              <div className="text-sm text-gray-600 font-normal dark:text-slate-300">
                 {selectedAcademicYearId && selectedTermId && activeAcademicYear
                   ? `${getTermLabel(activeAcademicYear, selectedTermId)} - ${pupils.length} pupils`
                   : `${pupils.length} pupils`}
@@ -129,7 +129,7 @@ export function ClassRequirementsOverviewModal({
           <div className="mb-4 space-y-3">
             {/* Year and Term Selector */}
             <div className="flex justify-center">
-              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 h-10">
+              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 h-10 dark:bg-slate-900 dark:border-slate-700">
                 <select
                   value={selectedAcademicYearId}
                   onChange={(e) => {
@@ -139,7 +139,7 @@ export function ClassRequirementsOverviewModal({
                     const currentTerm = year?.terms.find(t => t.isCurrent);
                     setSelectedTermId(currentTerm?.id || year?.terms[0]?.id || '');
                   }}
-                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full"
+                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700"
                   style={{ width: 'auto', minWidth: 'fit-content' }}
                 >
                   <option value="">Select Year</option>
@@ -154,7 +154,7 @@ export function ClassRequirementsOverviewModal({
                   value={selectedTermId}
                   onChange={(e) => setSelectedTermId(e.target.value)}
                   disabled={!selectedAcademicYearId}
-                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700 dark:disabled:bg-slate-900 dark:disabled:text-slate-400"
                   style={{ width: 'auto', minWidth: 'fit-content' }}
                 >
                   {selectedAcademicYearId && (() => {
@@ -169,7 +169,7 @@ export function ClassRequirementsOverviewModal({
               </div>
             </div>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-400" />
               <Input
                 placeholder="Search pupils..."
                 value={searchTerm}
@@ -194,7 +194,7 @@ export function ClassRequirementsOverviewModal({
           </div>
 
           {filteredPupils.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-slate-400">
               {searchTerm ? 'No pupils found matching your search.' : 'No pupils in this class.'}
             </div>
           )}
@@ -527,10 +527,10 @@ function PupilRequirementsCard({
       <Card>
         <CardContent className="p-3">
           <div className="flex items-center gap-2">
-            <User className="w-4 h-4 text-gray-400" />
+            <User className="w-4 h-4 text-gray-400 dark:text-slate-400" />
             <div>
               <div className="font-semibold text-sm">{formatPupilDisplayName(pupil)}</div>
-              <div className="text-xs text-gray-500">Please select academic year and term</div>
+              <div className="text-xs text-gray-500 dark:text-slate-400">Please select academic year and term</div>
             </div>
           </div>
         </CardContent>
@@ -544,19 +544,19 @@ function PupilRequirementsCard({
         <div className="flex items-start gap-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <User className="w-4 h-4 text-gray-600" />
+              <User className="w-4 h-4 text-gray-600 dark:text-slate-300" />
               <div>
                 <div className="font-semibold text-sm">{formatPupilDisplayName(pupil)}</div>
                 {pupil.admissionNumber && (
-                  <div className="text-xs text-gray-500">Adm: {pupil.admissionNumber}</div>
+                  <div className="text-xs text-gray-500 dark:text-slate-400">Adm: {pupil.admissionNumber}</div>
                 )}
               </div>
             </div>
 
             {isLoading ? (
-              <div className="text-xs text-gray-500">Loading requirements...</div>
+              <div className="text-xs text-gray-500 dark:text-slate-400">Loading requirements...</div>
             ) : trackingRecords.length === 0 ? (
-              <div className="text-xs text-gray-500">No requirements assigned</div>
+              <div className="text-xs text-gray-500 dark:text-slate-400">No requirements assigned</div>
             ) : (
               <div className="space-y-2">
                 {trackingRecords.map((record) => {
@@ -565,9 +565,9 @@ function PupilRequirementsCard({
                   const details = getRequirementDetails(record);
                   
                   return (
-                    <div key={record.id} className="border-l-2 border-gray-200 pl-2 space-y-1">
+                    <div key={record.id} className="border-l-2 border-gray-200 pl-2 space-y-1 dark:border-slate-700">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-900">{requirementName}</span>
+                        <span className="text-xs font-medium text-gray-900 dark:text-slate-100">{requirementName}</span>
                         <Badge
                           variant={received.isFullyReceived ? 'default' : received.totalReceived > 0 ? 'secondary' : 'destructive'}
                           className="text-[10px] py-0 px-1.5 h-4"
@@ -591,16 +591,16 @@ function PupilRequirementsCard({
                         </Badge>
                       </div>
                       {details.hasQuantities && (
-                        <div className="text-[10px] text-gray-600">
+                        <div className="text-[10px] text-gray-600 dark:text-slate-300">
                           Received: {received.totalReceived} / {received.totalRequired} items
                           {received.remainingToReceive > 0 && (
-                            <span className="text-orange-600 ml-1">
+                            <span className="text-orange-600 ml-1 dark:text-orange-400">
                               ({received.remainingToReceive} remaining)
                             </span>
                           )}
                         </div>
                       )}
-                      <div className="flex items-center gap-3 text-[10px] text-gray-600">
+                      <div className="flex items-center gap-3 text-[10px] text-gray-600 dark:text-slate-300">
                         <div className="flex items-center gap-1">
                           <DollarSign className="w-2.5 h-2.5" />
                           <span>Paid: {formatCurrency(record.paidAmount)}</span>

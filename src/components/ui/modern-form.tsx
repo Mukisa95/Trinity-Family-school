@@ -319,12 +319,12 @@ const ModernForm = React.forwardRef<HTMLFormElement, ModernFormProps>(
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"
+            className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-green-950/40"
           >
-            <CheckCircle className="h-8 w-8 text-green-600" />
+            <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
           </motion.div>
-          <h3 className="text-lg font-semibold text-green-800 mb-2">Success!</h3>
-          <p className="text-gray-600">Your form has been submitted successfully.</p>
+          <h3 className="text-lg font-semibold text-green-800 mb-2 dark:text-green-200">Success!</h3>
+          <p className="text-gray-600 dark:text-slate-300">Your form has been submitted successfully.</p>
         </motion.div>
       )
     }
@@ -366,7 +366,7 @@ const ModernForm = React.forwardRef<HTMLFormElement, ModernFormProps>(
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Step {currentStep + 1} of {totalSteps}
               </span>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-500 dark:text-slate-400">
                 {Math.round(progress)}% Complete
               </span>
             </div>
@@ -397,7 +397,7 @@ const ModernForm = React.forwardRef<HTMLFormElement, ModernFormProps>(
                       ? "bg-blue-500 border-blue-500 text-white"
                       : index < currentStep
                       ? "bg-green-500 border-green-500 text-white"
-                      : "bg-gray-200 border-gray-300 text-gray-500"
+                      : "bg-gray-200 border-gray-300 text-gray-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400"
                   )}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
@@ -494,7 +494,7 @@ const ModernForm = React.forwardRef<HTMLFormElement, ModernFormProps>(
 
                 <div className="flex space-x-3">
                   {autoSave && (
-                    <span className="text-xs text-gray-500 flex items-center">
+                    <span className="text-xs text-gray-500 flex items-center dark:text-slate-400">
                       <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" />
                       Auto-saved
                     </span>
@@ -535,7 +535,7 @@ const ModernForm = React.forwardRef<HTMLFormElement, ModernFormProps>(
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="text-center text-xs text-gray-500 mt-4"
+              className="text-center text-xs text-gray-500 mt-4 dark:text-slate-400"
             >
               Your progress is automatically saved
             </motion.div>

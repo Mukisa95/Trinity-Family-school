@@ -262,12 +262,12 @@ export function BudgetManagement({
   if (selectedBudget) {
     return (
       <div className="space-y-4">
-        <div className="flex flex-col gap-3 rounded-xl border bg-white p-4 shadow-sm sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-xl border bg-white p-4 shadow-sm sm:flex-row sm:items-start sm:justify-between dark:bg-slate-900">
           <div className="min-w-0">
             <Button type="button" variant="ghost" className="mb-2 min-h-11 px-2" onClick={() => setSelectedBudgetId(null)}><ArrowLeft className="mr-2 h-4 w-4" />All budgets</Button>
-            <h2 className="text-xl font-bold text-slate-950">{selectedBudget.name}</h2>
-            <p className="mt-1 text-sm text-slate-600">{selectedBudget.description || 'Complete estimated school expenditure plan'}</p>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-700"><Badge variant="outline">{selectedBudget.academicYearName || selectedBudget.academicYearId}</Badge><Badge variant="outline">{selectedBudget.periodType === 'Term' ? selectedBudget.termName || 'Term budget' : 'Annual budget'}</Badge><Badge variant="secondary">{selectedBudget.status}</Badge></div>
+            <h2 className="text-xl font-bold text-slate-950 dark:text-slate-100">{selectedBudget.name}</h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{selectedBudget.description || 'Complete estimated school expenditure plan'}</p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-700 dark:text-slate-200"><Badge variant="outline">{selectedBudget.academicYearName || selectedBudget.academicYearId}</Badge><Badge variant="outline">{selectedBudget.periodType === 'Term' ? selectedBudget.termName || 'Term budget' : 'Annual budget'}</Badge><Badge variant="secondary">{selectedBudget.status}</Badge></div>
           </div>
           {canEdit && <Button type="button" className="min-h-11" onClick={openAddLine}><ListPlus className="mr-2 h-4 w-4" />Add item</Button>}
         </div>
@@ -275,7 +275,7 @@ export function BudgetManagement({
         <div className="grid gap-3 sm:grid-cols-3"><SummaryCard label="Items planned" value={String(selectedBudget.budgetItems.length)} /><SummaryCard label="Estimated total" value={formatCurrency(calculateBudgetTotal(selectedBudget.budgetItems))} /><SummaryCard label="Period" value={`${formatDate(selectedBudget.startDate)} – ${formatDate(selectedBudget.endDate)}`} /></div>
 
         {selectedBudget.budgetItems.length === 0 ? (
-          <div className="rounded-xl border border-dashed bg-slate-50 p-8 text-center"><WalletCards className="mx-auto h-8 w-8 text-slate-400" /><h3 className="mt-3 font-semibold">This budget has no items yet</h3><p className="mt-1 text-sm text-slate-600">Add every expected school expenditure. Amounts can be left blank until quotations are available.</p>{canEdit && <Button type="button" className="mt-4 min-h-11" onClick={openAddLine}><Plus className="mr-2 h-4 w-4" />Add first item</Button>}</div>
+          <div className="rounded-xl border border-dashed bg-slate-50 p-8 text-center dark:bg-slate-900"><WalletCards className="mx-auto h-8 w-8 text-slate-400 dark:text-slate-400" /><h3 className="mt-3 font-semibold">This budget has no items yet</h3><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Add every expected school expenditure. Amounts can be left blank until quotations are available.</p>{canEdit && <Button type="button" className="mt-4 min-h-11" onClick={openAddLine}><Plus className="mr-2 h-4 w-4" />Add first item</Button>}</div>
         ) : <BudgetLines items={selectedBudget.budgetItems} canEdit={canEdit} saving={saving} onEdit={openEditLine} onRemove={removeLine} />}
 
         <Dialog open={isLineOpen} onOpenChange={open => { setIsLineOpen(open); if (!open) setEditingLine(null); }}>
@@ -296,7 +296,7 @@ export function BudgetManagement({
 
   return (
     <div className="space-y-5">
-      <div><h2 className="text-xl font-bold text-slate-950 sm:text-2xl">School Budget Management</h2><p className="mt-1 text-sm text-slate-600">Each budget is one complete school expenditure plan containing a list of expected items.</p></div>
+      <div><h2 className="text-xl font-bold text-slate-950 sm:text-2xl dark:text-slate-100">School Budget Management</h2><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Each budget is one complete school expenditure plan containing a list of expected items.</p></div>
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="h-auto min-h-11 w-full justify-start overflow-x-auto sm:w-auto"><TabsTrigger value="budgets" className="min-h-10">Budget plans</TabsTrigger><TabsTrigger value="comparison" className="min-h-10">Budget vs actual</TabsTrigger></TabsList>
         <TabsContent value="budgets" className="space-y-4">
@@ -315,7 +315,7 @@ export function BudgetManagement({
               </DialogContent>
             </Dialog>
           )}</div>
-          {budgets.length === 0 ? <div className="rounded-xl border border-dashed bg-slate-50 p-8 text-center"><WalletCards className="mx-auto h-8 w-8 text-slate-400" /><h3 className="mt-3 font-semibold">No school budgets yet</h3><p className="mt-1 text-sm text-slate-600">Create a plan, then build its complete list of expected expenditure.</p></div> : (
+          {budgets.length === 0 ? <div className="rounded-xl border border-dashed bg-slate-50 p-8 text-center dark:bg-slate-900"><WalletCards className="mx-auto h-8 w-8 text-slate-400 dark:text-slate-400" /><h3 className="mt-3 font-semibold">No school budgets yet</h3><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Create a plan, then build its complete list of expected expenditure.</p></div> : (
             <div className="grid gap-4 lg:grid-cols-2">{budgets.map(budget => <BudgetCard key={budget.id} budget={budget} canEdit={canEdit} onView={() => setSelectedBudgetId(budget.id)} onAdd={() => { setSelectedBudgetId(budget.id); setEditingLine(null); setLineForm(emptyLine); setIsLineOpen(true); }} onDelete={() => deleteBudget(budget.id)} />)}</div>
           )}
         </TabsContent>
@@ -329,7 +329,7 @@ export function BudgetManagement({
 }
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl border bg-white p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 font-bold text-slate-950">{value}</p></div>;
+  return <div className="rounded-xl border bg-white p-4 dark:bg-slate-900"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 font-bold text-slate-950 dark:text-slate-100">{value}</p></div>;
 }
 
 function BudgetCard({ budget, canEdit, onView, onAdd, onDelete }: { budget: ProcurementBudget; canEdit: boolean; onView: () => void; onAdd: () => void; onDelete: () => void }) {
@@ -337,7 +337,7 @@ function BudgetCard({ budget, canEdit, onView, onAdd, onDelete }: { budget: Proc
 }
 
 function BudgetLines({ items, canEdit, saving, onEdit, onRemove }: { items: BudgetItem[]; canEdit: boolean; saving: boolean; onEdit: (line: BudgetItem) => void; onRemove: (id: string) => void }) {
-  return <Card><CardHeader><CardTitle className="text-lg">Complete expenditure list</CardTitle><CardDescription>Items without an estimated amount remain valid and can be priced later.</CardDescription></CardHeader><CardContent><div className="space-y-3 md:hidden">{items.map(line => <div key={line.id} className="rounded-lg border p-3"><div className="flex items-start justify-between gap-2"><div><p className="font-semibold">{line.itemName}</p><p className="text-sm text-muted-foreground">{line.estimatedQuantity} {line.itemUnit || 'units'} · {line.priority || 'Medium'} priority</p></div><p className="text-sm font-semibold">{line.costEstimated ? formatCurrency(line.estimatedTotalCost) : 'Amount pending'}</p></div>{line.notes && <p className="mt-2 text-sm text-slate-600">{line.notes}</p>}{canEdit && <LineActions line={line} saving={saving} onEdit={onEdit} onRemove={onRemove} />}</div>)}</div><div className="hidden overflow-x-auto md:block"><Table><TableHeader><TableRow><TableHead>Item</TableHead><TableHead>Quantity</TableHead><TableHead>Estimated unit price</TableHead><TableHead>Estimated total</TableHead><TableHead>Priority</TableHead>{canEdit && <TableHead className="text-right">Actions</TableHead>}</TableRow></TableHeader><TableBody>{items.map(line => <TableRow key={line.id}><TableCell><p className="font-medium">{line.itemName}</p>{line.notes && <p className="max-w-xs truncate text-xs text-muted-foreground">{line.notes}</p>}</TableCell><TableCell>{line.estimatedQuantity} {line.itemUnit || 'units'}</TableCell><TableCell>{line.costEstimated && typeof line.estimatedUnitPrice === 'number' ? formatCurrency(line.estimatedUnitPrice) : 'Not entered'}</TableCell><TableCell className="font-medium">{line.costEstimated ? formatCurrency(line.estimatedTotalCost) : 'Pending'}</TableCell><TableCell><Badge variant="outline">{line.priority || 'Medium'}</Badge></TableCell>{canEdit && <TableCell><LineActions line={line} saving={saving} onEdit={onEdit} onRemove={onRemove} /></TableCell>}</TableRow>)}</TableBody></Table></div></CardContent></Card>;
+  return <Card><CardHeader><CardTitle className="text-lg">Complete expenditure list</CardTitle><CardDescription>Items without an estimated amount remain valid and can be priced later.</CardDescription></CardHeader><CardContent><div className="space-y-3 md:hidden">{items.map(line => <div key={line.id} className="rounded-lg border p-3"><div className="flex items-start justify-between gap-2"><div><p className="font-semibold">{line.itemName}</p><p className="text-sm text-muted-foreground">{line.estimatedQuantity} {line.itemUnit || 'units'} · {line.priority || 'Medium'} priority</p></div><p className="text-sm font-semibold">{line.costEstimated ? formatCurrency(line.estimatedTotalCost) : 'Amount pending'}</p></div>{line.notes && <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{line.notes}</p>}{canEdit && <LineActions line={line} saving={saving} onEdit={onEdit} onRemove={onRemove} />}</div>)}</div><div className="hidden overflow-x-auto md:block"><Table><TableHeader><TableRow><TableHead>Item</TableHead><TableHead>Quantity</TableHead><TableHead>Estimated unit price</TableHead><TableHead>Estimated total</TableHead><TableHead>Priority</TableHead>{canEdit && <TableHead className="text-right">Actions</TableHead>}</TableRow></TableHeader><TableBody>{items.map(line => <TableRow key={line.id}><TableCell><p className="font-medium">{line.itemName}</p>{line.notes && <p className="max-w-xs truncate text-xs text-muted-foreground">{line.notes}</p>}</TableCell><TableCell>{line.estimatedQuantity} {line.itemUnit || 'units'}</TableCell><TableCell>{line.costEstimated && typeof line.estimatedUnitPrice === 'number' ? formatCurrency(line.estimatedUnitPrice) : 'Not entered'}</TableCell><TableCell className="font-medium">{line.costEstimated ? formatCurrency(line.estimatedTotalCost) : 'Pending'}</TableCell><TableCell><Badge variant="outline">{line.priority || 'Medium'}</Badge></TableCell>{canEdit && <TableCell><LineActions line={line} saving={saving} onEdit={onEdit} onRemove={onRemove} /></TableCell>}</TableRow>)}</TableBody></Table></div></CardContent></Card>;
 }
 
 function LineActions({ line, saving, onEdit, onRemove }: { line: BudgetItem; saving: boolean; onEdit: (line: BudgetItem) => void; onRemove: (id: string) => void }) {

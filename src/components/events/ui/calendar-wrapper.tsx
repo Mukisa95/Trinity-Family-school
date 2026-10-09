@@ -152,11 +152,11 @@ export function CalendarWrapper({
     return (
       <div className="space-y-6">
         {/* Term Header */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800/60">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-2xl font-bold text-blue-900">{selectedTerm.name}</h2>
-              <p className="text-blue-700">{selectedYear.name} Academic Year</p>
+              <h2 className="text-2xl font-bold text-blue-900 dark:text-blue-200">{selectedTerm.name}</h2>
+              <p className="text-blue-700 dark:text-blue-300">{selectedYear.name} Academic Year</p>
             </div>
             <Badge variant={isCurrentTerm ? "default" : "secondary"} className="text-sm">
               {isCurrentTerm ? "Current Term" : today > termEnd ? "Past Term" : "Upcoming Term"}
@@ -165,26 +165,26 @@ export function CalendarWrapper({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
-              <p className="text-sm text-blue-600">Start Date</p>
+              <p className="text-sm text-blue-600 dark:text-blue-400">Start Date</p>
               <p className="font-semibold">{format(termStart, 'PPP')}</p>
             </div>
             <div>
-              <p className="text-sm text-blue-600">End Date</p>
+              <p className="text-sm text-blue-600 dark:text-blue-400">End Date</p>
               <p className="font-semibold">{format(termEnd, 'PPP')}</p>
             </div>
             <div>
-              <p className="text-sm text-blue-600">Duration</p>
+              <p className="text-sm text-blue-600 dark:text-blue-400">Duration</p>
               <p className="font-semibold">{Math.ceil((termEnd.getTime() - termStart.getTime()) / (1000 * 60 * 60 * 24))} days</p>
             </div>
           </div>
 
           {isCurrentTerm && (
             <div>
-              <div className="flex justify-between text-sm text-blue-700 mb-2">
+              <div className="flex justify-between text-sm text-blue-700 mb-2 dark:text-blue-300">
                 <span>Term Progress</span>
                 <span>{Math.round(termProgress)}%</span>
               </div>
-              <div className="w-full bg-blue-200 rounded-full h-2">
+              <div className="w-full bg-blue-200 rounded-full h-2 dark:bg-blue-900/40">
                 <div
                   className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${termProgress}%` }}
@@ -201,7 +201,7 @@ export function CalendarWrapper({
           </h3>
 
           {termFilteredEvents.length === 0 ? (
-            <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
+            <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center dark:border-slate-700">
               <p className="text-muted-foreground">No events scheduled for this term.</p>
               <Button
                 onClick={() => onEventCreate({
@@ -241,7 +241,7 @@ export function CalendarWrapper({
                           {event.start !== event.end && ` - ${format(new Date(event.end), 'PPP')}`}
                         </p>
                         {event.description && (
-                          <p className="text-sm text-gray-600">{event.description}</p>
+                          <p className="text-sm text-gray-600 dark:text-slate-300">{event.description}</p>
                         )}
                         {event.location && (
                           <p className="text-xs text-muted-foreground mt-1">📍 {event.location}</p>

@@ -59,10 +59,10 @@ export function EmployeeIDPreview({
   }
 
   return (
-    <Card className={cn("border-green-200 bg-green-50/50", className)}>
+    <Card className={cn("border-green-200 bg-green-50/50 dark:border-green-800/60 dark:bg-green-950/50", className)}>
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-green-800">Generated Employee ID</h3>
+          <h3 className="text-sm font-medium text-green-800 dark:text-green-200">Generated Employee ID</h3>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -71,7 +71,7 @@ export function EmployeeIDPreview({
               className="h-8 px-2"
             >
               {copied ? (
-                <Check className="h-3 w-3 text-green-600" />
+                <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
               ) : (
                 <Copy className="h-3 w-3" />
               )}
@@ -91,14 +91,14 @@ export function EmployeeIDPreview({
         <div className="space-y-3">
           {/* Main ID Display */}
           <div className="text-center">
-            <div className="text-2xl font-mono font-bold text-green-900 bg-white px-4 py-2 rounded-lg border border-green-200">
+            <div className="text-2xl font-mono font-bold text-green-900 bg-white px-4 py-2 rounded-lg border border-green-200 dark:text-green-200 dark:bg-slate-900 dark:border-green-800/60">
               {employeeID.id}
             </div>
           </div>
 
           {/* Breakdown */}
           <div className="space-y-2">
-            <p className="text-xs font-medium text-green-700">ID Breakdown:</p>
+            <p className="text-xs font-medium text-green-700 dark:text-green-300">ID Breakdown:</p>
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className="text-xs">
                 <span className="font-mono">{employeeID.breakdown.schoolLetter}</span>
@@ -128,7 +128,7 @@ export function EmployeeIDPreview({
           </div>
 
           {/* Format Explanation */}
-          <div className="text-xs text-muted-foreground bg-white p-2 rounded border">
+          <div className="text-xs text-muted-foreground bg-white p-2 rounded border dark:bg-slate-900">
             <p className="font-medium mb-1">Format: [School][Staff][Dept]-[Surname][Year]-[Random]</p>
             <p>Example: TSA-M87-726 (Trinity + Staff + Admin + Mukilo + 1987 + Random)</p>
           </div>

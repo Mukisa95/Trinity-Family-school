@@ -26,7 +26,7 @@ export function RequirementSignatureDisplay({
 
   if (error) {
     return (
-      <div className="text-xs text-red-500">
+      <div className="text-xs text-red-500 dark:text-red-400">
         Signature error
       </div>
     );
@@ -89,7 +89,7 @@ export function RequirementCollectionSignature({
 
   if (error) {
     return (
-      <div className="text-xs text-red-500">
+      <div className="text-xs text-red-500 dark:text-red-400">
         Signature error
       </div>
     );

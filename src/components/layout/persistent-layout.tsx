@@ -230,7 +230,7 @@ export function PersistentLayout({ children }: { children: ReactNode }) {
             >
               <AnimatePresence mode="wait">
                 {isLoadingSettings ? (
-                  <div className="h-8 w-24 bg-slate-100 animate-pulse rounded" />
+                  <div className="h-8 w-24 bg-slate-100 animate-pulse rounded dark:bg-slate-900" />
                 ) : (
                   <motion.div
                     key="text-content"
@@ -244,7 +244,7 @@ export function PersistentLayout({ children }: { children: ReactNode }) {
                       {currentSettings.generalInfo.name || "School Name"}
                     </h2>
                     {currentSettings.generalInfo.motto && (
-                      <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider leading-none mt-0.5 truncate w-full">
+                      <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider leading-none mt-0.5 truncate w-full dark:text-slate-400">
                         {currentSettings.generalInfo.motto}
                       </p>
                     )}

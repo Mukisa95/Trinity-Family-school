@@ -62,24 +62,24 @@ function ParentFeeCard({ fee, selectedTerm, selectedAcademicYear }: ParentFeeCar
         <div className="flex items-start justify-between mb-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-gray-900 text-sm truncate">{fee.name}</h3>
+              <h3 className="font-semibold text-gray-900 text-sm truncate dark:text-slate-100">{fee.name}</h3>
               {isFullyPaid ? (
-                <Check className="w-4 h-4 text-green-600 flex-shrink-0" weight="bold" />
+                <Check className="w-4 h-4 text-green-600 flex-shrink-0 dark:text-green-400" weight="bold" />
               ) : (
-                <X className="w-4 h-4 text-red-600 flex-shrink-0" weight="bold" />
+                <X className="w-4 h-4 text-red-600 flex-shrink-0 dark:text-red-400" weight="bold" />
               )}
             </div>
             {fee.description && (
-              <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{fee.description}</p>
+              <p className="text-xs text-gray-500 mt-0.5 line-clamp-1 dark:text-slate-400">{fee.description}</p>
             )}
           </div>
         </div>
 
         {/* Amount Summary - More Compact Grid */}
         <div className="grid grid-cols-3 gap-2 mb-2">
-          <div className="text-center p-1.5 bg-gray-50 rounded">
-            <div className="text-xs text-gray-500">Total</div>
-            <div className="text-xs font-bold text-gray-900">
+          <div className="text-center p-1.5 bg-gray-50 rounded dark:bg-slate-900">
+            <div className="text-xs text-gray-500 dark:text-slate-400">Total</div>
+            <div className="text-xs font-bold text-gray-900 dark:text-slate-100">
               {new Intl.NumberFormat('en-UG', {
                 style: 'currency',
                 currency: 'UGX',
@@ -88,9 +88,9 @@ function ParentFeeCard({ fee, selectedTerm, selectedAcademicYear }: ParentFeeCar
               }).format(fee.amount)}
             </div>
           </div>
-          <div className="text-center p-1.5 bg-green-50 rounded">
-            <div className="text-xs text-green-600">Paid</div>
-            <div className="text-xs font-bold text-green-700">
+          <div className="text-center p-1.5 bg-green-50 rounded dark:bg-green-950/40">
+            <div className="text-xs text-green-600 dark:text-green-400">Paid</div>
+            <div className="text-xs font-bold text-green-700 dark:text-green-300">
               {new Intl.NumberFormat('en-UG', {
                 style: 'currency',
                 currency: 'UGX',
@@ -99,9 +99,9 @@ function ParentFeeCard({ fee, selectedTerm, selectedAcademicYear }: ParentFeeCar
               }).format(fee.paid)}
             </div>
           </div>
-          <div className="text-center p-1.5 bg-red-50 rounded">
-            <div className="text-xs text-red-600">Balance</div>
-            <div className="text-xs font-bold text-red-700">
+          <div className="text-center p-1.5 bg-red-50 rounded dark:bg-red-950/40">
+            <div className="text-xs text-red-600 dark:text-red-400">Balance</div>
+            <div className="text-xs font-bold text-red-700 dark:text-red-300">
               {new Intl.NumberFormat('en-UG', {
                 style: 'currency',
                 currency: 'UGX',
@@ -114,11 +114,11 @@ function ParentFeeCard({ fee, selectedTerm, selectedAcademicYear }: ParentFeeCar
 
         {/* Progress Bar - More Compact */}
         <div className="mb-2">
-          <div className="flex justify-between items-center text-xs text-gray-600 mb-0.5">
+          <div className="flex justify-between items-center text-xs text-gray-600 mb-0.5 dark:text-slate-300">
             <span className="text-xs">Progress</span>
             <span className="font-medium text-xs">{Math.round(paymentProgress)}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-1.5">
+          <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-slate-800">
             <div
               className={`h-1.5 rounded-full transition-all duration-500 ${isFullyPaid ? 'bg-green-500' : 'bg-blue-500'
                 }`}
@@ -134,7 +134,7 @@ function ParentFeeCard({ fee, selectedTerm, selectedAcademicYear }: ParentFeeCar
               variant="ghost"
               size="sm"
               onClick={() => setShowPaymentHistory(!showPaymentHistory)}
-              className="w-full h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2"
+              className="w-full h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/40"
             >
               <Receipt className="w-3 h-3 mr-1" />
               {fee.payments.length} Payment{fee.payments.length > 1 ? 's' : ''}
@@ -144,13 +144,13 @@ function ParentFeeCard({ fee, selectedTerm, selectedAcademicYear }: ParentFeeCar
             {/* Expanded Payment History - More Compact */}
             {showPaymentHistory && (
               <div className="mt-2 space-y-1.5 border-t pt-2">
-                <div className="text-xs font-medium text-gray-700 mb-1">History</div>
+                <div className="text-xs font-medium text-gray-700 mb-1 dark:text-slate-200">History</div>
                 <div className="max-h-28 overflow-y-auto space-y-1">
                   {fee.payments.map((payment: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between text-xs bg-gray-50 p-1.5 rounded">
+                    <div key={index} className="flex items-center justify-between text-xs bg-gray-50 p-1.5 rounded dark:bg-slate-900">
                       <div className="flex items-center space-x-1.5">
-                        <Calendar className="w-3 h-3 text-gray-400" />
-                        <span className="text-gray-600 text-xs">
+                        <Calendar className="w-3 h-3 text-gray-400 dark:text-slate-400" />
+                        <span className="text-gray-600 text-xs dark:text-slate-300">
                           {new Date(payment.paymentDate).toLocaleDateString('en-GB', {
                             day: '2-digit',
                             month: 'short',
@@ -159,7 +159,7 @@ function ParentFeeCard({ fee, selectedTerm, selectedAcademicYear }: ParentFeeCar
                         </span>
                       </div>
                       <div className="flex items-center space-x-1.5">
-                        <span className="font-medium text-green-600 text-xs">
+                        <span className="font-medium text-green-600 text-xs dark:text-green-400">
                           {new Intl.NumberFormat('en-UG', {
                             style: 'currency',
                             currency: 'UGX',
@@ -173,7 +173,7 @@ function ParentFeeCard({ fee, selectedTerm, selectedAcademicYear }: ParentFeeCar
                   ))}
                 </div>
                 {fee.payments.length > 5 && (
-                  <div className="text-center text-xs text-gray-500 mt-1">
+                  <div className="text-center text-xs text-gray-500 mt-1 dark:text-slate-400">
                     Showing recent payments
                   </div>
                 )}
@@ -185,13 +185,13 @@ function ParentFeeCard({ fee, selectedTerm, selectedAcademicYear }: ParentFeeCar
         {/* Fee Breakdown - More Compact */}
         {fee.feeBreakdown && fee.feeBreakdown.length > 0 && (
           <div className="mt-2 pt-2 border-t">
-            <div className="text-xs font-medium text-gray-700 mb-2">Fee Breakdown</div>
+            <div className="text-xs font-medium text-gray-700 mb-2 dark:text-slate-200">Fee Breakdown</div>
             <div className="space-y-1">
               {fee.feeBreakdown.slice(0, 3).map((item: any, index: number) => (
                 <div key={index} className="flex justify-between items-center text-xs">
-                  <span className="text-gray-600 truncate flex-1 mr-2">{item.name}</span>
+                  <span className="text-gray-600 truncate flex-1 mr-2 dark:text-slate-300">{item.name}</span>
                   <div className="flex items-center space-x-2 text-xs">
-                    <span className="text-green-600 font-medium">
+                    <span className="text-green-600 font-medium dark:text-green-400">
                       {new Intl.NumberFormat('en-UG', {
                         style: 'currency',
                         currency: 'UGX',
@@ -199,8 +199,8 @@ function ParentFeeCard({ fee, selectedTerm, selectedAcademicYear }: ParentFeeCar
                         maximumFractionDigits: 0
                       }).format(item.paid)}
                     </span>
-                    <span className="text-gray-400">/</span>
-                    <span className="text-gray-900 font-medium">
+                    <span className="text-gray-400 dark:text-slate-400">/</span>
+                    <span className="text-gray-900 font-medium dark:text-slate-100">
                       {new Intl.NumberFormat('en-UG', {
                         style: 'currency',
                         currency: 'UGX',
@@ -212,7 +212,7 @@ function ParentFeeCard({ fee, selectedTerm, selectedAcademicYear }: ParentFeeCar
                 </div>
               ))}
               {fee.feeBreakdown.length > 3 && (
-                <div className="text-center text-xs text-gray-500 mt-1">
+                <div className="text-center text-xs text-gray-500 mt-1 dark:text-slate-400">
                   +{fee.feeBreakdown.length - 3} more items
                 </div>
               )}
@@ -425,9 +425,9 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
     if (displayedPupilFees.length === 0) {
       return (
         <div className="text-center py-8">
-          <CurrencyCircleDollar className="mx-auto h-10 w-10 text-gray-400 mb-3" />
-          <h3 className="text-sm font-medium text-gray-900 mb-1">No fees found</h3>
-          <p className="text-xs text-gray-500">
+          <CurrencyCircleDollar className="mx-auto h-10 w-10 text-gray-400 mb-3 dark:text-slate-400" />
+          <h3 className="text-sm font-medium text-gray-900 mb-1 dark:text-slate-100">No fees found</h3>
+          <p className="text-xs text-gray-500 dark:text-slate-400">
             No applicable fees for this term and class.
           </p>
         </div>
@@ -453,8 +453,8 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
       <div className="min-h-[300px] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
-          <p className="text-sm text-gray-600 font-medium">Loading fee information...</p>
-          <p className="text-xs text-gray-500 mt-1">Fetching your child's fee details</p>
+          <p className="text-sm text-gray-600 font-medium dark:text-slate-300">Loading fee information...</p>
+          <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">Fetching your child's fee details</p>
         </div>
       </div>
     );
@@ -473,7 +473,7 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
                 const year = academicYears.find(year => year.id === e.target.value);
                 setSelectedAcademicYear(year || null);
               }}
-              className="w-32 sm:w-auto px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-32 sm:w-auto px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:border-slate-700 dark:bg-slate-900"
               disabled={isLoadingAcademicYears}
             >
               <option value="">Select Year</option>
@@ -521,10 +521,10 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
 
         {/* Compact Summary Cards */}
         <div className="grid grid-cols-3 gap-3">
-          <Card className="p-3 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <Card className="p-3 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 dark:from-blue-950/40 dark:to-blue-950/40 dark:border-blue-800/60">
             <div className="text-center">
-              <div className="text-xs text-blue-600 mb-1">Total Fees</div>
-              <div className="text-sm font-bold text-blue-900">
+              <div className="text-xs text-blue-600 mb-1 dark:text-blue-400">Total Fees</div>
+              <div className="text-sm font-bold text-blue-900 dark:text-blue-200">
                 {new Intl.NumberFormat('en-UG', {
                   style: 'currency',
                   currency: 'UGX',
@@ -534,10 +534,10 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
               </div>
             </div>
           </Card>
-          <Card className="p-3 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <Card className="p-3 bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-950/40 dark:to-green-950/40 dark:border-green-800/60">
             <div className="text-center">
-              <div className="text-xs text-green-600 mb-1">Paid</div>
-              <div className="text-sm font-bold text-green-900">
+              <div className="text-xs text-green-600 mb-1 dark:text-green-400">Paid</div>
+              <div className="text-sm font-bold text-green-900 dark:text-green-200">
                 {new Intl.NumberFormat('en-UG', {
                   style: 'currency',
                   currency: 'UGX',
@@ -547,10 +547,10 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
               </div>
             </div>
           </Card>
-          <Card className="p-3 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+          <Card className="p-3 bg-gradient-to-br from-red-50 to-red-100 border-red-200 dark:from-red-950/40 dark:to-red-950/40 dark:border-red-800/60">
             <div className="text-center">
-              <div className="text-xs text-red-600 mb-1">Balance</div>
-              <div className="text-sm font-bold text-red-900">
+              <div className="text-xs text-red-600 mb-1 dark:text-red-400">Balance</div>
+              <div className="text-sm font-bold text-red-900 dark:text-red-200">
                 {new Intl.NumberFormat('en-UG', {
                   style: 'currency',
                   currency: 'UGX',

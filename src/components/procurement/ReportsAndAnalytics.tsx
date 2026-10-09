@@ -27,7 +27,7 @@ export function ReportsAndAnalytics({
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">Reports & Analytics</h2>
-        <p className="text-gray-600">Detailed reports and budget comparisons</p>
+        <p className="text-gray-600 dark:text-slate-300">Detailed reports and budget comparisons</p>
       </div>
 
       <Card>
@@ -38,7 +38,7 @@ export function ReportsAndAnalytics({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-500 dark:text-slate-400">
             Reports and analytics features coming soon...
           </div>
         </CardContent>

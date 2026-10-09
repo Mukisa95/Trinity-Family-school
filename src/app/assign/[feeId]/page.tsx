@@ -875,12 +875,12 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          className="h-[34px] min-w-[95px] rounded-full border border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50"
+          className="h-[34px] min-w-[95px] rounded-full border border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
         >
           {(academicYears.find(y => y.id === selectedYearId)?.name) || "Year"}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[200px] max-h-[70vh] overflow-y-auto bg-white border shadow-lg z-[999999]">
+      <DropdownMenuContent align="start" className="min-w-[200px] max-h-[70vh] overflow-y-auto bg-white border shadow-lg z-[999999] dark:bg-slate-900">
         <DropdownMenuLabel className="text-xs sticky top-0 bg-popover z-10">Select Year</DropdownMenuLabel>
         {academicYears.map(y => (
           <DropdownMenuItem
@@ -913,13 +913,13 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          className="h-[34px] min-w-[95px] rounded-full border border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50"
+          className="h-[34px] min-w-[95px] rounded-full border border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
           disabled={!selectedYearId}
         >
           {(selectedYearId && academicYears.find(y => y.id === selectedYearId)?.terms.find(t => t.id === selectedTermId)?.name) || "Term"}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[180px] max-h-[50vh] overflow-y-auto bg-white border shadow-lg z-[999999]">
+      <DropdownMenuContent align="start" className="min-w-[180px] max-h-[50vh] overflow-y-auto bg-white border shadow-lg z-[999999] dark:bg-slate-900">
         <DropdownMenuLabel className="text-xs sticky top-0 bg-popover z-10">Select Term</DropdownMenuLabel>
         {(selectedYearId
           ? academicYears.find(y => y.id === selectedYearId)?.terms || []
@@ -1059,8 +1059,8 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
             <CardTitle className="text-xs text-muted-foreground">Amount Paid</CardTitle>
           </CardHeader>
           <CardContent className="py-2 flex items-center gap-2">
-            <Wallet className="w-4 h-4 text-emerald-500" />
-            <p className="text-2xl font-semibold leading-6 text-emerald-600">{formatCurrency(summary.totalPaid)}</p>
+            <Wallet className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+            <p className="text-2xl font-semibold leading-6 text-emerald-600 dark:text-emerald-400">{formatCurrency(summary.totalPaid)}</p>
           </CardContent>
         </Card>
         <Card className="py-2">
@@ -1068,14 +1068,14 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
             <CardTitle className="text-xs text-muted-foreground">Outstanding</CardTitle>
           </CardHeader>
           <CardContent className="py-2">
-            <p className="text-2xl font-semibold leading-6 text-amber-600">
+            <p className="text-2xl font-semibold leading-6 text-amber-600 dark:text-amber-400">
               {formatCurrency(summary.outstanding)}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="border-blue-100">
+      <Card className="border-blue-100 dark:border-blue-800/60">
         <CardHeader className="py-2">
           <CardTitle>Assignment Overview</CardTitle>
         </CardHeader>
@@ -1107,10 +1107,10 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                   </Button>
                 </div>
               )}
-              <div className="rounded-xl border border-blue-50 shadow-inner shadow-blue-100/40">
+              <div className="rounded-xl border border-blue-50 shadow-inner shadow-blue-100/40 dark:border-blue-800/60">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-blue-50/70">
+                  <TableRow className="bg-blue-50/70 dark:bg-blue-950/70">
                     {!isSelectedPast && (
                       <TableHead className="w-10 align-middle">
                         <Checkbox
@@ -1153,7 +1153,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                           <div>
                             <Link
                               href={`/fees/collect/${record.pupil.id}`}
-                              className="text-blue-600 hover:underline"
+                              className="text-blue-600 hover:underline dark:text-blue-400"
                             >
                               {formatPupilDisplayName(record.pupil)}
                             </Link>
@@ -1174,7 +1174,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-emerald-600 hover:text-emerald-700"
+                            className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
                             onClick={() => toggleRow(record.pupil.id)}
                           >
                             {formatCurrency(record.totalPaid)}
@@ -1185,7 +1185,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                             )}
                           </Button>
                         </TableCell>
-                        <TableCell className="text-right font-medium text-amber-600">
+                        <TableCell className="text-right font-medium text-amber-600 dark:text-amber-400">
                           {formatCurrency(record.balance)}
                         </TableCell>
                         {!isSelectedPast && (
@@ -1278,7 +1278,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                         )}
                       </TableRow>
                       {expandedRows.has(record.pupil.id) && (
-                        <TableRow className="bg-blue-50/40">
+                        <TableRow className="bg-blue-50/40 dark:bg-blue-950/40">
                           <TableCell colSpan={!isSelectedPast ? 7 : 5} className="p-4">
                             {record.payments.length === 0 ? (
                               <Alert>
@@ -1290,7 +1290,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                             ) : (
                               <div className="space-y-2">
                                 <p className="text-sm font-semibold">Payment History</p>
-                                <div className="rounded-lg border bg-white">
+                                <div className="rounded-lg border bg-white dark:bg-slate-900">
                                   <Table>
                                     <TableHeader>
                                       <TableRow>

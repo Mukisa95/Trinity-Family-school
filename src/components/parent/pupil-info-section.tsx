@@ -111,7 +111,7 @@ export function PupilInfoSection({ pupil }: PupilInfoSectionProps) {
         {pupil.address && (
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
             <h3 className="text-lg font-semibold mb-3 flex items-center">
-              <MapPin className="w-5 h-5 mr-2 text-blue-500" />
+              <MapPin className="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400" />
               Address
             </h3>
             <p className="text-gray-600 dark:text-gray-400">{pupil.address}</p>
@@ -122,7 +122,7 @@ export function PupilInfoSection({ pupil }: PupilInfoSectionProps) {
         {pupil.guardians && pupil.guardians.length > 0 && (
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <Users className="w-5 h-5 mr-2 text-indigo-500" />
+              <Users className="w-5 h-5 mr-2 text-indigo-500 dark:text-indigo-400" />
               Guardian Information
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">

@@ -78,17 +78,17 @@ export const AccountBalance: React.FC = () => {
     let icon: React.ReactNode;
     switch (status.status) {
       case 'good':
-        icon = <CheckCircle className="h-4 w-4 text-green-600" />;
+        icon = <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />;
         break;
       case 'moderate':
-        icon = <AlertCircle className="h-4 w-4 text-yellow-600" />;
+        icon = <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />;
         break;
       case 'low':
       case 'insufficient':
-        icon = <AlertTriangle className="h-4 w-4 text-orange-600" />;
+        icon = <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />;
         break;
       default:
-        icon = <AlertTriangle className="h-4 w-4 text-red-600" />;
+        icon = <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />;
     }
 
     return {
@@ -243,7 +243,7 @@ export const AccountBalance: React.FC = () => {
               {balanceStatus.status === 'low' && 'Low balance'}
               {balanceStatus.status === 'insufficient' && 'Insufficient balance'}
             </span>
-            <span className="text-xs text-gray-500 ml-auto">
+            <span className="text-xs text-gray-500 ml-auto dark:text-slate-400">
               Updates automatically
             </span>
           </CardDescription>
@@ -253,10 +253,10 @@ export const AccountBalance: React.FC = () => {
             <div className="text-2xl font-bold">
               {formatCurrency(accountData.balance || '0', currency)}
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 dark:text-slate-300">
               ≈ {estimatedSMSCount.toLocaleString()} SMS messages
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-500 dark:text-slate-400">
               @ {formatCurrency('25', currency)}
             </div>
           </div>
@@ -265,14 +265,14 @@ export const AccountBalance: React.FC = () => {
           {isAutoTopUpEnabled && autoTopUpConfig && (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-blue-600" />
+                <Zap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 <span className="text-sm font-medium">Auto Top-up Active</span>
                 <Badge variant="default" className="text-xs">
                   <CheckCircle className="h-3 w-3 mr-1" />
                   ON
                 </Badge>
               </div>
-              <div className="text-xs text-gray-600 space-y-1">
+              <div className="text-xs text-gray-600 space-y-1 dark:text-slate-300">
                 <div>Threshold: {formatCurrency(autoTopUpConfig.threshold.toString(), currency)}</div>
                 <div>Amount: {formatCurrency(autoTopUpConfig.amount.toString(), currency)}</div>
                 <div>Today: {autoTopUpConfig.topUpCount || 0}/{autoTopUpConfig.maxTopUpsPerDay || 3}</div>
@@ -282,9 +282,9 @@ export const AccountBalance: React.FC = () => {
 
           {/* Low Balance Warning */}
           {balanceStatus.status === 'low' && (
-            <Alert variant="destructive" className="bg-orange-50 border-orange-200">
+            <Alert variant="destructive" className="bg-orange-50 border-orange-200 dark:bg-orange-950/40 dark:border-orange-800/60">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-orange-700">
+              <AlertDescription className="text-orange-700 dark:text-orange-300">
                 Your balance is running low. Consider topping up to avoid service interruption.
               </AlertDescription>
             </Alert>

@@ -24,41 +24,41 @@ const sections = [
     id: 'information',
     title: 'Information',
     icon: Info,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200'
+    color: 'text-blue-600 dark:text-blue-400',
+    bgColor: 'bg-blue-50 dark:bg-blue-950/40',
+    borderColor: 'border-blue-200 dark:border-blue-800/60'
   },
   {
     id: 'fees',
     title: 'Fees',
     icon: Receipt,
-    color: 'text-green-600',
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-200'
+    color: 'text-green-600 dark:text-green-400',
+    bgColor: 'bg-green-50 dark:bg-green-950/40',
+    borderColor: 'border-green-200 dark:border-green-800/60'
   },
   {
     id: 'requirements',
     title: 'Requirements',
     icon: Shirt,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-200'
+    color: 'text-purple-600 dark:text-purple-400',
+    bgColor: 'bg-purple-50 dark:bg-purple-950/40',
+    borderColor: 'border-purple-200 dark:border-purple-800/60'
   },
   {
     id: 'attendance',
     title: 'Attendance',
     icon: BarChart3,
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-50',
-    borderColor: 'border-orange-200'
+    color: 'text-orange-600 dark:text-orange-400',
+    bgColor: 'bg-orange-50 dark:bg-orange-950/40',
+    borderColor: 'border-orange-200 dark:border-orange-800/60'
   },
   {
     id: 'results',
     title: 'Results',
     icon: BookOpen,
-    color: 'text-indigo-600',
-    bgColor: 'bg-indigo-50',
-    borderColor: 'border-indigo-200'
+    color: 'text-indigo-600 dark:text-indigo-400',
+    bgColor: 'bg-indigo-50 dark:bg-indigo-950/40',
+    borderColor: 'border-indigo-200 dark:border-indigo-800/60'
   }
 ];
 
@@ -82,7 +82,7 @@ export function SwipeablePupilDetail({ pupil, children, onSectionChange }: Swipe
       {/* Section Navigation */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-900">Pupil Details</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Pupil Details</h2>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -116,7 +116,7 @@ export function SwipeablePupilDetail({ pupil, children, onSectionChange }: Swipe
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
                   activeIndex === index
                     ? `${section.bgColor} ${section.borderColor} border-2 ${section.color}`
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -132,7 +132,7 @@ export function SwipeablePupilDetail({ pupil, children, onSectionChange }: Swipe
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-slate-800">
           <div
             className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300 ease-out"
             style={{ width: `${((activeIndex + 1) / sections.length) * 100}%` }}
@@ -167,7 +167,7 @@ export function SwipeablePupilDetail({ pupil, children, onSectionChange }: Swipe
                       <Icon className="mr-3 h-6 w-6" />
                       {section.title}
                     </CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-gray-600 mt-1 dark:text-slate-300">
                       Swipe left or right to navigate between sections
                     </p>
                   </CardHeader>
@@ -185,7 +185,7 @@ export function SwipeablePupilDetail({ pupil, children, onSectionChange }: Swipe
 
         {/* Swipe Instructions */}
         <div className="mt-4 text-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-slate-400">
             💡 <strong>Touch Tip:</strong> Swipe left or right to navigate between sections
           </p>
         </div>

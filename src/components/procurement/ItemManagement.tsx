@@ -237,7 +237,7 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Item Management</h2>
-          <p className="text-gray-600">Manage your procurement items master list</p>
+          <p className="text-gray-600 dark:text-slate-300">Manage your procurement items master list</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
@@ -305,7 +305,7 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
                 </div>
               )}
 
-              <div className="space-y-3 rounded-md border border-sky-100 bg-sky-50/50 p-3 sm:col-span-2">
+              <div className="space-y-3 rounded-md border border-sky-100 bg-sky-50/50 p-3 sm:col-span-2 dark:border-sky-800/60 dark:bg-sky-950/50">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                   <Label htmlFor="purchaseUnit">Purchase pack *</Label>
@@ -478,7 +478,7 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={8} className="text-center py-8 text-gray-500 dark:text-slate-400">
                     No items found. {searchTerm && "Try adjusting your search terms."}
                   </TableCell>
                 </TableRow>

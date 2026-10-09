@@ -335,7 +335,7 @@ export default function HistoryLogPage() {
               <p className="text-sm text-muted-foreground">Sensitive</p>
               <p className="text-2xl font-semibold">{logStats.sensitive}</p>
             </div>
-            <ShieldCheck className="h-5 w-5 text-amber-600" />
+            <ShieldCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </CardContent>
         </Card>
         <Card>
@@ -344,7 +344,7 @@ export default function HistoryLogPage() {
               <p className="text-sm text-muted-foreground">Exports</p>
               <p className="text-2xl font-semibold">{logStats.exports}</p>
             </div>
-            <Download className="h-5 w-5 text-blue-600" />
+            <Download className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           </CardContent>
         </Card>
         <Card>
@@ -353,14 +353,14 @@ export default function HistoryLogPage() {
               <p className="text-sm text-muted-foreground">Reversals</p>
               <p className="text-2xl font-semibold">{logStats.reversals}</p>
             </div>
-            <Undo2 className="h-5 w-5 text-red-600" />
+            <Undo2 className="h-5 w-5 text-red-600 dark:text-red-400" />
           </CardContent>
         </Card>
       </div>
 
-      <div className="flex flex-wrap gap-3 items-center bg-white/40 backdrop-blur-md p-4 rounded-2xl border border-gray-150 shadow-sm">
+      <div className="flex flex-wrap gap-3 items-center bg-white/40 backdrop-blur-md p-4 rounded-2xl border border-gray-150 shadow-sm dark:bg-slate-900/40">
         <Select value={entity} onValueChange={setEntity}>
-          <SelectTrigger className="rounded-full bg-white/80 w-full sm:w-[200px]">
+          <SelectTrigger className="rounded-full bg-white/80 w-full sm:w-[200px] dark:bg-slate-900/80">
             <SelectValue placeholder="All modules" />
           </SelectTrigger>
           <SelectContent>
@@ -373,7 +373,7 @@ export default function HistoryLogPage() {
           </SelectContent>
         </Select>
         <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="rounded-full bg-white/80 w-full sm:w-[200px]">
+          <SelectTrigger className="rounded-full bg-white/80 w-full sm:w-[200px] dark:bg-slate-900/80">
             <SelectValue placeholder="All categories" />
           </SelectTrigger>
           <SelectContent>
@@ -385,7 +385,7 @@ export default function HistoryLogPage() {
           </SelectContent>
         </Select>
         <Select value={action} onValueChange={setAction}>
-          <SelectTrigger className="rounded-full bg-white/80 w-full sm:w-[200px]">
+          <SelectTrigger className="rounded-full bg-white/80 w-full sm:w-[200px] dark:bg-slate-900/80">
             <SelectValue placeholder="All actions" />
           </SelectTrigger>
           <SelectContent>

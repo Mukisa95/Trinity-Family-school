@@ -13,10 +13,10 @@ interface ColorLegendProps {
 
 export function ColorLegend({ colors, className = "" }: ColorLegendProps) {
   return (
-    <Card className={`shadow-lg border-0 bg-gradient-to-br from-white to-gray-50 ${className}`}>
+    <Card className={`shadow-lg border-0 bg-gradient-to-br from-white to-gray-50  dark:from-slate-900 dark:to-slate-900${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <Palette className="h-5 w-5 text-blue-600" />
+          <Palette className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           Color Legend
         </CardTitle>
       </CardHeader>
@@ -27,7 +27,7 @@ export function ColorLegend({ colors, className = "" }: ColorLegendProps) {
               className="w-4 h-4 rounded border shadow-sm" 
               style={{ backgroundColor: color }}
             />
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-medium text-gray-700 dark:text-slate-200">
               {type}
             </span>
           </div>

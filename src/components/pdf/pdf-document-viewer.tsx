@@ -69,8 +69,8 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 
 const roundControlClass = cn(
   "inline-flex h-11 w-11 shrink-0 cursor-pointer touch-manipulation items-center justify-center rounded-full sm:h-9 sm:w-9",
-  "border border-slate-200 bg-white text-slate-700 shadow-sm transition-colors duration-150",
-  "hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700",
+  "border border-slate-200 bg-white text-slate-700 shadow-sm transition-colors duration-150 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200",
+  "hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:border-blue-800/60 dark:hover:bg-blue-950/40 dark:hover:text-blue-300",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
   "disabled:cursor-not-allowed disabled:opacity-40",
 );
@@ -171,7 +171,7 @@ function PDFPageCanvas({
 
   return (
     <div className={cn("relative flex items-center justify-center", className)}>
-      <canvas ref={canvasRef} className="block bg-white shadow-[0_18px_55px_-22px_rgba(15,23,42,0.45)]" />
+      <canvas ref={canvasRef} data-theme-surface="paper" className="block bg-white shadow-[0_18px_55px_-22px_rgba(15,23,42,0.45)]" />
       {searchHits.length > 0 && (
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
           {searchHits.map((hit) => (
@@ -192,12 +192,12 @@ function PDFPageCanvas({
         </div>
       )}
       {rendering && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/75 text-blue-700 backdrop-blur-[1px]">
+        <div data-theme-surface="paper-overlay" className="absolute inset-0 flex items-center justify-center bg-white/75 text-blue-700 backdrop-blur-[1px]">
           <Loader2 className="h-7 w-7 animate-spin motion-reduce:animate-none" aria-label="Rendering PDF page" />
         </div>
       )}
       {renderError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white p-6 text-center text-sm text-red-700" role="alert">
+        <div data-theme-surface="paper-error" className="absolute inset-0 flex items-center justify-center bg-white p-6 text-center text-sm text-red-700" role="alert">
           {renderError}
         </div>
       )}
@@ -274,6 +274,7 @@ function ContinuousPDFPage({
       style={{ minHeight: Math.max(1, pageSlotHeight), width: renderedWidth }}
     >
       <div
+        data-theme-surface="paper"
         className="relative flex items-center justify-center bg-white shadow-[0_18px_55px_-22px_rgba(15,23,42,0.45)]"
         style={{ width: renderedWidth, height: renderedHeight }}
       >
@@ -377,14 +378,14 @@ function PDFThumbnail({
       aria-label={`Go to page ${pageNumber}`}
       aria-current={selected ? "page" : undefined}
       className={cn(
-        "mx-auto flex w-[148px] cursor-pointer flex-col items-center rounded-2xl border p-3 text-slate-600 transition-colors duration-150",
+        "mx-auto flex w-[148px] cursor-pointer flex-col items-center rounded-2xl border p-3 text-slate-600 transition-colors duration-150 dark:text-slate-300",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
         selected
-          ? "border-blue-400 bg-blue-50 text-blue-800 shadow-sm"
-          : "border-transparent bg-transparent hover:border-slate-200 hover:bg-white",
+          ? "border-blue-400 bg-blue-50 text-blue-800 shadow-sm dark:bg-blue-950/40 dark:text-blue-200"
+          : "border-transparent bg-transparent hover:border-slate-200 hover:bg-white dark:hover:border-slate-700 dark:hover:bg-slate-900",
       )}
     >
-      <span className="flex min-h-[148px] w-[120px] items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <span data-theme-surface="paper" className="flex min-h-[148px] w-[120px] items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         {visible ? <canvas ref={canvasRef} className="block max-w-full" /> : <Loader2 className="h-5 w-5 animate-spin text-slate-400 motion-reduce:animate-none" />}
       </span>
       <span className="mt-2 text-xs font-semibold">Page {pageNumber}</span>
@@ -831,9 +832,9 @@ export function PDFDocumentViewer({
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center bg-slate-100 text-slate-700">
-        <div className="rounded-3xl border border-slate-200 bg-white px-8 py-7 text-center shadow-xl shadow-slate-300/40">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600 motion-reduce:animate-none" />
+      <div className="flex h-full items-center justify-center bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+        <div className="rounded-3xl border border-slate-200 bg-white px-8 py-7 text-center shadow-xl shadow-slate-300/40 dark:shadow-black/30 dark:border-slate-700 dark:bg-slate-900">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600 motion-reduce:animate-none dark:text-blue-400" />
           <p className="mt-4 text-sm font-semibold">Opening the PDF viewer…</p>
         </div>
       </div>
@@ -842,10 +843,10 @@ export function PDFDocumentViewer({
 
   if (loadError || !pdf) {
     return (
-      <div className="flex h-full items-center justify-center bg-slate-100 p-6">
-        <div className="max-w-lg rounded-3xl border border-red-200 bg-white p-7 text-center shadow-xl shadow-slate-300/40" role="alert">
-          <p className="text-base font-bold text-slate-950">The advanced viewer could not open this PDF</p>
-          <p className="mt-2 text-sm text-red-700">{loadError || "The document could not be read."}</p>
+      <div className="flex h-full items-center justify-center bg-slate-100 p-6 dark:bg-slate-900">
+        <div className="max-w-lg rounded-3xl border border-red-200 bg-white p-7 text-center shadow-xl shadow-slate-300/40 dark:shadow-black/30 dark:border-red-800/60 dark:bg-slate-900" role="alert">
+          <p className="text-base font-bold text-slate-950 dark:text-slate-100">The advanced viewer could not open this PDF</p>
+          <p className="mt-2 text-sm text-red-700 dark:text-red-300">{loadError || "The document could not be read."}</p>
           <button type="button" onClick={openExternally} className="mt-5 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
             <ExternalLink className="h-4 w-4" /> Open in browser
           </button>
@@ -855,21 +856,21 @@ export function PDFDocumentViewer({
   }
 
   return (
-    <div ref={viewerRootRef} className="flex h-full min-h-0 flex-col bg-slate-100 text-slate-900">
+    <div ref={viewerRootRef} className="flex h-full min-h-0 flex-col bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
       {objectUrl && <iframe ref={printFrameRef} src={objectUrl} title={`${title} print source`} className="pointer-events-none fixed h-0 w-0 border-0 opacity-0" aria-hidden="true" />}
 
-      <div className="flex shrink-0 flex-col border-b border-slate-200 bg-white shadow-sm">
+      <div className="flex shrink-0 flex-col border-b border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div className="flex min-h-14 flex-wrap items-center gap-1.5 px-2 py-1.5 sm:min-h-12 sm:px-3 lg:flex-nowrap lg:overflow-x-auto">
-          <button type="button" onClick={() => setSidebarOpen((open) => !open)} className={cn(roundControlClass, sidebarOpen && "border-blue-300 bg-blue-50 text-blue-700")} aria-label={sidebarOpen ? "Hide page thumbnails" : "Show page thumbnails"} aria-pressed={sidebarOpen} title={sidebarOpen ? "Hide thumbnails" : "Show thumbnails"}>
+          <button type="button" onClick={() => setSidebarOpen((open) => !open)} className={cn(roundControlClass, sidebarOpen && "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300")} aria-label={sidebarOpen ? "Hide page thumbnails" : "Show page thumbnails"} aria-pressed={sidebarOpen} title={sidebarOpen ? "Hide thumbnails" : "Show thumbnails"}>
             <PanelLeft className="h-4 w-4" />
           </button>
 
-          <div className="mx-0.5 h-6 w-px shrink-0 bg-slate-200" />
+          <div className="mx-0.5 h-6 w-px shrink-0 bg-slate-200 dark:bg-slate-800" />
 
           <button type="button" onClick={() => navigateToPage(pageNumber - 1)} disabled={pageNumber <= 1} className={roundControlClass} aria-label="Previous page" title="Previous page">
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <div className="flex h-11 shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 shadow-inner sm:h-9">
+          <div className="flex h-11 shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 shadow-inner sm:h-9 dark:border-slate-700 dark:bg-slate-900">
             <label htmlFor="pdf-page-number" className="sr-only">Current page</label>
             <input
               id="pdf-page-number"
@@ -878,15 +879,15 @@ export function PDFDocumentViewer({
               onChange={(event) => setPageInput(event.target.value.replace(/\D/g, ""))}
               onBlur={commitPageInput}
               onKeyDown={(event) => { if (event.key === "Enter") commitPageInput(); }}
-              className="h-9 w-9 rounded-full border border-slate-200 bg-white text-center text-xs font-bold text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 sm:h-7"
+              className="h-9 w-9 rounded-full border border-slate-200 bg-white text-center text-xs font-bold text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 sm:h-7 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-blue-800/60"
             />
-            <span className="whitespace-nowrap pr-1 text-[11px] font-medium text-slate-500">/ {totalPages}</span>
+            <span className="whitespace-nowrap pr-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">/ {totalPages}</span>
           </div>
           <button type="button" onClick={() => navigateToPage(pageNumber + 1)} disabled={pageNumber >= totalPages} className={roundControlClass} aria-label="Next page" title="Next page">
             <ChevronRight className="h-4 w-4" />
           </button>
 
-          <div className="mx-0.5 h-6 w-px shrink-0 bg-slate-200" />
+          <div className="mx-0.5 h-6 w-px shrink-0 bg-slate-200 dark:bg-slate-800" />
           {!searchOpen && (
             <button
               type="button"
@@ -902,14 +903,14 @@ export function PDFDocumentViewer({
             </button>
           )}
           {searchOpen && (
-            <div className="order-last flex min-h-14 w-full items-center gap-2 border-t border-slate-100 bg-slate-50 px-2 py-1.5 sm:min-h-11 sm:px-3 lg:order-none lg:min-h-0 lg:min-w-[300px] lg:flex-1 lg:border-t-0 lg:bg-transparent lg:px-0 lg:py-0">
-            <div className="relative flex h-11 min-w-0 flex-1 items-center rounded-full border border-slate-200 bg-white pl-3 pr-1.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 sm:h-9">
-              <button type="button" onClick={() => searchInputRef.current?.focus()} className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Focus PDF search" title="Search this PDF (Ctrl F)"><Search className="h-4 w-4" /></button>
+            <div className="order-last flex min-h-14 w-full items-center gap-2 border-t border-slate-100 bg-slate-50 px-2 py-1.5 sm:min-h-11 sm:px-3 lg:order-none lg:min-h-0 lg:min-w-[300px] lg:flex-1 lg:border-t-0 lg:bg-transparent lg:px-0 lg:py-0 dark:border-slate-700 dark:bg-slate-900">
+            <div className="relative flex h-11 min-w-0 flex-1 items-center rounded-full border border-slate-200 bg-white pl-3 pr-1.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 sm:h-9 dark:border-slate-700 dark:bg-slate-900">
+              <button type="button" onClick={() => searchInputRef.current?.focus()} className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-blue-300" aria-label="Focus PDF search" title="Search this PDF (Ctrl F)"><Search className="h-4 w-4" /></button>
               <label htmlFor="pdf-search" className="sr-only">Search this PDF</label>
-              <input ref={searchInputRef} id="pdf-search" type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search this PDF" className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-slate-400" />
-              {searching ? <Loader2 className="h-4 w-4 animate-spin text-blue-600 motion-reduce:animate-none" aria-label="Searching PDF" /> : searchQuery ? <button type="button" onClick={() => setSearchQuery("")} className="flex h-11 w-11 cursor-pointer touch-manipulation items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:h-7 sm:w-7" aria-label="Clear PDF search"><X className="h-4 w-4" /></button> : null}
+              <input ref={searchInputRef} id="pdf-search" type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search this PDF" className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-slate-400 dark:placeholder:text-slate-400" />
+              {searching ? <Loader2 className="h-4 w-4 animate-spin text-blue-600 motion-reduce:animate-none dark:text-blue-400" aria-label="Searching PDF" /> : searchQuery ? <button type="button" onClick={() => setSearchQuery("")} className="flex h-11 w-11 cursor-pointer touch-manipulation items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:h-7 sm:w-7 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100" aria-label="Clear PDF search"><X className="h-4 w-4" /></button> : null}
             </div>
-            <span className="shrink-0 text-xs font-semibold text-slate-600" aria-live="polite">{searching ? "…" : searchQuery.trim().length < 2 ? "Type 2+ letters" : searchHits.length ? `${activeSearchHit + 1}/${searchHits.length}` : "No matches"}</span>
+            <span className="shrink-0 text-xs font-semibold text-slate-600 dark:text-slate-300" aria-live="polite">{searching ? "…" : searchQuery.trim().length < 2 ? "Type 2+ letters" : searchHits.length ? `${activeSearchHit + 1}/${searchHits.length}` : "No matches"}</span>
             <button type="button" onClick={() => moveSearchHit(-1)} disabled={!searchHits.length} className={roundControlClass} aria-label="Previous search result"><ChevronLeft className="h-4 w-4" /></button>
             <button type="button" onClick={() => moveSearchHit(1)} disabled={!searchHits.length} className={roundControlClass} aria-label="Next search result"><ChevronRight className="h-4 w-4" /></button>
             <button type="button" onClick={() => setSearchOpen(false)} className={roundControlClass} aria-label="Close PDF search"><X className="h-4 w-4" /></button>
@@ -920,10 +921,10 @@ export function PDFDocumentViewer({
 
       <div className="relative flex min-h-0 flex-1">
         {sidebarOpen && (
-          <aside className="absolute inset-y-0 left-0 z-20 w-[min(82vw,260px)] overflow-y-auto border-r border-slate-200 bg-slate-50/95 py-3 shadow-xl backdrop-blur-sm lg:static lg:w-[184px] lg:shadow-none" aria-label="Page thumbnails">
+          <aside className="absolute inset-y-0 left-0 z-20 w-[min(82vw,260px)] overflow-y-auto border-r border-slate-200 bg-slate-50/95 py-3 shadow-xl backdrop-blur-sm lg:static lg:w-[184px] lg:shadow-none dark:border-slate-700 dark:bg-slate-900/95" aria-label="Page thumbnails">
             <div className="mb-2 flex items-center justify-between px-4">
-              <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Pages</h3>
-              <button type="button" onClick={() => setSidebarOpen(false)} className="flex h-11 w-11 cursor-pointer touch-manipulation items-center justify-center rounded-full text-slate-500 hover:bg-slate-200 sm:h-9 sm:w-9 lg:hidden" aria-label="Close page thumbnails"><X className="h-4 w-4" /></button>
+              <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Pages</h3>
+              <button type="button" onClick={() => setSidebarOpen(false)} className="flex h-11 w-11 cursor-pointer touch-manipulation items-center justify-center rounded-full text-slate-500 hover:bg-slate-200 sm:h-9 sm:w-9 lg:hidden dark:text-slate-400 dark:hover:bg-slate-800" aria-label="Close page thumbnails"><X className="h-4 w-4" /></button>
             </div>
             <div className="space-y-2">
               {Array.from({ length: totalPages }, (_, index) => index + 1).map((candidatePage) => (
@@ -933,7 +934,7 @@ export function PDFDocumentViewer({
           </aside>
         )}
 
-        <main ref={viewportRef} className="min-h-0 min-w-0 flex-1 overflow-auto bg-[radial-gradient(circle_at_top,#ffffff_0%,#eef2f7_62%,#e2e8f0_100%)] p-3 sm:p-6" aria-label={`Viewing ${title}, page ${pageNumber} of ${totalPages}`}>
+        <main ref={viewportRef} className="min-h-0 min-w-0 flex-1 overflow-auto bg-[radial-gradient(circle_at_top,#ffffff_0%,#eef2f7_62%,#e2e8f0_100%)] dark:bg-[radial-gradient(circle_at_top,#1e293b_0%,#0f172a_62%,#020617_100%)] p-3 sm:p-6" aria-label={`Viewing ${title}, page ${pageNumber} of ${totalPages}`}>
           <div className="flex min-h-full w-max min-w-full flex-col items-center gap-3 sm:gap-6" aria-label="Continuous PDF pages">
             {Array.from({ length: totalPages }, (_, index) => index + 1).map((candidatePage) => (
               <ContinuousPDFPage
@@ -957,16 +958,16 @@ export function PDFDocumentViewer({
 
         <div className="absolute bottom-[calc(0.75rem+env(safe-area-inset-bottom))] right-3 z-30 flex max-w-[calc(100vw-24px)] flex-col items-end gap-2 sm:bottom-4 sm:right-4">
           {zoomMenuOpen && (
-            <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-slate-200 bg-white p-1.5 shadow-lg shadow-slate-400/25">
+            <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-slate-200 bg-white p-1.5 shadow-lg shadow-slate-400/25 dark:border-slate-700 dark:bg-slate-900">
               <button type="button" onClick={() => changeZoom(-1)} disabled={displayedZoom <= MIN_ZOOM} className={roundControlClass} aria-label="Zoom out"><ZoomOut className="h-4 w-4" /></button>
-              <button type="button" onClick={() => { setZoom(100); setFitMode("custom"); }} className="h-11 min-w-14 cursor-pointer touch-manipulation rounded-full border border-slate-200 bg-slate-50 px-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:h-9" aria-label="Reset zoom to 100 percent">{displayedZoom}%</button>
+              <button type="button" onClick={() => { setZoom(100); setFitMode("custom"); }} className="h-11 min-w-14 cursor-pointer touch-manipulation rounded-full border border-slate-200 bg-slate-50 px-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:h-9 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-blue-950/40 dark:hover:text-blue-300" aria-label="Reset zoom to 100 percent">{displayedZoom}%</button>
               <button type="button" onClick={() => changeZoom(1)} disabled={displayedZoom >= MAX_ZOOM} className={roundControlClass} aria-label="Zoom in"><ZoomIn className="h-4 w-4" /></button>
-              <span className="mx-0.5 h-6 w-px bg-slate-200" />
-              <button type="button" onClick={() => setFitMode("width")} className={cn(roundControlClass, fitMode === "width" && "border-blue-300 bg-blue-50 text-blue-700")} aria-label="Fit page width" aria-pressed={fitMode === "width"} title="Fit width"><StretchHorizontal className="h-4 w-4" /></button>
-              <button type="button" onClick={() => setFitMode("page")} className={cn(roundControlClass, fitMode === "page" && "border-blue-300 bg-blue-50 text-blue-700")} aria-label="Fit whole page" aria-pressed={fitMode === "page"} title="Fit page"><Scan className="h-4 w-4" /></button>
+              <span className="mx-0.5 h-6 w-px bg-slate-200 dark:bg-slate-800" />
+              <button type="button" onClick={() => setFitMode("width")} className={cn(roundControlClass, fitMode === "width" && "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300")} aria-label="Fit page width" aria-pressed={fitMode === "width"} title="Fit width"><StretchHorizontal className="h-4 w-4" /></button>
+              <button type="button" onClick={() => setFitMode("page")} className={cn(roundControlClass, fitMode === "page" && "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300")} aria-label="Fit whole page" aria-pressed={fitMode === "page"} title="Fit page"><Scan className="h-4 w-4" /></button>
             </div>
           )}
-          <button type="button" onClick={() => setZoomMenuOpen((open) => !open)} className="inline-flex h-11 cursor-pointer touch-manipulation items-center gap-2 rounded-full border border-blue-200 bg-white px-4 text-sm font-bold text-blue-700 shadow-lg shadow-slate-400/30 transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2" aria-label={zoomMenuOpen ? "Hide zoom controls" : "Show zoom controls"} aria-expanded={zoomMenuOpen}>
+          <button type="button" onClick={() => setZoomMenuOpen((open) => !open)} className="inline-flex h-11 cursor-pointer touch-manipulation items-center gap-2 rounded-full border border-blue-200 bg-white px-4 text-sm font-bold text-blue-700 shadow-lg shadow-slate-400/30 transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-blue-800/60 dark:bg-slate-900 dark:text-blue-300 dark:hover:bg-blue-950/40" aria-label={zoomMenuOpen ? "Hide zoom controls" : "Show zoom controls"} aria-expanded={zoomMenuOpen}>
             <ZoomIn className="h-4 w-4" /> {displayedZoom}%
           </button>
         </div>

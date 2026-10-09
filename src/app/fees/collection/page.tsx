@@ -1297,7 +1297,7 @@ export default function FeesCollectionPage() {
       {/* Background fetching indicator - Fixed at top */}
       {(isFetchingPupils || isFetchingFeeStructures) && !isLoadingPupils && !isLoadingFeeStructures && (
         <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 animate-pulse">
-          <div className="h-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite]"></div>
+          <div className="h-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite] dark:via-slate-900/30"></div>
         </div>
       )}
 
@@ -1319,7 +1319,7 @@ export default function FeesCollectionPage() {
               size="sm"
               showIcon={false}
               className="shrink-0"
-              triggerClassName="h-[34px] min-w-[80px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50"
+              triggerClassName="h-[34px] min-w-[80px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
               includeAllOption={true}
               allOptionLabel="All Classes"
             />
@@ -1337,7 +1337,7 @@ export default function FeesCollectionPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <div className="w-px h-4 bg-white/20"></div>
+              <div className="w-px h-4 bg-white/20 dark:bg-slate-900/20"></div>
               <Select value={filters.term} onValueChange={(value) => setFilters(prev => ({ ...prev, term: value }))}>
                 <SelectTrigger className="border-0 bg-transparent text-white hover:bg-white/10 transition-colors rounded-r-full rounded-l-none h-full px-2 focus:ring-0 focus:ring-offset-0 text-xs [&>svg]:hidden w-auto font-semibold">
                   <SelectValue placeholder="Term" />
@@ -1362,7 +1362,7 @@ export default function FeesCollectionPage() {
               size="sm"
               showIcon={false}
               className="shrink-0"
-              triggerClassName="h-[34px] min-w-[90px] max-w-[125px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50"
+              triggerClassName="h-[34px] min-w-[90px] max-w-[125px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300"
               includeAllOption={true}
               allOptionLabel="All Classes"
             />
@@ -1379,7 +1379,7 @@ export default function FeesCollectionPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <div className="w-px h-4 bg-white/20"></div>
+              <div className="w-px h-4 bg-white/20 dark:bg-slate-900/20"></div>
               <Select value={filters.term} onValueChange={(value) => setFilters(prev => ({ ...prev, term: value }))}>
                 <SelectTrigger className="border-0 bg-transparent text-white hover:bg-white/10 transition-colors rounded-r-full rounded-l-none h-full px-2 focus:ring-0 focus:ring-offset-0 text-xs [&>svg]:hidden w-auto font-semibold">
                   <SelectValue placeholder="Term" />
@@ -1441,7 +1441,7 @@ export default function FeesCollectionPage() {
       <GlassSummaryBar
         left={
           <div className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-indigo-500" />
+            <CreditCard className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
             <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
               Class Fees Summary
             </span>
@@ -1477,16 +1477,16 @@ export default function FeesCollectionPage() {
 
         {/* Compact Filter Panel - Same design as Pupils page */}
         {isFiltersExpanded && (
-          <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-sm border border-blue-100/50 mb-4 sm:mb-6 overflow-hidden animate-in slide-in-from-top-2 duration-300">
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-sm border border-blue-100/50 mb-4 sm:mb-6 overflow-hidden animate-in slide-in-from-top-2 duration-300 dark:bg-slate-900/90 dark:border-blue-800/50">
             <div className="px-2 sm:px-4 py-2 sm:py-3">
               {/* Single Row: Stats and Controls */}
               <div className="flex items-center justify-between gap-2 sm:gap-4 mb-2 sm:mb-3">
                 {/* Statistics Pills */}
                 <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                   {(searchQuery || filters.class !== 'all' || filters.section !== 'all' || filters.status !== 'Active' || filters.balanceStatus !== 'all' || filters.balanceMin || filters.balanceMax) && (
-                    <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-purple-50 rounded-full border border-purple-100">
+                    <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-purple-50 rounded-full border border-purple-100 dark:bg-purple-950/40 dark:border-purple-800/60">
                       <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-purple-500"></div>
-                      <span className="text-xs text-purple-600 font-medium">Filtered</span>
+                      <span className="text-xs text-purple-600 font-medium dark:text-purple-400">Filtered</span>
                     </div>
                   )}
                 </div>
@@ -1510,7 +1510,7 @@ export default function FeesCollectionPage() {
                         });
                         setSearchQuery('');
                       }}
-                      className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-full border border-red-100 transition-all duration-200 hover:scale-105"
+                      className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-full border border-red-100 transition-all duration-200 hover:scale-105 dark:text-red-400 dark:bg-red-950/40 dark:hover:bg-red-950/40 dark:border-red-800/60"
                     >
                       <X size={10} className="sm:w-3 sm:h-3" />
                       <span className="hidden sm:inline">Clear</span>
@@ -1522,15 +1522,15 @@ export default function FeesCollectionPage() {
 
 
               {/* Expandable Filter Controls */}
-              <div className="border-t border-blue-50 pt-2 sm:pt-3">
+              <div className="border-t border-blue-50 pt-2 sm:pt-3 dark:border-blue-800/60">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
                   {/* Class Filter */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-medium text-blue-700">Class</label>
+                    <label className="block text-xs font-medium text-blue-700 dark:text-blue-300">Class</label>
                     <select
                       value={filters.class}
                       onChange={(e) => setFilters(prev => ({ ...prev, class: e.target.value }))}
-                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white"
+                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white dark:bg-blue-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                     >
                       <option value="all">All Classes</option>
                       {classes.map(cls => (
@@ -1541,11 +1541,11 @@ export default function FeesCollectionPage() {
 
                   {/* Section Filter */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-medium text-blue-700">Section</label>
+                    <label className="block text-xs font-medium text-blue-700 dark:text-blue-300">Section</label>
                     <select
                       value={filters.section}
                       onChange={(e) => setFilters(prev => ({ ...prev, section: e.target.value }))}
-                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white"
+                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white dark:bg-blue-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                     >
                       <option value="all">All Sections</option>
                       <option value="day">Day</option>
@@ -1555,11 +1555,11 @@ export default function FeesCollectionPage() {
 
                   {/* Status Filter */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-medium text-blue-700">Status</label>
+                    <label className="block text-xs font-medium text-blue-700 dark:text-blue-300">Status</label>
                     <select
                       value={filters.status}
                       onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white"
+                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white dark:bg-blue-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                     >
                       <option value="all">All Status</option>
                       <option value="Active">Active</option>
@@ -1573,7 +1573,7 @@ export default function FeesCollectionPage() {
 
                   {/* Balance Filter */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-medium text-blue-700">Balance</label>
+                    <label className="block text-xs font-medium text-blue-700 dark:text-blue-300">Balance</label>
                     <select
                       value={filters.balanceStatus}
                       onChange={(e) => {
@@ -1585,7 +1585,7 @@ export default function FeesCollectionPage() {
                           balanceMax: value !== 'custom_range' ? '' : prev.balanceMax
                         }));
                       }}
-                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white"
+                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white dark:bg-blue-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                     >
                       <option value="all">All Balances</option>
                       <option value="with_balance">With Balance</option>
@@ -1597,7 +1597,7 @@ export default function FeesCollectionPage() {
 
                   {/* Fee Item Filter - dynamically shows only fees actually assigned to visible pupils */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-medium text-blue-700">
+                    <label className="block text-xs font-medium text-blue-700 dark:text-blue-300">
                       Fee Item
                       {isProcessing && (
                         <span className="ml-1 text-blue-400 font-normal">(loading...)</span>
@@ -1606,7 +1606,7 @@ export default function FeesCollectionPage() {
                     <select
                       value={filters.feeItem}
                       onChange={(e) => setFilters(prev => ({ ...prev, feeItem: e.target.value }))}
-                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white"
+                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white dark:bg-blue-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                       disabled={isProcessing && dynamicFeeItems.length === 0}
                     >
                       <option value="">All Fee Items ({dynamicFeeItems.length})</option>
@@ -1641,14 +1641,14 @@ export default function FeesCollectionPage() {
                   {/* Balance Range - Show when Custom Range is selected */}
                   {filters.balanceStatus === 'custom_range' && (
                     <div className="space-y-1 col-span-2 sm:col-span-1">
-                      <label className="block text-xs font-medium text-blue-700">Amount Range</label>
+                      <label className="block text-xs font-medium text-blue-700 dark:text-blue-300">Amount Range</label>
                       <div className="flex items-center gap-1">
                         <input
                           type="number"
                           placeholder="Min"
                           value={filters.balanceMin}
                           onChange={(e) => setFilters(prev => ({ ...prev, balanceMin: e.target.value }))}
-                          className="w-16 sm:w-20 rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1 sm:px-1.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white text-center"
+                          className="w-16 sm:w-20 rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1 sm:px-1.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white text-center dark:bg-blue-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                         />
                         <span className="text-xs text-blue-400 font-medium">-</span>
                         <input
@@ -1656,7 +1656,7 @@ export default function FeesCollectionPage() {
                           placeholder="Max"
                           value={filters.balanceMax}
                           onChange={(e) => setFilters(prev => ({ ...prev, balanceMax: e.target.value }))}
-                          className="w-16 sm:w-20 rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1 sm:px-1.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white text-center"
+                          className="w-16 sm:w-20 rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1 sm:px-1.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white text-center dark:bg-blue-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
                         />
                       </div>
                     </div>
@@ -1672,12 +1672,12 @@ export default function FeesCollectionPage() {
           <Card className="shadow-xl border-0">
             <CardContent className="p-12 text-center">
               <div className="flex flex-col items-center space-y-4">
-                <div className="p-4 bg-gray-100 rounded-full">
-                  <Users className="w-8 h-8 text-gray-400" />
+                <div className="p-4 bg-gray-100 rounded-full dark:bg-slate-900">
+                  <Users className="w-8 h-8 text-gray-400 dark:text-slate-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Students Found</h3>
-                  <p className="text-gray-500">No students match your current search criteria.</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2 dark:text-slate-100">No Students Found</h3>
+                  <p className="text-gray-500 dark:text-slate-400">No students match your current search criteria.</p>
                 </div>
               </div>
             </CardContent>
@@ -1689,7 +1689,7 @@ export default function FeesCollectionPage() {
               {showSkeleton || isLoadingPupils || isPending ? (
                 <div className="space-y-4">
                   {Array.from({ length: 5 }).map((_, index) => (
-                    <Card key={index} className="shadow-lg border-0 overflow-hidden bg-white rounded-2xl">
+                    <Card key={index} className="shadow-lg border-0 overflow-hidden bg-white rounded-2xl dark:bg-slate-900">
                       <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
                         <div className="flex items-center space-x-3">
                           <Skeleton className="h-12 w-12 rounded-full" />
@@ -1724,12 +1724,12 @@ export default function FeesCollectionPage() {
                   const pupilClass = classes.find(c => c.id === pupil.classId);
 
                   return (
-                    <Card key={pupil.id} className="shadow-lg border-0 overflow-hidden bg-white rounded-2xl cursor-pointer" onClick={() => handlePupilClick(pupil.id)}>
+                    <Card key={pupil.id} className="shadow-lg border-0 overflow-hidden bg-white rounded-2xl cursor-pointer dark:bg-slate-900" onClick={() => handlePupilClick(pupil.id)}>
                       <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 text-white">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <div className="relative">
-                              <Avatar className={`w-12 h-12 border-2 border-white/30 transition-all duration-300 ${isLoadingPupils && !pupil.photo ? 'animate-pulse' : ''
+                              <Avatar className={`w-12 h-12 border-2 border-white/30 transition-all duration-300  dark:border-slate-700/30${isLoadingPupils && !pupil.photo ? 'animate-pulse' : ''
                                 }`}>
                                 {pupil.photo && pupil.photo.trim() !== '' && pupil.photo.startsWith('http') ? (
                                   <>
@@ -1744,22 +1744,22 @@ export default function FeesCollectionPage() {
                                       }}
                                     />
                                     {isLoadingPupils && !pupil.photo && (
-                                      <div className="absolute inset-0 flex items-center justify-center bg-white/10 animate-pulse">
-                                        <div className="h-2 w-2 rounded-full bg-white/60 animate-ping" />
+                                      <div className="absolute inset-0 flex items-center justify-center bg-white/10 animate-pulse dark:bg-slate-900/10">
+                                        <div className="h-2 w-2 rounded-full bg-white/60 animate-ping dark:bg-slate-900/60" />
                                       </div>
                                     )}
                                   </>
                                 ) : null}
                                 <AvatarFallback className={`transition-all duration-300 ${isLoadingPupils && !pupil.photo
-                                  ? 'bg-white/10 text-white/60 animate-pulse'
-                                  : 'bg-white/20 text-white'
+                                  ? 'bg-white/10 text-white/60 animate-pulse dark:bg-slate-900/10'
+                                  : 'bg-white/20 text-white dark:bg-slate-900/20'
                                   } font-bold`}>
                                   {pupil.firstName.charAt(0)}{pupil.lastName.charAt(0)}
                                 </AvatarFallback>
                               </Avatar>
                               {isLoadingPupils && !pupil.photo && (
                                 <div
-                                  className="absolute -inset-1 rounded-full border border-white/40 border-dashed animate-spin opacity-50"
+                                  className="absolute -inset-1 rounded-full border border-white/40 border-dashed animate-spin opacity-50 dark:border-slate-700/40"
                                   style={{ animationDuration: '2s' }}
                                 />
                               )}
@@ -1788,10 +1788,10 @@ export default function FeesCollectionPage() {
                       <CardContent className="p-4 space-y-4">
                         <div className="grid grid-cols-3 gap-4">
                           <div className="text-center">
-                            <p className="text-xs text-gray-500 font-medium">
+                            <p className="text-xs text-gray-500 font-medium dark:text-slate-400">
                               {filters.feeItem ? 'Fee Amount' : 'Total Fees'}
                             </p>
-                            <p className="text-sm font-bold text-gray-900">
+                            <p className="text-sm font-bold text-gray-900 dark:text-slate-100">
                               {(() => {
                                 if (filters.feeItem && feesInfo?.applicableFees) {
                                   const selectedFee = feesInfo.applicableFees.find(fee => fee.feeStructureId === filters.feeItem);
@@ -1802,8 +1802,8 @@ export default function FeesCollectionPage() {
                             </p>
                           </div>
                           <div className="text-center">
-                            <p className="text-xs text-gray-500 font-medium">Paid</p>
-                            <p className="text-sm font-bold text-green-600">
+                            <p className="text-xs text-gray-500 font-medium dark:text-slate-400">Paid</p>
+                            <p className="text-sm font-bold text-green-600 dark:text-green-400">
                               {(() => {
                                 if (filters.feeItem && feesInfo?.applicableFees) {
                                   const selectedFee = feesInfo.applicableFees.find(fee => fee.feeStructureId === filters.feeItem);
@@ -1814,7 +1814,7 @@ export default function FeesCollectionPage() {
                             </p>
                           </div>
                           <div className="text-center">
-                            <p className="text-xs text-gray-500 font-medium">Balance</p>
+                            <p className="text-xs text-gray-500 font-medium dark:text-slate-400">Balance</p>
                             <p className={`text-sm font-bold ${(() => {
                               let balance = 0;
                               if (filters.feeItem && feesInfo?.applicableFees) {
@@ -1823,7 +1823,7 @@ export default function FeesCollectionPage() {
                               } else {
                                 balance = feesInfo?.balance || 0;
                               }
-                              return balance > 0 ? 'text-red-600' : 'text-green-600';
+                              return balance > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400';
                             })()}`}>
                               {(() => {
                                 if (filters.feeItem && feesInfo?.applicableFees) {
@@ -1838,10 +1838,10 @@ export default function FeesCollectionPage() {
 
                         {/* Additional Info Row - Fee Name only (removed Last Payment for speed) */}
                         {filters.feeItem && (
-                          <div className="pt-2 border-t border-gray-100">
+                          <div className="pt-2 border-t border-gray-100 dark:border-slate-700">
                             <div className="text-center">
-                              <p className="text-xs text-gray-500 font-medium">Fee Item</p>
-                              <p className="text-sm font-medium text-gray-700">
+                              <p className="text-xs text-gray-500 font-medium dark:text-slate-400">Fee Item</p>
+                              <p className="text-sm font-medium text-gray-700 dark:text-slate-200">
                                 {(() => {
                                   const selectedFeeStructure = availableFeeStructures.find(fs => fs.id === filters.feeItem);
                                   return selectedFeeStructure?.name || 'Unknown Fee';
@@ -1860,67 +1860,67 @@ export default function FeesCollectionPage() {
             {/* Desktop Table View */}
             <Card className="hidden lg:block shadow-xl border-0 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                  <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-900 dark:to-slate-900">
                     <tr>
                       <th
                         onClick={() => handleSort('firstName')}
-                        className="cursor-pointer px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hover:bg-gray-200 transition-colors"
+                        className="cursor-pointer px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hover:bg-gray-200 transition-colors dark:text-slate-300 dark:hover:bg-slate-800"
                       >
                         <div className="flex items-center space-x-1">
                           <span>Pupil ({sortedPupils.length})</span>
-                          <ArrowUpDown size={14} className={`${sortConfig.key === 'firstName' ? 'text-blue-600' : 'text-gray-400'}`} />
+                          <ArrowUpDown size={14} className={`${sortConfig.key === 'firstName' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-slate-400'}`} />
                         </div>
                       </th>
                       <th
                         onClick={() => handleSort('class')}
-                        className="cursor-pointer px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hover:bg-gray-200 transition-colors"
+                        className="cursor-pointer px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hover:bg-gray-200 transition-colors dark:text-slate-300 dark:hover:bg-slate-800"
                       >
                         <div className="flex items-center space-x-1">
                           <span>Class</span>
-                          <ArrowUpDown size={14} className={`${sortConfig.key === 'class' ? 'text-blue-600' : 'text-gray-400'}`} />
+                          <ArrowUpDown size={14} className={`${sortConfig.key === 'class' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-slate-400'}`} />
                         </div>
                       </th>
                       <th
                         onClick={() => handleSort('section')}
-                        className="cursor-pointer px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hover:bg-gray-200 transition-colors"
+                        className="cursor-pointer px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hover:bg-gray-200 transition-colors dark:text-slate-300 dark:hover:bg-slate-800"
                       >
                         <div className="flex items-center space-x-1">
                           <span>Section</span>
-                          <ArrowUpDown size={14} className={`${sortConfig.key === 'section' ? 'text-blue-600' : 'text-gray-400'}`} />
+                          <ArrowUpDown size={14} className={`${sortConfig.key === 'section' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-slate-400'}`} />
                         </div>
                       </th>
                       <th
                         onClick={() => handleSort('totalFees')}
-                        className="cursor-pointer px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hover:bg-gray-200 transition-colors"
+                        className="cursor-pointer px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hover:bg-gray-200 transition-colors dark:text-slate-300 dark:hover:bg-slate-800"
                       >
                         <div className="flex items-center space-x-1">
                           <span>{filters.feeItem ? 'Fee Amount' : 'Total Fees'}</span>
-                          <ArrowUpDown size={14} className={`${sortConfig.key === 'totalFees' ? 'text-blue-600' : 'text-gray-400'}`} />
+                          <ArrowUpDown size={14} className={`${sortConfig.key === 'totalFees' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-slate-400'}`} />
                         </div>
                       </th>
                       <th
                         onClick={() => handleSort('totalPaid')}
-                        className="cursor-pointer px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hover:bg-gray-200 transition-colors"
+                        className="cursor-pointer px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hover:bg-gray-200 transition-colors dark:text-slate-300 dark:hover:bg-slate-800"
                       >
                         <div className="flex items-center space-x-1">
                           <span>Paid</span>
-                          <ArrowUpDown size={14} className={`${sortConfig.key === 'totalPaid' ? 'text-blue-600' : 'text-gray-400'}`} />
+                          <ArrowUpDown size={14} className={`${sortConfig.key === 'totalPaid' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-slate-400'}`} />
                         </div>
                       </th>
                       <th
                         onClick={() => handleSort('balance')}
-                        className="cursor-pointer px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hover:bg-gray-200 transition-colors"
+                        className="cursor-pointer px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hover:bg-gray-200 transition-colors dark:text-slate-300 dark:hover:bg-slate-800"
                       >
                         <div className="flex items-center space-x-1">
                           <span>Balance</span>
-                          <ArrowUpDown size={14} className={`${sortConfig.key === 'balance' ? 'text-blue-600' : 'text-gray-400'}`} />
+                          <ArrowUpDown size={14} className={`${sortConfig.key === 'balance' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-slate-400'}`} />
                         </div>
                       </th>
                       {/* Removed Last Payment and Status columns for speed optimization */}
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
+                  <tbody className="bg-white divide-y divide-gray-100 dark:bg-slate-900 dark:divide-slate-700">
                     {showSkeleton || isLoadingPupils || isPending ? (
                       <PupilFeesRowSkeleton count={8} />
                     ) : (
@@ -1943,28 +1943,28 @@ export default function FeesCollectionPage() {
                     )}
 
                     {/* Summary Row */}
-                    <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 border-t-2 border-blue-200">
+                    <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 border-t-2 border-blue-200 dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800/60">
                       <td colSpan={3} className="px-6 py-4">
                         <div className="flex items-center space-x-2">
                           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
                             <PieChart className="w-4 h-4 text-white" />
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-gray-900">Summary</p>
-                            <p className="text-xs text-gray-600">
+                            <p className="text-sm font-bold text-gray-900 dark:text-slate-100">Summary</p>
+                            <p className="text-xs text-gray-600 dark:text-slate-300">
                               {sortedPupils.length} students • Collection Rate: {totals.totalFees > 0 ? Math.round((totals.totalPaid / totals.totalFees) * 100) : 0}%
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm font-bold text-gray-900">{formatCurrency(totals.totalFees)}</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-slate-100">{formatCurrency(totals.totalFees)}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm font-bold text-green-700">{formatCurrency(totals.totalPaid)}</p>
+                        <p className="text-sm font-bold text-green-700 dark:text-green-300">{formatCurrency(totals.totalPaid)}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm font-bold text-red-600">{formatCurrency(totals.balance)}</p>
+                        <p className="text-sm font-bold text-red-600 dark:text-red-400">{formatCurrency(totals.balance)}</p>
                       </td>
                     </tr>
                   </tbody>
@@ -2000,7 +2000,7 @@ export default function FeesCollectionPage() {
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle className="flex items-center">
-              <Printer className="mr-2 h-5 w-5 text-indigo-600" />
+              <Printer className="mr-2 h-5 w-5 text-indigo-600 dark:text-indigo-400" />
               Print Fees Collection Report - Select Columns
             </DialogTitle>
             <DialogDescription>
@@ -2012,14 +2012,14 @@ export default function FeesCollectionPage() {
             {/* Column Selection Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-3">
-                <h4 className="font-medium text-sm text-gray-700 border-b border-gray-200 pb-1">Basic Info</h4>
+                <h4 className="font-medium text-sm text-gray-700 border-b border-gray-200 pb-1 dark:text-slate-200 dark:border-slate-700">Basic Info</h4>
 
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={columnSelection.pupilInfo}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, pupilInfo: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
                   />
                   <span className="text-sm">Pupil Name</span>
                 </label>
@@ -2029,7 +2029,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.admissionNumber}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, admissionNumber: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
                   />
                   <span className="text-sm">Admission Number</span>
                 </label>
@@ -2039,7 +2039,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.class}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, class: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
                   />
                   <span className="text-sm">Class</span>
                 </label>
@@ -2049,21 +2049,21 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.section}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, section: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
                   />
                   <span className="text-sm">Section</span>
                 </label>
               </div>
 
               <div className="space-y-3">
-                <h4 className="font-medium text-sm text-gray-700 border-b border-gray-200 pb-1">Financial</h4>
+                <h4 className="font-medium text-sm text-gray-700 border-b border-gray-200 pb-1 dark:text-slate-200 dark:border-slate-700">Financial</h4>
 
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={columnSelection.totalFees}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, totalFees: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
                   />
                   <span className="text-sm">Total Fees</span>
                 </label>
@@ -2073,7 +2073,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.totalPaid}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, totalPaid: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
                   />
                   <span className="text-sm">Amount Paid</span>
                 </label>
@@ -2083,14 +2083,14 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.balance}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, balance: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
                   />
                   <span className="text-sm">Outstanding Balance</span>
                 </label>
               </div>
 
               <div className="space-y-3">
-                <h4 className="font-medium text-sm text-gray-700 border-b border-gray-200 pb-1">Additional</h4>
+                <h4 className="font-medium text-sm text-gray-700 border-b border-gray-200 pb-1 dark:text-slate-200 dark:border-slate-700">Additional</h4>
 
                 {/* Removed Last Payment Date option for speed optimization */}
 
@@ -2099,7 +2099,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.feeBreakdown}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, feeBreakdown: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
                   />
                   <span className="text-sm">Fee Breakdown</span>
                 </label>
@@ -2109,7 +2109,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.showFilters}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, showFilters: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
                   />
                   <span className="text-sm">Show Applied Filters</span>
                 </label>
@@ -2119,7 +2119,7 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.showSummary}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, showSummary: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
                   />
                   <span className="text-sm">Show Totals Summary Row</span>
                 </label>
@@ -2129,18 +2129,18 @@ export default function FeesCollectionPage() {
                     type="checkbox"
                     checked={columnSelection.showStatusMark}
                     onChange={(e) => setColumnSelection(prev => ({ ...prev, showStatusMark: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:text-indigo-400"
                   />
                   <span className="text-sm">
                     Show Status Mark&nbsp;
-                    <span className="text-gray-400 text-xs font-mono">✓ – ✗</span>
+                    <span className="text-gray-400 text-xs font-mono dark:text-slate-400">✓ – ✗</span>
                   </span>
                 </label>
               </div>
             </div>
 
             {/* Quick Selection Buttons */}
-            <div className="border-t border-gray-200 pt-4">
+            <div className="border-t border-gray-200 pt-4 dark:border-slate-700">
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setColumnSelection({
@@ -2156,7 +2156,7 @@ export default function FeesCollectionPage() {
                     showSummary: columnSelection.showSummary,
                     showStatusMark: columnSelection.showStatusMark
                   })}
-                  className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+                  className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/40"
                 >
                   Standard Report
                 </button>
@@ -2175,7 +2175,7 @@ export default function FeesCollectionPage() {
                     showSummary: columnSelection.showSummary,
                     showStatusMark: columnSelection.showStatusMark
                   })}
-                  className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
+                  className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors dark:bg-green-950/40 dark:text-green-300 dark:hover:bg-green-900/40"
                 >
                   Detailed Report
                 </button>
@@ -2194,7 +2194,7 @@ export default function FeesCollectionPage() {
                     showSummary: columnSelection.showSummary,
                     showStatusMark: columnSelection.showStatusMark
                   })}
-                  className="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors"
+                  className="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors dark:bg-purple-950/40 dark:text-purple-300 dark:hover:bg-purple-900/40"
                 >
                   Complete Report
                 </button>
@@ -2213,7 +2213,7 @@ export default function FeesCollectionPage() {
                     showSummary: columnSelection.showSummary,
                     showStatusMark: columnSelection.showStatusMark
                   })}
-                  className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                  className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   Clear All
                 </button>
@@ -2221,23 +2221,23 @@ export default function FeesCollectionPage() {
             </div>
 
             {/* Preview Information */}
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-4 dark:bg-blue-950/40 dark:border-blue-800/60">
               <div className="flex items-start gap-2">
-                <svg className="h-5 w-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 text-blue-600 mt-0.5 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div className="text-sm">
-                  <p className="font-medium text-blue-900">PDF Preview</p>
-                  <p className="text-blue-800 mt-1">
+                  <p className="font-medium text-blue-900 dark:text-blue-200">PDF Preview</p>
+                  <p className="text-blue-800 mt-1 dark:text-blue-200">
                     Selected columns: {Object.entries(columnSelection).filter(([k, v]) => k !== 'showFilters' && v).length} |
                     Students to include: {sortedPupils.length} |
                     Orientation: {Object.entries(columnSelection).filter(([k, v]) => k !== 'showFilters' && v).length > 6 ? 'Landscape' : 'Portrait'}
                   </p>
-                  <p className="text-blue-700 mt-1 text-xs">
+                  <p className="text-blue-700 mt-1 text-xs dark:text-blue-300">
                     Total Fees: {formatCurrency(totals.totalFees)} | Paid: {formatCurrency(totals.totalPaid)} | Balance: {formatCurrency(totals.balance)}
                   </p>
                   {Object.entries(columnSelection).filter(([k, v]) => k !== 'showFilters' && v).length === 0 && (
-                    <p className="text-red-700 mt-2 text-xs">
+                    <p className="text-red-700 mt-2 text-xs dark:text-red-300">
                       Please select at least one column to generate the PDF.
                     </p>
                   )}

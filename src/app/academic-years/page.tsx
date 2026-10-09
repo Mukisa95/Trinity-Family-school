@@ -324,16 +324,16 @@ export function AcademicYearsPageContent() {
   }, [rawAcademicYears]);
 
   const getYearStatus = React.useCallback((year: AcademicYear): { label: string; className: string; icon: React.ElementType } => {
-    if (year.isLocked) return { label: 'Locked', className: 'bg-gray-100 text-gray-600 border-gray-300', icon: ArchiveIcon };
-    if (year.isActive) return { label: 'Active', className: 'bg-green-100 text-green-700 border-green-300', icon: CheckCircle };
+    if (year.isLocked) return { label: 'Locked', className: 'bg-gray-100 text-gray-600 border-gray-300 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700', icon: ArchiveIcon };
+    if (year.isActive) return { label: 'Active', className: 'bg-green-100 text-green-700 border-green-300 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/60', icon: CheckCircle };
 
     if (year.startDate && typeof year.startDate === 'string') {
       const yearStartDate = parseStartOfDay(year.startDate);
       if (isValid(yearStartDate) && yearStartDate > new Date()) {
-        return { label: 'Upcoming', className: 'bg-blue-100 text-blue-700 border-blue-300', icon: CalendarDays };
+        return { label: 'Upcoming', className: 'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60', icon: CalendarDays };
       }
     }
-    return { label: 'Past', className: 'bg-amber-100 text-amber-700 border-amber-300', icon: CalendarDays };
+    return { label: 'Past', className: 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60', icon: CalendarDays };
   }, []);
 
   const calculatedYears = React.useMemo(() => {
@@ -523,7 +523,7 @@ export function AcademicYearsPageContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/40">
         <GlassPageTopBar
           title="Academic Years"
           subtitle="Loading academic years..."
@@ -531,8 +531,8 @@ export function AcademicYearsPageContent() {
           backLabel="Dashboard"
         />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          <span className="ml-2 text-gray-600">Loading academic years...</span>
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
+          <span className="ml-2 text-gray-600 dark:text-slate-300">Loading academic years...</span>
         </div>
       </div>
     );
@@ -540,7 +540,7 @@ export function AcademicYearsPageContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/40">
         <GlassPageTopBar
           title="Academic Years"
           subtitle="Error loading data"
@@ -556,7 +556,7 @@ export function AcademicYearsPageContent() {
 
   if (!academicYears.length) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/40">
         <GlassPageTopBar
           title="Academic Years"
           subtitle="System automatically manages academic years and terms"
@@ -590,7 +590,7 @@ export function AcademicYearsPageContent() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/40">
       <GlassPageTopBar
         title={pageTitle}
         subtitle={pageSubtitle}
@@ -602,7 +602,7 @@ export function AcademicYearsPageContent() {
             value={activeSettingTab}
             onChange={(event) => handleTabChange(event.target.value as 'years' | 'subjects' | 'commentary')}
             aria-label="Choose academic setup section"
-            className="h-8 max-w-[42vw] rounded-full border border-indigo-200/80 bg-white/95 px-2.5 text-[10px] font-bold text-indigo-700 shadow-sm outline-none transition-colors hover:bg-indigo-50 focus:ring-2 focus:ring-indigo-400/60 lg:hidden"
+            className="h-8 max-w-[42vw] rounded-full border border-indigo-200/80 bg-white/95 px-2.5 text-[10px] font-bold text-indigo-700 shadow-sm outline-none transition-colors hover:bg-indigo-50 focus:ring-2 focus:ring-indigo-400/60 lg:hidden dark:border-indigo-800/80 dark:bg-slate-900/95 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
           >
             <option value="years">Years</option>
             <option value="subjects">Subjects</option>
@@ -610,7 +610,7 @@ export function AcademicYearsPageContent() {
           </select>
         }
         center={
-          <div className="hidden items-center gap-1 rounded-full border border-slate-200/70 bg-slate-100/80 p-0.5 backdrop-blur-sm lg:flex">
+          <div className="hidden items-center gap-1 rounded-full border border-slate-200/70 bg-slate-100/80 p-0.5 backdrop-blur-sm lg:flex dark:border-slate-700/70 dark:bg-slate-900/80">
             {[
               { id: 'years', label: 'Years' },
               { id: 'subjects', label: 'Subjects' },
@@ -623,7 +623,7 @@ export function AcademicYearsPageContent() {
                   onClick={() => handleTabChange(tab.id as 'years' | 'subjects' | 'commentary')}
                   className={cn(
                     'rounded-full px-3 py-1 text-xs font-semibold transition-all duration-200',
-                    isActive ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
+                    isActive ? 'bg-white text-indigo-700 shadow-sm dark:bg-slate-900 dark:text-indigo-300' : 'text-gray-600 hover:bg-white/50 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-900/50 dark:hover:text-slate-100'
                   )}
                 >
                   {tab.label}
@@ -670,21 +670,21 @@ export function AcademicYearsPageContent() {
       <GlassSummaryBar
         left={
           <div className="flex flex-wrap items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-indigo-500" />
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 uppercase mr-2">
+            <CalendarDays className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
+            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 uppercase mr-2 dark:text-indigo-200">
               Academic Setup
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
               {activeSettingTab === 'years' && (
                 <>
-                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="font-bold text-blue-700">{academicYears.length}</span>
-                    <span className="text-blue-700/85 font-medium">academic years</span>
+                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-blue-950/80 dark:border-blue-800/50">
+                    <span className="font-bold text-blue-700 dark:text-blue-300">{academicYears.length}</span>
+                    <span className="text-blue-700/85 font-medium dark:text-blue-300/85">academic years</span>
                   </div>
                   {academicYears.find(y => y.isActive) && (
-                    <div className="flex items-center gap-1 bg-green-50/80 border border-green-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                      <span className="text-green-700/85 font-medium">active:</span>
-                      <span className="font-bold text-green-700">{academicYears.find(y => y.isActive)?.name}</span>
+                    <div className="flex items-center gap-1 bg-green-50/80 border border-green-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-green-950/80 dark:border-green-800/50">
+                      <span className="text-green-700/85 font-medium dark:text-green-300/85">active:</span>
+                      <span className="font-bold text-green-700 dark:text-green-300">{academicYears.find(y => y.isActive)?.name}</span>
                     </div>
                   )}
                 </>
@@ -692,34 +692,34 @@ export function AcademicYearsPageContent() {
 
               {activeSettingTab === 'subjects' && (
                 <>
-                  <div className="flex items-center gap-1 bg-purple-50/80 border border-purple-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="font-bold text-purple-700">{subjects.length}</span>
-                    <span className="text-purple-700/85 font-medium">subjects total</span>
+                  <div className="flex items-center gap-1 bg-purple-50/80 border border-purple-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-purple-950/80 dark:border-purple-800/50">
+                    <span className="font-bold text-purple-700 dark:text-purple-300">{subjects.length}</span>
+                    <span className="text-purple-700/85 font-medium dark:text-purple-300/85">subjects total</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="font-bold text-blue-700">{subjects.filter(s => s.type === 'Core').length}</span>
-                    <span className="text-blue-700/85 font-medium">core</span>
+                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-blue-950/80 dark:border-blue-800/50">
+                    <span className="font-bold text-blue-700 dark:text-blue-300">{subjects.filter(s => s.type === 'Core').length}</span>
+                    <span className="text-blue-700/85 font-medium dark:text-blue-300/85">core</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="font-bold text-amber-700">{subjects.filter(s => s.type !== 'Core').length}</span>
-                    <span className="text-amber-700/85 font-medium">elective</span>
+                  <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-amber-950/80 dark:border-amber-800/50">
+                    <span className="font-bold text-amber-700 dark:text-amber-300">{subjects.filter(s => s.type !== 'Core').length}</span>
+                    <span className="text-amber-700/85 font-medium dark:text-amber-300/85">elective</span>
                   </div>
                 </>
               )}
 
               {activeSettingTab === 'commentary' && (
                 <>
-                  <div className="flex items-center gap-1 bg-emerald-50/80 border border-emerald-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="font-bold text-emerald-700">2</span>
-                    <span className="text-emerald-700/85 font-medium">recipient roles</span>
+                  <div className="flex items-center gap-1 bg-emerald-50/80 border border-emerald-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-emerald-950/80 dark:border-emerald-800/50">
+                    <span className="font-bold text-emerald-700 dark:text-emerald-300">2</span>
+                    <span className="text-emerald-700/85 font-medium dark:text-emerald-300/85">recipient roles</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="font-bold text-blue-700">5</span>
-                    <span className="text-blue-700/85 font-medium">performance bands</span>
+                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-blue-950/80 dark:border-blue-800/50">
+                    <span className="font-bold text-blue-700 dark:text-blue-300">5</span>
+                    <span className="text-blue-700/85 font-medium dark:text-blue-300/85">performance bands</span>
                   </div>
-                  <div className="flex items-center gap-1 bg-purple-50/80 border border-purple-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                    <span className="font-bold text-purple-700">50+</span>
-                    <span className="text-purple-700/85 font-medium">comment templates</span>
+                  <div className="flex items-center gap-1 bg-purple-50/80 border border-purple-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-purple-950/80 dark:border-purple-800/50">
+                    <span className="font-bold text-purple-700 dark:text-purple-300">50+</span>
+                    <span className="text-purple-700/85 font-medium dark:text-purple-300/85">comment templates</span>
                   </div>
                 </>
               )}
@@ -736,10 +736,10 @@ export function AcademicYearsPageContent() {
             key={year.id}
             id={`academic-year-card-${year.id}`}
             ref={year.isActive ? (el) => { activeYearCardRef.current = el; } : null}
-            className={`group relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 ${year.isLocked ? 'border-gray-200 bg-gray-50/80' :
-                year.isActive ? 'border-green-400 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md' :
-                  status.label === 'Upcoming' ? 'border-blue-300 bg-gradient-to-br from-blue-50 to-sky-50' :
-                    'border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50'
+            className={`group relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 ${year.isLocked ? 'border-gray-200 bg-gray-50/80 dark:border-slate-700 dark:bg-slate-900/80' :
+                year.isActive ? 'border-green-400 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md dark:from-green-950/40 dark:to-emerald-950/40' :
+                  status.label === 'Upcoming' ? 'border-blue-300 bg-gradient-to-br from-blue-50 to-sky-50 dark:border-blue-800/60 dark:from-blue-950/40 dark:to-sky-950/40' :
+                    'border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 dark:border-amber-800/60 dark:from-amber-950/40 dark:to-orange-950/40'
               }`}>
 
             {/* Status indicator bar */}
@@ -752,9 +752,9 @@ export function AcademicYearsPageContent() {
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                 {/* Left: Icon + Year Name */}
                 <div className="flex items-center gap-2">
-                  <status.icon className={`h-4 w-4 ${year.isLocked ? 'text-gray-500' :
-                      year.isActive ? 'text-green-600' :
-                        status.label === 'Upcoming' ? 'text-blue-600' : 'text-amber-600'
+                  <status.icon className={`h-4 w-4 ${year.isLocked ? 'text-gray-500 dark:text-slate-400' :
+                      year.isActive ? 'text-green-600 dark:text-green-400' :
+                        status.label === 'Upcoming' ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'
                     }`} />
                   <CardTitle className="text-xl font-bold">{year.name}</CardTitle>
                 </div>
@@ -763,10 +763,10 @@ export function AcademicYearsPageContent() {
                 <div className="flex justify-center">
                   <Badge
                     variant={year.isActive ? 'default' : 'secondary'}
-                    className={`text-xs font-medium ${year.isLocked ? 'bg-gray-100 text-gray-600' :
-                        year.isActive ? 'bg-green-100 text-green-700 border-green-200' :
-                          status.label === 'Upcoming' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                            'bg-amber-100 text-amber-700 border-amber-200'
+                    className={`text-xs font-medium ${year.isLocked ? 'bg-gray-100 text-gray-600 dark:bg-slate-900 dark:text-slate-300' :
+                        year.isActive ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/60' :
+                          status.label === 'Upcoming' ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60' :
+                            'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60'
                       }`}
                   >
                     {status.label}
@@ -821,8 +821,8 @@ export function AcademicYearsPageContent() {
                       return (
                         <React.Fragment key={term.id}>
                           <div className={`p-3 border rounded-lg space-y-2 transition-colors ${hasValidDates && hasValidRange
-                              ? 'bg-background/80 border-green-200'
-                              : 'bg-red-50/50 border-red-200'
+                              ? 'bg-background/80 border-green-200 dark:border-green-800/60'
+                              : 'bg-red-50/50 border-red-200 dark:bg-red-950/50 dark:border-red-800/60'
                             }`}>
                             <div className="flex items-center justify-between">
                               <Label className="font-medium text-sm">{term.name}</Label>
@@ -835,7 +835,7 @@ export function AcademicYearsPageContent() {
 
                             <div className="grid grid-cols-2 gap-2">
                               <div>
-                                <Label htmlFor={`academic-term-${term.id || index + 1}-start`} className={`text-xs ${termValidation.getFieldError(`academic-term-${term.id || index + 1}-start`) ? 'text-red-700' : 'text-muted-foreground'}`}>Start <span className="text-red-600">*</span></Label>
+                                <Label htmlFor={`academic-term-${term.id || index + 1}-start`} className={`text-xs ${termValidation.getFieldError(`academic-term-${term.id || index + 1}-start`) ? 'text-red-700 dark:text-red-300' : 'text-muted-foreground'}`}>Start <span className="text-red-600 dark:text-red-400">*</span></Label>
                                 <DatePicker
                                   date={term.startDate && isValid(parseISO(term.startDate)) ? parseISO(term.startDate) : undefined}
                                   setDate={(d) => handleTermDateChange(index, 'startDate', d ? format(d, 'yyyy-MM-dd') : '')}
@@ -845,7 +845,7 @@ export function AcademicYearsPageContent() {
                                 <FieldError error={termValidation.getFieldError(`academic-term-${term.id || index + 1}-start`)} />
                               </div>
                               <div>
-                                <Label htmlFor={`academic-term-${term.id || index + 1}-end`} className={`text-xs ${termValidation.getFieldError(`academic-term-${term.id || index + 1}-end`) ? 'text-red-700' : 'text-muted-foreground'}`}>End <span className="text-red-600">*</span></Label>
+                                <Label htmlFor={`academic-term-${term.id || index + 1}-end`} className={`text-xs ${termValidation.getFieldError(`academic-term-${term.id || index + 1}-end`) ? 'text-red-700 dark:text-red-300' : 'text-muted-foreground'}`}>End <span className="text-red-600 dark:text-red-400">*</span></Label>
                                 <DatePicker
                                   date={term.endDate && isValid(parseISO(term.endDate)) ? parseISO(term.endDate) : undefined}
                                   setDate={(d) => handleTermDateChange(index, 'endDate', d ? format(d, 'yyyy-MM-dd') : '')}
@@ -858,10 +858,10 @@ export function AcademicYearsPageContent() {
 
                             {/* Live validation feedback */}
                             {!hasValidDates && (
-                              <p className="text-xs text-red-600">⚠️ Invalid date format</p>
+                              <p className="text-xs text-red-600 dark:text-red-400">⚠️ Invalid date format</p>
                             )}
                             {hasValidDates && !hasValidRange && (
-                              <p className="text-xs text-red-600">⚠️ End date must be after start date</p>
+                              <p className="text-xs text-red-600 dark:text-red-400">⚠️ End date must be after start date</p>
                             )}
                             {index === 0 && liveYearBounds && (
                               <p className="text-xs text-muted-foreground">
@@ -873,25 +873,25 @@ export function AcademicYearsPageContent() {
                           {/* Live recess period display */}
                           {index < editedTerms.length - 1 && liveHolidays[index] && (
                             <div className={`px-3 py-2 rounded-lg border transition-colors ${liveHolidays[index].isValid
-                                ? 'bg-orange-50 border-orange-200'
-                                : 'bg-red-50 border-red-200'
+                                ? 'bg-orange-50 border-orange-200 dark:bg-orange-950/40 dark:border-orange-800/60'
+                                : 'bg-red-50 border-red-200 dark:bg-red-950/40 dark:border-red-800/60'
                               }`}>
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <div className={`w-2 h-2 rounded-full ${liveHolidays[index].isValid ? 'bg-orange-400' : 'bg-red-400'
                                     }`}></div>
-                                  <span className={`text-xs font-medium ${liveHolidays[index].isValid ? 'text-orange-800' : 'text-red-800'
+                                  <span className={`text-xs font-medium ${liveHolidays[index].isValid ? 'text-orange-800 dark:text-orange-200' : 'text-red-800 dark:text-red-200'
                                     }`}>
                                     {liveHolidays[index].name}
                                   </span>
                                 </div>
-                                <span className={`text-xs font-medium ${liveHolidays[index].isValid ? 'text-orange-600' : 'text-red-600'
+                                <span className={`text-xs font-medium ${liveHolidays[index].isValid ? 'text-orange-600 dark:text-orange-400' : 'text-red-600 dark:text-red-400'
                                   }`}>
                                   {liveHolidays[index].days} days
                                   {!liveHolidays[index].isValid && ' (Invalid)'}
                                 </span>
                               </div>
-                              <div className={`text-xs mt-1 ${liveHolidays[index].isValid ? 'text-orange-600' : 'text-red-600'
+                              <div className={`text-xs mt-1 ${liveHolidays[index].isValid ? 'text-orange-600 dark:text-orange-400' : 'text-red-600 dark:text-red-400'
                                 }`}>
                                 {liveHolidays[index].isValid
                                   ? `${liveHolidays[index].startDate} - ${liveHolidays[index].endDate}`
@@ -916,9 +916,9 @@ export function AcademicYearsPageContent() {
 
                     return (
                       <React.Fragment key={term.id}>
-                        <div className={`relative p-3 rounded-lg border transition-colors ${term.isCurrent ? 'bg-white border-green-200 shadow-sm' :
-                            (nextTerm?.id === term.id) ? 'bg-white border-purple-200 shadow-sm' : // Simplified condition for "Next Term"
-                              'bg-white/60 border-gray-200'
+                        <div className={`relative p-3 rounded-lg border transition-colors ${term.isCurrent ? 'bg-white border-green-200 shadow-sm dark:bg-slate-900 dark:border-green-800/60' :
+                            (nextTerm?.id === term.id) ? 'bg-white border-purple-200 shadow-sm dark:bg-slate-900 dark:border-purple-800/60' : // Simplified condition for "Next Term"
+                              'bg-white/60 border-gray-200 dark:bg-slate-900/60 dark:border-slate-700'
                           }`}>
 
                           {/* Term header */}
@@ -935,7 +935,7 @@ export function AcademicYearsPageContent() {
                                     Current
                                   </Badge>
                                 </div>
-                                <div className="flex justify-end text-xs font-semibold text-green-700">
+                                <div className="flex justify-end text-xs font-semibold text-green-700 dark:text-green-300">
                                   {remainingDays} left
                                 </div>
                               </>
@@ -946,7 +946,7 @@ export function AcademicYearsPageContent() {
                                     Next
                                   </Badge>
                                 </div>
-                                <div className="flex justify-end text-xs font-semibold text-purple-700">
+                                <div className="flex justify-end text-xs font-semibold text-purple-700 dark:text-purple-300">
                                   {daysUntilStart > 0 ? `in ${daysUntilStart} days` : ""}
                                 </div>
                               </>
@@ -973,15 +973,15 @@ export function AcademicYearsPageContent() {
 
                         {/* Holiday period after this term (except for the last term) */}
                         {termIndex < year.terms.length - 1 && holidays[termIndex] && (
-                          <div className="px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg">
+                          <div className="px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg dark:bg-orange-950/40 dark:border-orange-800/60">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full bg-orange-400"></div>
-                                <span className="text-xs font-medium text-orange-800">{holidays[termIndex].name}</span>
+                                <span className="text-xs font-medium text-orange-800 dark:text-orange-200">{holidays[termIndex].name}</span>
                               </div>
-                              <span className="text-xs text-orange-600 font-medium">{holidays[termIndex].days} days</span>
+                              <span className="text-xs text-orange-600 font-medium dark:text-orange-400">{holidays[termIndex].days} days</span>
                             </div>
-                            <div className="text-xs text-orange-600 mt-1">
+                            <div className="text-xs text-orange-600 mt-1 dark:text-orange-400">
                               {holidays[termIndex].startDate} - {holidays[termIndex].endDate}
                             </div>
                           </div>
@@ -992,15 +992,15 @@ export function AcademicYearsPageContent() {
 
                   {/* End-of-year holiday for the last term */}
                   {year.terms.length > 0 && (
-                    <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/40 dark:border-blue-800/60">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                          <span className="text-xs font-medium text-blue-800">End-of-Year Holiday</span>
+                          <span className="text-xs font-medium text-blue-800 dark:text-blue-200">End-of-Year Holiday</span>
                         </div>
-                        <span className="text-xs text-blue-600 font-medium">~60 days</span>
+                        <span className="text-xs text-blue-600 font-medium dark:text-blue-400">~60 days</span>
                       </div>
-                      <div className="text-xs text-blue-600 mt-1">
+                      <div className="text-xs text-blue-600 mt-1 dark:text-blue-400">
                         Dec - Jan (Next Academic Year)
                       </div>
                     </div>

@@ -444,7 +444,7 @@ export default function DutyServicePage() {
                                               deleteRota.mutate(rota.id);
                                             }
                                           }}
-                                          className="p-2 h-8 w-8 text-red-600 hover:text-red-700"
+                                          className="p-2 h-8 w-8 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                           title="Delete Duty Rota"
                                           disabled={deleteRota.isPending}
                                         >
@@ -454,7 +454,7 @@ export default function DutyServicePage() {
                                           variant="outline"
                                           size="sm"
                                           onClick={() => handlePrintDutyRota(rota)}
-                                          className="p-2 h-8 w-8 text-blue-600 hover:text-blue-700"
+                                          className="p-2 h-8 w-8 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                                           title="Print Duty Rota"
                                           disabled={printingRotaId === rota.id}
                                         >
@@ -470,9 +470,9 @@ export default function DutyServicePage() {
 
                                   {/* Assignment detail rows */}
                                   {currentAssignments.staff.length > 0 && (
-                                    <tr className="border-b bg-blue-50/30">
+                                    <tr className="border-b bg-blue-50/30 dark:bg-blue-950/30">
                                       <td className="p-3 pl-8">
-                                        <div className="text-sm text-blue-600 font-medium">Staff</div>
+                                        <div className="text-sm text-blue-600 font-medium dark:text-blue-400">Staff</div>
                                       </td>
                                       <td colSpan={2} className="p-3">
                                         <div className="text-sm">
@@ -484,9 +484,9 @@ export default function DutyServicePage() {
                                   )}
 
                                   {currentAssignments.prefects.length > 0 && (
-                                    <tr className="border-b bg-green-50/30">
+                                    <tr className="border-b bg-green-50/30 dark:bg-green-950/30">
                                       <td className="p-3 pl-8">
-                                        <div className="text-sm text-green-600 font-medium">Prefects</div>
+                                        <div className="text-sm text-green-600 font-medium dark:text-green-400">Prefects</div>
                                       </td>
                                       <td colSpan={2} className="p-3">
                                         <div className="text-sm">
@@ -498,9 +498,9 @@ export default function DutyServicePage() {
                                   )}
 
                                   {currentAssignments.pupils.length > 0 && (
-                                    <tr className="border-b bg-purple-50/30">
+                                    <tr className="border-b bg-purple-50/30 dark:bg-purple-950/30">
                                       <td className="p-3 pl-8">
-                                        <div className="text-sm text-purple-600 font-medium">Pupils</div>
+                                        <div className="text-sm text-purple-600 font-medium dark:text-purple-400">Pupils</div>
                                       </td>
                                       <td colSpan={2} className="p-3">
                                         <div className="text-sm">

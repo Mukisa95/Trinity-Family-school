@@ -118,7 +118,7 @@ export function InventoryReports({
                         <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-lg flex items-center gap-2">
-                                    <PieChart className="h-5 w-5 text-blue-500" />
+                                    <PieChart className="h-5 w-5 text-blue-500 dark:text-blue-400" />
                                     By Category
                                 </CardTitle>
                             </CardHeader>
@@ -155,7 +155,7 @@ export function InventoryReports({
                         <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-lg flex items-center gap-2">
-                                    <MapPin className="h-5 w-5 text-green-500" />
+                                    <MapPin className="h-5 w-5 text-green-500 dark:text-green-400" />
                                     By Location
                                 </CardTitle>
                             </CardHeader>
@@ -189,7 +189,7 @@ export function InventoryReports({
                         <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-lg flex items-center gap-2">
-                                    <Package className="h-5 w-5 text-purple-500" />
+                                    <Package className="h-5 w-5 text-purple-500 dark:text-purple-400" />
                                     Condition Status
                                 </CardTitle>
                             </CardHeader>
@@ -221,28 +221,28 @@ export function InventoryReports({
                         <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-lg flex items-center gap-2">
-                                    <TrendingUp className="h-5 w-5 text-indigo-500" />
+                                    <TrendingUp className="h-5 w-5 text-indigo-500 dark:text-indigo-400" />
                                     Summary Statistics
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="p-3 bg-white dark:bg-slate-800 rounded-lg">
-                                        <p className="text-2xl font-bold text-blue-600">{summary?.totalItems || 0}</p>
+                                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{summary?.totalItems || 0}</p>
                                         <p className="text-xs text-muted-foreground">Total Item Types</p>
                                     </div>
                                     <div className="p-3 bg-white dark:bg-slate-800 rounded-lg">
-                                        <p className="text-2xl font-bold text-green-600">{summary?.totalQuantity || 0}</p>
+                                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">{summary?.totalQuantity || 0}</p>
                                         <p className="text-xs text-muted-foreground">Total Units</p>
                                     </div>
                                     <div className="p-3 bg-white dark:bg-slate-800 rounded-lg">
-                                        <p className="text-2xl font-bold text-purple-600">{formatCurrency(summary?.totalValue || 0)}</p>
+                                        <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{formatCurrency(summary?.totalValue || 0)}</p>
                                         <p className="text-xs text-muted-foreground">Total Value</p>
                                     </div>
                                     <div className="p-3 bg-white dark:bg-slate-800 rounded-lg">
                                         <p className={cn(
                                             "text-2xl font-bold",
-                                            (summary?.lowStockCount || 0) > 0 ? "text-amber-600" : "text-green-600"
+                                            (summary?.lowStockCount || 0) > 0 ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400"
                                         )}>
                                             {summary?.lowStockCount || 0}
                                         </p>
@@ -373,7 +373,7 @@ export function InventoryReports({
                     )}>
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
-                                <AlertTriangle className={cn("h-5 w-5", lowStockItems.length > 0 ? "text-amber-500" : "text-muted-foreground")} />
+                                <AlertTriangle className={cn("h-5 w-5", lowStockItems.length > 0 ? "text-amber-500 dark:text-amber-400" : "text-muted-foreground")} />
                                 Low Stock Items
                                 {lowStockItems.length > 0 && (
                                     <Badge variant="destructive">{lowStockItems.length}</Badge>
@@ -384,7 +384,7 @@ export function InventoryReports({
                         <CardContent>
                             {lowStockItems.length === 0 ? (
                                 <div className="text-center py-6">
-                                    <Package className="h-12 w-12 mx-auto text-green-500 mb-3" />
+                                    <Package className="h-12 w-12 mx-auto text-green-500 mb-3 dark:text-green-400" />
                                     <p className="text-muted-foreground">All items are adequately stocked!</p>
                                 </div>
                             ) : (
@@ -406,7 +406,7 @@ export function InventoryReports({
                                                 <TableCell>{item.category}</TableCell>
                                                 <TableCell>{item.location}</TableCell>
                                                 <TableCell className="text-right">
-                                                    <span className="text-red-600 font-medium">{item.quantity}</span>
+                                                    <span className="text-red-600 font-medium dark:text-red-400">{item.quantity}</span>
                                                 </TableCell>
                                                 <TableCell className="text-right">{item.reorderLevel}</TableCell>
                                                 <TableCell className="text-right">
@@ -426,7 +426,7 @@ export function InventoryReports({
                     <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80">
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
-                                <MapPin className="h-5 w-5 text-indigo-500" />
+                                <MapPin className="h-5 w-5 text-indigo-500 dark:text-indigo-400" />
                                 Stock by Location
                             </CardTitle>
                         </CardHeader>
@@ -441,7 +441,7 @@ export function InventoryReports({
                                             <span className="font-medium">{location}</span>
                                             <Badge variant="outline">{data.itemCount}</Badge>
                                         </div>
-                                        <p className="text-2xl font-bold text-indigo-600">{data.totalQuantity}</p>
+                                        <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{data.totalQuantity}</p>
                                         <p className="text-xs text-muted-foreground">total units</p>
                                     </div>
                                 ))}

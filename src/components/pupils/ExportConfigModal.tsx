@@ -172,7 +172,7 @@ export function ExportConfigModal({
       <ModernDialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
         <ModernDialogHeader className="pt-6 pb-2 px-6">
           <ModernDialogTitle className="flex items-center gap-2 text-xl">
-            <Download className="w-5 h-5 text-green-600" />
+            <Download className="w-5 h-5 text-green-600 dark:text-green-400" />
             Customize Excel Export
           </ModernDialogTitle>
           <ModernDialogDescription>
@@ -180,16 +180,16 @@ export function ExportConfigModal({
           </ModernDialogDescription>
         </ModernDialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 bg-slate-50/50">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 bg-slate-50/50 dark:bg-slate-900/50">
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Left Column - Formatting Options */}
-            <div className="space-y-5 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-              <h3 className="font-semibold text-slate-800 text-sm border-b pb-2">Formatting Options</h3>
+            <div className="space-y-5 bg-white p-4 rounded-xl border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+              <h3 className="font-semibold text-slate-800 text-sm border-b pb-2 dark:text-slate-100">Formatting Options</h3>
               
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold text-slate-500">Pupil Name</Label>
+                  <Label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Pupil Name</Label>
                   <RadioGroup value={nameFormat} onValueChange={(val: any) => setNameFormat(val)} className="flex flex-col gap-2">
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="separated" id="name-sep" />
@@ -203,7 +203,7 @@ export function ExportConfigModal({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold text-slate-500">Class Format</Label>
+                  <Label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Class Format</Label>
                   <RadioGroup value={classFormat} onValueChange={(val: any) => setClassFormat(val)} className="flex gap-4">
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="name" id="class-full" />
@@ -217,7 +217,7 @@ export function ExportConfigModal({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold text-slate-500">Study Status (Section)</Label>
+                  <Label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Study Status (Section)</Label>
                   <RadioGroup value={sectionFormat} onValueChange={(val: any) => setSectionFormat(val)} className="flex gap-4">
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="short" id="section-short" />
@@ -231,7 +231,7 @@ export function ExportConfigModal({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold text-slate-500">Gender Format</Label>
+                  <Label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Gender Format</Label>
                   <RadioGroup value={genderFormat} onValueChange={(val: any) => setGenderFormat(val)} className="flex gap-4">
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="short" id="gender-short" />
@@ -247,29 +247,29 @@ export function ExportConfigModal({
             </div>
 
             {/* Right Column - Column Selection and Ordering */}
-            <div className="space-y-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col h-[400px]">
+            <div className="space-y-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col h-[400px] dark:bg-slate-900 dark:border-slate-700">
               <div className="flex items-center justify-between border-b pb-2">
-                <h3 className="font-semibold text-slate-800 text-sm">Columns & Ordering</h3>
-                <span className="text-xs text-slate-500">{activeColumns.length} included</span>
+                <h3 className="font-semibold text-slate-800 text-sm dark:text-slate-100">Columns & Ordering</h3>
+                <span className="text-xs text-slate-500 dark:text-slate-400">{activeColumns.length} included</span>
               </div>
               
               <ScrollArea className="flex-1 pr-4 -mr-4">
                 <div className="space-y-6">
                   {/* Active Columns */}
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Columns (In Order)</Label>
+                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-400">Active Columns (In Order)</Label>
                     <div className="space-y-1.5">
                       {activeColumns.map((colId, index) => (
-                        <div key={colId} className="flex items-center gap-2 bg-indigo-50/50 border border-indigo-100 p-2 rounded-lg group">
+                        <div key={colId} className="flex items-center gap-2 bg-indigo-50/50 border border-indigo-100 p-2 rounded-lg group dark:bg-indigo-950/50 dark:border-indigo-800/60">
                           <button 
                             onClick={() => toggleColumn(colId, true)}
-                            className="text-indigo-600 hover:text-indigo-800 p-1 bg-white rounded shadow-sm hover:bg-slate-50 transition-colors"
+                            className="text-indigo-600 hover:text-indigo-800 p-1 bg-white rounded shadow-sm hover:bg-slate-50 transition-colors dark:text-indigo-400 dark:hover:text-indigo-200 dark:bg-slate-900 dark:hover:bg-slate-900"
                             title="Remove column"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           
-                          <span className="flex-1 text-sm font-medium text-slate-700 truncate">
+                          <span className="flex-1 text-sm font-medium text-slate-700 truncate dark:text-slate-200">
                             {getColumnLabel(colId)}
                           </span>
                           
@@ -277,14 +277,14 @@ export function ExportConfigModal({
                             <button 
                               onClick={() => moveColumnUp(index)}
                               disabled={index === 0}
-                              className="p-0.5 hover:bg-white rounded disabled:opacity-30 disabled:hover:bg-transparent"
+                              className="p-0.5 hover:bg-white rounded disabled:opacity-30 disabled:hover:bg-transparent dark:hover:bg-slate-900"
                             >
                               <ArrowUp className="w-3.5 h-3.5" />
                             </button>
                             <button 
                               onClick={() => moveColumnDown(index)}
                               disabled={index === activeColumns.length - 1}
-                              className="p-0.5 hover:bg-white rounded disabled:opacity-30 disabled:hover:bg-transparent"
+                              className="p-0.5 hover:bg-white rounded disabled:opacity-30 disabled:hover:bg-transparent dark:hover:bg-slate-900"
                             >
                               <ArrowDown className="w-3.5 h-3.5" />
                             </button>
@@ -292,7 +292,7 @@ export function ExportConfigModal({
                         </div>
                       ))}
                       {activeColumns.length === 0 && (
-                        <div className="text-center p-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-sm">
+                        <div className="text-center p-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-sm dark:border-slate-700 dark:text-slate-400">
                           No columns selected for export
                         </div>
                       )}
@@ -301,14 +301,14 @@ export function ExportConfigModal({
 
                   {/* Available Columns */}
                   {inactiveColumns.length > 0 && (
-                    <div className="space-y-2 pt-2 border-t border-slate-100">
-                      <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Available Columns</Label>
+                    <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                      <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-400">Available Columns</Label>
                       <div className="flex flex-wrap gap-2">
                         {inactiveColumns.map((colId) => (
                           <button
                             key={colId}
                             onClick={() => toggleColumn(colId, false)}
-                            className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2.5 py-1.5 rounded-lg text-sm text-slate-600 transition-colors"
+                            className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2.5 py-1.5 rounded-lg text-sm text-slate-600 transition-colors dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
                           >
                             <EyeOff className="w-3.5 h-3.5" />
                             {getColumnLabel(colId)}
@@ -324,7 +324,7 @@ export function ExportConfigModal({
 
         </div>
 
-        <ModernDialogFooter className="p-4 border-t bg-white">
+        <ModernDialogFooter className="p-4 border-t bg-white dark:bg-slate-900">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>

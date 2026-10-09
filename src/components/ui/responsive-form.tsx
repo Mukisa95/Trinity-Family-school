@@ -87,7 +87,7 @@ const ResponsiveFormField = React.forwardRef<HTMLDivElement, ResponsiveFormField
       >
         <label className="text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-red-500 ml-1 dark:text-red-400">*</span>}
         </label>
         {children}
         {description && (

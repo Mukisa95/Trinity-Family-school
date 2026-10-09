@@ -53,11 +53,11 @@ export function ClassAttendanceSummaryDialog({ open, onOpenChange, date, classId
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl gap-4 p-0">
-        <DialogHeader className="rounded-t-2xl border-b border-slate-200 bg-gradient-to-br from-indigo-50 via-white to-sky-50 px-5 py-5 sm:px-6">
-          <DialogTitle className="text-lg text-slate-900 sm:text-xl">
+        <DialogHeader className="rounded-t-2xl border-b border-slate-200 bg-gradient-to-br from-indigo-50 via-white to-sky-50 px-5 py-5 sm:px-6 dark:border-slate-700 dark:from-indigo-950/40 dark:via-slate-900 dark:to-sky-950/40">
+          <DialogTitle className="text-lg text-slate-900 sm:text-xl dark:text-slate-100">
             {summary.className} attendance
           </DialogTitle>
-          <DialogDescription className="text-slate-600">
+          <DialogDescription className="text-slate-600 dark:text-slate-300">
             {date} · {summary.total} pupil{summary.total === 1 ? '' : 's'} recorded
           </DialogDescription>
         </DialogHeader>
@@ -66,10 +66,10 @@ export function ClassAttendanceSummaryDialog({ open, onOpenChange, date, classId
           {sections.map(section => {
             const Icon = section.icon;
             const palette = section.tone === 'emerald'
-              ? 'border-emerald-200 bg-emerald-50/70 text-emerald-700'
+              ? 'border-emerald-200 bg-emerald-50/70 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/70 dark:text-emerald-300'
               : section.tone === 'rose'
-                ? 'border-rose-200 bg-rose-50/70 text-rose-700'
-                : 'border-amber-200 bg-amber-50/70 text-amber-700';
+                ? 'border-rose-200 bg-rose-50/70 text-rose-700 dark:border-rose-800/60 dark:bg-rose-950/70 dark:text-rose-300'
+                : 'border-amber-200 bg-amber-50/70 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/70 dark:text-amber-300';
             return (
               <section key={section.id} className={`min-w-0 overflow-hidden rounded-2xl border ${palette}`}>
                 <div className="flex items-center justify-between border-b border-current/10 px-4 py-3">
@@ -79,18 +79,18 @@ export function ClassAttendanceSummaryDialog({ open, onOpenChange, date, classId
                   </div>
                   <span className="text-xl font-black tabular-nums">{section.value}</span>
                 </div>
-                <div className="max-h-64 divide-y divide-current/10 overflow-y-auto bg-white/65">
+                <div className="max-h-64 divide-y divide-current/10 overflow-y-auto bg-white/65 dark:bg-slate-900/65">
                   {section.records.length ? section.records.map(record => (
-                    <div key={record.pupilId} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm text-slate-700">
+                    <div key={record.pupilId} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200">
                       <span className="min-w-0 truncate font-medium">{pupilName(pupilById.get(record.pupilId), record.pupilId)}</span>
                       {(record.status === 'Late' || record.status === 'Excused') && (
-                        <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500 shadow-sm">
+                        <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500 shadow-sm dark:bg-slate-900 dark:text-slate-400">
                           {record.status}
                         </span>
                       )}
                     </div>
                   )) : (
-                    <p className="px-4 py-6 text-center text-sm text-slate-500">No pupils in this group.</p>
+                    <p className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">No pupils in this group.</p>
                   )}
                 </div>
               </section>

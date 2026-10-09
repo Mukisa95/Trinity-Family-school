@@ -65,7 +65,7 @@ export function BrandedAuthScreen({
     >
       <section className="flex w-full max-w-sm flex-col items-center">
         <div className="flex items-center justify-center gap-4" aria-hidden="true">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/15 bg-white/10 p-3 shadow-[0_12px_32px_rgba(0,0,0,0.25)]">
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/15 bg-white/10 p-3 shadow-[0_12px_32px_rgba(0,0,0,0.25)] dark:border-slate-700/15 dark:bg-slate-900/10">
             <Image
               src="/logo.png"
               alt=""
@@ -85,7 +85,7 @@ export function BrandedAuthScreen({
           <h1 className="text-lg font-semibold tracking-wide">Trinity Family School</h1>
           <p className="mt-2 min-h-5 text-sm text-slate-300">{activeMessage}</p>
         </div>
-        <p className="mt-3 text-xs text-slate-400">Strive to Excel</p>
+        <p className="mt-3 text-xs text-slate-400 dark:text-slate-400">Strive to Excel</p>
       </section>
     </main>
   );

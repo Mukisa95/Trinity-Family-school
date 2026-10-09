@@ -82,7 +82,7 @@ export function StockDashboard({
                 <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-lg flex items-center gap-2">
-                            <Package className="h-5 w-5 text-blue-500" />
+                            <Package className="h-5 w-5 text-blue-500 dark:text-blue-400" />
                             Inventory by Category
                         </CardTitle>
                         <CardDescription>Distribution of items across categories</CardDescription>
@@ -156,7 +156,7 @@ export function StockDashboard({
                 <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-lg flex items-center gap-2">
-                            <Clock className="h-5 w-5 text-purple-500" />
+                            <Clock className="h-5 w-5 text-purple-500 dark:text-purple-400" />
                             Recent Activity
                         </CardTitle>
                         <CardDescription>Latest inventory movements</CardDescription>
@@ -220,7 +220,7 @@ export function StockDashboard({
                 )}>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-lg flex items-center gap-2">
-                            <AlertTriangle className={cn("h-5 w-5", lowStockItems.length > 0 ? "text-amber-500" : "text-muted-foreground")} />
+                            <AlertTriangle className={cn("h-5 w-5", lowStockItems.length > 0 ? "text-amber-500 dark:text-amber-400" : "text-muted-foreground")} />
                             Low Stock Alerts
                             {lowStockItems.length > 0 && (
                                 <Badge variant="destructive" className="ml-auto">{lowStockItems.length}</Badge>
@@ -231,7 +231,7 @@ export function StockDashboard({
                         {lowStockItems.length === 0 ? (
                             <div className="text-center py-6">
                                 <div className="h-12 w-12 mx-auto bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-3">
-                                    <Package className="h-6 w-6 text-green-600" />
+                                    <Package className="h-6 w-6 text-green-600 dark:text-green-400" />
                                 </div>
                                 <p className="text-muted-foreground text-sm">All items are well stocked!</p>
                             </div>
@@ -250,7 +250,7 @@ export function StockDashboard({
                                             <p className="text-xs text-muted-foreground">{item.category}</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-sm font-bold text-amber-600">{item.quantity}</p>
+                                            <p className="text-sm font-bold text-amber-600 dark:text-amber-400">{item.quantity}</p>
                                             <p className="text-xs text-muted-foreground">
                                                 min: {item.reorderLevel}
                                             </p>
@@ -272,7 +272,7 @@ export function StockDashboard({
                 <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-lg flex items-center gap-2">
-                            <MapPin className="h-5 w-5 text-indigo-500" />
+                            <MapPin className="h-5 w-5 text-indigo-500 dark:text-indigo-400" />
                             By Location
                         </CardTitle>
                     </CardHeader>

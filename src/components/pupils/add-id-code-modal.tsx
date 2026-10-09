@@ -94,8 +94,8 @@ export function AddIdCodeModal({ isOpen, onClose, onSave, existingIdentifier }: 
         <div className="grid gap-4 py-4">
           <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={formValidation.focusField} />
           <div className="space-y-2">
-            <Label htmlFor="idType" className={formValidation.getFieldError('idType') ? 'text-red-700' : undefined}>
-              ID Type <span className="text-red-600">*</span>
+            <Label htmlFor="idType" className={formValidation.getFieldError('idType') ? 'text-red-700 dark:text-red-300' : undefined}>
+              ID Type <span className="text-red-600 dark:text-red-400">*</span>
             </Label>
             <Select
               value={idType}
@@ -117,8 +117,8 @@ export function AddIdCodeModal({ isOpen, onClose, onSave, existingIdentifier }: 
 
           {idType === 'Other' && (
             <div className="space-y-2">
-              <Label htmlFor="customIdName" className={formValidation.getFieldError('customIdName') ? 'text-red-700' : undefined}>
-                Custom Type <span className="text-red-600">*</span>
+              <Label htmlFor="customIdName" className={formValidation.getFieldError('customIdName') ? 'text-red-700 dark:text-red-300' : undefined}>
+                Custom Type <span className="text-red-600 dark:text-red-400">*</span>
               </Label>
               <Input
                 id="customIdName"
@@ -132,8 +132,8 @@ export function AddIdCodeModal({ isOpen, onClose, onSave, existingIdentifier }: 
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="idValue" className={formValidation.getFieldError('idValue') ? 'text-red-700' : undefined}>
-              ID Value <span className="text-red-600">*</span>
+            <Label htmlFor="idValue" className={formValidation.getFieldError('idValue') ? 'text-red-700 dark:text-red-300' : undefined}>
+              ID Value <span className="text-red-600 dark:text-red-400">*</span>
             </Label>
             <Input
               id="idValue"

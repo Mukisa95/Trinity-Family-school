@@ -131,7 +131,7 @@ export function SchoolPayPaymentsModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden dark:bg-slate-900">
         
         {/* Header */}
         <div className="bg-gradient-to-r from-violet-600 to-purple-700 px-6 py-4 flex items-center justify-between text-white">
@@ -140,7 +140,7 @@ export function SchoolPayPaymentsModal({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold">SchoolPay Payments</h2>
-                {isLoading && <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+                {isLoading && <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin dark:border-slate-700/40" />}
                 {!isLoading && <span className="text-[10px] bg-green-400/30 border border-green-400/50 text-green-100 rounded-full px-2 py-0.5">● Live</span>}
               </div>
               <p className="text-xs text-violet-200">
@@ -148,42 +148,42 @@ export function SchoolPayPaymentsModal({
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors">✕</button>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors dark:bg-slate-900/20 dark:hover:bg-slate-900/30">✕</button>
         </div>
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <span className="w-8 h-8 border-3 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
-              <p className="text-sm text-gray-400">Loading SchoolPay payments…</p>
+              <span className="w-8 h-8 border-3 border-violet-200 border-t-violet-600 rounded-full animate-spin dark:border-violet-800/60" />
+              <p className="text-sm text-gray-400 dark:text-slate-400">Loading SchoolPay payments…</p>
             </div>
           ) : transactions.length === 0 ? (
             <div className="text-center py-12">
               <span className="text-4xl mb-3 block">📭</span>
-              <p className="text-gray-500 font-medium">No SchoolPay payments received yet</p>
-              <p className="text-xs text-gray-400 mt-1">Payments from SchoolPay will appear here in real time</p>
+              <p className="text-gray-500 font-medium dark:text-slate-400">No SchoolPay payments received yet</p>
+              <p className="text-xs text-gray-400 mt-1 dark:text-slate-400">Payments from SchoolPay will appear here in real time</p>
             </div>
           ) : (
             transactions.map((tx) => {
               const hasUnmatched = tx.payments.some((p: any) => p.feeStructureId === 'schoolpay-general');
               return (
-                <div key={tx.key} className="bg-violet-50/60 border border-violet-200 rounded-xl overflow-hidden">
+                <div key={tx.key} className="bg-violet-50/60 border border-violet-200 rounded-xl overflow-hidden dark:bg-violet-950/60 dark:border-violet-800/60">
                   {/* Transaction header */}
-                  <div className="bg-gradient-to-r from-violet-100 to-purple-50 px-4 py-3 flex items-start justify-between gap-3">
+                  <div className="bg-gradient-to-r from-violet-100 to-purple-50 px-4 py-3 flex items-start justify-between gap-3 dark:from-violet-950/40 dark:to-purple-950/40">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-violet-900 text-base">{fmt(tx.totalAmount)}</span>
-                        <span className="text-xs bg-violet-200 text-violet-800 rounded-full px-2 py-0.5 font-mono">via SchoolPay</span>
-                        {tx.paymentMethod && <span className="text-xs bg-white border border-violet-200 text-violet-700 rounded-full px-2 py-0.5">{tx.paymentMethod}</span>}
+                        <span className="font-bold text-violet-900 text-base dark:text-violet-200">{fmt(tx.totalAmount)}</span>
+                        <span className="text-xs bg-violet-200 text-violet-800 rounded-full px-2 py-0.5 font-mono dark:bg-violet-900/40 dark:text-violet-200">via SchoolPay</span>
+                        {tx.paymentMethod && <span className="text-xs bg-white border border-violet-200 text-violet-700 rounded-full px-2 py-0.5 dark:bg-slate-900 dark:border-violet-800/60 dark:text-violet-300">{tx.paymentMethod}</span>}
                         {tx.termGroups.length > 1 && <span className="text-xs bg-fuchsia-100 text-fuchsia-700 rounded-full px-2 py-0.5">Split across {tx.termGroups.length} terms</span>}
-                        {hasUnmatched && <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 font-medium">⚠ Needs matching</span>}
+                        {hasUnmatched && <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 font-medium dark:bg-amber-950/40 dark:text-amber-300">⚠ Needs matching</span>}
                       </div>
-                      <p className="text-xs text-violet-600 mt-1">{fmtDate(tx.paymentDate)}</p>
+                      <p className="text-xs text-violet-600 mt-1 dark:text-violet-400">{fmtDate(tx.paymentDate)}</p>
                     </div>
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      <p className="text-xs text-gray-600 font-medium">{tx.payerName !== '—' ? tx.payerName : ''}</p>
-                      {tx.payCode && <p className="text-[10px] text-gray-400 font-mono">PC: {tx.payCode}</p>}
+                      <p className="text-xs text-gray-600 font-medium dark:text-slate-300">{tx.payerName !== '—' ? tx.payerName : ''}</p>
+                      {tx.payCode && <p className="text-[10px] text-gray-400 font-mono dark:text-slate-400">PC: {tx.payCode}</p>}
                       {/* Redistribute button — always available here */}
                       <button
                         onClick={() => onRedistribute(tx)}
@@ -201,24 +201,24 @@ export function SchoolPayPaymentsModal({
                         <div className="flex items-center gap-1.5 mb-1.5">
                           {group.isPushed
                             ? <span className="text-[10px] font-semibold text-fuchsia-600 bg-fuchsia-50 border border-fuchsia-200 rounded-full px-2 py-0.5">→ Pushed to {group.termLabel}</span>
-                            : <span className="text-[10px] font-semibold text-violet-600 bg-violet-50 border border-violet-200 rounded-full px-2 py-0.5">{group.termLabel}</span>}
-                          <span className="text-[10px] text-violet-500 font-medium">{fmt(group.subTotal)}</span>
+                            : <span className="text-[10px] font-semibold text-violet-600 bg-violet-50 border border-violet-200 rounded-full px-2 py-0.5 dark:text-violet-400 dark:bg-violet-950/40 dark:border-violet-800/60">{group.termLabel}</span>}
+                          <span className="text-[10px] text-violet-500 font-medium dark:text-violet-400">{fmt(group.subTotal)}</span>
                         </div>
                         <div className="space-y-1">
                           {group.payments.map((p: any, i: number) => (
-                            <div key={p.id || i} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-violet-100 text-sm">
+                            <div key={p.id || i} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-violet-100 text-sm dark:bg-slate-900 dark:border-violet-800/60">
                               <div className="min-w-0 flex-1">
-                                <p className="font-medium text-gray-800 truncate text-sm">{getFeeName(p.feeStructureId)}</p>
-                                {p.feeStructureId === 'schoolpay-general' && <p className="text-[10px] text-amber-600">Use Redistribute to allocate this amount</p>}
+                                <p className="font-medium text-gray-800 truncate text-sm dark:text-slate-100">{getFeeName(p.feeStructureId)}</p>
+                                {p.feeStructureId === 'schoolpay-general' && <p className="text-[10px] text-amber-600 dark:text-amber-400">Use Redistribute to allocate this amount</p>}
                               </div>
-                              <span className="ml-3 font-bold text-violet-800 shrink-0">{fmt(p.amount)}</span>
+                              <span className="ml-3 font-bold text-violet-800 shrink-0 dark:text-violet-200">{fmt(p.amount)}</span>
                             </div>
                           ))}
                         </div>
                       </div>
                     ))}
 
-                    {tx.txRef && <p className="text-[10px] text-gray-400 font-mono mt-1 truncate">Ref: {tx.txRef}</p>}
+                    {tx.txRef && <p className="text-[10px] text-gray-400 font-mono mt-1 truncate dark:text-slate-400">Ref: {tx.txRef}</p>}
                   </div>
                 </div>
               );
@@ -227,7 +227,7 @@ export function SchoolPayPaymentsModal({
         </div>
 
         {/* Footer */}
-        <div className="border-t px-6 py-3 bg-gray-50 flex justify-end">
+        <div className="border-t px-6 py-3 bg-gray-50 flex justify-end dark:bg-slate-900">
           <button onClick={onClose} className="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-semibold transition-colors">Close</button>
         </div>
       </div>

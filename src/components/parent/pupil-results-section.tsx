@@ -300,10 +300,10 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
   }, [filteredResults]);
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 70) return 'text-blue-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
+    if (score >= 80) return 'text-green-600 dark:text-green-400';
+    if (score >= 70) return 'text-blue-600 dark:text-blue-400';
+    if (score >= 60) return 'text-yellow-600 dark:text-yellow-400';
+    return 'text-red-600 dark:text-red-400';
   };
 
   const getScoreBadgeVariant = (score: number) => {
@@ -315,7 +315,7 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
 
   if (error) {
     return (
-      <Alert className="border-red-200 bg-red-50">
+      <Alert className="border-red-200 bg-red-50 dark:border-red-800/60 dark:bg-red-950/40">
         <Trophy className="h-4 w-4" />
         <AlertDescription>
           Failed to load exam results. Please try again later.
@@ -327,7 +327,7 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
   if (isLoading) {
     return (
       <div className="space-y-3">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
+        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-slate-400">
           <Trophy className="h-4 w-4 animate-pulse" />
           <span>Loading exam results...</span>
         </div>
@@ -335,12 +335,12 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
           {[...Array(3)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader className="pb-2">
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4 dark:bg-slate-800"></div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-full"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2 dark:bg-slate-800"></div>
+                  <div className="h-3 bg-gray-200 rounded w-full dark:bg-slate-800"></div>
                 </div>
               </CardContent>
             </Card>
@@ -354,8 +354,8 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
     return (
       <div className="text-center py-8">
         <Trophy className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Released Results</h3>
-        <p className="text-gray-500 text-sm max-w-md mx-auto">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2 dark:text-slate-100">No Released Results</h3>
+        <p className="text-gray-500 text-sm max-w-md mx-auto dark:text-slate-400">
           {pupilName}'s exam results will appear here once they are released by the administration.
         </p>
       </div>
@@ -382,7 +382,7 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
               {pupil?.firstName?.charAt(0)}{pupil?.lastName?.charAt(0)}
             </AvatarFallback>
           </Avatar>
-          <h2 className="text-sm sm:text-base font-bold text-gray-900 truncate">
+          <h2 className="text-sm sm:text-base font-bold text-gray-900 truncate dark:text-slate-100">
             <span className="hidden sm:inline">Exam Results Performance for </span>
             <span className="sm:hidden">Results for </span>
             {pupilName}
@@ -391,10 +391,10 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
         
         {/* Compact Inline Filters and Count */}
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="hidden sm:inline text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+          <span className="hidden sm:inline text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full dark:text-slate-400 dark:bg-slate-900">
             {filteredResults.length} exam{filteredResults.length !== 1 ? 's' : ''}
           </span>
-          <span className="sm:hidden text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+          <span className="sm:hidden text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded dark:text-slate-400 dark:bg-slate-900">
             {filteredResults.length}
           </span>
           
@@ -426,7 +426,7 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
           
           {/* Hide view toggle on mobile screens */}
           {!isMobile && (
-            <div className="flex border border-gray-300 rounded overflow-hidden">
+            <div className="flex border border-gray-300 rounded overflow-hidden dark:border-slate-700">
               <Button
                 variant={viewMode === 'grid' ? 'default' : 'ghost'}
                 size="sm"
@@ -457,7 +457,7 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
           {/* Strong Subjects Card */}
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-green-700 text-sm">
+              <CardTitle className="flex items-center gap-2 text-green-700 text-sm dark:text-green-300">
                 <Award className="h-4 w-4" />
                 <span className="hidden sm:inline">Strong Subjects</span>
                 <span className="sm:hidden">Strong</span>
@@ -472,7 +472,7 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
                     </Badge>
                   ))
                 ) : (
-                  <span className="text-xs text-gray-500 italic">None yet</span>
+                  <span className="text-xs text-gray-500 italic dark:text-slate-400">None yet</span>
                 )}
               </div>
             </CardContent>
@@ -481,7 +481,7 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
           {/* Needs Improvement Card */}
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-orange-700 text-sm">
+              <CardTitle className="flex items-center gap-2 text-orange-700 text-sm dark:text-orange-300">
                 <TrendingUp className="h-4 w-4" />
                 <span className="hidden sm:inline">Needs Improvement</span>
                 <span className="sm:hidden">Improve</span>
@@ -496,7 +496,7 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
                     </Badge>
                   ))
                 ) : (
-                  <span className="text-xs text-gray-500 italic">All good!</span>
+                  <span className="text-xs text-gray-500 italic dark:text-slate-400">All good!</span>
                 )}
               </div>
             </CardContent>
@@ -509,8 +509,8 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
         <Card className="border-0 shadow-sm">
           <CardContent className="py-8 text-center">
             <Calendar className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-            <h3 className="text-base font-semibold text-gray-900 mb-1">No Results Found</h3>
-            <p className="text-gray-500 text-sm">
+            <h3 className="text-base font-semibold text-gray-900 mb-1 dark:text-slate-100">No Results Found</h3>
+            <p className="text-gray-500 text-sm dark:text-slate-400">
               No exam results found for the selected filters.
             </p>
           </CardContent>
@@ -527,7 +527,7 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <CardTitle className="text-sm font-semibold truncate">{result.examName}</CardTitle>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-gray-500 mt-0.5 dark:text-slate-400">
                       {result.className} • {formatDateForDisplay(result.examDate)}
                     </p>
                   </div>
@@ -555,19 +555,19 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
                   {/* Compact Details Grid */}
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <span className="text-gray-500">Grade:</span>
+                      <span className="text-gray-500 dark:text-slate-400">Grade:</span>
                       <span className="ml-1 font-medium">{result.grade}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500">Div:</span>
+                      <span className="text-gray-500 dark:text-slate-400">Div:</span>
                       <span className="ml-1 font-medium">{result.division}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500">Marks:</span>
+                      <span className="text-gray-500 dark:text-slate-400">Marks:</span>
                       <span className="ml-1 font-medium">{result.totalMarks}/{result.maxPossibleMarks}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500">Agg:</span>
+                      <span className="text-gray-500 dark:text-slate-400">Agg:</span>
                       <span className="ml-1 font-medium">{result.totalAggregates}</span>
                     </div>
                   </div>
@@ -595,7 +595,7 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
                         <div className="mt-1 space-y-1 border-t pt-1">
                           {result.subjectResults.map((subjectResult: any, index: number) => (
                             <div key={`${result.id}-subject-${index}`} className="flex justify-between items-center text-xs">
-                              <span className="text-gray-600 font-medium truncate flex-1 mr-2">
+                              <span className="text-gray-600 font-medium truncate flex-1 mr-2 dark:text-slate-300">
                                 {subjectResult.subjectCode}
                               </span>
                               <div className="flex items-center gap-1 flex-shrink-0">

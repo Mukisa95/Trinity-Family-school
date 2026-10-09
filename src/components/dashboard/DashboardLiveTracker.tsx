@@ -66,7 +66,7 @@ function PillPopover({ pill, onClose }: { pill: PillData; onClose: () => void })
             {/* Colored header */}
             <div className="flex items-center justify-between px-3 py-2" style={{ background: pill.bg }}>
                 <div className="flex items-center gap-1.5 min-w-0">
-                    <div className="w-2 h-2 rounded-full bg-white/60 flex-shrink-0" />
+                    <div className="w-2 h-2 rounded-full bg-white/60 flex-shrink-0 dark:bg-slate-900/60" />
                     <span className="text-xs font-bold text-white tracking-wide truncate">{pill.className}</span>
                 </div>
                 <button onClick={onClose} className="text-white/70 hover:text-white transition flex-shrink-0 ml-1">
@@ -74,24 +74,24 @@ function PillPopover({ pill, onClose }: { pill: PillData; onClose: () => void })
                 </button>
             </div>
             {/* Body */}
-            <div className="bg-white px-3 py-2.5 flex flex-col gap-1.5">
+            <div className="bg-white px-3 py-2.5 flex flex-col gap-1.5 dark:bg-slate-900">
                 <div className="flex items-start gap-2">
-                    <BookOpen className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
+                    <BookOpen className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5 dark:text-slate-400" />
                     <div className="min-w-0">
-                        <p className="text-xs font-bold text-gray-800 leading-tight">{pill.subjectName}</p>
+                        <p className="text-xs font-bold text-gray-800 leading-tight dark:text-slate-100">{pill.subjectName}</p>
                         {pill.subjectCode !== pill.subjectName && (
-                            <p className="text-[10px] text-gray-400">{pill.subjectCode}</p>
+                            <p className="text-[10px] text-gray-400 dark:text-slate-400">{pill.subjectCode}</p>
                         )}
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                    <span className="text-xs text-gray-600 font-medium">{pill.startTime} – {pill.endTime}</span>
+                    <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 dark:text-slate-400" />
+                    <span className="text-xs text-gray-600 font-medium dark:text-slate-300">{pill.startTime} – {pill.endTime}</span>
                 </div>
                 {pill.teacher ? (
                     <div className="flex items-center gap-2">
-                        <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                        <span className="text-xs text-gray-700 font-medium truncate">{pill.teacher}</span>
+                        <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 dark:text-slate-400" />
+                        <span className="text-xs text-gray-700 font-medium truncate dark:text-slate-200">{pill.teacher}</span>
                     </div>
                 ) : null}
             </div>
@@ -147,12 +147,12 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
     if (!activePeriod) {
         return (
             <div className="flex items-center gap-2 py-1">
-                <div className="w-3.5 h-3.5 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0">
+                <div className="w-3.5 h-3.5 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 dark:border-slate-700">
                     <div className="w-1 h-1 rounded-full bg-gray-400" />
                 </div>
-                {profileName && <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{profileName}:</span>}
-                <span className="text-xs text-gray-500">No active lessons.</span>
-                <button onClick={() => router.push("/timetable")} className="ml-auto text-[10px] font-semibold text-indigo-500 hover:text-indigo-700 transition">
+                {profileName && <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider dark:text-slate-400">{profileName}:</span>}
+                <span className="text-xs text-gray-500 dark:text-slate-400">No active lessons.</span>
+                <button onClick={() => router.push("/timetable")} className="ml-auto text-[10px] font-semibold text-indigo-500 hover:text-indigo-700 transition dark:text-indigo-400 dark:hover:text-indigo-300">
                     Timetable →
                 </button>
             </div>
@@ -234,34 +234,34 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
         <div className="flex flex-col gap-1 w-full min-w-0 py-0.5">
             {/* Row 1: indicator · profile/period details + countdown badge · times | clock | nav */}
             <div className="flex flex-wrap items-center gap-1.5 w-full min-w-0">
-                <div className="flex-shrink-0 w-3.5 h-3.5 rounded-full border border-red-300 flex items-center justify-center">
+                <div className="flex-shrink-0 w-3.5 h-3.5 rounded-full border border-red-300 flex items-center justify-center dark:border-red-800/60">
                     <div className={`w-1.5 h-1.5 rounded-full bg-red-500 ${isLive && !isUpcoming ? "animate-pulse" : "opacity-25"}`} />
                 </div>
                 
-                <div className="flex items-center flex-wrap gap-1 text-xs font-bold text-gray-900 tracking-tight">
+                <div className="flex items-center flex-wrap gap-1 text-xs font-bold text-gray-900 tracking-tight dark:text-slate-100">
 
                     
-                    <span className="text-gray-800">{periodLabel}</span>
+                    <span className="text-gray-800 dark:text-slate-100">{periodLabel}</span>
                     
                     {/* Compact Countdown Badge */}
                     <span className={`px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded-md tracking-wider leading-none ${
                         isUpcoming 
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200' 
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60'
                             : currentSecs >= endSecs 
-                                ? 'bg-gray-100 text-gray-500 border border-gray-200' 
-                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                ? 'bg-gray-100 text-gray-500 border border-gray-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700'
+                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60'
                     }`}>
                         {countdownStr}
                     </span>
 
                     <span className="text-gray-300 font-normal select-none">·</span>
-                    <span className="text-gray-500 font-mono font-medium text-[11px]">{activePeriod.startTime}–{activePeriod.endTime}</span>
+                    <span className="text-gray-500 font-mono font-medium text-[11px] dark:text-slate-400">{activePeriod.startTime}–{activePeriod.endTime}</span>
                 </div>
 
                 <div className="flex-1" />
                 
                 {showClock && (
-                    <div className="hidden sm:flex items-center px-2 py-0.5 bg-indigo-50/50 border border-indigo-100/60 rounded-full mr-1 flex-shrink-0">
+                    <div className="hidden sm:flex items-center px-2 py-0.5 bg-indigo-50/50 border border-indigo-100/60 rounded-full mr-1 flex-shrink-0 dark:bg-indigo-950/50 dark:border-indigo-800/60">
                         <Clock className="w-2.5 h-2.5 text-indigo-400 mr-1" />
                         <span className="font-mono text-[10px] font-bold bg-gradient-to-br from-indigo-700 to-indigo-900 bg-clip-text text-transparent tabular-nums tracking-tight">
                             {format(currentTime, "h:mm a")}
@@ -269,23 +269,23 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                     </div>
                 )}
                 
-                <div className="flex-shrink-0 flex items-center gap-0.5 p-0.5 bg-gray-50 border border-gray-200 rounded-full shadow-sm">
-                    <button onClick={handlePrev} disabled={!prevPeriod} className="p-0.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all">
+                <div className="flex-shrink-0 flex items-center gap-0.5 p-0.5 bg-gray-50 border border-gray-200 rounded-full shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                    <button onClick={handlePrev} disabled={!prevPeriod} className="p-0.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-900">
                         <ChevronLeft className="w-3 h-3" />
                     </button>
                     {!isLive && (
-                        <button onClick={handleLive} className="px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider bg-white shadow-sm border border-amber-200 text-amber-600 rounded-full hover:bg-amber-50 hover:border-amber-300 transition-all leading-none">
+                        <button onClick={handleLive} className="px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider bg-white shadow-sm border border-amber-200 text-amber-600 rounded-full hover:bg-amber-50 hover:border-amber-300 transition-all leading-none dark:bg-slate-900 dark:border-amber-800/60 dark:text-amber-400 dark:hover:bg-amber-950/40 dark:hover:border-amber-800/60">
                             Live
                         </button>
                     )}
-                    <button onClick={handleNext} disabled={!nextPeriod} className="p-0.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all">
+                    <button onClick={handleNext} disabled={!nextPeriod} className="p-0.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-900">
                         <ChevronRight className="w-3 h-3" />
                     </button>
                 </div>
             </div>
 
             {/* Row 2: Sleek, slim progress line */}
-            <div className="relative w-full h-1 bg-gray-100 rounded-full overflow-hidden mt-0.5 mb-1 shadow-[inset_0_1px_1px_rgba(0,0,0,0.05)]">
+            <div className="relative w-full h-1 bg-gray-100 rounded-full overflow-hidden mt-0.5 mb-1 shadow-[inset_0_1px_1px_rgba(0,0,0,0.05)] dark:bg-slate-900">
                 <div
                     className="h-full rounded-full transition-all duration-1000 ease-linear"
                     style={{
@@ -321,10 +321,10 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                     </div>
                 ))}
                 {nextLabel && (
-                    <span className="ml-auto text-[9px] text-gray-400 whitespace-nowrap select-none font-medium">
-                        Next: <span className="font-bold text-gray-500 uppercase">{nextLabel}</span>{" "}
+                    <span className="ml-auto text-[9px] text-gray-400 whitespace-nowrap select-none font-medium dark:text-slate-400">
+                        Next: <span className="font-bold text-gray-500 uppercase dark:text-slate-400">{nextLabel}</span>{" "}
                         <span className="text-gray-300">·</span>{" "}
-                        <span className="text-gray-400 font-mono">{nextPeriod?.startTime}</span>
+                        <span className="text-gray-400 font-mono dark:text-slate-400">{nextPeriod?.startTime}</span>
                     </span>
                 )}
             </div>
@@ -343,22 +343,22 @@ export function DashboardLiveTracker() {
     if (isLoading || profilesLoading || profiles.length === 0) {
         if (!isLoading && !profilesLoading && profiles.length === 0) return null;
         return (
-            <div className="bg-white rounded-xl px-3 py-2.5 flex items-center gap-2 border-2 border-indigo-100 shadow-sm">
-                <div className="w-3 h-3 border-2 border-indigo-100 border-t-indigo-400 rounded-full animate-spin flex-shrink-0" />
-                <span className="text-xs text-gray-400 font-medium">Loading timetables…</span>
+            <div className="bg-white rounded-xl px-3 py-2.5 flex items-center gap-2 border-2 border-indigo-100 shadow-sm dark:bg-slate-900 dark:border-indigo-800/60">
+                <div className="w-3 h-3 border-2 border-indigo-100 border-t-indigo-400 rounded-full animate-spin flex-shrink-0 dark:border-indigo-800/60" />
+                <span className="text-xs text-gray-400 font-medium dark:text-slate-400">Loading timetables…</span>
             </div>
         );
     }
 
     return (
         <div
-            className="bg-white rounded-xl px-3 py-2.5 text-gray-800 relative overflow-visible"
+            className="bg-white rounded-xl px-3 py-2.5 text-gray-800 relative overflow-visible dark:bg-slate-900 dark:text-slate-100"
             style={{
                 border: "2px solid #c7d2fe",
                 boxShadow: "0 0 0 4px rgba(99,102,241,0.08), 0 2px 8px rgba(99,102,241,0.10)"
             }}
         >
-            <div className="flex flex-col gap-2 divide-y divide-indigo-50/60">
+            <div className="flex flex-col gap-2 divide-y divide-indigo-50/60 dark:divide-indigo-800/60">
                 {profiles.map((profile, idx) => (
                     <TrackerCore
                         key={profile.id}

@@ -78,7 +78,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
 
   if (!activePhotos.length) {
     return (
-      <Card className="h-full border-0 shadow-xl bg-gradient-to-br from-slate-50 via-white to-blue-50 overflow-hidden">
+      <Card className="h-full border-0 shadow-xl bg-gradient-to-br from-slate-50 via-white to-blue-50 overflow-hidden dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/40">
         <CardContent className="flex items-center justify-center h-64 relative">
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-5">
@@ -89,14 +89,14 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
             }} />
           </div>
           
-          <div className="text-center text-gray-400 relative z-10">
+          <div className="text-center text-gray-400 relative z-10 dark:text-slate-400">
             <motion.div 
-              className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center shadow-lg"
+              className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center shadow-lg dark:from-blue-950/40 dark:to-purple-950/40"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.5 }}
             >
-              <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-10 h-10 text-gray-400 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </motion.div>
@@ -108,7 +108,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
   }
 
   return (
-    <Card className="h-full border-0 shadow-xl bg-white overflow-hidden group">
+    <Card className="h-full border-0 shadow-xl bg-white overflow-hidden group dark:bg-slate-900">
       <CardContent className="p-0 relative">
         <div className="relative h-64 overflow-hidden cursor-pointer">
           {/* Main slideshow */}
@@ -133,7 +133,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/5 to-transparent" />
                 
                 {/* Subtle corner accent */}
-                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-white/10 to-transparent" />
+                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-white/10 to-transparent dark:from-slate-900/10" />
               </motion.div>
             ))}
           </div>
@@ -159,7 +159,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
                 size="icon"
                 onClick={showPrevious}
                 aria-label="Show previous dashboard photo"
-                className="pointer-events-auto h-9 w-9 rounded-full border border-white/20 bg-black/35 text-white shadow-md backdrop-blur-md hover:bg-black/55 hover:text-white"
+                className="pointer-events-auto h-9 w-9 rounded-full border border-white/20 bg-black/35 text-white shadow-md backdrop-blur-md hover:bg-black/55 hover:text-white dark:border-slate-700/20"
               >
                 <ChevronLeft className="h-5 w-5" />
               </Button>
@@ -169,7 +169,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
                 size="icon"
                 onClick={showNext}
                 aria-label="Show next dashboard photo"
-                className="pointer-events-auto h-9 w-9 rounded-full border border-white/20 bg-black/35 text-white shadow-md backdrop-blur-md hover:bg-black/55 hover:text-white"
+                className="pointer-events-auto h-9 w-9 rounded-full border border-white/20 bg-black/35 text-white shadow-md backdrop-blur-md hover:bg-black/55 hover:text-white dark:border-slate-700/20"
               >
                 <ChevronRight className="h-5 w-5" />
               </Button>
@@ -218,8 +218,8 @@ export function ParentAboutSchool() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-        <span className="ml-2 text-gray-600">Loading school information...</span>
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
+        <span className="ml-2 text-gray-600 dark:text-slate-300">Loading school information...</span>
       </div>
     );
   }
@@ -246,10 +246,10 @@ export function ParentAboutSchool() {
   };
 
   const socialLinks = [
-    { icon: Facebook, url: settings.socialMedia?.facebook, label: 'Facebook', color: 'text-blue-600' },
-    { icon: Twitter, url: settings.socialMedia?.twitter, label: 'Twitter', color: 'text-sky-500' },
-    { icon: Instagram, url: settings.socialMedia?.instagram, label: 'Instagram', color: 'text-pink-600' },
-    { icon: Linkedin, url: settings.socialMedia?.linkedin, label: 'LinkedIn', color: 'text-blue-700' }
+    { icon: Facebook, url: settings.socialMedia?.facebook, label: 'Facebook', color: 'text-blue-600 dark:text-blue-400' },
+    { icon: Twitter, url: settings.socialMedia?.twitter, label: 'Twitter', color: 'text-sky-500 dark:text-sky-400' },
+    { icon: Instagram, url: settings.socialMedia?.instagram, label: 'Instagram', color: 'text-pink-600 dark:text-pink-400' },
+    { icon: Linkedin, url: settings.socialMedia?.linkedin, label: 'LinkedIn', color: 'text-blue-700 dark:text-blue-300' }
   ].filter(social => social.url);
 
   // Determine layout based on number of children
@@ -336,7 +336,7 @@ export function ParentAboutSchool() {
                 onClick={() => handleAvatarClick(familyMembers[0].id)}
                 style={{ pointerEvents: isAnimating ? 'none' : 'auto' }}
               >
-                <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-white shadow-lg">
+                <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-white shadow-lg dark:border-slate-700">
                   {familyMembers[0].photo && familyMembers[0].photo.trim() !== '' ? (
                     <AvatarImage 
                       src={familyMembers[0].photo} 
@@ -381,7 +381,7 @@ export function ParentAboutSchool() {
                     onClick={() => handleAvatarClick(pupil.id)}
                     style={{ pointerEvents: isAnimating ? 'none' : 'auto' }}
                   >
-                    <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-white shadow-lg">
+                    <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-white shadow-lg dark:border-slate-700">
                       {pupil.photo && pupil.photo.trim() !== '' ? (
                         <AvatarImage 
                           src={pupil.photo} 
@@ -444,7 +444,7 @@ export function ParentAboutSchool() {
                     onClick={() => handleAvatarClick(pupil.id)}
                     style={{ pointerEvents: isAnimating ? 'none' : 'auto' }}
                   >
-                    <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-white shadow-lg">
+                    <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-white shadow-lg dark:border-slate-700">
                       {pupil.photo && pupil.photo.trim() !== '' ? (
                         <AvatarImage 
                           src={pupil.photo} 
@@ -593,7 +593,7 @@ export function ParentAboutSchool() {
           <AnimatedCard variants={itemVariants} className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 hover:shadow-lg transition-all duration-300">
             <CardHeader>
               <CardTitle className="text-xl flex items-center justify-center">
-                <BookOpen className="h-5 w-5 mr-3 text-blue-600" />
+                <BookOpen className="h-5 w-5 mr-3 text-blue-600 dark:text-blue-400" />
                 About Our School
               </CardTitle>
             </CardHeader>
@@ -609,32 +609,32 @@ export function ParentAboutSchool() {
         <AnimatedCard variants={itemVariants} className="hover:shadow-lg transition-all duration-300">
           <CardHeader>
             <CardTitle className="text-xl flex items-center">
-              <Phone className="h-5 w-5 mr-3 text-blue-600" />
+              <Phone className="h-5 w-5 mr-3 text-blue-600 dark:text-blue-400" />
               Contact Information
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {settings.contact.phone && (
               <div className="flex items-center space-x-3">
-                <Phone className="h-4 w-4 text-gray-500" />
+                <Phone className="h-4 w-4 text-gray-500 dark:text-slate-400" />
                 <span className="text-gray-700 dark:text-gray-300">{settings.contact.phone}</span>
               </div>
             )}
             {settings.contact.alternativePhone && (
               <div className="flex items-center space-x-3">
-                <Phone className="h-4 w-4 text-gray-500" />
+                <Phone className="h-4 w-4 text-gray-500 dark:text-slate-400" />
                 <span className="text-gray-700 dark:text-gray-300">{settings.contact.alternativePhone}</span>
               </div>
             )}
             {settings.contact.email && (
               <div className="flex items-center space-x-3">
-                <Mail className="h-4 w-4 text-gray-500" />
+                <Mail className="h-4 w-4 text-gray-500 dark:text-slate-400" />
                 <span className="text-gray-700 dark:text-gray-300">{settings.contact.email}</span>
               </div>
             )}
             {settings.contact.website && (
               <div className="flex items-center space-x-3">
-                <Globe className="h-4 w-4 text-gray-500" />
+                <Globe className="h-4 w-4 text-gray-500 dark:text-slate-400" />
                 <a 
                   href={settings.contact.website} 
                   target="_blank" 
@@ -648,7 +648,7 @@ export function ParentAboutSchool() {
             {(settings.address.physical || settings.address.postal) && (
               <div className="pt-4 border-t">
                 <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-                  <MapPin className="h-4 w-4 mr-2 text-gray-500" />
+                  <MapPin className="h-4 w-4 mr-2 text-gray-500 dark:text-slate-400" />
                   Address
                 </h4>
                 {settings.address.physical && (

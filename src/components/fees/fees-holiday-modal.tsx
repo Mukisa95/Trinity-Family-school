@@ -218,7 +218,7 @@ export function FeesHolidayModal({
           {/* Category Selection - Checkboxes */}
           <div className="space-y-2">
             <Label>Fee Categories *</Label>
-            <div className="space-y-3 p-4 border rounded-lg bg-gray-50">
+            <div className="space-y-3 p-4 border rounded-lg bg-gray-50 dark:bg-slate-900">
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -231,13 +231,13 @@ export function FeesHolidayModal({
                       setCategories(categories.filter((c) => c !== "required"));
                     }
                   }}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-slate-700 dark:text-blue-400"
                 />
                 <Label htmlFor="category-required" className="cursor-pointer font-medium">
                   Required Fees
                 </Label>
               </div>
-              <p className="text-xs text-gray-600 ml-6">
+              <p className="text-xs text-gray-600 ml-6 dark:text-slate-300">
                 Applies to all required fees (fees marked as required)
               </p>
 
@@ -253,17 +253,17 @@ export function FeesHolidayModal({
                       setCategories(categories.filter((c) => c !== "non-required"));
                     }
                   }}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-slate-700 dark:text-blue-400"
                 />
                 <Label htmlFor="category-non-required" className="cursor-pointer font-medium">
                   Non-Required Fees
                 </Label>
               </div>
-              <p className="text-xs text-gray-600 ml-6">
+              <p className="text-xs text-gray-600 ml-6 dark:text-slate-300">
                 Applies to all non-required fees (optional fees)
               </p>
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-slate-400">
               Select one or both categories. The discount will apply to all fees in the selected categories.
             </p>
           </div>
@@ -309,23 +309,23 @@ export function FeesHolidayModal({
                   className="pr-8"
                   required
                 />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-slate-400">
                   %
                 </span>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-slate-400">
                 Enter a value between 0 and 100 (e.g., 15 for 15% discount)
               </p>
             </div>
           )}
 
           {/* Discount Preview */}
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/40 dark:border-blue-800/60">
             <div className="flex items-center gap-2 mb-2">
-              <Info className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-semibold text-blue-900">Discount Preview</span>
+              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-semibold text-blue-900 dark:text-blue-200">Discount Preview</span>
             </div>
-            <div className="text-sm text-blue-800">
+            <div className="text-sm text-blue-800 dark:text-blue-200">
               <span>This will apply a </span>
               <Badge variant="outline" className="mx-1">
                 {getDiscountLabel(discountType)}
@@ -351,7 +351,7 @@ export function FeesHolidayModal({
               id="isActive"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-slate-700 dark:text-blue-400"
             />
             <Label htmlFor="isActive" className="cursor-pointer">
               Active (discount will be applied)

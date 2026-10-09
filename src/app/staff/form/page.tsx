@@ -502,7 +502,7 @@ export default function StaffForm() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
         <GlassPageTopBar
           title={id ? 'Edit Staff Member' : 'Add New Staff Member'}
           subtitle={id ? 'Update staff member information' : 'Register a new staff member to the system'}
@@ -519,7 +519,7 @@ export default function StaffForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
       <GlassPageTopBar
         title={id ? 'Edit Staff Member' : 'Add New Staff Member'}
         subtitle={id ? 'Update staff member information' : 'Register a new staff member to the system'}

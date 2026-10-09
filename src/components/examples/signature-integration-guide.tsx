@@ -15,19 +15,19 @@ export function SignatureIntegrationGuide() {
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-gray-900">Digital Signature Integration Guide</h1>
-        <p className="text-gray-600">Follow these steps to make digital signatures visible in your UI</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Digital Signature Integration Guide</h1>
+        <p className="text-gray-600 dark:text-slate-300">Follow these steps to make digital signatures visible in your UI</p>
       </div>
 
       {/* PROBLEM EXPLANATION */}
-      <Card className="border-orange-200 bg-orange-50">
+      <Card className="border-orange-200 bg-orange-50 dark:border-orange-800/60 dark:bg-orange-950/40">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-orange-800">
+          <CardTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-200">
             <AlertCircle className="w-5 h-5" />
             Why You Don't See Signatures Yet
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-orange-700">
+        <CardContent className="text-orange-700 dark:text-orange-300">
           <p className="mb-3">
             The digital signature system is fully implemented in the backend, but the UI components 
             haven't been updated to display them yet. Here's how to fix that:
@@ -44,36 +44,36 @@ export function SignatureIntegrationGuide() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-green-600" />
+            <CreditCard className="w-5 h-5 text-green-600 dark:text-green-400" />
             Step 1: Add Signatures to Fee Payments
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-medium text-gray-900 mb-2">What it will look like:</h4>
-            <div className="bg-white p-3 border rounded">
+          <div className="bg-gray-50 p-4 rounded-lg dark:bg-slate-900">
+            <h4 className="font-medium text-gray-900 mb-2 dark:text-slate-100">What it will look like:</h4>
+            <div className="bg-white p-3 border rounded dark:bg-slate-900">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">Tuition Fee Payment</span>
-                <Badge className="bg-green-100 text-green-800">UGX 500,000</Badge>
+                <Badge className="bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200">UGX 500,000</Badge>
               </div>
-              <div className="text-xs text-gray-500 mb-1">
+              <div className="text-xs text-gray-500 mb-1 dark:text-slate-400">
                 Payment Date: March 15, 2024
               </div>
               {/* This is what the signature will look like */}
-              <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+              <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded dark:text-blue-400 dark:bg-blue-950/40">
                 <Shield className="w-3 h-3" />
                 <span>Collected by John Doe • Mar 15, 2024 14:30</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">How to add it:</h4>
-            <div className="space-y-2 text-sm text-blue-800">
+          <div className="bg-blue-50 p-4 rounded-lg dark:bg-blue-950/40">
+            <h4 className="font-medium text-blue-900 mb-2 dark:text-blue-200">How to add it:</h4>
+            <div className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
               <p><strong>File to edit:</strong> <code>src/app/fees/collect/[id]/components/FeeCard.tsx</code></p>
               <p><strong>Location:</strong> In the payment history section, around line 375</p>
             </div>
-            <pre className="text-xs bg-blue-100 p-3 rounded mt-2 text-blue-900 overflow-x-auto">
+            <pre className="text-xs bg-blue-100 p-3 rounded mt-2 text-blue-900 overflow-x-auto dark:bg-blue-950/40 dark:text-blue-200">
 {`// 1. Add this import at the top:
 import { PaymentSignatureDisplay } from './PaymentSignatureDisplay';
 
@@ -100,25 +100,25 @@ import { PaymentSignatureDisplay } from './PaymentSignatureDisplay';
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileCheck className="w-5 h-5 text-blue-600" />
+            <FileCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             Step 2: Add Signatures to Requirements
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-medium text-gray-900 mb-2">What it will look like:</h4>
-            <div className="bg-white p-3 border rounded">
+          <div className="bg-gray-50 p-4 rounded-lg dark:bg-slate-900">
+            <h4 className="font-medium text-gray-900 mb-2 dark:text-slate-100">What it will look like:</h4>
+            <div className="bg-white p-3 border rounded dark:bg-slate-900">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">Birth Certificate</span>
-                <Badge className="bg-green-100 text-green-800">Collected</Badge>
+                <Badge className="bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200">Collected</Badge>
               </div>
               {/* This is what the signatures will look like */}
               <div className="space-y-1">
-                <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded dark:text-blue-400 dark:bg-blue-950/40">
                   <FileCheck className="w-3 h-3" />
                   <span>Assigned by Mary Smith • Mar 10, 2024</span>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                <div className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded dark:text-green-400 dark:bg-green-950/40">
                   <Package className="w-3 h-3" />
                   <span>Collected by John Doe • Mar 15, 2024</span>
                 </div>
@@ -126,13 +126,13 @@ import { PaymentSignatureDisplay } from './PaymentSignatureDisplay';
             </div>
           </div>
 
-          <div className="bg-purple-50 p-4 rounded-lg">
-            <h4 className="font-medium text-purple-900 mb-2">How to add it:</h4>
-            <div className="space-y-2 text-sm text-purple-800">
+          <div className="bg-purple-50 p-4 rounded-lg dark:bg-purple-950/40">
+            <h4 className="font-medium text-purple-900 mb-2 dark:text-purple-200">How to add it:</h4>
+            <div className="space-y-2 text-sm text-purple-800 dark:text-purple-200">
               <p><strong>File to edit:</strong> <code>src/app/requirement-tracking/page.tsx</code> (or wherever you display requirements)</p>
               <p><strong>Location:</strong> In the requirement item display</p>
             </div>
-            <pre className="text-xs bg-purple-100 p-3 rounded mt-2 text-purple-900 overflow-x-auto">
+            <pre className="text-xs bg-purple-100 p-3 rounded mt-2 text-purple-900 overflow-x-auto dark:bg-purple-950/40 dark:text-purple-200">
 {`// 1. Add this import at the top:
 import { RequirementSignatureDisplay } from '@/components/common/requirement-signature-display';
 
@@ -154,14 +154,14 @@ import { RequirementSignatureDisplay } from '@/components/common/requirement-sig
       </Card>
 
       {/* STEP 3: QUICK TEST */}
-      <Card className="border-green-200 bg-green-50">
+      <Card className="border-green-200 bg-green-50 dark:border-green-800/60 dark:bg-green-950/40">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-green-800">
+          <CardTitle className="flex items-center gap-2 text-green-800 dark:text-green-200">
             <Shield className="w-5 h-5" />
             Step 3: Quick Test
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-green-700">
+        <CardContent className="text-green-700 dark:text-green-300">
           <div className="space-y-3">
             <p className="font-medium">To test if signatures are working:</p>
             <ol className="list-decimal list-inside space-y-2 text-sm">
@@ -171,9 +171,9 @@ import { RequirementSignatureDisplay } from '@/components/common/requirement-sig
               <li>If you see "Loading signature..." it means the backend is working</li>
             </ol>
             
-            <div className="bg-green-100 p-3 rounded mt-3">
-              <p className="text-sm font-medium text-green-900">💡 Pro Tip:</p>
-              <p className="text-sm text-green-800">
+            <div className="bg-green-100 p-3 rounded mt-3 dark:bg-green-950/40">
+              <p className="text-sm font-medium text-green-900 dark:text-green-200">💡 Pro Tip:</p>
+              <p className="text-sm text-green-800 dark:text-green-200">
                 Start with just the fee payments first. Once you see those working, 
                 add signatures to other components using the same pattern.
               </p>
@@ -190,19 +190,19 @@ import { RequirementSignatureDisplay } from '@/components/common/requirement-sig
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <h4 className="font-medium text-gray-900">Ready-to-use Components:</h4>
-              <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
-                <li><code className="bg-gray-100 px-1 rounded">PaymentSignatureDisplay</code></li>
-                <li><code className="bg-gray-100 px-1 rounded">RequirementSignatureDisplay</code></li>
-                <li><code className="bg-gray-100 px-1 rounded">UniformSignatureDisplay</code></li>
+              <h4 className="font-medium text-gray-900 dark:text-slate-100">Ready-to-use Components:</h4>
+              <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-slate-200">
+                <li><code className="bg-gray-100 px-1 rounded dark:bg-slate-900">PaymentSignatureDisplay</code></li>
+                <li><code className="bg-gray-100 px-1 rounded dark:bg-slate-900">RequirementSignatureDisplay</code></li>
+                <li><code className="bg-gray-100 px-1 rounded dark:bg-slate-900">UniformSignatureDisplay</code></li>
               </ul>
             </div>
             <div className="space-y-2">
-              <h4 className="font-medium text-gray-900">Generic Components:</h4>
-              <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
-                <li><code className="bg-gray-100 px-1 rounded">DigitalSignatureDisplay</code></li>
-                <li><code className="bg-gray-100 px-1 rounded">CompactSignature</code></li>
-                <li><code className="bg-gray-100 px-1 rounded">DetailedSignature</code></li>
+              <h4 className="font-medium text-gray-900 dark:text-slate-100">Generic Components:</h4>
+              <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-slate-200">
+                <li><code className="bg-gray-100 px-1 rounded dark:bg-slate-900">DigitalSignatureDisplay</code></li>
+                <li><code className="bg-gray-100 px-1 rounded dark:bg-slate-900">CompactSignature</code></li>
+                <li><code className="bg-gray-100 px-1 rounded dark:bg-slate-900">DetailedSignature</code></li>
               </ul>
             </div>
           </div>

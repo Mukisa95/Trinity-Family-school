@@ -17,14 +17,14 @@ import { useCreateItemRequest, useMyItemRequests } from '@/lib/hooks/use-item-re
 import type { CreateItemRequestData, ItemRequestStatus } from '@/types';
 
 const statusStyles: Record<ItemRequestStatus, string> = {
-  submitted: 'bg-blue-50 text-blue-700 border-blue-200',
-  pending_available: 'bg-amber-50 text-amber-800 border-amber-200',
-  pending_restock: 'bg-amber-50 text-amber-800 border-amber-200',
-  restock_in_progress: 'bg-violet-50 text-violet-800 border-violet-200',
-  ready_to_release: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-  released: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-  declined: 'bg-rose-50 text-rose-800 border-rose-200',
-  cancelled: 'bg-slate-100 text-slate-700 border-slate-200',
+  submitted: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60',
+  pending_available: 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60',
+  pending_restock: 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60',
+  restock_in_progress: 'bg-violet-50 text-violet-800 border-violet-200 dark:bg-violet-950/40 dark:text-violet-200 dark:border-violet-800/60',
+  ready_to_release: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800/60',
+  released: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800/60',
+  declined: 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-200 dark:border-rose-800/60',
+  cancelled: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-700',
 };
 
 const statusLabels: Record<ItemRequestStatus, string> = {
@@ -127,7 +127,7 @@ export default function ItemRequestsPage() {
   };
 
   if (!canView) {
-    return <div className="p-6 text-sm text-slate-600">You do not have permission to use Item Requests.</div>;
+    return <div className="p-6 text-sm text-slate-600 dark:text-slate-300">You do not have permission to use Item Requests.</div>;
   }
 
   return (
@@ -146,9 +146,9 @@ export default function ItemRequestsPage() {
       />
 
       <main className="mx-auto w-full max-w-5xl space-y-4 px-4 py-5 sm:px-6">
-        <Card className="border-emerald-100 bg-emerald-50/50">
-          <CardContent className="flex gap-3 p-4 text-sm text-emerald-950">
-            <ClipboardList className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" />
+        <Card className="border-emerald-100 bg-emerald-50/50 dark:border-emerald-800/60 dark:bg-emerald-950/50">
+          <CardContent className="flex gap-3 p-4 text-sm text-emerald-950 dark:text-emerald-100">
+            <ClipboardList className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700 dark:text-emerald-300" />
             <p>Choose a shared item when it is listed. If it is not listed, choose <strong>Other item</strong>; a release officer will review it before it is added to the shared catalogue.</p>
           </CardContent>
         </Card>
@@ -160,20 +160,20 @@ export default function ItemRequestsPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {loadingRequests ? (
-              <div className="flex items-center gap-2 py-8 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Loading requests…</div>
+              <div className="flex items-center gap-2 py-8 text-sm text-slate-500 dark:text-slate-400"><Loader2 className="h-4 w-4 animate-spin" /> Loading requests…</div>
             ) : requests.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-500">You have not requested any items yet.</div>
+              <div className="rounded-xl border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">You have not requested any items yet.</div>
             ) : requests.map(item => (
-              <article key={item.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <article key={item.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <h2 className="font-semibold text-slate-900">{item.quantity} {item.unit} of {item.itemName}</h2>
-                    <p className="mt-1 text-sm text-slate-600">{item.reason}</p>
+                    <h2 className="font-semibold text-slate-900 dark:text-slate-100">{item.quantity} {item.unit} of {item.itemName}</h2>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{item.reason}</p>
                   </div>
                   <Badge variant="outline" className={statusStyles[item.status]}>{statusLabels[item.status]}</Badge>
                 </div>
                 {(item.statusReason || item.neededBy || item.useLocation) && (
-                  <div className="mt-3 grid gap-1 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
+                  <div className="mt-3 grid gap-1 rounded-lg bg-slate-50 p-3 text-sm text-slate-700 dark:bg-slate-900 dark:text-slate-200">
                     {item.statusReason && <p><span className="font-medium">Response:</span> {item.statusReason}</p>}
                     {item.neededBy && <p><span className="font-medium">Needed by:</span> {item.neededBy}</p>}
                     {item.useLocation && <p><span className="font-medium">Use location:</span> {item.useLocation}</p>}
@@ -201,17 +201,17 @@ export default function ItemRequestsPage() {
               <div className="space-y-2">
                 <Label htmlFor="catalog-search">Choose from shared items</Label>
                 <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400 dark:text-slate-400" />
                   <Input id="catalog-search" value={catalogSearch} onChange={event => setCatalogSearch(event.target.value)} placeholder="Search items" className="min-h-11 pl-9" autoComplete="off" />
                 </div>
-                <div className="max-h-44 overflow-y-auto rounded-lg border border-slate-200" role="listbox" aria-label="Shared items">
-                  {loadingCatalog ? <p className="p-3 text-sm text-slate-500">Loading shared items…</p> : filteredCatalog.length === 0 ? <p className="p-3 text-sm text-slate-500">No matching item. Choose Other item if it is not listed.</p> : filteredCatalog.map(item => (
-                    <button key={item.id} type="button" role="option" aria-selected={item.id === catalogItemId} onClick={() => { setCatalogItemId(item.id); setCatalogSearch(item.name); }} className={`flex min-h-11 w-full items-center justify-between gap-3 border-b border-slate-100 px-3 text-left text-sm last:border-0 focus:outline-none focus:ring-2 focus:ring-emerald-500 ${item.id === catalogItemId ? 'bg-emerald-50 text-emerald-950' : 'hover:bg-slate-50'}`}>
-                      <span className="font-medium">{item.name}</span><span className="text-slate-500">{item.standardUnit}</span>
+                <div className="max-h-44 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700" role="listbox" aria-label="Shared items">
+                  {loadingCatalog ? <p className="p-3 text-sm text-slate-500 dark:text-slate-400">Loading shared items…</p> : filteredCatalog.length === 0 ? <p className="p-3 text-sm text-slate-500 dark:text-slate-400">No matching item. Choose Other item if it is not listed.</p> : filteredCatalog.map(item => (
+                    <button key={item.id} type="button" role="option" aria-selected={item.id === catalogItemId} onClick={() => { setCatalogItemId(item.id); setCatalogSearch(item.name); }} className={`flex min-h-11 w-full items-center justify-between gap-3 border-b border-slate-100 px-3 text-left text-sm last:border-0 focus:outline-none focus:ring-2 focus:ring-emerald-500  dark:border-slate-700${item.id === catalogItemId ? 'bg-emerald-50 text-emerald-950 dark:bg-emerald-950/40 dark:text-emerald-100' : 'hover:bg-slate-50 dark:hover:bg-slate-900'}`}>
+                      <span className="font-medium">{item.name}</span><span className="text-slate-500 dark:text-slate-400">{item.standardUnit}</span>
                     </button>
                   ))}
                 </div>
-                {selectedCatalogItem && <p className="text-sm text-emerald-700">Selected: {selectedCatalogItem.name} ({selectedCatalogItem.standardUnit}). Requests and releases use this everyday unit, not its purchase pack.</p>}
+                {selectedCatalogItem && <p className="text-sm text-emerald-700 dark:text-emerald-300">Selected: {selectedCatalogItem.name} ({selectedCatalogItem.standardUnit}). Requests and releases use this everyday unit, not its purchase pack.</p>}
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
@@ -222,10 +222,10 @@ export default function ItemRequestsPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2"><Label htmlFor="quantity">Quantity in {selectedCatalogItem?.standardUnit || (source === 'other' ? otherItemUnit || 'everyday units' : 'everyday units')}</Label><Input id="quantity" value={quantity} onChange={event => setQuantity(event.target.value)} type="number" min="0.01" step="any" inputMode="decimal" className="min-h-11" /></div>
-              <div className="space-y-2"><Label htmlFor="needed-by">Needed by <span className="font-normal text-slate-500">(optional)</span></Label><Input id="needed-by" value={neededBy} onChange={event => setNeededBy(event.target.value)} type="date" className="min-h-11" /></div>
+              <div className="space-y-2"><Label htmlFor="needed-by">Needed by <span className="font-normal text-slate-500 dark:text-slate-400">(optional)</span></Label><Input id="needed-by" value={neededBy} onChange={event => setNeededBy(event.target.value)} type="date" className="min-h-11" /></div>
             </div>
             <div className="space-y-2"><Label htmlFor="reason">Reason</Label><textarea id="reason" value={reason} onChange={event => setReason(event.target.value)} placeholder="Explain what the item will be used for." className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /></div>
-            <div className="space-y-2"><Label htmlFor="location">Use location <span className="font-normal text-slate-500">(optional)</span></Label><Input id="location" value={useLocation} onChange={event => setUseLocation(event.target.value)} placeholder="For example, Primary Four classroom" className="min-h-11" /></div>
+            <div className="space-y-2"><Label htmlFor="location">Use location <span className="font-normal text-slate-500 dark:text-slate-400">(optional)</span></Label><Input id="location" value={useLocation} onChange={event => setUseLocation(event.target.value)} placeholder="For example, Primary Four classroom" className="min-h-11" /></div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" className="min-h-11" onClick={() => setOpen(false)} disabled={createRequest.isPending}>Cancel</Button>

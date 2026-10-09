@@ -770,30 +770,30 @@ export default function UsersPage() {
       <GlassSummaryBar
         left={
           <div className="flex flex-wrap items-center gap-2">
-            <Users className="h-4 w-4 text-indigo-500" />
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 uppercase mr-2">
+            <Users className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
+            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 uppercase mr-2 dark:text-indigo-200">
               Users Overview
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
-              <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="font-bold text-blue-700">{availableStaff.length}</span>
-                <span className="text-blue-700/85 font-medium">staff without accounts</span>
+              <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-blue-950/80 dark:border-blue-800/50">
+                <span className="font-bold text-blue-700 dark:text-blue-300">{availableStaff.length}</span>
+                <span className="text-blue-700/85 font-medium dark:text-blue-300/85">staff without accounts</span>
               </div>
-              <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="font-bold text-amber-700">{availablePupils.length}</span>
-                <span className="text-amber-700/85 font-medium">pupils or families without parent accounts</span>
+              <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-amber-950/80 dark:border-amber-800/50">
+                <span className="font-bold text-amber-700 dark:text-amber-300">{availablePupils.length}</span>
+                <span className="text-amber-700/85 font-medium dark:text-amber-300/85">pupils or families without parent accounts</span>
               </div>
               {currentUser?.role === 'Admin' && (
-                <div className="flex items-center gap-1 bg-emerald-50/80 border border-emerald-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                  <span className="font-bold text-emerald-700">{filteredAdminUsers.length}</span>
-                  <span className="text-emerald-700/85 font-medium">Full system access</span>
+                <div className="flex items-center gap-1 bg-emerald-50/80 border border-emerald-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs dark:bg-emerald-950/80 dark:border-emerald-800/50">
+                  <span className="font-bold text-emerald-700 dark:text-emerald-300">{filteredAdminUsers.length}</span>
+                  <span className="text-emerald-700/85 font-medium dark:text-emerald-300/85">Full system access</span>
                 </div>
               )}
             </div>
           </div>
         }
         right={
-          <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-full border border-slate-200/50 backdrop-blur-sm">
+          <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-full border border-slate-200/50 backdrop-blur-sm dark:bg-slate-900/80 dark:border-slate-700/50">
             {[
               { id: 'staff', label: `Staff Users (${filteredStaffUsers.length})` },
               { id: 'parents', label: `Parent Users (${filteredParentUsers.length})` },
@@ -807,8 +807,8 @@ export default function UsersPage() {
                   className={cn(
                     "rounded-full px-3 py-1 text-xs font-semibold transition-all duration-300",
                     isActive
-                      ? "bg-white text-indigo-700 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
+                      ? "bg-white text-indigo-700 shadow-sm dark:bg-slate-900 dark:text-indigo-300"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-white/50 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-900/50"
                   )}
                 >
                   {tab.label}
@@ -830,15 +830,15 @@ export default function UsersPage() {
 
           {/* No Results Message */}
           {filteredUsers.length === 0 && (searchTerm || permissionFilter !== 'all' || moduleFilter !== 'all') && (
-            <Card className="border-orange-200 bg-orange-50">
+            <Card className="border-orange-200 bg-orange-50 dark:border-orange-800/60 dark:bg-orange-950/40">
               <CardContent className="pt-6">
                 <div className="text-center">
                   <Search className="h-12 w-12 mx-auto mb-4 text-orange-400" />
-                  <h3 className="text-lg font-medium text-orange-900 mb-2">No Users Found</h3>
-                  <p className="text-orange-700 mb-4">
+                  <h3 className="text-lg font-medium text-orange-900 mb-2 dark:text-orange-200">No Users Found</h3>
+                  <p className="text-orange-700 mb-4 dark:text-orange-300">
                     No users match your current search and filter criteria.
                   </p>
-                  <Button variant="outline" onClick={clearFilters} className="border-orange-300 text-orange-700 hover:bg-orange-100">
+                  <Button variant="outline" onClick={clearFilters} className="border-orange-300 text-orange-700 hover:bg-orange-100 dark:border-orange-800/60 dark:text-orange-300 dark:hover:bg-orange-950/40">
                     <X className="h-4 w-4 mr-2" />
                     Clear All Filters
                   </Button>
@@ -849,16 +849,16 @@ export default function UsersPage() {
 
           {/* Results Summary */}
           {(searchTerm || permissionFilter !== 'all' || moduleFilter !== 'all') && (
-            <Card className="border-blue-200 bg-blue-50">
+            <Card className="border-blue-200 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/40">
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm text-blue-700">
+                  <div className="text-sm text-blue-700 dark:text-blue-300">
                     <span className="font-medium">Showing {filteredUsers.length} of {users.length} users</span>
                     {searchTerm && (
                       <span className="ml-2">matching "{searchTerm}"</span>
                     )}
                   </div>
-                  <Button variant="outline" size="sm" onClick={clearFilters} className="border-blue-300 text-blue-700 hover:bg-blue-100">
+                  <Button variant="outline" size="sm" onClick={clearFilters} className="border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40">
                     <X className="h-4 w-4 mr-2" />
                     Clear Filters
                   </Button>
@@ -926,7 +926,7 @@ export default function UsersPage() {
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleToggleUserStatus(user.id, !user.isActive, getUserDisplayName(user))}
-                        className={user.isActive ? "text-orange-600 focus:text-orange-700" : "text-green-600 focus:text-green-700"}
+                        className={user.isActive ? "text-orange-600 focus:text-orange-700 dark:text-orange-400 dark:focus:text-orange-300" : "text-green-600 focus:text-green-700 dark:text-green-400 dark:focus:text-green-300"}
                       >
                         {user.isActive ? (
                           <>
@@ -1029,7 +1029,7 @@ export default function UsersPage() {
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() => handleToggleUserStatus(user.id, !user.isActive, getUserDisplayName(user))}
-                                    className={user.isActive ? "text-orange-600 focus:text-orange-700" : "text-green-600 focus:text-green-700"}
+                                    className={user.isActive ? "text-orange-600 focus:text-orange-700 dark:text-orange-400 dark:focus:text-orange-300" : "text-green-600 focus:text-green-700 dark:text-green-400 dark:focus:text-green-300"}
                                   >
                                     {user.isActive ? (
                                       <>
@@ -1141,11 +1141,11 @@ export default function UsersPage() {
       >
         <ModernDialogContent size="md">
           <ModernDialogHeader>
-            <ModernDialogTitle className="flex items-center gap-2 text-indigo-900">
-              <Filter className="h-5 w-5 text-indigo-600 animate-[pulse_2s_infinite]" />
+            <ModernDialogTitle className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200">
+              <Filter className="h-5 w-5 text-indigo-600 animate-[pulse_2s_infinite] dark:text-indigo-400" />
               Filter Users
             </ModernDialogTitle>
-            <ModernDialogDescription className="text-gray-500">
+            <ModernDialogDescription className="text-gray-500 dark:text-slate-400">
               Apply filters to narrow down the list of users.
             </ModernDialogDescription>
           </ModernDialogHeader>
@@ -1154,7 +1154,7 @@ export default function UsersPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
             {/* Permission Level Filter */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-indigo-950">Permission Level</label>
+              <label className="block text-xs font-semibold text-indigo-950 dark:text-indigo-100">Permission Level</label>
               <Select value={permissionFilter} onValueChange={setPermissionFilter}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="All Permissions" />
@@ -1170,7 +1170,7 @@ export default function UsersPage() {
 
             {/* Module Access Filter */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-indigo-950">Module Access</label>
+              <label className="block text-xs font-semibold text-indigo-950 dark:text-indigo-100">Module Access</label>
               <Select value={moduleFilter} onValueChange={setModuleFilter}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="All Modules" />
@@ -1196,7 +1196,7 @@ export default function UsersPage() {
                   clearFilters();
                   setIsFilterPopupOpen(false);
                 }}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-full border border-rose-100 transition-all duration-200 h-8"
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-full border border-rose-100 transition-all duration-200 h-8 dark:text-rose-400 dark:bg-rose-950/40 dark:hover:bg-rose-950/40 dark:border-rose-800/60"
               >
                 <X size={12} />
                 <span>Clear All ({activeFiltersCount})</span>
@@ -1229,7 +1229,7 @@ export default function UsersPage() {
           </ModernDialogHeader>
           
           {/* Academic Context Banner */}
-          <div className="mx-1 sm:mx-2 mt-1 sm:mt-2 p-1 border rounded-md text-[0.6rem] bg-indigo-50 border-indigo-200">
+          <div className="mx-1 sm:mx-2 mt-1 sm:mt-2 p-1 border rounded-md text-[0.6rem] bg-indigo-50 border-indigo-200 dark:bg-indigo-950/40 dark:border-indigo-800/60">
             <div className="flex flex-wrap gap-1 items-center">
               <div className="flex items-center gap-0.5">
                 <Users className="h-2.5 w-2.5 text-muted-foreground" />
@@ -1238,7 +1238,7 @@ export default function UsersPage() {
               <div>
                 <strong>Date:</strong> {format(new Date(), "MMM dd, yyyy")}
               </div>
-              <div className="text-[0.5rem] px-1 py-0.5 rounded ml-auto text-indigo-700 bg-indigo-100">
+              <div className="text-[0.5rem] px-1 py-0.5 rounded ml-auto text-indigo-700 bg-indigo-100 dark:text-indigo-300 dark:bg-indigo-950/40">
                 Create Mode
               </div>
             </div>
@@ -1254,7 +1254,7 @@ export default function UsersPage() {
             <TabsContent value="staff" className="space-y-4">
               <div className="grid gap-4">
                 <div>
-                  <Label htmlFor="staff-select" className={accountValidation.getFieldError('staff-select') ? 'text-red-700' : undefined}>Select Staff Member <span className="text-red-600">*</span></Label>
+                  <Label htmlFor="staff-select" className={accountValidation.getFieldError('staff-select') ? 'text-red-700 dark:text-red-300' : undefined}>Select Staff Member <span className="text-red-600 dark:text-red-400">*</span></Label>
                   <Select value={staffFormData.staffId} onValueChange={handleStaffSelection}>
                     <SelectTrigger id="staff-select" {...accountValidation.getFieldProps('staff-select')}>
                       <SelectValue placeholder="Choose a staff member" />
@@ -1272,7 +1272,7 @@ export default function UsersPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="username" className={accountValidation.getFieldError('username') ? 'text-red-700' : undefined}>Username <span className="text-red-600">*</span></Label>
+                    <Label htmlFor="username" className={accountValidation.getFieldError('username') ? 'text-red-700 dark:text-red-300' : undefined}>Username <span className="text-red-600 dark:text-red-400">*</span></Label>
                     <Input
                       id="username"
                       value={staffFormData.username}
@@ -1283,7 +1283,7 @@ export default function UsersPage() {
                     <FieldError error={accountValidation.getFieldError('username')} />
                   </div>
                   <div>
-                    <Label htmlFor="password" className={accountValidation.getFieldError('password') ? 'text-red-700' : undefined}>Password <span className="text-red-600">*</span></Label>
+                    <Label htmlFor="password" className={accountValidation.getFieldError('password') ? 'text-red-700 dark:text-red-300' : undefined}>Password <span className="text-red-600 dark:text-red-400">*</span></Label>
                     <div className="relative">
                       <Input
                         id="password"
@@ -1329,16 +1329,16 @@ export default function UsersPage() {
                   )}
                 </div>
 
-                <section className="rounded-xl border border-violet-200 bg-violet-50/60 p-4">
+                <section className="rounded-xl border border-violet-200 bg-violet-50/60 p-4 dark:border-violet-800/60 dark:bg-violet-950/60">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <Label className="text-base font-semibold text-slate-900">Morph permissions</Label>
-                      <p className="mt-1 text-sm text-slate-600">Copy another staff user&apos;s effective page and action permissions, then adjust them if needed.</p>
+                      <Label className="text-base font-semibold text-slate-900 dark:text-slate-100">Morph permissions</Label>
+                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Copy another staff user&apos;s effective page and action permissions, then adjust them if needed.</p>
                     </div>
                     <Button
                       type="button"
                       variant={isMorphOpen ? "secondary" : "outline"}
-                      className="gap-2 border-violet-200 bg-white text-violet-700 hover:bg-violet-100"
+                      className="gap-2 border-violet-200 bg-white text-violet-700 hover:bg-violet-100 dark:border-violet-800/60 dark:bg-slate-900 dark:text-violet-300 dark:hover:bg-violet-950/40"
                       onClick={() => setIsMorphOpen((open) => !open)}
                     >
                       <Copy className="h-4 w-4" /> {isMorphOpen ? 'Hide morph' : 'Morph'}
@@ -1346,10 +1346,10 @@ export default function UsersPage() {
                   </div>
 
                   {isMorphOpen && (
-                    <div className="mt-4 space-y-2 border-t border-violet-200 pt-4">
+                    <div className="mt-4 space-y-2 border-t border-violet-200 pt-4 dark:border-violet-800/60">
                       <Label htmlFor="morph-permissions">Copy permissions from</Label>
                       <Select value={morphUserId || 'none'} onValueChange={handleMorphPermissions}>
-                        <SelectTrigger id="morph-permissions" className="bg-white">
+                        <SelectTrigger id="morph-permissions" className="bg-white dark:bg-slate-900">
                           <SelectValue placeholder="Select an existing staff user" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1362,7 +1362,7 @@ export default function UsersPage() {
                         </SelectContent>
                       </Select>
                       {morphUserId && morphUserId !== 'none' && (
-                        <p className="text-sm text-violet-800">Permissions copied. Continue below to review or make changes before creating the account.</p>
+                        <p className="text-sm text-violet-800 dark:text-violet-200">Permissions copied. Continue below to review or make changes before creating the account.</p>
                       )}
                     </div>
                   )}
@@ -1428,24 +1428,24 @@ export default function UsersPage() {
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <p className="text-xs text-muted-foreground mb-1">Generated Username</p>
-                              <p className="font-mono text-lg font-bold text-blue-600">{username}</p>
+                              <p className="font-mono text-lg font-bold text-blue-600 dark:text-blue-400">{username}</p>
                               <p className="text-xs text-muted-foreground">
                                 {selectedPupil.lastName.substring(0, 3).toUpperCase()} (surname) + {selectedPupil.dateOfBirth ? new Date(selectedPupil.dateOfBirth).getFullYear().toString().slice(-2) : new Date().getFullYear().toString().slice(-2)} (birth year)
                               </p>
                             </div>
                             <div>
                               <p className="text-xs text-muted-foreground mb-1">Default Password</p>
-                              <p className="font-mono text-lg font-bold text-green-600">{selectedPupil.admissionNumber}</p>
+                              <p className="font-mono text-lg font-bold text-green-600 dark:text-green-400">{selectedPupil.admissionNumber}</p>
                               <p className="text-xs text-muted-foreground">Admission Number</p>
                             </div>
                           </div>
                           
-                          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded text-xs">
-                            <p className="font-medium text-blue-800 mb-2">🎯 Simple Parent Login</p>
-                            <div className="space-y-1 text-blue-700">
+                          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded text-xs dark:bg-blue-950/40 dark:border-blue-800/60">
+                            <p className="font-medium text-blue-800 mb-2 dark:text-blue-200">🎯 Simple Parent Login</p>
+                            <div className="space-y-1 text-blue-700 dark:text-blue-300">
                               <p><strong>Username:</strong> {username} (short & memorable!)</p>
                               <p><strong>Password:</strong> {selectedPupil.admissionNumber}</p>
-                              <p className="mt-2 text-blue-600">
+                              <p className="mt-2 text-blue-600 dark:text-blue-400">
                                 ✨ Parents can also use the pupil's full name as username - the system will automatically find the correct account!
                               </p>
                             </div>
@@ -1464,9 +1464,9 @@ export default function UsersPage() {
 
             <TabsContent value="bulk" className="space-y-4">
               <div className="space-y-4">
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="font-medium text-blue-900 mb-2">🚀 Bulk Parent Account Creation</h4>
-                  <p className="text-sm text-blue-700">
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/40 dark:border-blue-800/60">
+                  <h4 className="font-medium text-blue-900 mb-2 dark:text-blue-200">🚀 Bulk Parent Account Creation</h4>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
                     Create multiple parent accounts at once by selecting individual pupils or entire classes. 
                     Each parent will get a unique username and password based on their child's information.
                   </p>
@@ -1651,7 +1651,7 @@ export default function UsersPage() {
         <ModernDialogContent size="responsive">
           <ModernDialogHeader>
             <ModernDialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-indigo-600" /> Permissions
+              <Shield className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> Permissions
             </ModernDialogTitle>
             <ModernDialogDescription>
               Review what this user can do, then change or revoke access here without opening their account editor.
@@ -1660,14 +1660,14 @@ export default function UsersPage() {
 
           {permissionsUser && (
             <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-1">
-              <section className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
-                <p className="font-semibold text-slate-900">{getUserDisplayName(permissionsUser)}</p>
+              <section className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 dark:border-indigo-800/60 dark:bg-indigo-950/60">
+                <p className="font-semibold text-slate-900 dark:text-slate-100">{getUserDisplayName(permissionsUser)}</p>
                 <p className="mt-0.5 text-sm text-muted-foreground">{permissionsUser.username} · {permissionsUser.role}</p>
               </section>
 
               <section className="space-y-3">
                 <div>
-                  <h3 className="font-semibold text-slate-900">Current access</h3>
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Current access</h3>
                   <p className="text-sm text-muted-foreground">A plain-language summary of each workspace this account can use.</p>
                 </div>
                 {permissionSummary(permissionsUser, permissionsDraft).length === 0 ? (
@@ -1677,7 +1677,7 @@ export default function UsersPage() {
                     {permissionSummary(permissionsUser, permissionsDraft).map((permission) => (
                       <div key={permission.title} className="rounded-lg border bg-card p-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-medium text-slate-900">{permission.title}</p>
+                          <p className="font-medium text-slate-900 dark:text-slate-100">{permission.title}</p>
                           {permission.actionNames && <Badge variant="secondary" className="font-normal">{permission.actionNames}</Badge>}
                         </div>
                         <p className="mt-1 text-sm leading-6 text-muted-foreground">{permission.description}</p>
@@ -1691,7 +1691,7 @@ export default function UsersPage() {
 
               <section className="space-y-3 pb-2">
                 <div>
-                  <h3 className="font-semibold text-slate-900">Change access</h3>
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Change access</h3>
                   <p className="text-sm text-muted-foreground">Use a section, menu, page, or individual action checkbox to grant or revoke access.</p>
                 </div>
                 <GranularPermissionsEditor

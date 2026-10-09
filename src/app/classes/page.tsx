@@ -85,14 +85,14 @@ function SearchablePupilSelector({
         <Button
           type="button"
           variant="ghost"
-          className={cn("h-8 w-8 p-0 rounded-lg border-2 border-amber-300 bg-white hover:border-amber-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all duration-200 flex-shrink-0", buttonClassName)}
+          className={cn("h-8 w-8 p-0 rounded-lg border-2 border-amber-300 bg-white hover:border-amber-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all duration-200 flex-shrink-0 dark:border-amber-800/60 dark:bg-slate-900", buttonClassName)}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
             setOpen(!open);
           }}
         >
-          <Icon className={cn("h-4 w-4 text-amber-600", iconClassName)} />
+          <Icon className={cn("h-4 w-4 text-amber-600 dark:text-amber-400", iconClassName)} />
         </Button>
       </PopoverTrigger>
       <PopoverContent 
@@ -183,14 +183,14 @@ function SearchableTeacherSelector({
         <Button
           type="button"
           variant="ghost"
-          className={cn("h-8 w-8 p-0 rounded-lg border-2 border-green-300 bg-white hover:border-green-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all duration-200 flex-shrink-0", buttonClassName)}
+          className={cn("h-8 w-8 p-0 rounded-lg border-2 border-green-300 bg-white hover:border-green-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all duration-200 flex-shrink-0 dark:border-green-800/60 dark:bg-slate-900", buttonClassName)}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
             setOpen(!open);
           }}
         >
-          <Icon className={cn("h-4 w-4 text-green-600", iconClassName)} />
+          <Icon className={cn("h-4 w-4 text-green-600 dark:text-green-400", iconClassName)} />
         </Button>
       </PopoverTrigger>
       <PopoverContent 
@@ -279,14 +279,14 @@ function SearchableSubjectTeacherSelector({
           type="button"
           variant="ghost"
           size="sm"
-          className={cn("h-7 w-7 p-0 rounded-lg border border-purple-200 bg-white hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 flex-shrink-0", buttonClassName)}
+          className={cn("h-7 w-7 p-0 rounded-lg border border-purple-200 bg-white hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 flex-shrink-0 dark:border-purple-800/60 dark:bg-slate-900 dark:hover:border-purple-800/60 dark:hover:bg-purple-950/40", buttonClassName)}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
             setOpen(!open);
           }}
         >
-          <User className="h-3.5 w-3.5 text-purple-600" />
+          <User className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -305,10 +305,10 @@ function SearchableSubjectTeacherSelector({
         <Command className="rounded-xl">
           <CommandInput placeholder="Search teacher..." className="h-8 text-xs" />
           <CommandList className="max-h-48">
-            <CommandEmpty className="py-2 text-xs text-center text-gray-500">No teachers found.</CommandEmpty>
+            <CommandEmpty className="py-2 text-xs text-center text-gray-500 dark:text-slate-400">No teachers found.</CommandEmpty>
             <CommandGroup>
               {teachers.length === 0 && (
-                <CommandItem value="no-teachers" disabled className="text-xs text-gray-500">
+                <CommandItem value="no-teachers" disabled className="text-xs text-gray-500 dark:text-slate-400">
                   No teaching staff available
                 </CommandItem>
               )}
@@ -332,7 +332,7 @@ function SearchableSubjectTeacherSelector({
                         onTeacherToggle(subjectId, teacher.id, checked === true);
                       }}
                     />
-                    <span className="font-medium text-gray-700">{name}</span>
+                    <span className="font-medium text-gray-700 dark:text-slate-200">{name}</span>
                   </CommandItem>
                 );
               })}
@@ -355,11 +355,11 @@ const LEVEL_ICONS = {
 
 // Level colors mapping
 const LEVEL_COLORS = {
-  'Nursery': 'bg-pink-50 border-pink-200 hover:bg-pink-100',
-  'Lower Primary': 'bg-blue-50 border-blue-200 hover:bg-blue-100',
-  'Upper Primary': 'bg-green-50 border-green-200 hover:bg-green-100',
-  'Secondary': 'bg-purple-50 border-purple-200 hover:bg-purple-100',
-  'Other': 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+  'Nursery': 'bg-pink-50 border-pink-200 hover:bg-pink-100 dark:bg-pink-950/40 dark:border-pink-800/60 dark:hover:bg-pink-950/40',
+  'Lower Primary': 'bg-blue-50 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:border-blue-800/60 dark:hover:bg-blue-950/40',
+  'Upper Primary': 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-950/40 dark:border-green-800/60 dark:hover:bg-green-950/40',
+  'Secondary': 'bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-950/40 dark:border-purple-800/60 dark:hover:bg-purple-950/40',
+  'Other': 'bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-slate-900 dark:border-slate-700 dark:hover:bg-slate-900'
 } as const;
 
 export default function ClassesPage() {
@@ -634,8 +634,8 @@ export default function ClassesPage() {
         <CardHeader className="pb-1 px-3 pt-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 flex-1 min-w-0">
-              <div className="p-1 rounded bg-white/50 flex-shrink-0">
-                <LevelIcon className="h-3 w-3 text-gray-700" />
+              <div className="p-1 rounded bg-white/50 flex-shrink-0 dark:bg-slate-900/50">
+                <LevelIcon className="h-3 w-3 text-gray-700 dark:text-slate-200" />
               </div>
               <div className="flex-1 min-w-0">
                 <CardTitle className="text-sm font-semibold leading-tight">
@@ -690,14 +690,14 @@ export default function ClassesPage() {
             <div className="flex items-start justify-between gap-2">
               {!streamStats.isDistributed ? (
                 <div className="flex items-center space-x-1">
-                  <Users className="h-3 w-3 text-gray-600" />
-                  <span className="text-xs font-medium text-gray-900">
+                  <Users className="h-3 w-3 text-gray-600 dark:text-slate-300" />
+                  <span className="text-xs font-medium text-gray-900 dark:text-slate-100">
                     {pupilCount} pupil{pupilCount !== 1 ? 's' : ''}
                   </span>
                 </div>
               ) : (
-                <div className="min-w-0 flex-1 rounded-md border border-white/80 bg-white/55 px-2 py-1.5" role="group" aria-label={`${classItem.name} pupil totals by stream`}>
-                  <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold text-gray-700">
+                <div className="min-w-0 flex-1 rounded-md border border-white/80 bg-white/55 px-2 py-1.5 dark:border-slate-700/80 dark:bg-slate-900/55" role="group" aria-label={`${classItem.name} pupil totals by stream`}>
+                  <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold text-gray-700 dark:text-slate-200">
                     <GitBranch className="h-3 w-3 shrink-0" aria-hidden="true" />
                     <span>Pupils by stream</span>
                   </div>
@@ -705,23 +705,23 @@ export default function ClassesPage() {
                     {streamStats.streams.map(stream => (
                       <span
                         key={stream.id}
-                        className="inline-flex min-w-0 items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-gray-700"
+                        className="inline-flex min-w-0 items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-gray-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
                         title={`${stream.name} (${stream.code}): ${stream.pupilCount} pupils`}
                       >
                         <span className="max-w-24 truncate">{stream.name}</span>
-                        <strong className="tabular-nums text-gray-950">{stream.pupilCount}</strong>
+                        <strong className="tabular-nums text-gray-950 dark:text-slate-100">{stream.pupilCount}</strong>
                       </span>
                     ))}
                   </div>
-                  <div className="mt-1.5 flex items-center justify-between border-t border-gray-200 pt-1 text-xs font-semibold text-gray-900">
+                  <div className="mt-1.5 flex items-center justify-between border-t border-gray-200 pt-1 text-xs font-semibold text-gray-900 dark:border-slate-700 dark:text-slate-100">
                     <span>Total pupils</span>
                     <span className="tabular-nums">{streamStats.total}</span>
                   </div>
                 </div>
               )}
               <div className="flex items-center space-x-1">
-                <Book className="h-3 w-3 text-gray-600" />
-                <span className="text-xs text-gray-600">
+                <Book className="h-3 w-3 text-gray-600 dark:text-slate-300" />
+                <span className="text-xs text-gray-600 dark:text-slate-300">
                   {classItem.subjects?.length || 0} subject{(classItem.subjects?.length || 0) !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -730,12 +730,12 @@ export default function ClassesPage() {
             {/* Class Teacher */}
             <div className="flex items-center space-x-1.5">
               <Avatar className="h-4 w-4 flex-shrink-0">
-                <AvatarFallback className="text-xs bg-white/70 text-gray-600">
+                <AvatarFallback className="text-xs bg-white/70 text-gray-600 dark:bg-slate-900/70 dark:text-slate-300">
                   {teacher ? `${teacher.firstName[0]}${teacher.lastName[0]}` : 'NA'}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-900 truncate">
+                <p className="text-xs font-medium text-gray-900 truncate dark:text-slate-100">
                   {teacher ? `${teacher.firstName} ${teacher.lastName}` : 'No teacher assigned'}
                 </p>
               </div>
@@ -748,7 +748,7 @@ export default function ClassesPage() {
                   asChild 
                   variant="outline" 
                   size="sm" 
-                  className="w-full h-6 text-xs border-yellow-200 text-yellow-700 hover:bg-yellow-50"
+                  className="w-full h-6 text-xs border-yellow-200 text-yellow-700 hover:bg-yellow-50 dark:border-yellow-800/60 dark:text-yellow-300 dark:hover:bg-yellow-950/40"
                 >
                   <Link href={`/classes/graduates/${classItem.id}`}>
                     <GraduationCap className="mr-1 h-3 w-3" />
@@ -774,8 +774,8 @@ export default function ClassesPage() {
             <LevelIcon className="h-4 w-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-base font-semibold text-gray-900">{level}</h2>
-            <p className="text-xs text-gray-500">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">{level}</h2>
+            <p className="text-xs text-gray-500 dark:text-slate-400">
               {levelClasses.length} class{levelClasses.length !== 1 ? 'es' : ''} • {totalPupils} pupil{totalPupils !== 1 ? 's' : ''}
             </p>
           </div>
@@ -854,7 +854,7 @@ export default function ClassesPage() {
           <Button
             type="button"
             onClick={handleSubmit}
-            className="absolute right-12 top-2 sm:right-16 sm:top-4 rounded-full w-10 h-10 p-0 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 active:scale-95 border-2 border-white/30 backdrop-blur-md z-50 flex items-center justify-center group overflow-hidden"
+            className="absolute right-12 top-2 sm:right-16 sm:top-4 rounded-full w-10 h-10 p-0 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 active:scale-95 border-2 border-white/30 backdrop-blur-md z-50 flex items-center justify-center group overflow-hidden dark:border-slate-700/30"
             style={{
               background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.95) 0%, rgba(147, 51, 234, 0.95) 50%, rgba(79, 70, 229, 0.95) 100%)',
               boxShadow: '0 8px 32px rgba(37, 99, 235, 0.5), 0 4px 16px rgba(147, 51, 234, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 0 rgba(0, 0, 0, 0.15)',
@@ -866,7 +866,7 @@ export default function ClassesPage() {
               e.currentTarget.style.boxShadow = '0 8px 32px rgba(37, 99, 235, 0.5), 0 4px 16px rgba(147, 51, 234, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 0 rgba(0, 0, 0, 0.15)';
             }}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50 dark:from-slate-900/20"></div>
             <Save className="h-5 w-5 relative z-10 group-hover:scale-110 transition-transform duration-300" />
             <span className="sr-only">{editingClass ? 'Update Class' : 'Create Class'}</span>
           </Button>
@@ -879,7 +879,7 @@ export default function ClassesPage() {
                 <ModernDialogTitle className="text-base font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   {editingClass ? "Edit Class" : "Create New Class"}
                 </ModernDialogTitle>
-                <ModernDialogDescription className="text-xs text-gray-600 hidden">
+                <ModernDialogDescription className="text-xs text-gray-600 hidden dark:text-slate-300">
                   {editingClass ? "Update class details, subjects and teacher assignments." : "Fill in the details for the new class."}
                 </ModernDialogDescription>
               </div>
@@ -907,42 +907,42 @@ export default function ClassesPage() {
           <ScrollArea className="flex-grow min-h-0 overflow-y-auto px-3">
             <div className="space-y-3 pb-3">
               {/* Basic Information Section */}
-              <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-3 border border-gray-200">
+              <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-3 border border-gray-200 dark:from-slate-900 dark:to-slate-900 dark:border-slate-700">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="p-1 bg-blue-100 rounded-md">
-                    <Book className="h-3 w-3 text-blue-600" />
+                  <div className="p-1 bg-blue-100 rounded-md dark:bg-blue-950/40">
+                    <Book className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <h3 className="text-base font-semibold text-gray-800">Basic Information</h3>
+                  <h3 className="text-base font-semibold text-gray-800 dark:text-slate-100">Basic Information</h3>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="className" className="text-xs font-medium text-gray-700">
-                      Class Name <span className="text-red-500">*</span>
+                    <Label htmlFor="className" className="text-xs font-medium text-gray-700 dark:text-slate-200">
+                      Class Name <span className="text-red-500 dark:text-red-400">*</span>
                     </Label>
                     <Input 
                       id="className" 
                       value={className} 
                       onChange={(e) => setClassName(e.target.value.toUpperCase())} 
                       placeholder="e.g., PRIMARY ONE"
-                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm" 
+                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="classCode" className="text-xs font-medium text-gray-700">
-                      Class Code <span className="text-red-500">*</span>
+                    <Label htmlFor="classCode" className="text-xs font-medium text-gray-700 dark:text-slate-200">
+                      Class Code <span className="text-red-500 dark:text-red-400">*</span>
                     </Label>
                     <Input 
                       id="classCode" 
                       value={classCode} 
                       onChange={(e) => setClassCode(e.target.value.toUpperCase())} 
                       placeholder="e.g., P.1"
-                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm" 
+                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="order" className="text-xs font-medium text-gray-700">
-                      Order <span className="text-red-500">*</span>
+                    <Label htmlFor="order" className="text-xs font-medium text-gray-700 dark:text-slate-200">
+                      Order <span className="text-red-500 dark:text-red-400">*</span>
                     </Label>
                     <Input 
                       id="order" 
@@ -950,15 +950,15 @@ export default function ClassesPage() {
                       value={classOrder} 
                       onChange={(e) => setClassOrder(e.target.value)} 
                       placeholder="1"
-                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm" 
+                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="level" className="text-xs font-medium text-gray-700">
-                      Level <span className="text-red-500">*</span>
+                    <Label htmlFor="level" className="text-xs font-medium text-gray-700 dark:text-slate-200">
+                      Level <span className="text-red-500 dark:text-red-400">*</span>
                     </Label>
                     <Select value={level} onValueChange={(value) => setLevel(value as ClassLevel)}>
-                      <SelectTrigger className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm">
+                      <SelectTrigger className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm dark:border-slate-700 dark:bg-slate-900/90">
                         <SelectValue placeholder="Select level" />
                       </SelectTrigger>
                       <SelectContent 
@@ -979,23 +979,23 @@ export default function ClassesPage() {
               </div>
 
               {/* Class Teacher Section */}
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 border border-green-200">
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 border border-green-200 dark:from-green-950/40 dark:to-emerald-950/40 dark:border-green-800/60">
                 <div className="flex items-center gap-3">
                   <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex-shrink-0">
                     <Users className="h-3.5 w-3.5 text-white" />
                   </div>
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <Label htmlFor="classTeacherId" className="text-sm font-semibold text-green-900 flex items-center gap-2 flex-shrink-0">
+                    <Label htmlFor="classTeacherId" className="text-sm font-semibold text-green-900 flex items-center gap-2 flex-shrink-0 dark:text-green-200">
                       Class Teacher
-                      <span className="text-red-500">*</span>
+                      <span className="text-red-500 dark:text-red-400">*</span>
                     </Label>
                     {classTeacherId && (() => {
                       const selectedTeacher = teachingStaff.find(t => t.id === classTeacherId);
                       if (selectedTeacher) {
                         return (
                           <>
-                            <span className="text-xs text-gray-400 mx-1 flex-shrink-0">-</span>
-                            <span className="text-sm text-green-700 font-medium truncate">{selectedTeacher.firstName} {selectedTeacher.lastName}</span>
+                            <span className="text-xs text-gray-400 mx-1 flex-shrink-0 dark:text-slate-400">-</span>
+                            <span className="text-sm text-green-700 font-medium truncate dark:text-green-300">{selectedTeacher.firstName} {selectedTeacher.lastName}</span>
                           </>
                         );
                       }
@@ -1013,13 +1013,13 @@ export default function ClassesPage() {
               </div>
 
               {/* Co-Class Teacher Section */}
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 border border-green-200">
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 border border-green-200 dark:from-green-950/40 dark:to-emerald-950/40 dark:border-green-800/60">
                 <div className="flex items-center gap-3">
                   <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex-shrink-0">
                     <Users className="h-3.5 w-3.5 text-white" />
                   </div>
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <Label htmlFor="coClassTeacherId" className="text-sm font-semibold text-green-900 flex items-center gap-2 flex-shrink-0">
+                    <Label htmlFor="coClassTeacherId" className="text-sm font-semibold text-green-900 flex items-center gap-2 flex-shrink-0 dark:text-green-200">
                       Co-Class Teacher
                     </Label>
                     {coClassTeacherId && (() => {
@@ -1027,8 +1027,8 @@ export default function ClassesPage() {
                       if (selectedTeacher) {
                         return (
                           <>
-                            <span className="text-xs text-gray-400 mx-1 flex-shrink-0">-</span>
-                            <span className="text-sm text-green-700 font-medium truncate">{selectedTeacher.firstName} {selectedTeacher.lastName}</span>
+                            <span className="text-xs text-gray-400 mx-1 flex-shrink-0 dark:text-slate-400">-</span>
+                            <span className="text-sm text-green-700 font-medium truncate dark:text-green-300">{selectedTeacher.firstName} {selectedTeacher.lastName}</span>
                           </>
                         );
                       }
@@ -1046,22 +1046,22 @@ export default function ClassesPage() {
               </div>
 
               {/* Class Captains Section */}
-              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-3 border border-amber-200">
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-3 border border-amber-200 dark:from-amber-950/40 dark:to-orange-950/40 dark:border-amber-800/60">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="p-1.5 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex-shrink-0">
                     <Crown className="h-3.5 w-3.5 text-white" />
                   </div>
-                  <h3 className="text-base font-semibold text-gray-800">Class Leadership</h3>
+                  <h3 className="text-base font-semibold text-gray-800 dark:text-slate-100">Class Leadership</h3>
                 </div>
                 
                 <div className="flex items-center gap-4 flex-wrap">
                   {/* Class Captain */}
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div className="p-1 bg-amber-100 rounded-md flex-shrink-0">
-                      <Crown className="h-3 w-3 text-amber-600" />
+                    <div className="p-1 bg-amber-100 rounded-md flex-shrink-0 dark:bg-amber-950/40">
+                      <Crown className="h-3 w-3 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Label htmlFor="classCaptainId" className="text-sm font-semibold text-amber-900 flex-shrink-0">
+                      <Label htmlFor="classCaptainId" className="text-sm font-semibold text-amber-900 flex-shrink-0 dark:text-amber-200">
                         Class Captain
                       </Label>
                       {classCaptainId ? (() => {
@@ -1069,16 +1069,16 @@ export default function ClassesPage() {
                         if (selectedPupil) {
                           return (
                             <>
-                              <span className="text-xs text-gray-400 mx-1 flex-shrink-0">-</span>
-                              <span className="text-sm text-amber-700 font-medium truncate">{formatPupilDisplayName(selectedPupil)}</span>
+                              <span className="text-xs text-gray-400 mx-1 flex-shrink-0 dark:text-slate-400">-</span>
+                              <span className="text-sm text-amber-700 font-medium truncate dark:text-amber-300">{formatPupilDisplayName(selectedPupil)}</span>
                             </>
                           );
                         }
                         return null;
                       })() : (
                         <>
-                          <span className="text-xs text-gray-400 mx-1 flex-shrink-0">-</span>
-                          <span className="text-sm text-gray-500 italic">None</span>
+                          <span className="text-xs text-gray-400 mx-1 flex-shrink-0 dark:text-slate-400">-</span>
+                          <span className="text-sm text-gray-500 italic dark:text-slate-400">None</span>
                         </>
                       )}
                     </div>
@@ -1094,11 +1094,11 @@ export default function ClassesPage() {
                   
                   {/* Assistant Class Captain */}
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div className="p-1 bg-amber-100 rounded-md flex-shrink-0">
-                      <Award className="h-3 w-3 text-amber-600" />
+                    <div className="p-1 bg-amber-100 rounded-md flex-shrink-0 dark:bg-amber-950/40">
+                      <Award className="h-3 w-3 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Label htmlFor="assistantClassCaptainId" className="text-sm font-semibold text-amber-900 flex-shrink-0">
+                      <Label htmlFor="assistantClassCaptainId" className="text-sm font-semibold text-amber-900 flex-shrink-0 dark:text-amber-200">
                         Assistant
                       </Label>
                       {assistantClassCaptainId ? (() => {
@@ -1106,16 +1106,16 @@ export default function ClassesPage() {
                         if (selectedPupil) {
                           return (
                             <>
-                              <span className="text-xs text-gray-400 mx-1 flex-shrink-0">-</span>
-                              <span className="text-sm text-amber-700 font-medium truncate">{formatPupilDisplayName(selectedPupil)}</span>
+                              <span className="text-xs text-gray-400 mx-1 flex-shrink-0 dark:text-slate-400">-</span>
+                              <span className="text-sm text-amber-700 font-medium truncate dark:text-amber-300">{formatPupilDisplayName(selectedPupil)}</span>
                             </>
                           );
                         }
                         return null;
                       })() : (
                         <>
-                          <span className="text-xs text-gray-400 mx-1 flex-shrink-0">-</span>
-                          <span className="text-sm text-gray-500 italic">None</span>
+                          <span className="text-xs text-gray-400 mx-1 flex-shrink-0 dark:text-slate-400">-</span>
+                          <span className="text-sm text-gray-500 italic dark:text-slate-400">None</span>
                         </>
                       )}
                     </div>
@@ -1130,8 +1130,8 @@ export default function ClassesPage() {
                   </div>
                 </div>
                 {(classCaptainId || assistantClassCaptainId) && (
-                  <div className="mt-3 pt-3 border-t border-amber-200">
-                    <p className="text-xs text-gray-600">
+                  <div className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-800/60">
+                    <p className="text-xs text-gray-600 dark:text-slate-300">
                       <span className="font-medium">Note:</span> A pupil cannot be both Class Captain and Assistant Class Captain.
                     </p>
                   </div>
@@ -1139,20 +1139,20 @@ export default function ClassesPage() {
               </div>
 
               {/* Subjects Assignment Section */}
-              <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-3 border border-purple-200">
+              <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-3 border border-purple-200 dark:from-purple-950/40 dark:to-indigo-950/40 dark:border-purple-800/60">
                 {/* Header with expand/collapse trigger */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex-shrink-0">
                       <GraduationCap className="h-3.5 w-3.5 text-white" />
                     </div>
-                    <h3 className="text-base font-semibold text-gray-800">Subject Assignments</h3>
+                    <h3 className="text-base font-semibold text-gray-800 dark:text-slate-100">Subject Assignments</h3>
                   </div>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 text-purple-600 hover:bg-purple-100/50 rounded-lg"
+                    className="h-8 w-8 p-0 text-purple-600 hover:bg-purple-100/50 rounded-lg dark:text-purple-400 dark:hover:bg-purple-950/50"
                     onClick={() => setIsSubjectAssignmentsOpen(!isSubjectAssignmentsOpen)}
                   >
                     <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isSubjectAssignmentsOpen ? 'rotate-180' : ''}`} />
@@ -1176,10 +1176,10 @@ export default function ClassesPage() {
                             .filter(Boolean)
                             .join(', ');
                           return (
-                            <div key={subjectId} className="flex items-center justify-between gap-2 p-2 bg-white/80 hover:bg-white border border-purple-100 rounded-lg shadow-sm transition-all">
+                            <div key={subjectId} className="flex items-center justify-between gap-2 p-2 bg-white/80 hover:bg-white border border-purple-100 rounded-lg shadow-sm transition-all dark:bg-slate-900/80 dark:hover:bg-slate-900 dark:border-purple-800/60">
                               <div className="flex-1 min-w-0">
-                                <span className="font-semibold text-xs text-purple-900 block truncate">{subject.name}</span>
-                                <span className="text-[10px] text-gray-500 block truncate">
+                                <span className="font-semibold text-xs text-purple-900 block truncate dark:text-purple-200">{subject.name}</span>
+                                <span className="text-[10px] text-gray-500 block truncate dark:text-slate-400">
                                   {teacherNames || 'No teacher assigned'}
                                 </span>
                               </div>
@@ -1194,19 +1194,19 @@ export default function ClassesPage() {
                         })}
                       </div>
                     ) : (
-                      <p className="text-xs text-gray-500 italic mt-1 pl-8">No subjects selected. Click expand to assign subjects.</p>
+                      <p className="text-xs text-gray-500 italic mt-1 pl-8 dark:text-slate-400">No subjects selected. Click expand to assign subjects.</p>
                     )}
                   </div>
                 )}
 
                 {/* Expanded view: Subject Selection Checklist */}
                 {isSubjectAssignmentsOpen && (
-                  <div className="mt-3 border border-gray-200 rounded-xl bg-white/80 backdrop-blur-sm overflow-hidden animate-in fade-in duration-200">
+                  <div className="mt-3 border border-gray-200 rounded-xl bg-white/80 backdrop-blur-sm overflow-hidden animate-in fade-in duration-200 dark:border-slate-700 dark:bg-slate-900/80">
                     <ScrollArea className="h-64">
                       <div className="p-3">
                         {subjects.length === 0 ? (
-                          <div className="text-center text-gray-500 py-6">
-                            <Book className="h-6 w-6 mx-auto mb-1 text-gray-400" />
+                          <div className="text-center text-gray-500 py-6 dark:text-slate-400">
+                            <Book className="h-6 w-6 mx-auto mb-1 text-gray-400 dark:text-slate-400" />
                             <p className="text-sm">No subjects available.</p>
                           </div>
                         ) : (
@@ -1219,20 +1219,20 @@ export default function ClassesPage() {
                                   key={subject.id}
                                   className={`rounded-lg p-2.5 border transition-all duration-200 flex items-center justify-between gap-2 cursor-pointer ${
                                     isSelected
-                                      ? 'border-purple-300 bg-purple-50/60 shadow-sm'
-                                      : 'border-gray-200 hover:bg-gray-50/80 bg-white'
+                                      ? 'border-purple-300 bg-purple-50/60 shadow-sm dark:border-purple-800/60 dark:bg-purple-950/60'
+                                      : 'border-gray-200 hover:bg-gray-50/80 bg-white dark:border-slate-700 dark:hover:bg-slate-900/80 dark:bg-slate-900'
                                   }`}
                                   onClick={() => handleSubjectToggle(subject.id)}
                                 >
                                   <div className="flex items-center gap-2 min-w-0">
                                     <div className={`p-1 rounded-md flex-shrink-0 ${
-                                      isSelected ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'
+                                      isSelected ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300' : 'bg-gray-100 text-gray-500 dark:bg-slate-900 dark:text-slate-400'
                                     }`}>
                                       <Book className="h-3.5 w-3.5" />
                                     </div>
                                     <div className="min-w-0">
-                                      <span className="text-xs font-semibold text-gray-900 block truncate">{subject.name}</span>
-                                      <span className="text-[10px] text-gray-400 block font-mono">{subject.code}</span>
+                                      <span className="text-xs font-semibold text-gray-900 block truncate dark:text-slate-100">{subject.name}</span>
+                                      <span className="text-[10px] text-gray-400 block font-mono dark:text-slate-400">{subject.code}</span>
                                     </div>
                                   </div>
                                   <Checkbox

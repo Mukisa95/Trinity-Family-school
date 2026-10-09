@@ -675,7 +675,7 @@ function NewPupilContent() {
             <Card className="shadow-lg border-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
-                  <User className="h-6 w-6 text-blue-600" />
+                  <User className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                   Personal Information
                 </CardTitle>
               </CardHeader>
@@ -683,7 +683,7 @@ function NewPupilContent() {
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   <div>
                     <Label htmlFor="lastName" className="text-sm font-medium">
-                      Surname <span className="text-red-500">*</span>
+                      Surname <span className="text-red-500 dark:text-red-400">*</span>
                     </Label>
                     <Input
                       id="lastName"
@@ -697,7 +697,7 @@ function NewPupilContent() {
                   </div>
                   <div className="relative" ref={nameSearchRef}>
                     <Label htmlFor="firstName" className="text-sm font-medium">
-                      First Name <span className="text-red-500">*</span>
+                      First Name <span className="text-red-500 dark:text-red-400">*</span>
                     </Label>
                     <div className="relative mt-1">
                       <Input
@@ -721,7 +721,7 @@ function NewPupilContent() {
                           <div className="animate-spin rounded-full h-4 w-4 border border-blue-500 border-t-transparent" />
                         ) : (
                           nameSearchResults.length > 0 && (
-                            <AlertTriangle className="h-4 w-4 text-amber-500" />
+                            <AlertTriangle className="h-4 w-4 text-amber-500 dark:text-amber-400" />
                           )
                         )}
                       </div>
@@ -730,67 +730,67 @@ function NewPupilContent() {
 
                     {/* Duplicate Detection Dropdown */}
                     {showNameResults && nameSearchResults.length > 0 && (
-                      <div className="absolute mt-1 w-full bg-white/95 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-slate-200/70 max-h-60 overflow-y-auto z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <div className="px-3 py-2 bg-amber-50 border-b border-amber-100">
+                      <div className="absolute mt-1 w-full bg-white/95 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-slate-200/70 max-h-60 overflow-y-auto z-50 animate-in fade-in slide-in-from-top-2 duration-200 dark:bg-slate-900/95 dark:border-slate-700/70">
+                        <div className="px-3 py-2 bg-amber-50 border-b border-amber-100 dark:bg-amber-950/40 dark:border-amber-800/60">
                           <div className="flex items-center gap-2">
-                            <AlertTriangle className="h-4 w-4 text-amber-600" />
-                            <span className="text-sm font-medium text-amber-800">
+                            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                            <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
                               Similar pupils found ({nameSearchResults.length})
                             </span>
                           </div>
-                          <p className="text-xs text-amber-600 mt-1">
+                          <p className="text-xs text-amber-600 mt-1 dark:text-amber-400">
                             Review these pupils to avoid duplicates
                           </p>
                         </div>
                         {nameSearchResults.map((pupil) => (
                           <div
                             key={pupil.id}
-                            className="px-3 py-3 border-b last:border-b-0 hover:bg-blue-50/80 transition-all duration-200"
+                            className="px-3 py-3 border-b last:border-b-0 hover:bg-blue-50/80 transition-all duration-200 dark:hover:bg-blue-950/80"
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium text-gray-900">
+                                  <p className="text-sm font-medium text-gray-900 dark:text-slate-100">
                                     {formatPupilDisplayName(pupil)}
                                   </p>
                                   {pupil.status === 'Graduated' && (
-                                    <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                                    <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200">
                                       Graduated
                                     </Badge>
                                   )}
                                   {pupil.status === 'Inactive' && (
-                                    <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-800">
+                                    <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100">
                                       Inactive
                                     </Badge>
                                   )}
                                 </div>
                                 <div className="flex items-center gap-4 mt-1">
-                                  <p className="text-xs text-gray-500">
+                                  <p className="text-xs text-gray-500 dark:text-slate-400">
                                     Admission: {pupil.admissionNumber}
                                   </p>
                                   {pupil.dateOfBirth && (
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-gray-500 dark:text-slate-400">
                                       DOB: {new Date(pupil.dateOfBirth).toLocaleDateString()}
                                     </p>
                                   )}
                                 </div>
                                 {pupil.guardians && pupil.guardians.length > 0 && (
-                                  <p className="text-xs text-gray-500 mt-1">
+                                  <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">
                                     Guardian: {pupil.guardians[0].firstName} {pupil.guardians[0].lastName}
                                     {pupil.guardians[0].phone && ` • ${pupil.guardians[0].phone}`}
                                   </p>
                                 )}
                               </div>
                               <div className="text-right">
-                                <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                                <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full dark:text-blue-400 dark:bg-blue-950/40">
                                   {pupil.className || pupil.classId}
                                 </span>
                               </div>
                             </div>
                           </div>
                         ))}
-                        <div className="px-3 py-2 bg-gray-50 border-t">
-                          <p className="text-xs text-gray-600 text-center">
+                        <div className="px-3 py-2 bg-gray-50 border-t dark:bg-slate-900">
+                          <p className="text-xs text-gray-600 text-center dark:text-slate-300">
                             If none of these match, continue with registration
                           </p>
                         </div>
@@ -810,7 +810,7 @@ function NewPupilContent() {
 
                   <div>
                     <Label htmlFor="gender" className="text-sm font-medium">
-                      Gender <span className="text-red-500">*</span>
+                      Gender <span className="text-red-500 dark:text-red-400">*</span>
                     </Label>
                     <Select value={gender} onValueChange={(val) => { setGender(val as Pupil['gender']); formValidation.handleFieldChange('gender'); }}>
                       <SelectTrigger id="gender" className="mt-1" {...formValidation.getFieldProps('gender')}>
@@ -824,7 +824,7 @@ function NewPupilContent() {
                   </div>
                   <div>
                     <Label htmlFor="dateOfBirth" className="text-sm font-medium">
-                      Date of Birth <span className="text-red-500">*</span>
+                      Date of Birth <span className="text-red-500 dark:text-red-400">*</span>
                     </Label>
                     <div className="mt-1">
                       <ModernDatePicker 
@@ -890,7 +890,7 @@ function NewPupilContent() {
             <Card className="shadow-lg border-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
-                  <GraduationCap className="h-6 w-6 text-green-600" />
+                  <GraduationCap className="h-6 w-6 text-green-600 dark:text-green-400" />
                   Academic Information
                 </CardTitle>
               </CardHeader>
@@ -898,7 +898,7 @@ function NewPupilContent() {
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   <div>
                     <Label htmlFor="classId" className="text-sm font-medium">
-                      Class <span className="text-red-500">*</span>
+                      Class <span className="text-red-500 dark:text-red-400">*</span>
                     </Label>
                     <Select value={classId} onValueChange={(value) => { setClassId(value); formValidation.handleFieldChange('classId'); }}>
                       <SelectTrigger id="classId" className="mt-1" {...formValidation.getFieldProps('classId')}>
@@ -912,7 +912,7 @@ function NewPupilContent() {
                   </div>
                   <div>
                     <Label htmlFor="section" className="text-sm font-medium">
-                      Section <span className="text-red-500">*</span>
+                      Section <span className="text-red-500 dark:text-red-400">*</span>
                     </Label>
                     <Select value={section} onValueChange={(val) => { setSection(val as Pupil['section']); formValidation.handleFieldChange('section'); }}>
                       <SelectTrigger id="section" className="mt-1" {...formValidation.getFieldProps('section')}>
@@ -926,7 +926,7 @@ function NewPupilContent() {
                   </div>
                   <div>
                     <Label htmlFor="status" className="text-sm font-medium">
-                      Status <span className="text-red-500">*</span>
+                      Status <span className="text-red-500 dark:text-red-400">*</span>
                     </Label>
                     <Select value={status} onValueChange={(val) => { setStatus(val as Pupil['status']); formValidation.handleFieldChange('status'); }}>
                       <SelectTrigger id="status" className="mt-1" {...formValidation.getFieldProps('status')}>
@@ -969,7 +969,7 @@ function NewPupilContent() {
             <Card className="shadow-lg border-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
-                  <Users className="h-6 w-6 text-purple-600" />
+                  <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                   Guardian Information
                 </CardTitle>
               </CardHeader>
@@ -985,7 +985,7 @@ function NewPupilContent() {
                           variant="ghost"
                           size="sm"
                           onClick={() => removeGuardian(index)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/40"
                         >
                           <X className="h-4 w-4 mr-1" />
                           Remove
@@ -998,7 +998,7 @@ function NewPupilContent() {
                       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                           <Label htmlFor={ `guardian_relationship_${index}` } className="text-sm font-medium">
-                            Relationship <span className="text-red-500">*</span>
+                            Relationship <span className="text-red-500 dark:text-red-400">*</span>
                           </Label>
                           <Select
                             value={guardian.relationship}
@@ -1019,7 +1019,7 @@ function NewPupilContent() {
                         </div>
                         <div>
                           <Label htmlFor={ `guardian_firstName_${index}` } className="text-sm font-medium">
-                            First Name <span className="text-red-500">*</span>
+                            First Name <span className="text-red-500 dark:text-red-400">*</span>
                           </Label>
                           <Input
                             id={`guardian_firstName_${index}`}
@@ -1033,7 +1033,7 @@ function NewPupilContent() {
                         </div>
                         <div>
                           <Label htmlFor={ `guardian_lastName_${index}` } className="text-sm font-medium">
-                            Surname <span className="text-red-500">*</span>
+                            Surname <span className="text-red-500 dark:text-red-400">*</span>
                           </Label>
                           <Input
                             id={`guardian_lastName_${index}`}
@@ -1047,7 +1047,7 @@ function NewPupilContent() {
                         </div>
                         <div>
                           <Label htmlFor={ `guardian_phone_${index}` } className="text-sm font-medium">
-                            Phone <span className="text-red-500">*</span>
+                            Phone <span className="text-red-500 dark:text-red-400">*</span>
                           </Label>
                           <div className="flex items-center gap-2 mt-1">
                             <PhoneInput
@@ -1075,7 +1075,7 @@ function NewPupilContent() {
                       {/* Additional Phone Numbers - Full width */}
                       {guardian.additionalPhones && guardian.additionalPhones.length > 0 && (
                         <div className="border-t pt-4">
-                          <Label className="text-sm font-medium text-gray-600 block mb-3">
+                          <Label className="text-sm font-medium text-gray-600 block mb-3 dark:text-slate-300">
                             Additional Phone Numbers
                           </Label>
                           <div className="space-y-3">
@@ -1092,7 +1092,7 @@ function NewPupilContent() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => removeAdditionalPhone(index, phoneIndex)}
-                                  className="h-9 w-9 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 self-start sm:self-auto"
+                                  className="h-9 w-9 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 self-start sm:self-auto dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/40"
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
@@ -1158,7 +1158,7 @@ function NewPupilContent() {
             <Card className="shadow-lg border-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
-                  <Heart className="h-6 w-6 text-red-600" />
+                  <Heart className="h-6 w-6 text-red-600 dark:text-red-400" />
                   Medical Information
                 </CardTitle>
               </CardHeader>
@@ -1191,7 +1191,7 @@ function NewPupilContent() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">
                       First guardian is automatically selected as emergency contact
                     </p>
                   </div>

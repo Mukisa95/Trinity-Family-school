@@ -62,10 +62,10 @@ function kampalaToday() {
 }
 function badgeTone(status: string) {
   return status === "paid"
-    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+    ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300"
     : status === "partial"
-      ? "border-amber-200 bg-amber-50 text-amber-800"
-      : "border-red-200 bg-red-50 text-red-700";
+      ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200"
+      : "border-red-200 bg-red-50 text-red-700 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-300";
 }
 
 export default function StaffPayrollDetailPage({
@@ -221,7 +221,7 @@ export default function StaffPayrollDetailPage({
     );
   if (error || !data)
     return (
-      <div className="mx-auto max-w-2xl p-6 text-sm text-red-700">
+      <div className="mx-auto max-w-2xl p-6 text-sm text-red-700 dark:text-red-300">
         {error instanceof Error ? error.message : "Salary profile not found."}
       </div>
     );
@@ -239,7 +239,7 @@ export default function StaffPayrollDetailPage({
         meta={
           <Badge
             variant="outline"
-            className="border-emerald-200 bg-emerald-50 text-emerald-700"
+            className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300"
           >
             {data.profile.status}
           </Badge>
@@ -319,7 +319,7 @@ export default function StaffPayrollDetailPage({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <CalendarClock className="h-5 w-5 text-blue-600" />
+                  <CalendarClock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   Upcoming payment
                 </CardTitle>
                 <CardDescription>
@@ -395,7 +395,7 @@ export default function StaffPayrollDetailPage({
                     {component.schedule.excludedDates?.length ||
                     component.schedule.excludedMonths?.length ||
                     component.schedule.excludedMonthNumbers?.length ? (
-                      <p className="mt-1 text-xs text-amber-700">
+                      <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
                         {component.schedule.excludedDates?.length || 0} date(s)
                         , {component.schedule.excludedMonths?.length || 0}{" "}
                         one-off month(s), and{" "}
@@ -412,7 +412,7 @@ export default function StaffPayrollDetailPage({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <History className="h-5 w-5 text-blue-600" />
+                  <History className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   Payment history
                 </CardTitle>
               </CardHeader>
@@ -477,7 +477,7 @@ export default function StaffPayrollDetailPage({
               {data.adjustments.map((adjustment: any) => (
                 <Card key={adjustment.id}>
                   <CardContent className="flex items-start gap-3 p-4">
-                    <ArrowUpRight className="mt-0.5 h-5 w-5 text-emerald-600" />
+                    <ArrowUpRight className="mt-0.5 h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                     <div>
                       <p className="font-medium">
                         Salary{" "}
@@ -689,7 +689,7 @@ export default function StaffPayrollDetailPage({
               />
             </div>
             {currentBase && increaseAmount && (
-              <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900">
+              <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
                 {formatCurrency(currentBase.amount)} →{" "}
                 {formatCurrency(
                   increaseMode === "increase_by"

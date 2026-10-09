@@ -22,7 +22,7 @@ export function FieldError({ error, fieldId, className, ...props }: FieldErrorPr
       id={id}
       role="alert"
       aria-live="polite"
-      className={cn('mt-1.5 flex items-start gap-1.5 text-sm font-semibold text-red-700', className)}
+      className={cn('mt-1.5 flex items-start gap-1.5 text-sm font-semibold text-red-700 dark:text-red-300', className)}
       {...props}
     >
       <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
@@ -61,11 +61,11 @@ export function ValidatedField({
     >
       <Label
         htmlFor={fieldId}
-        className={cn(hasError && 'font-semibold text-red-700', labelClassName)}
+        className={cn(hasError && 'font-semibold text-red-700 dark:text-red-300', labelClassName)}
       >
         {label}
         {required ? (
-          <span className="ml-1 text-red-600" aria-hidden="true">
+          <span className="ml-1 text-red-600 dark:text-red-400" aria-hidden="true">
             *
           </span>
         ) : null}
@@ -102,13 +102,13 @@ export function FormErrorSummary({
       role="alert"
       aria-live="assertive"
       className={cn(
-        'sticky top-0 z-20 mb-4 rounded-xl border-2 border-red-300 bg-red-50/95 p-4 text-red-950 shadow-lg backdrop-blur-sm',
+        'sticky top-0 z-20 mb-4 rounded-xl border-2 border-red-300 bg-red-50/95 p-4 text-red-950 shadow-lg backdrop-blur-sm dark:border-red-800/60 dark:bg-red-950/95 dark:text-red-100',
         className,
       )}
       {...props}
     >
       <div className="flex items-start gap-3">
-        <AlertCircle aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-red-700" />
+        <AlertCircle aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-red-700 dark:text-red-300" />
         <div className="min-w-0">
           <p className="font-bold">{submissionError ? 'Unable to save this form' : title}</p>
           {submissionError ? <p className="mt-1 text-sm font-medium">{submissionError}</p> : null}
@@ -118,7 +118,7 @@ export function FormErrorSummary({
                 <li key={error.id}>
                   <button
                     type="button"
-                    className="min-h-8 rounded px-1 text-left font-semibold underline decoration-red-400 underline-offset-2 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+                    className="min-h-8 rounded px-1 text-left font-semibold underline decoration-red-400 underline-offset-2 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 dark:hover:text-red-300"
                     onClick={() => onSelectError?.(error.id)}
                   >
                     {error.label}: {error.message}

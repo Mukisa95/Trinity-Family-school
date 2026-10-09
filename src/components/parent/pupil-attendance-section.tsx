@@ -865,34 +865,34 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
 
     switch (status) {
       case 'Present':
-        return <CheckCircle className={`${sizeClasses[size]} text-green-600`} />;
+        return <CheckCircle className={`${sizeClasses[size]} text-green-600 dark:text-green-400`} />;
       case 'Absent':
-        return <XCircle className={`${sizeClasses[size]} text-red-600`} />;
+        return <XCircle className={`${sizeClasses[size]} text-red-600 dark:text-red-400`} />;
       case 'Late':
-        return <Clock className={`${sizeClasses[size]} text-yellow-600`} />;
+        return <Clock className={`${sizeClasses[size]} text-yellow-600 dark:text-yellow-400`} />;
       case 'Excused':
-        return <Info className={`${sizeClasses[size]} text-blue-600`} />;
+        return <Info className={`${sizeClasses[size]} text-blue-600 dark:text-blue-400`} />;
       case 'Delayed':
-        return <AlertCircle className={`${sizeClasses[size]} text-purple-600`} />;
+        return <AlertCircle className={`${sizeClasses[size]} text-purple-600 dark:text-purple-400`} />;
       default:
-        return <AlertCircle className={`${sizeClasses[size]} text-gray-400`} />;
+        return <AlertCircle className={`${sizeClasses[size]} text-gray-400 dark:text-slate-400`} />;
     }
   };
 
   const getStatusColor = (status: AttendanceStatus) => {
     switch (status) {
       case 'Present':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
       case 'Absent':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60';
       case 'Late':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
       case 'Excused':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
       case 'Delayed':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
+        return 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-200 dark:border-purple-800/60';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
     }
   };
 
@@ -942,11 +942,11 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
       </div>
 
       {/* Controls */}
-      <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+      <div className="bg-gray-50 rounded-lg p-4 space-y-3 dark:bg-slate-900">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Academic Year Selector */}
           <div className="space-y-1">
-            <Label className="text-xs font-medium text-gray-600">Academic Year</Label>
+            <Label className="text-xs font-medium text-gray-600 dark:text-slate-300">Academic Year</Label>
             <Select
               value={selectedAcademicYearId}
               onValueChange={(value) => {
@@ -969,7 +969,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
 
           {/* View Mode Selector */}
           <div className="space-y-1">
-            <Label className="text-xs font-medium text-gray-600">View Mode</Label>
+            <Label className="text-xs font-medium text-gray-600 dark:text-slate-300">View Mode</Label>
             <Select value={viewMode} onValueChange={(value: ViewMode) => setViewMode(value)}>
               <SelectTrigger className="h-9 text-sm">
                 <SelectValue />
@@ -986,7 +986,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
 
           {/* Dynamic Selector */}
           <div className="space-y-1">
-            <Label className="text-xs font-medium text-gray-600">
+            <Label className="text-xs font-medium text-gray-600 dark:text-slate-300">
               {viewMode === 'daily' && 'Date'}
               {viewMode === 'weekly' && 'Week'}
               {viewMode === 'monthly' && 'Month'}
@@ -1022,11 +1022,11 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
       {/* Selected Date's Attendance Card (only show if viewing daily) */}
       {viewMode === 'daily' && selectedDate && (
         <Card className={`relative overflow-hidden border-0 shadow-lg rounded-2xl ${selectedDateRecord ?
-          selectedDateRecord.status === 'Present' ? 'bg-gradient-to-br from-green-50 to-emerald-50' :
-            selectedDateRecord.status === 'Absent' ? 'bg-gradient-to-br from-red-50 to-pink-50' :
-              selectedDateRecord.status === 'Late' ? 'bg-gradient-to-br from-yellow-50 to-amber-50' :
-                selectedDateRecord.status === 'Excused' ? 'bg-gradient-to-br from-blue-50 to-indigo-50' :
-                  'bg-gradient-to-br from-gray-50 to-slate-50' : 'bg-gradient-to-br from-gray-50 to-slate-50'}`}>
+          selectedDateRecord.status === 'Present' ? 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/40 dark:to-emerald-950/40' :
+            selectedDateRecord.status === 'Absent' ? 'bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-950/40 dark:to-pink-950/40' :
+              selectedDateRecord.status === 'Late' ? 'bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950/40 dark:to-amber-950/40' :
+                selectedDateRecord.status === 'Excused' ? 'bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40' :
+                  'bg-gradient-to-br from-gray-50 to-slate-50 dark:from-slate-900 dark:to-slate-900' : 'bg-gradient-to-br from-gray-50 to-slate-50 dark:from-slate-900 dark:to-slate-900'}`}>
           {/* Decorative background pattern */}
           <div className="absolute inset-0 opacity-5">
             <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-16 -translate-y-16">
@@ -1041,31 +1041,31 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
           </div>
 
           <CardHeader className={`py-4 relative z-10 ${selectedDateRecord ?
-            selectedDateRecord.status === 'Present' ? 'bg-gradient-to-r from-green-50/80 to-emerald-50/80' :
-              selectedDateRecord.status === 'Absent' ? 'bg-gradient-to-r from-red-50/80 to-pink-50/80' :
-                selectedDateRecord.status === 'Late' ? 'bg-gradient-to-r from-yellow-50/80 to-amber-50/80' :
-                  selectedDateRecord.status === 'Excused' ? 'bg-gradient-to-r from-blue-50/80 to-indigo-50/80' :
-                    'bg-gradient-to-r from-gray-50/80 to-slate-50/80' : 'bg-gradient-to-r from-gray-50/80 to-slate-50/80'}`}>
+            selectedDateRecord.status === 'Present' ? 'bg-gradient-to-r from-green-50/80 to-emerald-50/80 dark:from-green-950/80 dark:to-emerald-950/80' :
+              selectedDateRecord.status === 'Absent' ? 'bg-gradient-to-r from-red-50/80 to-pink-50/80 dark:from-red-950/80 dark:to-pink-950/80' :
+                selectedDateRecord.status === 'Late' ? 'bg-gradient-to-r from-yellow-50/80 to-amber-50/80 dark:from-yellow-950/80 dark:to-amber-950/80' :
+                  selectedDateRecord.status === 'Excused' ? 'bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-950/80 dark:to-indigo-950/80' :
+                    'bg-gradient-to-r from-gray-50/80 to-slate-50/80 dark:from-slate-900/80 dark:to-slate-900/80' : 'bg-gradient-to-r from-gray-50/80 to-slate-50/80 dark:from-slate-900/80 dark:to-slate-900/80'}`}>
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
                 {selectedDateRecord ? (
-                  <div className={`w-5 h-5 rounded-full ${selectedDateRecord.status === 'Present' ? 'bg-green-100' :
-                    selectedDateRecord.status === 'Absent' ? 'bg-red-100' :
-                      selectedDateRecord.status === 'Late' ? 'bg-yellow-100' :
-                        selectedDateRecord.status === 'Excused' ? 'bg-blue-100' :
-                          'bg-gray-100'
+                  <div className={`w-5 h-5 rounded-full ${selectedDateRecord.status === 'Present' ? 'bg-green-100 dark:bg-green-950/40' :
+                    selectedDateRecord.status === 'Absent' ? 'bg-red-100 dark:bg-red-950/40' :
+                      selectedDateRecord.status === 'Late' ? 'bg-yellow-100 dark:bg-yellow-950/40' :
+                        selectedDateRecord.status === 'Excused' ? 'bg-blue-100 dark:bg-blue-950/40' :
+                          'bg-gray-100 dark:bg-slate-900'
                     } flex items-center justify-center`}>
                     {getStatusIcon(selectedDateRecord.status, 'sm')}
                   </div>
                 ) : (
-                  <Calendar className="h-4 w-4 text-gray-500" />
+                  <Calendar className="h-4 w-4 text-gray-500 dark:text-slate-400" />
                 )}
                 <span className={`text-base font-semibold ${selectedDateRecord ?
-                  selectedDateRecord.status === 'Present' ? 'text-green-800' :
-                    selectedDateRecord.status === 'Absent' ? 'text-red-800' :
-                      selectedDateRecord.status === 'Late' ? 'text-yellow-800' :
-                        selectedDateRecord.status === 'Excused' ? 'text-blue-800' :
-                          'text-gray-800' : 'text-gray-600'
+                  selectedDateRecord.status === 'Present' ? 'text-green-800 dark:text-green-200' :
+                    selectedDateRecord.status === 'Absent' ? 'text-red-800 dark:text-red-200' :
+                      selectedDateRecord.status === 'Late' ? 'text-yellow-800 dark:text-yellow-200' :
+                        selectedDateRecord.status === 'Excused' ? 'text-blue-800 dark:text-blue-200' :
+                          'text-gray-800 dark:text-slate-100' : 'text-gray-600 dark:text-slate-300'
                   }`}>
                   {getPersonalizedMessage(selectedDateRecord || null, selectedDate)}
                 </span>
@@ -1075,7 +1075,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                   variant="outline"
                   size="sm"
                   onClick={() => handleEditRemarks(selectedDateRecord)}
-                  className="text-blue-600 hover:text-blue-700 text-xs px-2 py-1"
+                  className="text-blue-600 hover:text-blue-700 text-xs px-2 py-1 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   <Edit3 className="h-3 w-3 mr-1" />
                   Please tell us why
@@ -1086,38 +1086,38 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
           {selectedDateRecord && (
             <CardContent className="py-4 relative z-10">
               <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-white/50 ${selectedDateRecord.status === 'Present' ? 'bg-gradient-to-br from-green-100 to-green-200' :
-                  selectedDateRecord.status === 'Absent' ? 'bg-gradient-to-br from-red-100 to-red-200' :
-                    selectedDateRecord.status === 'Late' ? 'bg-gradient-to-br from-yellow-100 to-yellow-200' :
-                      selectedDateRecord.status === 'Excused' ? 'bg-gradient-to-br from-blue-100 to-blue-200' :
-                        'bg-gradient-to-br from-gray-100 to-gray-200'
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-white/50  dark:border-slate-700/50${selectedDateRecord.status === 'Present' ? 'bg-gradient-to-br from-green-100 to-green-200 dark:from-green-950/40 dark:to-green-900/40' :
+                  selectedDateRecord.status === 'Absent' ? 'bg-gradient-to-br from-red-100 to-red-200 dark:from-red-950/40 dark:to-red-900/40' :
+                    selectedDateRecord.status === 'Late' ? 'bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-950/40 dark:to-yellow-900/40' :
+                      selectedDateRecord.status === 'Excused' ? 'bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-950/40 dark:to-blue-900/40' :
+                        'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-slate-900 dark:to-slate-800'
                   }`}>
                   {getStatusIcon(selectedDateRecord.status, 'lg')}
                 </div>
                 <div className="flex-1">
                   <div className="mb-2">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${selectedDateRecord.status === 'Present' ? 'bg-green-100 text-green-800' :
-                      selectedDateRecord.status === 'Absent' ? 'bg-red-100 text-red-800' :
-                        selectedDateRecord.status === 'Late' ? 'bg-yellow-100 text-yellow-800' :
-                          selectedDateRecord.status === 'Excused' ? 'bg-blue-100 text-blue-800' :
-                            'bg-gray-100 text-gray-800'
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${selectedDateRecord.status === 'Present' ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200' :
+                      selectedDateRecord.status === 'Absent' ? 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200' :
+                        selectedDateRecord.status === 'Late' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200' :
+                          selectedDateRecord.status === 'Excused' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200' :
+                            'bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100'
                       }`}>
                       {selectedDateRecord.status}
                     </span>
                   </div>
                   {selectedDateRecord.remarks && (
                     <div className="flex items-center gap-2">
-                      <div className={`flex-1 p-3 rounded-xl bg-white/60 backdrop-blur-sm border border-white/20 ${selectedDateRecord.status === 'Present' ? 'shadow-green-100' :
+                      <div className={`flex-1 p-3 rounded-xl bg-white/60 backdrop-blur-sm border border-white/20  dark:bg-slate-900/60 dark:border-slate-700/20${selectedDateRecord.status === 'Present' ? 'shadow-green-100' :
                         selectedDateRecord.status === 'Absent' ? 'shadow-red-100' :
                           selectedDateRecord.status === 'Late' ? 'shadow-yellow-100' :
                             selectedDateRecord.status === 'Excused' ? 'shadow-blue-100' :
                               'shadow-gray-100'
                         }`}>
-                        <p className={`text-sm ${selectedDateRecord.status === 'Present' ? 'text-green-700' :
-                          selectedDateRecord.status === 'Absent' ? 'text-red-700' :
-                            selectedDateRecord.status === 'Late' ? 'text-yellow-700' :
-                              selectedDateRecord.status === 'Excused' ? 'text-blue-700' :
-                                'text-gray-700'
+                        <p className={`text-sm ${selectedDateRecord.status === 'Present' ? 'text-green-700 dark:text-green-300' :
+                          selectedDateRecord.status === 'Absent' ? 'text-red-700 dark:text-red-300' :
+                            selectedDateRecord.status === 'Late' ? 'text-yellow-700 dark:text-yellow-300' :
+                              selectedDateRecord.status === 'Excused' ? 'text-blue-700 dark:text-blue-300' :
+                                'text-gray-700 dark:text-slate-200'
                           }`}>
                           <strong>Remarks:</strong> {selectedDateRecord.remarks}
                         </p>
@@ -1126,7 +1126,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEditRemarks(selectedDateRecord)}
-                        className="text-blue-600 hover:text-blue-700 p-2 h-auto rounded-full hover:bg-blue-50 transition-colors shadow-sm"
+                        className="text-blue-600 hover:text-blue-700 p-2 h-auto rounded-full hover:bg-blue-50 transition-colors shadow-sm dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/40"
                       >
                         <Edit3 className="h-4 w-4" />
                       </Button>
@@ -1149,7 +1149,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
               <BarChart3 className="h-5 w-5" />
               Attendance Records ({viewMode})
               {effectiveAcademicYearId && (
-                <span className="text-sm font-normal text-gray-500">
+                <span className="text-sm font-normal text-gray-500 dark:text-slate-400">
                   • {academicYears.find(ay => ay.id === effectiveAcademicYearId)?.name}
                   {viewMode === 'weekly' && selectedWeek && (
                     <span> • Week of {format(new Date(selectedWeek), 'MMM dd')}</span>
@@ -1166,28 +1166,28 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
             {/* Color Legend */}
             <div className="flex flex-wrap gap-3 mt-1">
               <div className="flex items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-full bg-green-100 border border-green-200"></div>
-                <span className="text-xs text-green-700">Present</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-green-100 border border-green-200 dark:bg-green-950/40 dark:border-green-800/60"></div>
+                <span className="text-xs text-green-700 dark:text-green-300">Present</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-100 border border-red-200"></div>
-                <span className="text-xs text-red-700">Absent</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-red-100 border border-red-200 dark:bg-red-950/40 dark:border-red-800/60"></div>
+                <span className="text-xs text-red-700 dark:text-red-300">Absent</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-full bg-yellow-100 border border-yellow-200"></div>
-                <span className="text-xs text-yellow-700">Late</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-yellow-100 border border-yellow-200 dark:bg-yellow-950/40 dark:border-yellow-800/60"></div>
+                <span className="text-xs text-yellow-700 dark:text-yellow-300">Late</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-full bg-blue-100 border border-blue-200"></div>
-                <span className="text-xs text-blue-700">Excused</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-blue-100 border border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60"></div>
+                <span className="text-xs text-blue-700 dark:text-blue-300">Excused</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-full bg-purple-100 border border-purple-200"></div>
-                <span className="text-xs text-purple-700">Delayed</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-purple-100 border border-purple-200 dark:bg-purple-950/40 dark:border-purple-800/60"></div>
+                <span className="text-xs text-purple-700 dark:text-purple-300">Delayed</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-full bg-gray-100 border border-gray-200"></div>
-                <span className="text-xs text-gray-700">No Record</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-gray-100 border border-gray-200 dark:bg-slate-900 dark:border-slate-700"></div>
+                <span className="text-xs text-gray-700 dark:text-slate-200">No Record</span>
               </div>
             </div>
           </CardHeader>
@@ -1208,62 +1208,62 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                   const getStatusColors = (record: AttendanceRecord | null | undefined) => {
                     if (!record) {
                       return {
-                        bg: 'bg-gray-50',
-                        border: 'border-gray-200',
-                        text: 'text-gray-600',
-                        iconBg: 'bg-gray-200',
-                        iconColor: 'text-gray-500'
+                        bg: 'bg-gray-50 dark:bg-slate-900',
+                        border: 'border-gray-200 dark:border-slate-700',
+                        text: 'text-gray-600 dark:text-slate-300',
+                        iconBg: 'bg-gray-200 dark:bg-slate-800',
+                        iconColor: 'text-gray-500 dark:text-slate-400'
                       };
                     }
 
                     switch (record.status) {
                       case 'Present':
                         return {
-                          bg: 'bg-green-50',
-                          border: 'border-green-200',
-                          text: 'text-green-800',
-                          iconBg: 'bg-green-100',
-                          iconColor: 'text-green-600'
+                          bg: 'bg-green-50 dark:bg-green-950/40',
+                          border: 'border-green-200 dark:border-green-800/60',
+                          text: 'text-green-800 dark:text-green-200',
+                          iconBg: 'bg-green-100 dark:bg-green-950/40',
+                          iconColor: 'text-green-600 dark:text-green-400'
                         };
                       case 'Absent':
                         return {
-                          bg: 'bg-red-50',
-                          border: 'border-red-200',
-                          text: 'text-red-800',
-                          iconBg: 'bg-red-100',
-                          iconColor: 'text-red-600'
+                          bg: 'bg-red-50 dark:bg-red-950/40',
+                          border: 'border-red-200 dark:border-red-800/60',
+                          text: 'text-red-800 dark:text-red-200',
+                          iconBg: 'bg-red-100 dark:bg-red-950/40',
+                          iconColor: 'text-red-600 dark:text-red-400'
                         };
                       case 'Late':
                         return {
-                          bg: 'bg-yellow-50',
-                          border: 'border-yellow-200',
-                          text: 'text-yellow-800',
-                          iconBg: 'bg-yellow-100',
-                          iconColor: 'text-yellow-600'
+                          bg: 'bg-yellow-50 dark:bg-yellow-950/40',
+                          border: 'border-yellow-200 dark:border-yellow-800/60',
+                          text: 'text-yellow-800 dark:text-yellow-200',
+                          iconBg: 'bg-yellow-100 dark:bg-yellow-950/40',
+                          iconColor: 'text-yellow-600 dark:text-yellow-400'
                         };
                       case 'Excused':
                         return {
-                          bg: 'bg-blue-50',
-                          border: 'border-blue-200',
-                          text: 'text-blue-800',
-                          iconBg: 'bg-blue-100',
-                          iconColor: 'text-blue-600'
+                          bg: 'bg-blue-50 dark:bg-blue-950/40',
+                          border: 'border-blue-200 dark:border-blue-800/60',
+                          text: 'text-blue-800 dark:text-blue-200',
+                          iconBg: 'bg-blue-100 dark:bg-blue-950/40',
+                          iconColor: 'text-blue-600 dark:text-blue-400'
                         };
                       case 'Delayed':
                         return {
-                          bg: 'bg-purple-50',
-                          border: 'border-purple-200',
-                          text: 'text-purple-800',
-                          iconBg: 'bg-purple-100',
-                          iconColor: 'text-purple-600'
+                          bg: 'bg-purple-50 dark:bg-purple-950/40',
+                          border: 'border-purple-200 dark:border-purple-800/60',
+                          text: 'text-purple-800 dark:text-purple-200',
+                          iconBg: 'bg-purple-100 dark:bg-purple-950/40',
+                          iconColor: 'text-purple-600 dark:text-purple-400'
                         };
                       default:
                         return {
-                          bg: 'bg-gray-50',
-                          border: 'border-gray-200',
-                          text: 'text-gray-600',
-                          iconBg: 'bg-gray-200',
-                          iconColor: 'text-gray-500'
+                          bg: 'bg-gray-50 dark:bg-slate-900',
+                          border: 'border-gray-200 dark:border-slate-700',
+                          text: 'text-gray-600 dark:text-slate-300',
+                          iconBg: 'bg-gray-200 dark:bg-slate-800',
+                          iconColor: 'text-gray-500 dark:text-slate-400'
                         };
                     }
                   };
@@ -1294,11 +1294,11 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
 
                       <div className="flex items-center gap-3 pl-1">
                         {record ? (
-                          <div className={`w-8 h-8 rounded-full ${colors.iconBg} flex items-center justify-center flex-shrink-0 shadow-sm border-2 border-white/50`}>
+                          <div className={`w-8 h-8 rounded-full ${colors.iconBg} flex items-center justify-center flex-shrink-0 shadow-sm border-2 border-white/50 dark:border-slate-700/50`}>
                             {getStatusIcon(record.status, 'sm')}
                           </div>
                         ) : (
-                          <div className={`w-8 h-8 rounded-full ${colors.iconBg} flex items-center justify-center flex-shrink-0 shadow-sm border-2 border-white/50`}>
+                          <div className={`w-8 h-8 rounded-full ${colors.iconBg} flex items-center justify-center flex-shrink-0 shadow-sm border-2 border-white/50 dark:border-slate-700/50`}>
                             <Calendar className={`h-4 w-4 ${colors.iconColor}`} />
                           </div>
                         )}
@@ -1308,7 +1308,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                           </p>
                           {record?.remarks && (
                             <div className="flex items-center gap-2">
-                              <p className={`text-xs ${colors.text.replace('800', '600')} truncate bg-white/50 px-2 py-1 rounded-full`}>
+                              <p className={`text-xs ${colors.text.replace('800', '600')} truncate bg-white/50 px-2 py-1 rounded-full dark:bg-slate-900/50`}>
                                 <strong>Remarks:</strong> {record.remarks}
                               </p>
                               {isToday(date) && (
@@ -1316,7 +1316,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleEditRemarks(record)}
-                                  className="text-blue-600 hover:text-blue-700 p-1 h-auto flex-shrink-0 rounded-full hover:bg-blue-50 transition-colors"
+                                  className="text-blue-600 hover:text-blue-700 p-1 h-auto flex-shrink-0 rounded-full hover:bg-blue-50 transition-colors dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/40"
                                 >
                                   <Edit3 className="h-3 w-3" />
                                 </Button>
@@ -1331,13 +1331,13 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEditRemarks(record)}
-                            className="text-blue-600 hover:text-blue-700"
+                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                           >
                             <Edit3 className="h-4 w-4" />
                           </Button>
                         )}
                         {record && (
-                          <div className="text-right text-sm text-gray-500">
+                          <div className="text-right text-sm text-gray-500 dark:text-slate-400">
                             {format(new Date(record.recordedAt), 'HH:mm')}
                           </div>
                         )}
@@ -1349,7 +1349,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
             ) : viewMode === 'term' && termSummary ? (
               <div className="space-y-3">
                 {/* Term Summary */}
-                <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-4 shadow-lg border border-blue-100/50">
+                <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-4 shadow-lg border border-blue-100/50 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40 dark:border-blue-800/50">
                   {/* Decorative elements */}
                   <div className="absolute top-0 right-0 w-24 h-24 opacity-10">
                     <div className="w-full h-full bg-blue-400 rounded-full transform translate-x-8 -translate-y-8"></div>
@@ -1360,7 +1360,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
 
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-bold text-blue-900 bg-white/60 px-4 py-2 rounded-xl backdrop-blur-sm">
+                      <h3 className="text-lg font-bold text-blue-900 bg-white/60 px-4 py-2 rounded-xl backdrop-blur-sm dark:text-blue-200 dark:bg-slate-900/60">
                         {termSummary.term.name} Summary
                       </h3>
                       <Badge className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-xs px-3 py-1 rounded-full shadow-md">
@@ -1368,25 +1368,25 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                       </Badge>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                      <div className="text-center bg-white/60 p-3 rounded-xl backdrop-blur-sm shadow-sm border border-white/20">
-                        <div className="text-2xl font-bold text-green-600 mb-1">{termSummary.present}</div>
-                        <div className="text-xs text-gray-600 font-medium">Present</div>
+                      <div className="text-center bg-white/60 p-3 rounded-xl backdrop-blur-sm shadow-sm border border-white/20 dark:bg-slate-900/60 dark:border-slate-700/20">
+                        <div className="text-2xl font-bold text-green-600 mb-1 dark:text-green-400">{termSummary.present}</div>
+                        <div className="text-xs text-gray-600 font-medium dark:text-slate-300">Present</div>
                       </div>
-                      <div className="text-center bg-white/60 p-3 rounded-xl backdrop-blur-sm shadow-sm border border-white/20">
-                        <div className="text-2xl font-bold text-red-600 mb-1">{termSummary.absent}</div>
-                        <div className="text-xs text-gray-600 font-medium">Absent</div>
+                      <div className="text-center bg-white/60 p-3 rounded-xl backdrop-blur-sm shadow-sm border border-white/20 dark:bg-slate-900/60 dark:border-slate-700/20">
+                        <div className="text-2xl font-bold text-red-600 mb-1 dark:text-red-400">{termSummary.absent}</div>
+                        <div className="text-xs text-gray-600 font-medium dark:text-slate-300">Absent</div>
                       </div>
-                      <div className="text-center bg-white/60 p-3 rounded-xl backdrop-blur-sm shadow-sm border border-white/20">
-                        <div className="text-2xl font-bold text-yellow-600 mb-1">{termSummary.late}</div>
-                        <div className="text-xs text-gray-600 font-medium">Late</div>
+                      <div className="text-center bg-white/60 p-3 rounded-xl backdrop-blur-sm shadow-sm border border-white/20 dark:bg-slate-900/60 dark:border-slate-700/20">
+                        <div className="text-2xl font-bold text-yellow-600 mb-1 dark:text-yellow-400">{termSummary.late}</div>
+                        <div className="text-xs text-gray-600 font-medium dark:text-slate-300">Late</div>
                       </div>
-                      <div className="text-center bg-white/60 p-3 rounded-xl backdrop-blur-sm shadow-sm border border-white/20">
-                        <div className="text-2xl font-bold text-blue-600 mb-1">{termSummary.excused}</div>
-                        <div className="text-xs text-gray-600 font-medium">Excused</div>
+                      <div className="text-center bg-white/60 p-3 rounded-xl backdrop-blur-sm shadow-sm border border-white/20 dark:bg-slate-900/60 dark:border-slate-700/20">
+                        <div className="text-2xl font-bold text-blue-600 mb-1 dark:text-blue-400">{termSummary.excused}</div>
+                        <div className="text-xs text-gray-600 font-medium dark:text-slate-300">Excused</div>
                       </div>
-                      <div className="text-center bg-white/60 p-3 rounded-xl backdrop-blur-sm shadow-sm border border-white/20">
-                        <div className="text-2xl font-bold text-gray-600 mb-1">{termSummary.total}</div>
-                        <div className="text-xs text-gray-600 font-medium">Total Days</div>
+                      <div className="text-center bg-white/60 p-3 rounded-xl backdrop-blur-sm shadow-sm border border-white/20 dark:bg-slate-900/60 dark:border-slate-700/20">
+                        <div className="text-2xl font-bold text-gray-600 mb-1 dark:text-slate-300">{termSummary.total}</div>
+                        <div className="text-xs text-gray-600 font-medium dark:text-slate-300">Total Days</div>
                       </div>
                     </div>
                   </div>
@@ -1394,15 +1394,15 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
 
                 {/* Monthly Breakdown */}
                 <div className="space-y-1">
-                  <h4 className="text-sm font-medium text-gray-700">Monthly Breakdown</h4>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-slate-200">Monthly Breakdown</h4>
                   {monthlyBreakdown.map((month) => (
-                    <div key={month.monthKey} className="bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
+                    <div key={month.monthKey} className="bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 dark:bg-slate-900/80 dark:border-slate-700/50">
                       <div
-                        className="flex items-center justify-between p-3 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-colors rounded-xl"
+                        className="flex items-center justify-between p-3 cursor-pointer hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-colors rounded-xl dark:hover:from-blue-950/50 dark:hover:to-indigo-950/50"
                         onClick={() => toggleMonthExpansion(month.monthKey)}
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${expandedMonths.has(month.monthKey) ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${expandedMonths.has(month.monthKey) ? 'bg-blue-100 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400' : 'bg-gray-100 text-gray-500 dark:bg-slate-900 dark:text-slate-400'
                             } transition-colors`}>
                             {expandedMonths.has(month.monthKey) ? (
                               <ChevronDown className="h-4 w-4" />
@@ -1410,28 +1410,28 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                               <ChevronRight className="h-4 w-4" />
                             )}
                           </div>
-                          <span className="font-semibold text-sm text-gray-800">{month.monthName}</span>
+                          <span className="font-semibold text-sm text-gray-800 dark:text-slate-100">{month.monthName}</span>
                           <Badge className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-xs px-2 py-1 rounded-full">
                             {month.attendanceRate}% Attendance
                           </Badge>
                         </div>
                         <div className="flex items-center gap-4 text-xs">
-                          <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Present: {month.present}</span>
-                          <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">Absent: {month.absent}</span>
-                          <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-medium">Late: {month.late}</span>
-                          <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">Excused: {month.excused}</span>
+                          <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium dark:bg-green-950/40 dark:text-green-300">Present: {month.present}</span>
+                          <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium dark:bg-red-950/40 dark:text-red-300">Absent: {month.absent}</span>
+                          <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-medium dark:bg-yellow-950/40 dark:text-yellow-300">Late: {month.late}</span>
+                          <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium dark:bg-blue-950/40 dark:text-blue-300">Excused: {month.excused}</span>
                         </div>
                       </div>
 
                       {expandedMonths.has(month.monthKey) && (
-                        <div className="border-t bg-gray-50 p-3">
+                        <div className="border-t bg-gray-50 p-3 dark:bg-slate-900">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-gray-700">Daily Details</span>
+                            <span className="text-sm font-medium text-gray-700 dark:text-slate-200">Daily Details</span>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => toggleMonthDaysExpansion(month.monthKey)}
-                              className="text-blue-600 hover:text-blue-700"
+                              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                             >
                               {expandedMonthDays.has(month.monthKey) ? 'Hide Details' : 'Show Details'}
                             </Button>
@@ -1440,16 +1440,16 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                           {expandedMonthDays.has(month.monthKey) && (
                             <div className="space-y-2">
                               {month.records.map((record) => (
-                                <div key={record.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                                <div key={record.id} className="flex items-center justify-between p-2 bg-white rounded border dark:bg-slate-900">
                                   <div className="flex items-center gap-3">
                                     {getStatusIcon(record.status)}
                                     <div className="flex-1">
-                                      <p className="text-sm text-gray-600">
+                                      <p className="text-sm text-gray-600 dark:text-slate-300">
                                         {getPersonalizedMessage(record, getValidDateString(record.date) || '')}
                                       </p>
                                       {record.remarks && (
                                         <div className="flex items-center gap-2 mt-1">
-                                          <p className="text-xs text-gray-500">
+                                          <p className="text-xs text-gray-500 dark:text-slate-400">
                                             <strong>Remarks:</strong> {record.remarks}
                                           </p>
                                           {(() => {
@@ -1460,7 +1460,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleEditRemarks(record)}
-                                                className="text-blue-600 hover:text-blue-700 p-1 h-auto"
+                                                className="text-blue-600 hover:text-blue-700 p-1 h-auto dark:text-blue-400 dark:hover:text-blue-300"
                                               >
                                                 <Edit3 className="h-3 w-3" />
                                               </Button>
@@ -1478,12 +1478,12 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                                           variant="ghost"
                                           size="sm"
                                           onClick={() => handleEditRemarks(record)}
-                                          className="text-blue-600 hover:text-blue-700"
+                                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                                         >
                                           <Edit3 className="h-4 w-4" />
                                         </Button>
                                       )}
-                                    <div className="text-right text-xs text-gray-500">
+                                    <div className="text-right text-xs text-gray-500 dark:text-slate-400">
                                       {format(new Date(record.recordedAt), 'HH:mm')}
                                     </div>
                                   </div>
@@ -1500,64 +1500,64 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
             ) : viewMode === 'yearly' && yearSummary ? (
               <div className="space-y-4">
                 {/* Year Summary */}
-                <div className="bg-green-50 rounded-lg p-4">
+                <div className="bg-green-50 rounded-lg p-4 dark:bg-green-950/40">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-green-900">
+                    <h3 className="text-lg font-semibold text-green-900 dark:text-green-200">
                       {yearSummary.academicYear.name} Summary
                     </h3>
-                    <Badge className="bg-green-100 text-green-800">
+                    <Badge className="bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200">
                       {yearSummary.attendanceRate}% Attendance
                     </Badge>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">{yearSummary.present}</div>
-                      <div className="text-sm text-gray-600">Present</div>
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">{yearSummary.present}</div>
+                      <div className="text-sm text-gray-600 dark:text-slate-300">Present</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-red-600">{yearSummary.absent}</div>
-                      <div className="text-sm text-gray-600">Absent</div>
+                      <div className="text-2xl font-bold text-red-600 dark:text-red-400">{yearSummary.absent}</div>
+                      <div className="text-sm text-gray-600 dark:text-slate-300">Absent</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-yellow-600">{yearSummary.late}</div>
-                      <div className="text-sm text-gray-600">Late</div>
+                      <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{yearSummary.late}</div>
+                      <div className="text-sm text-gray-600 dark:text-slate-300">Late</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{yearSummary.excused}</div>
-                      <div className="text-sm text-gray-600">Excused</div>
+                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{yearSummary.excused}</div>
+                      <div className="text-sm text-gray-600 dark:text-slate-300">Excused</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600">{yearSummary.delayed}</div>
-                      <div className="text-sm text-gray-600">Delayed</div>
+                      <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{yearSummary.delayed}</div>
+                      <div className="text-sm text-gray-600 dark:text-slate-300">Delayed</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-gray-600">{yearSummary.total}</div>
-                      <div className="text-sm text-gray-600">Total Days</div>
+                      <div className="text-2xl font-bold text-gray-600 dark:text-slate-300">{yearSummary.total}</div>
+                      <div className="text-sm text-gray-600 dark:text-slate-300">Total Days</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Term Breakdown */}
                 <div className="space-y-2">
-                  <h4 className="text-md font-medium text-gray-700">Term Breakdown</h4>
+                  <h4 className="text-md font-medium text-gray-700 dark:text-slate-200">Term Breakdown</h4>
                   {yearTermBreakdown.map((termData) => (
                     <div key={termData.termId} className="border rounded-lg">
                       <div
-                        className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50"
+                        className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-900"
                         onClick={() => toggleTermExpansion(termData.termId)}
                       >
                         <div className="flex items-center gap-3">
                           {expandedTerms.has(termData.termId) ? (
-                            <ChevronDown className="h-4 w-4 text-gray-500" />
+                            <ChevronDown className="h-4 w-4 text-gray-500 dark:text-slate-400" />
                           ) : (
-                            <ChevronRight className="h-4 w-4 text-gray-500" />
+                            <ChevronRight className="h-4 w-4 text-gray-500 dark:text-slate-400" />
                           )}
                           <span className="font-medium">{termData.termName}</span>
-                          <Badge className="bg-gray-100 text-gray-800">
+                          <Badge className="bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100">
                             {termData.attendanceRate}% Attendance
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-slate-300">
                           <span>Present: {termData.present}</span>
                           <span>Absent: {termData.absent}</span>
                           <span>Late: {termData.late}</span>
@@ -1567,27 +1567,27 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                       </div>
 
                       {expandedTerms.has(termData.termId) && (
-                        <div className="border-t bg-gray-50 p-3">
+                        <div className="border-t bg-gray-50 p-3 dark:bg-slate-900">
                           <div className="space-y-2">
-                            <h5 className="text-sm font-medium text-gray-700">Monthly Breakdown</h5>
+                            <h5 className="text-sm font-medium text-gray-700 dark:text-slate-200">Monthly Breakdown</h5>
                             {getTermMonthlyBreakdown(termData.termId).map((month) => (
                               <div key={month.monthKey} className="border rounded-lg">
                                 <div
-                                  className="flex items-center justify-between p-2 cursor-pointer hover:bg-gray-100"
+                                  className="flex items-center justify-between p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-900"
                                   onClick={() => toggleTermMonthExpansion(`${termData.termId}-${month.monthKey}`)}
                                 >
                                   <div className="flex items-center gap-2">
                                     {expandedTermMonths.has(`${termData.termId}-${month.monthKey}`) ? (
-                                      <ChevronDown className="h-3 w-3 text-gray-500" />
+                                      <ChevronDown className="h-3 w-3 text-gray-500 dark:text-slate-400" />
                                     ) : (
-                                      <ChevronRight className="h-3 w-3 text-gray-500" />
+                                      <ChevronRight className="h-3 w-3 text-gray-500 dark:text-slate-400" />
                                     )}
                                     <span className="text-sm font-medium">{month.monthName}</span>
-                                    <Badge className="bg-gray-100 text-gray-800 text-xs">
+                                    <Badge className="bg-gray-100 text-gray-800 text-xs dark:bg-slate-900 dark:text-slate-100">
                                       {month.attendanceRate}% Attendance
                                     </Badge>
                                   </div>
-                                  <div className="flex items-center gap-3 text-xs text-gray-600">
+                                  <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-slate-300">
                                     <span>Present: {month.present}</span>
                                     <span>Absent: {month.absent}</span>
                                     <span>Late: {month.late}</span>
@@ -1597,19 +1597,19 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                                 </div>
 
                                 {expandedTermMonths.has(`${termData.termId}-${month.monthKey}`) && (
-                                  <div className="border-t bg-white p-2">
+                                  <div className="border-t bg-white p-2 dark:bg-slate-900">
                                     <div className="space-y-1">
                                       {month.records.map((record) => (
-                                        <div key={record.id} className="flex items-center justify-between p-2 bg-gray-50 rounded border">
+                                        <div key={record.id} className="flex items-center justify-between p-2 bg-gray-50 rounded border dark:bg-slate-900">
                                           <div className="flex items-center gap-2">
                                             {getStatusIcon(record.status)}
                                             <div className="flex-1">
-                                              <p className="text-xs text-gray-600">
+                                              <p className="text-xs text-gray-600 dark:text-slate-300">
                                                 {getPersonalizedMessage(record, getValidDateString(record.date) || '')}
                                               </p>
                                               {record.remarks && (
                                                 <div className="flex items-center gap-1 mt-1">
-                                                  <p className="text-xs text-gray-500">
+                                                  <p className="text-xs text-gray-500 dark:text-slate-400">
                                                     <strong>Remarks:</strong> {record.remarks}
                                                   </p>
                                                   {(() => {
@@ -1620,7 +1620,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={() => handleEditRemarks(record)}
-                                                        className="text-blue-600 hover:text-blue-700 p-1 h-auto"
+                                                        className="text-blue-600 hover:text-blue-700 p-1 h-auto dark:text-blue-400 dark:hover:text-blue-300"
                                                       >
                                                         <Edit3 className="h-2 w-2" />
                                                       </Button>
@@ -1638,12 +1638,12 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                                                   variant="ghost"
                                                   size="sm"
                                                   onClick={() => handleEditRemarks(record)}
-                                                  className="text-blue-600 hover:text-blue-700"
+                                                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                                                 >
                                                   <Edit3 className="h-3 w-3" />
                                                 </Button>
                                               )}
-                                            <div className="text-right text-xs text-gray-500">
+                                            <div className="text-right text-xs text-gray-500 dark:text-slate-400">
                                               {format(new Date(record.recordedAt), 'HH:mm')}
                                             </div>
                                           </div>
@@ -1664,16 +1664,16 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
             ) : attendanceStats.records.length > 0 ? (
               <div className="space-y-3">
                 {attendanceStats.records.map((record) => (
-                  <div key={record.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                  <div key={record.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors dark:hover:bg-slate-900">
                     <div className="flex items-center gap-4">
                       {getStatusIcon(record.status)}
                       <div className="flex-1">
-                        <p className="text-sm text-gray-600 mb-2">
+                        <p className="text-sm text-gray-600 mb-2 dark:text-slate-300">
                           {getPersonalizedMessage(record, format(new Date(record.date), 'yyyy-MM-dd'))}
                         </p>
                         {record.remarks && (
                           <div className="flex items-center gap-2">
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-500 dark:text-slate-400">
                               <strong>Remarks:</strong> {record.remarks}
                             </p>
                             {isToday(new Date(record.date)) && (
@@ -1681,7 +1681,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleEditRemarks(record)}
-                                className="text-blue-600 hover:text-blue-700 p-1 h-auto"
+                                className="text-blue-600 hover:text-blue-700 p-1 h-auto dark:text-blue-400 dark:hover:text-blue-300"
                               >
                                 <Edit3 className="h-3 w-3" />
                               </Button>
@@ -1696,12 +1696,12 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEditRemarks(record)}
-                          className="text-blue-600 hover:text-blue-700"
+                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                         >
                           <Edit3 className="h-4 w-4" />
                         </Button>
                       )}
-                      <div className="text-right text-sm text-gray-500">
+                      <div className="text-right text-sm text-gray-500 dark:text-slate-400">
                         {format(new Date(record.recordedAt), 'HH:mm')}
                       </div>
                     </div>
@@ -1710,8 +1710,8 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
               </div>
             ) : (
               <div className="text-center py-8">
-                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">
+                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4 dark:text-slate-400" />
+                <p className="text-gray-500 dark:text-slate-400">
                   No attendance records found for this period
                 </p>
               </div>
@@ -1728,7 +1728,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
           </ModernDialogHeader>
           <div className="space-y-4">
             {editingRecord && (
-              <div className="p-4 bg-gray-50 rounded-lg">
+              <div className="p-4 bg-gray-50 rounded-lg dark:bg-slate-900">
                 <div className="flex items-center gap-2 mb-2">
                   {getStatusIcon(editingRecord.status)}
                   <Badge className={getStatusColor(editingRecord.status)}>
@@ -1738,7 +1738,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                     {format(new Date(editingRecord.date), 'EEEE, MMMM dd, yyyy')}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-slate-300">
                   Help us understand why {pupil?.firstName || 'your child'} was {editingRecord.status.toLowerCase()} on this day.
                 </p>
               </div>
@@ -1753,7 +1753,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                 placeholder="e.g., Sick, Doctor appointment, Family emergency, etc."
                 maxLength={200}
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-slate-400">
                 {editRemarks.length}/200 characters
               </p>
             </div>
@@ -1770,7 +1770,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
               <Button onClick={handleSaveRemarks} disabled={isSavingRemarks}>
                 {isSavingRemarks ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 dark:border-slate-700"></div>
                     Saving...
                   </>
                 ) : (

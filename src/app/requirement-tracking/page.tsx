@@ -1025,10 +1025,10 @@ export default function RequirementTrackingPage() {
   // If we have cached data (even if stale), show it immediately even if loading in background
   if (isLoading && !hasCachedData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950/40 dark:to-indigo-950/40">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading pupil information...</p>
+          <p className="text-gray-600 font-medium dark:text-slate-300">Loading pupil information...</p>
         </div>
       </div>
     );
@@ -1038,9 +1038,9 @@ export default function RequirementTrackingPage() {
   // Don't show error while loading or if we have cached data
   if (!pupil && !isLoading && !pupilLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950/40 dark:to-indigo-950/40">
         <div className="text-center">
-          <p className="text-gray-600 font-medium">Pupil not found.</p>
+          <p className="text-gray-600 font-medium dark:text-slate-300">Pupil not found.</p>
         </div>
       </div>
     );
@@ -1054,10 +1054,10 @@ export default function RequirementTrackingPage() {
 
   if (requirementsQuery.isError || trackingQuery.isError || allYearTrackingQuery.isError) {
     return (
-      <div className="min-h-screen bg-blue-50 p-4">
-        <div role="alert" className="mx-auto mt-10 max-w-xl rounded-xl border border-red-200 bg-white p-6 shadow-sm">
-          <h1 className="text-lg font-semibold text-red-800">Requirements could not be verified</h1>
-          <p className="mt-2 text-sm text-gray-700">Assignments and totals are hidden until the requirement catalogue and this pupil&apos;s tracking records load successfully.</p>
+      <div className="min-h-screen bg-blue-50 p-4 dark:bg-blue-950/40">
+        <div role="alert" className="mx-auto mt-10 max-w-xl rounded-xl border border-red-200 bg-white p-6 shadow-sm dark:border-red-800/60 dark:bg-slate-900">
+          <h1 className="text-lg font-semibold text-red-800 dark:text-red-200">Requirements could not be verified</h1>
+          <p className="mt-2 text-sm text-gray-700 dark:text-slate-200">Assignments and totals are hidden until the requirement catalogue and this pupil&apos;s tracking records load successfully.</p>
           <Button className="mt-4" onClick={() => {
             void Promise.all([
               ...(requirementsQuery.isError ? [requirementsQuery.refetch()] : []),
@@ -1079,9 +1079,9 @@ export default function RequirementTrackingPage() {
   const paymentProgress = totalAmount > 0 ? (paidAmount / totalAmount) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-blue-950/40 dark:via-slate-900 dark:to-indigo-950/40">
       {/* Header Section */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="bg-white border-b border-gray-200 shadow-sm dark:bg-slate-900 dark:border-slate-700">
         <div className="container mx-auto px-4 py-3">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
             {/* Pupil Info */}
@@ -1090,10 +1090,10 @@ export default function RequirementTrackingPage() {
                 <User className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900">
+                <h1 className="text-lg font-bold text-gray-900 dark:text-slate-100">
                   {formatPupilDisplayName(pupil)}
                 </h1>
-                <div className="flex items-center gap-3 text-xs text-gray-600">
+                <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-slate-300">
                   <span className="flex items-center gap-1">
                     <School className="w-3 h-3" />
                     {pupil.section} Section
@@ -1109,7 +1109,7 @@ export default function RequirementTrackingPage() {
             {/* Actions */}
             <div className="flex items-center gap-2 flex-shrink-0">
               {/* Academic Year & Term Selector - matching family accounts page style */}
-              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 h-10">
+              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 h-10 dark:bg-slate-900 dark:border-slate-700">
                 <select
                   value={selectedAcademicYearId}
                   onChange={(e) => {
@@ -1125,7 +1125,7 @@ export default function RequirementTrackingPage() {
                       });
                     }
                   }}
-                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full"
+                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700"
                   style={{ width: 'auto', minWidth: 'fit-content' }}
                 >
                   <option value="">Select Year</option>
@@ -1140,7 +1140,7 @@ export default function RequirementTrackingPage() {
                   value={selectedTermId}
                   onChange={(e) => setSelectedTermId(e.target.value)}
                   disabled={!selectedAcademicYearId}
-                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700 dark:disabled:bg-slate-900 dark:disabled:text-slate-400"
                   style={{ width: 'auto', minWidth: 'fit-content' }}
                 >
                   {selectedYearTerms.map((term) => (
@@ -1152,10 +1152,10 @@ export default function RequirementTrackingPage() {
               </div>
 
               {/* Action Buttons - matching family accounts page style */}
-              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 overflow-x-auto">
+              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 overflow-x-auto dark:bg-slate-900 dark:border-slate-700">
                 <button
                   onClick={() => goBack(pupilId ? `/pupil-detail?id=${encodeURIComponent(pupilId)}` : '/pupils')}
-                  className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
+                  className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0 dark:bg-slate-900 dark:text-slate-300"
                   title="Go Back"
                 >
                   <ArrowLeft className="w-3.5 h-3.5 mb-0.5" strokeWidth={3} />
@@ -1165,7 +1165,7 @@ export default function RequirementTrackingPage() {
                 <button
                   onClick={refreshTracking}
                   disabled={isRefreshingTracking}
-                  className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-blue-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-300 disabled:cursor-not-allowed"
+                  className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-blue-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-300 disabled:cursor-not-allowed dark:bg-slate-900 dark:text-blue-400 dark:disabled:bg-slate-900 dark:disabled:text-slate-400 dark:disabled:border-slate-700"
                   title="Refresh Requirements"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 mb-0.5 ${isRefreshingTracking ? 'animate-spin' : ''}`} strokeWidth={3} />
@@ -1175,7 +1175,7 @@ export default function RequirementTrackingPage() {
                 <button
                   onClick={() => setIsAssignPreviewOpen(true)}
                   disabled={isAutoAssigning || !requirementsQuery.isSuccess || !trackingQuery.isSuccess || !allYearTrackingQuery.isSuccess}
-                  className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-white text-green-700 border border-green-400 shadow-sm hover:bg-green-600 hover:text-white flex-shrink-0 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                  className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-white text-green-700 border border-green-400 shadow-sm hover:bg-green-600 hover:text-white flex-shrink-0 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed dark:bg-slate-900 dark:text-green-300 dark:disabled:bg-slate-900 dark:disabled:text-slate-400"
                   title="Review eligible requirements before assigning"
                 >
                   <Plus className="w-3.5 h-3.5 mb-0.5" />
@@ -1185,7 +1185,7 @@ export default function RequirementTrackingPage() {
                 <button
                   onClick={() => setIsCleanupConfirmOpen(true)}
                   disabled={isCleaningDuplicates}
-                  className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-white text-orange-600 border border-orange-400 shadow-sm hover:bg-gradient-to-br hover:from-orange-400 hover:via-orange-500 hover:to-orange-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-300 disabled:cursor-not-allowed"
+                  className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-white text-orange-600 border border-orange-400 shadow-sm hover:bg-gradient-to-br hover:from-orange-400 hover:via-orange-500 hover:to-orange-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-300 disabled:cursor-not-allowed dark:bg-slate-900 dark:text-orange-400 dark:disabled:bg-slate-900 dark:disabled:text-slate-400 dark:disabled:border-slate-700"
                   title="Clean Duplicates"
                 >
                   <AlertTriangle className={`w-3.5 h-3.5 mb-0.5 ${isCleaningDuplicates ? 'animate-pulse' : ''}`} strokeWidth={3} />
@@ -1203,50 +1203,50 @@ export default function RequirementTrackingPage() {
         
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 dark:from-blue-950/40 dark:to-blue-950/40 dark:border-blue-800/60">
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-600 text-xs font-medium">Total</p>
-                  <p className="text-lg font-bold text-blue-900">{totalRequirements}</p>
+                  <p className="text-blue-600 text-xs font-medium dark:text-blue-400">Total</p>
+                  <p className="text-lg font-bold text-blue-900 dark:text-blue-200">{totalRequirements}</p>
                 </div>
-                <FileText className="w-5 h-5 text-blue-600" />
+                <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-950/40 dark:to-green-950/40 dark:border-green-800/60">
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-600 text-xs font-medium">Paid</p>
-                  <p className="text-lg font-bold text-green-900">{paidRequirements}</p>
+                  <p className="text-green-600 text-xs font-medium dark:text-green-400">Paid</p>
+                  <p className="text-lg font-bold text-green-900 dark:text-green-200">{paidRequirements}</p>
                 </div>
-                <CheckCircle className="w-5 h-5 text-green-600" />
+                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 dark:from-purple-950/40 dark:to-purple-950/40 dark:border-purple-800/60">
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-600 text-xs font-medium">Released</p>
-                  <p className="text-lg font-bold text-purple-900">{releasedRequirements}</p>
+                  <p className="text-purple-600 text-xs font-medium dark:text-purple-400">Released</p>
+                  <p className="text-lg font-bold text-purple-900 dark:text-purple-200">{releasedRequirements}</p>
                 </div>
-                <Package className="w-5 h-5 text-purple-600" />
+                <Package className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 dark:from-orange-950/40 dark:to-orange-950/40 dark:border-orange-800/60">
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-orange-600 text-xs font-medium">Amount</p>
-                  <p className="text-sm font-bold text-orange-900">{formatCurrency(totalAmount)}</p>
+                  <p className="text-orange-600 text-xs font-medium dark:text-orange-400">Amount</p>
+                  <p className="text-sm font-bold text-orange-900 dark:text-orange-200">{formatCurrency(totalAmount)}</p>
                 </div>
-                <TrendingUp className="w-5 h-5 text-orange-600" />
+                <TrendingUp className="w-5 h-5 text-orange-600 dark:text-orange-400" />
               </div>
             </CardContent>
           </Card>
@@ -1268,7 +1268,7 @@ export default function RequirementTrackingPage() {
                   <span>Total: {formatCurrency(totalAmount)}</span>
                 </div>
                 <Progress value={paymentProgress} className="h-2" />
-                <p className="text-xs text-gray-600 text-center">
+                <p className="text-xs text-gray-600 text-center dark:text-slate-300">
                   {paymentProgress.toFixed(1)}% completed
                 </p>
               </div>
@@ -1278,9 +1278,9 @@ export default function RequirementTrackingPage() {
 
         {/* Auto-assignment status */}
         {isAutoAssigning && (
-          <Alert className="mb-4 border-blue-200 bg-blue-50">
+          <Alert className="mb-4 border-blue-200 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/40">
             <RefreshCw className="w-3 h-3 animate-spin" />
-            <AlertDescription className="text-blue-800 text-xs">
+            <AlertDescription className="text-blue-800 text-xs dark:text-blue-200">
               Automatically assigning eligible requirements to this pupil...
             </AlertDescription>
           </Alert>
@@ -1289,16 +1289,16 @@ export default function RequirementTrackingPage() {
         {/* Requirements for Selected Term */}
         {trackingRecords.length > 0 && selectedAcademicYear && (
           <Card className="mb-4 shadow-md border-0">
-            <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b py-3">
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b py-3 dark:from-slate-900 dark:to-slate-900">
               <CardTitle className="flex items-center gap-2">
                 <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
                   <Calendar className="w-3 h-3 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-gray-900">
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-slate-100">
                     {getTermLabel(selectedAcademicYear, selectedTermId)}
                   </h2>
-                  <p className="text-xs text-gray-600 font-normal">
+                  <p className="text-xs text-gray-600 font-normal dark:text-slate-300">
                     {trackingRecords.length} requirement{trackingRecords.length !== 1 ? 's' : ''}
                   </p>
                 </div>
@@ -1307,11 +1307,11 @@ export default function RequirementTrackingPage() {
             <CardContent className="p-0">
               <div className="space-y-0">
                 {trackingRecords.map((record, index) => (
-                    <div key={record.id} className={`p-4 ${index !== trackingRecords.length - 1 ? 'border-b border-gray-100' : ''} hover:bg-gray-50 transition-colors`}>
+                    <div key={record.id} className={`p-4 ${index !== trackingRecords.length - 1 ? 'border-b border-gray-100 dark:border-slate-700' : ''} hover:bg-gray-50 transition-colors dark:hover:bg-slate-900`}>
                       <div className="space-y-2">
                         {/* Line 1: Requirement Heading */}
                         {Array.isArray(record.requirementId) ? (
-                          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1">
+                          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1 dark:text-slate-100">
                             <FileText className="w-3 h-3" />
                             Multiple Requirements ({record.requirementId.length})
                           </h3>
@@ -1319,12 +1319,12 @@ export default function RequirementTrackingPage() {
                           (() => {
                             const requirement = allRequirements.find(u => u.id === record.requirementId);
                             return requirement ? (
-                              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1">
+                              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1 dark:text-slate-100">
                                 <FileText className="w-3 h-3" />
                                 {requirement.name}
                               </h3>
                             ) : (
-                              <h3 className="text-sm font-semibold text-red-600 flex items-center gap-1">
+                              <h3 className="text-sm font-semibold text-red-600 flex items-center gap-1 dark:text-red-400">
                                 <XCircle className="w-3 h-3" />
                                 Unknown Requirement
                               </h3>
@@ -1334,16 +1334,16 @@ export default function RequirementTrackingPage() {
 
                         {/* Line 2: Requirement Specifics */}
                         {Array.isArray(record.requirementId) ? (
-                          <div className="p-2 bg-blue-50 rounded">
+                          <div className="p-2 bg-blue-50 rounded dark:bg-blue-950/40">
                             {(() => {
                               const details = getRequirementDetails(record);
                               return (
                                 <div className="space-y-1">
-                                  <span className="text-sm font-bold text-blue-900">
+                                  <span className="text-sm font-bold text-blue-900 dark:text-blue-200">
                                     {formatCurrency(details.totalAmount)}
                                   </span>
                                   {details.hasQuantities && (
-                                    <div className="text-xs text-blue-700">
+                                    <div className="text-xs text-blue-700 dark:text-blue-300">
                                       {details.totalQuantity} items @ {formatCurrency(details.pricePerItem)} each
                                     </div>
                                   )}
@@ -1355,13 +1355,13 @@ export default function RequirementTrackingPage() {
                           (() => {
                             const requirement = allRequirements.find(u => u.id === record.requirementId);
                             return requirement ? (
-                              <div className="p-2 bg-blue-50 rounded">
+                              <div className="p-2 bg-blue-50 rounded dark:bg-blue-950/40">
                                 <div className="space-y-1">
-                                  <span className="text-sm font-bold text-blue-900">
+                                  <span className="text-sm font-bold text-blue-900 dark:text-blue-200">
                                     {formatCurrency(requirement.price)}
                                   </span>
                                   {requirement.quantity && requirement.quantity > 0 && (
-                                    <div className="text-xs text-blue-700">
+                                    <div className="text-xs text-blue-700 dark:text-blue-300">
                                       {requirement.quantity} items @ {formatCurrency(requirement.price / requirement.quantity)} each
                                     </div>
                                   )}
@@ -1375,7 +1375,7 @@ export default function RequirementTrackingPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {/* Payment Status (Office) */}
                           <div>
-                            <h4 className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
+                            <h4 className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1 dark:text-slate-200">
                               <span className="font-bold text-[9px]">Shs.</span>
                               Payment (Office)
                             </h4>
@@ -1390,12 +1390,12 @@ export default function RequirementTrackingPage() {
                               {(record.paymentStatus || 'pending').charAt(0).toUpperCase() + (record.paymentStatus || 'pending').slice(1)}
                             </Badge>
                             {record.paymentStatus !== 'pending' && (
-                              <div className="text-xs text-gray-600 text-center">
+                              <div className="text-xs text-gray-600 text-center dark:text-slate-300">
                                 Paid: <span className="font-medium">{formatPaymentDisplay(record).paid}</span>
                               </div>
                             )}
                             {getBalance(record) > 0 && (
-                              <div className="text-xs text-red-600 text-center">
+                              <div className="text-xs text-red-600 text-center dark:text-red-400">
                                 Balance: <span className="font-medium">{formatPaymentDisplay(record).balance}</span>
                               </div>
                             )}
@@ -1410,42 +1410,42 @@ export default function RequirementTrackingPage() {
                                 const receivedBy = record.receivedBy || getCurrentUserName();
                                 
                                 return (
-                                  <div className="mt-2 pt-2 border-t border-gray-200">
-                                    <div className="text-xs text-gray-700 font-medium mb-1 text-center">Payment Records</div>
+                                  <div className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-700">
+                                    <div className="text-xs text-gray-700 font-medium mb-1 text-center dark:text-slate-200">Payment Records</div>
                                     <div className="space-y-1">
-                                      <div className="text-xs bg-blue-50 rounded p-2 border border-blue-100">
+                                      <div className="text-xs bg-blue-50 rounded p-2 border border-blue-100 dark:bg-blue-950/40 dark:border-blue-800/60">
                                         <div className="flex items-center justify-between mb-1">
                                           <div className="flex items-center gap-1">
-                                            <span className="font-bold text-[9px] text-green-600 flex-shrink-0 pt-0.5">Shs.</span>
-                                            <div className="font-medium text-green-700">
+                                            <span className="font-bold text-[9px] text-green-600 flex-shrink-0 pt-0.5 dark:text-green-400">Shs.</span>
+                                            <div className="font-medium text-green-700 dark:text-green-300">
                                               {formatCurrency(record.paidAmount)}
                                             </div>
                                           </div>
                                           <div className="text-right">
-                                            <div className="font-medium text-blue-700">
+                                            <div className="font-medium text-blue-700 dark:text-blue-300">
                                               Total: {formatCurrency(record.paidAmount)}
                                             </div>
                                           </div>
                                         </div>
                                         
                                         {getBalance(record) > 0 ? (
-                                          <div className="text-red-600 text-xs mb-1">
+                                          <div className="text-red-600 text-xs mb-1 dark:text-red-400">
                                             Balance: {formatCurrency(getBalance(record))}
                                           </div>
                                         ) : (
-                                          <div className="text-green-600 text-xs mb-1 font-medium">
+                                          <div className="text-green-600 text-xs mb-1 font-medium dark:text-green-400">
                                             ✓ Fully Paid
                                           </div>
                                         )}
                                         
                                         <div className="flex items-center justify-between text-xs">
-                                          <div className="text-gray-500">
+                                          <div className="text-gray-500 dark:text-slate-400">
                                             <div>{paymentDate.toLocaleDateString()}</div>
                                             <div>{paymentDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
                                           </div>
                                           <div className="text-right">
-                                            <div className="text-gray-500">By:</div>
-                                            <div className="font-medium text-gray-700">{receivedBy}</div>
+                                            <div className="text-gray-500 dark:text-slate-400">By:</div>
+                                            <div className="font-medium text-gray-700 dark:text-slate-200">{receivedBy}</div>
                                           </div>
                                         </div>
                                       </div>
@@ -1457,48 +1457,48 @@ export default function RequirementTrackingPage() {
                               if (paymentHistory.length === 0) return null;
                               
                               return (
-                                <div className="mt-2 pt-2 border-t border-gray-200">
-                                  <div className="text-xs text-gray-700 font-medium mb-1 text-center">Payment Records</div>
+                                <div className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-700">
+                                  <div className="text-xs text-gray-700 font-medium mb-1 text-center dark:text-slate-200">Payment Records</div>
                                   <div className="space-y-1 max-h-32 overflow-y-auto">
                                     {paymentHistory.map((entry, index) => (
-                                      <div key={index} className="text-xs bg-blue-50 rounded p-2 border border-blue-100">
+                                      <div key={index} className="text-xs bg-blue-50 rounded p-2 border border-blue-100 dark:bg-blue-950/40 dark:border-blue-800/60">
                                         <div className="flex items-center justify-between mb-1">
                                           <div className="flex items-center gap-1">
-                                            <span className="font-bold text-[9px] text-green-600 flex-shrink-0 pt-0.5">Shs.</span>
-                                            <div className="font-medium text-green-700">
+                                            <span className="font-bold text-[9px] text-green-600 flex-shrink-0 pt-0.5 dark:text-green-400">Shs.</span>
+                                            <div className="font-medium text-green-700 dark:text-green-300">
                                               {formatCurrency(entry.amount)}
                                             </div>
                                             {entry.isFromParent && (
-                                              <Badge variant="outline" className="text-xs px-1 py-0 bg-green-50 text-green-700 border-green-200">
+                                              <Badge variant="outline" className="text-xs px-1 py-0 bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/60">
                                                 From Parent
                                               </Badge>
                                             )}
                                           </div>
                                           <div className="text-right">
-                                            <div className="font-medium text-blue-700">
+                                            <div className="font-medium text-blue-700 dark:text-blue-300">
                                               Total: {formatCurrency(entry.runningTotal)}
                                             </div>
                                           </div>
                                         </div>
                                         
                                         {entry.remainingBalance > 0 ? (
-                                          <div className="text-red-600 text-xs mb-1">
+                                          <div className="text-red-600 text-xs mb-1 dark:text-red-400">
                                             Balance: {formatCurrency(entry.remainingBalance)}
                                           </div>
                                         ) : (
-                                          <div className="text-green-600 text-xs mb-1 font-medium">
+                                          <div className="text-green-600 text-xs mb-1 font-medium dark:text-green-400">
                                             ✓ Fully Paid
                                           </div>
                                         )}
                                         
                                         <div className="flex items-center justify-between text-xs">
-                                          <div className="text-gray-500">
+                                          <div className="text-gray-500 dark:text-slate-400">
                                             <div>{entry.date.toLocaleDateString()}</div>
                                             <div>{entry.date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
                                           </div>
                                           <div className="text-right">
-                                            <div className="text-gray-500">By:</div>
-                                            <div className="font-medium text-gray-700">{entry.receivedBy || getCurrentUserName()}</div>
+                                            <div className="text-gray-500 dark:text-slate-400">By:</div>
+                                            <div className="font-medium text-gray-700 dark:text-slate-200">{entry.receivedBy || getCurrentUserName()}</div>
                                           </div>
                                         </div>
                                       </div>
@@ -1524,7 +1524,7 @@ export default function RequirementTrackingPage() {
 
                           {/* Received Status (Class) */}
                           <div>
-                            <h4 className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
+                            <h4 className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1 dark:text-slate-200">
                               <Package className="w-3 h-3" />
                               Received (Class)
                             </h4>
@@ -1547,28 +1547,28 @@ export default function RequirementTrackingPage() {
                                   </Badge>
                                   
                                   {received.totalReceived > 0 && (
-                                    <div className="text-xs text-gray-600 text-center">
+                                    <div className="text-xs text-gray-600 text-center dark:text-slate-300">
                                       Received: <span className="font-medium">{receivedDisplay.received}</span>
                                     </div>
                                   )}
                                   
                                   {received.remainingToReceive > 0 && (
-                                    <div className="text-xs text-orange-600 text-center">
+                                    <div className="text-xs text-orange-600 text-center dark:text-orange-400">
                                       {receivedDisplay.remaining}
                                     </div>
                                   )}
                                   
                                   {/* Receipt Details */}
                                   {(received.receivedFromOffice > 0 || received.receivedFromParent > 0) && (
-                                    <div className="mt-2 pt-1 border-t border-gray-200">
+                                    <div className="mt-2 pt-1 border-t border-gray-200 dark:border-slate-700">
                                       <div className="text-xs text-center space-y-1">
                                         {received.receivedFromOffice > 0 && (
-                                          <div className="text-blue-600">
+                                          <div className="text-blue-600 dark:text-blue-400">
                                             From Office: <span className="font-medium">{received.receivedFromOffice}</span>
                                           </div>
                                         )}
                                         {received.receivedFromParent > 0 && (
-                                          <div className="text-green-600">
+                                          <div className="text-green-600 dark:text-green-400">
                                             From Parent: <span className="font-medium">{received.receivedFromParent}</span>
                                           </div>
                                         )}
@@ -1587,32 +1587,32 @@ export default function RequirementTrackingPage() {
                                       const totalReceived = record.itemQuantityReceived || 0;
                                       
                                       return (
-                                        <div className="mt-2 pt-2 border-t border-gray-200">
-                                          <div className="text-xs text-gray-700 font-medium mb-1 text-center">Receipt Records</div>
+                                        <div className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-700">
+                                          <div className="text-xs text-gray-700 font-medium mb-1 text-center dark:text-slate-200">Receipt Records</div>
                                           <div className="space-y-1">
-                                            <div className="text-xs bg-green-50 rounded p-2 border border-green-100">
+                                            <div className="text-xs bg-green-50 rounded p-2 border border-green-100 dark:bg-green-950/40 dark:border-green-800/60">
                                               <div className="flex items-center justify-between mb-1">
                                                 <div className="flex items-center gap-1">
-                                                  <Package className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                                                  <div className="font-medium text-blue-700">
+                                                  <Package className="w-3 h-3 text-blue-600 flex-shrink-0 dark:text-blue-400" />
+                                                  <div className="font-medium text-blue-700 dark:text-blue-300">
                                                     +{totalReceived} items
                                                   </div>
                                                 </div>
                                                 <div className="text-right">
-                                                  <div className="font-medium text-purple-700">
+                                                  <div className="font-medium text-purple-700 dark:text-purple-300">
                                                     Total: {totalReceived} items
                                                   </div>
                                                 </div>
                                               </div>
                                               
                                               <div className="flex items-center justify-between text-xs">
-                                                <div className="text-gray-500">
+                                                <div className="text-gray-500 dark:text-slate-400">
                                                   <div>{receiptDate.toLocaleDateString()}</div>
                                                   <div>{receiptDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
                                                 </div>
                                                 <div className="text-right">
-                                                  <div className="text-gray-500">Received by:</div>
-                                                  <div className="font-medium text-gray-700">{receivedBy}</div>
+                                                  <div className="text-gray-500 dark:text-slate-400">Received by:</div>
+                                                  <div className="font-medium text-gray-700 dark:text-slate-200">{receivedBy}</div>
                                                 </div>
                                               </div>
                                             </div>
@@ -1624,59 +1624,59 @@ export default function RequirementTrackingPage() {
                                     if (receiptHistory.length === 0) return null;
                                     
                                     return (
-                                      <div className="mt-2 pt-2 border-t border-gray-200">
-                                        <div className="text-xs text-gray-700 font-medium mb-1 text-center">Receipt Records</div>
+                                      <div className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-700">
+                                        <div className="text-xs text-gray-700 font-medium mb-1 text-center dark:text-slate-200">Receipt Records</div>
                                         <div className="space-y-1 max-h-32 overflow-y-auto">
                                           {receiptHistory.map((entry, index) => (
-                                            <div key={index} className="text-xs bg-green-50 rounded p-2 border border-green-100">
+                                            <div key={index} className="text-xs bg-green-50 rounded p-2 border border-green-100 dark:bg-green-950/40 dark:border-green-800/60">
                                               <div className="flex items-center justify-between mb-1">
                                                 <div className="flex items-center gap-1">
-                                                  <Package className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                                                  <div className="font-medium text-blue-700">
+                                                  <Package className="w-3 h-3 text-blue-600 flex-shrink-0 dark:text-blue-400" />
+                                                  <div className="font-medium text-blue-700 dark:text-blue-300">
                                                     +{entry.itemQuantity} items
                                                   </div>
                                                   <Badge 
                                                     variant="outline" 
                                                     className={`text-xs px-1 py-0 ${
                                                       entry.source === 'office' 
-                                                        ? 'bg-blue-50 text-blue-700 border-blue-200' 
-                                                        : 'bg-green-50 text-green-700 border-green-200'
+                                                        ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60'
+                                                        : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/60'
                                                     }`}
                                                   >
                                                     {entry.source === 'office' ? 'Office' : 'Parent'}
                                                   </Badge>
                                                 </div>
                                                 <div className="text-right">
-                                                  <div className="font-medium text-purple-700">
+                                                  <div className="font-medium text-purple-700 dark:text-purple-300">
                                                     Total: {entry.runningTotal} items
                                                   </div>
                                                 </div>
                                               </div>
                                               
                                               {entry.cashEquivalent > 0 && (
-                                                <div className="text-green-600 text-xs mb-1">
+                                                <div className="text-green-600 text-xs mb-1 dark:text-green-400">
                                                   Cash value: {formatCurrency(entry.cashEquivalent)}
                                                 </div>
                                               )}
                                               
                                               {entry.remainingItems > 0 ? (
-                                                <div className="text-orange-600 text-xs mb-1">
+                                                <div className="text-orange-600 text-xs mb-1 dark:text-orange-400">
                                                   Remaining: {entry.remainingItems} items
                                                 </div>
                                               ) : (
-                                                <div className="text-green-600 text-xs mb-1 font-medium">
+                                                <div className="text-green-600 text-xs mb-1 font-medium dark:text-green-400">
                                                   ✓ All Items Received
                                                 </div>
                                               )}
                                               
                                               <div className="flex items-center justify-between text-xs">
-                                                <div className="text-gray-500">
+                                                <div className="text-gray-500 dark:text-slate-400">
                                                   <div>{entry.date.toLocaleDateString()}</div>
                                                   <div>{entry.date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
                                                 </div>
                                                 <div className="text-right">
-                                                  <div className="text-gray-500">Received by:</div>
-                                                  <div className="font-medium text-gray-700">{entry.receivedBy || getCurrentUserName()}</div>
+                                                  <div className="text-gray-500 dark:text-slate-400">Received by:</div>
+                                                  <div className="font-medium text-gray-700 dark:text-slate-200">{entry.receivedBy || getCurrentUserName()}</div>
                                                 </div>
                                               </div>
                                             </div>
@@ -1687,7 +1687,7 @@ export default function RequirementTrackingPage() {
                                   })()}
                                   
                                   {record.lastClassReceiptDate && (
-                                    <div className="text-xs text-gray-500 text-center mt-1">
+                                    <div className="text-xs text-gray-500 text-center mt-1 dark:text-slate-400">
                                       Last received: {new Date(record.lastClassReceiptDate).toLocaleDateString()}
                                       {record.lastClassReceivedBy && (
                                         <div>By: {record.lastClassReceivedBy}</div>
@@ -1733,13 +1733,13 @@ export default function RequirementTrackingPage() {
           <Card className="text-center py-8">
             <CardContent>
               <div className="max-w-sm mx-auto">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FileText className="w-6 h-6 text-gray-400" />
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-slate-900">
+                  <FileText className="w-6 h-6 text-gray-400 dark:text-slate-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 dark:text-slate-100">
                   No Requirements Found
                 </h3>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-gray-500 mb-4 dark:text-slate-400">
                   No requirements have been assigned to this pupil for the selected term yet. Review eligible items before assigning them.
                 </p>
                 <Button
@@ -1767,7 +1767,7 @@ export default function RequirementTrackingPage() {
             </AlertDialogHeader>
             <div className="max-h-64 overflow-y-auto text-sm">
               {getEligibleRequirements().length === 0 ? (
-                <p className="text-gray-600">No unassigned requirements are eligible.</p>
+                <p className="text-gray-600 dark:text-slate-300">No unassigned requirements are eligible.</p>
               ) : getEligibleRequirements().map(requirement => (
                 <div key={requirement.id} className="flex justify-between gap-3 border-b py-2">
                   <span>{requirement.name}</span>

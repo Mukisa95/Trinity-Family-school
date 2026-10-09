@@ -162,11 +162,11 @@ export default function StaffPage() {
         <div className="max-w-7xl mx-auto px-4 py-12">
           <Card className="p-8">
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-                <X className="w-8 h-8 text-red-600" />
+              <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center dark:bg-red-950/40">
+                <X className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Staff</h3>
-              <p className="text-gray-600 mb-4">There was a problem loading the staff data.</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2 dark:text-slate-100">Error Loading Staff</h3>
+              <p className="text-gray-600 mb-4 dark:text-slate-300">There was a problem loading the staff data.</p>
               <Button onClick={() => window.location.reload()}>
                 Try Again
               </Button>
@@ -186,7 +186,7 @@ export default function StaffPage() {
         backLabel="Back to dashboard"
         className="mb-1.5"
         meta={
-          <span className="whitespace-nowrap rounded-full border border-indigo-100/80 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+          <span className="whitespace-nowrap rounded-full border border-indigo-100/80 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:border-indigo-800/80 dark:bg-indigo-950/40 dark:text-indigo-300">
             {filteredStaff.length} {filteredStaff.length === 1 ? 'Staff Member' : 'Staff Members'}
           </span>
         }
@@ -292,16 +292,16 @@ export default function StaffPage() {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <Card className="bg-white/80 backdrop-blur-sm border-blue-100/50">
+              <Card className="bg-white/80 backdrop-blur-sm border-blue-100/50 dark:bg-slate-900/80 dark:border-blue-800/50">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center justify-between border-b pb-2">
-                    <h4 className="text-xs font-semibold text-gray-700">Filter Staff</h4>
+                    <h4 className="text-xs font-semibold text-gray-700 dark:text-slate-200">Filter Staff</h4>
                     {activeFiltersCount > 0 && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={clearFilters}
-                        className="h-6 text-xs px-2 text-red-600 hover:text-red-700"
+                        className="h-6 text-xs px-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                       >
                         Clear All Filters
                       </Button>
@@ -362,13 +362,13 @@ export default function StaffPage() {
       {/* Staff Display */}
       {filteredStaff.length === 0 ? (
         <Card className="p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-            <Users className="w-8 h-8 text-gray-400" />
+          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center dark:bg-slate-900">
+            <Users className="w-8 h-8 text-gray-400 dark:text-slate-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2 dark:text-slate-100">
             {hasActiveFilters ? 'No Staff Found' : 'No Staff Members'}
           </h3>
-          <p className="text-gray-600 mb-4">
+          <p className="text-gray-600 mb-4 dark:text-slate-300">
             {hasActiveFilters 
               ? 'No staff members match your current search criteria.'
               : 'Get started by adding your first staff member.'
@@ -419,7 +419,7 @@ export default function StaffPage() {
               <Card className="overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gray-50">
+                    <TableRow className="bg-gray-50 dark:bg-slate-900">
                       <TableHead className="font-semibold">Staff Member</TableHead>
                       <TableHead className="font-semibold">Employee ID</TableHead>
                       <TableHead className="font-semibold">Department</TableHead>
@@ -430,11 +430,11 @@ export default function StaffPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredStaff.map((staff: Staff) => (
-                      <TableRow key={staff.id} className="hover:bg-gray-50/50">
+                      <TableRow key={staff.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-900/50">
                         <TableCell>
                           <div className="flex items-center space-x-3">
                             <Avatar className="h-8 w-8">
-                              <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-medium">
+                              <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-medium dark:bg-blue-950/40 dark:text-blue-300">
                                 {staff.firstName[0]}{staff.lastName[0]}
                               </AvatarFallback>
                             </Avatar>
@@ -446,7 +446,7 @@ export default function StaffPage() {
                               >
                                 {staff.firstName} {staff.lastName}
                               </Button>
-                              <p className="text-xs text-gray-500">{staff.email}</p>
+                              <p className="text-xs text-gray-500 dark:text-slate-400">{staff.email}</p>
                             </div>
                           </div>
                         </TableCell>
@@ -470,7 +470,7 @@ export default function StaffPage() {
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            <div className="flex items-center text-xs text-gray-600">
+                            <div className="flex items-center text-xs text-gray-600 dark:text-slate-300">
                               <Phone className="w-3 h-3 mr-1" />
                               {staff.contactNumber ? (
                                 <a 
@@ -549,7 +549,7 @@ function StaffCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
     >
-      <Card className="group hover:shadow-lg transition-all duration-300 hover:border-blue-200 overflow-hidden">
+      <Card className="group hover:shadow-lg transition-all duration-300 hover:border-blue-200 overflow-hidden dark:hover:border-blue-800/60">
         <CardContent className="p-4">
           {/* Header */}
           <div className="flex items-start justify-between mb-3">
@@ -562,12 +562,12 @@ function StaffCard({
               <div>
                 <Button
                   variant="link"
-                  className="p-0 h-auto font-semibold text-left text-gray-900 hover:text-blue-600"
+                  className="p-0 h-auto font-semibold text-left text-gray-900 hover:text-blue-600 dark:text-slate-100 dark:hover:text-blue-400"
                   onClick={onView}
                 >
                   {staff.firstName} {staff.lastName}
                 </Button>
-                <p className="text-xs text-gray-500 font-mono">{staff.employeeId}</p>
+                <p className="text-xs text-gray-500 font-mono dark:text-slate-400">{staff.employeeId}</p>
               </div>
             </div>
 
@@ -617,16 +617,16 @@ function StaffCard({
                 {Array.isArray(staff.department) ? staff.department.join(', ') : staff.department}
               </Badge>
             </div>
-            <p className="text-sm font-medium text-gray-900">{formatStaffRoles(staff.role)}</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-slate-100">{formatStaffRoles(staff.role)}</p>
           </div>
 
           {/* Contact Info */}
-          <div className="space-y-1.5 pt-3 border-t border-gray-100">
-            <div className="flex items-center text-xs text-gray-600">
+          <div className="space-y-1.5 pt-3 border-t border-gray-100 dark:border-slate-700">
+            <div className="flex items-center text-xs text-gray-600 dark:text-slate-300">
               <Mail className="w-3 h-3 mr-2 flex-shrink-0" />
               <span className="truncate">{staff.email}</span>
             </div>
-            <div className="flex items-center text-xs text-gray-600">
+            <div className="flex items-center text-xs text-gray-600 dark:text-slate-300">
               <Phone className="w-3 h-3 mr-2 flex-shrink-0" />
               {staff.contactNumber ? (
                 <a 

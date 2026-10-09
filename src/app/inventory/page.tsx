@@ -257,7 +257,7 @@ export default function InventoryPage() {
                 backHref="/dashboard"
                 backLabel="Dashboard"
                 meta={
-                    <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-full border border-slate-200/50 backdrop-blur-sm">
+                    <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-full border border-slate-200/50 backdrop-blur-sm dark:bg-slate-900/80 dark:border-slate-700/50">
                         {[
                             ...(canViewInventory ? [
                                 { id: 'overview', label: 'Overview' },
@@ -276,8 +276,8 @@ export default function InventoryPage() {
                                     className={cn(
                                         "h-6 px-3 rounded-full text-[10px] font-semibold transition-all duration-205",
                                         isActive
-                                            ? "bg-white text-indigo-700 shadow-sm font-bold"
-                                            : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                                            ? "bg-white text-indigo-700 shadow-sm font-bold dark:bg-slate-900 dark:text-indigo-300"
+                                            : "text-slate-600 hover:text-slate-900 hover:bg-white/50 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-900/50"
                                     )}
                                 >
                                     {tab.label}
@@ -354,7 +354,7 @@ export default function InventoryPage() {
                 <GlassSummaryBar
                     left={
                         <div className="flex items-center gap-2">
-                            <PackageCheck className="h-4 w-4 text-orange-600" />
+                            <PackageCheck className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                             <span className="text-xs font-black uppercase tracking-wider text-indigo-900 dark:text-indigo-200 sm:text-sm">Release requests</span>
                         </div>
                     }
@@ -374,7 +374,7 @@ export default function InventoryPage() {
             ) : canViewInventory ? <GlassSummaryBar
                 left={
                     <div className="flex items-center gap-2">
-                        <Warehouse className="h-4 w-4 text-indigo-500" />
+                        <Warehouse className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
                         <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
                             Inventory Overview
                         </span>
@@ -534,7 +534,7 @@ export default function InventoryPage() {
                 <DialogContent className="max-w-xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 pr-8">
-                            <PackageCheck className="h-5 w-5 text-orange-600" />
+                            <PackageCheck className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                             New item request
                         </DialogTitle>
                         <DialogDescription>A staff member is waiting for an Inventory response.</DialogDescription>

@@ -59,41 +59,41 @@ const GRADE_CATEGORIES = [
     value: 'aggregate_4', 
     label: 'Aggregate 4', 
     description: 'Excellent Performance',
-    color: 'bg-emerald-100 text-emerald-800 border-emerald-200', 
+    color: 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800/60',
     icon: Award,
-    bgGradient: 'from-emerald-50 to-green-50'
+    bgGradient: 'from-emerald-50 to-green-50 dark:from-emerald-950/40 dark:to-green-950/40'
   },
   { 
     value: 'aggregate_5_6', 
     label: 'Aggregate 5-6', 
     description: 'Good Performance',
-    color: 'bg-blue-100 text-blue-800 border-blue-200', 
+    color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60',
     icon: TrendingUp,
-    bgGradient: 'from-blue-50 to-indigo-50'
+    bgGradient: 'from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40'
   },
   { 
     value: 'aggregate_7_12', 
     label: 'Aggregate 7-12', 
     description: 'Satisfactory Performance',
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200', 
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60',
     icon: UserCheck,
-    bgGradient: 'from-yellow-50 to-amber-50'
+    bgGradient: 'from-yellow-50 to-amber-50 dark:from-yellow-950/40 dark:to-amber-950/40'
   },
   { 
     value: 'aggregate_13_28', 
     label: 'Aggregate 13-28', 
     description: 'Needs Improvement',
-    color: 'bg-orange-100 text-orange-800 border-orange-200', 
+    color: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60',
     icon: TrendingDown,
-    bgGradient: 'from-orange-50 to-red-50'
+    bgGradient: 'from-orange-50 to-red-50 dark:from-orange-950/40 dark:to-red-950/40'
   },
   { 
     value: 'aggregate_29_36', 
     label: 'Aggregate 29-36', 
     description: 'Requires Attention',
-    color: 'bg-red-100 text-red-800 border-red-200', 
+    color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60',
     icon: AlertCircle,
-    bgGradient: 'from-red-50 to-rose-50'
+    bgGradient: 'from-red-50 to-rose-50 dark:from-red-950/40 dark:to-rose-950/40'
   }
 ];
 
@@ -320,7 +320,7 @@ export function CommentaryBoxManagement({ addTrigger }: CommentaryBoxManagementP
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
         <span className="ml-2">Loading commentary box data...</span>
       </div>
     );
@@ -331,18 +331,18 @@ export function CommentaryBoxManagement({ addTrigger }: CommentaryBoxManagementP
       {/* Role Tabs */}
       <Tabs value={selectedRole} onValueChange={(val) => setSelectedRole(val as any)} className="w-full">
         <div className="flex items-center justify-between mb-4">
-          <TabsList className="bg-slate-100/80 p-0.5 rounded-full border border-slate-200/50">
+          <TabsList className="bg-slate-100/80 p-0.5 rounded-full border border-slate-200/50 dark:bg-slate-900/80 dark:border-slate-700/50">
             <TabsTrigger value="class_teacher" className="rounded-full px-4 py-1 text-xs">Class Teacher Comments</TabsTrigger>
             <TabsTrigger value="head_teacher" className="rounded-full px-4 py-1 text-xs">Head Teacher Comments</TabsTrigger>
           </TabsList>
 
           <div className="relative w-64">
-            <Search className="absolute left-3 top-2 h-3.5 w-3.5 text-gray-400" />
+            <Search className="absolute left-3 top-2 h-3.5 w-3.5 text-gray-400 dark:text-slate-400" />
             <Input
               placeholder="Search comments..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 h-8 text-xs bg-white/80"
+              className="pl-9 h-8 text-xs bg-white/80 dark:bg-slate-900/80"
             />
           </div>
         </div>
@@ -352,35 +352,35 @@ export function CommentaryBoxManagement({ addTrigger }: CommentaryBoxManagementP
           const CategoryIcon = category.icon;
 
           return (
-            <Card key={category.value} className={`border border-slate-100 bg-gradient-to-br ${category.bgGradient} mb-6 shadow-sm overflow-hidden`}>
-              <CardHeader className="py-3 px-6 flex flex-row items-center justify-between border-b border-slate-100/50">
+            <Card key={category.value} className={`border border-slate-100 bg-gradient-to-br  dark:border-slate-700${category.bgGradient} mb-6 shadow-sm overflow-hidden`}>
+              <CardHeader className="py-3 px-6 flex flex-row items-center justify-between border-b border-slate-100/50 dark:border-slate-700/50">
                 <div className="flex items-center gap-2">
-                  <div className={`p-1.5 rounded-lg bg-white border shadow-sm`}>
-                    <CategoryIcon className="h-4 w-4 text-slate-700" />
+                  <div className={`p-1.5 rounded-lg bg-white border shadow-sm dark:bg-slate-900`}>
+                    <CategoryIcon className="h-4 w-4 text-slate-700 dark:text-slate-200" />
                   </div>
                   <div>
-                    <CardTitle className="text-sm font-bold text-slate-800">{category.label}</CardTitle>
-                    <p className="text-[10px] text-slate-500">{category.description}</p>
+                    <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-100">{category.label}</CardTitle>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">{category.description}</p>
                   </div>
                 </div>
                 <Badge variant="outline" className={`${category.color} text-[10px]`}>
                   {categoryComments.length} Templates
                 </Badge>
               </CardHeader>
-              <CardContent className="p-4 bg-white/40">
+              <CardContent className="p-4 bg-white/40 dark:bg-slate-900/40">
                 {categoryComments.length === 0 ? (
-                  <p className="text-xs text-slate-500 text-center py-6">No comment templates configured for this category.</p>
+                  <p className="text-xs text-slate-500 text-center py-6 dark:text-slate-400">No comment templates configured for this category.</p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {categoryComments.map((comment) => (
                       <div 
                         key={comment.id} 
-                        className="group flex flex-col justify-between p-3 rounded-xl border border-slate-100 bg-white shadow-sm hover:shadow-md hover:border-indigo-100 transition-all duration-300 relative"
+                        className="group flex flex-col justify-between p-3 rounded-xl border border-slate-100 bg-white shadow-sm hover:shadow-md hover:border-indigo-100 transition-all duration-300 relative dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-800/60"
                       >
-                        <p className="text-xs text-slate-700 leading-relaxed pr-8">{comment.text}</p>
+                        <p className="text-xs text-slate-700 leading-relaxed pr-8 dark:text-slate-200">{comment.text}</p>
                         
-                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-50">
-                          <span className="text-[9px] text-slate-400">
+                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-50 dark:border-slate-700">
+                          <span className="text-[9px] text-slate-400 dark:text-slate-400">
                             {comment.isDefault ? 'Standard Default' : 'Custom'}
                           </span>
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -388,7 +388,7 @@ export function CommentaryBoxManagement({ addTrigger }: CommentaryBoxManagementP
                               variant="ghost" 
                               size="sm" 
                               onClick={() => handleCopyToClipboard(comment.text)}
-                              className="h-6 w-6 p-0 text-slate-400 hover:text-indigo-600"
+                              className="h-6 w-6 p-0 text-slate-400 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400"
                               title="Copy"
                             >
                               <Copy className="h-3 w-3" />
@@ -399,7 +399,7 @@ export function CommentaryBoxManagement({ addTrigger }: CommentaryBoxManagementP
                                   variant="ghost" 
                                   size="sm" 
                                   onClick={() => handleOpenEditDialog(comment)}
-                                  className="h-6 w-6 p-0 text-slate-400 hover:text-blue-600"
+                                  className="h-6 w-6 p-0 text-slate-400 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
                                   title="Edit"
                                 >
                                   <Edit3 className="h-3 w-3" />
@@ -408,7 +408,7 @@ export function CommentaryBoxManagement({ addTrigger }: CommentaryBoxManagementP
                                   variant="ghost" 
                                   size="sm" 
                                   onClick={() => handleDeleteComment(comment.id)}
-                                  className="h-6 w-6 p-0 text-slate-400 hover:text-red-600"
+                                  className="h-6 w-6 p-0 text-slate-400 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400"
                                   title="Delete"
                                 >
                                   <Trash2 className="h-3 w-3" />
@@ -445,7 +445,7 @@ export function CommentaryBoxManagement({ addTrigger }: CommentaryBoxManagementP
                   value={formData.role} 
                   onValueChange={(val) => setFormData(prev => ({ ...prev, role: val as any }))}
                 >
-                  <SelectTrigger className="w-full bg-white text-xs">
+                  <SelectTrigger className="w-full bg-white text-xs dark:bg-slate-900">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent className="text-xs">
@@ -461,7 +461,7 @@ export function CommentaryBoxManagement({ addTrigger }: CommentaryBoxManagementP
                   value={formData.gradeCategory} 
                   onValueChange={(val) => setFormData(prev => ({ ...prev, gradeCategory: val }))}
                 >
-                  <SelectTrigger className="w-full bg-white text-xs">
+                  <SelectTrigger className="w-full bg-white text-xs dark:bg-slate-900">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent className="text-xs">
@@ -482,7 +482,7 @@ export function CommentaryBoxManagement({ addTrigger }: CommentaryBoxManagementP
                 rows={4}
                 className="resize-none text-xs"
               />
-              <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+              <div className="flex items-center gap-2 mt-2 text-xs text-gray-500 dark:text-slate-400">
                 <MessageSquare className="h-3 w-3" />
                 <span>Use [Name] in your comment and it will be automatically replaced with the student's name in reports.</span>
               </div>

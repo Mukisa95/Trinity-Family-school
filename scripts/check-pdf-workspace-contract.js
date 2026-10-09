@@ -11,6 +11,7 @@ const requireText = (source, expected, label) => {
 
 const layout = read('src/app/layout.tsx');
 const globals = read('src/app/globals.css');
+const theme = read('src/app/theme.css');
 const context = read('src/lib/pdf/pdf-workspace-context.tsx');
 const workspace = read('src/components/pdf/pdf-workspace.tsx');
 const documentViewer = read('src/components/pdf/pdf-document-viewer.tsx');
@@ -76,8 +77,15 @@ if (documentViewer.includes('aria-label="Rotate page clockwise"')) {
 }
 requireText(documentViewer, 'rounded-full', 'the modern viewer must use rounded controls');
 requireText(packageJson, '"pdfjs-dist"', 'the PDF.js rendering dependency must be declared');
-if (/\bdark:|bg-slate-9\d\d/.test(`${workspace}\n${documentViewer}`)) {
-  throw new Error('PDF workspace contract failed: the redesigned PDF workspace must remain light');
+requireText(workspace, 'dark:bg-slate-900', 'the workspace chrome must follow dark appearance');
+requireText(documentViewer, 'dark:bg-[radial-gradient', 'the document surround must follow dark appearance');
+requireText(documentViewer, 'data-theme-surface="paper"', 'page and thumbnail paper must be isolated from appearance');
+requireText(theme, 'background: white !important', 'paper must override themed glass backgrounds');
+requireText(documentViewer, 'background: "#ffffff"', 'PDF.js must always render on white paper');
+requireText(documentViewer, 'src={objectUrl}', 'printing must use the original PDF object URL');
+requireText(documentViewer, 'link.href = objectUrl', 'PDF downloads must use the original document');
+if (/["\s](?:dark:)?(?:invert(?:[-\s"]|$)|filter(?:[-\s"]|$)|mix-blend-)/.test(documentViewer)) {
+  throw new Error('PDF workspace contract failed: appearance must not recolour document pixels');
 }
 requireText(viewerHook, 'workspace.runPDFJob', 'legacy React-PDF callers must enter the global job pipeline');
 requireText(viewerHook, 'updateProgress(8, \'Loading PDF renderer…\')', 'the preview must open before React-PDF rendering');

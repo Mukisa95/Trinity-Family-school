@@ -183,7 +183,7 @@ export function UniformManagement() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading uniforms...</p>
+          <p className="text-gray-600 dark:text-slate-300">Loading uniforms...</p>
         </div>
       </div>
     );
@@ -342,7 +342,7 @@ export function UniformManagement() {
         <CardContent>
           {filteredUniforms.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">No uniform items found matching the current filters.</p>
+              <p className="text-gray-500 dark:text-slate-400">No uniform items found matching the current filters.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -366,7 +366,7 @@ export function UniformManagement() {
                         <div>
                           <div>{uniform.name}</div>
                           {uniform.description && (
-                            <div className="text-xs text-gray-500 mt-1">
+                            <div className="text-xs text-gray-500 mt-1 dark:text-slate-400">
                               {uniform.description}
                             </div>
                           )}
@@ -421,7 +421,7 @@ export function UniformManagement() {
                             size="sm"
                             onClick={() => handleDelete(uniform.id)}
                             title="Delete"
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

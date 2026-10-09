@@ -34,13 +34,13 @@ export function DigitalSignatureDisplay({
   const getActionColor = (userRole: string) => {
     switch (userRole.toLowerCase()) {
       case 'admin':
-        return 'text-red-600 bg-red-50';
+        return 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950/40';
       case 'staff':
-        return 'text-blue-600 bg-blue-50';
+        return 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950/40';
       case 'parent':
-        return 'text-green-600 bg-green-50';
+        return 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950/40';
       default:
-        return 'text-gray-600 bg-gray-50';
+        return 'text-gray-600 bg-gray-50 dark:text-slate-300 dark:bg-slate-900';
     }
   };
 

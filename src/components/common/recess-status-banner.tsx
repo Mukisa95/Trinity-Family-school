@@ -55,7 +55,7 @@ export function RecessStatusBanner({ className = '' }: RecessStatusBannerProps) 
 
   return (
     <Alert
-      className={`border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors cursor-pointer ${
+      className={`border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors cursor-pointer  dark:border-amber-800/60 dark:bg-amber-950/40 dark:hover:bg-amber-950/40${
         isExpanded ? 'px-4 py-3' : 'px-3 py-2'
       } ${className}`}
       onClick={() => setIsExpanded(!isExpanded)}
@@ -64,20 +64,20 @@ export function RecessStatusBanner({ className = '' }: RecessStatusBannerProps) 
         <div className="flex items-center gap-2 flex-1">
           <div className="flex-shrink-0">
             {isInRecess ? (
-              <CalendarDays className="h-4 w-4 text-amber-600" />
+              <CalendarDays className="h-4 w-4 text-amber-600 dark:text-amber-400" />
             ) : (
-              <Info className="h-4 w-4 text-amber-600" />
+              <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
             )}
           </div>
 
-          <AlertDescription className="text-xs font-medium leading-snug text-amber-800 sm:text-sm">
+          <AlertDescription className="text-xs font-medium leading-snug text-amber-800 sm:text-sm dark:text-amber-200">
             {compactMessage}
           </AlertDescription>
         </div>
 
         <div className="flex items-center gap-2">
           {isExpanded && (
-            <Badge variant="outline" className="border-amber-300 text-amber-700 text-xs">
+            <Badge variant="outline" className="border-amber-300 text-amber-700 text-xs dark:border-amber-800/60 dark:text-amber-300">
               {isInRecess ? 'Recess' : 'Holiday'}
             </Badge>
           )}
@@ -85,7 +85,7 @@ export function RecessStatusBanner({ className = '' }: RecessStatusBannerProps) 
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-200"
+            className="h-6 w-6 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-200 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-900/40"
             aria-label={isExpanded ? 'Collapse recess details' : 'Expand recess details'}
             onClick={(e) => {
               e.stopPropagation();
@@ -99,11 +99,11 @@ export function RecessStatusBanner({ className = '' }: RecessStatusBannerProps) 
 
       {/* Expanded details */}
       {isExpanded && (
-        <div className="mt-3 pt-3 border-t border-amber-200 space-y-2 text-sm text-amber-700">
+        <div className="mt-3 pt-3 border-t border-amber-200 space-y-2 text-sm text-amber-700 dark:border-amber-800/60 dark:text-amber-300">
           {shouldShowPreviousTermData && previousTerm && (
             <div className="flex items-center gap-2">
               <span className="font-medium">Displaying data from:</span>
-              <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">
+              <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60">
                 {previousTerm.name}
               </Badge>
             </div>
@@ -112,11 +112,11 @@ export function RecessStatusBanner({ className = '' }: RecessStatusBannerProps) 
           {nextTerm && (
             <div className="flex items-center gap-2">
               <span className="font-medium">Next term:</span>
-              <Badge variant="outline" className="border-amber-300 text-amber-700">
+              <Badge variant="outline" className="border-amber-300 text-amber-700 dark:border-amber-800/60 dark:text-amber-300">
                 {nextTerm.name}
               </Badge>
               {nextTerm.startDate && (
-                <span className="text-xs text-amber-600">
+                <span className="text-xs text-amber-600 dark:text-amber-400">
                   (starts {new Date(nextTerm.startDate).toLocaleDateString()})
                 </span>
               )}
@@ -126,7 +126,7 @@ export function RecessStatusBanner({ className = '' }: RecessStatusBannerProps) 
           {isInRecess && recessInfo.recessType && (
             <div className="flex items-center gap-2">
               <span className="font-medium">Recess type:</span>
-              <span className="text-amber-600">
+              <span className="text-amber-600 dark:text-amber-400">
                 {recessInfo.recessType === 'mid-term' ? 'Mid-term break' : 'End of year break'}
               </span>
             </div>
@@ -134,8 +134,8 @@ export function RecessStatusBanner({ className = '' }: RecessStatusBannerProps) 
 
           {isInRecess && recessInfo.daysInRecess > 0 && (
             <div className="flex items-center gap-2">
-              <Clock className="h-3 w-3 text-amber-600" />
-              <span className="text-amber-600">
+              <Clock className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+              <span className="text-amber-600 dark:text-amber-400">
                 {recessInfo.daysInRecess} day{recessInfo.daysInRecess !== 1 ? 's' : ''} total recess period
               </span>
             </div>

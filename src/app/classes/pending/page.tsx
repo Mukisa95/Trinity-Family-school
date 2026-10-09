@@ -290,7 +290,7 @@ function PendingPupilsContent() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-amber-600" />
+              <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               <CardTitle>Pending Pupils ({filteredPupils.length})</CardTitle>
             </div>
             {schoolSettings?.pending?.enabled && (
@@ -387,14 +387,14 @@ function PendingPupilsContent() {
                       <TableCell>
                         <Link
                           href={`/class-detail?id=${pupil.classId}`}
-                          className="text-blue-600 hover:underline font-medium"
+                          className="text-blue-600 hover:underline font-medium dark:text-blue-400"
                         >
                           {getClassCode(pupil.classId) || getClassName(pupil.classId)}
                         </Link>
                       </TableCell>
                       <TableCell>{pupil.gender || "—"}</TableCell>
                       <TableCell className="text-center">
-                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300">
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60">
                           <Clock className="w-3 h-3 mr-1" />
                           Pending
                         </Badge>

@@ -21,7 +21,7 @@ const AnimatedProgress = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={`relative h-4 w-full overflow-hidden rounded-full bg-gray-200 ${className}`}
+      className={`relative h-4 w-full overflow-hidden rounded-full bg-gray-200  dark:bg-slate-800${className}`}
       {...props}
     >
       <motion.div

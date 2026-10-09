@@ -55,16 +55,16 @@ const TRANSACTION_TYPES: InventoryTransactionType[] = [
 ];
 
 const transactionTypeConfig: Record<InventoryTransactionType, { icon: React.ElementType; color: string; label: string }> = {
-    purchase: { icon: ArrowDownLeft, color: 'text-green-500 bg-green-100 dark:bg-green-900/30', label: 'Purchase' },
-    issue: { icon: ArrowUpRight, color: 'text-blue-500 bg-blue-100 dark:bg-blue-900/30', label: 'Issue' },
-    return: { icon: ArrowDownLeft, color: 'text-purple-500 bg-purple-100 dark:bg-purple-900/30', label: 'Return' },
-    transfer: { icon: RefreshCw, color: 'text-cyan-500 bg-cyan-100 dark:bg-cyan-900/30', label: 'Transfer' },
-    repair: { icon: Wrench, color: 'text-amber-500 bg-amber-100 dark:bg-amber-900/30', label: 'Repair' },
-    dispose: { icon: Trash2, color: 'text-red-500 bg-red-100 dark:bg-red-900/30', label: 'Dispose' },
-    adjustment: { icon: RefreshCw, color: 'text-slate-500 bg-slate-100 dark:bg-slate-900/30', label: 'Adjustment' },
-    stocktake: { icon: Package, color: 'text-indigo-500 bg-indigo-100 dark:bg-indigo-900/30', label: 'Stocktake' },
-    damage: { icon: Trash2, color: 'text-orange-500 bg-orange-100 dark:bg-orange-900/30', label: 'Damage' },
-    loss: { icon: Trash2, color: 'text-red-600 bg-red-100 dark:bg-red-900/30', label: 'Loss' }
+    purchase: { icon: ArrowDownLeft, color: 'text-green-500 bg-green-100 dark:bg-green-900/30 dark:text-green-400', label: 'Purchase' },
+    issue: { icon: ArrowUpRight, color: 'text-blue-500 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400', label: 'Issue' },
+    return: { icon: ArrowDownLeft, color: 'text-purple-500 bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400', label: 'Return' },
+    transfer: { icon: RefreshCw, color: 'text-cyan-500 bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400', label: 'Transfer' },
+    repair: { icon: Wrench, color: 'text-amber-500 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400', label: 'Repair' },
+    dispose: { icon: Trash2, color: 'text-red-500 bg-red-100 dark:bg-red-900/30 dark:text-red-400', label: 'Dispose' },
+    adjustment: { icon: RefreshCw, color: 'text-slate-500 bg-slate-100 dark:bg-slate-900/30 dark:text-slate-400', label: 'Adjustment' },
+    stocktake: { icon: Package, color: 'text-indigo-500 bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400', label: 'Stocktake' },
+    damage: { icon: Trash2, color: 'text-orange-500 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400', label: 'Damage' },
+    loss: { icon: Trash2, color: 'text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400', label: 'Loss' }
 };
 
 interface TransactionHistoryProps {
@@ -176,7 +176,7 @@ export function TransactionHistory({
             <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80">
                 <CardHeader className="pb-2">
                     <CardTitle className="flex items-center gap-2">
-                        <Clock className="h-5 w-5 text-purple-500" />
+                        <Clock className="h-5 w-5 text-purple-500 dark:text-purple-400" />
                         Transaction History
                     </CardTitle>
                     <CardDescription>
@@ -251,8 +251,8 @@ export function TransactionHistory({
                                                             <span className="text-muted-foreground">→</span>
                                                             <span className={cn(
                                                                 "font-medium",
-                                                                transaction.newQuantity > transaction.previousQuantity ? "text-green-600" :
-                                                                    transaction.newQuantity < transaction.previousQuantity ? "text-red-600" : ""
+                                                                transaction.newQuantity > transaction.previousQuantity ? "text-green-600 dark:text-green-400" :
+                                                                    transaction.newQuantity < transaction.previousQuantity ? "text-red-600 dark:text-red-400" : ""
                                                             )}>
                                                                 {transaction.newQuantity}
                                                             </span>

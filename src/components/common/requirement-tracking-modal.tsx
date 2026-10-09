@@ -204,8 +204,8 @@ export function RequirementTrackingModal({
           <div>
             <Label>Select Requirements *</Label>
             {formData.selectionMode === 'full' ? (
-              <div className="mt-2 p-3 border rounded-md bg-gray-50">
-                <p className="text-sm text-gray-600">All eligible requirements will be included:</p>
+              <div className="mt-2 p-3 border rounded-md bg-gray-50 dark:bg-slate-900">
+                <p className="text-sm text-gray-600 dark:text-slate-300">All eligible requirements will be included:</p>
                 <div className="mt-2 space-y-1">
                   {eligibleRequirements.map((requirement) => (
                     <div key={requirement.id} className="text-sm">
@@ -256,7 +256,7 @@ export function RequirementTrackingModal({
                     <p className="font-medium">
                       Total: UGX {getTotalAmount().toLocaleString()}
                     </p>
-                    <p className="text-gray-500">
+                    <p className="text-gray-500 dark:text-slate-400">
                       {formData.requirementId.length} requirement(s) selected
                     </p>
                   </div>
@@ -279,7 +279,7 @@ export function RequirementTrackingModal({
             />
             <FieldError error={formValidation.getFieldError('paidAmount')} />
             {getTotalAmount() > 0 && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">
                 Total requirement amount: UGX {getTotalAmount().toLocaleString()}
               </p>
             )}

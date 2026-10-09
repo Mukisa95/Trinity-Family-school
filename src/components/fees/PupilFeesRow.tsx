@@ -75,15 +75,15 @@ export function PupilFeesRow({
 
   return (
     <tr 
-      className={`hover:bg-gray-50 transition-colors ${onClick ? 'cursor-pointer' : ''}`}
+      className={`hover:bg-gray-50 transition-colors  dark:hover:bg-slate-900${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
       {/* Pupil Information */}
       <td className="px-6 py-4">
         <div className="flex items-center">
           <div className="flex-shrink-0 h-10 w-10">
-            <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-              <span className="text-sm font-medium text-indigo-700">
+            <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center dark:bg-indigo-950/40">
+              <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
                 {pupil.firstName.charAt(0)}{pupil.lastName.charAt(0)}
               </span>
             </div>
@@ -91,16 +91,16 @@ export function PupilFeesRow({
           <div className="ml-4">
             <div className="min-w-0 flex-1">
               <div className="flex items-center space-x-2">
-                <p className="text-sm font-semibold text-gray-900 truncate">
+                <p className="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
                   {formatPupilDisplayName(pupil)}
                 </p>
                 {feesInfo?.applicableFees?.some(fee => fee.discount) && (
-                  <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                  <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs dark:bg-green-950/40 dark:text-green-200">
                     Discount
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center space-x-2 text-gray-600 text-sm">
+              <div className="flex items-center space-x-2 text-gray-600 text-sm dark:text-slate-300">
                 <span>{pupil.admissionNumber}</span>
               </div>
             </div>
@@ -110,14 +110,14 @@ export function PupilFeesRow({
 
       {/* Class */}
       <td className="px-6 py-4">
-        <p className="text-sm text-gray-900">
+        <p className="text-sm text-gray-900 dark:text-slate-100">
           {pupilClass?.code || pupilClass?.name || 'N/A'}
         </p>
       </td>
 
       {/* Section */}
       <td className="px-6 py-4">
-        <p className="text-sm text-gray-900 capitalize">
+        <p className="text-sm text-gray-900 capitalize dark:text-slate-100">
           {pupil.section || 'N/A'}
         </p>
       </td>
@@ -131,17 +131,17 @@ export function PupilFeesRow({
           </div>
         ) : feesInfo ? (
           <div>
-            <p className="text-sm font-semibold text-gray-900">
+            <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">
               {formatCurrency(displayValues.amount)}
             </p>
             {displayValues.discount && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-slate-400">
                 Original: {formatCurrency(displayValues.originalAmount || displayValues.amount)}
               </p>
             )}
           </div>
         ) : (
-          <div className="flex items-center space-x-2 text-gray-400">
+          <div className="flex items-center space-x-2 text-gray-400 dark:text-slate-400">
             <div className="animate-pulse">⏳</div>
             <span className="text-sm">Calculating...</span>
           </div>
@@ -153,11 +153,11 @@ export function PupilFeesRow({
         {isLoading ? (
           <Skeleton className="h-4 w-20" />
         ) : feesInfo ? (
-          <p className="text-sm font-semibold text-gray-900">
+          <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">
             {formatCurrency(displayValues.paid)}
           </p>
         ) : (
-          <div className="flex items-center space-x-2 text-gray-400">
+          <div className="flex items-center space-x-2 text-gray-400 dark:text-slate-400">
             <div className="animate-pulse">⏳</div>
             <span className="text-sm">Calculating...</span>
           </div>
@@ -171,18 +171,18 @@ export function PupilFeesRow({
         ) : feesInfo ? (
           <div>
             <p className={`text-sm font-semibold ${
-              displayValues.balance > 0 ? 'text-red-600' : 'text-green-600'
+              displayValues.balance > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
             }`}>
               {formatCurrency(displayValues.balance)}
             </p>
             {displayValues.balance === 0 && (
-              <Badge variant="default" className="bg-green-100 text-green-800 text-xs mt-1">
+              <Badge variant="default" className="bg-green-100 text-green-800 text-xs mt-1 dark:bg-green-950/40 dark:text-green-200">
                 PAID
               </Badge>
             )}
           </div>
         ) : (
-          <div className="flex items-center space-x-2 text-gray-400">
+          <div className="flex items-center space-x-2 text-gray-400 dark:text-slate-400">
             <div className="animate-pulse">⏳</div>
             <span className="text-sm">Calculating...</span>
           </div>

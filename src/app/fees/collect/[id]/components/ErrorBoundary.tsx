@@ -48,28 +48,28 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4 dark:from-blue-950/40 dark:via-slate-900 dark:to-indigo-950/40">
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
-              <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <Warning className="w-6 h-6 text-red-600" />
+              <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 dark:bg-red-950/40">
+                <Warning className="w-6 h-6 text-red-600 dark:text-red-400" />
               </div>
-              <CardTitle className="text-xl text-gray-900">
+              <CardTitle className="text-xl text-gray-900 dark:text-slate-100">
                 Something went wrong
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-gray-600 text-center">
+              <p className="text-gray-600 text-center dark:text-slate-300">
                 We encountered an unexpected error while loading the fees collection page. 
                 This has been logged and our team will investigate.
               </p>
               
               {process.env.NODE_ENV === 'development' && this.state.error && (
-                <details className="bg-gray-50 p-3 rounded-lg text-xs">
-                  <summary className="cursor-pointer font-medium text-gray-700 mb-2">
+                <details className="bg-gray-50 p-3 rounded-lg text-xs dark:bg-slate-900">
+                  <summary className="cursor-pointer font-medium text-gray-700 mb-2 dark:text-slate-200">
                     Error Details (Development)
                   </summary>
-                  <pre className="whitespace-pre-wrap text-red-600">
+                  <pre className="whitespace-pre-wrap text-red-600 dark:text-red-400">
                     {this.state.error.toString()}
                     {this.state.errorInfo?.componentStack}
                   </pre>

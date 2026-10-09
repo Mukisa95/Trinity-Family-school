@@ -60,22 +60,22 @@ const BatchReportGenerator = () => {
   };
 
   return (
-    <div className="p-6 bg-white shadow-md rounded-lg">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Generate Batch Report Cards</h2>
+    <div className="p-6 bg-white shadow-md rounded-lg dark:bg-slate-900">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6 dark:text-slate-100">Generate Batch Report Cards</h2>
       
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-red-600">{error.message}</p>
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md dark:bg-red-950/40 dark:border-red-800/60">
+          <p className="text-red-600 dark:text-red-400">{error.message}</p>
         </div>
       )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-200">
             Select Exam
           </label>
           <select
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-700"
             value={selectedExam}
             onChange={(e) => setSelectedExam(e.target.value)}
             disabled={examsLoading || isGenerating}
@@ -87,15 +87,15 @@ const BatchReportGenerator = () => {
               </option>
             ))}
           </select>
-          {examsLoading && <p className="mt-1 text-sm text-gray-500">Loading exams...</p>}
+          {examsLoading && <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">Loading exams...</p>}
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-200">
             Select Class
           </label>
           <select
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-700"
             value={selectedClass}
             onChange={(e) => setSelectedClass(e.target.value)}
             disabled={classesLoading || isGenerating}
@@ -107,7 +107,7 @@ const BatchReportGenerator = () => {
               </option>
             ))}
           </select>
-          {classesLoading && <p className="mt-1 text-sm text-gray-500">Loading classes...</p>}
+          {classesLoading && <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">Loading classes...</p>}
         </div>
       </div>
       
@@ -136,8 +136,8 @@ const BatchReportGenerator = () => {
       </div>
       
       {isGenerating && (
-        <div className="mt-4 p-4 bg-blue-50 rounded-md">
-          <p className="text-blue-800">Generating report cards, please wait...</p>
+        <div className="mt-4 p-4 bg-blue-50 rounded-md dark:bg-blue-950/40">
+          <p className="text-blue-800 dark:text-blue-200">Generating report cards, please wait...</p>
         </div>
       )}
       

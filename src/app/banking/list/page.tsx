@@ -128,17 +128,17 @@ export default function BankingListPage() {
 
   if (accountsLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 flex items-center justify-center p-4 dark:from-slate-900 dark:to-blue-950/30">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading bank accounts...</p>
+          <p className="text-gray-600 font-medium dark:text-slate-300">Loading bank accounts...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-blue-950/40 dark:via-slate-900 dark:to-indigo-950/40">
       <GlassPageTopBar
         title="Bank Accounts"
         subtitle="Manage student banking"
@@ -147,13 +147,13 @@ export default function BankingListPage() {
         className="mb-1.5"
         actionsLeading={
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5 pointer-events-none" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5 pointer-events-none dark:text-slate-400" />
             <input
               type="text"
               placeholder="Search accounts..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 pr-3 h-[30px] w-36 focus:w-52 transition-all duration-200 rounded-full border border-blue-200/60 bg-white/90 text-[11px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 placeholder:text-gray-400"
+              className="pl-8 pr-3 h-[30px] w-36 focus:w-52 transition-all duration-200 rounded-full border border-blue-200/60 bg-white/90 text-[11px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 placeholder:text-gray-400 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-slate-200 dark:placeholder:text-slate-400"
             />
           </div>
         }
@@ -172,7 +172,7 @@ export default function BankingListPage() {
       <GlassSummaryBar
         left={
           <div className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-indigo-500" />
+            <CreditCard className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
             <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
               Banking Overview
             </span>
@@ -221,7 +221,7 @@ export default function BankingListPage() {
 
 
         {/* Accounts List - Mobile Optimized */}
-        <Card className="border-0 shadow-sm bg-white/70 backdrop-blur-sm">
+        <Card className="border-0 shadow-sm bg-white/70 backdrop-blur-sm dark:bg-slate-900/70">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-semibold">
@@ -232,12 +232,12 @@ export default function BankingListPage() {
           <CardContent className="p-0">
 {filteredAccounts.length === 0 ? (
               <div className="text-center py-12 px-4">
-                <div className="text-gray-400 mb-4">
+                <div className="text-gray-400 mb-4 dark:text-slate-400">
                   <CreditCard className="h-12 w-12 mx-auto mb-3" />
-                  <p className="text-lg font-medium text-gray-600 mb-2">
+                  <p className="text-lg font-medium text-gray-600 mb-2 dark:text-slate-300">
                     {searchTerm ? 'No accounts found' : 'No bank accounts yet'}
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-slate-400">
                     {searchTerm ? 'Try adjusting your search terms' : 'Create your first bank account to get started'}
                   </p>
                 </div>
@@ -247,15 +247,15 @@ export default function BankingListPage() {
                 {/* Desktop Table View */}
                 <div className="hidden lg:block overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50/50">
+                    <thead className="bg-gray-50/50 dark:bg-slate-900/50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-400">Account</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-400">Balance</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-400">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-400">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                       {filteredAccounts.map((account) => {
                         const pupilName = `${formatPupilDisplayName(account.pupil)}`;
                         const isActive = account.isActive !== false;
@@ -263,7 +263,7 @@ export default function BankingListPage() {
                         return (
                           <tr 
                             key={account.id} 
-                            className="hover:bg-blue-50/50 cursor-pointer group transition-all duration-200"
+                            className="hover:bg-blue-50/50 cursor-pointer group transition-all duration-200 dark:hover:bg-blue-950/50"
                             onClick={() => handleViewAccount(account.pupilId)}
                           >
                             <td className="px-4 py-3">
@@ -272,21 +272,21 @@ export default function BankingListPage() {
                                   {account.pupil.firstName[0]}
                                 </div>
                                 <div>
-                                  <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                  <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors dark:text-slate-100 dark:group-hover:text-blue-400">
                                     {pupilName}
                                   </p>
-                                  <p className="text-sm text-gray-500">
+                                  <p className="text-sm text-gray-500 dark:text-slate-400">
                                     {account.accountNumber} • {account.pupil.admissionNumber}
                                   </p>
                                   {account.pupil.className && (
-                                    <p className="text-xs text-gray-400">Class: {account.pupil.className}</p>
+                                    <p className="text-xs text-gray-400 dark:text-slate-400">Class: {account.pupil.className}</p>
                                   )}
                                 </div>
                               </div>
                             </td>
                             <td className="px-4 py-3">
                               <span className={`font-bold text-lg ${
-                                account.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                                account.balance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                               }`}>
                                 {formatCurrency(account.balance)}
                               </span>
@@ -311,7 +311,7 @@ export default function BankingListPage() {
                                       e.stopPropagation();
                                       handleDeactivateAccount(account.id, pupilName);
                                     }}
-                                    className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                    className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-950/40"
                                     title="Deactivate Account"
                                   >
                                     <PowerOff className="w-4 h-4" />
@@ -324,7 +324,7 @@ export default function BankingListPage() {
                                       e.stopPropagation();
                                       handleReactivateAccount(account.id, pupilName);
                                     }}
-                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-950/40"
                                     title="Reactivate Account"
                                   >
                                     <Power className="w-4 h-4" />
@@ -338,7 +338,7 @@ export default function BankingListPage() {
                                     e.stopPropagation();
                                     setAccountToDelete({id: account.id, name: pupilName});
                                   }}
-                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/40"
                                   title="Delete Account"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -353,7 +353,7 @@ export default function BankingListPage() {
                 </div>
 
                 {/* Mobile Card View */}
-                <div className="lg:hidden divide-y divide-gray-100">
+                <div className="lg:hidden divide-y divide-gray-100 dark:divide-slate-700">
                   {filteredAccounts.map((account) => {
                     const pupilName = `${formatPupilDisplayName(account.pupil)}`;
                     const isActive = account.isActive !== false;
@@ -361,7 +361,7 @@ export default function BankingListPage() {
                     return (
                       <div 
                         key={account.id}
-                        className="p-4 hover:bg-blue-50/50 cursor-pointer transition-all duration-200 active:bg-blue-100/50"
+                        className="p-4 hover:bg-blue-50/50 cursor-pointer transition-all duration-200 active:bg-blue-100/50 dark:hover:bg-blue-950/50 dark:active:bg-blue-950/50"
                         onClick={() => handleViewAccount(account.pupilId)}
                       >
                         <div className="flex items-center justify-between mb-3">
@@ -370,8 +370,8 @@ export default function BankingListPage() {
                               {account.pupil.firstName[0]}
                             </div>
                             <div>
-                              <h3 className="font-semibold text-gray-900">{pupilName}</h3>
-                              <p className="text-sm text-gray-500">{account.pupil.admissionNumber}</p>
+                              <h3 className="font-semibold text-gray-900 dark:text-slate-100">{pupilName}</h3>
+                              <p className="text-sm text-gray-500 dark:text-slate-400">{account.pupil.admissionNumber}</p>
                             </div>
                           </div>
                           
@@ -384,7 +384,7 @@ export default function BankingListPage() {
                                   e.stopPropagation();
                                   handleDeactivateAccount(account.id, pupilName);
                                 }}
-                                className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-950/40"
                               >
                                 <PowerOff className="h-4 w-4" />
                               </Button>
@@ -396,7 +396,7 @@ export default function BankingListPage() {
                                   e.stopPropagation();
                                   handleReactivateAccount(account.id, pupilName);
                                 }}
-                                className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-950/40"
                               >
                                 <Power className="h-4 w-4" />
                               </Button>
@@ -409,7 +409,7 @@ export default function BankingListPage() {
                                 e.stopPropagation();
                                 setAccountToDelete({id: account.id, name: pupilName});
                               }}
-                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/40"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -418,16 +418,16 @@ export default function BankingListPage() {
                         
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <p className="text-gray-500 text-xs uppercase tracking-wide font-medium">Balance</p>
+                            <p className="text-gray-500 text-xs uppercase tracking-wide font-medium dark:text-slate-400">Balance</p>
                             <p className={`font-bold text-lg ${
-                              account.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                              account.balance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                             }`}>
                               {formatCurrency(account.balance)}
                             </p>
                           </div>
                           
                           <div>
-                            <p className="text-gray-500 text-xs uppercase tracking-wide font-medium">Status</p>
+                            <p className="text-gray-500 text-xs uppercase tracking-wide font-medium dark:text-slate-400">Status</p>
                             <div className="flex items-center gap-2 mt-1">
                               <Badge variant={account.balance >= 0 ? 'default' : 'destructive'} className="text-xs">
                                 {account.balance >= 0 ? 'Active' : 'Overdrawn'}
@@ -439,8 +439,8 @@ export default function BankingListPage() {
                           </div>
                         </div>
                         
-                        <div className="mt-3 pt-3 border-t border-gray-100">
-                          <p className="text-xs text-gray-500">
+                        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
+                          <p className="text-xs text-gray-500 dark:text-slate-400">
                             Account: {account.accountNumber}
                             {account.pupil.className && ` • Class: ${account.pupil.className}`}
                           </p>

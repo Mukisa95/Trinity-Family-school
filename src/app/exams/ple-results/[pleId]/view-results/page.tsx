@@ -196,11 +196,11 @@ export default function ViewPLEResultsPage({ params }: { params: Promise<{ pleId
   // Get sort icon for a column
   const getSortIcon = (field: string) => {
     if (sortField !== field) {
-      return <ArrowUpDown className="h-3 w-3 ml-1 text-gray-400" />;
+      return <ArrowUpDown className="h-3 w-3 ml-1 text-gray-400 dark:text-slate-400" />;
     }
     return sortDirection === "asc"
-      ? <ArrowUp className="h-3 w-3 ml-1 text-blue-600" />
-      : <ArrowDown className="h-3 w-3 ml-1 text-blue-600" />;
+      ? <ArrowUp className="h-3 w-3 ml-1 text-blue-600 dark:text-blue-400" />
+      : <ArrowDown className="h-3 w-3 ml-1 text-blue-600 dark:text-blue-400" />;
   };
 
   // Filter and sort results using useMemo instead of useEffect to prevent infinite loops
@@ -767,7 +767,7 @@ Division: ${pupil.division}`;
 
   if (!mounted || isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
         <GlassPageTopBar
           title="View Results"
           subtitle="Loading PLE results..."
@@ -786,7 +786,7 @@ Division: ${pupil.division}`;
 
   if (!pleRecord) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
         <GlassPageTopBar
           title="View Results"
           subtitle="PLE record not found"
@@ -796,7 +796,7 @@ Division: ${pupil.division}`;
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
-              <p className="text-red-600 mb-2">PLE record not found</p>
+              <p className="text-red-600 mb-2 dark:text-red-400">PLE record not found</p>
               <Button onClick={() => router.push('/exams/ple-results')}>
                 Back to PLE Results
               </Button>
@@ -808,7 +808,7 @@ Division: ${pupil.division}`;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 animate-in fade-in duration-500 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
       <GlassPageTopBar
         title={`View Results - ${pleRecord.examName}`}
         subtitle="View PLE examination results and statistics."
@@ -868,10 +868,10 @@ Division: ${pupil.division}`;
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Division I</CardTitle>
-                <Trophy className="h-4 w-4 text-yellow-600" />
+                <Trophy className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">{statistics.divisionI}</div>
+                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statistics.divisionI}</div>
                 <p className="text-xs text-muted-foreground">
                   {statistics.totalCandidates > 0 ?
                     `${((statistics.divisionI / statistics.totalCandidates) * 100).toFixed(1)}% of candidates` :
@@ -897,7 +897,7 @@ Division: ${pupil.division}`;
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Best Performer</CardTitle>
-                <Star className="h-4 w-4 text-purple-600" />
+                <Star className="h-4 w-4 text-purple-600 dark:text-purple-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-sm font-bold">
@@ -915,10 +915,10 @@ Division: ${pupil.division}`;
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Completion Status</CardTitle>
-                <GraduationCap className="h-4 w-4 text-blue-600" />
+                <GraduationCap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                   {pupilResults.filter(r =>
                     r.division && r.totalAggregate > 0 && Object.values(r.subjects).every(aggregate => aggregate)
                   ).length}
@@ -936,35 +936,35 @@ Division: ${pupil.division}`;
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Medal className="h-5 w-5 text-purple-600" />
+                <Medal className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 Division Breakdown
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{statistics.divisionI}</div>
-                  <Badge variant="default" className="mt-1 bg-green-100 text-green-800 border-green-200 hover:bg-green-100">Division I</Badge>
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">{statistics.divisionI}</div>
+                  <Badge variant="default" className="mt-1 bg-green-100 text-green-800 border-green-200 hover:bg-green-100 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60 dark:hover:bg-green-950/40">Division I</Badge>
                   <p className="text-xs text-muted-foreground mt-1">4-12 points</p>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{statistics.divisionII}</div>
-                  <Badge variant="secondary" className="mt-1 bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100">Division II</Badge>
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{statistics.divisionII}</div>
+                  <Badge variant="secondary" className="mt-1 bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60 dark:hover:bg-blue-950/40">Division II</Badge>
                   <p className="text-xs text-muted-foreground mt-1">13-23 points</p>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-600">{statistics.divisionIII}</div>
-                  <Badge variant="outline" className="mt-1 bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100">Division III</Badge>
+                  <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statistics.divisionIII}</div>
+                  <Badge variant="outline" className="mt-1 bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60 dark:hover:bg-yellow-950/40">Division III</Badge>
                   <p className="text-xs text-muted-foreground mt-1">24-29 points</p>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">{statistics.divisionIV}</div>
-                  <Badge variant="destructive" className="mt-1 bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-100">Division IV</Badge>
+                  <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{statistics.divisionIV}</div>
+                  <Badge variant="destructive" className="mt-1 bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-100 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60 dark:hover:bg-orange-950/40">Division IV</Badge>
                   <p className="text-xs text-muted-foreground mt-1">30-32 points</p>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">{statistics.divisionU}</div>
-                  <Badge variant="destructive" className="mt-1 bg-red-100 text-red-800 border-red-200 hover:bg-red-100">Ungraded U</Badge>
+                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">{statistics.divisionU}</div>
+                  <Badge variant="destructive" className="mt-1 bg-red-100 text-red-800 border-red-200 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60 dark:hover:bg-red-950/40">Ungraded U</Badge>
                   <p className="text-xs text-muted-foreground mt-1">33-36 points</p>
                 </div>
               </div>
@@ -1028,13 +1028,13 @@ Division: ${pupil.division}`;
         </Collapsible>
 
         {/* Results Table */}
-        <div className="rounded-lg border shadow-sm bg-white overflow-hidden">
+        <div className="rounded-lg border shadow-sm bg-white overflow-hidden dark:bg-slate-900">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead
-                    className="w-64 cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="w-64 cursor-pointer hover:bg-gray-100 transition-colors dark:hover:bg-slate-900"
                     onClick={() => handleSort('name')}
                   >
                     <div className="flex items-center gap-1">
@@ -1043,7 +1043,7 @@ Division: ${pupil.division}`;
                     </div>
                   </TableHead>
                   <TableHead
-                    className="w-40 cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="w-40 cursor-pointer hover:bg-gray-100 transition-colors dark:hover:bg-slate-900"
                     onClick={() => handleSort('admissionNumber')}
                   >
                     <div className="flex items-center gap-1">
@@ -1054,7 +1054,7 @@ Division: ${pupil.division}`;
                   {orderedSubjects.map(subject => (
                     <TableHead
                       key={subject.id}
-                      className="text-center w-24 cursor-pointer hover:bg-gray-100 transition-colors"
+                      className="text-center w-24 cursor-pointer hover:bg-gray-100 transition-colors dark:hover:bg-slate-900"
                       onClick={() => handleSort(subject.id)}
                     >
                       <div className="flex items-center justify-center gap-1">
@@ -1064,7 +1064,7 @@ Division: ${pupil.division}`;
                     </TableHead>
                   ))}
                   <TableHead
-                    className="text-center w-32 cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="text-center w-32 cursor-pointer hover:bg-gray-100 transition-colors dark:hover:bg-slate-900"
                     onClick={() => handleSort('totalAggregate')}
                   >
                     <div className="flex items-center justify-center gap-1">
@@ -1073,7 +1073,7 @@ Division: ${pupil.division}`;
                     </div>
                   </TableHead>
                   <TableHead
-                    className="text-center w-32 cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="text-center w-32 cursor-pointer hover:bg-gray-100 transition-colors dark:hover:bg-slate-900"
                     onClick={() => handleSort('division')}
                   >
                     <div className="flex items-center justify-center gap-1">
@@ -1089,8 +1089,8 @@ Division: ${pupil.division}`;
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8">
                       <div className="flex flex-col items-center gap-2">
-                        <GraduationCap className="h-8 w-8 text-gray-400" />
-                        <p className="text-gray-500">No results found</p>
+                        <GraduationCap className="h-8 w-8 text-gray-400 dark:text-slate-400" />
+                        <p className="text-gray-500 dark:text-slate-400">No results found</p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1102,12 +1102,12 @@ Division: ${pupil.division}`;
                           <div className="font-medium">
                             <button
                               onClick={() => router.push(`/pupil-detail?id=${pupil.pupilId}`)}
-                              className="text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer text-left"
+                              className="text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer text-left dark:text-blue-400 dark:hover:text-blue-200"
                             >
                               {formatPupilDisplayName(pupil)}
                             </button>
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-gray-500 dark:text-slate-400">
                             {pupil.gender}
                           </div>
                         </div>
@@ -1138,7 +1138,7 @@ Division: ${pupil.division}`;
                               {pupil.subjects[subject.id]}
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="font-mono text-gray-400">
+                            <Badge variant="outline" className="font-mono text-gray-400 dark:text-slate-400">
                               --
                             </Badge>
                           )}
@@ -1157,7 +1157,7 @@ Division: ${pupil.division}`;
                             {pupil.totalAggregate}
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="font-mono text-gray-400">
+                          <Badge variant="outline" className="font-mono text-gray-400 dark:text-slate-400">
                             --
                           </Badge>
                         )}
@@ -1175,7 +1175,7 @@ Division: ${pupil.division}`;
                             Div {pupil.division}
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-gray-400">
+                          <Badge variant="outline" className="text-gray-400 dark:text-slate-400">
                             Pending
                           </Badge>
                         )}
@@ -1203,14 +1203,14 @@ Division: ${pupil.division}`;
             <CardTitle className="text-sm">Results Summary</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-slate-300">
               Showing {filteredResults.length} of {pupilResults.length} candidates.
               {searchTerm && ` Search: "${searchTerm}"`}
               {divisionFilter !== "all" && ` | Division: ${divisionFilter}`}
               {genderFilter !== "all" && ` | Gender: ${genderFilter}`}
               {completionFilter !== "all" && ` | Status: ${completionFilter}`}
             </p>
-            <div className="mt-2 flex gap-4 text-xs text-gray-500">
+            <div className="mt-2 flex gap-4 text-xs text-gray-500 dark:text-slate-400">
               <span>
                 Complete: {pupilResults.filter(r =>
                   r.status !== 'missed' && r.division && r.totalAggregate > 0 && Object.values(r.subjects).every(aggregate => aggregate)
@@ -1242,7 +1242,7 @@ Division: ${pupil.division}`;
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-              <Printer className="h-5 w-5 text-blue-600" />
+              <Printer className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               Print Options
             </DialogTitle>
             <DialogDescription>
@@ -1256,30 +1256,30 @@ Division: ${pupil.division}`;
                 setShowPrintDialog(false);
                 handleExportResults();
               }}
-              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors dark:border-slate-700 dark:hover:bg-slate-900"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <FileText className="h-5 w-5 text-green-600" />
+                <div className="p-2 bg-green-100 rounded-lg dark:bg-green-950/40">
+                  <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Certificates</h3>
-                  <p className="text-sm text-gray-600">Batch certificates for all pupils</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-slate-100">Certificates</h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-300">Batch certificates for all pupils</p>
                 </div>
               </div>
             </button>
 
             <button
               onClick={handleGenerateAssessment}
-              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors dark:border-slate-700 dark:hover:bg-slate-900"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <FileSpreadsheet className="h-5 w-5 text-blue-600" />
+                <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/40">
+                  <FileSpreadsheet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Assessment</h3>
-                  <p className="text-sm text-gray-600">Class-wide assessment summary</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-slate-100">Assessment</h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-300">Class-wide assessment summary</p>
                 </div>
               </div>
             </button>

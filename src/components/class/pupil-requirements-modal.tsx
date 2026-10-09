@@ -689,7 +689,7 @@ export function PupilRequirementsModal({
           </ModernDialogHeader>
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent mb-4"></div>
-            <p className="text-sm text-gray-600">Loading pupil data...</p>
+            <p className="text-sm text-gray-600 dark:text-slate-300">Loading pupil data...</p>
           </div>
         </ModernDialogContent>
       </ModernDialog>
@@ -720,10 +720,10 @@ export function PupilRequirementsModal({
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-gray-600" />
+                  <User className="w-4 h-4 text-gray-600 dark:text-slate-300" />
                   <span className="font-bold">{formatPupilDisplayName(pupil)}</span>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-gray-600 mt-1">
+                <div className="flex items-center gap-3 text-xs text-gray-600 mt-1 dark:text-slate-300">
                   <span className="flex items-center gap-1">
                     <School className="w-3 h-3" />
                     {pupil.section} Section
@@ -740,7 +740,7 @@ export function PupilRequirementsModal({
           <div className="flex-1 overflow-y-auto px-1">
             {/* Academic Year & Term Selector - consolidated like requirements tracking page */}
             <div className="mb-4 flex justify-center">
-              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 h-10">
+              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 h-10 dark:bg-slate-900 dark:border-slate-700">
                 <select
                   value={selectedAcademicYearId}
                   onChange={(e) => {
@@ -750,7 +750,7 @@ export function PupilRequirementsModal({
                     const currentTerm = year?.terms.find(t => t.isCurrent);
                     setSelectedTermId(currentTerm?.id || year?.terms[0]?.id || '');
                   }}
-                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full"
+                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700"
                   style={{ width: 'auto', minWidth: 'fit-content' }}
                 >
                   <option value="">Select Year</option>
@@ -765,7 +765,7 @@ export function PupilRequirementsModal({
                   value={selectedTermId}
                   onChange={(e) => setSelectedTermId(e.target.value)}
                   disabled={!selectedAcademicYearId}
-                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-700 dark:disabled:bg-slate-900 dark:disabled:text-slate-400"
                   style={{ width: 'auto', minWidth: 'fit-content' }}
                 >
                   {selectedYearTerms.map((term) => (
@@ -781,9 +781,9 @@ export function PupilRequirementsModal({
 
             {/* Auto-assignment status */}
             {isAutoAssigning && (
-              <Alert className="mb-4 border-blue-200 bg-blue-50">
+              <Alert className="mb-4 border-blue-200 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/40">
                 <RefreshCw className="w-3 h-3 animate-spin" />
-                <AlertDescription className="text-blue-800 text-xs">
+                <AlertDescription className="text-blue-800 text-xs dark:text-blue-200">
                   Automatically assigning eligible requirements to this pupil...
                 </AlertDescription>
               </Alert>
@@ -793,13 +793,13 @@ export function PupilRequirementsModal({
             {trackingLoading || isAutoAssigning ? (
               <div className="text-center py-8">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent mb-4"></div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-slate-300">
                   {isAutoAssigning ? 'Checking and assigning requirements...' : 'Loading requirements...'}
                 </p>
               </div>
             ) : trackingRecords.length > 0 && selectedAcademicYear ? (
               <div className="space-y-2">
-                <div className="text-xs font-semibold text-gray-700 mb-1">
+                <div className="text-xs font-semibold text-gray-700 mb-1 dark:text-slate-200">
                   {getTermLabel(selectedAcademicYear, selectedTermId)} - {trackingRecords.length} requirement{trackingRecords.length !== 1 ? 's' : ''}
                 </div>
                 {trackingRecords.map((record) => {
@@ -810,11 +810,11 @@ export function PupilRequirementsModal({
                   const isFullyReceived = received.remainingToReceive === 0;
                   
                   return (
-                    <Card key={record.id} className="border border-gray-200">
+                    <Card key={record.id} className="border border-gray-200 dark:border-slate-700">
                       <CardContent className="p-3 space-y-2">
                         {/* Requirement Name */}
                         {Array.isArray(record.requirementId) ? (
-                          <h3 className="text-xs font-semibold text-gray-900 flex items-center gap-1">
+                          <h3 className="text-xs font-semibold text-gray-900 flex items-center gap-1 dark:text-slate-100">
                             <FileText className="w-3 h-3" />
                             Multiple Requirements ({record.requirementId.length})
                           </h3>
@@ -822,7 +822,7 @@ export function PupilRequirementsModal({
                           (() => {
                             const requirement = allRequirements.find(u => u.id === record.requirementId);
                             return requirement ? (
-                              <h3 className="text-xs font-semibold text-gray-900 flex items-center gap-1">
+                              <h3 className="text-xs font-semibold text-gray-900 flex items-center gap-1 dark:text-slate-100">
                                 <FileText className="w-3 h-3" />
                                 {requirement.name}
                               </h3>
@@ -834,7 +834,7 @@ export function PupilRequirementsModal({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                           {/* Payment Status */}
                           <div>
-                            <h4 className="text-[10px] font-medium text-gray-700 mb-1 flex items-center gap-1">
+                            <h4 className="text-[10px] font-medium text-gray-700 mb-1 flex items-center gap-1 dark:text-slate-200">
                               <DollarSign className="w-2.5 h-2.5" />
                               Payment (Office)
                             </h4>
@@ -849,12 +849,12 @@ export function PupilRequirementsModal({
                                 {(record.paymentStatus || 'pending').charAt(0).toUpperCase() + (record.paymentStatus || 'pending').slice(1)}
                               </Badge>
                               {record.paymentStatus !== 'pending' && (
-                                <div className="text-xs text-gray-600 text-center">
+                                <div className="text-xs text-gray-600 text-center dark:text-slate-300">
                                   Paid: <span className="font-medium">{paymentDisplay.paid}</span>
                                 </div>
                               )}
                               {getBalance(record) > 0 && (
-                                <div className="text-xs text-red-600 text-center">
+                                <div className="text-xs text-red-600 text-center dark:text-red-400">
                                   Balance: <span className="font-medium">{paymentDisplay.balance}</span>
                                 </div>
                               )}
@@ -868,42 +868,42 @@ export function PupilRequirementsModal({
                                   const receivedBy = record.receivedBy || getCurrentUserName();
                                   
                                   return (
-                                    <div className="mt-2 pt-2 border-t border-gray-200">
-                                      <div className="text-xs text-gray-700 font-medium mb-1 text-center">Payment Records</div>
+                                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-700">
+                                      <div className="text-xs text-gray-700 font-medium mb-1 text-center dark:text-slate-200">Payment Records</div>
                                       <div className="space-y-1">
-                                        <div className="text-xs bg-blue-50 rounded p-2 border border-blue-100">
+                                        <div className="text-xs bg-blue-50 rounded p-2 border border-blue-100 dark:bg-blue-950/40 dark:border-blue-800/60">
                                           <div className="flex items-center justify-between mb-1">
                                             <div className="flex items-center gap-1">
-                                              <DollarSign className="w-3 h-3 text-green-600 flex-shrink-0" />
-                                              <div className="font-medium text-green-700">
+                                              <DollarSign className="w-3 h-3 text-green-600 flex-shrink-0 dark:text-green-400" />
+                                              <div className="font-medium text-green-700 dark:text-green-300">
                                                 {formatCurrency(record.paidAmount)}
                                               </div>
                                             </div>
                                             <div className="text-right">
-                                              <div className="font-medium text-blue-700">
+                                              <div className="font-medium text-blue-700 dark:text-blue-300">
                                                 Total: {formatCurrency(record.paidAmount)}
                                               </div>
                                             </div>
                                           </div>
                                           
                                           {getBalance(record) > 0 ? (
-                                            <div className="text-red-600 text-xs mb-1">
+                                            <div className="text-red-600 text-xs mb-1 dark:text-red-400">
                                               Balance: {formatCurrency(getBalance(record))}
                                             </div>
                                           ) : (
-                                            <div className="text-green-600 text-xs mb-1 font-medium">
+                                            <div className="text-green-600 text-xs mb-1 font-medium dark:text-green-400">
                                               ✓ Fully Paid
                                             </div>
                                           )}
                                           
                                           <div className="flex items-center justify-between text-xs">
-                                            <div className="text-gray-500">
+                                            <div className="text-gray-500 dark:text-slate-400">
                                               <div>{paymentDate.toLocaleDateString()}</div>
                                               <div>{paymentDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
                                             </div>
                                             <div className="text-right">
-                                              <div className="text-gray-500">By:</div>
-                                              <div className="font-medium text-gray-700">{receivedBy}</div>
+                                              <div className="text-gray-500 dark:text-slate-400">By:</div>
+                                              <div className="font-medium text-gray-700 dark:text-slate-200">{receivedBy}</div>
                                             </div>
                                           </div>
                                         </div>
@@ -915,48 +915,48 @@ export function PupilRequirementsModal({
                                 if (paymentHistory.length === 0) return null;
                                 
                                 return (
-                                  <div className="mt-2 pt-2 border-t border-gray-200">
-                                    <div className="text-xs text-gray-700 font-medium mb-1 text-center">Payment Records</div>
+                                  <div className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-700">
+                                    <div className="text-xs text-gray-700 font-medium mb-1 text-center dark:text-slate-200">Payment Records</div>
                                     <div className="space-y-1 max-h-32 overflow-y-auto">
                                       {paymentHistory.map((entry, index) => (
-                                        <div key={index} className="text-xs bg-blue-50 rounded p-2 border border-blue-100">
+                                        <div key={index} className="text-xs bg-blue-50 rounded p-2 border border-blue-100 dark:bg-blue-950/40 dark:border-blue-800/60">
                                           <div className="flex items-center justify-between mb-1">
                                             <div className="flex items-center gap-1">
-                                              <DollarSign className="w-3 h-3 text-green-600 flex-shrink-0" />
-                                              <div className="font-medium text-green-700">
+                                              <DollarSign className="w-3 h-3 text-green-600 flex-shrink-0 dark:text-green-400" />
+                                              <div className="font-medium text-green-700 dark:text-green-300">
                                                 {formatCurrency(entry.amount)}
                                               </div>
                                               {entry.isFromParent && (
-                                                <Badge variant="outline" className="text-xs px-1 py-0 bg-green-50 text-green-700 border-green-200">
+                                                <Badge variant="outline" className="text-xs px-1 py-0 bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/60">
                                                   From Parent
                                                 </Badge>
                                               )}
                                             </div>
                                             <div className="text-right">
-                                              <div className="font-medium text-blue-700">
+                                              <div className="font-medium text-blue-700 dark:text-blue-300">
                                                 Total: {formatCurrency(entry.runningTotal)}
                                               </div>
                                             </div>
                                           </div>
                                           
                                           {entry.remainingBalance > 0 ? (
-                                            <div className="text-red-600 text-xs mb-1">
+                                            <div className="text-red-600 text-xs mb-1 dark:text-red-400">
                                               Balance: {formatCurrency(entry.remainingBalance)}
                                             </div>
                                           ) : (
-                                            <div className="text-green-600 text-xs mb-1 font-medium">
+                                            <div className="text-green-600 text-xs mb-1 font-medium dark:text-green-400">
                                               ✓ Fully Paid
                                             </div>
                                           )}
                                           
                                           <div className="flex items-center justify-between text-xs">
-                                            <div className="text-gray-500">
+                                            <div className="text-gray-500 dark:text-slate-400">
                                               <div>{entry.date.toLocaleDateString()}</div>
                                               <div>{entry.date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
                                             </div>
                                             <div className="text-right">
-                                              <div className="text-gray-500">By:</div>
-                                              <div className="font-medium text-gray-700">{entry.receivedBy || getCurrentUserName()}</div>
+                                              <div className="text-gray-500 dark:text-slate-400">By:</div>
+                                              <div className="font-medium text-gray-700 dark:text-slate-200">{entry.receivedBy || getCurrentUserName()}</div>
                                             </div>
                                           </div>
                                         </div>
@@ -970,7 +970,7 @@ export function PupilRequirementsModal({
 
                           {/* Received Status */}
                           <div>
-                            <h4 className="text-[10px] font-medium text-gray-700 mb-1 flex items-center gap-1">
+                            <h4 className="text-[10px] font-medium text-gray-700 mb-1 flex items-center gap-1 dark:text-slate-200">
                               <Package className="w-2.5 h-2.5" />
                               Received (Class)
                             </h4>
@@ -993,7 +993,7 @@ export function PupilRequirementsModal({
                                   return (
                                     <button
                                       onClick={() => handleOpenReceiveModal(record)}
-                                      className="flex flex-col items-center justify-center w-7 h-7 rounded-full bg-white text-green-600 border border-green-400 shadow-sm hover:bg-gradient-to-br hover:from-green-400 hover:via-green-500 hover:to-green-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
+                                      className="flex flex-col items-center justify-center w-7 h-7 rounded-full bg-white text-green-600 border border-green-400 shadow-sm hover:bg-gradient-to-br hover:from-green-400 hover:via-green-500 hover:to-green-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0 dark:bg-slate-900 dark:text-green-400"
                                       title="Receive Items"
                                       type="button"
                                     >
@@ -1005,28 +1005,28 @@ export function PupilRequirementsModal({
                               </div>
                               
                               {received.totalReceived > 0 && (
-                                <div className="text-xs text-gray-600 text-center">
+                                <div className="text-xs text-gray-600 text-center dark:text-slate-300">
                                   Received: <span className="font-medium">{receivedDisplay.received}</span>
                                 </div>
                               )}
                               
                               {received.remainingToReceive > 0 && (
-                                <div className="text-xs text-orange-600 text-center">
+                                <div className="text-xs text-orange-600 text-center dark:text-orange-400">
                                   {receivedDisplay.remaining}
                                 </div>
                               )}
                               
                               {/* Receipt Details */}
                               {(received.receivedFromOffice > 0 || received.receivedFromParent > 0) && (
-                                <div className="mt-2 pt-1 border-t border-gray-200">
+                                <div className="mt-2 pt-1 border-t border-gray-200 dark:border-slate-700">
                                   <div className="text-xs text-center space-y-1">
                                     {received.receivedFromOffice > 0 && (
-                                      <div className="text-blue-600">
+                                      <div className="text-blue-600 dark:text-blue-400">
                                         From Office: <span className="font-medium">{received.receivedFromOffice}</span>
                                       </div>
                                     )}
                                     {received.receivedFromParent > 0 && (
-                                      <div className="text-green-600">
+                                      <div className="text-green-600 dark:text-green-400">
                                         From Parent: <span className="font-medium">{received.receivedFromParent}</span>
                                       </div>
                                     )}
@@ -1044,32 +1044,32 @@ export function PupilRequirementsModal({
                                   const totalReceived = record.itemQuantityReceived || 0;
                                   
                                   return (
-                                    <div className="mt-2 pt-2 border-t border-gray-200">
-                                      <div className="text-xs text-gray-700 font-medium mb-1 text-center">Receipt Records</div>
+                                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-700">
+                                      <div className="text-xs text-gray-700 font-medium mb-1 text-center dark:text-slate-200">Receipt Records</div>
                                       <div className="space-y-1">
-                                        <div className="text-xs bg-green-50 rounded p-2 border border-green-100">
+                                        <div className="text-xs bg-green-50 rounded p-2 border border-green-100 dark:bg-green-950/40 dark:border-green-800/60">
                                           <div className="flex items-center justify-between mb-1">
                                             <div className="flex items-center gap-1">
-                                              <Package className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                                              <div className="font-medium text-blue-700">
+                                              <Package className="w-3 h-3 text-blue-600 flex-shrink-0 dark:text-blue-400" />
+                                              <div className="font-medium text-blue-700 dark:text-blue-300">
                                                 +{totalReceived} items
                                               </div>
                                             </div>
                                             <div className="text-right">
-                                              <div className="font-medium text-purple-700">
+                                              <div className="font-medium text-purple-700 dark:text-purple-300">
                                                 Total: {totalReceived} items
                                               </div>
                                             </div>
                                           </div>
                                           
                                           <div className="flex items-center justify-between text-xs">
-                                            <div className="text-gray-500">
+                                            <div className="text-gray-500 dark:text-slate-400">
                                               <div>{receiptDate.toLocaleDateString()}</div>
                                               <div>{receiptDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
                                             </div>
                                             <div className="text-right">
-                                              <div className="text-gray-500">Received by:</div>
-                                              <div className="font-medium text-gray-700">{receivedBy}</div>
+                                              <div className="text-gray-500 dark:text-slate-400">Received by:</div>
+                                              <div className="font-medium text-gray-700 dark:text-slate-200">{receivedBy}</div>
                                             </div>
                                           </div>
                                         </div>
@@ -1081,59 +1081,59 @@ export function PupilRequirementsModal({
                                 if (receiptHistory.length === 0) return null;
                                 
                                 return (
-                                  <div className="mt-2 pt-2 border-t border-gray-200">
-                                    <div className="text-xs text-gray-700 font-medium mb-1 text-center">Receipt Records</div>
+                                  <div className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-700">
+                                    <div className="text-xs text-gray-700 font-medium mb-1 text-center dark:text-slate-200">Receipt Records</div>
                                     <div className="space-y-1 max-h-32 overflow-y-auto">
                                       {receiptHistory.map((entry, index) => (
-                                        <div key={index} className="text-xs bg-green-50 rounded p-2 border border-green-100">
+                                        <div key={index} className="text-xs bg-green-50 rounded p-2 border border-green-100 dark:bg-green-950/40 dark:border-green-800/60">
                                           <div className="flex items-center justify-between mb-1">
                                             <div className="flex items-center gap-1">
-                                              <Package className="w-3 h-3 text-blue-600 flex-shrink-0" />
-                                              <div className="font-medium text-blue-700">
+                                              <Package className="w-3 h-3 text-blue-600 flex-shrink-0 dark:text-blue-400" />
+                                              <div className="font-medium text-blue-700 dark:text-blue-300">
                                                 +{entry.itemQuantity} items
                                               </div>
                                               <Badge 
                                                 variant="outline" 
                                                 className={`text-xs px-1 py-0 ${
                                                   entry.source === 'office' 
-                                                    ? 'bg-blue-50 text-blue-700 border-blue-200' 
-                                                    : 'bg-green-50 text-green-700 border-green-200'
+                                                    ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60'
+                                                    : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/60'
                                                 }`}
                                               >
                                                 {entry.source === 'office' ? 'Office' : 'Parent'}
                                               </Badge>
                                             </div>
                                             <div className="text-right">
-                                              <div className="font-medium text-purple-700">
+                                              <div className="font-medium text-purple-700 dark:text-purple-300">
                                                 Total: {entry.runningTotal} items
                                               </div>
                                             </div>
                                           </div>
                                           
                                           {entry.cashEquivalent > 0 && (
-                                            <div className="text-green-600 text-xs mb-1">
+                                            <div className="text-green-600 text-xs mb-1 dark:text-green-400">
                                               Cash value: {formatCurrency(entry.cashEquivalent)}
                                             </div>
                                           )}
                                           
                                           {entry.remainingItems > 0 ? (
-                                            <div className="text-orange-600 text-xs mb-1">
+                                            <div className="text-orange-600 text-xs mb-1 dark:text-orange-400">
                                               Remaining: {entry.remainingItems} items
                                             </div>
                                           ) : (
-                                            <div className="text-green-600 text-xs mb-1 font-medium">
+                                            <div className="text-green-600 text-xs mb-1 font-medium dark:text-green-400">
                                               ✓ All Items Received
                                             </div>
                                           )}
                                           
                                           <div className="flex items-center justify-between text-xs">
-                                            <div className="text-gray-500">
+                                            <div className="text-gray-500 dark:text-slate-400">
                                               <div>{entry.date.toLocaleDateString()}</div>
                                               <div>{entry.date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
                                             </div>
                                             <div className="text-right">
-                                              <div className="text-gray-500">Received by:</div>
-                                              <div className="font-medium text-gray-700">{entry.receivedBy || getCurrentUserName()}</div>
+                                              <div className="text-gray-500 dark:text-slate-400">Received by:</div>
+                                              <div className="font-medium text-gray-700 dark:text-slate-200">{entry.receivedBy || getCurrentUserName()}</div>
                                             </div>
                                           </div>
                                         </div>
@@ -1144,7 +1144,7 @@ export function PupilRequirementsModal({
                               })()}
                               
                               {record.lastClassReceiptDate && (
-                                <div className="text-xs text-gray-500 text-center mt-1">
+                                <div className="text-xs text-gray-500 text-center mt-1 dark:text-slate-400">
                                   Last received: {new Date(record.lastClassReceiptDate).toLocaleDateString()}
                                   {record.lastClassReceivedBy && (
                                     <div>By: {record.lastClassReceivedBy}</div>
@@ -1160,11 +1160,11 @@ export function PupilRequirementsModal({
                 })}
               </div>
             ) : !trackingLoading && selectedAcademicYearId && selectedTermId ? (
-              <div className="text-center py-6 text-gray-500 text-sm">
+              <div className="text-center py-6 text-gray-500 text-sm dark:text-slate-400">
                 No requirements have been assigned to this pupil for the selected term yet.
               </div>
             ) : !selectedAcademicYearId || !selectedTermId ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-500 dark:text-slate-400">
                 <p>Please select an academic year and term.</p>
               </div>
             ) : null}

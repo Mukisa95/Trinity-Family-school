@@ -29,20 +29,20 @@ interface NotificationListProps {
 }
 
 const PRIORITY_COLORS = {
-    low: 'bg-gray-100 text-gray-800 border-gray-200',
-    medium: 'bg-blue-100 text-blue-800 border-blue-200',
-    high: 'bg-orange-100 text-orange-800 border-orange-200',
-    urgent: 'bg-red-100 text-red-800 border-red-200',
+    low: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700',
+    medium: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60',
+    high: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60',
+    urgent: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60',
 };
 
 const STATUS_COLORS = {
-    pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    completed: 'bg-green-100 text-green-800 border-green-200',
-    cancelled: 'bg-gray-100 text-gray-800 border-gray-200',
-    failed: 'bg-red-100 text-red-800 border-red-200',
-    sent: 'bg-blue-100 text-blue-800 border-blue-200',
-    delivered: 'bg-green-100 text-green-800 border-green-200',
-    read: 'bg-green-100 text-green-800 border-green-200',
+    pending: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60',
+    completed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60',
+    cancelled: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700',
+    failed: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60',
+    sent: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60',
+    delivered: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60',
+    read: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60',
 };
 
 export function NotificationList({
@@ -67,8 +67,8 @@ export function NotificationList({
         return (
             <Card>
                 <CardContent className="text-center p-10">
-                    <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">{emptyMessage}</p>
+                    <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4 dark:text-slate-400" />
+                    <p className="text-gray-500 dark:text-slate-400">{emptyMessage}</p>
                 </CardContent>
             </Card>
         );
@@ -93,13 +93,13 @@ export function NotificationList({
                                         {notification.status}
                                     </Badge>
                                     {notification.enablePush && (
-                                        <Badge variant="outline" className="text-blue-600 border-blue-200">
+                                        <Badge variant="outline" className="text-blue-600 border-blue-200 dark:text-blue-400 dark:border-blue-800/60">
                                             <Smartphone className="w-3 h-3 mr-1" />
                                             Push
                                         </Badge>
                                     )}
                                     {notification.type === 'flow' && (
-                                        <Badge variant="outline" className="text-purple-600 border-purple-200">
+                                        <Badge variant="outline" className="text-purple-600 border-purple-200 dark:text-purple-400 dark:border-purple-800/60">
                                             <FileText className="w-3 h-3 mr-1" />
                                             Flow
                                         </Badge>
@@ -121,7 +121,7 @@ export function NotificationList({
                                             e.stopPropagation();
                                             onMarkCompleted(notification.id);
                                         }}
-                                        className="h-8 w-8 text-green-600 hover:text-green-700"
+                                        className="h-8 w-8 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
                                     >
                                         <CheckCircle className="w-4 h-4" />
                                     </Button>
@@ -134,7 +134,7 @@ export function NotificationList({
                                             e.stopPropagation();
                                             onDelete(notification.id);
                                         }}
-                                        className="h-8 w-8 text-red-600 hover:text-red-700"
+                                        className="h-8 w-8 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </Button>
@@ -144,7 +144,7 @@ export function NotificationList({
                     </CardHeader>
 
                     <CardContent className="pt-0">
-                        <div className="flex items-center justify-between text-sm text-gray-500">
+                        <div className="flex items-center justify-between text-sm text-gray-500 dark:text-slate-400">
                             <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-1">
                                     <Calendar className="w-4 h-4" />
@@ -167,11 +167,11 @@ export function NotificationList({
 
                             {showSenderView && notification.deliveryStats && (
                                 <div className="flex items-center gap-2 text-xs">
-                                    <span className="text-green-600">
+                                    <span className="text-green-600 dark:text-green-400">
                                         {notification.deliveryStats.sent} sent
                                     </span>
                                     {notification.deliveryStats.failed > 0 && (
-                                        <span className="text-red-600">
+                                        <span className="text-red-600 dark:text-red-400">
                                             {notification.deliveryStats.failed} failed
                                         </span>
                                     )}
@@ -182,7 +182,7 @@ export function NotificationList({
 
                     {/* Expanded Content Section */}
                     {expandedId === notification.id && (
-                        <CardContent className="pt-0 border-t bg-gray-50">
+                        <CardContent className="pt-0 border-t bg-gray-50 dark:bg-slate-900">
                             <div className="space-y-4 pt-4">
                                 {/* Flow notification rich content */}
                                 {notification.type === 'flow' && notification.richContent && (
@@ -190,7 +190,7 @@ export function NotificationList({
                                         {notification.richContent.longMessage && (
                                             <div>
                                                 <h4 className="font-semibold text-sm mb-2">Full Message:</h4>
-                                                <div className="bg-white p-3 rounded border text-sm whitespace-pre-wrap">
+                                                <div className="bg-white p-3 rounded border text-sm whitespace-pre-wrap dark:bg-slate-900">
                                                     {notification.richContent.longMessage}
                                                 </div>
                                             </div>
@@ -201,17 +201,17 @@ export function NotificationList({
                                                 <h4 className="font-semibold text-sm mb-2">Attachments:</h4>
                                                 <div className="space-y-2">
                                                     {notification.richContent.attachments.map((attachment, index) => (
-                                                        <div key={index} className="flex items-center gap-3 p-2 bg-white rounded border">
+                                                        <div key={index} className="flex items-center gap-3 p-2 bg-white rounded border dark:bg-slate-900">
                                                             {attachment.type === 'image' ? (
                                                                 <img src="/api/placeholder/40/40" alt="Attachment" className="w-8 h-8 rounded" />
                                                             ) : attachment.type === 'pdf' ? (
-                                                                <FileText className="w-8 h-8 text-red-500" />
+                                                                <FileText className="w-8 h-8 text-red-500 dark:text-red-400" />
                                                             ) : (
-                                                                <Paperclip className="w-8 h-8 text-gray-500" />
+                                                                <Paperclip className="w-8 h-8 text-gray-500 dark:text-slate-400" />
                                                             )}
                                                             <div className="flex-1">
                                                                 <p className="text-sm font-medium">{attachment.name}</p>
-                                                                <p className="text-xs text-gray-500">
+                                                                <p className="text-xs text-gray-500 dark:text-slate-400">
                                                                     {(attachment.size / 1024 / 1024).toFixed(2)} MB
                                                                 </p>
                                                             </div>

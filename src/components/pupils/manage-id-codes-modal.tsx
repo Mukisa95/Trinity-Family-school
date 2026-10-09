@@ -163,7 +163,7 @@ export function ManageIdCodesModal({
       <ModernDialogContent size="lg" open={isOpen} onOpenChange={(open) => !open && handleModalClose()}>
         <ModernDialogHeader>
           <ModernDialogTitle className="flex items-center">
-            <CreditCard className="mr-2 h-5 w-5 text-green-600" />
+            <CreditCard className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
             Manage ID Codes - {pupilName}
           </ModernDialogTitle>
         </ModernDialogHeader>
@@ -172,7 +172,7 @@ export function ManageIdCodesModal({
           {/* Existing ID Codes List */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-900">Current ID Codes</h3>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-slate-100">Current ID Codes</h3>
               <Button
                 onClick={handleAddNew}
                 size="sm"
@@ -184,7 +184,7 @@ export function ManageIdCodesModal({
             </div>
             
             {identifiers.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-500 dark:text-slate-400">
                 <CreditCard className="mx-auto h-12 w-12 text-gray-300 mb-2" />
                 <p>No ID codes added yet</p>
                 <p className="text-xs">Click "Add New" to add an ID code</p>
@@ -194,7 +194,7 @@ export function ManageIdCodesModal({
                 {identifiers.map((identifier, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50"
+                    className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50 dark:border-slate-700 dark:bg-slate-900"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -202,7 +202,7 @@ export function ManageIdCodesModal({
                           {identifier.idType}
                         </Badge>
                       </div>
-                      <p className="font-mono text-sm text-gray-900">
+                      <p className="font-mono text-sm text-gray-900 dark:text-slate-100">
                         {identifier.idValue}
                       </p>
                     </div>
@@ -219,7 +219,7 @@ export function ManageIdCodesModal({
                         onClick={() => handleDelete(index)}
                         size="sm"
                         variant="outline"
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/40"
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -233,14 +233,14 @@ export function ManageIdCodesModal({
           {/* Add/Edit Form */}
           {isFormOpen && (
             <div className="border-t pt-4 space-y-4">
-              <h3 className="text-sm font-medium text-gray-900">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-slate-100">
                 {editingIndex !== null ? 'Edit ID Code' : 'Add New ID Code'}
               </h3>
               <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={formValidation.focusField} />
               
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="managedIdType" className={formValidation.getFieldError('managedIdType') ? 'text-red-700' : undefined}>ID Type <span className="text-red-600">*</span></Label>
+                  <Label htmlFor="managedIdType" className={formValidation.getFieldError('managedIdType') ? 'text-red-700 dark:text-red-300' : undefined}>ID Type <span className="text-red-600 dark:text-red-400">*</span></Label>
                   <Select
                     value={formData.idType}
                     onValueChange={(value) => { setFormData(prev => ({ ...prev, idType: value as IdType | '' })); formValidation.handleFieldChange('managedIdType'); }}
@@ -261,7 +261,7 @@ export function ManageIdCodesModal({
 
                 {formData.idType === 'Other' && (
                   <div className="space-y-2">
-                    <Label htmlFor="managedCustomIdName" className={formValidation.getFieldError('managedCustomIdName') ? 'text-red-700' : undefined}>Custom Type Name <span className="text-red-600">*</span></Label>
+                    <Label htmlFor="managedCustomIdName" className={formValidation.getFieldError('managedCustomIdName') ? 'text-red-700 dark:text-red-300' : undefined}>Custom Type Name <span className="text-red-600 dark:text-red-400">*</span></Label>
                     <Input
                       id="managedCustomIdName"
                       value={formData.customIdName}
@@ -274,7 +274,7 @@ export function ManageIdCodesModal({
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="managedIdValue" className={formValidation.getFieldError('managedIdValue') ? 'text-red-700' : undefined}>ID Value <span className="text-red-600">*</span></Label>
+                  <Label htmlFor="managedIdValue" className={formValidation.getFieldError('managedIdValue') ? 'text-red-700 dark:text-red-300' : undefined}>ID Value <span className="text-red-600 dark:text-red-400">*</span></Label>
                   <Input
                     id="managedIdValue"
                     value={formData.idValue}

@@ -28,41 +28,41 @@ import { motion, AnimatePresence } from 'framer-motion';
 const sectionColors: Record<string, { icon: string; text: string; activeBg: string; activeIcon: string }> = {
   Overview: {
     icon: 'text-blue-600 dark:text-blue-400 group-hover:text-blue-750',
-    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900',
+    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
     activeBg: 'bg-blue-50 dark:bg-blue-950/30 text-blue-800 dark:text-blue-200 border border-blue-200/60 dark:border-blue-900/50 shadow-sm',
     activeIcon: 'text-blue-700 dark:text-blue-300'
   },
   Academics: {
     icon: 'text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-750',
-    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900',
+    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
     activeBg: 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-200 border border-indigo-200/60 dark:border-indigo-900/50 shadow-sm',
     activeIcon: 'text-indigo-700 dark:text-indigo-300'
   },
   Finance: {
     icon: 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-750',
-    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900',
+    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
     activeBg: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-805 dark:text-emerald-205 border border-emerald-200/60 dark:border-emerald-900/50 shadow-sm',
     activeIcon: 'text-emerald-700 dark:text-emerald-300'
   },
   Communications: {
     icon: 'text-rose-600 dark:text-rose-400 group-hover:text-rose-750',
-    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900',
+    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
     activeBg: 'bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-200 border border-rose-200/60 dark:border-rose-900/50 shadow-sm',
     activeIcon: 'text-rose-700 dark:text-rose-300'
   },
   Administration: {
     icon: 'text-amber-600 dark:text-amber-400 group-hover:text-amber-750',
-    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900',
+    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
     activeBg: 'bg-amber-50 dark:bg-amber-950/30 text-amber-808 dark:text-amber-205 border border-amber-200/60 dark:border-amber-900/50 shadow-sm',
     activeIcon: 'text-amber-700 dark:text-amber-300'
   }
 };
 
 const defaultColors = {
-  icon: 'text-slate-500 group-hover:text-slate-700',
-  text: 'text-slate-700 group-hover:text-slate-900',
-  activeBg: 'bg-blue-50 text-blue-800 border border-blue-200 shadow-sm',
-  activeIcon: 'text-blue-700'
+  icon: 'text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200',
+  text: 'text-slate-700 group-hover:text-slate-900 dark:text-slate-200 dark:group-hover:text-slate-100',
+  activeBg: 'bg-blue-50 text-blue-800 border border-blue-200 shadow-sm dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60',
+  activeIcon: 'text-blue-700 dark:text-blue-300'
 };
 
 interface SidebarNavProps {
@@ -152,7 +152,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
             !isCollapsed && 'hover:translate-x-[3px]',
             active
               ? colors.activeBg
-              : 'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900',
+              : 'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-900/70 dark:hover:text-slate-100',
             item.disabled && 'opacity-50 cursor-not-allowed pointer-events-none',
             isCollapsed ? 'justify-center px-2' : 'px-3'
           )}
@@ -248,7 +248,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
                   className={cn(
                     'flex items-center justify-center w-full px-2 py-1.5 rounded-lg group',
                     'transition-all ease-out duration-200 active:scale-[0.98]',
-                    active ? colors.activeBg : 'text-slate-500 hover:bg-slate-100/70 hover:text-slate-800'
+                    active ? colors.activeBg : 'text-slate-500 hover:bg-slate-100/70 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-900/70 dark:hover:text-slate-100'
                   )}
                 >
                   <Icon 
@@ -264,14 +264,14 @@ export function SidebarNav({ items }: SidebarNavProps) {
                 side="right"
                 align="start"
                 sideOffset={8}
-                className="p-0 w-48 shadow-lg border border-gray-100 rounded-lg overflow-hidden"
+                className="p-0 w-48 shadow-lg border border-gray-100 rounded-lg overflow-hidden dark:border-slate-700"
                 onMouseEnter={openPopover}
                 onMouseLeave={closePopover}
                 onOpenAutoFocus={e => e.preventDefault()}
               >
                 {/* Group title */}
-                <div className="px-3 py-2 bg-slate-50 border-b border-slate-100">
-                  <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 dark:bg-slate-900 dark:border-slate-700">
+                  <p className="text-xs font-bold text-slate-700 uppercase tracking-wider dark:text-slate-200">
                     {item.title}
                   </p>
                 </div>
@@ -292,7 +292,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={closePopover}
-                          className="flex items-center gap-2.5 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 transition-all ease-out duration-200 hover:translate-x-[3px] active:scale-[0.98]"
+                          className="flex items-center gap-2.5 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 transition-all ease-out duration-200 hover:translate-x-[3px] active:scale-[0.98] dark:text-slate-200 dark:hover:bg-slate-900"
                         >
                           <SubIcon size={14} className={cn("shrink-0", colors.icon)} />
                           <span className="truncate">{sub.title}</span>
@@ -310,7 +310,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
                           'transition-all ease-out duration-200 hover:translate-x-[3px] active:scale-[0.98]',
                           subActive
                             ? colors.activeBg + ' font-medium'
-                            : 'text-slate-700 hover:bg-slate-50',
+                            : 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900',
                           sub.disabled && 'opacity-50 pointer-events-none'
                         )}
                       >
@@ -349,7 +349,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
               !isCollapsed && 'hover:translate-x-[3px]',
               active
                 ? colors.activeBg
-                : 'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900',
+                : 'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-900/70 dark:hover:text-slate-100',
               isCollapsed ? 'justify-center px-2' : 'px-3'
             )}
           >
@@ -377,7 +377,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0, opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="shrink-0 text-slate-500 ml-auto group-hover:text-slate-700"
+                  className="shrink-0 text-slate-500 ml-auto group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200"
                 >
                   {isOpen ? (
                     <ChevronDown size={14} className="transition-transform duration-205" />
@@ -397,7 +397,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
-                className="mt-0.5 ml-4 pl-3 border-l border-slate-200 space-y-0.5 overflow-hidden"
+                className="mt-0.5 ml-4 pl-3 border-l border-slate-200 space-y-0.5 overflow-hidden dark:border-slate-700"
               >
                 {filteredSubs.map((sub, si) => {
                   const SubIcon = sub.icon;
@@ -412,7 +412,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
                           : sub.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2.5 px-3 py-1 rounded-md text-sm text-slate-750 hover:bg-slate-100 hover:text-slate-900 transition-all ease-out duration-200 hover:translate-x-[3px] active:scale-[0.98]"
+                        className="flex items-center gap-2.5 px-3 py-1 rounded-md text-sm text-slate-750 hover:bg-slate-100 hover:text-slate-900 transition-all ease-out duration-200 hover:translate-x-[3px] active:scale-[0.98] dark:hover:bg-slate-900 dark:hover:text-slate-100"
                       >
                         <SubIcon size={14} className={cn("shrink-0", colors.icon)} />
                         <span className="truncate">{sub.title}</span>
@@ -430,7 +430,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
                         'transition-all ease-out duration-200 hover:translate-x-[3px] active:scale-[0.98]',
                         subActive
                           ? colors.activeBg + ' font-semibold'
-                          : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900',
+                          : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-100',
                         sub.disabled && 'opacity-50 pointer-events-none'
                       )}
                     >

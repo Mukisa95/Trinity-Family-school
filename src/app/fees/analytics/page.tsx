@@ -467,10 +467,10 @@ export default function CollectionAnalyticsPage() {
   if (!yearsLoading && allYears.length === 0) {
     return (
       <div className="min-h-screen p-6 flex items-center justify-center">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center max-w-md">
-          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-yellow-900 mb-2">Setup Required</h2>
-          <p className="text-yellow-600">Please configure academic years and terms first.</p>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center max-w-md dark:bg-yellow-950/40 dark:border-yellow-800/60">
+          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4 dark:text-yellow-400" />
+          <h2 className="text-xl font-bold text-yellow-900 mb-2 dark:text-yellow-200">Setup Required</h2>
+          <p className="text-yellow-600 dark:text-yellow-400">Please configure academic years and terms first.</p>
         </div>
       </div>
     );
@@ -488,10 +488,10 @@ export default function CollectionAnalyticsPage() {
           setManualYearId(e.target.value);
           setManualTermId(undefined);
         }}
-        className="appearance-none h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-3 text-[10px] font-semibold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer text-center"
+        className="appearance-none h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-3 text-[10px] font-semibold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer text-center dark:border-indigo-800/60 dark:bg-slate-900/90 dark:text-indigo-300"
       >
         {allYears.map(year => (
-          <option key={year.id} value={year.id} className="text-gray-900 bg-white">
+          <option key={year.id} value={year.id} className="text-gray-900 bg-white dark:text-slate-100 dark:bg-slate-900">
             {year.name}
           </option>
         ))}
@@ -501,17 +501,17 @@ export default function CollectionAnalyticsPage() {
       <select
         value={effectiveTermId}
         onChange={(e) => setManualTermId(e.target.value)}
-        className="appearance-none h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-3 text-[10px] font-semibold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer text-center"
+        className="appearance-none h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-3 text-[10px] font-semibold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer text-center dark:border-indigo-800/60 dark:bg-slate-900/90 dark:text-indigo-300"
       >
         {activeYear?.terms?.map(term => (
-          <option key={term.id} value={term.id} className="text-gray-900 bg-white">
+          <option key={term.id} value={term.id} className="text-gray-900 bg-white dark:text-slate-100 dark:bg-slate-900">
             {term.name}
           </option>
         ))}
       </select>
 
       {/* Separator / Divider */}
-      <div className="w-px h-5 bg-indigo-200/40 mx-0.5" />
+      <div className="w-px h-5 bg-indigo-200/40 mx-0.5 dark:bg-indigo-900/40" />
 
       {/* Analysis View Selector */}
       <select
@@ -519,11 +519,11 @@ export default function CollectionAnalyticsPage() {
         onChange={(e) => {
           setAnalysisView(e.target.value as 'daily' | 'weekly' | 'term');
         }}
-        className="appearance-none h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-3 text-[10px] font-semibold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer text-center"
+        className="appearance-none h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-3 text-[10px] font-semibold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer text-center dark:border-indigo-800/60 dark:bg-slate-900/90 dark:text-indigo-300"
       >
-        <option value="daily" className="text-gray-900 bg-white">Daily</option>
-        <option value="weekly" className="text-gray-900 bg-white">Weekly</option>
-        <option value="term" className="text-gray-900 bg-white">Termly</option>
+        <option value="daily" className="text-gray-900 bg-white dark:text-slate-100 dark:bg-slate-900">Daily</option>
+        <option value="weekly" className="text-gray-900 bg-white dark:text-slate-100 dark:bg-slate-900">Weekly</option>
+        <option value="term" className="text-gray-900 bg-white dark:text-slate-100 dark:bg-slate-900">Termly</option>
       </select>
 
       {/* Date/Week Selector */}
@@ -534,13 +534,13 @@ export default function CollectionAnalyticsPage() {
           onChange={(e) => setSelectedDate(e.target.value)}
           min={termDates?.startDate.toISOString().split('T')[0]}
           max={termDates?.endDate.toISOString().split('T')[0]}
-          className="h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-2 text-[10px] font-semibold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer"
+          className="h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-2 text-[10px] font-semibold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer dark:border-indigo-800/60 dark:bg-slate-900/90 dark:text-indigo-300"
         />
       )}
 
       {analysisView === 'weekly' && (
-        <div className="flex items-center gap-1 bg-white/90 rounded-full border border-indigo-200/60 shadow-sm px-2.5 h-[30px] text-[10px] font-semibold text-indigo-700">
-          <span className="text-gray-400 font-medium">Week:</span>
+        <div className="flex items-center gap-1 bg-white/90 rounded-full border border-indigo-200/60 shadow-sm px-2.5 h-[30px] text-[10px] font-semibold text-indigo-700 dark:bg-slate-900/90 dark:border-indigo-800/60 dark:text-indigo-300">
+          <span className="text-gray-400 font-medium dark:text-slate-400">Week:</span>
           <input
             type="date"
             value={selectedWeekStart}
@@ -554,10 +554,10 @@ export default function CollectionAnalyticsPage() {
             }}
             min={termDates?.startDate.toISOString().split('T')[0]}
             max={termDates?.endDate.toISOString().split('T')[0]}
-            className="border-0 focus:ring-0 focus:outline-none text-[10px] font-semibold text-indigo-700 bg-transparent w-[95px] cursor-pointer"
+            className="border-0 focus:ring-0 focus:outline-none text-[10px] font-semibold text-indigo-700 bg-transparent w-[95px] cursor-pointer dark:text-indigo-300"
             title="Click to select week"
           />
-          <span className="text-indigo-600 font-extrabold ml-1">
+          <span className="text-indigo-600 font-extrabold ml-1 dark:text-indigo-400">
             {selectedWeekStart && (() => {
               const monday = new Date(selectedWeekStart);
               const sunday = new Date(monday);
@@ -569,7 +569,7 @@ export default function CollectionAnalyticsPage() {
       )}
 
       {analysisView === 'term' && termDates && (
-        <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-50/80 border border-indigo-200/60 text-[10px] font-semibold text-indigo-700 shadow-sm h-[30px]">
+        <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-50/80 border border-indigo-200/60 text-[10px] font-semibold text-indigo-700 shadow-sm h-[30px] dark:bg-indigo-950/80 dark:border-indigo-800/60 dark:text-indigo-300">
           <Calendar className="w-3 h-3" />
           <span>
             {termDates.startDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })} - {termDates.endDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
@@ -587,7 +587,7 @@ export default function CollectionAnalyticsPage() {
           <div className="bg-indigo-600 text-white py-2 px-4 shadow-lg">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent dark:border-slate-700"></div>
                 <span className="text-sm font-medium">
                   {isProcessing ? `Calculating analytics... ${progressPercentage.toFixed(0)}%` : 'Loading data...'}
                 </span>
@@ -595,7 +595,7 @@ export default function CollectionAnalyticsPage() {
               {progressPercentage > 0 && (
                 <div className="w-48 bg-indigo-700 rounded-full h-2">
                   <div
-                    className="bg-white h-2 rounded-full transition-all duration-300"
+                    className="bg-white h-2 rounded-full transition-all duration-300 dark:bg-slate-900"
                     style={{ width: `${progressPercentage}%` }}
                   />
                 </div>
@@ -649,7 +649,7 @@ export default function CollectionAnalyticsPage() {
               </div>
             </>
           ) : (
-            <div className="flex items-center gap-1 bg-indigo-50 border border-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-md text-[10px] sm:text-xs animate-pulse">
+            <div className="flex items-center gap-1 bg-indigo-50 border border-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-md text-[10px] sm:text-xs animate-pulse dark:bg-indigo-950/40 dark:border-indigo-800/60 dark:text-indigo-300">
               <span>Calculating statistics...</span>
             </div>
           )
@@ -664,29 +664,29 @@ export default function CollectionAnalyticsPage() {
           {/* Integrated Header */}
           <div
             onClick={() => !loadingDatePayments && dateFilteredStats && setExpandedDatePayments(!expandedDatePayments)}
-            className={`bg-gradient-to-br from-green-50 via-blue-50 to-cyan-50 p-4 md:p-6 cursor-pointer hover:shadow-inner transition-all ${!loadingDatePayments && dateFilteredStats ? 'cursor-pointer' : ''
+            className={`bg-gradient-to-br from-green-50 via-blue-50 to-cyan-50 p-4 md:p-6 cursor-pointer hover:shadow-inner transition-all  dark:from-green-950/40 dark:via-blue-950/40 dark:to-cyan-950/40${!loadingDatePayments && dateFilteredStats ? 'cursor-pointer' : ''
               }`}
           >
             {/* Top Row: Title */}
             <div className="flex items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
-                <h3 className="text-base md:text-lg font-bold text-blue-900">Collection by Date</h3>
+                <Calendar className="w-5 h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
+                <h3 className="text-base md:text-lg font-bold text-blue-900 dark:text-blue-200">Collection by Date</h3>
               </div>
             </div>
 
             {/* Stats Display - Compact */}
             {loadingDatePayments ? (
-              <div className="text-center py-6 text-gray-500">
+              <div className="text-center py-6 text-gray-500 dark:text-slate-400">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
                 <p className="text-xs">Loading...</p>
               </div>
             ) : dateFilteredStats && (
-              <div className="bg-white/80 backdrop-blur rounded-lg p-3 md:p-4 border-2 border-green-200 shadow-sm">
+              <div className="bg-white/80 backdrop-blur rounded-lg p-3 md:p-4 border-2 border-green-200 shadow-sm dark:bg-slate-900/80 dark:border-green-800/60">
                 <div className="flex items-center justify-between gap-3">
                   {/* Left: Total */}
                   <div className="flex-1">
-                    <p className="text-[10px] md:text-xs font-semibold text-gray-600 uppercase mb-1">
+                    <p className="text-[10px] md:text-xs font-semibold text-gray-600 uppercase mb-1 dark:text-slate-300">
                       {analysisView === 'daily'
                         ? new Date(selectedDate).toLocaleDateString() === new Date().toLocaleDateString()
                           ? "Today's Collection"
@@ -695,13 +695,13 @@ export default function CollectionAnalyticsPage() {
                           ? "Week Collection"
                           : "Term Collection"}
                     </p>
-                    <p className="text-xl md:text-2xl font-bold text-green-700">
+                    <p className="text-xl md:text-2xl font-bold text-green-700 dark:text-green-300">
                       <AnimatedCurrency amount={dateFilteredStats.totalCollected} duration={1500} />
                     </p>
                     <div className="flex flex-wrap items-center gap-2 text-[10px] md:text-xs mt-1">
-                      <span className="text-blue-600">📅 {dateFilteredStats.dateRange}</span>
-                      <span className="text-gray-400">•</span>
-                      <span className="text-green-600">
+                      <span className="text-blue-600 dark:text-blue-400">📅 {dateFilteredStats.dateRange}</span>
+                      <span className="text-gray-400 dark:text-slate-400">•</span>
+                      <span className="text-green-600 dark:text-green-400">
                         <AnimatedNumber value={dateFilteredStats.paymentsCount} duration={1500} /> pmts
                       </span>
                     </div>
@@ -709,7 +709,7 @@ export default function CollectionAnalyticsPage() {
 
                   {/* Right: Percentage */}
                   <div className="text-right">
-                    <p className="text-xl md:text-2xl font-bold text-purple-900">
+                    <p className="text-xl md:text-2xl font-bold text-purple-900 dark:text-purple-200">
                       {isDataReady && stats ? (
                         <AnimatedPercentage
                           value={(dateFilteredStats.totalCollected / stats.totalCollected) * 100}
@@ -720,7 +720,7 @@ export default function CollectionAnalyticsPage() {
                         '0.0%'
                       )}
                     </p>
-                    <p className="text-[10px] md:text-xs text-purple-600 mt-1">of term</p>
+                    <p className="text-[10px] md:text-xs text-purple-600 mt-1 dark:text-purple-400">of term</p>
                   </div>
                 </div>
               </div>
@@ -729,39 +729,39 @@ export default function CollectionAnalyticsPage() {
             {/* Expandable Payment Details */}
             {!loadingDatePayments && dateFilteredStats && expandedDatePayments && (
               <div
-                className="mt-4 md:mt-6 pt-4 md:pt-6 border-t-2 border-dashed border-blue-300"
+                className="mt-4 md:mt-6 pt-4 md:pt-6 border-t-2 border-dashed border-blue-300 dark:border-blue-800/60"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center gap-2 mb-3 md:mb-4">
                   <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
                     {dateFilteredStats.pupilsWithPayments.length}
                   </div>
-                  <h4 className="text-sm md:text-base font-bold text-blue-900">Payment Details</h4>
+                  <h4 className="text-sm md:text-base font-bold text-blue-900 dark:text-blue-200">Payment Details</h4>
                 </div>
                 {/* Mobile scroll hint */}
-                <div className="md:hidden px-3 py-2 bg-blue-50 border-b border-blue-100 rounded-t-lg">
-                  <p className="text-[10px] text-blue-600 text-center">← Scroll to view all columns →</p>
+                <div className="md:hidden px-3 py-2 bg-blue-50 border-b border-blue-100 rounded-t-lg dark:bg-blue-950/40 dark:border-blue-800/60">
+                  <p className="text-[10px] text-blue-600 text-center dark:text-blue-400">← Scroll to view all columns →</p>
                 </div>
 
-                <div className="overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gradient-to-r from-gray-50 to-blue-50">
+                <div className="overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                    <thead className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-slate-900 dark:to-blue-950/40">
                       <tr>
-                        <th className="px-2 md:px-4 py-2 md:py-3 text-left text-[10px] md:text-xs font-semibold text-gray-700 uppercase">Pupil</th>
-                        <th className="px-2 md:px-4 py-2 md:py-3 text-right text-[10px] md:text-xs font-semibold text-gray-700 uppercase">Term Total</th>
-                        <th className="px-2 md:px-4 py-2 md:py-3 text-right text-[10px] md:text-xs font-semibold text-gray-700 uppercase">
+                        <th className="px-2 md:px-4 py-2 md:py-3 text-left text-[10px] md:text-xs font-semibold text-gray-700 uppercase dark:text-slate-200">Pupil</th>
+                        <th className="px-2 md:px-4 py-2 md:py-3 text-right text-[10px] md:text-xs font-semibold text-gray-700 uppercase dark:text-slate-200">Term Total</th>
+                        <th className="px-2 md:px-4 py-2 md:py-3 text-right text-[10px] md:text-xs font-semibold text-gray-700 uppercase dark:text-slate-200">
                           Paid in {analysisView === 'daily' ? 'Day' : analysisView === 'weekly' ? 'Week' : 'Term'}
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white divide-y divide-gray-200 dark:bg-slate-900 dark:divide-slate-700">
                       {dateFilteredStats.pupilsWithPayments.map((pupilPayment) => {
                         const pupilFeesData = pupilFeesInfo[pupilPayment.pupilId];
                         const isPaymentExpanded = expandedPupilPayments[pupilPayment.pupilId];
 
                         return (
                           <React.Fragment key={pupilPayment.pupilId}>
-                            <tr className="hover:bg-gray-50">
+                            <tr className="hover:bg-gray-50 dark:hover:bg-slate-900">
                               <td className="px-2 md:px-4 py-2 md:py-3">
                                 <button
                                   onClick={(e) => {
@@ -770,27 +770,27 @@ export default function CollectionAnalyticsPage() {
                                   }}
                                   className="text-left hover:underline"
                                 >
-                                  <div className="text-[9px] md:text-[10px] font-bold text-gray-700 uppercase mb-0.5">{pupilPayment.classCode}</div>
-                                  <div className="text-xs md:text-sm font-medium text-blue-600 hover:text-blue-800">{pupilPayment.pupilName}</div>
-                                  <div className="text-[10px] md:text-xs text-gray-500">{pupilPayment.section}</div>
+                                  <div className="text-[9px] md:text-[10px] font-bold text-gray-700 uppercase mb-0.5 dark:text-slate-200">{pupilPayment.classCode}</div>
+                                  <div className="text-xs md:text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">{pupilPayment.pupilName}</div>
+                                  <div className="text-[10px] md:text-xs text-gray-500 dark:text-slate-400">{pupilPayment.section}</div>
                                 </button>
                               </td>
                               <td className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-right">
-                                <div className="text-green-600 font-medium">{formatCurrency(pupilFeesData?.totalPaid || 0)}</div>
-                                <div className="text-red-600 text-[10px] md:text-xs">{formatCurrency(pupilFeesData?.balance || 0)}</div>
+                                <div className="text-green-600 font-medium dark:text-green-400">{formatCurrency(pupilFeesData?.totalPaid || 0)}</div>
+                                <div className="text-red-600 text-[10px] md:text-xs dark:text-red-400">{formatCurrency(pupilFeesData?.balance || 0)}</div>
                               </td>
                               <td
-                                className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm font-medium text-blue-600 text-right cursor-pointer hover:bg-blue-50"
+                                className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm font-medium text-blue-600 text-right cursor-pointer hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40"
                                 onClick={() => setExpandedPupilPayments(prev => ({ ...prev, [pupilPayment.pupilId]: !prev[pupilPayment.pupilId] }))}
                               >
-                                <div className="text-blue-600 font-bold">{formatCurrency(pupilPayment.totalPaid)}</div>
-                                <div className="text-[10px] md:text-xs text-gray-500 mt-0.5">{pupilPayment.payments.length} {pupilPayment.payments.length !== 1 ? 'pmts' : 'pmt'}</div>
+                                <div className="text-blue-600 font-bold dark:text-blue-400">{formatCurrency(pupilPayment.totalPaid)}</div>
+                                <div className="text-[10px] md:text-xs text-gray-500 mt-0.5 dark:text-slate-400">{pupilPayment.payments.length} {pupilPayment.payments.length !== 1 ? 'pmts' : 'pmt'}</div>
                               </td>
                             </tr>
 
                             {/* Expanded payment details - Compact */}
                             {isPaymentExpanded && (
-                              <tr className="bg-gradient-to-r from-blue-50 to-indigo-50" onClick={(e) => e.stopPropagation()}>
+                              <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40" onClick={(e) => e.stopPropagation()}>
                                 <td colSpan={3} className="px-2 md:px-4 py-2 md:py-3" onClick={(e) => e.stopPropagation()}>
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 md:gap-2" onClick={(e) => e.stopPropagation()}>
                                     {pupilPayment.payments.map((payment: any) => {
@@ -800,14 +800,14 @@ export default function CollectionAnalyticsPage() {
                                       const currentBalance = feeInfo?.balance || 0;
 
                                       return (
-                                        <div key={payment.id} className="bg-white rounded-md p-2 border border-indigo-200 shadow-sm">
+                                        <div key={payment.id} className="bg-white rounded-md p-2 border border-indigo-200 shadow-sm dark:bg-slate-900 dark:border-indigo-800/60">
                                           <div className="flex justify-between items-start gap-2 mb-1">
-                                            <span className="font-semibold text-gray-900 text-[10px] leading-tight">{payment.feeName}</span>
-                                            <span className="font-bold text-green-600 text-xs whitespace-nowrap">{formatCurrency(payment.amount)}</span>
+                                            <span className="font-semibold text-gray-900 text-[10px] leading-tight dark:text-slate-100">{payment.feeName}</span>
+                                            <span className="font-bold text-green-600 text-xs whitespace-nowrap dark:text-green-400">{formatCurrency(payment.amount)}</span>
                                           </div>
                                           <div className="flex justify-between items-center text-[9px]">
-                                            <span className="text-gray-500">{paymentDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}</span>
-                                            <span className="text-red-600 font-medium">Bal: {formatCurrency(currentBalance)}</span>
+                                            <span className="text-gray-500 dark:text-slate-400">{paymentDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}</span>
+                                            <span className="text-red-600 font-medium dark:text-red-400">Bal: {formatCurrency(currentBalance)}</span>
                                           </div>
                                         </div>
                                       );
@@ -830,27 +830,27 @@ export default function CollectionAnalyticsPage() {
         {/* Class Breakdown Table */}
         {isDataReady && stats?.byClass && stats.byClass.length > 0 && (
           <Card className="border-0 shadow-lg">
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-4 md:px-6 py-3 md:py-4 border-b border-indigo-100">
-              <h3 className="text-base md:text-lg font-bold text-indigo-900">Collection by Class</h3>
-              <p className="text-xs md:text-sm text-indigo-600">Breakdown for {activeYear?.name} - Term {effectiveTermId.replace('t', '').replace('-2025', '').replace('-2024', '')}</p>
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-4 md:px-6 py-3 md:py-4 border-b border-indigo-100 dark:from-indigo-950/40 dark:to-purple-950/40 dark:border-indigo-800/60">
+              <h3 className="text-base md:text-lg font-bold text-indigo-900 dark:text-indigo-200">Collection by Class</h3>
+              <p className="text-xs md:text-sm text-indigo-600 dark:text-indigo-400">Breakdown for {activeYear?.name} - Term {effectiveTermId.replace('t', '').replace('-2025', '').replace('-2024', '')}</p>
             </div>
 
             {/* Mobile scroll hint */}
-            <div className="md:hidden px-4 py-2 bg-blue-50 border-b border-blue-100">
-              <p className="text-xs text-blue-600 text-center">← Scroll horizontally to view all columns →</p>
+            <div className="md:hidden px-4 py-2 bg-blue-50 border-b border-blue-100 dark:bg-blue-950/40 dark:border-blue-800/60">
+              <p className="text-xs text-blue-600 text-center dark:text-blue-400">← Scroll horizontally to view all columns →</p>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                <thead className="bg-gray-50 dark:bg-slate-900">
                   <tr>
-                    <th className="px-3 md:px-6 py-2 md:py-3 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase">Class</th>
-                    <th className="px-3 md:px-6 py-2 md:py-3 text-right text-[10px] md:text-xs font-medium text-gray-500 uppercase">Expected</th>
-                    <th className="px-3 md:px-6 py-2 md:py-3 text-right text-[10px] md:text-xs font-medium text-gray-500 uppercase">Collected</th>
-                    <th className="px-3 md:px-6 py-2 md:py-3 text-right text-[10px] md:text-xs font-medium text-gray-500 uppercase">Outstanding</th>
+                    <th className="px-3 md:px-6 py-2 md:py-3 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase dark:text-slate-400">Class</th>
+                    <th className="px-3 md:px-6 py-2 md:py-3 text-right text-[10px] md:text-xs font-medium text-gray-500 uppercase dark:text-slate-400">Expected</th>
+                    <th className="px-3 md:px-6 py-2 md:py-3 text-right text-[10px] md:text-xs font-medium text-gray-500 uppercase dark:text-slate-400">Collected</th>
+                    <th className="px-3 md:px-6 py-2 md:py-3 text-right text-[10px] md:text-xs font-medium text-gray-500 uppercase dark:text-slate-400">Outstanding</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-gray-200 dark:bg-slate-900 dark:divide-slate-700">
                   {stats.byClass.map((classData: any) => {
                     const isExpanded = expandedClassData[classData.classId];
 
@@ -898,38 +898,38 @@ export default function CollectionAnalyticsPage() {
                     return (
                       <React.Fragment key={classData.classId}>
                         <tr
-                          className="hover:bg-gray-50 cursor-pointer"
+                          className="hover:bg-gray-50 cursor-pointer dark:hover:bg-slate-900"
                           onClick={() => setExpandedClassData(prev => ({ ...prev, [classData.classId]: !prev[classData.classId] }))}
                         >
                           <td className="px-2 md:px-6 py-3 md:py-4">
                             <div>
-                              <div className="text-xs md:text-sm font-bold text-gray-900">{classData.classCode}</div>
+                              <div className="text-xs md:text-sm font-bold text-gray-900 dark:text-slate-100">{classData.classCode}</div>
                               <div className="flex items-center gap-1 text-[10px] mt-0.5">
-                                <span className="text-gray-600 font-medium">{classData.pupilCount}</span>
-                                <span className="text-green-600" title="Fully Paid">✓{classData.paidPupils}</span>
-                                <span className="text-yellow-600" title="Partially Paid">◐{classData.partiallyPaidPupils}</span>
-                                <span className="text-red-600" title="Not Paid">✗{classData.unpaidPupils}</span>
+                                <span className="text-gray-600 font-medium dark:text-slate-300">{classData.pupilCount}</span>
+                                <span className="text-green-600 dark:text-green-400" title="Fully Paid">✓{classData.paidPupils}</span>
+                                <span className="text-yellow-600 dark:text-yellow-400" title="Partially Paid">◐{classData.partiallyPaidPupils}</span>
+                                <span className="text-red-600 dark:text-red-400" title="Not Paid">✗{classData.unpaidPupils}</span>
                               </div>
                             </div>
                           </td>
-                          <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm font-medium text-gray-900">
+                          <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm font-medium text-gray-900 dark:text-slate-100">
                             {formatCurrency(classData.expectedAmount)}
                           </td>
-                          <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm font-medium text-green-600">
+                          <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm font-medium text-green-600 dark:text-green-400">
                             {formatCurrency(classData.collectedAmount)}
                           </td>
-                          <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm font-medium text-red-600">
+                          <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm font-medium text-red-600 dark:text-red-400">
                             {formatCurrency(classData.outstandingAmount)}
                           </td>
                         </tr>
 
                         {/* Expanded pupil details */}
                         {isExpanded && (
-                          <tr className="bg-blue-50" onClick={(e) => e.stopPropagation()}>
+                          <tr className="bg-blue-50 dark:bg-blue-950/40" onClick={(e) => e.stopPropagation()}>
                             <td colSpan={4} className="px-2 md:px-6 py-3 md:py-4" onClick={(e) => e.stopPropagation()}>
                               <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
                                 {/* Heading with search bar - Beautiful & Dynamic */}
-                                <div className="flex items-center justify-between gap-3 mb-3 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-3 border border-indigo-100 shadow-sm">
+                                <div className="flex items-center justify-between gap-3 mb-3 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-3 border border-indigo-100 shadow-sm dark:from-indigo-950/40 dark:to-blue-950/40 dark:border-indigo-800/60">
                                   <div className="flex items-center gap-2">
                                     <motion.div
                                       key={filteredPupils.length}
@@ -940,11 +940,11 @@ export default function CollectionAnalyticsPage() {
                                       {filteredPupils.length}
                                     </motion.div>
                                     <div>
-                                      <h5 className="text-xs md:text-sm font-bold text-indigo-900 whitespace-nowrap">
+                                      <h5 className="text-xs md:text-sm font-bold text-indigo-900 whitespace-nowrap dark:text-indigo-200">
                                         {classData.className}
                                       </h5>
                                       {pupilSearchTerm[classData.classId] && filteredPupils.length !== classPupils.length && (
-                                        <p className="text-[10px] text-indigo-600">
+                                        <p className="text-[10px] text-indigo-600 dark:text-indigo-400">
                                           {filteredPupils.length} of {classPupils.length} pupils
                                         </p>
                                       )}
@@ -956,7 +956,7 @@ export default function CollectionAnalyticsPage() {
                                       placeholder="Search pupils..."
                                       value={pupilSearchTerm[classData.classId] || ''}
                                       onChange={(e) => setPupilSearchTerm(prev => ({ ...prev, [classData.classId]: e.target.value }))}
-                                      className="px-3 py-1.5 pr-8 border-2 border-indigo-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 w-full bg-white shadow-sm transition-all duration-200 hover:shadow-md"
+                                      className="px-3 py-1.5 pr-8 border-2 border-indigo-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 w-full bg-white shadow-sm transition-all duration-200 hover:shadow-md dark:border-indigo-800/60 dark:bg-slate-900"
                                     />
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute right-2.5 top-1/2 transform -translate-y-1/2 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -964,7 +964,7 @@ export default function CollectionAnalyticsPage() {
                                     {pupilSearchTerm[classData.classId] && (
                                       <button
                                         onClick={() => setPupilSearchTerm(prev => ({ ...prev, [classData.classId]: '' }))}
-                                        className="absolute right-8 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                        className="absolute right-8 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors dark:text-slate-400 dark:hover:text-slate-300"
                                       >
                                         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -975,10 +975,10 @@ export default function CollectionAnalyticsPage() {
                                 </div>
                                 <div className="overflow-x-auto">
                                   <table className="min-w-full text-xs md:text-sm">
-                                    <thead className="bg-gray-100">
+                                    <thead className="bg-gray-100 dark:bg-slate-900">
                                       <tr>
                                         <th
-                                          className="px-2 md:px-3 py-1.5 md:py-2 text-left text-[10px] md:text-xs font-medium text-gray-600 cursor-pointer hover:bg-gray-200 select-none"
+                                          className="px-2 md:px-3 py-1.5 md:py-2 text-left text-[10px] md:text-xs font-medium text-gray-600 cursor-pointer hover:bg-gray-200 select-none dark:text-slate-300 dark:hover:bg-slate-800"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleSort('name');
@@ -987,12 +987,12 @@ export default function CollectionAnalyticsPage() {
                                           <div className="flex items-center gap-1">
                                             <span>Name</span>
                                             {sortField === 'name' && (
-                                              <span className="text-indigo-600">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                                              <span className="text-indigo-600 dark:text-indigo-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                                             )}
                                           </div>
                                         </th>
                                         <th
-                                          className="px-2 md:px-3 py-1.5 md:py-2 text-right text-[10px] md:text-xs font-medium text-gray-600 cursor-pointer hover:bg-gray-200 select-none"
+                                          className="px-2 md:px-3 py-1.5 md:py-2 text-right text-[10px] md:text-xs font-medium text-gray-600 cursor-pointer hover:bg-gray-200 select-none dark:text-slate-300 dark:hover:bg-slate-800"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleSort('expected');
@@ -1001,12 +1001,12 @@ export default function CollectionAnalyticsPage() {
                                           <div className="flex items-center justify-end gap-1">
                                             <span>Expected</span>
                                             {sortField === 'expected' && (
-                                              <span className="text-indigo-600">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                                              <span className="text-indigo-600 dark:text-indigo-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                                             )}
                                           </div>
                                         </th>
                                         <th
-                                          className="px-2 md:px-3 py-1.5 md:py-2 text-right text-[10px] md:text-xs font-medium text-gray-600 cursor-pointer hover:bg-gray-200 select-none"
+                                          className="px-2 md:px-3 py-1.5 md:py-2 text-right text-[10px] md:text-xs font-medium text-gray-600 cursor-pointer hover:bg-gray-200 select-none dark:text-slate-300 dark:hover:bg-slate-800"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleSort('paid');
@@ -1015,12 +1015,12 @@ export default function CollectionAnalyticsPage() {
                                           <div className="flex items-center justify-end gap-1">
                                             <span>Paid</span>
                                             {sortField === 'paid' && (
-                                              <span className="text-indigo-600">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                                              <span className="text-indigo-600 dark:text-indigo-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                                             )}
                                           </div>
                                         </th>
                                         <th
-                                          className="px-2 md:px-3 py-1.5 md:py-2 text-right text-[10px] md:text-xs font-medium text-gray-600 cursor-pointer hover:bg-gray-200 select-none"
+                                          className="px-2 md:px-3 py-1.5 md:py-2 text-right text-[10px] md:text-xs font-medium text-gray-600 cursor-pointer hover:bg-gray-200 select-none dark:text-slate-300 dark:hover:bg-slate-800"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleSort('balance');
@@ -1029,14 +1029,14 @@ export default function CollectionAnalyticsPage() {
                                           <div className="flex items-center justify-end gap-1">
                                             <span>Balance</span>
                                             {sortField === 'balance' && (
-                                              <span className="text-indigo-600 font-bold">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                                              <span className="text-indigo-600 font-bold dark:text-indigo-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                                             )}
                                           </div>
                                         </th>
-                                        <th className="px-2 md:px-3 py-1.5 md:py-2 text-center text-[10px] md:text-xs font-medium text-gray-600">Status</th>
+                                        <th className="px-2 md:px-3 py-1.5 md:py-2 text-center text-[10px] md:text-xs font-medium text-gray-600 dark:text-slate-300">Status</th>
                                       </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-200">
+                                    <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
                                       {filteredPupils.map(pupil => {
                                         const isPaid = pupil.balance <= 0;
                                         const isPartial = pupil.paid > 0 && pupil.balance > 0;
@@ -1045,7 +1045,7 @@ export default function CollectionAnalyticsPage() {
 
                                         return (
                                           <React.Fragment key={pupil.id}>
-                                            <tr className="hover:bg-gray-100">
+                                            <tr className="hover:bg-gray-100 dark:hover:bg-slate-900">
                                               <td className="px-2 md:px-3 py-1.5 md:py-2">
                                                 <button
                                                   onClick={(e) => {
@@ -1053,18 +1053,18 @@ export default function CollectionAnalyticsPage() {
                                                     router.push(`/fees/collect/${pupil.id}`);
                                                   }}
                                                   className={`text-xs md:text-sm font-medium hover:underline text-left ${isPaid
-                                                      ? 'text-green-600 hover:text-green-800'
+                                                      ? 'text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200'
                                                       : isPartial
-                                                        ? 'text-yellow-600 hover:text-yellow-800'
-                                                        : 'text-red-600 hover:text-red-800'
+                                                        ? 'text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200'
+                                                        : 'text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200'
                                                     }`}
                                                 >
                                                   {pupil.displayName}
                                                 </button>
                                               </td>
-                                              <td className="px-2 md:px-3 py-1.5 md:py-2 text-right text-gray-700 text-xs md:text-sm">{formatCurrency(pupil.expectedFees)}</td>
+                                              <td className="px-2 md:px-3 py-1.5 md:py-2 text-right text-gray-700 text-xs md:text-sm dark:text-slate-200">{formatCurrency(pupil.expectedFees)}</td>
                                               <td
-                                                className="px-2 md:px-3 py-1.5 md:py-2 text-right text-green-600 font-medium cursor-pointer hover:bg-green-50 text-xs md:text-sm"
+                                                className="px-2 md:px-3 py-1.5 md:py-2 text-right text-green-600 font-medium cursor-pointer hover:bg-green-50 text-xs md:text-sm dark:text-green-400 dark:hover:bg-green-950/40"
                                                 onClick={(e) => {
                                                   e.stopPropagation();
                                                   setExpandedClassPupilPayments(prev => ({ ...prev, [pupil.id]: !prev[pupil.id] }));
@@ -1075,24 +1075,24 @@ export default function CollectionAnalyticsPage() {
                                                   <span className={`text-[10px] md:text-xs transition-transform ${isPupilPaymentExpanded ? 'rotate-90' : ''}`}>▶</span>
                                                 </div>
                                               </td>
-                                              <td className="px-2 md:px-3 py-1.5 md:py-2 text-right text-red-600 font-medium text-xs md:text-sm">{formatCurrency(pupil.balance)}</td>
+                                              <td className="px-2 md:px-3 py-1.5 md:py-2 text-right text-red-600 font-medium text-xs md:text-sm dark:text-red-400">{formatCurrency(pupil.balance)}</td>
                                               <td className="px-2 md:px-3 py-1.5 md:py-2 text-center">
                                                 {isPaid ? (
-                                                  <span className="text-[10px] md:text-xs bg-green-100 text-green-800 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full">Paid</span>
+                                                  <span className="text-[10px] md:text-xs bg-green-100 text-green-800 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full dark:bg-green-950/40 dark:text-green-200">Paid</span>
                                                 ) : isPartial ? (
-                                                  <span className="text-[10px] md:text-xs bg-yellow-100 text-yellow-800 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full">Partial</span>
+                                                  <span className="text-[10px] md:text-xs bg-yellow-100 text-yellow-800 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full dark:bg-yellow-950/40 dark:text-yellow-200">Partial</span>
                                                 ) : (
-                                                  <span className="text-[10px] md:text-xs bg-red-100 text-red-800 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full">Unpaid</span>
+                                                  <span className="text-[10px] md:text-xs bg-red-100 text-red-800 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full dark:bg-red-950/40 dark:text-red-200">Unpaid</span>
                                                 )}
                                               </td>
                                             </tr>
 
                                             {/* Expanded payment history for this pupil */}
                                             {isPupilPaymentExpanded && (
-                                              <tr className="bg-green-50" onClick={(e) => e.stopPropagation()}>
+                                              <tr className="bg-green-50 dark:bg-green-950/40" onClick={(e) => e.stopPropagation()}>
                                                 <td colSpan={5} className="px-2 md:px-3 py-2" onClick={(e) => e.stopPropagation()}>
                                                   <div className="text-xs" onClick={(e) => e.stopPropagation()}>
-                                                    <div className="font-semibold text-gray-900 mb-2">Payment History</div>
+                                                    <div className="font-semibold text-gray-900 mb-2 dark:text-slate-100">Payment History</div>
                                                     {pupilFeesData?.applicableFees && pupilFeesData.applicableFees.length > 0 ? (
                                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                                         {pupilFeesData.applicableFees.map((fee: any) => {
@@ -1102,9 +1102,9 @@ export default function CollectionAnalyticsPage() {
                                                           const feePayments = paymentsByPupilAndFee[pupil.id]?.[fee.feeStructureId] || [];
 
                                                           return (
-                                                            <div key={fee.feeStructureId} className="bg-white rounded border border-gray-200">
+                                                            <div key={fee.feeStructureId} className="bg-white rounded border border-gray-200 dark:bg-slate-900 dark:border-slate-700">
                                                               <div
-                                                                className="flex justify-between items-center p-2 cursor-pointer hover:bg-gray-50"
+                                                                className="flex justify-between items-center p-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-900"
                                                                 onClick={(e) => {
                                                                   e.stopPropagation();
                                                                   setExpandedFeePayments(prev => ({ ...prev, [feeKey]: !prev[feeKey] }));
@@ -1112,17 +1112,17 @@ export default function CollectionAnalyticsPage() {
                                                               >
                                                                 <div className="flex items-center gap-1">
                                                                   <span className={`text-[10px] transition-transform ${isFeeExpanded ? 'rotate-90' : ''}`}>▶</span>
-                                                                  <span className="font-medium text-gray-900">{fee.name}</span>
+                                                                  <span className="font-medium text-gray-900 dark:text-slate-100">{fee.name}</span>
                                                                 </div>
                                                                 <div className="text-right">
-                                                                  <div className="text-green-600 font-bold text-xs">Paid: {formatCurrency(fee.paid)}</div>
-                                                                  <div className="text-[10px] text-red-600">Bal: {formatCurrency(fee.balance)}</div>
+                                                                  <div className="text-green-600 font-bold text-xs dark:text-green-400">Paid: {formatCurrency(fee.paid)}</div>
+                                                                  <div className="text-[10px] text-red-600 dark:text-red-400">Bal: {formatCurrency(fee.balance)}</div>
                                                                 </div>
                                                               </div>
 
                                                               {/* Expanded payment transactions for this fee */}
                                                               {isFeeExpanded && (
-                                                                <div className="border-t border-gray-200 p-2 bg-gray-50 space-y-1" onClick={(e) => e.stopPropagation()}>
+                                                                <div className="border-t border-gray-200 p-2 bg-gray-50 space-y-1 dark:border-slate-700 dark:bg-slate-900" onClick={(e) => e.stopPropagation()}>
                                                                   {feePayments.length > 0 ? (
                                                                     feePayments.map((payment: any, idx: number) => {
                                                                       // Handle different date formats
@@ -1140,14 +1140,14 @@ export default function CollectionAnalyticsPage() {
                                                                       }
 
                                                                       return (
-                                                                        <div key={idx} className="flex justify-between items-center text-[10px] text-gray-700 bg-white p-1.5 rounded">
-                                                                          <span className="text-gray-600">{displayDate}</span>
-                                                                          <span className="font-semibold text-green-600">{formatCurrency(payment.amount)}</span>
+                                                                        <div key={idx} className="flex justify-between items-center text-[10px] text-gray-700 bg-white p-1.5 rounded dark:text-slate-200 dark:bg-slate-900">
+                                                                          <span className="text-gray-600 dark:text-slate-300">{displayDate}</span>
+                                                                          <span className="font-semibold text-green-600 dark:text-green-400">{formatCurrency(payment.amount)}</span>
                                                                         </div>
                                                                       );
                                                                     })
                                                                   ) : (
-                                                                    <div className="text-gray-500 text-center py-1">No payments yet</div>
+                                                                    <div className="text-gray-500 text-center py-1 dark:text-slate-400">No payments yet</div>
                                                                   )}
                                                                 </div>
                                                               )}
@@ -1156,7 +1156,7 @@ export default function CollectionAnalyticsPage() {
                                                         })}
                                                       </div>
                                                     ) : (
-                                                      <div className="text-gray-500 text-center py-2">No payment data available</div>
+                                                      <div className="text-gray-500 text-center py-2 dark:text-slate-400">No payment data available</div>
                                                     )}
                                                   </div>
                                                 </td>
@@ -1173,13 +1173,13 @@ export default function CollectionAnalyticsPage() {
                                     <motion.div
                                       initial={{ opacity: 0, y: -10 }}
                                       animate={{ opacity: 1, y: 0 }}
-                                      className="text-center py-12 bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg border-2 border-dashed border-gray-300"
+                                      className="text-center py-12 bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg border-2 border-dashed border-gray-300 dark:from-slate-900 dark:to-blue-950/40 dark:border-slate-700"
                                     >
-                                      <svg className="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <svg className="mx-auto h-12 w-12 text-gray-400 mb-3 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                       </svg>
-                                      <p className="text-sm font-medium text-gray-900 mb-1">No pupils found</p>
-                                      <p className="text-xs text-gray-500">No matches for "{pupilSearchTerm[classData.classId]}"</p>
+                                      <p className="text-sm font-medium text-gray-900 mb-1 dark:text-slate-100">No pupils found</p>
+                                      <p className="text-xs text-gray-500 dark:text-slate-400">No matches for "{pupilSearchTerm[classData.classId]}"</p>
                                     </motion.div>
                                   )}
                                 </div>
@@ -1191,20 +1191,20 @@ export default function CollectionAnalyticsPage() {
                     );
                   })}
                 </tbody>
-                <tfoot className="bg-gray-50 font-medium">
+                <tfoot className="bg-gray-50 font-medium dark:bg-slate-900">
                   <tr>
-                    <td className="px-2 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-900">
+                    <td className="px-2 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-900 dark:text-slate-100">
                       <div className="font-bold">Total</div>
                       <div className="flex items-center gap-1 text-[10px] mt-0.5 font-normal">
-                        <span className="text-gray-600 font-medium">{isDataReady ? stats.totalPupils : 0}</span>
-                        <span className="text-green-600" title="Fully Paid">✓{isDataReady ? stats.paidPupils : 0}</span>
-                        <span className="text-yellow-600" title="Partially Paid">◐{isDataReady ? stats.partiallyPaidPupils : 0}</span>
-                        <span className="text-red-600" title="Not Paid">✗{isDataReady ? stats.unpaidPupils : 0}</span>
+                        <span className="text-gray-600 font-medium dark:text-slate-300">{isDataReady ? stats.totalPupils : 0}</span>
+                        <span className="text-green-600 dark:text-green-400" title="Fully Paid">✓{isDataReady ? stats.paidPupils : 0}</span>
+                        <span className="text-yellow-600 dark:text-yellow-400" title="Partially Paid">◐{isDataReady ? stats.partiallyPaidPupils : 0}</span>
+                        <span className="text-red-600 dark:text-red-400" title="Not Paid">✗{isDataReady ? stats.unpaidPupils : 0}</span>
                       </div>
                     </td>
-                    <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm text-gray-900">{isDataReady ? formatCurrency(stats.totalExpected) : 'Shs. 0'}</td>
-                    <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm text-green-600">{isDataReady ? formatCurrency(stats.totalCollected) : 'Shs. 0'}</td>
-                    <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm text-red-600">{isDataReady ? formatCurrency(stats.outstanding) : 'Shs. 0'}</td>
+                    <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm text-gray-900 dark:text-slate-100">{isDataReady ? formatCurrency(stats.totalExpected) : 'Shs. 0'}</td>
+                    <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm text-green-600 dark:text-green-400">{isDataReady ? formatCurrency(stats.totalCollected) : 'Shs. 0'}</td>
+                    <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm text-red-600 dark:text-red-400">{isDataReady ? formatCurrency(stats.outstanding) : 'Shs. 0'}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -1213,7 +1213,7 @@ export default function CollectionAnalyticsPage() {
         )}
 
         {/* Footer */}
-        <div className="text-center text-sm text-gray-500">
+        <div className="text-center text-sm text-gray-500 dark:text-slate-400">
           Data as of {new Date().toLocaleString()} • Calculated using exact Fees Collection logic
         </div>
       </div>

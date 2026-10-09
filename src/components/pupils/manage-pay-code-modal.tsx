@@ -76,16 +76,16 @@ export function ManagePayCodeModal({
       <ModernDialogContent size="sm" open={isOpen} onOpenChange={(open) => !open && handleClose()}>
         <ModernDialogHeader>
           <ModernDialogTitle className="flex items-center gap-2">
-            <Tag className="h-5 w-5 text-emerald-600" />
+            <Tag className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
           SchoolPay Payment Code — {pupilName}
           </ModernDialogTitle>
         </ModernDialogHeader>
 
         <div className="space-y-5 py-4">
           {/* Info Banner */}
-          <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
-            <Info className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-emerald-800 leading-relaxed">
+          <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800/60">
+            <Info className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0 dark:text-emerald-400" />
+            <p className="text-xs text-emerald-800 leading-relaxed dark:text-emerald-200">
           The SchoolPay payment code is provided by SchoolPay for the student.
           It is used to identify this student when SchoolPay sends payment notifications to our system.
             </p>
@@ -93,21 +93,21 @@ export function ManagePayCodeModal({
 
           {/* Current pay code display */}
           {currentPayCode ? (
-            <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+            <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 dark:bg-slate-900">
               <div>
-                <p className="text-xs text-gray-500 mb-1">Current Pay Code</p>
+                <p className="text-xs text-gray-500 mb-1 dark:text-slate-400">Current Pay Code</p>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-mono text-sm px-3 py-1">
+                  <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-mono text-sm px-3 py-1 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800/60">
                     {currentPayCode}
                   </Badge>
-                  <CheckCircle className="h-4 w-4 text-emerald-600" />
+                  <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2 p-3 border rounded-lg border-dashed bg-amber-50 border-amber-200">
-              <Info className="h-4 w-4 text-amber-600 flex-shrink-0" />
-              <p className="text-xs text-amber-700">
+            <div className="flex items-center gap-2 p-3 border rounded-lg border-dashed bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800/60">
+              <Info className="h-4 w-4 text-amber-600 flex-shrink-0 dark:text-amber-400" />
+              <p className="text-xs text-amber-700 dark:text-amber-300">
           No payment code assigned yet. Enter the code provided by SchoolPay below.
               </p>
             </div>
@@ -131,7 +131,7 @@ export function ManagePayCodeModal({
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
             />
             {currentPayCode && !payCode.trim() && (
-              <p className="text-xs text-amber-600">
+              <p className="text-xs text-amber-600 dark:text-amber-400">
                 Leaving this empty will <strong>remove</strong> the pay code from this student.
               </p>
             )}
@@ -139,7 +139,7 @@ export function ManagePayCodeModal({
 
           {/* Error */}
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2 dark:text-red-400 dark:bg-red-950/40 dark:border-red-800/60">
               {error}
             </p>
           )}

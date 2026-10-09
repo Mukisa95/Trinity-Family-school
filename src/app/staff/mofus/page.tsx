@@ -106,8 +106,8 @@ export default function MofusPage() {
       <div className="p-4 sm:p-6 space-y-6">
         <PageHeader title="Mofus" description="Manage staff-pupil assignments and fees holidays" />
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          <span className="ml-2 text-gray-600">Loading...</span>
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
+          <span className="ml-2 text-gray-600 dark:text-slate-300">Loading...</span>
         </div>
       </div>
     );
@@ -121,7 +121,7 @@ export default function MofusPage() {
         actions={
           <SmartBackButton 
             fallbackHref="/staff"
-            className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium border border-gray-200 bg-white hover:bg-gray-100 hover:text-gray-900 rounded-md px-3 h-9 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50"
+            className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium border border-gray-200 bg-white hover:bg-gray-100 hover:text-gray-900 rounded-md px-3 h-9 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-900 dark:hover:text-slate-100"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Staff
@@ -133,7 +133,7 @@ export default function MofusPage() {
       <Card>
         <CardContent className="p-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 dark:text-slate-400" />
             <Input
               placeholder="Search staff by name, ID, or email..."
               value={searchTerm}
@@ -149,8 +149,8 @@ export default function MofusPage() {
         {filteredStaff.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
-              <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-600">No teaching staff found.</p>
+              <Users className="h-12 w-12 mx-auto mb-4 text-gray-400 dark:text-slate-400" />
+              <p className="text-gray-600 dark:text-slate-300">No teaching staff found.</p>
             </CardContent>
           </Card>
         ) : (
@@ -158,7 +158,7 @@ export default function MofusPage() {
             const assignedPupils = staffPupilsMap.get(staff.id) || [];
             return (
               <Card key={staff.id} className="overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b dark:from-blue-950/40 dark:to-indigo-950/40">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-10 w-10">
@@ -170,12 +170,12 @@ export default function MofusPage() {
                         <CardTitle className="text-lg">
                           <Link
                             href={`/staff/${staff.id}`}
-                            className="hover:text-blue-600 hover:underline transition-colors"
+                            className="hover:text-blue-600 hover:underline transition-colors dark:hover:text-blue-400"
                           >
                             {staff.firstName} {staff.lastName}
                           </Link>
                         </CardTitle>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-600 dark:text-slate-300">
                           {staff.employeeId} • {formatStaffRoles(staff.role)}
                         </p>
                       </div>
@@ -192,7 +192,7 @@ export default function MofusPage() {
                 </CardHeader>
                 <CardContent className="p-4">
                   {assignedPupils.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8 text-gray-500 dark:text-slate-400">
                       <Users className="h-8 w-8 mx-auto mb-2 text-gray-300" />
                       <p>No pupils assigned to this staff member.</p>
                       <Button
@@ -208,7 +208,7 @@ export default function MofusPage() {
                   ) : (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between mb-3">
-                        <p className="text-sm font-medium text-gray-700">
+                        <p className="text-sm font-medium text-gray-700 dark:text-slate-200">
                           Assigned Pupils ({assignedPupils.length})
                         </p>
                       </div>
@@ -219,14 +219,14 @@ export default function MofusPage() {
                           return (
                             <div
                               key={pupil.id}
-                              className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                              className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors dark:hover:bg-slate-900"
                             >
                               <div className="flex items-center space-x-3 flex-1">
                                 <Avatar className="h-10 w-10">
                                   {pupil.photo ? (
                                     <AvatarImage src={pupil.photo} alt={formatPupilDisplayName(pupil)} />
                                   ) : null}
-                                  <AvatarFallback className="bg-gray-200 text-gray-600">
+                                  <AvatarFallback className="bg-gray-200 text-gray-600 dark:bg-slate-800 dark:text-slate-300">
                                     {pupil.firstName[0]}{pupil.lastName[0]}
                                   </AvatarFallback>
                                 </Avatar>
@@ -234,7 +234,7 @@ export default function MofusPage() {
                                   <div className="flex items-center gap-2">
                                     <Link
                                       href={`/pupil-detail?id=${pupil.id}`}
-                                      className="font-medium text-gray-900 hover:text-blue-600 hover:underline transition-colors"
+                                      className="font-medium text-gray-900 hover:text-blue-600 hover:underline transition-colors dark:text-slate-100 dark:hover:text-blue-400"
                                     >
                                       {formatPupilDisplayName(pupil)}
                                     </Link>
@@ -242,13 +242,13 @@ export default function MofusPage() {
                                       {pupil.status}
                                     </Badge>
                                     {activeHoliday && (
-                                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">
                                         <Calendar className="h-3 w-3 mr-1" />
                                         Fees Holiday Active
                                       </Badge>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-4 mt-1 text-xs text-gray-600">
+                                  <div className="flex items-center gap-4 mt-1 text-xs text-gray-600 dark:text-slate-300">
                                     <span>ID: {pupil.admissionNumber}</span>
                                     {pupil.className && (
                                       <>
@@ -260,7 +260,7 @@ export default function MofusPage() {
                                     <span>{pupil.section}</span>
                                   </div>
                                   {activeHoliday && (
-                                    <div className="mt-2 text-xs text-blue-700 bg-blue-50 p-2 rounded border border-blue-200">
+                                    <div className="mt-2 text-xs text-blue-700 bg-blue-50 p-2 rounded border border-blue-200 dark:text-blue-300 dark:bg-blue-950/40 dark:border-blue-800/60">
                                       <p className="font-medium">
                                         {/* Handle both old format (single category) and new format (array) */}
                                         {(() => {
@@ -283,7 +283,7 @@ export default function MofusPage() {
                                         discount
                                       </p>
                                       {activeHoliday.reason && (
-                                        <p className="text-blue-600 mt-1">Reason: {activeHoliday.reason}</p>
+                                        <p className="text-blue-600 mt-1 dark:text-blue-400">Reason: {activeHoliday.reason}</p>
                                       )}
                                     </div>
                                   )}

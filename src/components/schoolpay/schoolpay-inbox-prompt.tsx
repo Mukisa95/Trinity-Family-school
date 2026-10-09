@@ -45,7 +45,7 @@ export function SchoolPayInboxPrompt() {
     <aside aria-label="Unresolved SchoolPay payment" aria-live="polite" className="fixed bottom-3 left-3 right-3 z-40 sm:left-auto sm:right-5 sm:bottom-5 sm:w-[min(31rem,calc(100vw-2.5rem))]">
       <SchoolPayInboxCard record={current} onDismiss={dismiss} compact />
       {visible.length > 1 && (
-        <Button type="button" variant="outline" size="sm" onClick={() => router.push('/accounts/schoolpay-feed')} className="mt-2 w-full bg-white/95 shadow-md">
+        <Button type="button" variant="outline" size="sm" onClick={() => router.push('/accounts/schoolpay-feed')} className="mt-2 w-full bg-white/95 shadow-md dark:bg-slate-900/95">
           Review {visible.length - 1} more payment{visible.length === 2 ? '' : 's'} needing attention <ChevronRight />
         </Button>
       )}

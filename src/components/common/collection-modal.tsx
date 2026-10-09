@@ -226,28 +226,28 @@ export function CollectionModal({
     switch (status.status) {
       case 'available':
         return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/60">
             <CheckCircle className="h-3 w-3 mr-1" />
             {status.size} ({status.stock})
           </Badge>
         );
       case 'out':
         return (
-          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
+          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs dark:bg-red-950/40 dark:text-red-300 dark:border-red-800/60">
             <AlertCircle className="h-3 w-3 mr-1" />
             {status.size} (Out)
           </Badge>
         );
       case 'unspecified':
         return (
-          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60">
             <Package className="h-3 w-3 mr-1" />
             Size Optional
           </Badge>
         );
       case 'no-inventory':
         return (
-          <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200 text-xs">
+          <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200 text-xs dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700">
             No sizes
           </Badge>
         );
@@ -280,8 +280,8 @@ export function CollectionModal({
                 const isOut = qty === 0;
                 return (
                   <SelectItem key={size} value={size}>
-                    <span className={isOut ? 'text-gray-400' : ''}>
-                      {size} <span className={`text-xs ${isOut ? 'text-red-500' : 'text-green-600'}`}>({qty})</span>
+                    <span className={isOut ? 'text-gray-400 dark:text-slate-400' : ''}>
+                      {size} <span className={`text-xs ${isOut ? 'text-red-500 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>({qty})</span>
                     </span>
                   </SelectItem>
                 );
@@ -289,7 +289,7 @@ export function CollectionModal({
             </SelectContent>
           </Select>
           {status.status === 'out' && (
-            <span className="text-xs text-red-500">Please select an available size</span>
+            <span className="text-xs text-red-500 dark:text-red-400">Please select an available size</span>
           )}
         </div>
       </div>
@@ -312,16 +312,16 @@ export function CollectionModal({
             <CardContent>
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <div className="text-2xl font-bold text-blue-600">{uniforms.length}</div>
-                  <div className="text-sm text-gray-600">Total Items</div>
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{uniforms.length}</div>
+                  <div className="text-sm text-gray-600 dark:text-slate-300">Total Items</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-green-600">{previouslyCollectedItems.length}</div>
-                  <div className="text-sm text-gray-600">Already Collected</div>
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">{previouslyCollectedItems.length}</div>
+                  <div className="text-sm text-gray-600 dark:text-slate-300">Already Collected</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-orange-600">{availableUniforms.length}</div>
-                  <div className="text-sm text-gray-600">Pending Collection</div>
+                  <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{availableUniforms.length}</div>
+                  <div className="text-sm text-gray-600 dark:text-slate-300">Pending Collection</div>
                 </div>
               </div>
             </CardContent>
@@ -331,17 +331,17 @@ export function CollectionModal({
           {collectedUniforms.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg text-green-600">Previously Collected Items</CardTitle>
+                <CardTitle className="text-lg text-green-600 dark:text-green-400">Previously Collected Items</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   {collectedUniforms.map((uniform) => {
                     const { totalQty, colQty, isFullyCollected } = getQtyInfo(uniform.id);
                     return (
-                    <div key={uniform.id} className="flex items-center justify-between p-2 bg-green-50 rounded border border-green-100">
+                    <div key={uniform.id} className="flex items-center justify-between p-2 bg-green-50 rounded border border-green-100 dark:bg-green-950/40 dark:border-green-800/60">
                       <div>
                         <div className="font-medium text-sm">{uniform.name}</div>
-                        <div className="text-xs text-gray-500">{uniform.group}</div>
+                        <div className="text-xs text-gray-500 dark:text-slate-400">{uniform.group}</div>
                       </div>
                       <div className="flex items-center gap-2">
                         {selectedSizes[uniform.id] && (
@@ -356,7 +356,7 @@ export function CollectionModal({
                         {onUnmark && (
                           confirmingUnmark === uniform.id ? (
                             <div className="flex items-center gap-1">
-                              <span className="text-xs text-amber-700 font-medium">Unmark?</span>
+                              <span className="text-xs text-amber-700 font-medium dark:text-amber-300">Unmark?</span>
                               <Button
                                 type="button"
                                 size="sm"
@@ -381,7 +381,7 @@ export function CollectionModal({
                               type="button"
                               size="sm"
                               variant="outline"
-                              className="h-6 px-2 text-xs text-amber-700 border-amber-300 hover:bg-amber-50"
+                              className="h-6 px-2 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 dark:text-amber-300 dark:border-amber-800/60 dark:hover:bg-amber-950/40"
                               onClick={() => setConfirmingUnmark(uniform.id)}
                             >
                               <RotateCcw className="h-3 w-3 mr-1" />
@@ -433,7 +433,7 @@ export function CollectionModal({
 
                     return (
                       <div key={uniform.id}>
-                        <div className="flex items-center justify-between space-x-3 p-2 border rounded hover:bg-gray-50">
+                        <div className="flex items-center justify-between space-x-3 p-2 border rounded hover:bg-gray-50 dark:hover:bg-slate-900">
                           <div className="flex items-center space-x-3 flex-1 min-w-0">
                             <Checkbox
                               id={`collect-${uniform.id}`}
@@ -446,10 +446,10 @@ export function CollectionModal({
                                   <div className="font-medium text-sm">
                                     {totalQty > 1 ? `${totalQty}x ${uniform.name}` : uniform.name}
                                   </div>
-                                  <div className="text-xs text-gray-500">
+                                  <div className="text-xs text-gray-500 dark:text-slate-400">
                                     {uniform.group}
                                     {totalQty > 1 && (
-                                      <span className="ml-1 text-blue-600 font-medium">
+                                      <span className="ml-1 text-blue-600 font-medium dark:text-blue-400">
                                         (Pending: {remainingQty} of {totalQty})
                                       </span>
                                     )}
@@ -463,13 +463,13 @@ export function CollectionModal({
                           </div>
 
                           {isSelected && remainingQty > 1 && (
-                            <div className="flex items-center gap-1.5 ml-2 bg-blue-50 dark:bg-blue-900/30 rounded-full px-2 py-0.5 border border-blue-200 shrink-0">
-                              <span className="text-[10px] text-blue-700 font-medium mr-1">Release:</span>
+                            <div className="flex items-center gap-1.5 ml-2 bg-blue-50 dark:bg-blue-900/30 rounded-full px-2 py-0.5 border border-blue-200 shrink-0 dark:border-blue-800/60">
+                              <span className="text-[10px] text-blue-700 font-medium mr-1 dark:text-blue-300">Release:</span>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-6 w-6 rounded-full hover:bg-blue-100 text-xs font-bold"
+                                className="h-6 w-6 rounded-full hover:bg-blue-100 text-xs font-bold dark:hover:bg-blue-950/40"
                                 onClick={(e) => {
                                   e.preventDefault();
                                   handleQuantityChange(uniform.id, Math.max(1, currentReleaseQty - 1));
@@ -484,7 +484,7 @@ export function CollectionModal({
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-6 w-6 rounded-full hover:bg-blue-100 text-xs font-bold"
+                                className="h-6 w-6 rounded-full hover:bg-blue-100 text-xs font-bold dark:hover:bg-blue-950/40"
                                 onClick={(e) => {
                                   e.preventDefault();
                                   handleQuantityChange(uniform.id, Math.min(remainingQty, currentReleaseQty + 1));
@@ -505,10 +505,10 @@ export function CollectionModal({
           ) : (
             <Card>
               <CardContent className="text-center py-8">
-                <div className="text-green-600 font-medium text-lg">
+                <div className="text-green-600 font-medium text-lg dark:text-green-400">
                   ✓ All items have been collected!
                 </div>
-                <div className="text-gray-600 text-sm mt-2">
+                <div className="text-gray-600 text-sm mt-2 dark:text-slate-300">
                   No items are pending collection.
                 </div>
               </CardContent>
@@ -517,9 +517,9 @@ export function CollectionModal({
 
           {/* Collection Preview */}
           {selectedItems.length > 0 && (
-            <Card className="bg-blue-50 border-blue-200">
+            <Card className="bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60">
               <CardHeader>
-                <CardTitle className="text-lg text-blue-700">Collection Preview</CardTitle>
+                <CardTitle className="text-lg text-blue-700 dark:text-blue-300">Collection Preview</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -531,7 +531,7 @@ export function CollectionModal({
                       const uniform = uniforms.find(u => u.id === itemId);
                       const size = collectionSizes[itemId];
                       return uniform ? (
-                        <div key={itemId} className="text-sm text-blue-700 flex items-center gap-2">
+                        <div key={itemId} className="text-sm text-blue-700 flex items-center gap-2 dark:text-blue-300">
                           • {uniform.name} ({uniform.group})
                           {size && <Badge variant="secondary" className="text-xs">Size: {size}</Badge>}
                         </div>
@@ -546,7 +546,7 @@ export function CollectionModal({
                     const willComplete = allItemIds.every(id => allCollectedItems.includes(id));
 
                     return willComplete && (
-                      <div className="mt-3 p-2 bg-green-100 border border-green-300 rounded text-green-700 text-sm font-medium">
+                      <div className="mt-3 p-2 bg-green-100 border border-green-300 rounded text-green-700 text-sm font-medium dark:bg-green-950/40 dark:border-green-800/60 dark:text-green-300">
                         ✓ This will complete the full collection!
                       </div>
                     );

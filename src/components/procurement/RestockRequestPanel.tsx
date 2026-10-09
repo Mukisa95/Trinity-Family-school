@@ -30,7 +30,7 @@ export function RestockRequestPanel({ onRecordPurchase }: RestockRequestPanelPro
 
   return (
     <section className="space-y-4" aria-label="Restock instructions">
-      <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-amber-950">
+      <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/80 dark:text-amber-100">
         <div className="flex items-start gap-3">
           <PackagePlus className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
           <div className="min-w-0">
@@ -41,25 +41,25 @@ export function RestockRequestPanel({ onRecordPurchase }: RestockRequestPanelPro
       </div>
 
       {isLoading ? (
-        <div className="flex min-h-32 items-center justify-center rounded-xl border bg-white text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading restock work…</div>
+        <div className="flex min-h-32 items-center justify-center rounded-xl border bg-white text-sm text-muted-foreground dark:bg-slate-900"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading restock work…</div>
       ) : isError ? (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
           <p>{error instanceof Error ? error.message : 'The restock queue could not be loaded.'}</p>
           <Button type="button" variant="outline" className="mt-3 min-h-11" onClick={() => refetch()}>Try again</Button>
         </div>
       ) : requests.length === 0 ? (
-        <div className="rounded-xl border bg-white p-8 text-center text-sm text-muted-foreground">There are no staff-requested restocks waiting for Procurement.</div>
+        <div className="rounded-xl border bg-white p-8 text-center text-sm text-muted-foreground dark:bg-slate-900">There are no staff-requested restocks waiting for Procurement.</div>
       ) : (
         <>
           {waitingForPurchase.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-sm font-bold text-slate-900">Needs a purchase ({waitingForPurchase.length})</h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Needs a purchase ({waitingForPurchase.length})</h3>
               {waitingForPurchase.map(request => <RestockCard key={request.id} request={request} onRecordPurchase={onRecordPurchase} onConfirmPurchase={(restockRequestId, purchaseId) => confirmPurchase.mutate({ restockRequestId, purchaseId })} confirming={confirmPurchase.isPending} />)}
             </div>
           )}
           {waitingForReceipt.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-sm font-bold text-slate-900">Purchased — waiting to receive in Inventory ({waitingForReceipt.length})</h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Purchased — waiting to receive in Inventory ({waitingForReceipt.length})</h3>
               {waitingForReceipt.map(request => <RestockCard key={request.id} request={request} onRecordPurchase={onRecordPurchase} />)}
             </div>
           )}
@@ -80,20 +80,20 @@ export function RestockRequestPanel({ onRecordPurchase }: RestockRequestPanelPro
 function RestockCard({ request, onRecordPurchase, onConfirmPurchase, confirming = false }: { request: ProcurementRestockRequest; onRecordPurchase: (request: ProcurementRestockRequest) => void; onConfirmPurchase?: (restockRequestId: string, purchaseId: string) => void; confirming?: boolean }) {
   const purchased = request.status === 'purchased';
   return (
-    <article className="rounded-xl border bg-white p-4 shadow-sm">
+    <article className="rounded-xl border bg-white p-4 shadow-sm dark:bg-slate-900">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h4 className="font-semibold text-slate-950">{request.itemName}</h4>
-            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${purchased ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-900'}`}>
+            <h4 className="font-semibold text-slate-950 dark:text-slate-100">{request.itemName}</h4>
+            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${purchased ? 'bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-200' : 'bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200'}`}>
               {purchased ? 'Purchase recorded' : 'Needs purchase'}
             </span>
           </div>
-          <p className="mt-1 text-sm text-slate-700"><strong>{request.requestedQuantity} {request.unit}</strong> for {request.requestedByName}</p>
+          <p className="mt-1 text-sm text-slate-700 dark:text-slate-200"><strong>{request.requestedQuantity} {request.unit}</strong> for {request.requestedByName}</p>
           <p className="mt-1 text-xs text-muted-foreground">Restock instruction created {formatDate(request.createdAt)}.</p>
         </div>
         {purchased ? (
-          <div className="flex min-h-11 items-center gap-2 rounded-md bg-sky-50 px-3 text-sm font-medium text-sky-900"><ReceiptText className="h-4 w-4" aria-hidden="true" /> Receive the stock in Inventory</div>
+          <div className="flex min-h-11 items-center gap-2 rounded-md bg-sky-50 px-3 text-sm font-medium text-sky-900 dark:bg-sky-950/40 dark:text-sky-200"><ReceiptText className="h-4 w-4" aria-hidden="true" /> Receive the stock in Inventory</div>
         ) : request.unlinkedPurchaseId ? (
           <Button type="button" className="min-h-11 shrink-0" disabled={confirming} onClick={() => onConfirmPurchase?.(request.id, request.unlinkedPurchaseId!)}>
             {confirming ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ReceiptText className="mr-2 h-4 w-4" aria-hidden="true" />}Confirm recorded purchase

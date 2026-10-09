@@ -1,5 +1,7 @@
 "use client";
 
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+
 import {
   MagnifyingGlass,
   Bell,
@@ -70,21 +72,21 @@ function SearchResultStatusControl({
   onToggle,
 }: SearchResultStatusControlProps) {
   let StatusIcon = CheckCircle;
-  let statusColor = 'text-gray-400';
-  let statusBg = 'bg-gray-50';
+  let statusColor = 'text-gray-400 dark:text-slate-400';
+  let statusBg = 'bg-gray-50 dark:bg-slate-900';
 
   if (pupil.status === 'Active') {
     StatusIcon = CheckCircle;
-    statusColor = 'text-green-500';
-    statusBg = 'bg-green-50';
+    statusColor = 'text-green-500 dark:text-green-400';
+    statusBg = 'bg-green-50 dark:bg-green-950/40';
   } else if (pupil.status === 'Graduated') {
     StatusIcon = GraduationCap;
-    statusColor = 'text-purple-500';
-    statusBg = 'bg-purple-50';
+    statusColor = 'text-purple-500 dark:text-purple-400';
+    statusBg = 'bg-purple-50 dark:bg-purple-950/40';
   } else if (pupil.status === 'Inactive') {
     StatusIcon = XCircle;
-    statusColor = 'text-red-500';
-    statusBg = 'bg-red-50';
+    statusColor = 'text-red-500 dark:text-red-400';
+    statusBg = 'bg-red-50 dark:bg-red-950/40';
   }
 
   return (
@@ -108,7 +110,7 @@ function SearchResultStatusControl({
             event.stopPropagation();
             onToggle();
           }}
-          className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition-colors hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
+          className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition-colors hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
         >
           <CaretDown
             aria-hidden="true"
@@ -146,18 +148,18 @@ function SearchFamilyBranch({
       aria-label={`Siblings of ${formatPupilDisplayName(anchorPupil)}`}
       onPointerUp={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
-      className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50/90 via-teal-50/50 to-white px-3 py-2"
+      className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50/90 via-teal-50/50 to-white px-3 py-2 dark:border-emerald-800/60 dark:from-emerald-950/90 dark:via-teal-950/50 dark:to-slate-900"
     >
       <div className="mb-1.5 flex items-center justify-between gap-2 pl-5">
-        <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
+        <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
           Same family as {formatPupilDisplayName(anchorPupil)}
         </span>
-        <span className="flex-none rounded-full bg-white px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">
+        <span className="flex-none rounded-full bg-white px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-slate-900 dark:text-emerald-300 dark:ring-emerald-800/60">
           {siblings.length} sibling{siblings.length === 1 ? '' : 's'}
         </span>
       </div>
       <div className="relative">
-        <span aria-hidden="true" className="absolute bottom-4 left-1.5 top-0 w-px bg-emerald-200" />
+        <span aria-hidden="true" className="absolute bottom-4 left-1.5 top-0 w-px bg-emerald-200 dark:bg-emerald-900/40" />
         <ul className="space-y-1 pl-5">
           {siblings.map((sibling) => {
             const siblingClass = classes?.find((candidate) => candidate.id === sibling.classId);
@@ -165,8 +167,8 @@ function SearchFamilyBranch({
 
             return (
               <li key={sibling.id} className="relative">
-                <span aria-hidden="true" className="absolute -left-3.5 top-1/2 h-px w-3.5 bg-emerald-200" />
-                <div className="flex min-h-11 items-center gap-1.5 rounded-md border border-emerald-100 bg-white/95 p-1.5 shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50">
+                <span aria-hidden="true" className="absolute -left-3.5 top-1/2 h-px w-3.5 bg-emerald-200 dark:bg-emerald-900/40" />
+                <div className="flex min-h-11 items-center gap-1.5 rounded-md border border-emerald-100 bg-white/95 p-1.5 shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800/60 dark:bg-slate-900/95 dark:hover:border-emerald-800/60 dark:hover:bg-emerald-950/40">
                   <button
                     type="button"
                     onPointerUp={(event) => {
@@ -184,18 +186,18 @@ function SearchFamilyBranch({
                     }}
                     className="flex min-w-0 flex-1 items-center gap-2 rounded px-0.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
                   >
-                    <UserCircle aria-hidden="true" size={16} weight="duotone" className="flex-none text-emerald-600" />
+                    <UserCircle aria-hidden="true" size={16} weight="duotone" className="flex-none text-emerald-600 dark:text-emerald-400" />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs font-semibold text-gray-800">
+                      <span className="block truncate text-xs font-semibold text-gray-800 dark:text-slate-100">
                         {formatPupilDisplayName(sibling)}
                       </span>
-                      <span className="block truncate text-[10px] text-gray-500">
+                      <span className="block truncate text-[10px] text-gray-500 dark:text-slate-400">
                         {classDisplay} • {sibling.admissionNumber || 'No admission number'}
                       </span>
                     </span>
                     <span className={`flex-none rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${sibling.status === 'Active'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-600'
+                      ? 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300'
+                      : 'bg-gray-100 text-gray-600 dark:bg-slate-900 dark:text-slate-300'
                       }`}>
                       {sibling.status || 'Unknown'}
                     </span>
@@ -217,7 +219,7 @@ function SearchFamilyBranch({
                     }}
                     aria-label={`View fees for ${formatPupilDisplayName(sibling)}`}
                     title="View Fees"
-                    className="inline-flex flex-none whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
+                    className="inline-flex flex-none whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
                   >
                     Shs.
                   </button>
@@ -746,7 +748,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
 
   return (
     <>
-      <header className="bg-white/72 dark:bg-slate-950/72 backdrop-blur-[20px] border-b border-white/45 dark:border-slate-800/45 sticky md:absolute top-0 left-0 right-0 z-40 transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+      <header className="bg-white/[0.72] dark:bg-slate-950/[0.72] backdrop-blur-[20px] border-b border-white/45 dark:border-slate-800/45 sticky md:absolute top-0 left-0 right-0 z-40 transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
         <div className="px-2 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-11 sm:h-13">
             {/* Left side: Mobile Sidebar Trigger, Menu Button */}
@@ -769,7 +771,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   whileTap={buttonTap}
                   transition={springConfig}
                 >
-                  <SidebarTrigger className="h-8 w-8 sm:h-[36px] sm:w-[36px] rounded-full bg-white text-gray-600 border border-gray-200/60 shadow-sm flex items-center justify-center hover:bg-blue-50/80 hover:text-blue-600 transition-all duration-300" />
+                  <SidebarTrigger className="h-8 w-8 sm:h-[36px] sm:w-[36px] rounded-full bg-white text-gray-600 border border-gray-200/60 shadow-sm flex items-center justify-center hover:bg-blue-50/80 hover:text-blue-600 transition-all duration-300 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700/60 dark:hover:bg-blue-950/80 dark:hover:text-blue-400" />
                 </motion.div>
               )}
 
@@ -779,7 +781,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   whileHover={buttonHover}
                   whileTap={buttonTap}
                   transition={springConfig}
-                  className="h-8 w-8 sm:h-[36px] sm:w-[36px] rounded-full flex items-center justify-center bg-white hover:bg-blue-50/80 text-gray-600 hover:text-blue-600 border border-gray-200/60 shadow-sm flex-shrink-0 transition-all"
+                  className="h-8 w-8 sm:h-[36px] sm:w-[36px] rounded-full flex items-center justify-center bg-white hover:bg-blue-50/80 text-gray-600 hover:text-blue-600 border border-gray-200/60 shadow-sm flex-shrink-0 transition-all dark:bg-slate-900 dark:hover:bg-blue-950/80 dark:text-slate-300 dark:hover:text-blue-400 dark:border-slate-700/60"
                   style={{ boxShadow: "0 1px 4px rgba(59, 130, 246, 0.05)" }}
                 >
                   <List size={17} weight="duotone" />
@@ -806,7 +808,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                     }}
                     whileTap={{ scale: 0.98 }}
                     transition={{ duration: 0.18, ease: "easeOut" }}
-                    className="w-full max-w-[680px] h-[30px] sm:h-[36px] px-2 sm:px-4 flex items-center justify-center gap-1 sm:gap-2 font-semibold rounded-full bg-gradient-to-r from-blue-50 via-white to-blue-50 cursor-pointer border border-blue-200/60 shadow-sm relative overflow-hidden header-shimmer"
+                    className="w-full max-w-[680px] h-[30px] sm:h-[36px] px-2 sm:px-4 flex items-center justify-center gap-1 sm:gap-2 font-semibold rounded-full bg-gradient-to-r from-blue-50 via-white to-blue-50 cursor-pointer border border-blue-200/60 shadow-sm relative overflow-hidden header-shimmer dark:from-blue-950/40 dark:via-slate-900 dark:to-blue-950/40 dark:border-blue-800/60"
                     style={{
                       boxShadow: "0 2px 6px rgba(59, 130, 246, 0.05)",
                       willChange: "transform",
@@ -814,7 +816,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                     onClick={handleMessageClick}
                   >
                     {/* Sparkle — only on sm+ */}
-                    <Sparkle size={12} weight="fill" className="hidden sm:block flex-shrink-0 text-blue-500/70" />
+                    <Sparkle size={12} weight="fill" className="hidden sm:block flex-shrink-0 text-blue-500/70 dark:text-blue-400/70" />
 
                     {/* Animated message text */}
                     <AnimatePresence mode="wait">
@@ -837,7 +839,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                     </AnimatePresence>
 
                     {/* Sparkle — only on sm+ */}
-                    <Sparkle size={12} weight="fill" className="hidden sm:block flex-shrink-0 text-blue-500/70" />
+                    <Sparkle size={12} weight="fill" className="hidden sm:block flex-shrink-0 text-blue-500/70 dark:text-blue-400/70" />
                   </motion.div>
                 </motion.div>
               )}
@@ -857,14 +859,14 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   <div className="relative w-full">
                     {/* Search icon inside the inline field */}
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                      <MagnifyingGlass size={15} className="text-blue-500" weight="duotone" />
+                      <MagnifyingGlass size={15} className="text-blue-500 dark:text-blue-400" weight="duotone" />
                     </div>
                     <input
                       type="text"
                       placeholder="Search pupils..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-16 h-[32px] text-xs bg-white rounded-full border border-blue-300 focus:ring-2 focus:ring-blue-400/50 focus:outline-none shadow-sm"
+                      className="w-full pl-9 pr-16 h-[32px] text-xs bg-white rounded-full border border-blue-300 focus:ring-2 focus:ring-blue-400/50 focus:outline-none shadow-sm dark:bg-slate-900 dark:border-blue-800/60"
                       autoFocus
                     />
                     {/* Right-side controls */}
@@ -878,8 +880,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                               onClick={() => setShowResults(!showResults)}
                               className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold transition-all ${
                                 showResults
-                                  ? 'bg-blue-100 text-blue-700'
-                                  : 'bg-emerald-100 text-emerald-700 shadow-sm'
+                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
+                                  : 'bg-emerald-100 text-emerald-700 shadow-sm dark:bg-emerald-950/40 dark:text-emerald-300'
                               }`}
                               type="button"
                             >
@@ -890,7 +892,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                           {searchTerm && (
                             <button
                               onClick={() => { setSearchTerm(''); setShowResults(false); }}
-                              className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                              className="text-gray-400 hover:text-red-500 transition-colors p-1 dark:text-slate-400 dark:hover:text-red-400"
                               type="button"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -911,7 +913,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 6, scale: 0.97 }}
                           transition={{ duration: 0.18 }}
-                          className="fixed bg-white rounded-xl shadow-xl border border-blue-100 z-[9999] overflow-y-auto touch-pan-y"
+                          className="fixed bg-white rounded-xl shadow-xl border border-blue-100 z-[9999] overflow-y-auto touch-pan-y dark:bg-slate-900 dark:border-blue-800/60"
                           style={{ top: '48px', left: '10vw', width: '80vw', maxHeight: '60vh' }}
                         >
                           {searchResults.map((pupil) => {
@@ -934,7 +936,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                       handlePupilSelect(pupil.id, true);
                                     }
                                   }}
-                                  className="cursor-pointer select-none border-b px-3 py-2.5 hover:bg-blue-50 active:bg-blue-100"
+                                  className="cursor-pointer select-none border-b px-3 py-2.5 hover:bg-blue-50 active:bg-blue-100 dark:hover:bg-blue-950/40 dark:active:bg-blue-950/40"
                                 >
                                   <div className="flex items-start justify-between">
                                     <div className="flex min-w-0 flex-1 items-start gap-2">
@@ -946,16 +948,16 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                         onToggle={() => setExpandedSearchPupilId(current => current === pupil.id ? null : pupil.id)}
                                       />
                                       <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-medium text-gray-900">
+                                        <p className="truncate text-sm font-medium text-gray-900 dark:text-slate-100">
                                           {formatPupilDisplayName(pupil)}
                                         </p>
-                                        <p className="truncate text-[10px] text-gray-500">
+                                        <p className="truncate text-[10px] text-gray-500 dark:text-slate-400">
                                           {pupil.admissionNumber}
                                         </p>
                                       </div>
                                     </div>
                                     <div className="ml-2 flex flex-shrink-0 items-center gap-1.5">
-                                      <span className="whitespace-nowrap rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600">
+                                      <span className="whitespace-nowrap rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-400">
                                         {(() => { const c = classes?.find((cl: any) => cl.id === pupil.classId); return c ? c.code : (pupil.classCode || pupil.className || pupil.classId); })()}
                                       </span>
                                       <button
@@ -977,7 +979,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                           }
                                         }}
                                         aria-label={`View fees for ${formatPupilDisplayName(pupil)}`}
-                                        className="inline-flex whitespace-nowrap rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 transition-colors hover:border-emerald-200 hover:bg-emerald-100 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
+                                        className="inline-flex whitespace-nowrap rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 transition-colors hover:border-emerald-200 hover:bg-emerald-100 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:border-emerald-800/60 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
                                         title="View Fees"
                                         type="button"
                                       >
@@ -1008,10 +1010,10 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0 }}
                           transition={{ duration: 0.15 }}
-                          className="fixed bg-white rounded-xl shadow-xl border border-blue-100 p-3 z-[9999]"
+                          className="fixed bg-white rounded-xl shadow-xl border border-blue-100 p-3 z-[9999] dark:bg-slate-900 dark:border-blue-800/60"
                           style={{ top: '48px', left: '10vw', width: '80vw' }}
                         >
-                          <p className="text-gray-400 text-center text-xs">No pupils found for "{searchTerm}"</p>
+                          <p className="text-gray-400 text-center text-xs dark:text-slate-400">No pupils found for "{searchTerm}"</p>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -1031,10 +1033,10 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                 }}
                 whileTap={{ scale: 0.985 }}
                 transition={springConfig}
-                className="hidden lg:flex items-center gap-2 h-[34px] px-3 sm:px-3.5 bg-gradient-to-r from-blue-50/80 via-indigo-50/80 to-emerald-50/80 backdrop-blur-sm rounded-full border border-blue-200/50 shadow-sm relative overflow-hidden cursor-pointer header-shimmer"
+                className="hidden lg:flex items-center gap-2 h-[34px] px-3 sm:px-3.5 bg-gradient-to-r from-blue-50/80 via-indigo-50/80 to-emerald-50/80 backdrop-blur-sm rounded-full border border-blue-200/50 shadow-sm relative overflow-hidden cursor-pointer header-shimmer dark:from-blue-950/80 dark:via-indigo-950/80 dark:to-emerald-950/80 dark:border-blue-800/50"
                 style={{ willChange: "transform" }}
               >
-                <Calendar size={13} className="text-blue-600 flex-shrink-0 relative z-10" weight="duotone" />
+                <Calendar size={13} className="text-blue-600 flex-shrink-0 relative z-10 dark:text-blue-400" weight="duotone" />
                 <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 relative z-10 whitespace-nowrap">
                   {formattedDateTime}
                 </span>
@@ -1042,7 +1044,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                 {currentAcademicYear && currentTerm && (
                   <div className="hidden xl:flex items-center gap-2 relative z-10">
                     <div className="w-[1px] h-3.5 bg-slate-200 dark:bg-slate-700 self-center" />
-                    <GraduationCap size={13} className="text-emerald-600 flex-shrink-0" weight="duotone" />
+                    <GraduationCap size={13} className="text-emerald-600 flex-shrink-0 dark:text-emerald-400" weight="duotone" />
                     <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">
                       {currentAcademicYear.name} • {currentTerm.name}
                     </span>
@@ -1074,7 +1076,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                     }
                   }}
                 >
-                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-blue-500/80 group-hover:text-blue-600 transition-colors duration-300 z-10">
+                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-blue-500/80 group-hover:text-blue-600 transition-colors duration-300 z-10 dark:text-blue-400/80 dark:group-hover:text-blue-400">
                     <MagnifyingGlass size={14} weight="duotone" className="transition-all duration-300 group-hover:scale-110" />
                   </div>
                   <div className="relative flex items-center">
@@ -1088,7 +1090,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                         setSearchAnimationPhase('search');
                         setSearchBarWidth('w-32');
                       }}
-                      className={`pl-7 pr-16 h-[34px] text-xs bg-white/90 rounded-full focus:ring-2 focus:ring-blue-400/50 focus:outline-none shadow-sm hover:shadow-md transition-all duration-300 ease-in-out border border-blue-200/60 ${searchTerm.length > 0 || isSearchHovered || showFilters
+                      className={`pl-7 pr-16 h-[34px] text-xs bg-white/90 rounded-full focus:ring-2 focus:ring-blue-400/50 focus:outline-none shadow-sm hover:shadow-md transition-all duration-300 ease-in-out border border-blue-200/60  dark:bg-slate-900/90 dark:border-blue-800/60${searchTerm.length > 0 || isSearchHovered || showFilters
                         ? 'w-60 lg:w-80'
                         : searchAnimationPhase === 'name'
                           ? 'w-auto min-w-[160px] max-w-[240px]'
@@ -1128,7 +1130,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                               exit={{ opacity: 0, y: -15, filter: 'blur(4px)' }}
                               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                              className="text-xs text-gray-400 font-medium whitespace-nowrap pl-4 pr-12"
+                              className="text-xs text-gray-400 font-medium whitespace-nowrap pl-4 pr-12 dark:text-slate-400"
                             >
                               {settings.generalInfo.name.split(' ').slice(0, 2).join(' ')}
                             </motion.div>
@@ -1140,7 +1142,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                               exit={{ opacity: 0, y: -15, filter: 'blur(4px)' }}
                               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                              className="text-xs text-gray-400 font-medium tracking-wide pl-4 pr-12"
+                              className="text-xs text-gray-400 font-medium tracking-wide pl-4 pr-12 dark:text-slate-400"
                             >
                               Search...
                             </motion.div>
@@ -1163,8 +1165,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                               }}
                               className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold transition-all duration-200 ${
                                 showResults
-                                  ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                                  : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 shadow-sm'
+                                  ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/40'
+                                  : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 shadow-sm dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/40'
                               }`}
                               title={showResults ? "Collapse search results" : `Expand search results (${searchResults.length})`}
                               type="button"
@@ -1179,7 +1181,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                 setSearchTerm('');
                                 setShowResults(false);
                               }}
-                              className="text-gray-400 hover:text-red-500 transition-colors duration-200 p-1"
+                              className="text-gray-400 hover:text-red-500 transition-colors duration-200 p-1 dark:text-slate-400 dark:hover:text-red-400"
                               type="button"
                               title="Clear search"
                             >
@@ -1195,9 +1197,9 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                       <button
                         onClick={() => setShowFilters(!showFilters)}
                         className={`w-[28px] h-[28px] sm:w-[32px] sm:h-[32px] flex items-center justify-center rounded-full transition-all duration-200 ${showFilters || (filters && (filters.classId || filters.section || filters.gender || filters.status))
-                          ? 'text-blue-600 bg-blue-50 hover:bg-blue-100 opacity-100'
+                          ? 'text-blue-600 bg-blue-50 hover:bg-blue-100 opacity-100 dark:text-blue-400 dark:bg-blue-950/40 dark:hover:bg-blue-950/40'
                           : isSearchHovered || searchTerm.length > 0
-                            ? 'text-gray-400 hover:text-blue-500 hover:bg-gray-100 opacity-100'
+                            ? 'text-gray-400 hover:text-blue-500 hover:bg-gray-100 opacity-100 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-slate-900'
                             : 'opacity-0 pointer-events-none'
                           }`}
                         title="Search Filters"
@@ -1218,16 +1220,16 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute top-full right-0 mt-2 w-80 bg-white/95 backdrop-blur-sm rounded-xl shadow-xl border border-blue-100/50 overflow-hidden z-50"
+                        className="absolute top-full right-0 mt-2 w-80 bg-white/95 backdrop-blur-sm rounded-xl shadow-xl border border-blue-100/50 overflow-hidden z-50 dark:bg-slate-900/95 dark:border-blue-800/50"
                       >
                         {/* Filters Section (Compact) */}
                         {showFilters && (
-                          <div className="p-3 bg-slate-50 border-b border-gray-100">
+                          <div className="p-3 bg-slate-50 border-b border-gray-100 dark:bg-slate-900 dark:border-slate-700">
                             <div className="flex items-center justify-between mb-2">
-                              <h3 className="text-xs font-semibold text-gray-700">Filters</h3>
+                              <h3 className="text-xs font-semibold text-gray-700 dark:text-slate-200">Filters</h3>
                               <button
                                 onClick={() => setFilters({ classId: '', section: '', gender: '', status: '' })}
-                                className="text-[10px] text-blue-500 hover:text-blue-700 font-medium"
+                                className="text-[10px] text-blue-500 hover:text-blue-700 font-medium dark:text-blue-400 dark:hover:text-blue-300"
                               >
                                 Reset
                               </button>
@@ -1238,7 +1240,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                               <select
                                 value={filters.classId}
                                 onChange={(e) => setFilters({ ...filters, classId: e.target.value })}
-                                className="w-full text-xs rounded-md border-gray-200 focus:border-blue-500 focus:ring-blue-500 bg-white py-1"
+                                className="w-full text-xs rounded-md border-gray-200 focus:border-blue-500 focus:ring-blue-500 bg-white py-1 dark:border-slate-700 dark:bg-slate-900"
                               >
                                 <option value="">All Classes</option>
                                 {classes?.map((c: any) => (
@@ -1250,7 +1252,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                               <select
                                 value={filters.section}
                                 onChange={(e) => setFilters({ ...filters, section: e.target.value })}
-                                className="w-full text-xs rounded-md border-gray-200 focus:border-blue-500 focus:ring-blue-500 bg-white py-1"
+                                className="w-full text-xs rounded-md border-gray-200 focus:border-blue-500 focus:ring-blue-500 bg-white py-1 dark:border-slate-700 dark:bg-slate-900"
                               >
                                 <option value="">All Sections</option>
                                 <option value="Day">Day</option>
@@ -1261,7 +1263,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                               <select
                                 value={filters.gender}
                                 onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
-                                className="w-full text-xs rounded-md border-gray-200 focus:border-blue-500 focus:ring-blue-500 bg-white py-1"
+                                className="w-full text-xs rounded-md border-gray-200 focus:border-blue-500 focus:ring-blue-500 bg-white py-1 dark:border-slate-700 dark:bg-slate-900"
                               >
                                 <option value="">All Genders</option>
                                 <option value="Male">Male</option>
@@ -1272,7 +1274,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                               <select
                                 value={filters.status}
                                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                className="w-full text-xs rounded-md border-gray-200 focus:border-blue-500 focus:ring-blue-500 bg-white py-1"
+                                className="w-full text-xs rounded-md border-gray-200 focus:border-blue-500 focus:ring-blue-500 bg-white py-1 dark:border-slate-700 dark:bg-slate-900"
                               >
                                 <option value="">All Statuses</option>
                                 <option value="Active">Active</option>
@@ -1285,13 +1287,13 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
 
                         {/* Search Results Header */}
                         {searchResults.length > 0 && (
-                          <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50/90 border-b border-gray-100 text-xs">
-                            <span className="font-semibold text-gray-700">
+                          <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50/90 border-b border-gray-100 text-xs dark:bg-slate-900/90 dark:border-slate-700">
+                            <span className="font-semibold text-gray-700 dark:text-slate-200">
                               Results ({searchResults.length})
                             </span>
                             <button
                               onClick={() => setShowResults(false)}
-                              className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors"
+                              className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors dark:text-slate-400 dark:hover:text-slate-300 dark:hover:bg-slate-900"
                               title="Collapse results"
                               type="button"
                             >
@@ -1316,7 +1318,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                 <React.Fragment key={pupil.id}>
                                   <div
                                     onClick={() => handlePupilSelect(pupil.id)}
-                                    className="cursor-pointer border-b px-3 py-2 transition-all duration-200 hover:bg-blue-50/80"
+                                    className="cursor-pointer border-b px-3 py-2 transition-all duration-200 hover:bg-blue-50/80 dark:hover:bg-blue-950/80"
                                   >
                                     <div className="flex items-start justify-between">
                                       <div className="mr-2 flex min-w-0 flex-1 items-start gap-2">
@@ -1328,16 +1330,16 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                           onToggle={() => setExpandedSearchPupilId(current => current === pupil.id ? null : pupil.id)}
                                         />
                                         <div className="min-w-0 flex-1">
-                                          <p className="break-words text-sm font-medium text-gray-900">
+                                          <p className="break-words text-sm font-medium text-gray-900 dark:text-slate-100">
                                             {formatPupilDisplayName(pupil)}
                                           </p>
                                           <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                                            <span className="text-xs text-gray-500">
+                                            <span className="text-xs text-gray-500 dark:text-slate-400">
                                               {pupil.admissionNumber}
                                             </span>
 
                                             {pupil.status === 'Graduated' && pupil.graduationYear && (
-                                              <span className="rounded-full border border-gray-100 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+                                              <span className="rounded-full border border-gray-100 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
                                                 {pupil.graduationYear}
                                               </span>
                                             )}
@@ -1345,7 +1347,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                         </div>
                                       </div>
                                       <div className="flex flex-shrink-0 items-center gap-2">
-                                        <span className="whitespace-nowrap rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600">
+                                        <span className="whitespace-nowrap rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
                                           {classDisplay}
                                         </span>
                                         <button
@@ -1355,7 +1357,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                             router.push(`/fees/collect/${pupil.id}`);
                                           }}
                                           aria-label={`View fees for ${formatPupilDisplayName(pupil)}`}
-                                          className="inline-flex whitespace-nowrap rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600 transition-colors duration-200 hover:border-emerald-200 hover:bg-emerald-100 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
+                                          className="inline-flex whitespace-nowrap rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600 transition-colors duration-200 hover:border-emerald-200 hover:bg-emerald-100 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:border-emerald-800/60 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
                                           title="View Fees"
                                           type="button"
                                         >
@@ -1381,7 +1383,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                         ) : (
                           // No Results Message (only if searching but found nothing)
                           searchTerm && (
-                            <div className="p-4 text-center text-gray-500 text-sm">
+                            <div className="p-4 text-center text-gray-500 text-sm dark:text-slate-400">
                               No pupils found matching "{searchTerm}"
                             </div>
                           )
@@ -1410,7 +1412,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   className={`md:hidden h-8 w-8 flex items-center justify-center rounded-full shadow-sm border transition-all duration-200 ${
                     showMobileSearch
                       ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-                      : 'bg-white text-gray-600 border-gray-200/60 hover:text-blue-600 hover:bg-blue-50/80'
+                      : 'bg-white text-gray-600 border-gray-200/60 hover:text-blue-600 hover:bg-blue-50/80 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700/60 dark:hover:text-blue-400 dark:hover:bg-blue-950/80'
                   }`}
                   type="button"
                   aria-label={showMobileSearch ? 'Close search' : 'Open search'}
@@ -1442,6 +1444,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
               )}
 
               {/* Network Strength Indicator */}
+              <ThemeToggle className="md:hidden" compact />
               <NetworkStrengthIndicator />
 
               {/* SchoolPay Live Feed Icon + Badge */}
@@ -1451,18 +1454,18 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   whileHover={buttonHover}
                   whileTap={buttonTap}
                   transition={springConfig}
-                  className="relative h-8 w-8 bg-white border border-violet-200/70 hover:bg-violet-50 hover:border-violet-400 text-violet-500 hover:text-violet-700 flex items-center justify-center rounded-full shadow-sm transition-all"
+                  className="relative h-8 w-8 bg-white border border-violet-200/70 hover:bg-violet-50 hover:border-violet-400 text-violet-500 hover:text-violet-700 flex items-center justify-center rounded-full shadow-sm transition-all dark:bg-slate-900 dark:border-violet-800/70 dark:hover:bg-violet-950/40 dark:text-violet-400 dark:hover:text-violet-300"
                   title="SchoolPay Live Feed"
                   type="button"
                 >
-                  <Zap size={15} className={schoolPayBadge > 0 ? 'text-violet-600' : 'text-violet-400'} />
+                  <Zap size={15} className={schoolPayBadge > 0 ? 'text-violet-600 dark:text-violet-400' : 'text-violet-400'} />
                   {schoolPayBadge > 0 && (
                     <motion.span
                       key={schoolPayBadge}
                       initial={{ scale: 0.5, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ type: 'spring', stiffness: 400, damping: 18 }}
-                      className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 bg-orange-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-sm border border-white"
+                      className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 bg-orange-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-sm border border-white dark:border-slate-700"
                     >
                       {schoolPayBadge > 99 ? '99+' : schoolPayBadge}
                     </motion.span>

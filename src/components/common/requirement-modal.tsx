@@ -213,7 +213,7 @@ export function RequirementModal({
         </ModernDialogHeader>
         
         {/* Academic Context Banner */}
-        <div className={`mx-1 sm:mx-2 mt-1 sm:mt-2 p-1 border rounded-md text-[0.6rem] ${selectedRequirement ? 'bg-amber-50 border-amber-200' : 'bg-purple-50 border-purple-200'}`}>
+        <div className={`mx-1 sm:mx-2 mt-1 sm:mt-2 p-1 border rounded-md text-[0.6rem] ${selectedRequirement ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800/60' : 'bg-purple-50 border-purple-200 dark:bg-purple-950/40 dark:border-purple-800/60'}`}>
           <div className="flex flex-wrap gap-1 items-center">
             <div className="flex items-center gap-0.5">
               <BookMarked className="h-2.5 w-2.5 text-muted-foreground" />
@@ -222,7 +222,7 @@ export function RequirementModal({
             <div>
               <strong>Date:</strong> {format(new Date(), "MMM dd, yyyy")}
             </div>
-            <div className={`text-[0.5rem] px-1 py-0.5 rounded ml-auto ${selectedRequirement ? 'text-amber-700 bg-amber-100' : 'text-purple-700 bg-purple-100'}`}>
+            <div className={`text-[0.5rem] px-1 py-0.5 rounded ml-auto ${selectedRequirement ? 'text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-950/40' : 'text-purple-700 bg-purple-100 dark:text-purple-300 dark:bg-purple-950/40'}`}>
               {selectedRequirement ? 'Edit Mode' : 'Create Mode'}
             </div>
           </div>
@@ -293,7 +293,7 @@ export function RequirementModal({
                     className="text-sm md:text-base"
                     min="1"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">
                     Optional: Number of items required
                   </p>
                 </div>
@@ -407,7 +407,7 @@ export function RequirementModal({
                     </ScrollArea>
                     <FieldError error={formValidation.getFieldError('classIds')} />
                     {formData.classIds && formData.classIds.length > 0 && (
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">
                         {formData.classIds.length} class(es) selected
                       </p>
                     )}

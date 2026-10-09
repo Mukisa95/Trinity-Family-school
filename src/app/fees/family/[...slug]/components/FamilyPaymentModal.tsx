@@ -376,17 +376,17 @@ export function FamilyPaymentModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden dark:bg-slate-900">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-green-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Family Payment</h2>
+            <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Family Payment</h2>
           </div>
           <button
             onClick={onClose}
             disabled={isRecording}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-1 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:hover:bg-slate-900"
           >
             <X className="w-5 h-5" />
           </button>
@@ -396,7 +396,7 @@ export function FamilyPaymentModal({
           {/* Payment Details */}
           <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-200">
                 Total Amount (UGX)
               </label>
               <input
@@ -404,19 +404,19 @@ export function FamilyPaymentModal({
                 value={totalAmount}
                 onChange={(e) => setTotalAmount(formatMoneyInput(e.target.value))}
                 disabled={isRecording}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed dark:border-slate-700 dark:disabled:bg-slate-900"
                 placeholder="Enter total amount"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-200">
                 Payment Method
               </label>
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
                 disabled={isRecording}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed dark:border-slate-700 dark:disabled:bg-slate-900"
               >
                 <option value="Cash">Cash</option>
                 <option value="Bank Transfer">Bank Transfer</option>
@@ -425,14 +425,14 @@ export function FamilyPaymentModal({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-200">
                 Distribution Mode
               </label>
               <select
                 value={distributionMode}
                 onChange={(e) => setDistributionMode(e.target.value as 'equal' | 'proportional' | 'smart' | 'manual')}
                 disabled={isRecording}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed dark:border-slate-700 dark:disabled:bg-slate-900"
               >
                 <option value="smart">Smart Distribution (Recommended)</option>
                 <option value="equal">Equal Distribution</option>
@@ -443,7 +443,7 @@ export function FamilyPaymentModal({
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-slate-200">
               Paid By
             </label>
             <input
@@ -451,14 +451,14 @@ export function FamilyPaymentModal({
               value={paidBy}
               onChange={(e) => setPaidBy(e.target.value)}
               disabled={isRecording}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed dark:border-slate-700 dark:disabled:bg-slate-900"
               placeholder="Enter payer name"
             />
           </div>
 
           {/* Family Members and Fees */}
           <div className="space-y-4">
-            <h3 className="text-base font-medium text-gray-900 flex items-center gap-2">
+            <h3 className="text-base font-medium text-gray-900 flex items-center gap-2 dark:text-slate-100">
               <Users className="w-4 h-4" />
               Select Fees to Pay
             </h3>
@@ -468,8 +468,8 @@ export function FamilyPaymentModal({
               if (!summary?.applicableFees || summary.applicableFees.length === 0) return null;
 
               return (
-                <div key={pupil.id} className="border border-gray-200 rounded-lg p-3">
-                  <h4 className="font-medium text-gray-900 mb-2 text-sm">
+                <div key={pupil.id} className="border border-gray-200 rounded-lg p-3 dark:border-slate-700">
+                  <h4 className="font-medium text-gray-900 mb-2 text-sm dark:text-slate-100">
                     {formatPupilDisplayName(pupil)} - {pupil.className} ({pupil.section})
                   </h4>
                   
@@ -492,26 +492,26 @@ export function FamilyPaymentModal({
                               isRecording ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
                             } ${
                               isSelected 
-                                ? 'border-green-500 bg-green-50' 
-                                : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-green-500 bg-green-50 dark:bg-green-950/40'
+                                : 'border-gray-200 hover:border-gray-300 dark:border-slate-700 dark:hover:border-slate-700'
                             }`}
                             onClick={() => !isRecording && handleFeeSelection(pupil.id, `${formatPupilDisplayName(pupil)}`, fee, !isSelected)}
                           >
                             <div className="flex items-center gap-2">
                               <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                isSelected ? 'border-green-500 bg-green-500' : 'border-gray-300'
+                                isSelected ? 'border-green-500 bg-green-500' : 'border-gray-300 dark:border-slate-700'
                               }`}>
                                 {isSelected && <Check className="w-3 h-3 text-white" />}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <div className="font-medium text-gray-900 text-sm">
+                                <div className="font-medium text-gray-900 text-sm dark:text-slate-100">
                                   {fee.name}
                                   {fee.feeStructureId.startsWith('uniform') && (
-                                    <span className="ml-1 text-purple-600 text-xs">👕</span>
+                                    <span className="ml-1 text-purple-600 text-xs dark:text-purple-400">👕</span>
                                   )}
                                 </div>
-                                <div className="text-xs text-gray-500">
-                                  {fee.isCarryForward && <span className="text-orange-600">(CF) </span>}
+                                <div className="text-xs text-gray-500 dark:text-slate-400">
+                                  {fee.isCarryForward && <span className="text-orange-600 dark:text-orange-400">(CF) </span>}
                                   Balance: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(fee.balance)}
                                 </div>
                               </div>
@@ -519,7 +519,7 @@ export function FamilyPaymentModal({
                             {isSelected && selectedFee && (
                               <div className="flex items-center gap-3">
                                 <label
-                                  className="flex items-center gap-1 text-xs text-gray-600"
+                                  className="flex items-center gap-1 text-xs text-gray-600 dark:text-slate-300"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <input
@@ -529,7 +529,7 @@ export function FamilyPaymentModal({
                                       !isRecording && toggleFeeComplete(feeKey, pupil.id)
                                     }
                                     disabled={isRecording}
-                                    className="h-3 w-3 rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="h-3 w-3 rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed dark:border-slate-700 dark:text-green-400"
                                   />
                                   <span>Mark complete</span>
                                 </label>
@@ -540,7 +540,7 @@ export function FamilyPaymentModal({
                                     // Prevent clicking inside the manual amount input from toggling fee selection
                                     onClick={(e) => e.stopPropagation()}
                                   >
-                                    <span className="text-xs text-gray-600">Pay:</span>
+                                    <span className="text-xs text-gray-600 dark:text-slate-300">Pay:</span>
                                     <input
                                       type="text"
                                       value={formatMoneyInput(selectedFee.selectedAmount.toString())}
@@ -551,12 +551,12 @@ export function FamilyPaymentModal({
                                           e.target.value
                                         )
                                       }
-                                      className="w-24 px-1 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                      className="w-24 px-1 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed dark:border-slate-700"
                                       disabled={selectedFee.isComplete || isRecording}
                                     />
                                   </div>
                                 ) : (
-                                  <div className="text-xs font-medium text-green-600">
+                                  <div className="text-xs font-medium text-green-600 dark:text-green-400">
                                     Pay:{' '}
                                     {new Intl.NumberFormat('en-UG', {
                                       style: 'currency',
@@ -577,8 +577,8 @@ export function FamilyPaymentModal({
 
           {/* Summary */}
           {selectedFees.length > 0 && (
-            <div className="mt-4 bg-gray-50 rounded-lg p-3">
-              <h4 className="font-medium text-gray-900 mb-2 text-sm">Payment Summary</h4>
+            <div className="mt-4 bg-gray-50 rounded-lg p-3 dark:bg-slate-900">
+              <h4 className="font-medium text-gray-900 mb-2 text-sm dark:text-slate-100">Payment Summary</h4>
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between">
                   <span>Selected Fees:</span>
@@ -591,7 +591,7 @@ export function FamilyPaymentModal({
                 {distributionMode !== 'manual' && (
                   <div className="flex justify-between">
                     <span>Amount Distributed:</span>
-                    <span className={totalSelectedAmount === parseFormattedMoney(totalAmount) ? 'text-green-600' : 'text-red-600'}>
+                    <span className={totalSelectedAmount === parseFormattedMoney(totalAmount) ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                       {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(totalSelectedAmount)}
                     </span>
                   </div>
@@ -606,11 +606,11 @@ export function FamilyPaymentModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 p-4 border-t bg-gray-50">
+        <div className="flex items-center justify-end gap-2 p-4 border-t bg-gray-50 dark:bg-slate-900">
           <button
             onClick={onClose}
             disabled={isRecording}
-            className="px-3 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className="px-3 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-sm disabled:bg-gray-100 disabled:cursor-not-allowed dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-900 dark:disabled:bg-slate-900"
           >
             Cancel
           </button>
@@ -621,7 +621,7 @@ export function FamilyPaymentModal({
           >
             {isRecording ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent dark:border-slate-700" />
                 <span>Recording Payment...</span>
               </>
             ) : (

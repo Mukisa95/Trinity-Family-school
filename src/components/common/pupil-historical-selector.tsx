@@ -136,23 +136,23 @@ export function PupilHistoricalSelector({
 
   const getDataSourceIcon = (pupil: PupilWithSnapshot) => {
     if (pupil.dataSource === 'snapshot') {
-      return <Camera className="h-4 w-4 text-blue-600" />;
+      return <Camera className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
     }
-    return <Database className="h-4 w-4 text-green-600" />;
+    return <Database className="h-4 w-4 text-green-600 dark:text-green-400" />;
   };
 
   const getDataSourceBadge = (pupil: PupilWithSnapshot) => {
     if (pupil.dataSource === 'snapshot') {
-      return <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">Historical</Badge>;
+      return <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60">Historical</Badge>;
     }
-    return <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">Live</Badge>;
+    return <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800/60">Live</Badge>;
   };
 
   if (!selectedAcademicYear || !selectedTerm) {
     return (
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-2 text-gray-500">
+          <div className="flex items-center gap-2 text-gray-500 dark:text-slate-400">
             <AlertCircle className="h-4 w-4" />
             <span>Please select an academic year and term first</span>
           </div>
@@ -176,7 +176,7 @@ export function PupilHistoricalSelector({
         <CardDescription>
           {description}
           {termStatus === 'past' && (
-            <div className="flex items-center gap-1 mt-1 text-blue-600">
+            <div className="flex items-center gap-1 mt-1 text-blue-600 dark:text-blue-400">
               <Camera className="h-3 w-3" />
               <span className="text-xs">Using historical snapshots for accurate data</span>
             </div>
@@ -219,7 +219,7 @@ export function PupilHistoricalSelector({
         </div>
 
         {/* Stats */}
-        <div className="flex items-center gap-4 text-sm text-gray-600">
+        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-slate-300">
           <div className="flex items-center gap-1">
             <Users className="h-4 w-4" />
             <span>{filteredPupils.length} pupils</span>
@@ -244,7 +244,7 @@ export function PupilHistoricalSelector({
           style={{ maxHeight }}
         >
           {filteredPupils.length === 0 ? (
-            <div className="p-4 text-center text-gray-500">
+            <div className="p-4 text-center text-gray-500 dark:text-slate-400">
               {loading ? 'Loading pupils...' : 'No pupils found matching the filters'}
             </div>
           ) : (
@@ -261,11 +261,11 @@ export function PupilHistoricalSelector({
                           <span className="font-medium">{formatPupilDisplayName(pupil)}</span>
                           {getDataSourceBadge(pupil)}
                         </div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-gray-600 dark:text-slate-300">
                           {pupil.admissionNumber} • {pupilClass?.name || 'Unknown Class'} • {pupil.section}
                         </div>
                         {pupil.isHistorical && pupil.snapshotData && (
-                          <div className="text-xs text-blue-600">
+                          <div className="text-xs text-blue-600 dark:text-blue-400">
                             Snapshot from {new Date(pupil.snapshotData.snapshotDate).toLocaleDateString()}
                           </div>
                         )}

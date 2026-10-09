@@ -22,11 +22,11 @@ interface PLEHistoryComponentProps {
 
 const getDivisionColor = (division: string) => {
   switch (division) {
-    case 'I': return 'bg-green-100 text-green-800';
-    case 'II': return 'bg-blue-100 text-blue-800';
-    case 'III': return 'bg-yellow-100 text-yellow-800';
-    case 'IV': return 'bg-orange-100 text-orange-800';
-    default: return 'bg-gray-100 text-gray-800';
+    case 'I': return 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200';
+    case 'II': return 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200';
+    case 'III': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200';
+    case 'IV': return 'bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-200';
+    default: return 'bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100';
   }
 };
 
@@ -59,7 +59,7 @@ export default function PLEHistoryComponent({ classId, className = '' }: PLEHist
       <Card className={className}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-purple-600" />
+            <GraduationCap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             PLE Results History
           </CardTitle>
         </CardHeader>
@@ -78,7 +78,7 @@ export default function PLEHistoryComponent({ classId, className = '' }: PLEHist
       <Card className={className}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-purple-600" />
+            <GraduationCap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             PLE Results History
           </CardTitle>
         </CardHeader>
@@ -98,7 +98,7 @@ export default function PLEHistoryComponent({ classId, className = '' }: PLEHist
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-purple-600" />
+            <GraduationCap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             PLE Results History
           </CardTitle>
           <Badge variant="outline" className="text-xs">
@@ -134,7 +134,7 @@ export default function PLEHistoryComponent({ classId, className = '' }: PLEHist
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="text-center p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center justify-center gap-1 mb-1">
-                  <Users className="h-4 w-4 text-blue-600" />
+                  <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Candidates
                   </span>
@@ -146,19 +146,19 @@ export default function PLEHistoryComponent({ classId, className = '' }: PLEHist
               
               <div className="text-center p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center justify-center gap-1 mb-1">
-                  <Trophy className="h-4 w-4 text-green-600" />
+                  <Trophy className="h-4 w-4 text-green-600 dark:text-green-400" />
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Div I
                   </span>
                 </div>
-                <p className="text-lg font-bold text-green-600">
+                <p className="text-lg font-bold text-green-600 dark:text-green-400">
                   {selectedRecord.classStatistics.divisionI}
                 </p>
               </div>
               
               <div className="text-center p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center justify-center gap-1 mb-1">
-                  <TrendingUp className="h-4 w-4 text-blue-600" />
+                  <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Avg Agg
                   </span>
@@ -170,7 +170,7 @@ export default function PLEHistoryComponent({ classId, className = '' }: PLEHist
               
               <div className="text-center p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center justify-center gap-1 mb-1">
-                  <GraduationCap className="h-4 w-4 text-purple-600" />
+                  <GraduationCap className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Pass Rate
                   </span>

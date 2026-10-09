@@ -230,8 +230,8 @@ const SinglePupilReportPage: React.FC<SinglePupilReportPageProps> = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="p-4 bg-blue-50 rounded-lg">
-          <p className="text-blue-800 font-semibold">Loading pupil report...</p>
+        <div className="p-4 bg-blue-50 rounded-lg dark:bg-blue-950/40">
+          <p className="text-blue-800 font-semibold dark:text-blue-200">Loading pupil report...</p>
         </div>
       </div>
     );
@@ -240,9 +240,9 @@ const SinglePupilReportPage: React.FC<SinglePupilReportPageProps> = ({
   if (isError || error) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="p-6 bg-red-50 rounded-lg max-w-lg">
-          <h3 className="text-xl font-bold text-red-800 mb-2">Error Loading Report</h3>
-          <p className="text-red-600">{error?.message || "Failed to load pupil report data"}</p>
+        <div className="p-6 bg-red-50 rounded-lg max-w-lg dark:bg-red-950/40">
+          <h3 className="text-xl font-bold text-red-800 mb-2 dark:text-red-200">Error Loading Report</h3>
+          <p className="text-red-600 dark:text-red-400">{error?.message || "Failed to load pupil report data"}</p>
           <button
             onClick={() => window.location.reload()}
             className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
@@ -259,9 +259,9 @@ const SinglePupilReportPage: React.FC<SinglePupilReportPageProps> = ({
   if (!pupilData) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="p-6 bg-yellow-50 rounded-lg max-w-lg">
-          <h3 className="text-xl font-bold text-yellow-800 mb-2">No Data Available</h3>
-          <p className="text-yellow-600">Could not find report data for this pupil.</p>
+        <div className="p-6 bg-yellow-50 rounded-lg max-w-lg dark:bg-yellow-950/40">
+          <h3 className="text-xl font-bold text-yellow-800 mb-2 dark:text-yellow-200">No Data Available</h3>
+          <p className="text-yellow-600 dark:text-yellow-400">Could not find report data for this pupil.</p>
         </div>
       </div>
     );

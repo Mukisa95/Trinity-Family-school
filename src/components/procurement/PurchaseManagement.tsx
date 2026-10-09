@@ -504,7 +504,7 @@ export function PurchaseManagement({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Purchase Management</h2>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-slate-300">
             {getPeriodDescription()}
           </p>
         </div>
@@ -541,21 +541,21 @@ export function PurchaseManagement({
 
               <div className="space-y-6">
                 {/* Digital Signature Section */}
-                <div className="border-2 border-dashed border-blue-200 rounded-lg p-4">
+                <div className="border-2 border-dashed border-blue-200 rounded-lg p-4 dark:border-blue-800/60">
                   <div className="flex items-center gap-2 mb-3">
-                    <Shield className="w-5 h-5 text-blue-600" />
-                    <h4 className="font-medium text-blue-800">Staff Authentication</h4>
+                    <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <h4 className="font-medium text-blue-800 dark:text-blue-200">Staff Authentication</h4>
                   </div>
 
                   {!authenticatedUser ? (
                     <div className="space-y-3">
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 dark:text-slate-300">
                         Staff authentication is required to record purchases. Click below to authenticate.
                       </p>
                       <Button
                         onClick={() => setShowDigitalSignature(true)}
                         variant="outline"
-                        className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
+                        className="w-full border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
                       >
                         <Shield className="w-4 h-4 mr-2" />
                         Authenticate Staff Member
@@ -563,17 +563,17 @@ export function PurchaseManagement({
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <Shield className="w-5 h-5 text-green-600" />
+                      <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg dark:bg-green-950/40 dark:border-green-800/60">
+                        <Shield className="w-5 h-5 text-green-600 dark:text-green-400" />
                         <div className="flex-1">
-                          <div className="font-medium text-green-800">
+                          <div className="font-medium text-green-800 dark:text-green-200">
                             {authenticatedUser.firstName} {authenticatedUser.lastName}
                           </div>
-                          <div className="text-sm text-green-600">
+                          <div className="text-sm text-green-600 dark:text-green-400">
                             {authenticatedUser.username} • {authenticatedUser.role}
                           </div>
                         </div>
-                        <Badge className="bg-green-100 text-green-800 border-green-300">
+                        <Badge className="bg-green-100 text-green-800 border-green-300 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60">
                           {hasPermissionToMakePurchase ? 'Auto-authenticated' : 'Authenticated'}
                         </Badge>
                       </div>
@@ -585,7 +585,7 @@ export function PurchaseManagement({
                           }}
                           variant="ghost"
                           size="sm"
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                         >
                           Change Authentication
                         </Button>
@@ -642,7 +642,7 @@ export function PurchaseManagement({
                   </div>
 
                   {formData.itemId && (
-                    <div className="rounded-md border border-sky-100 bg-sky-50 px-3 py-2 text-sm text-sky-950">
+                    <div className="rounded-md border border-sky-100 bg-sky-50 px-3 py-2 text-sm text-sky-950 dark:border-sky-800/60 dark:bg-sky-950/40 dark:text-sky-100">
                       One {selectedPurchaseConfiguration.purchaseUnit} contains {selectedPurchaseConfiguration.unitsPerPurchaseUnit} {selectedPurchaseConfiguration.stockUnit}. This purchase represents <strong>{equivalentStockQuantity} {selectedPurchaseConfiguration.stockUnit}</strong> for inventory receipt.
                     </div>
                   )}
@@ -714,7 +714,7 @@ export function PurchaseManagement({
                           ))}
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-gray-500 mt-1">Defaults to current year</p>
+                      <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">Defaults to current year</p>
                     </div>
                     <div>
                       <Label htmlFor="termId">Term *</Label>
@@ -733,14 +733,14 @@ export function PurchaseManagement({
                           ))}
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-gray-500 mt-1">Defaults to current term</p>
+                      <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">Defaults to current term</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Purchase Date</Label>
-                      <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm">
+                      <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm dark:bg-slate-900 dark:border-slate-700">
                         {new Date(formData.purchaseDate).toLocaleDateString()}
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">Today's date (non-editable)</p>
+                      <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">Today's date (non-editable)</p>
                     </div>
                   </div>
 
@@ -768,7 +768,7 @@ export function PurchaseManagement({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-medium">Total Cost</Label>
-                      <div className="px-3 py-2 bg-gray-50 rounded-md text-sm font-bold text-green-600">
+                      <div className="px-3 py-2 bg-gray-50 rounded-md text-sm font-bold text-green-600 dark:bg-slate-900 dark:text-green-400">
                         {formatCurrency(formData.quantity * formData.unitCost)}
                       </div>
                     </div>
@@ -828,7 +828,7 @@ export function PurchaseManagement({
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-64">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 dark:text-slate-400" />
                 <Input
                   placeholder="Search purchases..."
                   value={searchTerm}
@@ -923,7 +923,7 @@ export function PurchaseManagement({
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleDelete(purchase.id)}
-                            className="text-red-600"
+                            className="text-red-600 dark:text-red-400"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Delete
@@ -935,7 +935,7 @@ export function PurchaseManagement({
                 ))}
                 {filteredPurchases.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={8} className="text-center py-8 text-gray-500 dark:text-slate-400">
                       No purchases found for the selected period and filters
                     </TableCell>
                   </TableRow>
@@ -948,13 +948,13 @@ export function PurchaseManagement({
               {stackedPurchases.map((stackedItem) => (
                 <div key={stackedItem.itemId} className="border rounded-lg">
                   {/* Item Header */}
-                  <div className="bg-gray-50 px-4 py-3 border-b">
+                  <div className="bg-gray-50 px-4 py-3 border-b dark:bg-slate-900">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="font-medium text-lg">{stackedItem.itemName}</div>
                         <Badge variant="outline">{stackedItem.itemCategory}</Badge>
                       </div>
-                      <div className="text-sm text-gray-600 grid grid-cols-4 gap-6 text-right">
+                      <div className="text-sm text-gray-600 grid grid-cols-4 gap-6 text-right dark:text-slate-300">
                         <div>
                           <div className="font-medium">{stackedItem.purchaseCount}</div>
                           <div className="text-xs">Purchases</div>
@@ -985,7 +985,7 @@ export function PurchaseManagement({
                             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-px bg-gray-300 h-full"></div>
                             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-gray-300 rounded-full"></div>
                             {index === stackedItem.purchases.length - 1 && (
-                              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 w-px bg-white h-1/2"></div>
+                              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 w-px bg-white h-1/2 dark:bg-slate-900"></div>
                             )}
                           </div>
                         </div>
@@ -1027,7 +1027,7 @@ export function PurchaseManagement({
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleDelete(purchase.id)}
-                                className="text-red-600"
+                                className="text-red-600 dark:text-red-400"
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Delete
@@ -1042,7 +1042,7 @@ export function PurchaseManagement({
               ))}
 
               {stackedPurchases.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-gray-500 dark:text-slate-400">
                   No purchases found for the selected period and filters
                 </div>
               )}
@@ -1071,21 +1071,21 @@ export function PurchaseManagement({
 
           <div className="space-y-6">
             {/* Digital Signature Section for Edit */}
-            <div className="border-2 border-dashed border-amber-200 rounded-lg p-4">
+            <div className="border-2 border-dashed border-amber-200 rounded-lg p-4 dark:border-amber-800/60">
               <div className="flex items-center gap-2 mb-3">
-                <Shield className="w-5 h-5 text-amber-600" />
-                <h4 className="font-medium text-amber-800">Re-authentication Required</h4>
+                <Shield className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                <h4 className="font-medium text-amber-800 dark:text-amber-200">Re-authentication Required</h4>
               </div>
 
               {!editAuthenticatedUser ? (
                 <div className="space-y-3">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-slate-300">
                     Please re-authenticate to modify this purchase record.
                   </p>
                   <Button
                     onClick={() => setShowEditDigitalSignature(true)}
                     variant="outline"
-                    className="w-full border-amber-300 text-amber-700 hover:bg-amber-50"
+                    className="w-full border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
                   >
                     <Shield className="w-4 h-4 mr-2" />
                     Re-authenticate
@@ -1093,17 +1093,17 @@ export function PurchaseManagement({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <Shield className="w-5 h-5 text-green-600" />
+                  <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg dark:bg-green-950/40 dark:border-green-800/60">
+                    <Shield className="w-5 h-5 text-green-600 dark:text-green-400" />
                     <div className="flex-1">
-                      <div className="font-medium text-green-800">
+                      <div className="font-medium text-green-800 dark:text-green-200">
                         {editAuthenticatedUser.firstName} {editAuthenticatedUser.lastName}
                       </div>
-                      <div className="text-sm text-green-600">
+                      <div className="text-sm text-green-600 dark:text-green-400">
                         {editAuthenticatedUser.username} • {editAuthenticatedUser.role}
                       </div>
                     </div>
-                    <Badge className="bg-green-100 text-green-800 border-green-300">
+                    <Badge className="bg-green-100 text-green-800 border-green-300 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60">
                       Authenticated
                     </Badge>
                   </div>
@@ -1159,7 +1159,7 @@ export function PurchaseManagement({
               </div>
 
               {formData.itemId && (
-                <div className="rounded-md border border-sky-100 bg-sky-50 px-3 py-2 text-sm text-sky-950">
+                <div className="rounded-md border border-sky-100 bg-sky-50 px-3 py-2 text-sm text-sky-950 dark:border-sky-800/60 dark:bg-sky-950/40 dark:text-sky-100">
                   This purchase represents <strong>{equivalentStockQuantity} {selectedPurchaseConfiguration.stockUnit}</strong> for inventory receipt ({selectedPurchaseConfiguration.unitsPerPurchaseUnit} {selectedPurchaseConfiguration.stockUnit} in each {selectedPurchaseConfiguration.purchaseUnit}).
                 </div>
               )}

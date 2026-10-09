@@ -18,7 +18,7 @@ export default function LegacyItemReleaseQueuePage() {
   }, [router]);
 
   return (
-    <div className="flex min-h-[50dvh] items-center justify-center gap-2 px-4 text-sm text-slate-600" role="status">
+    <div className="flex min-h-[50dvh] items-center justify-center gap-2 px-4 text-sm text-slate-600 dark:text-slate-300" role="status">
       <Loader2 className="h-4 w-4 animate-spin" /> Opening the Inventory release queue…
     </div>
   );

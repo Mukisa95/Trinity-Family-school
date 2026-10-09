@@ -68,7 +68,7 @@ export function AddCommentModal({ isOpen, onClose, onAdd, defaultStatus = 'good'
       <ModernDialogContent open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
         <ModernDialogHeader>
           <ModernDialogTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-blue-600" />
+            <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             Add Comment Template
           </ModernDialogTitle>
         </ModernDialogHeader>

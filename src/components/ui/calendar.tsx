@@ -30,17 +30,17 @@ function Calendar({
         dropdown_month: "relative",
         dropdown_year: "relative",
         dropdown:
-          "appearance-none bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-800 pr-7 cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-400 hover:bg-gray-200 transition-colors",
+          "appearance-none bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-800 pr-7 cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-400 hover:bg-gray-200 transition-colors dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
-          "h-8 w-8 bg-transparent p-0 inline-flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors",
+          "h-8 w-8 bg-transparent p-0 inline-flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors dark:border-slate-700 dark:hover:bg-slate-900",
         ),
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
         table: "w-full border-collapse",
         head_row: "flex",
         head_cell:
-          "text-gray-400 rounded-md w-10 font-semibold text-[0.65rem] uppercase tracking-wider text-center",
+          "text-gray-400 rounded-md w-10 font-semibold text-[0.65rem] uppercase tracking-wider text-center dark:text-slate-400",
         row: "flex w-full mt-1",
         cell: cn(
           "h-10 w-10 text-center text-sm p-0 relative",
@@ -54,14 +54,14 @@ function Calendar({
         day: cn(
           "h-10 w-10 p-0 font-normal rounded-full text-sm",
           "inline-flex items-center justify-center",
-          "hover:bg-sky-100 hover:text-sky-700 transition-colors duration-150",
+          "hover:bg-sky-100 hover:text-sky-700 transition-colors duration-150 dark:hover:bg-sky-950/40 dark:hover:text-sky-300",
           "aria-selected:opacity-100 cursor-pointer"
         ),
         day_range_end: "day-range-end",
         day_selected:
           "bg-sky-500 text-white hover:bg-sky-600 hover:text-white focus:bg-sky-500 focus:text-white rounded-full shadow-md shadow-sky-200",
         day_today:
-          "border-2 border-sky-300 font-semibold text-sky-600",
+          "border-2 border-sky-300 font-semibold text-sky-600 dark:border-sky-800/60 dark:text-sky-400",
         day_outside:
           "day-outside text-gray-300 aria-selected:bg-sky-100/50 aria-selected:text-gray-400",
         day_disabled: "text-gray-200 opacity-40 cursor-not-allowed hover:bg-transparent",
@@ -73,10 +73,10 @@ function Calendar({
       }}
       components={{
         IconLeft: ({ className: cls, ...p }) => (
-          <ChevronLeft className={cn("h-4 w-4 text-gray-500", cls)} {...p} />
+          <ChevronLeft className={cn("h-4 w-4 text-gray-500 dark:text-slate-400", cls)} {...p} />
         ),
         IconRight: ({ className: cls, ...p }) => (
-          <ChevronRight className={cn("h-4 w-4 text-gray-500", cls)} {...p} />
+          <ChevronRight className={cn("h-4 w-4 text-gray-500 dark:text-slate-400", cls)} {...p} />
         ),
       }}
       {...props}

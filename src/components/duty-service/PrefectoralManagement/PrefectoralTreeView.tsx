@@ -72,30 +72,30 @@ const PostCard: React.FC<PostCardProps> = ({
      const getPositionIcon = (position: number) => {
      switch (position) {
        case 1:
-         return <Crown className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-yellow-500`} />;
+         return <Crown className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-yellow-500 dark:text-yellow-400`} />;
        case 2:
-         return <Users className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-blue-500`} />;
+         return <Users className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-blue-500 dark:text-blue-400`} />;
        default:
-         return <Users className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-gray-500`} />;
+         return <Users className={`${isTopRank ? 'h-4 w-4' : 'h-3 w-3'} text-gray-500 dark:text-slate-400`} />;
      }
    };
 
   const getPositionColor = (position: number, isTop: boolean) => {
     if (isTop) {
-      return 'bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-300 shadow-lg';
+      return 'bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-300 shadow-lg dark:from-yellow-950/40 dark:to-yellow-950/40 dark:border-yellow-800/60';
     }
     
     switch (position) {
       case 1:
-        return 'bg-yellow-50 border-yellow-200 shadow-md';
+        return 'bg-yellow-50 border-yellow-200 shadow-md dark:bg-yellow-950/40 dark:border-yellow-800/60';
       case 2:
-        return 'bg-blue-50 border-blue-200 shadow-md';
+        return 'bg-blue-50 border-blue-200 shadow-md dark:bg-blue-950/40 dark:border-blue-800/60';
       case 3:
-        return 'bg-green-50 border-green-200 shadow-md';
+        return 'bg-green-50 border-green-200 shadow-md dark:bg-green-950/40 dark:border-green-800/60';
       case 4:
-        return 'bg-purple-50 border-purple-200 shadow-md';
+        return 'bg-purple-50 border-purple-200 shadow-md dark:bg-purple-950/40 dark:border-purple-800/60';
       default:
-        return 'bg-gray-50 border-gray-200 shadow-md';
+        return 'bg-gray-50 border-gray-200 shadow-md dark:bg-slate-900 dark:border-slate-700';
     }
   };
 
@@ -132,7 +132,7 @@ const PostCard: React.FC<PostCardProps> = ({
            <div className="absolute top-1 left-1 z-10">
              <DropdownMenu>
                <DropdownMenuTrigger asChild>
-                 <Button variant="ghost" size="sm" className="h-6 w-6 p-0 bg-white/80 hover:bg-white">
+                 <Button variant="ghost" size="sm" className="h-6 w-6 p-0 bg-white/80 hover:bg-white dark:bg-slate-900/80 dark:hover:bg-slate-900">
                    <MoreHorizontal className="h-3 w-3" />
                  </Button>
                </DropdownMenuTrigger>
@@ -158,7 +158,7 @@ const PostCard: React.FC<PostCardProps> = ({
                  )}
                                    <DropdownMenuItem 
                     onClick={() => onDeletePost(post)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/40"
                     disabled={isDeleting}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
@@ -170,7 +170,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
                      {/* Position Icon - Top Right */}
            <div className="absolute top-1 right-1 z-10">
-             <div className="bg-white/80 rounded-full p-0.5">
+             <div className="bg-white/80 rounded-full p-0.5 dark:bg-slate-900/80">
                {getPositionIcon(post.positionOfHonour)}
              </div>
            </div>
@@ -186,8 +186,8 @@ const PostCard: React.FC<PostCardProps> = ({
                     className="w-full h-full object-cover"
                   />
                                  ) : (
-                   <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                     <User className={`${isTopRank ? 'h-12 w-12' : 'h-10 w-10'} text-gray-400`} />
+                   <div className="w-full h-full bg-gray-200 flex items-center justify-center dark:bg-slate-800">
+                     <User className={`${isTopRank ? 'h-12 w-12' : 'h-10 w-10'} text-gray-400 dark:text-slate-400`} />
                    </div>
                  )}
                 {/* Active assignment indicator */}
@@ -196,8 +196,8 @@ const PostCard: React.FC<PostCardProps> = ({
                  </div>
               </div>
                          ) : (
-               <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                 <UserX className={`${isTopRank ? 'h-12 w-12' : 'h-10 w-10'} text-gray-400`} />
+               <div className="w-full h-full bg-gray-200 flex items-center justify-center dark:bg-slate-800">
+                 <UserX className={`${isTopRank ? 'h-12 w-12' : 'h-10 w-10'} text-gray-400 dark:text-slate-400`} />
                </div>
              )}
 
@@ -215,7 +215,7 @@ const PostCard: React.FC<PostCardProps> = ({
                      <p className="font-semibold text-white text-xs leading-tight">
                        {getPupilName(activeAssignment.pupilId)}
                      </p>
-                     <Badge variant="secondary" className="text-xs px-1 py-0 bg-white/20 text-white border-white/30 leading-tight">
+                     <Badge variant="secondary" className="text-xs px-1 py-0 bg-white/20 text-white border-white/30 leading-tight dark:bg-slate-900/20 dark:border-slate-700/30">
                        {getClassCode(getPupilClass(activeAssignment.pupilId))}
                      </Badge>
                    </div>
@@ -228,7 +228,7 @@ const PostCard: React.FC<PostCardProps> = ({
  
                  {/* Allowance Badge */}
                  {post.allowance && (
-                   <Badge variant="outline" className="mt-0.5 text-xs bg-white/20 text-white border-white/30 leading-tight">
+                   <Badge variant="outline" className="mt-0.5 text-xs bg-white/20 text-white border-white/30 leading-tight dark:bg-slate-900/20 dark:border-slate-700/30">
                      KES {post.allowance.toLocaleString()}
                    </Badge>
                  )}
@@ -248,7 +248,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 {postAssignments.map((assignment) => (
                   <div key={assignment.id} className="flex items-center justify-between p-2 bg-muted rounded text-sm">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center dark:bg-slate-800">
                         {getPupilPhoto(assignment.pupilId) ? (
                           <img 
                             src={getPupilPhoto(assignment.pupilId)} 
@@ -256,7 +256,7 @@ const PostCard: React.FC<PostCardProps> = ({
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <User className="h-4 w-4 text-gray-400" />
+                          <User className="h-4 w-4 text-gray-400 dark:text-slate-400" />
                         )}
                       </div>
                       <div className="flex items-center gap-2">

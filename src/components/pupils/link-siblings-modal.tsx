@@ -144,18 +144,18 @@ export function LinkSiblingsModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-5 py-3 border-b bg-gradient-to-r from-blue-50 to-indigo-50 sticky top-0 z-10 space-y-3">
+        <DialogHeader className="px-5 py-3 border-b bg-gradient-to-r from-blue-50 to-indigo-50 sticky top-0 z-10 space-y-3 dark:from-blue-950/40 dark:to-indigo-950/40">
           {/* Title and Action Buttons */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-blue-100 rounded-lg">
-                <Users className="h-4 w-4 text-blue-600" />
+              <div className="p-1.5 bg-blue-100 rounded-lg dark:bg-blue-950/40">
+                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <DialogTitle className="text-lg font-semibold text-gray-900">
+                <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-slate-100">
                   Link Siblings
                 </DialogTitle>
-                <div className="text-xs font-normal text-gray-600">
+                <div className="text-xs font-normal text-gray-600 dark:text-slate-300">
                   to {formatPupilDisplayName(sourcePupil)}
                 </div>
               </div>
@@ -181,7 +181,7 @@ export function LinkSiblingsModal({
               >
                 {isLinking ? (
                   <>
-                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent mr-2"></div>
+                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent mr-2 dark:border-slate-700"></div>
                     Linking...
                   </>
                 ) : (
@@ -194,29 +194,29 @@ export function LinkSiblingsModal({
             </div>
           </div>
           
-          <DialogDescription className="text-gray-600 text-xs">
+          <DialogDescription className="text-gray-600 text-xs dark:text-slate-300">
             Select pupils to link as siblings with shared family ID
           </DialogDescription>
 
           {/* Search Bar */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-slate-400" />
             <Input
               placeholder="Search by name, admission number, class..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-3 py-2 text-sm border border-gray-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded-lg transition-all duration-200 bg-white"
+              className="pl-10 pr-3 py-2 text-sm border border-gray-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded-lg transition-all duration-200 bg-white dark:border-slate-700 dark:focus:ring-blue-800/60 dark:bg-slate-900"
             />
           </div>
 
           {/* Selected Count */}
           {selectedPupilIds.length > 0 && (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 shadow-sm">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 shadow-sm dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800/60">
               <div className="flex items-center gap-2">
-                <div className="p-1 bg-blue-100 rounded-full">
-                  <CheckCircle2 className="h-3 w-3 text-blue-600" />
+                <div className="p-1 bg-blue-100 rounded-full dark:bg-blue-950/40">
+                  <CheckCircle2 className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                 </div>
-                <div className="text-sm font-medium text-blue-900">
+                <div className="text-sm font-medium text-blue-900 dark:text-blue-200">
                   {selectedPupilIds.length} pupil{selectedPupilIds.length === 1 ? '' : 's'} selected
                 </div>
               </div>
@@ -231,22 +231,22 @@ export function LinkSiblingsModal({
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
                   <div className="relative">
-                    <div className="animate-spin rounded-full h-8 w-8 border-3 border-blue-200 border-t-blue-600 mx-auto"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-3 border-blue-200 border-t-blue-600 mx-auto dark:border-blue-800/60"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Users className="h-3 w-3 text-blue-600" />
+                      <Users className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                     </div>
                   </div>
-                  <p className="mt-3 text-sm text-gray-600 font-medium">Loading pupils...</p>
+                  <p className="mt-3 text-sm text-gray-600 font-medium dark:text-slate-300">Loading pupils...</p>
                 </div>
               </div>
             ) : filteredPupils.length === 0 ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-center max-w-sm">
-                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <AlertCircle className="h-6 w-6 text-gray-400" />
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 dark:bg-slate-900">
+                    <AlertCircle className="h-6 w-6 text-gray-400 dark:text-slate-400" />
                   </div>
-                  <h3 className="text-base font-semibold text-gray-900 mb-1">No pupils found</h3>
-                  <p className="text-gray-600 text-sm">
+                  <h3 className="text-base font-semibold text-gray-900 mb-1 dark:text-slate-100">No pupils found</h3>
+                  <p className="text-gray-600 text-sm dark:text-slate-300">
                     {searchTerm 
                       ? 'Try adjusting your search terms.' 
                       : 'No pupils available to link.'}
@@ -272,8 +272,8 @@ export function LinkSiblingsModal({
                       key={pupil.id}
                       className={`group relative p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-sm ${
                         isSelected 
-                          ? 'border-blue-300 bg-blue-50/50 shadow-sm' 
-                          : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50/50'
+                          ? 'border-blue-300 bg-blue-50/50 shadow-sm dark:border-blue-800/60 dark:bg-blue-950/50'
+                          : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50/50 dark:border-slate-700 dark:hover:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-900/50'
                       }`}
                       onClick={() => handlePupilSelect(pupil.id, !isSelected)}
                     >
@@ -286,7 +286,7 @@ export function LinkSiblingsModal({
                           className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                         />
                         
-                        <Avatar className="h-10 w-10 border border-gray-200 group-hover:border-gray-300 transition-colors">
+                        <Avatar className="h-10 w-10 border border-gray-200 group-hover:border-gray-300 transition-colors dark:border-slate-700 dark:group-hover:border-slate-700">
                           {pupil.photo && pupil.photo.trim() !== '' && pupil.photo.startsWith('http') ? (
                             <AvatarImage 
                               src={pupil.photo} 
@@ -302,7 +302,7 @@ export function LinkSiblingsModal({
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
                               <div className="flex items-center space-x-2">
-                                <h4 className="text-sm font-semibold text-gray-900 truncate">
+                                <h4 className="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
                                   {formatPupilDisplayName(pupil)}
                                 </h4>
                                 <Badge 
@@ -313,8 +313,8 @@ export function LinkSiblingsModal({
                                 </Badge>
                               </div>
                               
-                              <div className="flex items-center space-x-4 mt-1 text-xs text-gray-600">
-                                <span className="font-mono text-gray-900">{pupil.admissionNumber}</span>
+                              <div className="flex items-center space-x-4 mt-1 text-xs text-gray-600 dark:text-slate-300">
+                                <span className="font-mono text-gray-900 dark:text-slate-100">{pupil.admissionNumber}</span>
                                 <span>{pupil.className || 'N/A'}</span>
                                 <span>{pupil.gender}</span>
                                 <span>{pupil.section}</span>
@@ -323,8 +323,8 @@ export function LinkSiblingsModal({
                             
                             {isSelected && (
                               <div className="ml-2">
-                                <div className="p-1 bg-blue-100 rounded-full">
-                                  <CheckCircle2 className="h-3 w-3 text-blue-600" />
+                                <div className="p-1 bg-blue-100 rounded-full dark:bg-blue-950/40">
+                                  <CheckCircle2 className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                                 </div>
                               </div>
                             )}
@@ -340,8 +340,8 @@ export function LinkSiblingsModal({
         </div>
 
         {/* Footer - just for spacing and pupil count */}
-        <div className="px-5 py-2 border-t bg-gray-50/50 flex justify-center items-center">
-          <div className="text-xs text-gray-500">
+        <div className="px-5 py-2 border-t bg-gray-50/50 flex justify-center items-center dark:bg-slate-900/50">
+          <div className="text-xs text-gray-500 dark:text-slate-400">
             {filteredPupils.length > 0 && (
               <span>{filteredPupils.length} pupils available to link</span>
             )}

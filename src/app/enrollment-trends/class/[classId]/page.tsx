@@ -205,16 +205,16 @@ export default function ClassEnrollmentDetailsPage() {
 
     if (pupilsLoading || classesLoading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/40">
                 <div className="flex items-center justify-center min-h-[60vh]">
                     <div className="text-center space-y-4">
                         <div className="relative">
-                            <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
-                            <Sparkles className="w-6 h-6 text-blue-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+                            <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto dark:border-blue-800/60"></div>
+                            <Sparkles className="w-6 h-6 text-blue-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 dark:text-blue-400" />
                         </div>
                         <div className="space-y-2">
-                            <h3 className="text-lg font-semibold text-gray-700">Loading Class Data</h3>
-                            <p className="text-sm text-gray-500">Fetching pupil records...</p>
+                            <h3 className="text-lg font-semibold text-gray-700 dark:text-slate-200">Loading Class Data</h3>
+                            <p className="text-sm text-gray-500 dark:text-slate-400">Fetching pupil records...</p>
                         </div>
                     </div>
                 </div>
@@ -225,23 +225,23 @@ export default function ClassEnrollmentDetailsPage() {
     const classNameStr = currentClass?.name || currentClass?.code || "Class Details";
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-3 md:p-4 pb-24">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-3 md:p-4 pb-24 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/40">
             <div className="max-w-7xl mx-auto space-y-4">
                 {/* Header styling consistent with other pages */}
-                <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-xl">
+                <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-xl dark:bg-slate-900/80 dark:border-slate-700/20">
                     <CardContent className="p-4">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="flex items-center gap-3">
-                                <SmartBackButton fallbackHref="/enrollment-trends" className="bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-full w-10 h-10 shadow-sm">
+                                <SmartBackButton fallbackHref="/enrollment-trends" className="bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-full w-10 h-10 shadow-sm dark:bg-blue-950/40 dark:hover:bg-blue-950/40 dark:text-blue-400">
   <ArrowLeft className="w-5 h-5" />
   
 </SmartBackButton>
                                 <div>
-                                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2">
-                                        <Users className="w-6 h-6 text-blue-600" />
+                                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2 dark:text-slate-100">
+                                        <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                                         {classNameStr} Enrollment
                                     </h1>
-                                    <p className="text-sm text-gray-600">{classPupils.length} Total Enrolled Pupils</p>
+                                    <p className="text-sm text-gray-600 dark:text-slate-300">{classPupils.length} Total Enrolled Pupils</p>
                                 </div>
                             </div>
 
@@ -257,26 +257,26 @@ export default function ClassEnrollmentDetailsPage() {
                         </div>
 
                         {/* Filters Row */}
-                        <div className="mt-4 p-4 bg-white/60 rounded-xl border border-white/30 shadow-sm">
+                        <div className="mt-4 p-4 bg-white/60 rounded-xl border border-white/30 shadow-sm dark:bg-slate-900/60 dark:border-slate-700/30">
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="search" className="text-sm font-medium text-gray-700">Search Pupils</Label>
+                                    <Label htmlFor="search" className="text-sm font-medium text-gray-700 dark:text-slate-200">Search Pupils</Label>
                                     <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-400" />
                                         <Input
                                             id="search"
                                             placeholder="Name or admission #"
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="pl-10 bg-white border-gray-200"
+                                            className="pl-10 bg-white border-gray-200 dark:bg-slate-900 dark:border-slate-700"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="gender-select" className="text-sm font-medium text-gray-700">Gender</Label>
+                                    <Label htmlFor="gender-select" className="text-sm font-medium text-gray-700 dark:text-slate-200">Gender</Label>
                                     <Select value={genderFilter} onValueChange={setGenderFilter}>
-                                        <SelectTrigger id="gender-select" className="bg-white border-gray-200">
+                                        <SelectTrigger id="gender-select" className="bg-white border-gray-200 dark:bg-slate-900 dark:border-slate-700">
                                             <SelectValue placeholder="All Genders" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -288,9 +288,9 @@ export default function ClassEnrollmentDetailsPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="section-select" className="text-sm font-medium text-gray-700">Section</Label>
+                                    <Label htmlFor="section-select" className="text-sm font-medium text-gray-700 dark:text-slate-200">Section</Label>
                                     <Select value={sectionFilter} onValueChange={setSectionFilter}>
-                                        <SelectTrigger id="section-select" className="bg-white border-gray-200">
+                                        <SelectTrigger id="section-select" className="bg-white border-gray-200 dark:bg-slate-900 dark:border-slate-700">
                                             <SelectValue placeholder="All Sections" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -302,9 +302,9 @@ export default function ClassEnrollmentDetailsPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="status-select" className="text-sm font-medium text-gray-700">Status</Label>
+                                    <Label htmlFor="status-select" className="text-sm font-medium text-gray-700 dark:text-slate-200">Status</Label>
                                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                        <SelectTrigger id="status-select" className="bg-white border-gray-200">
+                                        <SelectTrigger id="status-select" className="bg-white border-gray-200 dark:bg-slate-900 dark:border-slate-700">
                                             <SelectValue placeholder="All Statuses" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -320,53 +320,53 @@ export default function ClassEnrollmentDetailsPage() {
                 </Card>
 
                 {/* Main Table Content */}
-                <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-xl">
+                <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-xl dark:bg-slate-900/80 dark:border-slate-700/20">
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">
                             <Table>
                                 <TableHeader>
-                                    <TableRow className="border-gray-200 bg-gray-50/80">
+                                    <TableRow className="border-gray-200 bg-gray-50/80 dark:border-slate-700 dark:bg-slate-900/80">
                                         <TableHead className="py-3">
                                             <Button
                                                 variant="ghost"
                                                 onClick={() => handleSort("name")}
-                                                className="h-auto p-0 font-semibold hover:bg-transparent text-gray-700 text-sm"
+                                                className="h-auto p-0 font-semibold hover:bg-transparent text-gray-700 text-sm dark:text-slate-200"
                                             >
                                                 Pupil Name
-                                                <ArrowUpDown className="ml-1 h-3.5 w-3.5 text-gray-400" />
+                                                <ArrowUpDown className="ml-1 h-3.5 w-3.5 text-gray-400 dark:text-slate-400" />
                                             </Button>
                                         </TableHead>
                                         <TableHead className="py-3">
                                             <Button
                                                 variant="ghost"
                                                 onClick={() => handleSort("admissionNumber")}
-                                                className="h-auto p-0 font-semibold hover:bg-transparent text-gray-700 text-sm"
+                                                className="h-auto p-0 font-semibold hover:bg-transparent text-gray-700 text-sm dark:text-slate-200"
                                             >
                                                 Admission #
-                                                <ArrowUpDown className="ml-1 h-3.5 w-3.5 text-gray-400" />
+                                                <ArrowUpDown className="ml-1 h-3.5 w-3.5 text-gray-400 dark:text-slate-400" />
                                             </Button>
                                         </TableHead>
-                                        <TableHead className="text-gray-700 font-semibold text-sm py-3">Gender</TableHead>
-                                        <TableHead className="text-gray-700 font-semibold text-sm py-3">Section</TableHead>
+                                        <TableHead className="text-gray-700 font-semibold text-sm py-3 dark:text-slate-200">Gender</TableHead>
+                                        <TableHead className="text-gray-700 font-semibold text-sm py-3 dark:text-slate-200">Section</TableHead>
                                         <TableHead className="py-3">
                                             <Button
                                                 variant="ghost"
                                                 onClick={() => handleSort("age")}
-                                                className="h-auto p-0 font-semibold hover:bg-transparent text-gray-700 text-sm"
+                                                className="h-auto p-0 font-semibold hover:bg-transparent text-gray-700 text-sm dark:text-slate-200"
                                             >
                                                 Age
-                                                <ArrowUpDown className="ml-1 h-3.5 w-3.5 text-gray-400" />
+                                                <ArrowUpDown className="ml-1 h-3.5 w-3.5 text-gray-400 dark:text-slate-400" />
                                             </Button>
                                         </TableHead>
-                                        <TableHead className="text-gray-700 font-semibold text-sm py-3">Status</TableHead>
+                                        <TableHead className="text-gray-700 font-semibold text-sm py-3 dark:text-slate-200">Status</TableHead>
                                         <TableHead className="py-3">
                                             <Button
                                                 variant="ghost"
                                                 onClick={() => handleSort("registrationDate")}
-                                                className="h-auto p-0 font-semibold hover:bg-transparent text-gray-700 text-sm"
+                                                className="h-auto p-0 font-semibold hover:bg-transparent text-gray-700 text-sm dark:text-slate-200"
                                             >
                                                 Enrolled On
-                                                <ArrowUpDown className="ml-1 h-3.5 w-3.5 text-gray-400" />
+                                                <ArrowUpDown className="ml-1 h-3.5 w-3.5 text-gray-400 dark:text-slate-400" />
                                             </Button>
                                         </TableHead>
                                     </TableRow>
@@ -374,42 +374,42 @@ export default function ClassEnrollmentDetailsPage() {
                                 <TableBody>
                                     {currentPageData.length > 0 ? (
                                         currentPageData.map((student) => (
-                                            <TableRow key={student.id} className="hover:bg-blue-50/50 border-gray-100 transition-colors">
-                                                <TableCell className="font-semibold text-gray-900 py-3">{student.name}</TableCell>
-                                                <TableCell className="text-gray-600 py-3 font-medium">{student.admissionNumber}</TableCell>
+                                            <TableRow key={student.id} className="hover:bg-blue-50/50 border-gray-100 transition-colors dark:hover:bg-blue-950/50 dark:border-slate-700">
+                                                <TableCell className="font-semibold text-gray-900 py-3 dark:text-slate-100">{student.name}</TableCell>
+                                                <TableCell className="text-gray-600 py-3 font-medium dark:text-slate-300">{student.admissionNumber}</TableCell>
                                                 <TableCell className="py-3">
                                                     <Badge variant="outline" className={`text-xs ${student.gender === 'Male'
-                                                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                                            ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60'
                                                             : student.gender === 'Female'
-                                                                ? 'bg-pink-50 text-pink-700 border-pink-200'
-                                                                : 'bg-gray-50 text-gray-700 border-gray-200'
+                                                                ? 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-950/40 dark:text-pink-300 dark:border-pink-800/60'
+                                                                : 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-700'
                                                         }`}>
                                                         {student.gender}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="py-3">
                                                     <Badge variant="outline" className={`text-xs ${student.section === 'Boarding'
-                                                            ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                            ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/60'
+                                                            : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60'
                                                         }`}>
                                                         {student.section}
                                                     </Badge>
                                                 </TableCell>
-                                                <TableCell className="text-gray-600 py-3">{student.age}</TableCell>
+                                                <TableCell className="text-gray-600 py-3 dark:text-slate-300">{student.age}</TableCell>
                                                 <TableCell className="py-3">
                                                     <Badge variant={student.status === 'Active' ? 'default' : 'secondary'} className="text-xs font-medium">
                                                         {student.status}
                                                     </Badge>
                                                 </TableCell>
-                                                <TableCell className="text-gray-500 py-3 text-sm">{student.formattedDate}</TableCell>
+                                                <TableCell className="text-gray-500 py-3 text-sm dark:text-slate-400">{student.formattedDate}</TableCell>
                                             </TableRow>
                                         ))
                                     ) : (
                                         <TableRow>
                                             <TableCell colSpan={7} className="h-48 text-center">
-                                                <div className="flex flex-col items-center justify-center text-gray-500">
-                                                    <UserCheck className="w-10 h-10 mb-3 text-gray-400" />
-                                                    <p className="text-base font-medium text-gray-900">No pupils found</p>
+                                                <div className="flex flex-col items-center justify-center text-gray-500 dark:text-slate-400">
+                                                    <UserCheck className="w-10 h-10 mb-3 text-gray-400 dark:text-slate-400" />
+                                                    <p className="text-base font-medium text-gray-900 dark:text-slate-100">No pupils found</p>
                                                     <p className="text-sm">Try adjusting your filters or search terms.</p>
                                                 </div>
                                             </TableCell>
@@ -421,9 +421,9 @@ export default function ClassEnrollmentDetailsPage() {
 
                         {/* Pagination Controls */}
                         {filteredData.length > 0 && (
-                            <div className="bg-gray-50/80 border-t border-gray-200 p-4 rounded-b-xl">
+                            <div className="bg-gray-50/80 border-t border-gray-200 p-4 rounded-b-xl dark:bg-slate-900/80 dark:border-slate-700">
                                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                    <div className="flex items-center gap-4 text-sm text-gray-600 font-medium">
+                                    <div className="flex items-center gap-4 text-sm text-gray-600 font-medium dark:text-slate-300">
                                         <div>
                                             Showing {startIndex + 1}-{Math.min(endIndex, filteredData.length)} of {filteredData.length} records
                                         </div>
@@ -436,7 +436,7 @@ export default function ClassEnrollmentDetailsPage() {
                                                     setCurrentPage(1);
                                                 }}
                                             >
-                                                <SelectTrigger id="records-per-page" className="w-20 h-8 text-xs bg-white">
+                                                <SelectTrigger id="records-per-page" className="w-20 h-8 text-xs bg-white dark:bg-slate-900">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent
@@ -461,7 +461,7 @@ export default function ClassEnrollmentDetailsPage() {
                                                 size="sm"
                                                 onClick={() => setCurrentPage(1)}
                                                 disabled={currentPage === 1}
-                                                className="text-xs h-8 bg-white"
+                                                className="text-xs h-8 bg-white dark:bg-slate-900"
                                             >
                                                 First
                                             </Button>
@@ -470,7 +470,7 @@ export default function ClassEnrollmentDetailsPage() {
                                                 size="sm"
                                                 onClick={() => setCurrentPage(currentPage - 1)}
                                                 disabled={currentPage === 1}
-                                                className="text-xs h-8 bg-white"
+                                                className="text-xs h-8 bg-white dark:bg-slate-900"
                                             >
                                                 Prev
                                             </Button>
@@ -493,7 +493,7 @@ export default function ClassEnrollmentDetailsPage() {
                                                                 variant={currentPage === i ? "default" : "outline"}
                                                                 size="sm"
                                                                 onClick={() => setCurrentPage(i)}
-                                                                className={`w-8 h-8 p-0 text-xs ${currentPage !== i ? 'bg-white' : 'bg-blue-600'}`}
+                                                                className={`w-8 h-8 p-0 text-xs ${currentPage !== i ? 'bg-white dark:bg-slate-900' : 'bg-blue-600'}`}
                                                             >
                                                                 {i}
                                                             </Button>
@@ -508,7 +508,7 @@ export default function ClassEnrollmentDetailsPage() {
                                                 size="sm"
                                                 onClick={() => setCurrentPage(currentPage + 1)}
                                                 disabled={currentPage === totalPages}
-                                                className="text-xs h-8 bg-white"
+                                                className="text-xs h-8 bg-white dark:bg-slate-900"
                                             >
                                                 Next
                                             </Button>
@@ -517,7 +517,7 @@ export default function ClassEnrollmentDetailsPage() {
                                                 size="sm"
                                                 onClick={() => setCurrentPage(totalPages)}
                                                 disabled={currentPage === totalPages}
-                                                className="text-xs h-8 bg-white"
+                                                className="text-xs h-8 bg-white dark:bg-slate-900"
                                             >
                                                 Last
                                             </Button>

@@ -165,26 +165,26 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'active':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400" />;
       case 'inactive':
-        return <XCircle className="h-4 w-4 text-gray-500" />;
+        return <XCircle className="h-4 w-4 text-gray-500 dark:text-slate-400" />;
       case 'suspended':
-        return <UserX className="h-4 w-4 text-red-500" />;
+        return <UserX className="h-4 w-4 text-red-500 dark:text-red-400" />;
       default:
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
       case 'inactive':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
       case 'suspended':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60';
       default:
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
     }
   };
 
@@ -217,7 +217,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
         <div className="container mx-auto px-4 py-12 max-w-md">
           <Card>
             <CardContent className="text-center p-8">
-              <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+              <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4 dark:text-yellow-400" />
               <h2 className="text-xl font-semibold mb-2">Staff Member Not Found</h2>
               <p className="text-muted-foreground mb-4">The staff member you're looking for doesn't exist or has been removed.</p>
               <Button asChild className="w-full">
@@ -283,14 +283,14 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
       <div className="container mx-auto px-4 pb-6 max-w-6xl">
 
         {/* Header Card */}
-        <Card className="mb-6 overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+        <Card className="mb-6 overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-lg dark:bg-slate-900/80">
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-24 relative">
             <div className="absolute inset-0 bg-black/10" />
           </div>
           <CardContent className="p-6 -mt-12 relative">
             <div className="flex flex-col lg:flex-row gap-6">
               <div className="flex-shrink-0">
-                <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
+                <Avatar className="w-24 h-24 border-4 border-white shadow-lg dark:border-slate-700">
                   <AvatarImage src={staff.photo} alt={`${staff.firstName} ${staff.lastName}`} />
                   <AvatarFallback className="text-xl font-semibold bg-gradient-to-br from-blue-500 to-purple-500 text-white">
                     {staff.firstName?.[0]}{staff.lastName?.[0]}
@@ -300,10 +300,10 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
               
               <div className="flex-1 space-y-4">
                 <div>
-                  <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
+                  <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-slate-100">
                     {staff.firstName} {staff.otherNames} {staff.lastName}
                   </h1>
-                  <p className="text-lg text-gray-600 mt-1">{formatStaffRoles(staff.role)}</p>
+                  <p className="text-lg text-gray-600 mt-1 dark:text-slate-300">{formatStaffRoles(staff.role)}</p>
                 </div>
 
                 {/* Status Management */}
@@ -319,31 +319,31 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <Settings className="h-4 w-4 text-gray-500" />
+                    <Settings className="h-4 w-4 text-gray-500 dark:text-slate-400" />
                     <Select 
                       value={staff.status || 'active'} 
                       onValueChange={handleStatusChange}
                       disabled={statusUpdating}
                     >
-                      <SelectTrigger className="w-36 h-8 bg-white">
+                      <SelectTrigger className="w-36 h-8 bg-white dark:bg-slate-900">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="active">
                           <div className="flex items-center gap-2">
-                            <CheckCircle className="h-3 w-3 text-green-500" />
+                            <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
                             Active
                           </div>
                         </SelectItem>
                         <SelectItem value="inactive">
                           <div className="flex items-center gap-2">
-                            <XCircle className="h-3 w-3 text-gray-500" />
+                            <XCircle className="h-3 w-3 text-gray-500 dark:text-slate-400" />
                             Inactive
                           </div>
                         </SelectItem>
                         <SelectItem value="suspended">
                           <div className="flex items-center gap-2">
-                            <UserX className="h-3 w-3 text-red-500" />
+                            <UserX className="h-3 w-3 text-red-500 dark:text-red-400" />
                             Suspended
                           </div>
                         </SelectItem>
@@ -354,11 +354,11 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
 
                 {/* Quick Info Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                  <div className="flex items-center gap-2 text-gray-600">
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-slate-300">
                     <Mail className="h-4 w-4 flex-shrink-0" />
                     <span className="truncate">{staff.email}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-600">
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-slate-300">
                     <Phone className="h-4 w-4 flex-shrink-0" />
                     {staff.contactNumber ? (
                       <a 
@@ -371,11 +371,11 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                       staff.contactNumber
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-gray-600">
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-slate-300">
                     <Building2 className="h-4 w-4 flex-shrink-0" />
                     <span>{Array.isArray(staff.department) ? staff.department.join(', ') : staff.department}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-600">
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-slate-300">
                     <Clock className="h-4 w-4 flex-shrink-0" />
                     <span>Joined {staff.joinDate ? new Date(staff.joinDate).toLocaleDateString() : 'N/A'}</span>
                   </div>
@@ -391,11 +391,11 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
           <div className="lg:col-span-2 space-y-4">
             {/* Personal Information */}
             <Collapsible open={expandedSections.personal} onOpenChange={() => toggleSection('personal')}>
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md">
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md dark:bg-slate-900/80">
                 <CollapsibleTrigger className="w-full">
-                  <CardHeader className="flex flex-row items-center justify-between p-4 hover:bg-gray-50/50 rounded-t-lg transition-colors">
+                  <CardHeader className="flex flex-row items-center justify-between p-4 hover:bg-gray-50/50 rounded-t-lg transition-colors dark:hover:bg-slate-900/50">
                     <div className="flex items-center gap-2">
-                      <UserCircle2 className="h-5 w-5 text-blue-600" />
+                      <UserCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                       <CardTitle className="text-lg">Personal Information</CardTitle>
                     </div>
                     {expandedSections.personal ? 
@@ -408,27 +408,27 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                   <CardContent className="p-4 pt-0">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Date of Birth</label>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Date of Birth</label>
                         <p className="mt-1 text-sm font-medium">{staff.dateOfBirth ? new Date(staff.dateOfBirth).toLocaleDateString() : 'Not provided'}</p>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Gender</label>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Gender</label>
                         <p className="mt-1 text-sm font-medium">{staff.gender || 'Not provided'}</p>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">National ID</label>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">National ID</label>
                         <p className="mt-1 text-sm font-medium">{staff.nationalId || 'Not provided'}</p>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Marital Status</label>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Marital Status</label>
                         <p className="mt-1 text-sm font-medium">{staff.maritalStatus || 'Not provided'}</p>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Religion</label>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Religion</label>
                         <p className="mt-1 text-sm font-medium">{staff.religion || 'Not provided'}</p>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Address</label>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Address</label>
                         <p className="mt-1 text-sm font-medium">
                           {staff.address ? `${staff.address}, ${staff.city || ''}, ${staff.country || ''}` : 'Not provided'}
                         </p>
@@ -441,11 +441,11 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
 
             {/* Employment Information */}
             <Collapsible open={expandedSections.employment} onOpenChange={() => toggleSection('employment')}>
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md">
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md dark:bg-slate-900/80">
                 <CollapsibleTrigger className="w-full">
-                  <CardHeader className="flex flex-row items-center justify-between p-4 hover:bg-gray-50/50 rounded-t-lg transition-colors">
+                  <CardHeader className="flex flex-row items-center justify-between p-4 hover:bg-gray-50/50 rounded-t-lg transition-colors dark:hover:bg-slate-900/50">
                     <div className="flex items-center gap-2">
-                      <Briefcase className="h-5 w-5 text-purple-600" />
+                      <Briefcase className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                       <CardTitle className="text-lg">Employment Details</CardTitle>
                     </div>
                     {expandedSections.employment ? 
@@ -458,29 +458,29 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                   <CardContent className="p-4 pt-0">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Employee ID</label>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Employee ID</label>
                         <p className="mt-1 text-sm font-medium">{staff.employeeId}</p>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Contract Type</label>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Contract Type</label>
                         <p className="mt-1 text-sm font-medium">{staff.contractType || 'Not specified'}</p>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Department</label>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Department</label>
                         <p className="mt-1 text-sm font-medium">{Array.isArray(staff.department) ? staff.department.join(', ') : staff.department}</p>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Position</label>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Position</label>
                         <p className="mt-1 text-sm font-medium">{formatStaffRoles(staff.role)}</p>
                       </div>
                     </div>
                     
                     {staff.cvPhotos && staff.cvPhotos.length > 0 && (
                       <div className="mt-6">
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3 block">CV Documents</label>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3 block dark:text-slate-400">CV Documents</label>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                           {staff.cvPhotos.map((photo: string, index: number) => (
-                            <div key={index} className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow cursor-pointer group">
+                            <div key={index} className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow cursor-pointer group dark:bg-slate-900">
                               <img 
                                 src={photo} 
                                 alt={`CV page ${index + 1}`}
@@ -502,11 +502,11 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
 
             {/* Qualifications */}
             <Collapsible open={expandedSections.qualifications} onOpenChange={() => toggleSection('qualifications')}>
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md">
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md dark:bg-slate-900/80">
                 <CollapsibleTrigger className="w-full">
-                  <CardHeader className="flex flex-row items-center justify-between p-4 hover:bg-gray-50/50 rounded-t-lg transition-colors">
+                  <CardHeader className="flex flex-row items-center justify-between p-4 hover:bg-gray-50/50 rounded-t-lg transition-colors dark:hover:bg-slate-900/50">
                     <div className="flex items-center gap-2">
-                      <Award className="h-5 w-5 text-green-600" />
+                      <Award className="h-5 w-5 text-green-600 dark:text-green-400" />
                       <CardTitle className="text-lg">Qualifications & Specializations</CardTitle>
                     </div>
                     {expandedSections.qualifications ? 
@@ -519,7 +519,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                   <CardContent className="p-4 pt-0">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <div>
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">Qualifications</label>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block dark:text-slate-400">Qualifications</label>
                         {staff.qualifications && staff.qualifications.length > 0 ? (
                           <ul className="space-y-2">
                             {staff.qualifications.map((qual: string, index: number) => (
@@ -530,11 +530,11 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                             ))}
                           </ul>
                         ) : (
-                          <p className="text-sm text-gray-500">No qualifications listed</p>
+                          <p className="text-sm text-gray-500 dark:text-slate-400">No qualifications listed</p>
                         )}
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">Specializations</label>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block dark:text-slate-400">Specializations</label>
                         {staff.specializations && staff.specializations.length > 0 ? (
                           <ul className="space-y-2">
                             {staff.specializations.map((spec: string, index: number) => (
@@ -545,17 +545,17 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                             ))}
                           </ul>
                         ) : (
-                          <p className="text-sm text-gray-500">No specializations listed</p>
+                          <p className="text-sm text-gray-500 dark:text-slate-400">No specializations listed</p>
                         )}
                       </div>
                     </div>
                     
                     {staff.qualificationPhotos && staff.qualificationPhotos.length > 0 && (
                       <div className="mt-6">
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3 block">Qualification Documents</label>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3 block dark:text-slate-400">Qualification Documents</label>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                           {staff.qualificationPhotos.map((photo: string, index: number) => (
-                            <div key={index} className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow cursor-pointer group">
+                            <div key={index} className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow cursor-pointer group dark:bg-slate-900">
                               <img 
                                 src={photo} 
                                 alt={`Qualification document ${index + 1}`}
@@ -580,11 +580,11 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
           <div className="space-y-4">
             {/* Medical Information */}
             <Collapsible open={expandedSections.medical} onOpenChange={() => toggleSection('medical')}>
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md">
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md dark:bg-slate-900/80">
                 <CollapsibleTrigger className="w-full">
-                  <CardHeader className="flex flex-row items-center justify-between p-4 hover:bg-gray-50/50 rounded-t-lg transition-colors">
+                  <CardHeader className="flex flex-row items-center justify-between p-4 hover:bg-gray-50/50 rounded-t-lg transition-colors dark:hover:bg-slate-900/50">
                     <div className="flex items-center gap-2">
-                      <Activity className="h-5 w-5 text-red-600" />
+                      <Activity className="h-5 w-5 text-red-600 dark:text-red-400" />
                       <CardTitle className="text-base">Medical Info</CardTitle>
                     </div>
                     {expandedSections.medical ? 
@@ -596,18 +596,18 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                 <CollapsibleContent>
                   <CardContent className="p-4 pt-0 space-y-4">
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Blood Group</label>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Blood Group</label>
                       <p className="mt-1 text-sm font-medium">{staff.bloodGroup || 'Not provided'}</p>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Insurance</label>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Insurance</label>
                       <p className="mt-1 text-sm font-medium">{staff.insuranceProvider || 'Not provided'}</p>
                       {staff.insuranceNumber && (
-                        <p className="text-xs text-gray-500 mt-1">#{staff.insuranceNumber}</p>
+                        <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">#{staff.insuranceNumber}</p>
                       )}
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Allergies</label>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Allergies</label>
                       {staff.allergies && staff.allergies.length > 0 ? (
                         <ul className="mt-1 space-y-1">
                           {staff.allergies.map((allergy: string, index: number) => (
@@ -618,11 +618,11 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                           ))}
                         </ul>
                       ) : (
-                        <p className="mt-1 text-sm text-gray-500">None listed</p>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">None listed</p>
                       )}
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Medical Conditions</label>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Medical Conditions</label>
                       {staff.medicalConditions && staff.medicalConditions.length > 0 ? (
                         <ul className="mt-1 space-y-1">
                           {staff.medicalConditions.map((condition: string, index: number) => (
@@ -633,11 +633,11 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                           ))}
                         </ul>
                       ) : (
-                        <p className="mt-1 text-sm text-gray-500">None listed</p>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">None listed</p>
                       )}
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Medications</label>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Medications</label>
                       {staff.medications && staff.medications.length > 0 ? (
                         <ul className="mt-1 space-y-1">
                           {staff.medications.map((medication: string, index: number) => (
@@ -648,7 +648,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                           ))}
                         </ul>
                       ) : (
-                        <p className="mt-1 text-sm text-gray-500">None listed</p>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">None listed</p>
                       )}
                     </div>
                   </CardContent>
@@ -658,11 +658,11 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
 
             {/* Emergency Contact */}
             <Collapsible open={expandedSections.emergency} onOpenChange={() => toggleSection('emergency')}>
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md">
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md dark:bg-slate-900/80">
                 <CollapsibleTrigger className="w-full">
-                  <CardHeader className="flex flex-row items-center justify-between p-4 hover:bg-gray-50/50 rounded-t-lg transition-colors">
+                  <CardHeader className="flex flex-row items-center justify-between p-4 hover:bg-gray-50/50 rounded-t-lg transition-colors dark:hover:bg-slate-900/50">
                     <div className="flex items-center gap-2">
-                      <ShieldAlert className="h-5 w-5 text-orange-600" />
+                      <ShieldAlert className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                       <CardTitle className="text-base">Emergency Contact</CardTitle>
                     </div>
                     {expandedSections.emergency ? 
@@ -674,15 +674,15 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                 <CollapsibleContent>
                   <CardContent className="p-4 pt-0 space-y-4">
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Name</label>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Name</label>
                       <p className="mt-1 text-sm font-medium">{staff.emergencyContact?.name || 'Not provided'}</p>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Relationship</label>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Relationship</label>
                       <p className="mt-1 text-sm font-medium">{staff.emergencyContact?.relationship || 'Not provided'}</p>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Phone</label>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Phone</label>
                       <p className="mt-1 text-sm font-medium">
                         {staff.emergencyContact?.phone ? (
                           <a 
@@ -697,7 +697,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                       </p>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Address</label>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide dark:text-slate-400">Address</label>
                       <p className="mt-1 text-sm">{staff.emergencyContact?.address || 'Not provided'}</p>
                     </div>
                   </CardContent>
@@ -708,11 +708,11 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
             {/* Pupil Relatives Section - Only show if staff has assigned pupils */}
             {assignedPupils.length > 0 && (
               <Collapsible open={expandedSections.pupils} onOpenChange={() => toggleSection('pupils')}>
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md">
+                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md dark:bg-slate-900/80">
                   <CollapsibleTrigger className="w-full">
-                    <CardHeader className="flex flex-row items-center justify-between p-4 hover:bg-gray-50/50 rounded-t-lg transition-colors">
+                    <CardHeader className="flex flex-row items-center justify-between p-4 hover:bg-gray-50/50 rounded-t-lg transition-colors dark:hover:bg-slate-900/50">
                       <div className="flex items-center gap-2">
-                        <Users className="h-5 w-5 text-blue-600" />
+                        <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                         <CardTitle className="text-base">Pupil Relatives ({assignedPupils.length})</CardTitle>
                       </div>
                       {expandedSections.pupils ? 
@@ -724,7 +724,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                   <CollapsibleContent>
                     <CardContent className="p-4 pt-0 space-y-3">
                       {assignedPupils.map((pupil: any) => (
-                        <div key={pupil.id} className="p-3 rounded-md border bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div key={pupil.id} className="p-3 rounded-md border bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <Link 
@@ -733,7 +733,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                               >
                                 {formatPupilDisplayName(pupil)}
                               </Link>
-                              <div className="mt-1 space-y-1 text-xs text-gray-600">
+                              <div className="mt-1 space-y-1 text-xs text-gray-600 dark:text-slate-300">
                                 <div className="flex items-center gap-4">
                                   <span>Adm. No: <span className="font-mono">{pupil.admissionNumber}</span></span>
                                   {pupil.className && (
@@ -757,9 +757,9 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                               </div>
                             </div>
                             {pupil.photo && (
-                              <Avatar className="h-10 w-10 border-2 border-blue-200">
+                              <Avatar className="h-10 w-10 border-2 border-blue-200 dark:border-blue-800/60">
                                 <AvatarImage src={pupil.photo} alt={formatPupilDisplayName(pupil)} />
-                                <AvatarFallback className="text-xs bg-gray-200 text-gray-600">
+                                <AvatarFallback className="text-xs bg-gray-200 text-gray-600 dark:bg-slate-800 dark:text-slate-300">
                                   {pupil.firstName?.[0] || 'P'}{pupil.lastName?.[0] || 'P'}
                                 </AvatarFallback>
                               </Avatar>
@@ -778,7 +778,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
         {/* Document Viewer Modal */}
         {selectedDocument && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden dark:bg-slate-900">
               <div className="flex justify-between items-center p-4 border-b">
                 <h3 className="text-lg font-semibold">Document Viewer</h3>
                 <Button variant="ghost" size="sm" onClick={() => setSelectedDocument(null)}>
@@ -786,7 +786,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                 </Button>
               </div>
               <div className="p-4">
-                <div className="aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden">
+                <div className="aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden dark:bg-slate-900">
                   <img
                     src={selectedDocument}
                     alt="Document"

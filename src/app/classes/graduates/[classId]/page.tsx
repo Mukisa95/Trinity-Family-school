@@ -28,8 +28,8 @@ function PupilPLEResultsExpanded({ pupilId }: { pupilId: string }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-2">
-        <Loader2 className="h-4 w-4 animate-spin text-purple-600 mr-2" />
-        <span className="text-xs text-gray-600">Loading PLE results...</span>
+        <Loader2 className="h-4 w-4 animate-spin text-purple-600 mr-2 dark:text-purple-400" />
+        <span className="text-xs text-gray-600 dark:text-slate-300">Loading PLE results...</span>
       </div>
     );
   }
@@ -37,46 +37,46 @@ function PupilPLEResultsExpanded({ pupilId }: { pupilId: string }) {
   if (pupilPLEResults.length === 0) {
     return (
       <div className="text-center py-2">
-        <p className="text-xs text-gray-500">No PLE results found for this pupil.</p>
+        <p className="text-xs text-gray-500 dark:text-slate-400">No PLE results found for this pupil.</p>
       </div>
     );
   }
 
   const getDivisionColor = (division: string) => {
     switch (division) {
-      case 'I': return 'bg-green-100 text-green-800 border-green-200';
-      case 'II': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'I': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
+      case 'II': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+      case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
+      case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
     }
   };
 
   const getAggregateColor = (aggregate: string | number | undefined) => {
-    if (!aggregate) return 'bg-gray-100 text-gray-800';
+    if (!aggregate) return 'bg-gray-100 text-gray-800 dark:bg-slate-900 dark:text-slate-100';
     const aggregateStr = String(aggregate);
-    if (aggregateStr.startsWith('D')) return 'bg-green-100 text-green-800';
-    if (aggregateStr.startsWith('C')) return 'bg-blue-100 text-blue-800';
-    if (aggregateStr.startsWith('P')) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
+    if (aggregateStr.startsWith('D')) return 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200';
+    if (aggregateStr.startsWith('C')) return 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200';
+    if (aggregateStr.startsWith('P')) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200';
+    return 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200';
   };
 
   return (
     <div className="py-2">
       <div className="flex items-center gap-2 mb-2">
-        <BookOpen className="h-3 w-3 text-purple-600" />
-        <span className="text-xs font-semibold text-gray-700">PLE Results:</span>
+        <BookOpen className="h-3 w-3 text-purple-600 dark:text-purple-400" />
+        <span className="text-xs font-semibold text-gray-700 dark:text-slate-200">PLE Results:</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {pupilPLEResults.map(({ pleRecord, pupilResult }) => (
           <div
             key={pleRecord.id}
-            className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 transition-colors dark:bg-purple-950/40 dark:border-purple-800/60 dark:hover:bg-purple-950/40"
           >
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-medium text-gray-700">{pleRecord.year}</span>
+              <span className="text-xs font-medium text-gray-700 dark:text-slate-200">{pleRecord.year}</span>
               {pupilResult.status === 'missed' ? (
-                <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800/60">
                   Missed
                 </Badge>
               ) : (
@@ -91,7 +91,7 @@ function PupilPLEResultsExpanded({ pupilId }: { pupilId: string }) {
                       {pupilResult.totalAggregate}
                     </Badge>
                   )}
-                  <div className="flex items-center gap-1 text-xs text-gray-600">
+                  <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-slate-300">
                     {Object.entries(pupilResult.subjects || {}).map(([subject, grade]) => (
                       <span key={subject} className="font-mono">
                         {subject === 'english' ? 'ENG' : subject === 'mathematics' ? 'MATH' : subject === 'science' ? 'SCI' : 'SST'}: {grade}
@@ -202,7 +202,7 @@ export default function GraduateClassPage() {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Loading graduates...</p>
+            <p className="text-gray-600 dark:text-slate-300">Loading graduates...</p>
           </div>
         </div>
       </div>
@@ -214,11 +214,11 @@ export default function GraduateClassPage() {
       <div className="p-4 sm:p-6 space-y-6">
         <PageHeader title="Graduate Class" />
         <Card className="p-8 text-center">
-          <div className="text-red-600 mb-4">
+          <div className="text-red-600 mb-4 dark:text-red-400">
             <GraduationCap className="w-16 h-16 mx-auto" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Class Not Found</h3>
-          <p className="text-gray-600 mb-4">The requested class could not be found.</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2 dark:text-slate-100">Class Not Found</h3>
+          <p className="text-gray-600 mb-4 dark:text-slate-300">The requested class could not be found.</p>
           <SmartBackButton fallbackHref="/classes" className="mr-2 h-4 w-4">
   <ArrowLeft className="mr-2 h-4 w-4" />
   Back to Classes
@@ -237,8 +237,8 @@ export default function GraduateClassPage() {
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Graduate Class</h1>
-              <p className="text-sm text-gray-600">{currentClass.name} ({currentClass.code})</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Graduate Class</h1>
+              <p className="text-sm text-gray-600 dark:text-slate-300">{currentClass.name} ({currentClass.code})</p>
             </div>
           </div>
         }
@@ -246,10 +246,10 @@ export default function GraduateClassPage() {
         actions={
           <div className="flex items-center gap-2">
             {/* Action Buttons Container */}
-            <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1">
+            <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 dark:bg-slate-900 dark:border-slate-700">
               <button
                 onClick={() => router.push('/classes')}
-                className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-slate-300"
               >
                 <ArrowLeft className="w-4 h-4 mb-0.5" />
                 <span className="text-[8px] font-semibold leading-tight">Back</span>
@@ -258,7 +258,7 @@ export default function GraduateClassPage() {
               {graduatedPupils.length > 0 && (
                 <button
                   onClick={handleExportGraduates}
-                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-blue-400"
                 >
                   <Download className="w-4 h-4 mb-0.5" />
                   <span className="text-[8px] font-semibold leading-tight">Export</span>
@@ -271,40 +271,40 @@ export default function GraduateClassPage() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-950/40 dark:to-green-950/40 dark:border-green-800/60">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-600 font-medium">Total Graduates</p>
-                <p className="text-2xl font-bold text-green-700">{graduatedPupils.length}</p>
+                <p className="text-sm text-green-600 font-medium dark:text-green-400">Total Graduates</p>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-300">{graduatedPupils.length}</p>
               </div>
-              <Award className="w-8 h-8 text-green-500" />
+              <Award className="w-8 h-8 text-green-500 dark:text-green-400" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 dark:from-blue-950/40 dark:to-blue-950/40 dark:border-blue-800/60">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-blue-600 font-medium">Graduation Years</p>
-                <p className="text-2xl font-bold text-blue-700">{availableYears.length}</p>
+                <p className="text-sm text-blue-600 font-medium dark:text-blue-400">Graduation Years</p>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{availableYears.length}</p>
               </div>
-              <Calendar className="w-8 h-8 text-blue-500" />
+              <Calendar className="w-8 h-8 text-blue-500 dark:text-blue-400" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 dark:from-purple-950/40 dark:to-purple-950/40 dark:border-purple-800/60">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-purple-600 font-medium">Latest Batch</p>
-                <p className="text-2xl font-bold text-purple-700">
+                <p className="text-sm text-purple-600 font-medium dark:text-purple-400">Latest Batch</p>
+                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
                   {availableYears.length > 0 ? availableYears[0] : 'N/A'}
                 </p>
               </div>
-              <Users className="w-8 h-8 text-purple-500" />
+              <Users className="w-8 h-8 text-purple-500 dark:text-purple-400" />
             </div>
           </CardContent>
         </Card>
@@ -314,11 +314,11 @@ export default function GraduateClassPage() {
       {/* Graduates Display */}
       {graduatedPupils.length === 0 ? (
         <Card className="p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-            <GraduationCap className="w-8 h-8 text-gray-400" />
+          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center dark:bg-slate-900">
+            <GraduationCap className="w-8 h-8 text-gray-400 dark:text-slate-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Graduates Yet</h3>
-          <p className="text-gray-600 mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2 dark:text-slate-100">No Graduates Yet</h3>
+          <p className="text-gray-600 mb-4 dark:text-slate-300">
             {currentClass.name} doesn't have any graduated pupils yet.
           </p>
           <Button asChild variant="outline">
@@ -347,18 +347,18 @@ export default function GraduateClassPage() {
                   : [];
                 
                 return (
-                  <AccordionItem key={year} value={year.toString()} className="border-b border-gray-200">
-                    <AccordionTrigger className="hover:no-underline px-6 py-4 bg-gradient-to-r from-yellow-50 to-orange-50 hover:from-yellow-100 hover:to-orange-100 transition-colors">
+                  <AccordionItem key={year} value={year.toString()} className="border-b border-gray-200 dark:border-slate-700">
+                    <AccordionTrigger className="hover:no-underline px-6 py-4 bg-gradient-to-r from-yellow-50 to-orange-50 hover:from-yellow-100 hover:to-orange-100 transition-colors dark:from-yellow-950/40 dark:to-orange-950/40 dark:hover:from-yellow-950/40 dark:hover:to-orange-950/40">
                       <div className="flex items-center justify-between w-full pr-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
                             <GraduationCap className="w-5 h-5 text-white" />
                           </div>
                           <div className="text-left">
-                            <h3 className="text-lg font-bold text-gray-900">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100">
                               CLASS OF {year}
                             </h3>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-gray-600 dark:text-slate-300">
                               {yearGraduates.length} {yearGraduates.length === 1 ? 'graduate' : 'graduates'}
                               {pleRecordForYear && classPupilsInPLE.length > 0 && (
                                 <span className="ml-2">• {classPupilsInPLE.length} PLE candidate{classPupilsInPLE.length !== 1 ? 's' : ''}</span>
@@ -368,12 +368,12 @@ export default function GraduateClassPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           {pleRecordForYear && (
-                            <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200">
+                            <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-200 dark:border-purple-800/60">
                               <BookOpen className="w-3 h-3 mr-1" />
                               PLE {year}
                             </Badge>
                           )}
-                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60">
                             {yearGraduates.length}
                           </Badge>
                         </div>
@@ -382,41 +382,41 @@ export default function GraduateClassPage() {
                     <AccordionContent className="px-6 pb-6 pt-4 space-y-4">
                       {/* PLE Results Management Section */}
                       {pleRecordForYear && classPupilsInPLE.length > 0 && (
-                        <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50">
+                        <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 dark:border-purple-800/60 dark:from-purple-950/40 dark:to-indigo-950/40">
                           <CardContent className="p-4">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-3">
-                                  <BookOpen className="w-5 h-5 text-purple-600" />
-                                  <h4 className="font-semibold text-lg text-gray-900">
+                                  <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                  <h4 className="font-semibold text-lg text-gray-900 dark:text-slate-100">
                                     {pleRecordForYear.examName}
                                   </h4>
-                                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/60">
                                     {pleRecordForYear.year}
                                   </Badge>
                                 </div>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                   <div>
-                                    <p className="text-xs text-gray-500 mb-1">Total Candidates</p>
-                                    <p className="text-lg font-semibold text-gray-900">
+                                    <p className="text-xs text-gray-500 mb-1 dark:text-slate-400">Total Candidates</p>
+                                    <p className="text-lg font-semibold text-gray-900 dark:text-slate-100">
                                       {classPupilsInPLE.length}
                                     </p>
                                   </div>
                                   <div>
-                                    <p className="text-xs text-gray-500 mb-1">Male</p>
-                                    <p className="text-lg font-semibold text-gray-900">
+                                    <p className="text-xs text-gray-500 mb-1 dark:text-slate-400">Male</p>
+                                    <p className="text-lg font-semibold text-gray-900 dark:text-slate-100">
                                       {classPupilsInPLE.filter(p => p.gender === 'Male').length}
                                     </p>
                                   </div>
                                   <div>
-                                    <p className="text-xs text-gray-500 mb-1">Female</p>
-                                    <p className="text-lg font-semibold text-gray-900">
+                                    <p className="text-xs text-gray-500 mb-1 dark:text-slate-400">Female</p>
+                                    <p className="text-lg font-semibold text-gray-900 dark:text-slate-100">
                                       {classPupilsInPLE.filter(p => p.gender === 'Female').length}
                                     </p>
                                   </div>
                                   <div>
-                                    <p className="text-xs text-gray-500 mb-1">All Candidates</p>
-                                    <p className="text-lg font-semibold text-gray-900">
+                                    <p className="text-xs text-gray-500 mb-1 dark:text-slate-400">All Candidates</p>
+                                    <p className="text-lg font-semibold text-gray-900 dark:text-slate-100">
                                       {pleRecordForYear.totalCandidates}
                                     </p>
                                   </div>
@@ -424,10 +424,10 @@ export default function GraduateClassPage() {
                               </div>
                               <div className="flex items-center gap-1 ml-4">
                                 {/* Action Buttons Container */}
-                                <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1">
+                                <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 dark:bg-slate-900 dark:border-slate-700">
                                   <Link href={`/exams/ple-results/${pleRecordForYear.id}/view-results`}>
                                     <button
-                                      className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                                      className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-blue-400"
                                     >
                                       <Eye className="w-4 h-4 mb-0.5" />
                                       <span className="text-[8px] font-semibold leading-tight">View</span>
@@ -435,7 +435,7 @@ export default function GraduateClassPage() {
                                   </Link>
                                   <Link href={`/exams/ple-results/${pleRecordForYear.id}/record-results`}>
                                     <button
-                                      className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-purple-600 border border-purple-400 shadow-sm hover:bg-gradient-to-br hover:from-purple-400 hover:via-violet-500 hover:to-purple-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                                      className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-purple-600 border border-purple-400 shadow-sm hover:bg-gradient-to-br hover:from-purple-400 hover:via-violet-500 hover:to-purple-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-purple-400"
                                     >
                                       <Edit className="w-4 h-4 mb-0.5" />
                                       <span className="text-[8px] font-semibold leading-tight">Record</span>
@@ -504,7 +504,7 @@ export default function GraduateClassPage() {
                               const isExpanded = expandedPupils.has(pupil.id);
                               return (
                                 <React.Fragment key={pupil.id}>
-                                  <TableRow className="hover:bg-yellow-50/50">
+                                  <TableRow className="hover:bg-yellow-50/50 dark:hover:bg-yellow-950/50">
                                     <TableCell>
                                       <Button
                                         variant="ghost"
@@ -529,7 +529,7 @@ export default function GraduateClassPage() {
                                         )}
                                       </Button>
                                     </TableCell>
-                                    <TableCell className="font-medium text-gray-500">
+                                    <TableCell className="font-medium text-gray-500 dark:text-slate-400">
                                       {index + 1}
                                     </TableCell>
                                     <TableCell>
@@ -542,12 +542,12 @@ export default function GraduateClassPage() {
                                         <div>
                                           <Link 
                                             href={`/pupil-detail?id=${pupil.id}`}
-                                            className="font-semibold text-gray-900 hover:text-primary hover:underline cursor-pointer transition-colors"
+                                            className="font-semibold text-gray-900 hover:text-primary hover:underline cursor-pointer transition-colors dark:text-slate-100"
                                           >
                                             {formatPupilDisplayName(pupil)}
                                           </Link>
                                           {pupil.otherNames && (
-                                            <p className="text-sm text-gray-500">{pupil.otherNames}</p>
+                                            <p className="text-sm text-gray-500 dark:text-slate-400">{pupil.otherNames}</p>
                                           )}
                                         </div>
                                       </div>
@@ -566,7 +566,7 @@ export default function GraduateClassPage() {
                                           {pupil.section}
                                         </Badge>
                                       ) : (
-                                        <span className="text-gray-400 text-sm">N/A</span>
+                                        <span className="text-gray-400 text-sm dark:text-slate-400">N/A</span>
                                       )}
                                     </TableCell>
                                     <TableCell className="text-sm">
@@ -581,7 +581,7 @@ export default function GraduateClassPage() {
                                   </TableRow>
                                   {isExpanded && (
                                     <TableRow>
-                                      <TableCell colSpan={7} className="bg-purple-50/30 p-4">
+                                      <TableCell colSpan={7} className="bg-purple-50/30 p-4 dark:bg-purple-950/30">
                                         <PupilPLEResultsExpanded pupilId={pupil.id} />
                                       </TableCell>
                                     </TableRow>

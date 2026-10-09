@@ -180,7 +180,7 @@ export function UniformModal({ isOpen, onClose, onSubmit, initialData, mode }: U
         </ModernDialogHeader>
         
         {/* Academic Context Banner */}
-        <div className={`mx-1 sm:mx-2 mt-1 sm:mt-2 p-1 border rounded-md text-[0.6rem] ${mode === 'edit' ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'}`}>
+        <div className={`mx-1 sm:mx-2 mt-1 sm:mt-2 p-1 border rounded-md text-[0.6rem] ${mode === 'edit' ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800/60' : 'bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60'}`}>
           <div className="flex flex-wrap gap-1 items-center">
             <div className="flex items-center gap-0.5">
               <Shirt className="h-2.5 w-2.5 text-muted-foreground" />
@@ -189,7 +189,7 @@ export function UniformModal({ isOpen, onClose, onSubmit, initialData, mode }: U
             <div>
               <strong>Date:</strong> {format(new Date(), "MMM dd, yyyy")}
             </div>
-            <div className={`text-[0.5rem] px-1 py-0.5 rounded ml-auto ${mode === 'edit' ? 'text-amber-700 bg-amber-100' : 'text-blue-700 bg-blue-100'}`}>
+            <div className={`text-[0.5rem] px-1 py-0.5 rounded ml-auto ${mode === 'edit' ? 'text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-950/40' : 'text-blue-700 bg-blue-100 dark:text-blue-300 dark:bg-blue-950/40'}`}>
               {mode === 'edit' ? 'Edit Mode' : 'Create Mode'}
             </div>
           </div>

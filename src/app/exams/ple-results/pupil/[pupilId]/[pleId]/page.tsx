@@ -29,19 +29,19 @@ const PLE_SUBJECTS = [
 
 const getDivisionColor = (division: string) => {
   switch (division) {
-    case 'I': return 'bg-green-100 text-green-800 border-green-200';
-    case 'II': return 'bg-blue-100 text-blue-800 border-blue-200';
-    case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200';
-    default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    case 'I': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60';
+    case 'II': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60';
+    case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-800/60';
+    case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60';
+    default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700';
   }
 };
 
 const getAggregateColor = (aggregate: string) => {
-  if (aggregate.startsWith('D')) return 'bg-green-100 text-green-800';
-  if (aggregate.startsWith('C')) return 'bg-blue-100 text-blue-800';
-  if (aggregate.startsWith('P')) return 'bg-yellow-100 text-yellow-800';
-  return 'bg-red-100 text-red-800';
+  if (aggregate.startsWith('D')) return 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200';
+  if (aggregate.startsWith('C')) return 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200';
+  if (aggregate.startsWith('P')) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200';
+  return 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200';
 };
 
 const getPerformanceLevel = (aggregate: string) => {
@@ -194,7 +194,7 @@ Division: ${pupilResult.division}`;
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
         <GlassPageTopBar
           title="PLE Performance"
           subtitle="Loading pupil performance..."
@@ -213,7 +213,7 @@ Division: ${pupilResult.division}`;
 
   if (!pupilResult || !pleRecord) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/40 dark:to-blue-950/40">
         <GlassPageTopBar
           title="PLE Performance"
           subtitle="PLE Performance Not Found"
@@ -234,7 +234,7 @@ Division: ${pupilResult.division}`;
   }
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animate-in fade-in duration-500">
+    <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animate-in fade-in duration-500 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40">
       <GlassPageTopBar
         title={`PLE Performance - ${pleRecord.year}`}
         className="mb-3 sm:mb-4"
@@ -258,41 +258,41 @@ Division: ${pupilResult.division}`;
       />
 
       <div className="mx-auto max-w-7xl pb-4 sm:pb-6">
-        <section aria-label="Pupil and PLE results summary" className="mb-3 overflow-hidden rounded-xl border border-indigo-100 bg-white shadow-sm sm:mb-4">
+        <section aria-label="Pupil and PLE results summary" className="mb-3 overflow-hidden rounded-xl border border-indigo-100 bg-white shadow-sm sm:mb-4 dark:border-indigo-800/60 dark:bg-slate-900">
           <div className="flex items-start gap-3 px-3 py-3 sm:px-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600" aria-hidden="true">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400" aria-hidden="true">
               <User className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="break-words text-base font-bold leading-snug text-gray-900 sm:text-lg">{formatPupilDisplayName(pupilResult)}</h2>
-              <dl className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 sm:text-sm">
-                <div className="flex min-w-0 gap-1"><dt>Admission:</dt><dd className="break-all font-medium text-gray-900">{pupilResult.admissionNumber}</dd></div>
-                <div className="flex gap-1"><dt>Gender:</dt><dd className="font-medium text-gray-900">{pupilResult.gender}</dd></div>
-                {pupilResult.indexNumber && <div className="flex min-w-0 gap-1"><dt>Index:</dt><dd className="break-all font-medium text-gray-900">{pupilResult.indexNumber}</dd></div>}
-                {pupilResult.learnerIdentificationNumber && <div className="flex min-w-0 gap-1"><dt>LIN:</dt><dd className="break-all font-medium text-gray-900">{pupilResult.learnerIdentificationNumber}</dd></div>}
+              <h2 className="break-words text-base font-bold leading-snug text-gray-900 sm:text-lg dark:text-slate-100">{formatPupilDisplayName(pupilResult)}</h2>
+              <dl className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 sm:text-sm dark:text-slate-300">
+                <div className="flex min-w-0 gap-1"><dt>Admission:</dt><dd className="break-all font-medium text-gray-900 dark:text-slate-100">{pupilResult.admissionNumber}</dd></div>
+                <div className="flex gap-1"><dt>Gender:</dt><dd className="font-medium text-gray-900 dark:text-slate-100">{pupilResult.gender}</dd></div>
+                {pupilResult.indexNumber && <div className="flex min-w-0 gap-1"><dt>Index:</dt><dd className="break-all font-medium text-gray-900 dark:text-slate-100">{pupilResult.indexNumber}</dd></div>}
+                {pupilResult.learnerIdentificationNumber && <div className="flex min-w-0 gap-1"><dt>LIN:</dt><dd className="break-all font-medium text-gray-900 dark:text-slate-100">{pupilResult.learnerIdentificationNumber}</dd></div>}
               </dl>
             </div>
           </div>
 
           {pupilResult.status === 'missed' ? (
-            <div className="border-t border-indigo-100 px-3 py-3 sm:px-4">
+            <div className="border-t border-indigo-100 px-3 py-3 sm:px-4 dark:border-indigo-800/60">
               <Badge variant="destructive" className="border-0 px-2 py-0.5 text-xs">Missed Examination</Badge>
-              <p className="mt-1.5 text-xs text-gray-600">This pupil did not participate in the {pleRecord.year} PLE examination.</p>
+              <p className="mt-1.5 text-xs text-gray-600 dark:text-slate-300">This pupil did not participate in the {pleRecord.year} PLE examination.</p>
             </div>
           ) : (
-            <dl className="grid grid-cols-2 border-t border-indigo-100 bg-indigo-50/40">
-              <div className="min-w-0 border-r border-indigo-100 px-3 py-2.5 sm:px-4">
-                <dt className="text-xs font-medium text-gray-600">Total aggregate</dt>
+            <dl className="grid grid-cols-2 border-t border-indigo-100 bg-indigo-50/40 dark:border-indigo-800/60 dark:bg-indigo-950/40">
+              <div className="min-w-0 border-r border-indigo-100 px-3 py-2.5 sm:px-4 dark:border-indigo-800/60">
+                <dt className="text-xs font-medium text-gray-600 dark:text-slate-300">Total aggregate</dt>
                 <dd className="mt-0.5">
-                  <span className="block text-2xl font-bold leading-tight tabular-nums text-purple-700">{pupilResult.totalAggregate}</span>
-                  <span className="mt-0.5 block text-[11px] text-gray-500">Lower is better</span>
+                  <span className="block text-2xl font-bold leading-tight tabular-nums text-purple-700 dark:text-purple-300">{pupilResult.totalAggregate}</span>
+                  <span className="mt-0.5 block text-[11px] text-gray-500 dark:text-slate-400">Lower is better</span>
                 </dd>
               </div>
               <div className="min-w-0 px-3 py-2.5 sm:px-4">
-                <dt className="text-xs font-medium text-gray-600">Division</dt>
+                <dt className="text-xs font-medium text-gray-600 dark:text-slate-300">Division</dt>
                 <dd className="mt-1">
                   <Badge className={`${getDivisionColor(pupilResult.division)} border-0 px-2 py-0.5 text-sm font-bold`}>Division {pupilResult.division}</Badge>
-                  <span className="mt-1 block text-[11px] text-gray-500">
+                  <span className="mt-1 block text-[11px] text-gray-500 dark:text-slate-400">
                     {pupilResult.division === 'I' && 'Excellent Performance'}
                     {pupilResult.division === 'II' && 'Very Good Performance'}
                     {pupilResult.division === 'III' && 'Good Performance'}
@@ -305,9 +305,9 @@ Division: ${pupilResult.division}`;
         </section>
 
         {pupilResult.status !== 'missed' && (
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <Tabs defaultValue="results" className="w-full">
-              <div className="border-b border-gray-200 bg-gray-50/80 p-1">
+              <div className="border-b border-gray-200 bg-gray-50/80 p-1 dark:border-slate-700 dark:bg-slate-900/80">
                 <TabsList aria-label="PLE results" className="grid h-auto w-full grid-cols-2 gap-1 bg-transparent p-0">
                   <TabsTrigger value="results" className="min-h-11 min-w-0 gap-1.5 rounded-lg px-2 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm sm:text-sm">
                     <BookOpen className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -323,26 +323,26 @@ Division: ${pupilResult.division}`;
               <TabsContent value="results" className="mt-0 p-0">
                 <table className="w-full table-fixed text-sm">
                   <caption className="sr-only">PLE subject grades and performance for {formatPupilDisplayName(pupilResult)}.</caption>
-                  <thead className="border-b border-gray-100 bg-gray-50/50 text-xs text-gray-500">
+                  <thead className="border-b border-gray-100 bg-gray-50/50 text-xs text-gray-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400">
                     <tr>
                       <th scope="col" className="px-3 py-2 text-left font-medium sm:px-4">Subject</th>
                       <th scope="col" className="w-20 px-2 py-2 text-right font-medium sm:w-28 sm:px-4">Grade</th>
                       <th scope="col" className="hidden w-40 px-4 py-2 text-left font-medium md:table-cell">Performance</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                     {PLE_SUBJECTS.map(subject => {
                       const grade = pupilResult.subjects[subject.id];
                       return (
-                        <tr key={subject.id} className="hover:bg-indigo-50/40">
+                        <tr key={subject.id} className="hover:bg-indigo-50/40 dark:hover:bg-indigo-950/40">
                           <th scope="row" className="px-3 py-2.5 text-left font-normal sm:px-4">
-                            <span className="block break-words font-semibold leading-snug text-gray-900">{subject.name}</span>
-                            <span className="mt-0.5 block text-[11px] leading-snug text-gray-500">{subject.code}<span className="md:hidden"> · {grade ? getPerformanceLevel(grade) : 'Not recorded'}</span></span>
+                            <span className="block break-words font-semibold leading-snug text-gray-900 dark:text-slate-100">{subject.name}</span>
+                            <span className="mt-0.5 block text-[11px] leading-snug text-gray-500 dark:text-slate-400">{subject.code}<span className="md:hidden"> · {grade ? getPerformanceLevel(grade) : 'Not recorded'}</span></span>
                           </th>
                           <td className="px-2 py-2.5 text-right align-middle sm:px-4">
-                            {grade ? <Badge className={`${getAggregateColor(grade)} border-0 px-2 py-0.5 text-xs font-bold`}>{grade}</Badge> : <Badge variant="outline" className="px-2 py-0.5 text-xs text-gray-500" aria-label="Not recorded">--</Badge>}
+                            {grade ? <Badge className={`${getAggregateColor(grade)} border-0 px-2 py-0.5 text-xs font-bold`}>{grade}</Badge> : <Badge variant="outline" className="px-2 py-0.5 text-xs text-gray-500 dark:text-slate-400" aria-label="Not recorded">--</Badge>}
                           </td>
-                          <td className="hidden px-4 py-2.5 text-xs text-gray-600 md:table-cell">{grade ? getPerformanceLevel(grade) : 'Not recorded'}</td>
+                          <td className="hidden px-4 py-2.5 text-xs text-gray-600 md:table-cell dark:text-slate-300">{grade ? getPerformanceLevel(grade) : 'Not recorded'}</td>
                         </tr>
                       );
                     })}
@@ -351,35 +351,35 @@ Division: ${pupilResult.division}`;
               </TabsContent>
 
               <TabsContent value="grading" className="mt-0 p-3 sm:p-4">
-                <h3 className="mb-3 text-sm font-semibold text-gray-900">PLE Grading System</h3>
+                <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-slate-100">PLE Grading System</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs sm:text-sm">
                   <div>
                     <h4 className="font-medium mb-2">Distinctions</h4>
                     <div className="space-y-1">
-                      <Badge className="bg-green-100 text-green-800 w-full justify-center">D1 (1 point)</Badge>
-                      <Badge className="bg-green-100 text-green-800 w-full justify-center">D2 (2 points)</Badge>
+                      <Badge className="bg-green-100 text-green-800 w-full justify-center dark:bg-green-950/40 dark:text-green-200">D1 (1 point)</Badge>
+                      <Badge className="bg-green-100 text-green-800 w-full justify-center dark:bg-green-950/40 dark:text-green-200">D2 (2 points)</Badge>
                     </div>
                   </div>
                   <div>
                     <h4 className="font-medium mb-2">Credits</h4>
                     <div className="space-y-1">
-                      <Badge className="bg-blue-100 text-blue-800 w-full justify-center">C3 (3 points)</Badge>
-                      <Badge className="bg-blue-100 text-blue-800 w-full justify-center">C4 (4 points)</Badge>
-                      <Badge className="bg-blue-100 text-blue-800 w-full justify-center">C5 (5 points)</Badge>
-                      <Badge className="bg-blue-100 text-blue-800 w-full justify-center">C6 (6 points)</Badge>
+                      <Badge className="bg-blue-100 text-blue-800 w-full justify-center dark:bg-blue-950/40 dark:text-blue-200">C3 (3 points)</Badge>
+                      <Badge className="bg-blue-100 text-blue-800 w-full justify-center dark:bg-blue-950/40 dark:text-blue-200">C4 (4 points)</Badge>
+                      <Badge className="bg-blue-100 text-blue-800 w-full justify-center dark:bg-blue-950/40 dark:text-blue-200">C5 (5 points)</Badge>
+                      <Badge className="bg-blue-100 text-blue-800 w-full justify-center dark:bg-blue-950/40 dark:text-blue-200">C6 (6 points)</Badge>
                     </div>
                   </div>
                   <div>
                     <h4 className="font-medium mb-2">Passes</h4>
                     <div className="space-y-1">
-                      <Badge className="bg-yellow-100 text-yellow-800 w-full justify-center">P7 (7 points)</Badge>
-                      <Badge className="bg-yellow-100 text-yellow-800 w-full justify-center">P8 (8 points)</Badge>
+                      <Badge className="bg-yellow-100 text-yellow-800 w-full justify-center dark:bg-yellow-950/40 dark:text-yellow-200">P7 (7 points)</Badge>
+                      <Badge className="bg-yellow-100 text-yellow-800 w-full justify-center dark:bg-yellow-950/40 dark:text-yellow-200">P8 (8 points)</Badge>
                     </div>
                   </div>
                   <div>
                     <h4 className="font-medium mb-2">Fail</h4>
                     <div className="space-y-1">
-                      <Badge className="bg-red-100 text-red-800 w-full justify-center">F9 (9 points)</Badge>
+                      <Badge className="bg-red-100 text-red-800 w-full justify-center dark:bg-red-950/40 dark:text-red-200">F9 (9 points)</Badge>
                     </div>
                   </div>
                 </div>
@@ -389,10 +389,10 @@ Division: ${pupilResult.division}`;
                 <div>
                   <h4 className="font-medium mb-2">Division Classification</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs sm:text-sm">
-                    <Badge className="bg-green-100 text-green-800 justify-center">Div I: 4-12 points</Badge>
-                    <Badge className="bg-blue-100 text-blue-800 justify-center">Div II: 13-23 points</Badge>
-                    <Badge className="bg-yellow-100 text-yellow-800 justify-center">Div III: 24-29 points</Badge>
-                    <Badge className="bg-orange-100 text-orange-800 justify-center">Div IV: 30+ points</Badge>
+                    <Badge className="bg-green-100 text-green-800 justify-center dark:bg-green-950/40 dark:text-green-200">Div I: 4-12 points</Badge>
+                    <Badge className="bg-blue-100 text-blue-800 justify-center dark:bg-blue-950/40 dark:text-blue-200">Div II: 13-23 points</Badge>
+                    <Badge className="bg-yellow-100 text-yellow-800 justify-center dark:bg-yellow-950/40 dark:text-yellow-200">Div III: 24-29 points</Badge>
+                    <Badge className="bg-orange-100 text-orange-800 justify-center dark:bg-orange-950/40 dark:text-orange-200">Div IV: 30+ points</Badge>
                   </div>
                 </div>
               </TabsContent>

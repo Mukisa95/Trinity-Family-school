@@ -124,13 +124,13 @@ function UniformTrackingContent() {
 
   if (!pupilId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200 text-center max-w-md">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-red-500" />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center dark:from-blue-950/40 dark:via-slate-900 dark:to-indigo-950/40">
+        <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200 text-center max-w-md dark:bg-slate-900 dark:border-slate-700">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-red-950/40">
+            <AlertCircle className="w-8 h-8 text-red-500 dark:text-red-400" />
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">No Pupil Selected</h2>
-          <p className="text-gray-600 mb-6">Please select a pupil to view their uniform tracking.</p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2 dark:text-slate-100">No Pupil Selected</h2>
+          <p className="text-gray-600 mb-6 dark:text-slate-300">Please select a pupil to view their uniform tracking.</p>
           <SmartBackButton
             fallbackHref="/pupils"
             className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2"
@@ -144,13 +144,13 @@ function UniformTrackingContent() {
 
   if (pupilLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center dark:from-blue-950/40 dark:via-slate-900 dark:to-indigo-950/40">
         <div className="text-center">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-blue-950/40">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading...</h2>
-          <p className="text-gray-600">Getting pupil information</p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2 dark:text-slate-100">Loading...</h2>
+          <p className="text-gray-600 dark:text-slate-300">Getting pupil information</p>
         </div>
       </div>
     );
@@ -158,13 +158,13 @@ function UniformTrackingContent() {
 
   if (!pupil) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200 text-center max-w-md">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-red-500" />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center dark:from-blue-950/40 dark:via-slate-900 dark:to-indigo-950/40">
+        <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200 text-center max-w-md dark:bg-slate-900 dark:border-slate-700">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-red-950/40">
+            <AlertCircle className="w-8 h-8 text-red-500 dark:text-red-400" />
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Pupil Not Found</h2>
-          <p className="text-gray-600 mb-6">The selected pupil could not be found.</p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2 dark:text-slate-100">Pupil Not Found</h2>
+          <p className="text-gray-600 mb-6 dark:text-slate-300">The selected pupil could not be found.</p>
           <SmartBackButton
             fallbackHref="/pupils"
             className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2"
@@ -576,9 +576,9 @@ function UniformTrackingContent() {
   const collectedItems = trackingRecords.filter(r => r.collectionStatus === 'collected').length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 pb-20 dark:from-blue-950/40 dark:via-slate-900 dark:to-indigo-950/40">
       {/* Modern Header */}
-      <div className="bg-white/80 border-b shadow-sm backdrop-blur-xl sticky top-0 z-10 border-b-indigo-100">
+      <div className="bg-white/80 border-b shadow-sm backdrop-blur-xl sticky top-0 z-10 border-b-indigo-100 dark:bg-slate-900/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col gap-4">
             {/* Navigation and Actions */}
@@ -586,7 +586,7 @@ function UniformTrackingContent() {
               <div className="flex items-center gap-3">
                 <SmartBackButton
                   fallbackHref={`/pupil-detail?id=${pupil.id}`}
-                  className="text-blue-600 hover:text-blue-700 flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 transition-all duration-300 hover:scale-95"
+                  className="text-blue-600 hover:text-blue-700 flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 transition-all duration-300 hover:scale-95 dark:text-blue-400 dark:hover:text-blue-300 dark:bg-blue-950/40 dark:border-blue-800/60"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span className="text-sm font-medium">Back to Profile</span>
@@ -608,18 +608,18 @@ function UniformTrackingContent() {
 
             {/* Title and Student Info */}
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-indigo-900 mb-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-indigo-900 mb-2 dark:text-indigo-200">
                 👕 Uniform Tracking
               </h1>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600 dark:text-slate-300">
                 <div className="flex items-center gap-1">
-                  <span className="font-medium text-indigo-600">{formatPupilDisplayName(pupil)}</span>
-                  <span className="text-gray-400">•</span>
+                  <span className="font-medium text-indigo-600 dark:text-indigo-400">{formatPupilDisplayName(pupil)}</span>
+                  <span className="text-gray-400 dark:text-slate-400">•</span>
                   <span>{pupil.admissionNumber}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span>{pupil.className || 'No Class'}</span>
-                  <span className="text-gray-400">•</span>
+                  <span className="text-gray-400 dark:text-slate-400">•</span>
                   <span>{pupil.section}</span>
                 </div>
               </div>
@@ -638,69 +638,69 @@ function UniformTrackingContent() {
         {trackingRecords.length > 0 && !catalogueLoading && !catalogueError && !trackingError && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total Assigned */}
-            <Card className="border-indigo-100 bg-gradient-to-br from-indigo-50 to-white">
+            <Card className="border-indigo-100 bg-gradient-to-br from-indigo-50 to-white dark:border-indigo-800/60 dark:from-indigo-950/40 dark:to-slate-900">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-600">Total Assigned</h3>
-                    <p className="text-2xl font-bold text-indigo-900">
+                    <h3 className="text-sm font-medium text-gray-600 dark:text-slate-300">Total Assigned</h3>
+                    <p className="text-2xl font-bold text-indigo-900 dark:text-indigo-200">
                       {formatCurrency(totalAssigned)}
                     </p>
                   </div>
-                  <div className="p-2 bg-indigo-100 rounded-lg">
-                    <Package className="w-5 h-5 text-indigo-600" />
+                  <div className="p-2 bg-indigo-100 rounded-lg dark:bg-indigo-950/40">
+                    <Package className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Total Paid */}
-            <Card className="border-green-100 bg-gradient-to-br from-green-50 to-white">
+            <Card className="border-green-100 bg-gradient-to-br from-green-50 to-white dark:border-green-800/60 dark:from-green-950/40 dark:to-slate-900">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-600">Total Paid</h3>
-                    <p className="text-2xl font-bold text-green-700">
+                    <h3 className="text-sm font-medium text-gray-600 dark:text-slate-300">Total Paid</h3>
+                    <p className="text-2xl font-bold text-green-700 dark:text-green-300">
                       {formatCurrency(totalPaid)}
                     </p>
                   </div>
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  <div className="p-2 bg-green-100 rounded-lg dark:bg-green-950/40">
+                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Outstanding Balance */}
-            <Card className="border-red-100 bg-gradient-to-br from-red-50 to-white">
+            <Card className="border-red-100 bg-gradient-to-br from-red-50 to-white dark:border-red-800/60 dark:from-red-950/40 dark:to-slate-900">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-600">Outstanding</h3>
-                    <p className="text-2xl font-bold text-red-700">
+                    <h3 className="text-sm font-medium text-gray-600 dark:text-slate-300">Outstanding</h3>
+                    <p className="text-2xl font-bold text-red-700 dark:text-red-300">
                       {formatCurrency(totalOutstanding)}
                     </p>
                   </div>
-                  <div className="p-2 bg-red-100 rounded-lg">
-                    <AlertCircle className="w-5 h-5 text-red-600" />
+                  <div className="p-2 bg-red-100 rounded-lg dark:bg-red-950/40">
+                    <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Items Count */}
-            <Card className="border-blue-100 bg-gradient-to-br from-blue-50 to-white">
+            <Card className="border-blue-100 bg-gradient-to-br from-blue-50 to-white dark:border-blue-800/60 dark:from-blue-950/40 dark:to-slate-900">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-600">Items Assigned</h3>
-                    <p className="text-2xl font-bold text-blue-700">{totalItems}</p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <h3 className="text-sm font-medium text-gray-600 dark:text-slate-300">Items Assigned</h3>
+                    <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{totalItems}</p>
+                    <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">
                       {collectedItems} collected
                     </p>
                   </div>
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Package className="w-5 h-5 text-blue-600" />
+                  <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-950/40">
+                    <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
                 </div>
               </CardContent>
@@ -709,17 +709,17 @@ function UniformTrackingContent() {
         )}
 
         {/* Tracking Records */}
-        <Card className="border-gray-200 shadow-sm">
+        <Card className="border-gray-200 shadow-sm dark:border-slate-700">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900">Uniform Records</CardTitle>
-            <p className="text-sm text-gray-600">Track uniform assignments, payments, and collections</p>
+            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-slate-100">Uniform Records</CardTitle>
+            <p className="text-sm text-gray-600 dark:text-slate-300">Track uniform assignments, payments, and collections</p>
           </CardHeader>
           <CardContent className="p-0">
             {recordsLoading || catalogueLoading ? (
               <div className="p-6 space-y-4">
                 {[...Array(3)].map((_, i) => (
                   <div key={i} className="animate-pulse">
-                    <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-lg dark:bg-slate-900">
                       <div className="space-y-2 flex-1">
                         <Skeleton className="h-4 w-3/4" />
                         <Skeleton className="h-3 w-1/2" />
@@ -740,11 +740,11 @@ function UniformTrackingContent() {
               <p className="p-6 text-sm text-muted-foreground">Uniform records will be shown when the catalogue is available.</p>
             ) : trackingRecords.length === 0 ? (
               <div className="text-center py-12">
-                <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <Package className="w-8 h-8 text-gray-400" />
+                <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 dark:bg-slate-900">
+                  <Package className="w-8 h-8 text-gray-400 dark:text-slate-400" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No uniforms assigned yet</h3>
-                <p className="text-gray-600 mb-6">Get started by adding the first uniform assignment for this pupil.</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2 dark:text-slate-100">No uniforms assigned yet</h3>
+                <p className="text-gray-600 mb-6 dark:text-slate-300">Get started by adding the first uniform assignment for this pupil.</p>
                 <Button
                   onClick={handleOpenTrackingModal}
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
@@ -754,7 +754,7 @@ function UniformTrackingContent() {
                 </Button>
               </div>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-slate-700">
                 {trackingRecords.map((record) => (
                   <TrackingRecordCard
                     key={record.id}
@@ -841,22 +841,22 @@ function UniformTrackingContent() {
       {/* Custom Delete Confirmation Modal */}
       {isDeleteConfirmOpen && recordToDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4 dark:bg-slate-900">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <Trash2 className="w-6 h-6 text-red-600" />
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center dark:bg-red-950/40">
+                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Delete Confirmation</h3>
-                <p className="text-sm text-gray-500">This action cannot be undone</p>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Delete Confirmation</h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400">This action cannot be undone</p>
               </div>
             </div>
 
             <div className="space-y-3 mb-6">
-              <p className="text-gray-700">
+              <p className="text-gray-700 dark:text-slate-200">
                 Are you sure you want to permanently delete this uniform tracking record?
               </p>
-              <div className="bg-gray-50 rounded-lg p-3 space-y-1">
+              <div className="bg-gray-50 rounded-lg p-3 space-y-1 dark:bg-slate-900">
                 <p className="text-sm"><strong>Uniform:</strong> {getUniformName(recordToDelete.uniformId)}</p>
                 <p className="text-sm"><strong>Paid Amount:</strong> {formatCurrency(recordToDelete.paidAmount)}</p>
                 <p className="text-sm"><strong>Status:</strong> {recordToDelete.paymentStatus} payment, {recordToDelete.collectionStatus} collection</p>
@@ -889,13 +889,13 @@ function UniformTrackingContent() {
 export default function UniformTrackingPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center dark:from-blue-950/40 dark:via-slate-900 dark:to-indigo-950/40">
         <div className="text-center">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-blue-950/40">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading...</h2>
-          <p className="text-gray-600">Getting uniform tracking data</p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2 dark:text-slate-100">Loading...</h2>
+          <p className="text-gray-600 dark:text-slate-300">Getting uniform tracking data</p>
         </div>
       </div>
     }>

@@ -569,7 +569,7 @@ export default function PromotePupilsPage() {
                   <DialogTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full border-green-200 text-green-700 hover:bg-green-50"
+                      className="w-full border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800/60 dark:text-green-300 dark:hover:bg-green-950/40"
                       disabled={totalSelectedCount === 0}
                     >
                       <GraduationCap className="mr-2 h-4 w-4" />
@@ -579,14 +579,14 @@ export default function PromotePupilsPage() {
                   <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
                       <DialogTitle className="flex items-center">
-                        <GraduationCap className="mr-2 h-5 w-5 text-green-600" />
+                        <GraduationCap className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
                         Confirm Graduation
                       </DialogTitle>
                       <DialogDescription>
                         You are about to graduate <strong>{totalSelectedCount}</strong> pupil(s) from <strong>{allClasses.find(c => c.id === fromClassId)?.name}</strong>.
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md mt-2">
+                    <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md mt-2 dark:text-amber-400 dark:bg-amber-950/40">
                       <strong>Note:</strong> This action will change their status to "Graduated" and they will no longer appear in active pupil lists.
                     </div>
                     <div className="space-y-4 mt-4">
@@ -611,13 +611,13 @@ export default function PromotePupilsPage() {
                             })}
                           </SelectContent>
                         </Select>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-slate-400">
                           This year will be used for "Class of {graduationYear}" grouping. The graduation date will be today's date.
                         </p>
                       </div>
 
                       {/* PLE Record Creation Checkbox */}
-                      <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-md border border-blue-200">
+                      <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-md border border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60">
                         <Checkbox
                           id="createPLERecord"
                           checked={createPLERecord}
@@ -631,7 +631,7 @@ export default function PromotePupilsPage() {
                           >
                             Create PLE Record
                           </Label>
-                          <p className="text-xs text-gray-600 mt-1">
+                          <p className="text-xs text-gray-600 mt-1 dark:text-slate-300">
                             Automatically create a PLE record for {graduationYear} using the selected year.
                             Only P7 pupils will be included in the PLE record.
                           </p>
@@ -666,7 +666,7 @@ export default function PromotePupilsPage() {
                     </div>
                   </DialogContent>
                 </Dialog>
-                <div className="text-xs text-gray-500 text-center">
+                <div className="text-xs text-gray-500 text-center dark:text-slate-400">
                   Select pupils above first, then click Graduate
                 </div>
               </div>
@@ -749,7 +749,7 @@ export default function PromotePupilsPage() {
             <CardContent>
               {fromClassId && (
                 <div className="mb-4 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-slate-400" />
                   <Input
                     type="text"
                     placeholder="Search pupils by name..."
@@ -766,11 +766,11 @@ export default function PromotePupilsPage() {
                       {/* Previous Years' Pupils Table */}
                       <div>
                         <div className="mb-2 flex items-center justify-between">
-                          <h3 className="text-sm font-semibold text-gray-700">
+                          <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-200">
                             Previous Years' Pupils ({previousYearsPupils.length})
                           </h3>
                           {previousYearsPupils.length > 0 && (
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-gray-500 dark:text-slate-400">
                               {previousYearsPupilIds.length} selected
                             </span>
                           )}
@@ -801,7 +801,7 @@ export default function PromotePupilsPage() {
                                     />
                                   </TableCell>
                                   <TableCell className="font-medium">{formatPupilDisplayName(pupil)}</TableCell>
-                                  <TableCell className="text-sm text-gray-600">
+                                  <TableCell className="text-sm text-gray-600 dark:text-slate-300">
                                     {pupil.registrationDate ? new Date(pupil.registrationDate).toLocaleDateString() : 'N/A'}
                                   </TableCell>
                                 </TableRow>
@@ -816,20 +816,20 @@ export default function PromotePupilsPage() {
                       {/* Current Year's Pupils Table */}
                       <div>
                         <div className="mb-2 flex items-center justify-between">
-                          <h3 className="text-sm font-semibold text-blue-700">
+                          <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-300">
                             Current Year's Pupils ({currentYearPupils.length})
                           </h3>
                           {currentYearPupils.length > 0 && (
-                            <span className="text-xs text-blue-600">
+                            <span className="text-xs text-blue-600 dark:text-blue-400">
                               {currentYearPupilIds.length} selected
                             </span>
                           )}
                         </div>
                         {currentYearPupils.length > 0 ? (
-                          <div className="border-2 border-blue-200 rounded-lg overflow-hidden">
+                          <div className="border-2 border-blue-200 rounded-lg overflow-hidden dark:border-blue-800/60">
                             <Table>
                               <TableHeader>
-                                <TableRow className="bg-blue-50">
+                                <TableRow className="bg-blue-50 dark:bg-blue-950/40">
                                   <TableHead className="w-[50px]">
                                     <Checkbox
                                       checked={allCurrentSelected}
@@ -843,7 +843,7 @@ export default function PromotePupilsPage() {
                               </TableHeader>
                               <TableBody>
                                 {currentYearPupils.map(pupil => (
-                                  <TableRow key={pupil.id} className="bg-blue-50/30">
+                                  <TableRow key={pupil.id} className="bg-blue-50/30 dark:bg-blue-950/30">
                                     <TableCell>
                                       <Checkbox
                                         checked={currentYearPupilIds.includes(pupil.id)}
@@ -852,7 +852,7 @@ export default function PromotePupilsPage() {
                                       />
                                     </TableCell>
                                     <TableCell className="font-medium">{formatPupilDisplayName(pupil)}</TableCell>
-                                    <TableCell className="text-sm text-blue-700">
+                                    <TableCell className="text-sm text-blue-700 dark:text-blue-300">
                                       {pupil.registrationDate ? new Date(pupil.registrationDate).toLocaleDateString() : 'N/A'}
                                     </TableCell>
                                   </TableRow>

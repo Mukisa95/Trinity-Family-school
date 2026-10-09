@@ -91,7 +91,7 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading attendance data...</p>
+          <p className="text-gray-600 dark:text-slate-300">Loading attendance data...</p>
         </div>
       </div>
     );
@@ -101,7 +101,7 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-gray-600">Event not found</p>
+          <p className="text-gray-600 dark:text-slate-300">Event not found</p>
           <Button onClick={() => goBack('/events')} className="mt-4">
             Go Back
           </Button>
@@ -137,11 +137,11 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'present':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
+        return <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />;
       case 'absent':
-        return <XCircle className="h-4 w-4 text-red-600" />;
+        return <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />;
       case 'late':
-        return <Clock3 className="h-4 w-4 text-orange-600" />;
+        return <Clock3 className="h-4 w-4 text-orange-600 dark:text-orange-400" />;
       default:
         return null;
     }
@@ -150,20 +150,20 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'present':
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Present</Badge>;
+        return <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-200 dark:border-green-800/60">Present</Badge>;
       case 'absent':
-        return <Badge className="bg-red-100 text-red-800 border-red-200">Absent</Badge>;
+        return <Badge className="bg-red-100 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800/60">Absent</Badge>;
       case 'late':
-        return <Badge className="bg-orange-100 text-orange-800 border-orange-200">Late</Badge>;
+        return <Badge className="bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:border-orange-800/60">Late</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white border-b border-gray-200 dark:bg-slate-900 dark:border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
@@ -177,10 +177,10 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
                 Back
               </Button>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">
+                <h1 className="text-xl font-semibold text-gray-900 dark:text-slate-100">
                   Attendance: {event.title}
                 </h1>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-slate-400">
                   View and manage attendance records
                 </p>
               </div>
@@ -223,25 +223,25 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-gray-400" />
+                <Calendar className="h-4 w-4 text-gray-400 dark:text-slate-400" />
                 <div>
-                  <p className="text-sm text-gray-500">Date</p>
+                  <p className="text-sm text-gray-500 dark:text-slate-400">Date</p>
                   <p className="font-medium">{formatDateTime(event.startDate)}</p>
                 </div>
               </div>
               {event.location && (
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-gray-400" />
+                  <MapPin className="h-4 w-4 text-gray-400 dark:text-slate-400" />
                   <div>
-                    <p className="text-sm text-gray-500">Location</p>
+                    <p className="text-sm text-gray-500 dark:text-slate-400">Location</p>
                     <p className="font-medium">{event.location}</p>
                   </div>
                 </div>
               )}
               <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-gray-400" />
+                <Users className="h-4 w-4 text-gray-400 dark:text-slate-400" />
                 <div>
-                  <p className="text-sm text-gray-500">Total Recorded</p>
+                  <p className="text-sm text-gray-500 dark:text-slate-400">Total Recorded</p>
                   <p className="font-medium">{totalStats.total} attendees</p>
                 </div>
               </div>
@@ -289,15 +289,15 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
                   <CardContent>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-green-600">Present:</span>
+                        <span className="text-green-600 dark:text-green-400">Present:</span>
                         <span className="font-medium">{pupilStats.present}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-red-600">Absent:</span>
+                        <span className="text-red-600 dark:text-red-400">Absent:</span>
                         <span className="font-medium">{pupilStats.absent}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-orange-600">Late:</span>
+                        <span className="text-orange-600 dark:text-orange-400">Late:</span>
                         <span className="font-medium">{pupilStats.late}</span>
                       </div>
                       <div className="flex justify-between text-sm font-medium border-t pt-2">
@@ -318,15 +318,15 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
                   <CardContent>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-green-600">Present:</span>
+                        <span className="text-green-600 dark:text-green-400">Present:</span>
                         <span className="font-medium">{staffStats.present}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-red-600">Absent:</span>
+                        <span className="text-red-600 dark:text-red-400">Absent:</span>
                         <span className="font-medium">{staffStats.absent}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-orange-600">Late:</span>
+                        <span className="text-orange-600 dark:text-orange-400">Late:</span>
                         <span className="font-medium">{staffStats.late}</span>
                       </div>
                       <div className="flex justify-between text-sm font-medium border-t pt-2">
@@ -347,15 +347,15 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
                   <CardContent>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-green-600">Present:</span>
+                        <span className="text-green-600 dark:text-green-400">Present:</span>
                         <span className="font-medium">{parentStats.present}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-red-600">Absent:</span>
+                        <span className="text-red-600 dark:text-red-400">Absent:</span>
                         <span className="font-medium">{parentStats.absent}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-orange-600">Late:</span>
+                        <span className="text-orange-600 dark:text-orange-400">Late:</span>
                         <span className="font-medium">{parentStats.late}</span>
                       </div>
                       <div className="flex justify-between text-sm font-medium border-t pt-2">
@@ -392,17 +392,17 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
                       }
                       
                       return (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg dark:bg-slate-900">
                           <div className="flex items-center gap-3">
                             {getStatusIcon(record.status)}
                             <div>
                               <p className="font-medium">{name}</p>
-                              <p className="text-sm text-gray-500">{type}</p>
+                              <p className="text-sm text-gray-500 dark:text-slate-400">{type}</p>
                             </div>
                           </div>
                           <div className="text-right">
                             {getStatusBadge(record.status)}
-                            <p className="text-xs text-gray-400 mt-1">
+                            <p className="text-xs text-gray-400 mt-1 dark:text-slate-400">
                               Recorded by {record.recordedBy}
                             </p>
                           </div>
@@ -410,7 +410,7 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
                       );
                     })}
                     {allAttendance.length === 0 && (
-                      <p className="text-center text-gray-500 py-8">No attendance records found</p>
+                      <p className="text-center text-gray-500 py-8 dark:text-slate-400">No attendance records found</p>
                     )}
                   </div>
                 </ScrollArea>
@@ -439,19 +439,19 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
                           {getStatusIcon(record.status)}
                           <div>
                             <p className="font-medium">{record.pupilName}</p>
-                            <p className="text-sm text-gray-500">Class: {record.className}</p>
+                            <p className="text-sm text-gray-500 dark:text-slate-400">Class: {record.className}</p>
                           </div>
                         </div>
                         <div className="text-right">
                           {getStatusBadge(record.status)}
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-xs text-gray-400 mt-1 dark:text-slate-400">
                             By {record.recordedBy}
                           </p>
                         </div>
                       </div>
                     ))}
                     {pupilAttendance.length === 0 && (
-                      <p className="text-center text-gray-500 py-8">No pupil attendance records found</p>
+                      <p className="text-center text-gray-500 py-8 dark:text-slate-400">No pupil attendance records found</p>
                     )}
                   </div>
                 </ScrollArea>
@@ -479,7 +479,7 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
                           {getStatusIcon(record.status)}
                           <div>
                             <p className="font-medium">{record.staffName}</p>
-                            <div className="flex gap-2 text-sm text-gray-500">
+                            <div className="flex gap-2 text-sm text-gray-500 dark:text-slate-400">
                               {record.position && <span>{record.position}</span>}
                               {record.department && <span>• {record.department}</span>}
                             </div>
@@ -487,14 +487,14 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
                         </div>
                         <div className="text-right">
                           {getStatusBadge(record.status)}
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-xs text-gray-400 mt-1 dark:text-slate-400">
                             By {record.recordedBy}
                           </p>
                         </div>
                       </div>
                     ))}
                     {staffAttendance.length === 0 && (
-                      <p className="text-center text-gray-500 py-8">No staff attendance records found</p>
+                      <p className="text-center text-gray-500 py-8 dark:text-slate-400">No staff attendance records found</p>
                     )}
                   </div>
                 </ScrollArea>
@@ -522,7 +522,7 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
                           {getStatusIcon(record.status)}
                           <div>
                             <p className="font-medium">{record.attendees[0]?.name || 'Parent'}</p>
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-gray-500 dark:text-slate-400">
                               {record.attendees[0]?.relationship && (
                                 <span>{record.attendees[0].relationship}</span>
                               )}
@@ -531,7 +531,7 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
                               </span>
                             </div>
                             {record.attendees[0]?.reason && (
-                              <p className="text-xs text-gray-400 mt-1">
+                              <p className="text-xs text-gray-400 mt-1 dark:text-slate-400">
                                 Reason: {record.attendees[0].reason}
                               </p>
                             )}
@@ -539,14 +539,14 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
                         </div>
                         <div className="text-right">
                           {getStatusBadge(record.status)}
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-xs text-gray-400 mt-1 dark:text-slate-400">
                             By {record.recordedBy}
                           </p>
                         </div>
                       </div>
                     ))}
                     {parentAttendance.length === 0 && (
-                      <p className="text-center text-gray-500 py-8">No parent attendance records found</p>
+                      <p className="text-center text-gray-500 py-8 dark:text-slate-400">No parent attendance records found</p>
                     )}
                   </div>
                 </ScrollArea>

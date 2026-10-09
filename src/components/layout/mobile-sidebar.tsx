@@ -23,41 +23,41 @@ import { isDevControlPath } from '@/config/dev-control';
 const sectionColors: Record<string, { icon: string; text: string; activeBg: string; activeIcon: string }> = {
   Overview: {
     icon: 'text-blue-600 dark:text-blue-400 group-hover:text-blue-750',
-    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900',
+    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
     activeBg: 'bg-blue-50/80 dark:bg-blue-950/20 text-blue-800 dark:text-blue-200 border border-blue-200/50 dark:border-blue-900/30 shadow-sm',
     activeIcon: 'text-blue-700 dark:text-blue-300'
   },
   Academics: {
     icon: 'text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-750',
-    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900',
+    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
     activeBg: 'bg-indigo-50/80 dark:bg-indigo-950/20 text-indigo-850 dark:text-indigo-200 border border-indigo-200/50 dark:border-indigo-900/30 shadow-sm',
     activeIcon: 'text-indigo-700 dark:text-indigo-300'
   },
   Finance: {
     icon: 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-750',
-    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900',
+    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
     activeBg: 'bg-emerald-50/80 dark:bg-emerald-950/20 text-emerald-850 dark:text-emerald-200 border border-emerald-200/50 dark:border-emerald-900/30 shadow-sm',
     activeIcon: 'text-emerald-700 dark:text-emerald-300'
   },
   Communications: {
     icon: 'text-rose-600 dark:text-rose-400 group-hover:text-rose-750',
-    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900',
+    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
     activeBg: 'bg-rose-50/80 dark:bg-rose-950/20 text-rose-850 dark:text-rose-200 border border-rose-200/50 dark:border-rose-900/30 shadow-sm',
     activeIcon: 'text-rose-700 dark:text-rose-300'
   },
   Administration: {
     icon: 'text-amber-600 dark:text-amber-400 group-hover:text-amber-750',
-    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900',
+    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
     activeBg: 'bg-amber-50/80 dark:bg-amber-950/20 text-amber-850 dark:text-amber-200 border border-amber-200/50 dark:border-amber-900/30 shadow-sm',
     activeIcon: 'text-amber-700 dark:text-amber-300'
   }
 };
 
 const defaultColors = {
-  icon: 'text-slate-500 group-hover:text-slate-700',
-  text: 'text-slate-700 group-hover:text-slate-900',
-  activeBg: 'bg-blue-50 text-blue-800 border border-blue-200 shadow-sm',
-  activeIcon: 'text-blue-700'
+  icon: 'text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200',
+  text: 'text-slate-700 group-hover:text-slate-900 dark:text-slate-200 dark:group-hover:text-slate-100',
+  activeBg: 'bg-blue-50 text-blue-800 border border-blue-200 shadow-sm dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800/60',
+  activeIcon: 'text-blue-700 dark:text-blue-300'
 };
 
 interface MobileSidebarProps {
@@ -250,7 +250,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
         onTouchEnd={handleTouchEnd}
       >
         {/* Glass morphism background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-white/90 to-blue-50/85 backdrop-blur-xl border-r border-white/20 shadow-2xl" />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-white/90 to-blue-50/85 backdrop-blur-xl border-r border-white/20 shadow-2xl dark:from-slate-900/95 dark:via-slate-900/90 dark:to-blue-950/85 dark:border-slate-700/20" />
         
         {/* Animated gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/3 to-pink-500/5 opacity-70" />
@@ -258,15 +258,15 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
         {/* Content */}
         <div className="relative h-full flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-3 border-b border-white/10">
+          <div className="flex items-center justify-between p-3 border-b border-white/10 dark:border-slate-700/10">
             {isLoadingSettings ? (
               <div className="flex items-center space-x-2 flex-1">
                 <div className="relative w-8 h-8 rounded-lg overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-pulse" />
                 </div>
                 <div className="flex-1 space-y-1">
-                  <div className="h-3 w-24 bg-gradient-to-r from-gray-200 to-gray-300 rounded animate-pulse" />
-                  <div className="h-2 w-20 bg-gradient-to-r from-gray-200 to-gray-300 rounded animate-pulse" />
+                  <div className="h-3 w-24 bg-gradient-to-r from-gray-200 to-gray-300 rounded animate-pulse dark:from-slate-800" />
+                  <div className="h-2 w-20 bg-gradient-to-r from-gray-200 to-gray-300 rounded animate-pulse dark:from-slate-800" />
                 </div>
               </div>
             ) : (
@@ -287,7 +287,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
                   {currentSettings.generalInfo.name || "School Name"}
                 </h2>
                 {currentSettings.generalInfo.motto && (
-                  <p className="text-xs text-gray-600 italic">
+                  <p className="text-xs text-gray-600 italic dark:text-slate-300">
                     "{currentSettings.generalInfo.motto}"
                   </p>
                 )}
@@ -322,11 +322,11 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
           </div>
 
           {/* Footer */}
-          <div className="p-3 border-t border-white/10 space-y-2">
-            <div className="bg-white/10 p-1.5 rounded-lg border border-white/10">
+          <div className="p-3 border-t border-white/10 space-y-2 dark:border-slate-700/10">
+            <div className="bg-white/10 p-1.5 rounded-lg border border-white/10 dark:bg-slate-900/10 dark:border-slate-700/10">
               <SidebarUserFooter onCloseSidebar={onClose} />
             </div>
-            <div className="text-center text-xs text-gray-500">
+            <div className="text-center text-xs text-gray-500 dark:text-slate-400">
               <p>© {new Date().getFullYear()} Trinity Family School</p>
             </div>
           </div>
@@ -360,7 +360,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
               'flex items-center space-x-1.5 px-2 py-1 rounded-lg border transition-all ease-out duration-200 active:scale-[0.98]',
               isActive
                 ? colors.activeBg
-                : 'bg-white/40 hover:bg-white/60 border-white/20 text-slate-700 hover:text-slate-900',
+                : 'bg-white/40 hover:bg-white/60 border-white/20 text-slate-700 hover:text-slate-900 dark:bg-slate-900/40 dark:hover:bg-slate-900/60 dark:border-slate-700/20 dark:text-slate-200 dark:hover:text-slate-100',
               item.disabled && 'opacity-50 cursor-not-allowed'
             )}
           >
@@ -368,13 +368,13 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
               'p-1 rounded-lg flex items-center justify-center',
               isActive
                 ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
-                : cn('bg-white/60', colors.icon)
+                : cn('bg-white/60 dark:bg-slate-900/60', colors.icon)
             )}>
               <Icon size={12} />
             </div>
             <span className={cn(
               'text-sm font-medium',
-              isActive ? 'text-blue-700' : 'text-slate-700'
+              isActive ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200'
             )}>
               {item.title}
             </span>
@@ -409,20 +409,20 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
               'w-full flex items-center space-x-1.5 px-2 py-1 rounded-lg border transition-all ease-out duration-200 active:scale-[0.98]',
               isActive
                 ? colors.activeBg
-                : 'bg-white/40 hover:bg-white/60 border-white/20 text-slate-700 hover:text-slate-900'
+                : 'bg-white/40 hover:bg-white/60 border-white/20 text-slate-700 hover:text-slate-900 dark:bg-slate-900/40 dark:hover:bg-slate-900/60 dark:border-slate-700/20 dark:text-slate-200 dark:hover:text-slate-100'
             )}
           >
             <div className={cn(
               'p-1 rounded-lg flex items-center justify-center',
               isActive
                 ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
-                : cn('bg-white/60', colors.icon)
+                : cn('bg-white/60 dark:bg-slate-900/60', colors.icon)
             )}>
               <Icon size={12} />
             </div>
             <span className={cn(
               'text-sm font-medium flex-1 text-left',
-              isActive ? 'text-blue-700' : 'text-slate-700'
+              isActive ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200'
             )}>
               {item.title}
             </span>
@@ -431,7 +431,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
                 isOpen ? 'rotate-90' : 'rotate-0'
               )}
             >
-              <ChevronRight size={12} className="text-slate-400 animate-pulse" />
+              <ChevronRight size={12} className="text-slate-400 animate-pulse dark:text-slate-400" />
             </div>
           </button>
 
@@ -460,9 +460,9 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
                         rel="noopener noreferrer"
                         onClick={handleMenuItemClick(subItem.title)}
                       >
-                        <div className="flex items-center space-x-2 px-3 py-1 rounded-md bg-white/20 hover:bg-white/40 border border-white/10">
+                        <div className="flex items-center space-x-2 px-3 py-1 rounded-md bg-white/20 hover:bg-white/40 border border-white/10 dark:bg-slate-900/20 dark:hover:bg-slate-900/40 dark:border-slate-700/10">
                           <SubIcon size={12} className={cn("shrink-0", colors.icon)} />
-                          <span className="text-sm font-medium text-slate-700">
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                             {subItem.title}
                           </span>
                         </div>
@@ -473,7 +473,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
                           'flex items-center space-x-2 px-3 py-1 rounded-md border',
                           isSubActive
                             ? colors.activeBg + ' font-semibold'
-                            : 'bg-white/20 hover:bg-white/40 border-transparent text-slate-700'
+                            : 'bg-white/20 hover:bg-white/40 border-transparent text-slate-700 dark:bg-slate-900/20 dark:hover:bg-slate-900/40 dark:text-slate-200'
                         )}>
                           <SubIcon size={14} className={cn(
                             'shrink-0 transition-colors duration-200',
@@ -481,7 +481,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
                           )} />
                           <span className={cn(
                             'text-sm font-medium',
-                            isSubActive ? 'text-blue-700' : 'text-slate-700'
+                            isSubActive ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200'
                           )}>
                             {subItem.title}
                           </span>

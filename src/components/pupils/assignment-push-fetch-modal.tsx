@@ -124,7 +124,7 @@ export function AssignmentPushFetchModal({
       <ModernDialogContent size="md">
         <ModernDialogHeader>
           <ModernDialogTitle className="flex items-center gap-2">
-            <ArrowRightLeft className="h-5 w-5 text-indigo-600" />
+            <ArrowRightLeft className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             Push / Fetch Assignment
           </ModernDialogTitle>
           <ModernDialogDescription>
@@ -136,7 +136,7 @@ export function AssignmentPushFetchModal({
         {options && assignment && (
           <div className="space-y-4 py-2">
             {options.assignmentTermRef && options.currentTermRef && (
-              <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+              <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
                 Assignment applies to{' '}
                 <span className="font-semibold">
                   {options.assignmentTermRef.term.name}, {options.assignmentTermRef.year.name}
@@ -162,11 +162,11 @@ export function AssignmentPushFetchModal({
                       }}
                       className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
                         mode === 'push'
-                          ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500'
-                          : 'border-slate-200 hover:border-indigo-200 hover:bg-slate-50'
+                          ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500 dark:bg-indigo-950/40'
+                          : 'border-slate-200 hover:border-indigo-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:border-indigo-800/60 dark:hover:bg-slate-900'
                       }`}
                     >
-                      <div className="font-medium text-indigo-900">
+                      <div className="font-medium text-indigo-900 dark:text-indigo-200">
                         Push to {options.push.target.label}
                       </div>
                       <div className="mt-0.5 text-xs text-muted-foreground">
@@ -184,11 +184,11 @@ export function AssignmentPushFetchModal({
                       }}
                       className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
                         mode === 'fetch'
-                          ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500'
-                          : 'border-slate-200 hover:border-indigo-200 hover:bg-slate-50'
+                          ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500 dark:bg-indigo-950/40'
+                          : 'border-slate-200 hover:border-indigo-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:border-indigo-800/60 dark:hover:bg-slate-900'
                       }`}
                     >
-                      <div className="font-medium text-indigo-900">
+                      <div className="font-medium text-indigo-900 dark:text-indigo-200">
                         Fetch to {options.fetch.target.label}
                       </div>
                       <div className="mt-0.5 text-xs text-muted-foreground">
@@ -207,15 +207,15 @@ export function AssignmentPushFetchModal({
                 onClick={() => setMode('custom')}
                 className={`mb-2 w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
                   mode === 'custom'
-                    ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500'
-                    : 'border-slate-200 hover:border-indigo-200 hover:bg-slate-50'
+                    ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500 dark:bg-indigo-950/40'
+                    : 'border-slate-200 hover:border-indigo-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:border-indigo-800/60 dark:hover:bg-slate-900'
                 }`}
               >
                 <span className="font-medium">Choose academic year and term</span>
               </button>
 
               {mode === 'custom' && (
-                <div className="max-h-52 space-y-1 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50/50 p-1.5">
+                <div className="max-h-52 space-y-1 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50/50 p-1.5 dark:border-slate-700 dark:bg-slate-900/50">
                   {sortedYears.map((year) => {
                     const isExpanded = expandedYearIds.has(year.id);
                     const yearTargets = options.customTargets.filter((t) => t.yearId === year.id);
@@ -227,7 +227,7 @@ export function AssignmentPushFetchModal({
                     return (
                       <div
                         key={year.id}
-                        className="overflow-hidden rounded-md border border-slate-200/80 bg-white"
+                        className="overflow-hidden rounded-md border border-slate-200/80 bg-white dark:border-slate-700/80 dark:bg-slate-900"
                       >
                         <Collapsible
                           open={isExpanded}
@@ -240,7 +240,7 @@ export function AssignmentPushFetchModal({
                             });
                           }}
                         >
-                          <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left text-sm font-medium text-slate-800 hover:bg-slate-50">
+                          <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left text-sm font-medium text-slate-800 hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-900">
                             <span className="flex min-w-0 flex-1 items-center gap-2">
                               <span className="truncate">{year.name}</span>
                               {selectedInYear > 0 && (
@@ -250,10 +250,10 @@ export function AssignmentPushFetchModal({
                               )}
                             </span>
                             <ChevronDown
-                              className={`h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                              className={`h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200  dark:text-slate-400${isExpanded ? 'rotate-180' : ''}`}
                             />
                           </CollapsibleTrigger>
-                          <CollapsibleContent className="border-t border-slate-100 px-2 pb-2 pt-1">
+                          <CollapsibleContent className="border-t border-slate-100 px-2 pb-2 pt-1 dark:border-slate-700">
                             {year.terms.map((term) => {
                               const target = yearTargets.find((t) => t.termId === term.id);
                               if (!target) return null;
@@ -266,7 +266,7 @@ export function AssignmentPushFetchModal({
                               return (
                                 <div
                                   key={term.id}
-                                  className={`flex items-center space-x-2 rounded-md py-1 pl-1 pr-0.5 ${isChecked ? 'bg-indigo-50' : ''}`}
+                                  className={`flex items-center space-x-2 rounded-md py-1 pl-1 pr-0.5 ${isChecked ? 'bg-indigo-50 dark:bg-indigo-950/40' : ''}`}
                                 >
                                   <Checkbox
                                     id={checkboxId}

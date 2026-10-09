@@ -211,32 +211,32 @@ const SMSSettingsModal: React.FC<SMSSettingsModalProps> = ({ open, onOpenChange 
                 Loading current settings…
               </div>
             ) : currentUsername ? (
-              <Card className="border-green-200 bg-green-50">
+              <Card className="border-green-200 bg-green-50 dark:border-green-800/60 dark:bg-green-950/40">
                 <CardContent className="pt-4 pb-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">Active Account</p>
-                      <p className="font-medium text-green-900">{currentUsername}</p>
+                      <p className="text-xs font-semibold text-green-700 uppercase tracking-wide dark:text-green-300">Active Account</p>
+                      <p className="font-medium text-green-900 dark:text-green-200">{currentUsername}</p>
                       <div className="flex gap-2 flex-wrap mt-1">
-                        <Badge variant="outline" className="text-green-700 border-green-400 text-xs">
+                        <Badge variant="outline" className="text-green-700 border-green-400 text-xs dark:text-green-300">
                           Sender ID: {currentSenderId}
                         </Badge>
                         {lastUpdated && (
-                          <Badge variant="outline" className="text-green-600 border-green-300 text-xs">
+                          <Badge variant="outline" className="text-green-600 border-green-300 text-xs dark:text-green-400 dark:border-green-800/60">
                             Updated: {formatDate(lastUpdated)}
                           </Badge>
                         )}
                       </div>
                     </div>
-                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-1" />
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-1 dark:text-green-400" />
                   </div>
                 </CardContent>
               </Card>
             ) : (
-              <Card className="border-yellow-200 bg-yellow-50">
+              <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-800/60 dark:bg-yellow-950/40">
                 <CardContent className="pt-4 pb-3 flex items-center gap-3">
-                  <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0" />
-                  <p className="text-sm text-yellow-800">
+                  <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 dark:text-yellow-400" />
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
                     Using default credentials from environment variables. Enter new credentials below to override.
                   </p>
                 </CardContent>
@@ -355,9 +355,9 @@ const SMSSettingsModal: React.FC<SMSSettingsModalProps> = ({ open, onOpenChange 
                   </div>
                 </div>
                 <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-600" /> Bulk SMS to MTN & Airtel</div>
-                  <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-600" /> Custom Sender ID</div>
-                  <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-600" /> UGX billing</div>
+                  <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" /> Bulk SMS to MTN & Airtel</div>
+                  <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" /> Custom Sender ID</div>
+                  <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" /> UGX billing</div>
                 </div>
                 <div className="flex gap-3 pt-2">
                   <Button

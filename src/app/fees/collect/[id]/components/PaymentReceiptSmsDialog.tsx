@@ -191,7 +191,7 @@ export function PaymentReceiptSmsDialog({
       <DialogContent className="max-w-lg gap-3">
         <DialogHeader className="pr-8">
           <DialogTitle className="flex items-center gap-2 text-lg">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
               <MessageSquareText className="h-4 w-4" />
             </span>
             {dialogTitle}
@@ -203,14 +203,14 @@ export function PaymentReceiptSmsDialog({
 
         <div className="space-y-3">
           {submissionError && (
-            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200">
               {submissionError}
             </div>
           )}
 
           <fieldset className="space-y-2">
             <legend className="sr-only">Send to</legend>
-            <span className="block text-sm font-semibold text-slate-900">Send to</span>
+            <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">Send to</span>
 
             <div className="flex items-start gap-2">
               <RadioGroup
@@ -230,16 +230,16 @@ export function PaymentReceiptSmsDialog({
                       key={guardian.id || value}
                       htmlFor={`receipt-sms-${value}`}
                       className={`flex min-w-0 cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 transition-colors ${
-                        selected ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
+                        selected ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:border-emerald-800/60 dark:hover:bg-slate-900'
                       }`}
                     >
                       <RadioGroupItem id={`receipt-sms-${value}`} value={value} />
-                      <UserRound className="h-3.5 w-3.5 flex-none text-slate-500" />
+                      <UserRound className="h-3.5 w-3.5 flex-none text-slate-500 dark:text-slate-400" />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-xs font-semibold capitalize text-slate-900">
+                        <span className="block truncate text-xs font-semibold capitalize text-slate-900 dark:text-slate-100">
                           {guardian.relationship || 'Guardian'}
                         </span>
-                        <span className="block truncate text-[11px] font-normal text-slate-600">
+                        <span className="block truncate text-[11px] font-normal text-slate-600 dark:text-slate-300">
                           {guardian.phone || 'No number saved'}
                         </span>
                       </span>
@@ -260,7 +260,7 @@ export function PaymentReceiptSmsDialog({
                 className={`inline-flex h-[42px] w-[42px] flex-none items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
                   recipientChoice === CUSTOM_NUMBER_VALUE
                     ? 'border-emerald-600 bg-emerald-600 text-white'
-                    : 'border-slate-300 bg-white text-slate-600 hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700'
+                    : 'border-slate-300 bg-white text-slate-600 hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300'
                 }`}
               >
                 <Plus className="h-4 w-4" />
@@ -268,7 +268,7 @@ export function PaymentReceiptSmsDialog({
             </div>
 
             {recipientChoice !== CUSTOM_NUMBER_VALUE && !phoneIsValid && (
-              <p role="status" className="text-xs text-amber-800">
+              <p role="status" className="text-xs text-amber-800 dark:text-amber-200">
                 This guardian has no valid saved phone number. Choose another guardian or use a different number.
               </p>
             )}
@@ -276,8 +276,8 @@ export function PaymentReceiptSmsDialog({
             {recipientChoice === CUSTOM_NUMBER_VALUE && (
               <div className="space-y-1.5">
                 <Label htmlFor="receipt-sms-phone" className="sr-only">Phone number</Label>
-                <div className="flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50/60 px-2">
-                  <Phone className="h-4 w-4 flex-none text-emerald-700" />
+                <div className="flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50/60 px-2 dark:border-emerald-800/60 dark:bg-emerald-950/60">
+                  <Phone className="h-4 w-4 flex-none text-emerald-700 dark:text-emerald-300" />
                   <Input
                     id="receipt-sms-phone"
                     type="tel"
@@ -295,7 +295,7 @@ export function PaymentReceiptSmsDialog({
                   />
                 </div>
                 {customNumber.length > 0 && !phoneIsValid && (
-                  <p className="text-xs text-red-700">Enter a valid phone number, including the country code for numbers outside Uganda.</p>
+                  <p className="text-xs text-red-700 dark:text-red-300">Enter a valid phone number, including the country code for numbers outside Uganda.</p>
                 )}
               </div>
             )}
@@ -303,8 +303,8 @@ export function PaymentReceiptSmsDialog({
 
           <div className="space-y-2">
             <div className="flex items-end justify-between gap-3">
-              <Label htmlFor="receipt-sms-message" className="font-semibold text-slate-900">{messageLabel}</Label>
-              <span className="text-xs text-slate-500">
+              <Label htmlFor="receipt-sms-message" className="font-semibold text-slate-900 dark:text-slate-100">{messageLabel}</Label>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
                 {trimmedMessage.length} characters · about {estimatedSegments} SMS
               </span>
             </div>
@@ -318,7 +318,7 @@ export function PaymentReceiptSmsDialog({
               className="min-h-28 resize-y leading-relaxed"
               aria-invalid={!trimmedMessage}
             />
-            <p className="text-xs text-slate-500">You can change any wording before sending.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">You can change any wording before sending.</p>
           </div>
         </div>
 

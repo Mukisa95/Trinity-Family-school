@@ -102,13 +102,13 @@ export function PivotDiscountForm({
   };
 
   return (
-    <div className="border border-indigo-100 rounded-lg bg-indigo-50/20 p-4 space-y-4">
+    <div className="border border-indigo-100 rounded-lg bg-indigo-50/20 p-4 space-y-4 dark:border-indigo-800/60 dark:bg-indigo-950/20">
       <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
-      <div className="flex items-center justify-between border-b pb-2 border-indigo-50">
-        <h4 className="text-sm font-semibold text-indigo-900">
+      <div className="flex items-center justify-between border-b pb-2 border-indigo-50 dark:border-indigo-800/60">
+        <h4 className="text-sm font-semibold text-indigo-900 dark:text-indigo-200">
           Create Pivot Discount (Custom)
         </h4>
-        <span className="text-[10px] bg-indigo-100 text-indigo-800 font-medium px-2 py-0.5 rounded-full">
+        <span className="text-[10px] bg-indigo-100 text-indigo-800 font-medium px-2 py-0.5 rounded-full dark:bg-indigo-950/40 dark:text-indigo-200">
           Bespoke Discount
         </span>
       </div>
@@ -154,7 +154,7 @@ export function PivotDiscountForm({
         <Label className="text-xs font-semibold">
           Linked Fee Items <span className="text-destructive">*</span>
         </Label>
-        <ScrollArea id="pivotLinkedFeeIds" tabIndex={-1} aria-invalid={Boolean(formValidation.getFieldError('pivotLinkedFeeIds'))} aria-describedby={formValidation.getFieldError('pivotLinkedFeeIds') ? 'pivotLinkedFeeIds-error' : undefined} className="h-[120px] w-full rounded-md border bg-white p-2.5 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-2 aria-invalid:ring-red-200">
+        <ScrollArea id="pivotLinkedFeeIds" tabIndex={-1} aria-invalid={Boolean(formValidation.getFieldError('pivotLinkedFeeIds'))} aria-describedby={formValidation.getFieldError('pivotLinkedFeeIds') ? 'pivotLinkedFeeIds-error' : undefined} className="h-[120px] w-full rounded-md border bg-white p-2.5 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-2 aria-invalid:ring-red-200 dark:bg-slate-900">
           <div className="space-y-2">
             {feeItems
               .filter(
@@ -210,7 +210,7 @@ export function PivotDiscountForm({
         />
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-indigo-50 sm:justify-end">
+      <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-indigo-50 sm:justify-end dark:border-indigo-800/60">
         <Button
           type="button"
           variant="ghost"
@@ -227,7 +227,7 @@ export function PivotDiscountForm({
           size="sm"
           onClick={handleCloseSaveClick}
           disabled={isSaving}
-          className="h-8 text-xs bg-slate-200 hover:bg-slate-300 text-slate-800 order-2"
+          className="h-8 text-xs bg-slate-200 hover:bg-slate-300 text-slate-800 order-2 dark:bg-slate-800 dark:text-slate-100"
           title="Save only to this pupil's assignment list"
         >
           Close Save (Pupil Only)

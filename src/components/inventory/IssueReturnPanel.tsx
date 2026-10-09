@@ -271,7 +271,7 @@ export function IssueReturnPanel({
                     <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <Send className="h-5 w-5 text-blue-500" />
+                                <Send className="h-5 w-5 text-blue-500 dark:text-blue-400" />
                                 Issue Inventory Items
                             </CardTitle>
                             <CardDescription>
@@ -289,7 +289,7 @@ export function IssueReturnPanel({
                             </Button>
 
                             {(!academicYear || !term) && (
-                                <p className="text-sm text-amber-600 mt-2">
+                                <p className="text-sm text-amber-600 mt-2 dark:text-amber-400">
                                     <AlertCircle className="h-4 w-4 inline mr-1" />
                                     Please ensure an academic year and term are active
                                 </p>
@@ -341,7 +341,7 @@ export function IssueReturnPanel({
                     {overdueItems.length > 0 && (
                         <Card className="border-0 shadow-lg bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 border-l-4 border-l-red-500">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-red-600 flex items-center gap-2">
+                                <CardTitle className="text-red-600 flex items-center gap-2 dark:text-red-400">
                                     <AlertCircle className="h-5 w-5" />
                                     Overdue Items ({overdueItems.length})
                                 </CardTitle>
@@ -377,7 +377,7 @@ export function IssueReturnPanel({
                     <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <Clock className="h-5 w-5 text-purple-500" />
+                                <Clock className="h-5 w-5 text-purple-500 dark:text-purple-400" />
                                 Currently Issued Items
                             </CardTitle>
                             <CardDescription>
@@ -387,7 +387,7 @@ export function IssueReturnPanel({
                         <CardContent>
                             {issuedItems.filter(i => i.status === 'issued' || i.status === 'partial' || i.status === 'overdue').length === 0 ? (
                                 <div className="text-center py-8">
-                                    <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-3" />
+                                    <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-3 dark:text-green-400" />
                                     <p className="text-muted-foreground">All items have been returned!</p>
                                 </div>
                             ) : (
@@ -467,7 +467,7 @@ export function IssueReturnPanel({
                     <div className="space-y-4 py-4">
                         <FormErrorSummary errors={issueValidation.errors} submissionError={issueValidation.submissionError} onSelectError={issueValidation.focusField} />
                         <div>
-                            <Label htmlFor="issue-item" className={issueValidation.getFieldError('issue-item') ? 'text-red-700' : undefined}>Item <span className="text-red-600">*</span></Label>
+                            <Label htmlFor="issue-item" className={issueValidation.getFieldError('issue-item') ? 'text-red-700 dark:text-red-300' : undefined}>Item <span className="text-red-600 dark:text-red-400">*</span></Label>
                             <Select value={selectedItemId} onValueChange={(value) => { setSelectedItemId(value); issueValidation.handleFieldChange('issue-item'); }}>
                                 <SelectTrigger id="issue-item" {...issueValidation.getFieldProps('issue-item')}>
                                     <SelectValue placeholder="Select item to issue" />
@@ -485,7 +485,7 @@ export function IssueReturnPanel({
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <Label htmlFor="issue-quantity" className={issueValidation.getFieldError('issue-quantity') ? 'text-red-700' : undefined}>Quantity in {selectedItem?.customUnit || selectedItem?.unit || 'everyday units'} <span className="text-red-600">*</span></Label>
+                                <Label htmlFor="issue-quantity" className={issueValidation.getFieldError('issue-quantity') ? 'text-red-700 dark:text-red-300' : undefined}>Quantity in {selectedItem?.customUnit || selectedItem?.unit || 'everyday units'} <span className="text-red-600 dark:text-red-400">*</span></Label>
                                 <Input
                                     id="issue-quantity"
                                     type="number"
@@ -514,7 +514,7 @@ export function IssueReturnPanel({
                         </div>
 
                         <div>
-                            <Label htmlFor="issuedTo" className={issueValidation.getFieldError('issuedTo') ? 'text-red-700' : undefined}>Issue To <span className="text-red-600">*</span></Label>
+                            <Label htmlFor="issuedTo" className={issueValidation.getFieldError('issuedTo') ? 'text-red-700 dark:text-red-300' : undefined}>Issue To <span className="text-red-600 dark:text-red-400">*</span></Label>
                             <Input
                                 id="issuedTo"
                                 value={issuedTo}

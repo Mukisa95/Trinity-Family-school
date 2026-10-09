@@ -594,7 +594,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                 {...formValidation.getFieldProps('examMarks')}
               />
             </div>
-            {fieldError('examMarks') && <p id="examMarks-error" role="alert" className="text-sm text-red-600 md:col-span-2">{fieldError('examMarks')}</p>}
+            {fieldError('examMarks') && <p id="examMarks-error" role="alert" className="text-sm text-red-600 md:col-span-2 dark:text-red-400">{fieldError('examMarks')}</p>}
 
             <div>
               <Label htmlFor="passingMarks">Passing Marks *</Label>
@@ -647,7 +647,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
           </div>
 
           {fieldError('examClasses') && (
-            <p id="examClasses-error" role="alert" className="text-sm text-red-500">{fieldError('examClasses')}</p>
+            <p id="examClasses-error" role="alert" className="text-sm text-red-500 dark:text-red-400">{fieldError('examClasses')}</p>
           )}
         </div>
 
@@ -694,7 +694,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
               })}
 
               {fieldError('examSubjects') && (
-                <p id="examSubjects-error" role="alert" className="text-sm text-red-500">{fieldError('examSubjects')}</p>
+                <p id="examSubjects-error" role="alert" className="text-sm text-red-500 dark:text-red-400">{fieldError('examSubjects')}</p>
               )}
             </div>
           </>
@@ -712,10 +712,10 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
               {event ? 'Edit Event' : isExamMode ? '🎓 Schedule New Exam' : '📅 Create New Event'}
             </ModernDialogTitle>
             {!event && (
-              <div className="flex items-center gap-2 bg-slate-100 rounded-full p-1">
+              <div className="flex items-center gap-2 bg-slate-100 rounded-full p-1 dark:bg-slate-900">
                 <div className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${!isExamMode
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-800'
+                  ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-400'
+                  : 'text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-slate-100'
                   }`}>
                   Event
                 </div>
@@ -739,8 +739,8 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                   className="mx-1"
                 />
                 <div className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${isExamMode
-                  ? 'bg-white text-red-600 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-800'
+                  ? 'bg-white text-red-600 shadow-sm dark:bg-slate-900 dark:text-red-400'
+                  : 'text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-slate-100'
                   }`}>
                   Exam
                 </div>
@@ -754,22 +754,22 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
             <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
             {/* Mode Alert */}
             {isExamMode && (
-              <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl">
-                <div className="p-1.5 bg-red-100 rounded-lg">
-                  <GraduationCap className="h-4 w-4 text-red-600" />
+              <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl dark:from-red-950/40 dark:to-orange-950/40 dark:border-red-800/60">
+                <div className="p-1.5 bg-red-100 rounded-lg dark:bg-red-950/40">
+                  <GraduationCap className="h-4 w-4 text-red-600 dark:text-red-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-red-800">Exam Scheduling Mode Active</p>
-                  <p className="text-xs text-red-600">Creates both exam record and calendar event</p>
+                  <p className="text-sm font-medium text-red-800 dark:text-red-200">Exam Scheduling Mode Active</p>
+                  <p className="text-xs text-red-600 dark:text-red-400">Creates both exam record and calendar event</p>
                 </div>
               </div>
             )}
 
             {/* Basic Information */}
-            <div className="bg-white border-0 shadow-sm ring-1 ring-slate-200 rounded-2xl p-6 md:p-8 space-y-6">
-              <div className="flex items-center gap-3 text-slate-800 border-b border-slate-100 pb-4">
-                <div className="p-2 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-100/50">
-                  <Calendar className="h-5 w-5 text-blue-600" />
+            <div className="bg-white border-0 shadow-sm ring-1 ring-slate-200 rounded-2xl p-6 md:p-8 space-y-6 dark:bg-slate-900 dark:ring-slate-700">
+              <div className="flex items-center gap-3 text-slate-800 border-b border-slate-100 pb-4 dark:text-slate-100 dark:border-slate-700">
+                <div className="p-2 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-100/50 dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800/50">
+                  <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <h3 className="text-lg font-semibold tracking-tight">Basic Information</h3>
               </div>
@@ -777,7 +777,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-3">
                   <Label htmlFor="title" className={`text-sm font-medium ${fieldError('title') ? 'text-destructive' : ''}`}>
-                    {isExamMode ? 'Exam Name' : 'Event Title'} <span className="text-red-500">*</span>
+                    {isExamMode ? 'Exam Name' : 'Event Title'} <span className="text-red-500 dark:text-red-400">*</span>
                   </Label>
                   <Input
                     id="title"
@@ -785,10 +785,10 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                     onChange={(e) => updateFormData('title', e.target.value)}
                     {...formValidation.getFieldProps('title')}
                     placeholder={isExamMode ? "e.g., Mathematics End Term Exam" : "e.g., Annual Science Fair"}
-                    className={`mt-1 ${fieldError('title') ? 'border-red-500 focus:border-red-500' : 'border-slate-300 focus:border-blue-500'}`}
+                    className={`mt-1 ${fieldError('title') ? 'border-red-500 focus:border-red-500' : 'border-slate-300 focus:border-blue-500 dark:border-slate-700'}`}
                   />
                   {fieldError('title') && (
-                    <p id="title-error" role="alert" className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                    <p id="title-error" role="alert" className="text-xs text-red-500 mt-1 flex items-center gap-1 dark:text-red-400">
                       <AlertCircle className="h-3 w-3" />
                       {fieldError('title')}
                     </p>
@@ -797,9 +797,9 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
 
                 {!isExamMode && (
                   <div>
-                    <Label htmlFor="type" className="text-sm font-medium">Event Type <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="type" className="text-sm font-medium">Event Type <span className="text-red-500 dark:text-red-400">*</span></Label>
                     <Select value={formData.type} onValueChange={handleTypeChange}>
-                      <SelectTrigger className="mt-1 border-slate-300 focus:border-blue-500">
+                      <SelectTrigger className="mt-1 border-slate-300 focus:border-blue-500 dark:border-slate-700">
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -822,7 +822,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                 <div>
                   <Label htmlFor="priority" className="text-sm font-medium">Priority</Label>
                   <Select value={formData.priority} onValueChange={(value: EventPriority) => updateFormData('priority', value)}>
-                    <SelectTrigger className="mt-1 border-slate-300 focus:border-blue-500">
+                    <SelectTrigger className="mt-1 border-slate-300 focus:border-blue-500 dark:border-slate-700">
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
                     <SelectContent>
@@ -844,13 +844,13 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                 <div className="lg:col-span-2 mt-4">
                   <Label htmlFor="location" className="text-sm font-medium">Location</Label>
                   <div className="relative mt-1">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-400" />
                     <Input
                       id="location"
                       value={formData.location || ''}
                       onChange={(e) => updateFormData('location', e.target.value)}
                       placeholder="e.g., Main Hall, Room 201"
-                      className="pl-9 border-slate-300 focus:border-blue-500"
+                      className="pl-9 border-slate-300 focus:border-blue-500 dark:border-slate-700"
                     />
                   </div>
                 </div>
@@ -862,13 +862,13 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                       type="color"
                       value={formData.colorCode || EVENT_TYPE_COLORS['Academic']}
                       onChange={(e) => updateFormData('colorCode', e.target.value)}
-                      className="w-12 h-9 p-1 border-slate-300"
+                      className="w-12 h-9 p-1 border-slate-300 dark:border-slate-700"
                     />
                     <Input
                       value={formData.colorCode || EVENT_TYPE_COLORS['Academic']}
                       onChange={(e) => updateFormData('colorCode', e.target.value)}
                       placeholder="#3b82f6"
-                      className="flex-1 border-slate-300 focus:border-blue-500"
+                      className="flex-1 border-slate-300 focus:border-blue-500 dark:border-slate-700"
                     />
                   </div>
                 </div>
@@ -883,20 +883,20 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                     onChange={(e) => updateFormData('description', e.target.value)}
                     placeholder={isExamMode ? "Describe exam requirements, format, and instructions..." : "Provide event details, agenda, or requirements..."}
                     rows={4}
-                    className="mt-1.5 border-slate-300 focus:border-blue-500 focus:ring-blue-500/20 resize-y min-h-[100px]"
+                    className="mt-1.5 border-slate-300 focus:border-blue-500 focus:ring-blue-500/20 resize-y min-h-[100px] dark:border-slate-700"
                   />
                 </div>
               </div>
             </div>
 
             {/* Date & Time */}
-            <div className="bg-white border-0 shadow-sm ring-1 ring-slate-200 rounded-2xl p-6 md:p-8 space-y-6">
-              <div className="flex items-center gap-3 text-slate-800 border-b border-slate-100 pb-4">
-                <div className="p-2 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl shadow-sm border border-purple-100/50">
-                  <Clock className="h-5 w-5 text-purple-600" />
+            <div className="bg-white border-0 shadow-sm ring-1 ring-slate-200 rounded-2xl p-6 md:p-8 space-y-6 dark:bg-slate-900 dark:ring-slate-700">
+              <div className="flex items-center gap-3 text-slate-800 border-b border-slate-100 pb-4 dark:text-slate-100 dark:border-slate-700">
+                <div className="p-2 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl shadow-sm border border-purple-100/50 dark:from-purple-950/40 dark:to-pink-950/40 dark:border-purple-800/50">
+                  <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <h3 className="text-lg font-semibold tracking-tight">Date & Time</h3>
-                <div className="ml-auto flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:bg-slate-100/80 transition-colors"
+                <div className="ml-auto flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:bg-slate-100/80 transition-colors dark:bg-slate-900 dark:border-slate-700 dark:hover:bg-slate-900/80"
                   onClick={() => updateFormData('isAllDay', !formData.isAllDay)}>
                   <Checkbox
                     id="allDay"
@@ -904,7 +904,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                     onCheckedChange={(checked) => updateFormData('isAllDay', checked)}
                     className="data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
                   />
-                  <Label htmlFor="allDay" className="text-sm font-medium cursor-pointer text-slate-700">
+                  <Label htmlFor="allDay" className="text-sm font-medium cursor-pointer text-slate-700 dark:text-slate-200">
                     All Day Event
                   </Label>
                 </div>
@@ -913,9 +913,9 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {formData.isAllDay && !isExamMode ? (
                   <div className="lg:col-span-2 space-y-4">
-                    <Label className="text-sm font-medium text-slate-700">Select Event Dates <span className="text-red-500">*</span></Label>
-                    <div id="dates" tabIndex={-1} aria-invalid={Boolean(fieldError('dates'))} aria-describedby={fieldError('dates') ? 'dates-error' : undefined} className="bg-gradient-to-br from-slate-50 to-white ring-1 ring-slate-200/60 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row gap-8 aria-invalid:ring-red-600 aria-invalid:bg-red-50/70">
-                      <div className="flex-1 bg-white p-4 rounded-xl shadow-sm ring-1 ring-slate-200/60 self-start max-w-sm mx-auto w-full flex items-center justify-center min-h-[360px]">
+                    <Label className="text-sm font-medium text-slate-700 dark:text-slate-200">Select Event Dates <span className="text-red-500 dark:text-red-400">*</span></Label>
+                    <div id="dates" tabIndex={-1} aria-invalid={Boolean(fieldError('dates'))} aria-describedby={fieldError('dates') ? 'dates-error' : undefined} className="bg-gradient-to-br from-slate-50 to-white ring-1 ring-slate-200/60 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row gap-8 aria-invalid:ring-red-600 aria-invalid:bg-red-50/70 dark:from-slate-900 dark:to-slate-900 dark:ring-slate-700/60">
+                      <div className="flex-1 bg-white p-4 rounded-xl shadow-sm ring-1 ring-slate-200/60 self-start max-w-sm mx-auto w-full flex items-center justify-center min-h-[360px] dark:bg-slate-900 dark:ring-slate-700/60">
                         <CalendarComponent
                           mode="multiple"
                           selected={selectedDates}
@@ -924,26 +924,26 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                         />
                       </div>
                       <div className="flex-1 space-y-3">
-                        <Label className="text-sm text-slate-500 font-medium tracking-wide uppercase">
+                        <Label className="text-sm text-slate-500 font-medium tracking-wide uppercase dark:text-slate-400">
                           Selected Dates ({selectedDates.length})
                         </Label>
-                        <ScrollArea className="h-[280px] w-full rounded-md border bg-white p-4 shadow-inner">
+                        <ScrollArea className="h-[280px] w-full rounded-md border bg-white p-4 shadow-inner dark:bg-slate-900">
                           {selectedDates.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-2">
+                            <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-2 dark:text-slate-400">
                               <Calendar className="h-8 w-8 opacity-50" />
                               <p className="text-sm">No dates selected</p>
                             </div>
                           ) : (
                             <div className="flex flex-col gap-2">
                               {selectedDates.sort((a, b) => a.getTime() - b.getTime()).map((date, idx) => (
-                                <div key={idx} className="flex items-center justify-between bg-blue-50/50 hover:bg-blue-50 border border-blue-100 px-3 py-2 rounded-lg transition-colors group">
-                                  <span className="text-sm font-medium text-slate-700">
+                                <div key={idx} className="flex items-center justify-between bg-blue-50/50 hover:bg-blue-50 border border-blue-100 px-3 py-2 rounded-lg transition-colors group dark:bg-blue-950/50 dark:hover:bg-blue-950/40 dark:border-blue-800/60">
+                                  <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                                     {date.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
                                   </span>
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-100 hover:text-red-500 rounded-full"
+                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-100 hover:text-red-500 rounded-full dark:hover:bg-blue-950/40 dark:hover:text-red-400"
                                     onClick={() => setSelectedDates(selectedDates.filter(d => d.getTime() !== date.getTime()))}
                                   >
                                     <X className="h-3.5 w-3.5" />
@@ -956,7 +956,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                       </div>
                     </div>
                     {fieldError('dates') && (
-                      <p id="dates-error" role="alert" className="text-xs text-red-500 flex items-center gap-1 mt-1">
+                      <p id="dates-error" role="alert" className="text-xs text-red-500 flex items-center gap-1 mt-1 dark:text-red-400">
                         <AlertCircle className="h-3 w-3" />
                         {fieldError('dates')}
                       </p>
@@ -966,7 +966,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                   <>
                     <div className="space-y-2">
                       <Label htmlFor="startDate" className={`text-sm font-medium ${fieldError('startDate') ? 'text-destructive' : ''}`}>
-                        Start Date <span className="text-red-500">*</span>
+                        Start Date <span className="text-red-500 dark:text-red-400">*</span>
                       </Label>
                       <DatePicker
                         date={formData.startDate ? new Date(formData.startDate) : undefined}
@@ -975,7 +975,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                         placeholder="Pick start date"
                       />
                       {fieldError('startDate') && (
-                        <p id="startDate-error" role="alert" className="text-xs text-red-500 flex items-center gap-1">
+                        <p id="startDate-error" role="alert" className="text-xs text-red-500 flex items-center gap-1 dark:text-red-400">
                           <AlertCircle className="h-3 w-3" />
                           {fieldError('startDate')}
                         </p>
@@ -984,7 +984,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
 
                     <div className="space-y-2">
                       <Label htmlFor="endDate" className={`text-sm font-medium ${fieldError('endDate') ? 'text-destructive' : ''}`}>
-                        End Date <span className="text-red-500">*</span>
+                        End Date <span className="text-red-500 dark:text-red-400">*</span>
                       </Label>
                       <DatePicker
                         date={formData.endDate ? new Date(formData.endDate) : undefined}
@@ -993,7 +993,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                         placeholder="Pick end date"
                       />
                       {fieldError('endDate') && (
-                        <p id="endDate-error" role="alert" className="text-xs text-red-500 flex items-center gap-1">
+                        <p id="endDate-error" role="alert" className="text-xs text-red-500 flex items-center gap-1 dark:text-red-400">
                           <AlertCircle className="h-3 w-3" />
                           {fieldError('endDate')}
                         </p>
@@ -1006,7 +1006,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                   <>
                     <div className="space-y-2">
                       <Label htmlFor="startTime" className={`text-sm font-medium ${fieldError('startTime') ? 'text-destructive' : ''}`}>
-                        Start Time <span className="text-red-500">*</span>
+                        Start Time <span className="text-red-500 dark:text-red-400">*</span>
                       </Label>
                       <Input
                         id="startTime"
@@ -1014,10 +1014,10 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                         value={formData.startTime || ''}
                         onChange={(e) => updateFormData('startTime', e.target.value)}
                         {...formValidation.getFieldProps('startTime')}
-                        className={`border-slate-300 focus:border-blue-500 ${fieldError('startTime') ? 'border-red-500 focus:border-red-500' : ''}`}
+                        className={`border-slate-300 focus:border-blue-500  dark:border-slate-700${fieldError('startTime') ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
                       {fieldError('startTime') && (
-                        <p id="startTime-error" role="alert" className="text-xs text-red-500 flex items-center gap-1">
+                        <p id="startTime-error" role="alert" className="text-xs text-red-500 flex items-center gap-1 dark:text-red-400">
                           <AlertCircle className="h-3 w-3" />
                           {fieldError('startTime')}
                         </p>
@@ -1026,7 +1026,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
 
                     <div className="space-y-2">
                       <Label htmlFor="endTime" className={`text-sm font-medium ${fieldError('endTime') ? 'text-destructive' : ''}`}>
-                        End Time <span className="text-red-500">*</span>
+                        End Time <span className="text-red-500 dark:text-red-400">*</span>
                       </Label>
                       <Input
                         id="endTime"
@@ -1034,10 +1034,10 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                         value={formData.endTime || ''}
                         onChange={(e) => updateFormData('endTime', e.target.value)}
                         {...formValidation.getFieldProps('endTime')}
-                        className={`border-slate-300 focus:border-blue-500 ${fieldError('endTime') ? 'border-red-500 focus:border-red-500' : ''}`}
+                        className={`border-slate-300 focus:border-blue-500  dark:border-slate-700${fieldError('endTime') ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
                       {fieldError('endTime') && (
-                        <p id="endTime-error" role="alert" className="text-xs text-red-500 flex items-center gap-1">
+                        <p id="endTime-error" role="alert" className="text-xs text-red-500 flex items-center gap-1 dark:text-red-400">
                           <AlertCircle className="h-3 w-3" />
                           {fieldError('endTime')}
                         </p>
@@ -1049,33 +1049,33 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
             </div>
 
             {/* Academic Context — auto-detected from event date */}
-            <div className="bg-white border-0 shadow-sm ring-1 ring-slate-200 rounded-2xl p-6 md:p-8 space-y-4">
-              <div className="flex items-center gap-3 text-slate-800 border-b border-slate-100 pb-4">
-                <div className="p-2 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl shadow-sm border border-emerald-100/50">
-                  <BookOpen className="h-5 w-5 text-emerald-600" />
+            <div className="bg-white border-0 shadow-sm ring-1 ring-slate-200 rounded-2xl p-6 md:p-8 space-y-4 dark:bg-slate-900 dark:ring-slate-700">
+              <div className="flex items-center gap-3 text-slate-800 border-b border-slate-100 pb-4 dark:text-slate-100 dark:border-slate-700">
+                <div className="p-2 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl shadow-sm border border-emerald-100/50 dark:from-emerald-950/40 dark:to-teal-950/40 dark:border-emerald-800/50">
+                  <BookOpen className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <h3 className="text-lg font-semibold tracking-tight">Academic Context</h3>
-                <span className="ml-auto text-xs text-slate-400 italic">Auto-detected from event date</span>
+                <span className="ml-auto text-xs text-slate-400 italic dark:text-slate-400">Auto-detected from event date</span>
               </div>
 
               {detectedTermInfo ? (
-                <div className="flex flex-wrap items-center gap-3 p-4 bg-emerald-50/60 border border-emerald-100 rounded-xl">
+                <div className="flex flex-wrap items-center gap-3 p-4 bg-emerald-50/60 border border-emerald-100 rounded-xl dark:bg-emerald-950/60 dark:border-emerald-800/60">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-                    <span className="text-sm font-semibold text-emerald-800">{detectedTermInfo.yearName}</span>
+                    <span className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">{detectedTermInfo.yearName}</span>
                   </div>
-                  <span className="text-slate-400">·</span>
-                  <span className="text-sm font-medium text-emerald-700">{detectedTermInfo.termName}</span>
+                  <span className="text-slate-400 dark:text-slate-400">·</span>
+                  <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">{detectedTermInfo.termName}</span>
                 </div>
               ) : formData.startDate ? (
-                <div className="flex items-center gap-2 p-4 bg-amber-50 border border-amber-100 rounded-xl">
-                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
-                  <p className="text-sm text-amber-700">No active school term found for the selected date. The event will be saved without a term assignment.</p>
+                <div className="flex items-center gap-2 p-4 bg-amber-50 border border-amber-100 rounded-xl dark:bg-amber-950/40 dark:border-amber-800/60">
+                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 dark:text-amber-400" />
+                  <p className="text-sm text-amber-700 dark:text-amber-300">No active school term found for the selected date. The event will be saved without a term assignment.</p>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 p-4 bg-slate-50 border border-slate-100 rounded-xl">
-                  <AlertCircle className="h-4 w-4 text-slate-400 shrink-0" />
-                  <p className="text-sm text-slate-500">Select an event date above — the academic term will be detected automatically.</p>
+                <div className="flex items-center gap-2 p-4 bg-slate-50 border border-slate-100 rounded-xl dark:bg-slate-900 dark:border-slate-700">
+                  <AlertCircle className="h-4 w-4 text-slate-400 shrink-0 dark:text-slate-400" />
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Select an event date above — the academic term will be detected automatically.</p>
                 </div>
               )}
             </div>
@@ -1163,7 +1163,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                     <Users className="h-5 w-5" />
                     Target Audience *
                     {formData.requiresAttendance && (
-                      <span className="text-sm font-normal text-blue-600">(Attendance Tracking Enabled)</span>
+                      <span className="text-sm font-normal text-blue-600 dark:text-blue-400">(Attendance Tracking Enabled)</span>
                     )}
                   </h3>
 
@@ -1171,8 +1171,8 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                     {/* Attendance-specific restrictions */}
                     {formData.requiresAttendance ? (
                       <div className="space-y-4">
-                        <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                          <p className="text-sm text-blue-800 mb-2">
+                        <div className="bg-blue-50 border border-blue-200 rounded-md p-3 dark:bg-blue-950/40 dark:border-blue-800/60">
+                          <p className="text-sm text-blue-800 mb-2 dark:text-blue-200">
                             <strong>Attendance Mode:</strong> Select one audience type for attendance tracking.
                           </p>
                         </div>
@@ -1205,7 +1205,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                         {formData.targetAudience && formData.targetAudience.length > 0 && (
                           <div className="flex flex-wrap gap-2">
                             {formData.targetAudience.map((audience, index) => (
-                              <Badge key={index} variant="default" className="bg-blue-100 text-blue-800">
+                              <Badge key={index} variant="default" className="bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
                                 {audience}
                               </Badge>
                             ))}
@@ -1242,7 +1242,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
 
                         {/* Quick audience options for non-attendance events */}
                         <div className="space-y-2">
-                          <Label className="text-sm text-gray-600">Quick Options:</Label>
+                          <Label className="text-sm text-gray-600 dark:text-slate-300">Quick Options:</Label>
                           <div className="flex flex-wrap gap-2">
                             {['All Staff', 'All Parents', 'All Pupils'].map((option) => (
                               <Button
@@ -1266,7 +1266,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                     )}
 
                     {fieldError('targetAudience') && (
-                      <p id="targetAudience-error" role="alert" className="text-sm text-red-500">{fieldError('targetAudience')}</p>
+                      <p id="targetAudience-error" role="alert" className="text-sm text-red-500 dark:text-red-400">{fieldError('targetAudience')}</p>
                     )}
                   </div>
                 </div>
@@ -1368,7 +1368,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
 
         {/* Error Display */}
         {errors.submit && (
-          <div className="px-6 py-3 bg-red-50 border-l-4 border-red-400">
+          <div className="px-6 py-3 bg-red-50 border-l-4 border-red-400 dark:bg-red-950/40">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -1376,28 +1376,28 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm text-red-700">{errors.submit}</p>
+                <p className="text-sm text-red-700 dark:text-red-300">{errors.submit}</p>
               </div>
             </div>
           </div>
         )}
 
-        <ModernDialogFooter className="flex flex-col sm:flex-row justify-between items-center p-6 border-t border-slate-200 bg-slate-50 rounded-b-xl gap-4 sm:gap-0 mt-auto">
-          <div className="flex items-center text-xs font-medium text-slate-500 bg-white px-4 py-2 rounded-full shadow-sm ring-1 ring-slate-200/50">
+        <ModernDialogFooter className="flex flex-col sm:flex-row justify-between items-center p-6 border-t border-slate-200 bg-slate-50 rounded-b-xl gap-4 sm:gap-0 mt-auto dark:border-slate-700 dark:bg-slate-900">
+          <div className="flex items-center text-xs font-medium text-slate-500 bg-white px-4 py-2 rounded-full shadow-sm ring-1 ring-slate-200/50 dark:text-slate-400 dark:bg-slate-900 dark:ring-slate-700/50">
             {isExamMode ? (
               <span className="flex items-center gap-2">
-                <GraduationCap className="h-4 w-4 text-slate-400" />
+                <GraduationCap className="h-4 w-4 text-slate-400 dark:text-slate-400" />
                 Exam will be created in both calendar and exams module
               </span>
             ) : (
               <span className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-slate-400" />
+                <Calendar className="h-4 w-4 text-slate-400 dark:text-slate-400" />
                 Event will be added to the calendar
               </span>
             )}
           </div>
           <div className="flex gap-3 w-full sm:w-auto">
-            <Button variant="outline" onClick={onClose} className="border-slate-300 hover:bg-slate-100 flex-1 sm:flex-none h-11 px-6 rounded-xl font-medium">
+            <Button variant="outline" onClick={onClose} className="border-slate-300 hover:bg-slate-100 flex-1 sm:flex-none h-11 px-6 rounded-xl font-medium dark:border-slate-700 dark:hover:bg-slate-900">
               Cancel
             </Button>
             <Button

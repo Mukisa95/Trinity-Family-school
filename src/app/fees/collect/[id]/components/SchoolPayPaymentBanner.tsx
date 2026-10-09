@@ -163,7 +163,7 @@ export function SchoolPayPaymentBanner({
   return (
     <div className="space-y-3 mb-4">
       {visible.map((tx) => (
-        <div key={tx.key} className="relative rounded-2xl overflow-hidden border border-violet-300 shadow-md"
+        <div key={tx.key} className="relative rounded-2xl overflow-hidden border border-violet-300 shadow-md dark:border-violet-800/60"
           style={{ background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 40%, #f3e8ff 100%)', animation: 'slideDown 0.3s ease-out' }}>
           <div className="h-1 w-full bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500" />
           <div className="p-4">
@@ -172,14 +172,14 @@ export function SchoolPayPaymentBanner({
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-lg shadow-md flex-shrink-0">⚡</div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-violet-900 text-base">{fmt(tx.totalAmount)}</span>
-                    <span className="text-xs bg-violet-200 text-violet-800 rounded-full px-2 py-0.5 font-semibold">SchoolPay Payment Received</span>
-                    {tx.paymentMethod && <span className="text-xs bg-white/70 border border-violet-200 text-violet-700 rounded-full px-2 py-0.5">{tx.paymentMethod}</span>}
+                    <span className="font-bold text-violet-900 text-base dark:text-violet-200">{fmt(tx.totalAmount)}</span>
+                    <span className="text-xs bg-violet-200 text-violet-800 rounded-full px-2 py-0.5 font-semibold dark:bg-violet-900/40 dark:text-violet-200">SchoolPay Payment Received</span>
+                    {tx.paymentMethod && <span className="text-xs bg-white/70 border border-violet-200 text-violet-700 rounded-full px-2 py-0.5 dark:bg-slate-900/70 dark:border-violet-800/60 dark:text-violet-300">{tx.paymentMethod}</span>}
                     {tx.termGroups.length > 1 && <span className="text-xs bg-fuchsia-100 text-fuchsia-700 rounded-full px-2 py-0.5 font-medium">Split across {tx.termGroups.length} terms</span>}
                   </div>
-                  <p className="text-xs text-violet-600 mt-0.5">
+                  <p className="text-xs text-violet-600 mt-0.5 dark:text-violet-400">
                     {fmtDate(tx.paymentDate)}
-                    {tx.payerName && tx.payerName !== '—' && <span className="ml-2 text-violet-500">· Paid by {tx.payerName}</span>}
+                    {tx.payerName && tx.payerName !== '—' && <span className="ml-2 text-violet-500 dark:text-violet-400">· Paid by {tx.payerName}</span>}
                     {tx.payCode && <span className="ml-2 font-mono text-violet-400">PC: {tx.payCode}</span>}
                   </p>
                 </div>
@@ -189,7 +189,7 @@ export function SchoolPayPaymentBanner({
                 {/* Dismiss is saved to Firestore — gone for ALL users, permanently */}
                 <button
                   onClick={() => dismiss(tx.key)}
-                  className="w-6 h-6 rounded-full bg-violet-200/60 hover:bg-violet-200 flex items-center justify-center text-violet-600 text-xs transition-colors"
+                  className="w-6 h-6 rounded-full bg-violet-200/60 hover:bg-violet-200 flex items-center justify-center text-violet-600 text-xs transition-colors dark:bg-violet-900/60 dark:hover:bg-violet-900/40 dark:text-violet-400"
                   title="Dismiss for everyone (saved to server — permanent)"
                 >✕</button>
               </div>
@@ -201,17 +201,17 @@ export function SchoolPayPaymentBanner({
                   <div className="flex items-center gap-1.5 mb-1">
                     {group.isPushed
                       ? <span className="text-[10px] font-semibold text-fuchsia-600 bg-fuchsia-50 border border-fuchsia-200 rounded-full px-2 py-0.5">→ Pushed to {group.termLabel}</span>
-                      : <span className="text-[10px] font-semibold text-violet-600 bg-violet-50 border border-violet-200 rounded-full px-2 py-0.5">{group.termLabel}</span>}
-                    <span className="text-[10px] text-violet-500 font-medium">{fmt(group.subTotal)}</span>
+                      : <span className="text-[10px] font-semibold text-violet-600 bg-violet-50 border border-violet-200 rounded-full px-2 py-0.5 dark:text-violet-400 dark:bg-violet-950/40 dark:border-violet-800/60">{group.termLabel}</span>}
+                    <span className="text-[10px] text-violet-500 font-medium dark:text-violet-400">{fmt(group.subTotal)}</span>
                   </div>
                   <div className="grid gap-1 sm:grid-cols-2">
                     {group.payments.map((p: any) => (
-                      <div key={p.id} className="flex items-center justify-between bg-white/70 rounded-lg px-3 py-2 border border-violet-100 text-sm">
+                      <div key={p.id} className="flex items-center justify-between bg-white/70 rounded-lg px-3 py-2 border border-violet-100 text-sm dark:bg-slate-900/70 dark:border-violet-800/60">
                         <div className="min-w-0">
-                          <p className="font-medium text-gray-800 truncate text-xs">{getFeeName(p.feeStructureId)}</p>
-                          {p.feeStructureId === 'schoolpay-general' && <p className="text-[10px] text-amber-600">Advance / Needs matching</p>}
+                          <p className="font-medium text-gray-800 truncate text-xs dark:text-slate-100">{getFeeName(p.feeStructureId)}</p>
+                          {p.feeStructureId === 'schoolpay-general' && <p className="text-[10px] text-amber-600 dark:text-amber-400">Advance / Needs matching</p>}
                         </div>
-                        <span className="ml-2 font-bold text-violet-800 text-xs shrink-0">{fmt(p.amount)}</span>
+                        <span className="ml-2 font-bold text-violet-800 text-xs shrink-0 dark:text-violet-200">{fmt(p.amount)}</span>
                       </div>
                     ))}
                   </div>

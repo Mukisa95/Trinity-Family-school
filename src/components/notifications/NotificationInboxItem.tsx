@@ -34,10 +34,10 @@ function formatTimestamp(dateStr: string): string {
 }
 
 const PRIORITY_PILL: Record<NotificationPriority, { label: string; className: string }> = {
-  low:    { label: 'Low',    className: 'bg-gray-100 text-gray-500 border-gray-200' },
-  medium: { label: 'Med',   className: 'bg-blue-50 text-blue-600 border-blue-200' },
-  high:   { label: 'High',  className: 'bg-orange-50 text-orange-600 border-orange-200' },
-  urgent: { label: 'Urgent',className: 'bg-red-50 text-red-600 border-red-200' },
+  low:    { label: 'Low',    className: 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700' },
+  medium: { label: 'Med',   className: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/60' },
+  high:   { label: 'High',  className: 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-800/60' },
+  urgent: { label: 'Urgent',className: 'bg-red-50 text-red-600 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800/60' },
 };
 
 const TYPE_EMOJI: Record<string, string> = {
@@ -99,12 +99,12 @@ export function NotificationInboxItem({
       type="button"
       onClick={() => onClick(notification)}
       className={cn(
-        'group w-full text-left px-4 py-3.5 flex items-start gap-3 transition-all duration-150 relative border-b border-gray-100',
+        'group w-full text-left px-4 py-3.5 flex items-start gap-3 transition-all duration-150 relative border-b border-gray-100 dark:border-slate-700',
         isSelected
-          ? 'bg-blue-50 border-l-4 border-l-blue-500'
-          : 'hover:bg-gray-50 border-l-4 border-l-transparent',
-        isUnread && !isSelected && 'bg-white',
-        !isUnread && !isSelected && 'bg-gray-50/60',
+          ? 'bg-blue-50 border-l-4 border-l-blue-500 dark:bg-blue-950/40'
+          : 'hover:bg-gray-50 border-l-4 border-l-transparent dark:hover:bg-slate-900',
+        isUnread && !isSelected && 'bg-white dark:bg-slate-900',
+        !isUnread && !isSelected && 'bg-gray-50/60 dark:bg-slate-900/60',
       )}
     >
       {/* Avatar */}
@@ -113,12 +113,12 @@ export function NotificationInboxItem({
           <img
             src={senderAvatar}
             alt={senderName}
-            className="h-10 w-10 rounded-full object-cover ring-2 ring-white shadow-sm"
+            className="h-10 w-10 rounded-full object-cover ring-2 ring-white shadow-sm dark:ring-slate-700"
           />
         ) : (
           <div
             className={cn(
-              'h-10 w-10 rounded-full bg-gradient-to-br flex items-center justify-center text-white text-sm font-bold shadow-sm ring-2 ring-white',
+              'h-10 w-10 rounded-full bg-gradient-to-br flex items-center justify-center text-white text-sm font-bold shadow-sm ring-2 ring-white dark:ring-slate-700',
               gradient,
             )}
           >
@@ -127,7 +127,7 @@ export function NotificationInboxItem({
         )}
         {/* Sender indicator dot for sent items */}
         {isSender && (
-          <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center">
+          <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center dark:border-slate-700">
             <svg className="w-1.5 h-1.5 text-white" fill="currentColor" viewBox="0 0 20 20">
               <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
             </svg>
@@ -142,12 +142,12 @@ export function NotificationInboxItem({
           <span
             className={cn(
               'truncate text-sm',
-              isUnread ? 'font-bold text-gray-900' : 'font-semibold text-gray-700',
+              isUnread ? 'font-bold text-gray-900 dark:text-slate-100' : 'font-semibold text-gray-700 dark:text-slate-200',
             )}
           >
             {isSender ? 'You' : senderName}
           </span>
-          <span className="shrink-0 text-[11px] text-gray-400 font-medium">
+          <span className="shrink-0 text-[11px] text-gray-400 font-medium dark:text-slate-400">
             {formatTimestamp(notification.createdAt)}
           </span>
         </div>
@@ -156,24 +156,24 @@ export function NotificationInboxItem({
         <div
           className={cn(
             'truncate text-sm mt-0.5',
-            isUnread ? 'font-semibold text-gray-800' : 'text-gray-600',
+            isUnread ? 'font-semibold text-gray-800 dark:text-slate-100' : 'text-gray-600 dark:text-slate-300',
           )}
         >
           <span className="mr-1">{typeEmoji}</span>
           {displayTitle || notification.threadSubject || notification.title}
           {threadMessageCount > 1 && (
-            <span className="ml-1.5 text-xs font-semibold text-slate-400">({threadMessageCount})</span>
+            <span className="ml-1.5 text-xs font-semibold text-slate-400 dark:text-slate-400">({threadMessageCount})</span>
           )}
         </div>
 
         {/* Row 3: Preview + badges */}
         <div className="flex items-center gap-1.5 mt-1">
-          <p className="truncate text-xs text-gray-400 flex-1">
+          <p className="truncate text-xs text-gray-400 flex-1 dark:text-slate-400">
             {previewText}
           </p>
           <div className="flex items-center gap-1 shrink-0">
             {hasAttachments && (
-              <span className="text-gray-400">
+              <span className="text-gray-400 dark:text-slate-400">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />

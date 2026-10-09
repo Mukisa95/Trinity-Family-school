@@ -128,7 +128,7 @@ export function RequirementReceiveModal({
       <ModernDialogContent size="md" open={isOpen} onOpenChange={handleClose}>
         <ModernDialogHeader>
           <ModernDialogTitle className="flex items-center gap-2">
-            <Package className="w-5 h-5 text-green-600" />
+            <Package className="w-5 h-5 text-green-600 dark:text-green-400" />
             Receive Items in Class
           </ModernDialogTitle>
         </ModernDialogHeader>
@@ -137,18 +137,18 @@ export function RequirementReceiveModal({
           <FormErrorSummary errors={formValidation.errors} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
           {/* Summary */}
           {hasQuantities && (
-            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+            <div className="bg-gray-50 p-4 rounded-lg space-y-2 dark:bg-slate-900">
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Total Required:</span>
+                <span className="text-sm text-gray-600 dark:text-slate-300">Total Required:</span>
                 <span className="font-medium">{totalRequired} items</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Already Received:</span>
+                <span className="text-sm text-gray-600 dark:text-slate-300">Already Received:</span>
                 <span className="font-medium">{currentReceived} items</span>
               </div>
               <div className="flex justify-between border-t pt-2">
                 <span className="text-sm font-medium">Remaining:</span>
-                <span className="font-bold text-orange-600">{remainingToReceive} items</span>
+                <span className="font-bold text-orange-600 dark:text-orange-400">{remainingToReceive} items</span>
               </div>
             </div>
           )}
@@ -207,13 +207,13 @@ export function RequirementReceiveModal({
             <FieldError error={formValidation.getFieldError('requirementQuantity')} />
             
             {hasQuantities && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">
                 Maximum: {remainingToReceive} items
               </p>
             )}
 
             {hasQuantities && quantityNum > remainingToReceive && (
-              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+              <p className="text-xs text-red-600 mt-1 flex items-center gap-1 dark:text-red-400">
                 <AlertCircle className="w-3 h-3" />
                 Quantity cannot exceed remaining items ({remainingToReceive})
               </p>

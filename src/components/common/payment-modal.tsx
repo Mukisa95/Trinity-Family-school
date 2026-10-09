@@ -101,7 +101,7 @@ export function PaymentModal({
               </div>
               <div className="flex justify-between border-t pt-2">
                 <span>Outstanding Balance:</span>
-                <span className="font-semibold text-red-600">{formatCurrency(balance)}</span>
+                <span className="font-semibold text-red-600 dark:text-red-400">{formatCurrency(balance)}</span>
               </div>
             </CardContent>
           </Card>
@@ -148,7 +148,7 @@ export function PaymentModal({
 
           {/* Payment Preview */}
           {paymentAmount && (
-            <Card className="bg-blue-50 border-blue-200">
+            <Card className="bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/60">
               <CardContent className="pt-4">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
@@ -162,13 +162,13 @@ export function PaymentModal({
                   <div className="flex justify-between border-t pt-2">
                     <span>Remaining Balance:</span>
                     <span className={`font-semibold ${
-                      balance - parseFormattedMoney(paymentAmount) <= 0 ? 'text-green-600' : 'text-red-600'
+                      balance - parseFormattedMoney(paymentAmount) <= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                     }`}>
                       {formatCurrency(Math.max(0, balance - parseFormattedMoney(paymentAmount)))}
                     </span>
                   </div>
                   {balance - parseFormattedMoney(paymentAmount) <= 0 && (
-                    <div className="text-green-600 font-medium text-center">
+                    <div className="text-green-600 font-medium text-center dark:text-green-400">
                       ✓ Fully Paid
                     </div>
                   )}

@@ -205,7 +205,7 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
     <div className="space-y-6">
       {/* Filters */}
       {showFilters && (
-        <Card className="border-gray-200">
+        <Card className="border-gray-200 dark:border-slate-700">
           <CardHeader className="py-3 px-4 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-semibold">Filter Requirements</CardTitle>
             {hasActiveFilters && (
@@ -213,7 +213,7 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
                 variant="ghost" 
                 size="sm" 
                 onClick={clearFilters}
-                className="h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/40"
               >
                 <X className="w-3 h-3 mr-1" />
                 Clear Filters
@@ -224,26 +224,26 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {/* Search */}
               <div className="space-y-2 lg:col-span-2">
-                <label className="text-sm font-medium text-gray-600">Search</label>
+                <label className="text-sm font-medium text-gray-600 dark:text-slate-300">Search</label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 dark:text-slate-400" />
                   <input
                     type="text"
                     placeholder="Search name, description..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 w-full p-2 border border-gray-300 rounded-lg text-sm bg-white"
+                    className="pl-9 w-full p-2 border border-gray-300 rounded-lg text-sm bg-white dark:border-slate-700 dark:bg-slate-900"
                   />
                 </div>
               </div>
 
               {/* Gender Filter */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-600">Gender</label>
+                <label className="text-sm font-medium text-gray-600 dark:text-slate-300">Gender</label>
                 <select
                   value={filterGender}
                   onChange={(e) => setFilterGender(e.target.value as RequirementGender | '')}
-                  className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white dark:border-slate-700 dark:bg-slate-900"
                 >
                   <option value="">All Genders</option>
                   <option value="all">All Students</option>
@@ -254,11 +254,11 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
 
               {/* Class Filter */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-600">Class</label>
+                <label className="text-sm font-medium text-gray-600 dark:text-slate-300">Class</label>
                 <select
                   value={filterClass}
                   onChange={(e) => setFilterClass(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white dark:border-slate-700 dark:bg-slate-900"
                 >
                   <option value="">All Classes</option>
                   {(classes || []).map((cls: Class) => (
@@ -269,11 +269,11 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
 
               {/* Section Filter */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-600">Section</label>
+                <label className="text-sm font-medium text-gray-600 dark:text-slate-300">Section</label>
                 <select
                   value={filterSection}
                   onChange={(e) => setFilterSection(e.target.value as RequirementSection | '')}
-                  className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white dark:border-slate-700 dark:bg-slate-900"
                 >
                   <option value="">All Sections</option>
                   <option value="Day">Day Section</option>
@@ -283,11 +283,11 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
 
               {/* Status Filter */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-600">Status</label>
+                <label className="text-sm font-medium text-gray-600 dark:text-slate-300">Status</label>
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value as any)}
-                  className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white dark:border-slate-700 dark:bg-slate-900"
                 >
                   <option value="all">All Status</option>
                   <option value="active">Active Only</option>
@@ -300,10 +300,10 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
       )}
 
       {/* Requirements List */}
-      <Card className="border-gray-200 shadow-sm">
+      <Card className="border-gray-200 shadow-sm dark:border-slate-700">
         <CardHeader className="py-4 px-6">
-          <CardTitle className="text-lg font-semibold text-gray-900">Required Items</CardTitle>
-          <p className="text-sm text-gray-600">
+          <CardTitle className="text-lg font-semibold text-gray-900 dark:text-slate-100">Required Items</CardTitle>
+          <p className="text-sm text-gray-600 dark:text-slate-300">
             {filteredRequirements.length} of {totalRequirements} requirements
             {filteredRequirements.length !== totalRequirements && ' (filtered)'}
           </p>
@@ -313,7 +313,7 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
             <div className="p-6 space-y-4">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="animate-pulse">
-                  <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-lg dark:bg-slate-900">
                     <div className="space-y-2 flex-1">
                       <Skeleton className="h-4 w-3/4" />
                       <Skeleton className="h-3 w-1/2" />
@@ -327,13 +327,13 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
             </div>
           ) : filteredRequirements.length === 0 ? (
             <div className="text-center py-12 px-4">
-              <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <Package className="w-8 h-8 text-gray-400" />
+              <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 dark:bg-slate-900">
+                <Package className="w-8 h-8 text-gray-400 dark:text-slate-400" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <h3 className="text-lg font-medium text-gray-900 mb-2 dark:text-slate-100">
                 {requirements.length === 0 ? 'No requirements setup yet' : 'No matching requirements'}
               </h3>
-              <p className="text-gray-600 mb-6 max-w-sm mx-auto">
+              <p className="text-gray-600 mb-6 max-w-sm mx-auto dark:text-slate-300">
                 {requirements.length === 0 
                   ? 'Setup the standard requirements list (like brooms, books, toilet papers) that students should bring.'
                   : 'Try adjusting your filters or search query.'
@@ -350,22 +350,22 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
               )}
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-gray-100 dark:divide-slate-700">
               {filteredRequirements.map((requirement) => (
-                <div key={requirement.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
+                <div key={requirement.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors dark:hover:bg-slate-900">
                   <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-3">
-                        <div className="p-2 bg-green-50 border border-green-100 rounded-lg shrink-0">
-                          <Package className="w-5 h-5 text-green-600" />
+                        <div className="p-2 bg-green-50 border border-green-100 rounded-lg shrink-0 dark:bg-green-950/40 dark:border-green-800/60">
+                          <Package className="w-5 h-5 text-green-600 dark:text-green-400" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                            <h3 className="text-base font-semibold text-gray-900 truncate">
+                            <h3 className="text-base font-semibold text-gray-900 truncate dark:text-slate-100">
                               {requirement.name}
                             </h3>
-                            <Badge variant="outline" className="text-xs bg-slate-50">
+                            <Badge variant="outline" className="text-xs bg-slate-50 dark:bg-slate-900">
                               {requirement.group}
                             </Badge>
                             <Badge variant="outline" className="text-xs">
@@ -373,37 +373,37 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
                             </Badge>
                             <Badge 
                               variant={requirement.isActive ? 'default' : 'secondary'}
-                              className={`text-xs ${requirement.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}
+                              className={`text-xs ${requirement.isActive ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-200' : 'bg-gray-100 text-gray-600 dark:bg-slate-900 dark:text-slate-300'}`}
                             >
                               {requirement.isActive ? 'Active' : 'Inactive'}
                             </Badge>
                           </div>
                           
                           {requirement.description && (
-                            <p className="text-sm text-gray-600 mb-3">
+                            <p className="text-sm text-gray-600 mb-3 dark:text-slate-300">
                               {requirement.description}
                             </p>
                           )}
 
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm text-gray-600">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm text-gray-600 dark:text-slate-300">
                             <div>
-                              <span className="text-xs text-gray-400 block">Class</span>
-                              <span className="font-medium text-gray-900">{getClassLabel(requirement.classType, requirement.classIds)}</span>
+                              <span className="text-xs text-gray-400 block dark:text-slate-400">Class</span>
+                              <span className="font-medium text-gray-900 dark:text-slate-100">{getClassLabel(requirement.classType, requirement.classIds)}</span>
                             </div>
                             <div>
-                              <span className="text-xs text-gray-400 block">Section</span>
-                              <span className="font-medium text-gray-900">{getSectionLabel(requirement.sectionType, requirement.section)}</span>
+                              <span className="text-xs text-gray-400 block dark:text-slate-400">Section</span>
+                              <span className="font-medium text-gray-900 dark:text-slate-100">{getSectionLabel(requirement.sectionType, requirement.section)}</span>
                             </div>
                             <div>
-                              <span className="text-xs text-gray-400 block">Quantity</span>
-                              <span className="font-medium text-gray-900">
+                              <span className="text-xs text-gray-400 block dark:text-slate-400">Quantity</span>
+                              <span className="font-medium text-gray-900 dark:text-slate-100">
                                 {requirement.quantity || 1} ({requirement.frequency || 'once'})
                               </span>
                             </div>
                             {requirement.price && (
                               <div>
-                                <span className="text-xs text-gray-400 block">Or Pay Equivalent</span>
-                                <span className="font-semibold text-green-700">
+                                <span className="text-xs text-gray-400 block dark:text-slate-400">Or Pay Equivalent</span>
+                                <span className="font-semibold text-green-700 dark:text-green-300">
                                   {formatCurrency(requirement.price)}
                                 </span>
                               </div>
@@ -423,9 +423,9 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
                         title={requirement.isActive ? 'Deactivate' : 'Activate'}
                       >
                         {requirement.isActive ? (
-                          <EyeOff className="w-4 h-4 text-orange-600" />
+                          <EyeOff className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                         ) : (
-                          <Eye className="w-4 h-4 text-green-600" />
+                          <Eye className="w-4 h-4 text-green-600 dark:text-green-400" />
                         )}
                       </Button>
                       
@@ -436,7 +436,7 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
                         className="h-8 w-8 p-0"
                         title="Edit"
                       >
-                        <Edit className="w-4 h-4 text-blue-600" />
+                        <Edit className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                       </Button>
 
                       <Button
@@ -446,7 +446,7 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
                         className="h-8 w-8 p-0"
                         title="Delete"
                       >
-                        <Trash2 className="w-4 h-4 text-red-600" />
+                        <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
                       </Button>
                     </div>
                   </div>

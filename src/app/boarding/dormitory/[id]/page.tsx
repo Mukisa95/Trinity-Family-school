@@ -130,9 +130,9 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
   if (isLoading || !dormitory) {
     return (
       <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-fuchsia-50 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-fuchsia-50 pointer-events-none dark:from-indigo-950/40 dark:via-slate-900" />
         <div className="relative p-4">
-          <Button variant="secondary" onClick={() => goBack('/boarding/dormitory')} className="mb-3 inline-flex gap-2 rounded-full bg-white/70 backdrop-blur">
+          <Button variant="secondary" onClick={() => goBack('/boarding/dormitory')} className="mb-3 inline-flex gap-2 rounded-full bg-white/70 backdrop-blur dark:bg-slate-900/70">
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
           <div className="text-sm text-muted-foreground">Loading…</div>
@@ -143,17 +143,17 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
 
   return (
     <div className="relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-fuchsia-50 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-fuchsia-50 pointer-events-none dark:from-indigo-950/40 dark:via-slate-900" />
       <div className="relative p-4 sm:p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <Button variant="secondary" onClick={() => goBack('/boarding/dormitory')} className="inline-flex gap-2 rounded-full bg-white/70 backdrop-blur">
+          <Button variant="secondary" onClick={() => goBack('/boarding/dormitory')} className="inline-flex gap-2 rounded-full bg-white/70 backdrop-blur dark:bg-slate-900/70">
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
           <Dialog open={assignOpen} onOpenChange={(v) => { if (!v) setSelectedPupilIds([]); setAssignOpen(v); }}>
             <Button onClick={() => setAssignOpen(true)} className="inline-flex gap-2 rounded-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white shadow-lg hover:from-indigo-700 hover:to-fuchsia-700">
               <Plus className="h-4 w-4" /> Assign Pupils
             </Button>
-            <DialogContent className="max-w-lg border border-white/60 bg-white/70 backdrop-blur-xl">
+            <DialogContent className="max-w-lg border border-white/60 bg-white/70 backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/70">
               <DialogHeader>
                 <DialogTitle>Assign Pupils to {dormitory.name}</DialogTitle>
               </DialogHeader>
@@ -164,7 +164,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
                   onChange={setSelectedPupilIds}
                   placeholder="Select pupils to assign"
                   searchPlaceholder="Search pupils..."
-                  className="bg-white/70 backdrop-blur rounded-md"
+                  className="bg-white/70 backdrop-blur rounded-md dark:bg-slate-900/70"
                 />
               </div>
               <DialogFooter>
@@ -182,32 +182,32 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
 
         <div className="grid gap-3 lg:grid-cols-3">
           <div className="lg:col-span-1">
-            <Card className="border-white/60 bg-white/70 backdrop-blur-xl">
+            <Card className="border-white/60 bg-white/70 backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/70">
               <CardHeader className="py-3">
                 <CardTitle className="text-sm flex items-center justify-between">
                   <span className="font-semibold">{dormitory.name}</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/70 border border-white/60 text-muted-foreground">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/70 border border-white/60 text-muted-foreground dark:bg-slate-900/70 dark:border-slate-700/60">
                     {formatDormGender(dormitory.gender as any)}
                   </span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1.5 text-[12px]">
                 <div className="grid gap-1.5">
-                  <div className="rounded-md border border-white/60 bg-white/70 backdrop-blur p-1.5">
+                  <div className="rounded-md border border-white/60 bg-white/70 backdrop-blur p-1.5 dark:border-slate-700/60 dark:bg-slate-900/70">
                     <div className="text-[10px] text-muted-foreground">Classes</div>
                     <div className="font-medium leading-tight">
                       {(dormitory.classIds || []).map(cid => clsMap.get(cid)?.code || clsMap.get(cid)?.name || 'Unknown').join(', ') || '—'}
                     </div>
                   </div>
-                  <div className="rounded-md border border-white/60 bg-white/70 backdrop-blur p-1.5">
+                  <div className="rounded-md border border-white/60 bg-white/70 backdrop-blur p-1.5 dark:border-slate-700/60 dark:bg-slate-900/70">
                     <div className="text-[10px] text-muted-foreground">Bed Capacity</div>
                     <div className="font-medium leading-tight">{totalCapacity}</div>
                   </div>
-                  <div className="rounded-md border border-white/60 bg-white/70 backdrop-blur p-1.5">
+                  <div className="rounded-md border border-white/60 bg-white/70 backdrop-blur p-1.5 dark:border-slate-700/60 dark:bg-slate-900/70">
                     <div className="text-[10px] text-muted-foreground">Available Beds</div>
                     <div className="font-medium leading-tight">{availableBeds}</div>
                   </div>
-                  <div className="rounded-md border border-white/60 bg-white/70 backdrop-blur p-1.5">
+                  <div className="rounded-md border border-white/60 bg-white/70 backdrop-blur p-1.5 dark:border-slate-700/60 dark:bg-slate-900/70">
                     <div className="text-[10px] text-muted-foreground">Patron(s)</div>
                     {patronNames.length ? (
                       <div className="font-medium space-y-0.5 leading-tight">
@@ -219,7 +219,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
                       <div className="font-medium leading-tight">—</div>
                     )}
                   </div>
-                  <div className="rounded-md border border-white/60 bg-white/70 backdrop-blur p-1.5">
+                  <div className="rounded-md border border-white/60 bg-white/70 backdrop-blur p-1.5 dark:border-slate-700/60 dark:bg-slate-900/70">
                     <div className="text-[10px] text-muted-foreground">In-Charge</div>
                     {inChargeNames.length ? (
                       <div className="font-medium space-y-0.5 leading-tight">
@@ -236,39 +236,39 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
             </Card>
           </div>
           <div className="lg:col-span-2">
-            <Card className="border-indigo-100 bg-white/90 backdrop-blur-sm shadow-sm h-full">
+            <Card className="border-indigo-100 bg-white/90 backdrop-blur-sm shadow-sm h-full dark:border-indigo-800/60 dark:bg-slate-900/90">
               <CardHeader className="py-2 sm:py-3">
                 <CardTitle className="text-sm sm:text-base">Assigned Pupils ({assignedPupils.length})</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {assignedPupils.length === 0 ? (
-                  <div className="p-4 text-sm text-gray-500">No pupils assigned.</div>
+                  <div className="p-4 text-sm text-gray-500 dark:text-slate-400">No pupils assigned.</div>
                 ) : (
                   <div className="overflow-x-auto">
                     <div className="px-2 sm:px-4 py-2 sm:py-3">
                       <div className="flex items-center justify-between gap-2 sm:gap-4 mb-2 sm:mb-3">
                         <div className="flex-1 relative group">
-                          <div className="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none text-blue-500/80 group-hover:text-blue-600 transition-all duration-500 z-10">
+                          <div className="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none text-blue-500/80 group-hover:text-blue-600 transition-all duration-500 z-10 dark:text-blue-400/80 dark:group-hover:text-blue-400">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256" className="sm:w-4 sm:h-4" fill="currentColor"><path d="M192,112a80,80,0,1,1-80-80A80,80,0,0,1,192,112Z" opacity=".2"></path><path d="M229.66,218.34,179.6,168.28a88.21,88.21,0,1,0-11.32,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
                           </div>
                           <input
                             placeholder="Search pupils..."
-                            className="w-full pl-8 sm:pl-10 pr-4 sm:pr-6 py-1.5 sm:py-2 text-sm bg-white rounded-full focus:ring-2 focus:ring-blue-400/50 focus:outline-none shadow-sm hover:shadow-md transition-all duration-500 ease-in-out placeholder:text-gray-400 placeholder:text-sm border border-indigo-100"
+                            className="w-full pl-8 sm:pl-10 pr-4 sm:pr-6 py-1.5 sm:py-2 text-sm bg-white rounded-full focus:ring-2 focus:ring-blue-400/50 focus:outline-none shadow-sm hover:shadow-md transition-all duration-500 ease-in-out placeholder:text-gray-400 placeholder:text-sm border border-indigo-100 dark:bg-slate-900 dark:placeholder:text-slate-400 dark:border-indigo-800/60"
                             onChange={() => {}}
                           />
                         </div>
                       </div>
                     </div>
-                    <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden">
-                      <table className="min-w-full divide-y divide-indigo-100">
-                        <thead className="bg-gradient-to-r from-indigo-50 to-white">
+                    <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden dark:bg-slate-900 dark:border-indigo-800/60">
+                      <table className="min-w-full divide-y divide-indigo-100 dark:divide-indigo-800/60">
+                        <thead className="bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-950/40 dark:to-slate-900">
                           <tr>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider">Pupil Info</th>
-                            <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider">Class</th>
-                            <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider">Family</th>
+                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider dark:text-indigo-400">Pupil Info</th>
+                            <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider dark:text-indigo-400">Class</th>
+                            <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider dark:text-indigo-400">Family</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-indigo-100">
+                        <tbody className="bg-white divide-y divide-indigo-100 dark:bg-slate-900 dark:divide-indigo-800/60">
                           {assignedPupils
                             .sort((a, b) => (a.lastName || '').localeCompare(b.lastName || ''))
                             .map((p) => {
@@ -276,21 +276,21 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
                               const guardiansCount = Array.isArray(p.guardians) ? p.guardians.length : 0;
                               const siblingsCount = (p.familyId ? (pupils as Pupil[]).filter(px => px.familyId === p.familyId && px.id !== p.id).length : 0);
                               return (
-                                <tr key={p.id} className="hover:bg-indigo-50 transition-colors">
+                                <tr key={p.id} className="hover:bg-indigo-50 transition-colors dark:hover:bg-indigo-950/40">
                                   <td className="px-2 sm:px-4 py-2 sm:py-3">
                                     <div className="flex items-center space-x-2 sm:space-x-3">
                                       <div className="relative flex-shrink-0">
-                                        <a className="block h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-indigo-100 overflow-hidden ring-2 ring-indigo-100 hover:ring-indigo-300 transition-all flex-shrink-0" href={`/pupil-detail?id=${p.id}`}>
-                                          <div className="h-full w-full flex items-center justify-center text-indigo-500 text-xs sm:text-sm font-medium">
+                                        <a className="block h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-indigo-100 overflow-hidden ring-2 ring-indigo-100 hover:ring-indigo-300 transition-all flex-shrink-0 dark:bg-indigo-950/40 dark:ring-indigo-800/60 dark:hover:ring-indigo-800/60" href={`/pupil-detail?id=${p.id}`}>
+                                          <div className="h-full w-full flex items-center justify-center text-indigo-500 text-xs sm:text-sm font-medium dark:text-indigo-400">
                                             {initials || 'PU'}
                                           </div>
                                         </a>
                                       </div>
                                       <div className="min-w-0 flex-1">
-                                        <a className="text-xs sm:text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors block truncate" href={`/pupil-detail?id=${p.id}`}>
+                                        <a className="text-xs sm:text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors block truncate dark:text-indigo-400 dark:hover:text-indigo-200" href={`/pupil-detail?id=${p.id}`}>
                                           {formatPupilDisplayName(p).toUpperCase()}
                                         </a>
-                                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
                                           <span className="truncate">{p.admissionNumber || ''}</span>
                                           <span className="hidden sm:inline">•</span>
                                           <span>{p.gender || ''}</span>
@@ -302,16 +302,16 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
                                   </td>
                                   <td className="hidden sm:table-cell px-4 py-3">
                                     <div className="text-sm">
-                                      <button className="text-indigo-900 hover:text-indigo-600 hover:underline transition-colors font-medium text-left" type="button">
+                                      <button className="text-indigo-900 hover:text-indigo-600 hover:underline transition-colors font-medium text-left dark:text-indigo-200 dark:hover:text-indigo-400" type="button">
                                         {p.classCode || p.className || ''}
                                       </button>
                                     </div>
                                   </td>
                                   <td className="hidden md:table-cell px-4 py-3">
-                                    <div className="text-left text-sm text-indigo-900">
-                                      <span className="text-xs text-gray-500">
+                                    <div className="text-left text-sm text-indigo-900 dark:text-indigo-200">
+                                      <span className="text-xs text-gray-500 dark:text-slate-400">
                                         <button
-                                          className="hover:underline cursor-pointer text-indigo-700"
+                                          className="hover:underline cursor-pointer text-indigo-700 dark:text-indigo-300"
                                           onClick={(e) => {
                                             e.preventDefault();
                                             setSelectedPupilGuardians({
@@ -325,7 +325,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
                                         </button>
                                         {' • '}
                                         <button
-                                          className="hover:underline cursor-pointer text-indigo-700"
+                                          className="hover:underline cursor-pointer text-indigo-700 dark:text-indigo-300"
                                           onClick={(e) => {
                                             e.preventDefault();
                                             const siblings = getSiblings(p);
@@ -365,11 +365,11 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
                 selectedPupilGuardians.guardians.map((g, idx) => (
                   <div key={idx} className="text-sm">
                     <div className="font-medium">{formatPupilDisplayName(g)}</div>
-                    <div className="text-xs text-gray-500">{g.phone}</div>
+                    <div className="text-xs text-gray-500 dark:text-slate-400">{g.phone}</div>
                   </div>
                 ))
               ) : (
-                <div className="text-sm text-gray-500">No guardians found.</div>
+                <div className="text-sm text-gray-500 dark:text-slate-400">No guardians found.</div>
               )}
             </div>
             <ModernDialogFooter>
@@ -389,14 +389,14 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
                 selectedPupilSiblings.siblings.map((s, idx) => (
                   <a key={idx} href={`/pupil-detail?id=${s.id}`} className="block text-sm hover:underline">
                     {formatPupilDisplayName(s)}
-                    <span className="text-xs text-gray-500"> • {s.classCode || s.className || ''}</span>
+                    <span className="text-xs text-gray-500 dark:text-slate-400"> • {s.classCode || s.className || ''}</span>
                     {s.section ? (
-                      <span className="text-xs text-gray-500"> • {s.section}{s.section === 'Boarding' ? ` — ${dormitoryByPupilId.get(s.id) || 'Dormitory N/A'}` : ''}</span>
+                      <span className="text-xs text-gray-500 dark:text-slate-400"> • {s.section}{s.section === 'Boarding' ? ` — ${dormitoryByPupilId.get(s.id) || 'Dormitory N/A'}` : ''}</span>
                     ) : null}
                   </a>
                 ))
               ) : (
-                <div className="text-sm text-gray-500">No siblings found for this pupil.</div>
+                <div className="text-sm text-gray-500 dark:text-slate-400">No siblings found for this pupil.</div>
               )}
             </div>
             <ModernDialogFooter>

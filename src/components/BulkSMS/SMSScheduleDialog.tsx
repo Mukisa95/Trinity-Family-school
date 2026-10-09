@@ -267,7 +267,7 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
       <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-blue-600" />
+            <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             Schedule SMS
             <Badge variant="outline" className="ml-auto text-xs">
               Step {step} of 3
@@ -278,7 +278,7 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
         {/* ── Step 1: Pick type ────────────────────────────────────────── */}
         {step === 1 && (
           <div className="space-y-4 py-2">
-            <p className="text-sm text-gray-600">How would you like to schedule this message?</p>
+            <p className="text-sm text-gray-600 dark:text-slate-300">How would you like to schedule this message?</p>
             <div className="grid gap-3">
               {([
                 { id: 'once', icon: Clock, label: 'Once', desc: 'Send on a single specific date & time' },
@@ -290,18 +290,18 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
                   onClick={() => setScheduleType(id)}
                   className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all ${
                     scheduleType === id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40'
+                      : 'border-gray-200 hover:border-gray-300 bg-white dark:border-slate-700 dark:hover:border-slate-700 dark:bg-slate-900'
                   }`}
                 >
-                  <div className={`p-2 rounded-full ${scheduleType === id ? 'bg-blue-100' : 'bg-gray-100'}`}>
-                    <Icon className={`h-5 w-5 ${scheduleType === id ? 'text-blue-600' : 'text-gray-500'}`} />
+                  <div className={`p-2 rounded-full ${scheduleType === id ? 'bg-blue-100 dark:bg-blue-950/40' : 'bg-gray-100 dark:bg-slate-900'}`}>
+                    <Icon className={`h-5 w-5 ${scheduleType === id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-slate-400'}`} />
                   </div>
                   <div>
                     <div className="font-semibold text-sm">{label}</div>
-                    <div className="text-xs text-gray-500">{desc}</div>
+                    <div className="text-xs text-gray-500 dark:text-slate-400">{desc}</div>
                   </div>
-                  {scheduleType === id && <CheckCircle className="ml-auto h-5 w-5 text-blue-600 flex-shrink-0" />}
+                  {scheduleType === id && <CheckCircle className="ml-auto h-5 w-5 text-blue-600 flex-shrink-0 dark:text-blue-400" />}
                 </button>
               ))}
             </div>
@@ -381,7 +381,7 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
                 </div>
 
                 {occurrenceCount > 0 && (
-                  <p className="text-xs text-blue-700 bg-blue-50 rounded px-3 py-2">
+                  <p className="text-xs text-blue-700 bg-blue-50 rounded px-3 py-2 dark:text-blue-300 dark:bg-blue-950/40">
                     This schedule will send the message <strong>{occurrenceCount} times</strong> between {weeklyStart} and {weeklyEnd}.
                   </p>
                 )}
@@ -414,7 +414,7 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
                       />
                       <button
                         onClick={() => setDateEntries(prev => prev.filter((_, j) => j !== i))}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
+                        className="text-gray-400 hover:text-red-500 transition-colors dark:text-slate-400 dark:hover:text-red-400"
                         disabled={dateEntries.length === 1}
                       >
                         <X className="h-4 w-4" />
@@ -447,48 +447,48 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
         {/* ── Step 3: Confirm ──────────────────────────────────────────── */}
         {step === 3 && (
           <div className="space-y-4 py-2">
-            <div className="bg-gray-50 rounded-xl border p-4 space-y-3">
-              <div className="text-sm font-semibold text-gray-700 mb-2">Schedule Summary</div>
+            <div className="bg-gray-50 rounded-xl border p-4 space-y-3 dark:bg-slate-900">
+              <div className="text-sm font-semibold text-gray-700 mb-2 dark:text-slate-200">Schedule Summary</div>
 
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="bg-white rounded border p-2">
-                  <div className="text-xs text-gray-500">Recipients / Send</div>
-                  <div className="font-bold text-gray-800">{recipientCount.toLocaleString()}</div>
+                <div className="bg-white rounded border p-2 dark:bg-slate-900">
+                  <div className="text-xs text-gray-500 dark:text-slate-400">Recipients / Send</div>
+                  <div className="font-bold text-gray-800 dark:text-slate-100">{recipientCount.toLocaleString()}</div>
                 </div>
-                <div className="bg-white rounded border p-2">
-                  <div className="text-xs text-gray-500">SMS per Send</div>
-                  <div className="font-bold text-blue-700">{totalSMSPerSend.toLocaleString()}</div>
+                <div className="bg-white rounded border p-2 dark:bg-slate-900">
+                  <div className="text-xs text-gray-500 dark:text-slate-400">SMS per Send</div>
+                  <div className="font-bold text-blue-700 dark:text-blue-300">{totalSMSPerSend.toLocaleString()}</div>
                 </div>
-                <div className="bg-white rounded border p-2">
-                  <div className="text-xs text-gray-500">Occurrences</div>
-                  <div className="font-bold text-purple-700">{occurrenceCount}</div>
+                <div className="bg-white rounded border p-2 dark:bg-slate-900">
+                  <div className="text-xs text-gray-500 dark:text-slate-400">Occurrences</div>
+                  <div className="font-bold text-purple-700 dark:text-purple-300">{occurrenceCount}</div>
                 </div>
-                <div className="bg-white rounded border p-2">
-                  <div className="text-xs text-gray-500">Cost / Send</div>
-                  <div className="font-bold text-orange-600">UGX {costPerSend.toLocaleString()}</div>
+                <div className="bg-white rounded border p-2 dark:bg-slate-900">
+                  <div className="text-xs text-gray-500 dark:text-slate-400">Cost / Send</div>
+                  <div className="font-bold text-orange-600 dark:text-orange-400">UGX {costPerSend.toLocaleString()}</div>
                 </div>
               </div>
 
               {/* Total Cost vs Balance */}
-              <div className={`grid grid-cols-2 gap-2 rounded-lg p-3 border ${canAfford === false ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+              <div className={`grid grid-cols-2 gap-2 rounded-lg p-3 border ${canAfford === false ? 'bg-red-50 border-red-200 dark:bg-red-950/40 dark:border-red-800/60' : 'bg-green-50 border-green-200 dark:bg-green-950/40 dark:border-green-800/60'}`}>
                 <div>
-                  <div className="text-xs text-gray-500 font-medium">Total Cost</div>
-                  <div className={`text-xl font-bold ${canAfford === false ? 'text-red-700' : 'text-blue-700'}`}>
+                  <div className="text-xs text-gray-500 font-medium dark:text-slate-400">Total Cost</div>
+                  <div className={`text-xl font-bold ${canAfford === false ? 'text-red-700 dark:text-red-300' : 'text-blue-700 dark:text-blue-300'}`}>
                     UGX {totalCost.toLocaleString()}
                   </div>
                 </div>
                 <div className="text-right border-l pl-2">
-                  <div className="text-xs text-gray-500 font-medium">Your Balance</div>
-                  <div className={`text-xl font-bold ${canAfford === false ? 'text-red-600' : 'text-green-600'}`}>
+                  <div className="text-xs text-gray-500 font-medium dark:text-slate-400">Your Balance</div>
+                  <div className={`text-xl font-bold ${canAfford === false ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                     {balanceNum !== null ? `UGX ${balanceNum.toLocaleString()}` : '---'}
                   </div>
                 </div>
               </div>
 
               {canAfford === false && (
-                <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded p-3">
-                  <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-                  <div className="text-xs text-red-700">
+                <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded p-3 dark:bg-red-950/40 dark:border-red-800/60">
+                  <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5 dark:text-red-400" />
+                  <div className="text-xs text-red-700 dark:text-red-300">
                     You need <strong>UGX {(totalCost - (balanceNum ?? 0)).toLocaleString()}</strong> more to schedule this fully. 
                     You can top up, save as draft, or cancel.
                   </div>
@@ -496,7 +496,7 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
               )}
 
               {canAfford && (
-                <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 rounded p-2">
+                <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 rounded p-2 dark:text-green-300 dark:bg-green-950/40">
                   <CheckCircle className="h-4 w-4 flex-shrink-0" />
                   Balance is sufficient. UGX {totalCost.toLocaleString()} will be reserved when you confirm.
                 </div>
@@ -509,7 +509,7 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
               </Button>
               <div className="flex gap-2">
                 {canAfford === false && (
-                  <Button variant="outline" size="sm" className="flex items-center gap-2 text-amber-700 border-amber-300"
+                  <Button variant="outline" size="sm" className="flex items-center gap-2 text-amber-700 border-amber-300 dark:text-amber-300 dark:border-amber-800/60"
                     onClick={() => submitSchedule(true)} disabled={loading}>
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     Save Draft
@@ -527,8 +527,8 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
         {/* ── Insufficient balance inline prompt (shown on confirm click) ─ */}
         {insufficientOpen && (
           <div className="border-t pt-4 space-y-3">
-            <p className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <p className="text-sm font-semibold text-gray-800 flex items-center gap-2 dark:text-slate-100">
+              <AlertTriangle className="h-4 w-4 text-amber-500 dark:text-amber-400" />
               Not enough balance. What would you like to do?
             </p>
             <div className="flex flex-col gap-2">
@@ -540,7 +540,7 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
               </Button>
               <Button
                 variant="outline"
-                className="border-amber-300 text-amber-700"
+                className="border-amber-300 text-amber-700 dark:border-amber-800/60 dark:text-amber-300"
                 onClick={() => submitSchedule(true)}
                 disabled={loading}
               >

@@ -145,7 +145,7 @@ export function ModernDatePicker({
               "hover:shadow-md hover:border-primary/50 hover:bg-gradient-to-r hover:from-background hover:to-primary/5",
               "focus:ring-2 focus:ring-primary/20 focus:border-primary",
               disabled && "opacity-50 cursor-not-allowed",
-              examMode && "border-blue-200 hover:border-blue-400",
+              examMode && "border-blue-200 hover:border-blue-400 dark:border-blue-800/60",
               className,
               triggerProps?.className,
             )}
@@ -157,7 +157,7 @@ export function ModernDatePicker({
             <div className="relative flex items-center w-full">
               <CalendarIcon className={cn(
                 "mr-2 h-3 w-3 transition-colors duration-200",
-                examMode ? "text-blue-500 group-hover:text-blue-600" : "text-primary/70 group-hover:text-primary"
+                examMode ? "text-blue-500 group-hover:text-blue-600 dark:text-blue-400 dark:group-hover:text-blue-400" : "text-primary/70 group-hover:text-primary"
               )} />
               <span className="flex-1 truncate">
                 {date ? formatDisplayDate(date) : placeholder}
@@ -172,7 +172,7 @@ export function ModernDatePicker({
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-auto p-0 z-[99999] shadow-xl border-0 bg-white/95 backdrop-blur-sm" 
+          className="w-auto p-0 z-[99999] shadow-xl border-0 bg-white/95 backdrop-blur-sm dark:bg-slate-900/95"
           align="start"
           sideOffset={4}
         >
@@ -182,19 +182,19 @@ export function ModernDatePicker({
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
             className={cn(
-              "rounded-lg border shadow-lg bg-gradient-to-br from-white to-gray-50/50",
-              examMode && "border-blue-200"
+              "rounded-lg border shadow-lg bg-gradient-to-br from-white to-gray-50/50 dark:from-slate-900 dark:to-slate-900/50",
+              examMode && "border-blue-200 dark:border-blue-800/60"
             )}
           >
             {showQuickSelects && (
               <div className={cn(
                 "border-b",
-                examMode ? "bg-gradient-to-r from-blue-50 to-transparent" : "bg-gradient-to-r from-primary/5 to-transparent"
+                examMode ? "bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-950/40" : "bg-gradient-to-r from-primary/5 to-transparent"
               )}>
                 <div className="flex items-center justify-between p-3">
                   <div className="flex items-center gap-2">
-                    <Zap className={cn("h-4 w-4", examMode ? "text-blue-500" : "text-primary")} />
-                    <span className="text-sm font-medium text-gray-700">
+                    <Zap className={cn("h-4 w-4", examMode ? "text-blue-500 dark:text-blue-400" : "text-primary")} />
+                    <span className="text-sm font-medium text-gray-700 dark:text-slate-200">
                       {examMode ? "Exam Quick Dates" : "Quick Select"}
                     </span>
                   </div>
@@ -225,7 +225,7 @@ export function ModernDatePicker({
                             className={cn(
                               "text-xs p-2 rounded-md transition-all duration-200 text-left group",
                               examMode 
-                                ? "hover:bg-blue-50 hover:text-blue-600" 
+                                ? "hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/40 dark:hover:text-blue-400"
                                 : "hover:bg-primary/10 hover:text-primary"
                             )}
                             whileHover={{ scale: 1.02 }}
@@ -265,8 +265,8 @@ export function ModernDatePicker({
             </div>
             
             {examMode && excludeWeekends && (
-              <div className="border-t bg-blue-50/50 p-2">
-                <div className="flex items-center gap-2 text-xs text-blue-600">
+              <div className="border-t bg-blue-50/50 p-2 dark:bg-blue-950/50">
+                <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
                   <AlertCircle className="h-3 w-3" />
                   <span>Weekends are disabled for exam scheduling</span>
                 </div>
@@ -281,14 +281,14 @@ export function ModernDatePicker({
                 animate={{ opacity: 1 }}
                 className={cn(
                   "border-t p-3",
-                  examMode ? "bg-gradient-to-r from-blue-50 to-transparent" : "bg-gradient-to-r from-gray-50 to-transparent"
+                  examMode ? "bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-950/40" : "bg-gradient-to-r from-gray-50 to-transparent dark:from-slate-900"
                 )}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600">Selected:</span>
+                  <span className="text-xs text-gray-600 dark:text-slate-300">Selected:</span>
                   <span className={cn(
                     "text-xs font-medium",
-                    examMode ? "text-blue-600" : "text-primary"
+                    examMode ? "text-blue-600 dark:text-blue-400" : "text-primary"
                   )}>
                     {format(date, "EEEE, MMMM do, yyyy")}
                   </span>

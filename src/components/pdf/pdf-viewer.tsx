@@ -185,7 +185,7 @@ function LegacyPDFViewer({
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent 
         side={isMobile ? "bottom" : "right"}
-        className="w-full sm:w-[90vw] md:w-[85vw] lg:w-[80vw] xl:w-[75vw] p-0 flex flex-col !overflow-hidden !max-w-none border-0 shadow-2xl [&+div>div]:!bg-gradient-to-br [&+div>div]:!from-blue-500/20 [&+div>div]:!via-purple-500/20 [&+div>div]:!to-pink-500/20 [&+div>div]:!backdrop-blur-xl [&+div>div]:!backdrop-saturate-150"
+        className="pdf-legacy-chrome w-full sm:w-[90vw] md:w-[85vw] lg:w-[80vw] xl:w-[75vw] p-0 flex flex-col !overflow-hidden !max-w-none border-0 shadow-2xl [&+div>div]:!bg-gradient-to-br [&+div>div]:!from-blue-500/20 [&+div>div]:!via-purple-500/20 [&+div>div]:!to-pink-500/20 [&+div>div]:!backdrop-blur-xl [&+div>div]:!backdrop-saturate-150"
         style={{ 
           padding: 0, 
           maxWidth: 'none',
@@ -199,7 +199,7 @@ function LegacyPDFViewer({
         }}
       >
         <SheetHeader 
-          className="px-6 py-5 flex-shrink-0 z-10 relative"
+          className="pdf-legacy-chrome px-6 py-5 flex-shrink-0 z-10 relative"
           style={{ 
             flexShrink: 0,
             background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 100%)',
@@ -218,7 +218,7 @@ function LegacyPDFViewer({
                   {title}
                 </SheetTitle>
                 {fileName && (
-                  <p className="text-xs text-gray-500 mt-0.5 truncate max-w-xs">
+                  <p className="text-xs text-gray-500 mt-0.5 truncate max-w-xs dark:text-slate-400">
                     {fileName}
                   </p>
                 )}
@@ -231,7 +231,7 @@ function LegacyPDFViewer({
                   size="sm"
                   onClick={handleOpenInNewTab}
                   disabled={!pdfUrl || isLoading}
-                  className="gap-2 border-gray-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="gap-2 border-gray-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md dark:border-slate-700 dark:hover:from-blue-950/40 dark:hover:to-purple-950/40 dark:hover:border-blue-800/60"
                   title="Open in new tab"
                 >
                   <FileText className="h-4 w-4" />
@@ -244,7 +244,7 @@ function LegacyPDFViewer({
                   size="sm"
                   onClick={handlePrint}
                   disabled={!pdfUrl || isLoading}
-                  className="gap-2 border-gray-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="gap-2 border-gray-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md dark:border-slate-700 dark:hover:from-blue-950/40 dark:hover:to-purple-950/40 dark:hover:border-blue-800/60"
                   title="Open your device print settings"
                 >
                   <Printer className="h-4 w-4" />
@@ -257,7 +257,7 @@ function LegacyPDFViewer({
                   size="sm"
                   onClick={handleDownload}
                   disabled={!pdfBlob || isLoading}
-                  className="gap-2 border-gray-200 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:border-green-300 transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="gap-2 border-gray-200 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:border-green-300 transition-all duration-200 shadow-sm hover:shadow-md dark:border-slate-700 dark:hover:from-green-950/40 dark:hover:to-emerald-950/40 dark:hover:border-green-800/60"
                 >
                   <Download className="h-4 w-4" />
                   <span className="hidden sm:inline">Download</span>
@@ -267,7 +267,7 @@ function LegacyPDFViewer({
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className="h-9 w-9 p-0 rounded-lg hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+                className="h-9 w-9 p-0 rounded-lg hover:bg-red-50 hover:text-red-600 transition-all duration-200 dark:hover:bg-red-950/40 dark:hover:text-red-400"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -276,7 +276,7 @@ function LegacyPDFViewer({
         </SheetHeader>
         
         <div 
-          className="flex-1 overflow-hidden relative" 
+          className="pdf-legacy-viewport flex-1 overflow-hidden relative"
           style={{ 
             flex: '1 1 auto',
             minHeight: 0,
@@ -288,21 +288,21 @@ function LegacyPDFViewer({
         >
           {isLoading && (
             <div 
-              className="absolute inset-0 flex items-center justify-center z-10"
+              className="pdf-legacy-chrome absolute inset-0 flex items-center justify-center z-10"
               style={{
                 background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 100%)',
                 backdropFilter: 'blur(10px)',
                 WebkitBackdropFilter: 'blur(10px)',
               }}
             >
-              <div className="flex flex-col items-center gap-4 p-8 rounded-2xl bg-white/80 shadow-xl border border-gray-200/50">
+              <div className="flex flex-col items-center gap-4 p-8 rounded-2xl bg-white/80 shadow-xl border border-gray-200/50 dark:bg-slate-900/80 dark:border-slate-700/50">
                 <div className="relative">
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full blur-xl opacity-30 animate-pulse" />
-                  <Loader2 className="h-10 w-10 animate-spin text-blue-600 relative z-10" />
+                  <Loader2 className="h-10 w-10 animate-spin text-blue-600 relative z-10 dark:text-blue-400" />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-gray-700">Loading PDF</p>
-                  <p className="text-xs text-gray-500 mt-1">Please wait...</p>
+                  <p className="text-sm font-medium text-gray-700 dark:text-slate-200">Loading PDF</p>
+                  <p className="text-xs text-gray-500 mt-1 dark:text-slate-400">Please wait...</p>
                 </div>
               </div>
             </div>
@@ -310,19 +310,19 @@ function LegacyPDFViewer({
           
           {error && (
             <div 
-              className="absolute inset-0 flex items-center justify-center z-10"
+              className="pdf-legacy-chrome absolute inset-0 flex items-center justify-center z-10"
               style={{
                 background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 100%)',
                 backdropFilter: 'blur(10px)',
                 WebkitBackdropFilter: 'blur(10px)',
               }}
             >
-              <div className="flex flex-col items-center gap-4 p-8 rounded-2xl bg-white/90 shadow-xl border border-red-200/50 max-w-md">
-                <div className="p-3 rounded-full bg-red-100">
-                  <X className="h-6 w-6 text-red-600" />
+              <div className="flex flex-col items-center gap-4 p-8 rounded-2xl bg-white/90 shadow-xl border border-red-200/50 max-w-md dark:bg-slate-900/90 dark:border-red-800/50">
+                <div className="p-3 rounded-full bg-red-100 dark:bg-red-950/40">
+                  <X className="h-6 w-6 text-red-600 dark:text-red-400" />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-red-600 mb-4">{error}</p>
+                  <p className="text-sm font-medium text-red-600 mb-4 dark:text-red-400">{error}</p>
                   <div className="flex flex-col sm:flex-row gap-2">
                     {pdfUrl && (
                       <Button 
@@ -350,7 +350,7 @@ function LegacyPDFViewer({
                       onClick={onClose} 
                       variant="outline" 
                       size="sm"
-                      className="border-red-200 hover:bg-red-50 hover:border-red-300"
+                      className="border-red-200 hover:bg-red-50 hover:border-red-300 dark:border-red-800/60 dark:hover:bg-red-950/40 dark:hover:border-red-800/60"
                     >
                       Close
                     </Button>
@@ -519,16 +519,16 @@ function LegacyPDFViewer({
           
           {!pdfUrl && !isLoading && !error && (
             <div 
-              className="absolute inset-0 flex items-center justify-center"
+              className="pdf-legacy-chrome absolute inset-0 flex items-center justify-center"
               style={{
                 background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(248, 250, 252, 0.5) 100%)',
                 backdropFilter: 'blur(10px)',
                 WebkitBackdropFilter: 'blur(10px)',
               }}
             >
-              <div className="flex flex-col items-center gap-3 p-6 rounded-xl bg-white/80 shadow-lg border border-gray-200/50">
-                <FileText className="h-12 w-12 text-gray-400" />
-                <p className="text-sm text-gray-500 font-medium">No PDF to display</p>
+              <div className="flex flex-col items-center gap-3 p-6 rounded-xl bg-white/80 shadow-lg border border-gray-200/50 dark:bg-slate-900/80 dark:border-slate-700/50">
+                <FileText className="h-12 w-12 text-gray-400 dark:text-slate-400" />
+                <p className="text-sm text-gray-500 font-medium dark:text-slate-400">No PDF to display</p>
               </div>
             </div>
           )}
