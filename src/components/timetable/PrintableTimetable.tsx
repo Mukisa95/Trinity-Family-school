@@ -197,6 +197,8 @@ export function PrintableTimetable({
     // ── Shared inline styles ──────────────────────────────────────────────────
     const bd = "1px solid #000";
     const bdBold = "2px solid #000";
+    const bdClass = "1px solid #666";
+    const bdDay = "2.5px solid #000";
     const bdStream = "0.5px solid #555";
 
     const logoUrl = schoolSettings?.generalInfo?.logo;
@@ -213,8 +215,8 @@ export function PrintableTimetable({
     const estimatedBodyHeight = RENDER_HEIGHT - 20 - 42 - headerHeight;
     const estimatedRowHeight = estimatedBodyHeight / Math.max(1, totalRows);
     const rowBorder = (dayRows: ReturnType<typeof buildTimetableClassRowsForDay>, lastRowIndex: number) => {
-        if (lastRowIndex === dayRows.length - 1) return bdBold;
-        return dayRows[lastRowIndex]?.classItem.id === dayRows[lastRowIndex + 1]?.classItem.id ? bdStream : bd;
+        if (lastRowIndex === dayRows.length - 1) return bdDay;
+        return dayRows[lastRowIndex]?.classItem.id === dayRows[lastRowIndex + 1]?.classItem.id ? bdStream : bdClass;
     };
 
     const timetableContent = (
@@ -362,7 +364,7 @@ export function PrintableTimetable({
                                                     rowSpan={dayRows.length}
                                                     style={{
                                                         borderTop: dayIdx === 0 ? bdBold : "none",
-                                                        borderBottom: bdBold,
+                                                        borderBottom: bdDay,
                                                         borderLeft: bdBold,
                                                         borderRight: bdBold,
                                                         fontWeight: 900,
