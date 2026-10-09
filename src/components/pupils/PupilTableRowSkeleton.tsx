@@ -83,7 +83,7 @@ export function PupilTableRowSkeleton({ count = 5 }: PupilTableRowSkeletonProps)
             </div>
           </td>
           {/* 5. FEES */}
-          <td className="px-2 sm:px-4 py-2 sm:py-3 text-center sm:text-left">
+          <td className="hidden px-4 py-3 sm:table-cell">
             <EnhancedSkeleton 
               variant="button" 
               width="2rem" 
@@ -93,7 +93,10 @@ export function PupilTableRowSkeleton({ count = 5 }: PupilTableRowSkeletonProps)
           </td>
           {/* 6. ACTIONS */}
           <td className="px-2 sm:px-4 py-2 sm:py-3 text-right">
-            <div className="flex justify-end">
+            <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-end">
+              <div className="sm:hidden">
+                <EnhancedSkeleton variant="button" width="2rem" height="2rem" delay={index * 0.05 + 0.45} />
+              </div>
               <EnhancedSkeleton 
                 variant="button" 
                 width="2rem" 

@@ -3201,6 +3201,31 @@ function PupilsContent() {
     });
   }, []);
 
+  const renderPupilFeesButton = (feePupil: Pupil) => (
+    <>
+      {getSiblings(feePupil).length > 0 ? (
+        <button
+          type="button"
+          onClick={() => setSelectedFamilyPupil(feePupil)}
+          className="group/fees inline-flex items-center justify-center rounded-lg border border-emerald-200/50 bg-emerald-50 p-1.5 text-emerald-700 shadow-sm transition-all duration-200 hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-800 active:scale-95 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:border-emerald-800/60 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200"
+          title="View Family / Sibling Fees Options"
+          aria-label={`View fees options for ${formatPupilDisplayName(feePupil)}`}
+        >
+          <span className="text-[11px] font-bold text-teal-600 transition-transform duration-200 group-hover/fees:scale-110 dark:text-teal-400">Shs.</span>
+        </button>
+      ) : (
+        <Link
+          href={`/fees/collect/${feePupil.id}`}
+          className="group/fees inline-flex items-center justify-center rounded-lg border border-emerald-200/50 bg-emerald-50 p-1.5 text-emerald-700 shadow-sm transition-all duration-200 hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-800 active:scale-95 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:border-emerald-800/60 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200"
+          title="Collect Fees"
+          aria-label={`Collect fees for ${formatPupilDisplayName(feePupil)}`}
+        >
+          <span className="text-[11px] font-bold transition-transform duration-200 group-hover/fees:scale-110">Shs.</span>
+        </Link>
+      )}
+    </>
+  );
+
   const renderPupilSupportingCells = (
     rowPupil: Pupil,
     options: { hideFamilyControls?: boolean } = {},
@@ -3342,87 +3367,71 @@ function PupilsContent() {
           )}
         </td>
 
-        <td className="px-2 py-2 text-center sm:px-4 sm:py-3 sm:text-left">
-          {rowSiblings.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => setSelectedFamilyPupil(rowPupil)}
-              className="group/fees inline-flex items-center justify-center rounded-lg border border-emerald-200/50 bg-emerald-50 p-1.5 text-emerald-700 shadow-sm transition-all duration-200 hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-800 active:scale-95 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:border-emerald-800/60 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200"
-              title="View Family / Sibling Fees Options"
-              aria-label={`View fees options for ${formatPupilDisplayName(rowPupil)}`}
-            >
-              <span className="text-[11px] font-bold text-teal-600 transition-transform duration-200 group-hover/fees:scale-110 dark:text-teal-400">Shs.</span>
-            </button>
-          ) : (
-            <Link
-              href={`/fees/collect/${rowPupil.id}`}
-              className="group/fees inline-flex items-center justify-center rounded-lg border border-emerald-200/50 bg-emerald-50 p-1.5 text-emerald-700 shadow-sm transition-all duration-200 hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-800 active:scale-95 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:border-emerald-800/60 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200"
-              title="Collect Fees"
-              aria-label={`Collect fees for ${formatPupilDisplayName(rowPupil)}`}
-            >
-              <span className="text-[11px] font-bold transition-transform duration-200 group-hover/fees:scale-110">Shs.</span>
-            </Link>
-          )}
+        <td className="hidden px-4 py-3 sm:table-cell">
+          {renderPupilFeesButton(rowPupil)}
         </td>
 
         <td className="px-2 py-2 text-right text-xs font-medium uppercase tracking-wider text-brand-alt-ink-500 sm:px-4 sm:py-3 dark:text-brand-alt-ink-400">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={`group inline-flex items-center justify-center rounded-lg p-1.5 transition-all duration-200 ${getPupilRowTheme(rowPupil.gender).action}`}
-                title="Actions"
-                aria-label={`Actions for ${formatPupilDisplayName(rowPupil)}`}
-              >
-                <Settings className="h-4 w-4 transition-transform duration-300 group-hover:rotate-45" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Pupil Management</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => {
-                if (rowSiblings.length > 0) setSelectedFamilyPupil(rowPupil);
-                else window.location.href = `/fees/collect/${rowPupil.id}`;
-              }}>
-                <span className="mr-2 pt-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Shs.</span>
-                Collect Fees
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleEditName(rowPupil)}>
-                <User className="mr-2 h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
-                Edit Name
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { window.location.href = `/pupils/edit?id=${rowPupil.id}`; }}>
-                <Edit className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
-                Edit Pupil Details
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleStatusChange(rowPupil)}>
-                <Shield className="mr-2 h-4 w-4 text-orange-600 dark:text-orange-400" />
-                Change Status
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleManageIdCodes(rowPupil)}>
-                <CreditCard className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
-                ID Codes
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleManagePayCode(rowPupil)}>
-                <Tag className="mr-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                Pay Code (SchoolPay)
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleRegisterSibling(rowPupil)}>
-                <UserPlus className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
-                Register New Sibling
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleLinkSiblings(rowPupil)}>
-                <UserPlus className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
-                Link Existing as Sibling
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleDeletePupil(rowPupil)}>
-                <Trash2 className="mr-2 h-4 w-4 text-red-600 dark:text-red-400" />
-                Delete Pupil
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex flex-col items-center gap-2 sm:block">
+            <div className="normal-case sm:hidden">{renderPupilFeesButton(rowPupil)}</div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className={`group inline-flex items-center justify-center rounded-lg p-1.5 transition-all duration-200 ${getPupilRowTheme(rowPupil.gender).action}`}
+                  title="Actions"
+                  aria-label={`Actions for ${formatPupilDisplayName(rowPupil)}`}
+                >
+                  <Settings className="h-4 w-4 transition-transform duration-300 group-hover:rotate-45" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Pupil Management</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => {
+                  if (rowSiblings.length > 0) setSelectedFamilyPupil(rowPupil);
+                  else window.location.href = `/fees/collect/${rowPupil.id}`;
+                }}>
+                  <span className="mr-2 pt-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Shs.</span>
+                  Collect Fees
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleEditName(rowPupil)}>
+                  <User className="mr-2 h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
+                  Edit Name
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { window.location.href = `/pupils/edit?id=${rowPupil.id}`; }}>
+                  <Edit className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
+                  Edit Pupil Details
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange(rowPupil)}>
+                  <Shield className="mr-2 h-4 w-4 text-orange-600 dark:text-orange-400" />
+                  Change Status
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleManageIdCodes(rowPupil)}>
+                  <CreditCard className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
+                  ID Codes
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleManagePayCode(rowPupil)}>
+                  <Tag className="mr-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  Pay Code (SchoolPay)
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleRegisterSibling(rowPupil)}>
+                  <UserPlus className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
+                  Register New Sibling
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleLinkSiblings(rowPupil)}>
+                  <UserPlus className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
+                  Link Existing as Sibling
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleDeletePupil(rowPupil)}>
+                  <Trash2 className="mr-2 h-4 w-4 text-red-600 dark:text-red-400" />
+                  Delete Pupil
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </td>
       </>
     );
@@ -3451,6 +3460,7 @@ function PupilsContent() {
         backLabel="Back to dashboard"
         meta={null}
         inlineActions
+        mobileTitleControlsBesideBack
         contentClassName="overflow-x-auto px-2 sm:px-4 lg:px-8"
         actionsClassName="min-w-0 shrink gap-1 lg:flex-none lg:gap-2 flex-1"
         titleControls={
@@ -3771,7 +3781,7 @@ function PupilsContent() {
                         <span>FAMILY</span>
                       </span>
                     </th>
-                    <th className="px-2 sm:px-3 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
+                    <th className="hidden px-3 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider sm:table-cell">
                       <span className="flex items-center space-x-1 rounded-lg px-2 py-1">
                         <span>FEES</span>
                       </span>
@@ -4154,99 +4164,75 @@ function PupilsContent() {
                               );
                             })()}
                           </td>
-                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-center sm:text-left">
-                            {(() => {
-                              const siblings = getSiblings(pupil);
-                              const hasSiblings = siblings.length > 0;
-                              
-                              if (hasSiblings) {
-                                return (
-                                  <button
-                                    onClick={() => setSelectedFamilyPupil(pupil)}
-                                    className="inline-flex items-center justify-center p-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-200/50 hover:border-emerald-300 transition-all duration-200 active:scale-95 group/fees shadow-sm dark:text-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200 dark:border-emerald-800/50 dark:hover:border-emerald-800/60"
-                                    title="View Family / Sibling Fees Options"
-                                    aria-label="View Family / Sibling Fees Options"
-                                  >
-                                    <span className="text-[11px] font-bold transition-transform duration-200 group-hover/fees:scale-110 text-teal-600 dark:text-teal-400">Shs.</span>
-                                  </button>
-                                );
-                              }
-
-                              return (
-                                <Link
-                                  href={`/fees/collect/${pupil.id}`}
-                                  className="inline-flex items-center justify-center p-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-200/50 hover:border-emerald-300 transition-all duration-200 active:scale-95 group/fees shadow-sm dark:text-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200 dark:border-emerald-800/50 dark:hover:border-emerald-800/60"
-                                  title="Collect Fees"
-                                  aria-label="Collect Fees"
-                                >
-                                  <span className="text-[11px] font-bold transition-transform duration-200 group-hover/fees:scale-110">Shs.</span>
-                                </Link>
-                              );
-                            })()}
+                          <td className="hidden px-4 py-3 sm:table-cell">
+                            {renderPupilFeesButton(pupil)}
                           </td>
                           <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-brand-alt-ink-500 uppercase tracking-wider dark:text-brand-alt-ink-400">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button 
-                                  className={`p-1.5 rounded-lg transition-all duration-200 inline-flex items-center justify-center group ${getPupilRowTheme(pupil.gender).action}`}
-                                  title="Actions"
-                                  aria-label="Actions"
-                                >
-                                  <Settings className="h-4 w-4 transition-transform duration-300 group-hover:rotate-45" />
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-52">
-                                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Pupil Management</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => {
-                                  const siblings = getSiblings(pupil);
-                                  if (siblings.length > 0) {
-                                    setSelectedFamilyPupil(pupil);
-                                  } else {
-                                    window.location.href = `/fees/collect/${pupil.id}`;
-                                  }
-                                }}>
-                                  <span className="mr-2 text-[11px] font-bold text-emerald-600 pt-0.5 dark:text-emerald-400">Shs.</span>
-                                  Collect Fees
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleEditName(pupil)}>
-                                  <User className="mr-2 h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
-                                  Edit Name
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => {
-                                  window.location.href = `/pupils/edit?id=${pupil.id}`;
-                                }}>
-                                  <Edit className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
-                                  Edit Pupil Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleStatusChange(pupil)}>
-                                  <Shield className="mr-2 h-4 w-4 text-orange-600 dark:text-orange-400" />
-                                  Change Status
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleManageIdCodes(pupil)}>
-                                  <CreditCard className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
-                                  ID Codes
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleManagePayCode(pupil)}>
-                                  <Tag className="mr-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                                  Pay Code (SchoolPay)
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleRegisterSibling(pupil)}>
-                                  <UserPlus className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
-                                  Register New Sibling
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleLinkSiblings(pupil)}>
-                                  <UserPlus className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
-                                  Link Existing as Sibling
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleDeletePupil(pupil)}>
-                                  <Trash2 className="mr-2 h-4 w-4 text-red-600 dark:text-red-400" />
-                                  Delete Pupil
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <div className="flex flex-col items-center gap-2 sm:block">
+                              <div className="normal-case sm:hidden">{renderPupilFeesButton(pupil)}</div>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button
+                                    className={`p-1.5 rounded-lg transition-all duration-200 inline-flex items-center justify-center group ${getPupilRowTheme(pupil.gender).action}`}
+                                    title="Actions"
+                                    aria-label="Actions"
+                                  >
+                                    <Settings className="h-4 w-4 transition-transform duration-300 group-hover:rotate-45" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-52">
+                                  <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Pupil Management</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => {
+                                    const siblings = getSiblings(pupil);
+                                    if (siblings.length > 0) {
+                                      setSelectedFamilyPupil(pupil);
+                                    } else {
+                                      window.location.href = `/fees/collect/${pupil.id}`;
+                                    }
+                                  }}>
+                                    <span className="mr-2 text-[11px] font-bold text-emerald-600 pt-0.5 dark:text-emerald-400">Shs.</span>
+                                    Collect Fees
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleEditName(pupil)}>
+                                    <User className="mr-2 h-4 w-4 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
+                                    Edit Name
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    window.location.href = `/pupils/edit?id=${pupil.id}`;
+                                  }}>
+                                    <Edit className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
+                                    Edit Pupil Details
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleStatusChange(pupil)}>
+                                    <Shield className="mr-2 h-4 w-4 text-orange-600 dark:text-orange-400" />
+                                    Change Status
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleManageIdCodes(pupil)}>
+                                    <CreditCard className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
+                                    ID Codes
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleManagePayCode(pupil)}>
+                                    <Tag className="mr-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                    Pay Code (SchoolPay)
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleRegisterSibling(pupil)}>
+                                    <UserPlus className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
+                                    Register New Sibling
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleLinkSiblings(pupil)}>
+                                    <UserPlus className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
+                                    Link Existing as Sibling
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleDeletePupil(pupil)}>
+                                    <Trash2 className="mr-2 h-4 w-4 text-red-600 dark:text-red-400" />
+                                    Delete Pupil
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           </td>
                           </motion.tr>
                           {isFamilyExpanded && familySiblings.map((sibling, siblingIndex) => {

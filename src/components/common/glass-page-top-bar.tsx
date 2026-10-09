@@ -67,6 +67,7 @@ interface GlassPageTopBarProps {
   meta?: ReactNode;
   badges?: ReactNode;
   titleControls?: ReactNode;
+  mobileTitleControlsBesideBack?: boolean;
   center?: ReactNode;
   actionsLeading?: ReactNode;
   actions?: ReactNode;
@@ -89,6 +90,7 @@ export function GlassPageTopBar({
   meta,
   badges,
   titleControls,
+  mobileTitleControlsBesideBack = false,
   center,
   actionsLeading,
   actions,
@@ -153,13 +155,18 @@ export function GlassPageTopBar({
             {backControl}
           </div>
         )}
+        {mobileTitleControlsBesideBack && titleControls && (
+          <div className="pointer-events-auto min-w-0 shrink-0">
+            {titleControls}
+          </div>
+        )}
         {actionsLeading && (
           <div className="pointer-events-auto ml-auto min-w-0 shrink-0">
             {actionsLeading}
           </div>
         )}
       </div>
-      {titleControls && (
+      {titleControls && !mobileTitleControlsBesideBack && (
         <div className="pointer-events-auto flex w-fit max-w-full shrink-0 items-center gap-1.5 rounded-full border border-brand-alt-300/65 bg-white/[0.72] p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-brand-alt-200/45 backdrop-blur-[20px] [&>select]:!border-white/45 [&>select]:!bg-transparent [&>select]:!shadow-none dark:border-brand-alt-800/65 dark:bg-slate-900/[0.72] dark:ring-brand-alt-800/45 dark:[&>select]:!border-slate-600/45 dark:shadow-[0_4px_20px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.04)]">
           {titleControls}
         </div>
@@ -190,6 +197,9 @@ export function GlassPageTopBar({
               )}
 
               {isSmallScreen && !mobileControlsFloating && backControl}
+              {isSmallScreen && !mobileControlsFloating && mobileTitleControlsBesideBack && titleControls && (
+                <div className="min-w-0 shrink-0">{titleControls}</div>
+              )}
 
               <div className="min-w-0 flex-1">
                 {eyebrow && (
@@ -242,7 +252,7 @@ export function GlassPageTopBar({
             )}
           </div>
 
-          {isSmallScreen && titleControls && hasMobileUtilityControls && (
+          {isSmallScreen && titleControls && !mobileTitleControlsBesideBack && hasMobileUtilityControls && (
             <div className="mt-2 min-h-9 min-w-0 sm:hidden">
               <AnimatePresence initial={false}>
                 {!mobileControlsFloating && (
