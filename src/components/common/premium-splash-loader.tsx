@@ -1,92 +1,44 @@
-"use client";
+import { STARTUP_SCREEN_ID, NON_LOGIN_PUBLIC_ROUTES } from '@/lib/performance/startup-display';
 
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+// Critical styles let the server-rendered loader paint before app bundles.
+const startupStyles = `
+.startup-screen{position:fixed;inset:0;z-index:100;display:flex;min-height:100dvh;align-items:center;justify-content:center;background:#111827;color:#fff;text-align:center;padding:24px;font-family:system-ui,sans-serif;transition:opacity 300ms ease-out}
+.startup-screen[hidden]{display:none}.startup-screen[data-startup-state="fading"]{opacity:0;pointer-events:none}
+.startup-screen section{width:100%;max-width:320px}.startup-brand{display:flex;align-items:center;justify-content:center;gap:16px}
+.startup-logo{width:80px;height:80px;display:flex;align-items:center;justify-content:center;border:1px solid #ffffff26;border-radius:16px;background:#ffffff1a}
+.startup-logo img{width:64px;height:64px;object-fit:contain}.startup-blocks{position:relative;width:48px;height:48px}
+.startup-block{position:absolute;width:16px;height:16px;border-radius:4px;animation:startup-block-motion 900ms ease-in-out infinite;will-change:transform,opacity}
+.startup-block-one{left:0;top:0;background:#7dd3fc}.startup-block-two{left:24px;top:0;background:#c4b5fd;animation-delay:-300ms}.startup-block-three{left:12px;top:24px;background:#6ee7b7;animation-delay:-600ms}
+.startup-screen h1{margin:20px 0 8px;font-size:18px;font-weight:600}.startup-message{margin:0;font-size:14px;color:#cbd5e1}.startup-motto{margin:12px 0 0;font-size:12px;color:#94a3b8}
+@keyframes startup-block-motion{0%,100%{transform:translate(0,0) scale(.85);opacity:.5}50%{transform:translate(4px,4px) scale(1.05);opacity:1}}
+@media(prefers-reduced-motion:reduce){.startup-block{animation:none;will-change:auto}.startup-screen{transition:none}}
+html[data-effects="reduced"] .startup-block{animation:none;will-change:auto}
+`;
 
-const STARTUP_STAGES = [
-  'Checking your secure sign-in…',
-  'Restoring your saved school workspace…',
-  'Preparing school records…',
-  'Getting your dashboard ready…',
-];
-
-/**
- * A CSS-only startup surface. The small block animation is deliberately kept
- * beside the logo rather than using a video, so it remains smooth on weak
- * devices and slow connections.
- */
-export function BrandedAuthScreen({
-  message,
-  isExiting = false,
-}: {
-  message: string;
-  isExiting?: boolean;
-}) {
-  const [stageIndex, setStageIndex] = useState(0);
-  const blockClusterRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setStageIndex((current) => (current + 1) % STARTUP_STAGES.length);
-    }, 650);
-    return () => window.clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const cluster = blockClusterRef.current;
-    if (!cluster || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    const animations = Array.from(cluster.querySelectorAll<HTMLElement>('.startup-block')).map((block, index) =>
-      block.animate(
-        [
-          { transform: 'translate(0, 0) scale(0.82)', opacity: 0.45 },
-          { transform: 'translate(8px, 8px) scale(1.16)', opacity: 1 },
-          { transform: 'translate(0, 0) scale(0.82)', opacity: 0.45 },
-        ],
-        {
-          duration: 620,
-          delay: -index * 205,
-          easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-          iterations: Infinity,
-        },
-      ),
-    );
-
-    return () => animations.forEach((animation) => animation.cancel());
-  }, []);
-
-  const activeMessage = STARTUP_STAGES[stageIndex] ?? message;
-
-  return (
-    <main
-      aria-busy="true"
-      aria-live="polite"
-      className={`fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center bg-gray-900 px-6 text-center text-white transition-opacity duration-300 ease-out motion-reduce:transition-none ${isExiting ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
-    >
-      <section className="flex w-full max-w-sm flex-col items-center">
-        <div className="flex items-center justify-center gap-4" aria-hidden="true">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/15 bg-white/10 p-3 shadow-[0_12px_32px_rgba(0,0,0,0.25)] dark:border-slate-700/15 dark:bg-slate-900/10">
-            <Image
-              src="/logo.png"
-              alt=""
-              width={64}
-              height={64}
-              priority
-              className="h-full w-full object-contain"
-            />
-          </div>
-          <div ref={blockClusterRef} className="relative h-12 w-12" aria-hidden="true">
-            <span className="startup-block startup-block-one absolute left-0 top-0 h-4 w-4 rounded bg-sky-300 shadow-[0_0_16px_rgba(125,211,252,0.65)]" />
-            <span className="startup-block startup-block-two absolute left-6 top-0 h-4 w-4 rounded bg-brand-alt-surface-300 shadow-[0_0_16px_rgb(var(--brand-alt-300)/0.6)]" />
-            <span className="startup-block startup-block-three absolute left-3 top-6 h-4 w-4 rounded bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.55)]" />
-          </div>
+/** Static surface: no hydration-dependent animation, timers or image optimizer. */
+export function BrandedAuthScreen({ message, isExiting = false, id }: { message: string; isExiting?: boolean; id?: string }) {
+  return <>
+    <style>{startupStyles}</style>
+    <main id={id} aria-busy="true" role="status" className="startup-screen" data-startup-state={isExiting ? 'fading' : 'visible'}>
+      <section>
+        <div className="startup-brand" aria-hidden="true">
+          <div className="startup-logo"><img src="/trinity-logo-192.png" alt="" width={64} height={64} /></div>
+          <div className="startup-blocks"><span className="startup-block startup-block-one" /><span className="startup-block startup-block-two" /><span className="startup-block startup-block-three" /></div>
         </div>
-        <div className="mt-5" aria-live="polite" aria-atomic="true">
-          <h1 className="text-lg font-semibold tracking-wide">Trinity Family School</h1>
-          <p className="mt-2 min-h-5 text-sm text-slate-300">{activeMessage}</p>
-        </div>
-        <p className="mt-3 text-xs text-slate-400 dark:text-slate-400">Strive to Excel</p>
+        <h1>Trinity Family School</h1>
+        <p className="startup-message">{message}</p>
+        <p className="startup-motto">Strive to Excel</p>
       </section>
     </main>
-  );
+  </>;
+}
+
+/** Outside the app providers: HTML is visible before their hydration. */
+export function StartupBootstrap() {
+  const publicRouteScript = `if(${JSON.stringify(NON_LOGIN_PUBLIC_ROUTES)}.some(p=>location.pathname===p||location.pathname.startsWith(p+'/')))document.getElementById('${STARTUP_SCREEN_ID}').hidden=true;`;
+  return <>
+    <BrandedAuthScreen id={STARTUP_SCREEN_ID} message="Opening your school workspace…" />
+    <script dangerouslySetInnerHTML={{ __html: publicRouteScript }} />
+    <noscript><style>{`#${STARTUP_SCREEN_ID}{display:none}`}</style></noscript>
+  </>;
 }

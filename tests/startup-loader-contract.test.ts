@@ -1,30 +1,45 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { afterStartupPaint, isNonLoginPublicPath } from '../src/lib/performance/startup-display';
 
-const loader = readFileSync('src/components/common/premium-splash-loader.tsx', 'utf8');
-const appLayout = readFileSync('src/components/layout/app-layout.tsx', 'utf8');
-
-test('startup screen keeps the logo and lightweight moving blocks side by side', () => {
-  assert.match(loader, /flex items-center justify-center gap-4/);
-  assert.match(loader, /startup-block-one/);
-  assert.match(loader, /startup-block-two/);
-  assert.match(loader, /startup-block-three/);
-  assert.doesNotMatch(loader, /styled-components/);
-  assert.match(loader, /matchMedia\('\(prefers-reduced-motion: reduce\)'\)/);
-  assert.match(loader, /block\.animate\(/);
+test('protected startup yields a paint opportunity and cleans up either pending frame', () => {
+  const originalRequest = globalThis.requestAnimationFrame;
+  const originalCancel = globalThis.cancelAnimationFrame;
+  const frames = new Map<number, FrameRequestCallback>();
+  let sequence = 0;
+  globalThis.requestAnimationFrame = callback => { frames.set(++sequence, callback); return sequence; };
+  globalThis.cancelAnimationFrame = id => { frames.delete(id); };
+  const frame = () => { const batch = [...frames.values()]; frames.clear(); batch.forEach(callback => callback(0)); };
+  try {
+    let mounted = false;
+    afterStartupPaint(() => { mounted = true; });
+    assert.equal(mounted, false);
+    frame(); assert.equal(mounted, false, 'The first frame still precedes paint');
+    frame(); assert.equal(mounted, true);
+    let cancelled = false;
+    const cancelFirst = afterStartupPaint(() => { cancelled = true; });
+    cancelFirst(); frame(); frame(); assert.equal(cancelled, false);
+    const cancelSecond = afterStartupPaint(() => { cancelled = true; });
+    frame(); cancelSecond(); frame(); assert.equal(cancelled, false);
+  } finally { globalThis.requestAnimationFrame = originalRequest; globalThis.cancelAnimationFrame = originalCancel; }
 });
 
-test('startup messages cross-fade over the already-mounted workspace', () => {
-  assert.match(loader, /Preparing school records/);
-  assert.match(loader, /duration: 620/);
-  assert.match(loader, /transition-opacity duration-300/);
-  assert.match(loader, /isExiting \? 'pointer-events-none opacity-0' : 'opacity-100'/);
-  assert.match(appLayout, /startupPhase/);
-  assert.match(appLayout, /setMinimumFrontendDisplayElapsed\(true\), 1000/);
-  assert.match(appLayout, /must never wait for\s+\/\/ Firestore, React Query, cache hydration, or GlobalDataPreloader work/);
-  assert.doesNotMatch(appLayout, /minimumFrontendDisplayElapsed.*isLoadingSettings/);
-  assert.match(appLayout, /requestAnimationFrame\(\(\) => setStartupPhase\('fading'\)\)/);
-  assert.match(appLayout, /setTimeout\(\(\) => setStartupPhase\('complete'\), 300\)/);
-  assert.match(appLayout, /isExiting=\{startupPhase === 'fading'\}/);
+test('public documents retain SSR but login and private routes wait for the loader paint', () => {
+  for (const path of ['/download', '/about-trinity', '/admin/setup', '/test-firebase/nested']) assert.equal(isNonLoginPublicPath(path), true);
+  for (const path of [null, '/', '/login', '/parent', '/pupils', '/download-private']) assert.equal(isNonLoginPublicPath(path), false);
+});
+
+test('one initial HTML surface owns startup, independently of application data and JS animation', () => {
+  const loader = readFileSync('src/components/common/premium-splash-loader.tsx', 'utf8');
+  const root = readFileSync('src/app/layout.tsx', 'utf8');
+  const handoff = readFileSync('src/components/common/startup-handoff.tsx', 'utf8');
+  const layout = readFileSync('src/components/layout/app-layout.tsx', 'utf8');
+  assert.ok(root.indexOf('<StartupBootstrap />') < root.indexOf('<StartupPaintGate>'));
+  assert.doesNotMatch(loader, /useEffect|useState|setInterval|next\/image|\.animate\(/);
+  assert.match(loader, /@keyframes startup-block-motion/);
+  assert.match(loader, /prefers-reduced-motion:reduce/);
+  assert.match(handoff, /if \(authLoading \|\| !isAuthenticated \|\| pathname === '\/login'\) return/);
+  assert.doesNotMatch(handoff, /useQuery|useSchoolSettings|usePupils|minimumFrontendDisplayElapsed/);
+  assert.match(layout, /<StartupHandoff pathname=\{pathname\} authLoading=\{authLoading\} isAuthenticated=\{isAuthenticated\}/);
 });

@@ -1,4 +1,6 @@
 import { PerformanceProvider } from '@/components/providers/performance-provider';
+import { StartupBootstrap } from '@/components/common/premium-splash-loader';
+import { StartupPaintGate } from '@/components/common/startup-paint-gate';
 import { AndroidOfflineBoundary } from '@/components/common/android-offline-boundary';
 import { AndroidOfflineProvider } from '@/components/providers/android-offline-provider';
 import type { Metadata } from 'next';
@@ -180,6 +182,8 @@ export default function RootLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+        <StartupBootstrap />
+        <StartupPaintGate>
         <PerformanceProvider>
         <ThemeProvider>
         <QueryProvider>
@@ -204,6 +208,7 @@ export default function RootLayout({
         <Analytics />
         </ThemeProvider>
         </PerformanceProvider>
+        </StartupPaintGate>
       </body>
     </html>
   );

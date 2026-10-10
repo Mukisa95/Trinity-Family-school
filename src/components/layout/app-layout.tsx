@@ -43,6 +43,7 @@ import AuthGuard from '@/components/common/AuthGuard';
 import { SidebarUserFooter } from './sidebar-user-footer';
 import { SchoolSettingsLoader } from './school-settings-loader';
 import { BrandedAuthScreen } from '@/components/common/premium-splash-loader';
+import { StartupHandoff } from '@/components/common/startup-handoff';
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { usePrint } from '@/lib/contexts/print-context';
 import { useQueryClient } from '@tanstack/react-query';
@@ -566,42 +567,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
     sessionMessage,
   } = useAuth();
   const { data: schoolSettings, isLoading: isLoadingSettings, error: settingsError } = useSchoolSettings();
-  const isPublicRoute = Boolean(pathname && ['/login', '/download', '/about-trinity', '/admin/setup', '/test-firebase'].some((route) => pathname === route || pathname.startsWith(`${route}/`)));
-  const isNonLoginPublicRoute = isPublicRoute && pathname !== '/login';
-  const [startupPhase, setStartupPhase] = useState<'visible' | 'fading' | 'complete'>(() => (
-    isNonLoginPublicRoute ? 'complete' : 'visible'
-  ));
-  const [minimumFrontendDisplayElapsed, setMinimumFrontendDisplayElapsed] = useState(false);
-
-  // Ensure a restored session is visible long enough to show useful progress.
-  // This is deliberately a frontend-only timer: it must never wait for
-  // Firestore, React Query, cache hydration, or GlobalDataPreloader work.
-  useEffect(() => {
-    const timer = window.setTimeout(() => setMinimumFrontendDisplayElapsed(true), 1000);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  // The workspace is already mounted beneath this overlay before the fade
-  // begins. This gives a real cross-fade without an intermediate white frame.
-  useEffect(() => {
-    if (startupPhase !== 'visible') return;
-
-    if (isPublicRoute && !isAuthenticated && !authLoading) {
-      setStartupPhase('complete');
-      return;
-    }
-
-    if (authLoading || !isAuthenticated || !minimumFrontendDisplayElapsed || pathname === '/login') return;
-
-    const frame = window.requestAnimationFrame(() => setStartupPhase('fading'));
-    return () => window.cancelAnimationFrame(frame);
-  }, [authLoading, isAuthenticated, isPublicRoute, minimumFrontendDisplayElapsed, pathname, startupPhase]);
-
-  useEffect(() => {
-    if (startupPhase !== 'fading') return;
-    const timer = window.setTimeout(() => setStartupPhase('complete'), 300);
-    return () => window.clearTimeout(timer);
-  }, [startupPhase]);
 
   // The service worker focuses an existing app window and forwards the
   // notification destination here. Using the App Router keeps the current
@@ -619,6 +584,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <NavigationProvider>
+      <StartupHandoff pathname={pathname} authLoading={authLoading} isAuthenticated={isAuthenticated} />
       <MemoizedAppLayout
         pathname={pathname}
         user={user}
@@ -636,12 +602,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
       >
         {children}
       </MemoizedAppLayout>
-      {startupPhase !== 'complete' && (
-        <BrandedAuthScreen
-          message={startupPhase === 'fading' ? 'Your workspace is ready.' : 'Checking your secure sign-in…'}
-          isExiting={startupPhase === 'fading'}
-        />
-      )}
     </NavigationProvider>
   );
 }
