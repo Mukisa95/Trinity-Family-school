@@ -45,7 +45,7 @@ import { SidebarUserFooter } from './sidebar-user-footer';
 import { SchoolSettingsLoader } from './school-settings-loader';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BrandedAuthScreen } from '@/components/common/premium-splash-loader';
-import { WorkspaceSetupScreen } from '@/components/common/workspace-setup-screen';
+import { WorkspaceWelcomeScreen } from '@/components/common/workspace-welcome-screen';
 import { useFirstWorkspaceSetup } from '@/lib/hooks/use-first-workspace-setup';
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { usePrint } from '@/lib/contexts/print-context';
@@ -552,12 +552,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
     refreshUser,
     isSessionStale,
     sessionMessage,
+    autoLockEnabled, autoLockAction, deviceUnlockForAutoLock,
+    setAutoLockEnabled, setAutoLockAction, setDeviceUnlockForAutoLock,
   } = useAuth();
   const { data: schoolSettings, isLoading: isLoadingSettings, error: settingsError } = useSchoolSettings();
   const isPublicRoute = Boolean(pathname && ['/login', '/download', '/about-trinity', '/admin/setup', '/test-firebase'].some((route) => pathname === route || pathname.startsWith(`${route}/`)));
   const isNonLoginPublicRoute = isPublicRoute && pathname !== '/login';
   const setup = useFirstWorkspaceSetup({ enabled: !isPublicRoute && !authLoading && isAuthenticated,
-    userId: user?.id, role: user?.role });
+    userId: user?.id, role: user?.role, awaitPersonalization: true });
   const workspaceRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (setup.required) workspaceRef.current?.setAttribute('inert', '');
@@ -636,7 +638,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
         {children}
       </MemoizedAppLayout>
       </div>
-      {setup.required && <WorkspaceSetupScreen {...setup} />}
+      {setup.required && user && <WorkspaceWelcomeScreen key={setup.scope} setup={setup} userId={user.id}
+        privacy={{ enabled: autoLockEnabled, action: autoLockAction || 'lock-on-close', deviceUnlock: deviceUnlockForAutoLock }}
+        applyPrivacy={choices => {
+          // The setters update React state before persisting. Restricted
+          // storage must not strand a ready workspace or skip the next setter.
+          try { setAutoLockAction(choices.action); } catch { /* Session preference still applies. */ }
+          try { setDeviceUnlockForAutoLock(choices.deviceUnlock); } catch { /* Session preference still applies. */ }
+          try { setAutoLockEnabled(choices.enabled); } catch { /* Session preference still applies. */ }
+        }} />}
       {!setup.required && startupPhase !== 'complete' && (
         <BrandedAuthScreen
           message={startupPhase === 'fading' ? 'Your workspace is ready.' : 'Checking your secure sign-in…'}

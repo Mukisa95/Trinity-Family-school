@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { readWorkspaceSetup, workspaceSetupMarker, workspaceSetupScope } from '@/lib/startup/workspace-setup';
 
-export function useFirstWorkspaceSetup({ enabled, userId, role }: { enabled: boolean; userId?: string; role?: string }) {
+export function useFirstWorkspaceSetup({ enabled, userId, role, awaitPersonalization = false }: { enabled: boolean; userId?: string; role?: string; awaitPersonalization?: boolean }) {
   const client = useQueryClient();
   const scope = userId && role ? workspaceSetupScope(userId, role) : '';
   const completedBefore = useMemo(() => {
@@ -15,6 +15,8 @@ export function useFirstWorkspaceSetup({ enabled, userId, role }: { enabled: boo
   const [progress, setProgress] = useState(() => ({ scope: '', ...readWorkspaceSetup(client, '', 'Parent') }));
   const [online, setOnline] = useState(true);
   const [slow, setSlow] = useState(false);
+  const [personalizedScope, setPersonalizedScope] = useState('');
+  const personalized = !awaitPersonalization || personalizedScope === scope;
 
   useEffect(() => {
     if (!enabled || !scope || !role) {
@@ -41,7 +43,7 @@ export function useFirstWorkspaceSetup({ enabled, userId, role }: { enabled: boo
       const next = readWorkspaceSetup(client, scope, role);
       const scopedProgress = { scope, ...next };
       setProgress(previous => JSON.stringify(previous) === JSON.stringify(scopedProgress) ? previous : scopedProgress);
-      if (!next.ready) {
+      if (!next.ready || !personalized) {
         if (completionTimer) clearTimeout(completionTimer);
         completionTimer = undefined;
         return;
@@ -67,11 +69,13 @@ export function useFirstWorkspaceSetup({ enabled, userId, role }: { enabled: boo
       clearTimeout(updateTimer); clearTimeout(completionTimer); clearTimeout(fadeTimer); clearTimeout(slowTimer);
       window.removeEventListener('online', connection); window.removeEventListener('offline', connection);
     };
-  }, [client, enabled, role, scope]);
+  }, [client, enabled, personalized, role, scope]);
 
   return { ...(progress.scope === scope ? progress : readWorkspaceSetup(client, scope, role || 'Parent')), online, slow,
     required: enabled && Boolean(scope) && !completedBefore && (session.scope !== scope || session.phase !== 'complete'),
     fading: session.scope === scope && session.phase === 'fading',
+    scope,
+    finishPersonalization: () => setPersonalizedScope(scope),
     retry: () => window.location.reload(),
   };
 }

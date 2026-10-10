@@ -6,7 +6,9 @@ import { PasskeyService } from '@/lib/services/passkey.service';
 
 type Passkey = Awaited<ReturnType<typeof PasskeyService.list>>[number];
 
-export function PasskeySettings() {
+export function PasskeySettings({ setupMode = false, onBusyChange, onRegistered }: {
+  setupMode?: boolean; onBusyChange?: (busy: boolean) => void; onRegistered?: () => void;
+}) {
   const [supported, setSupported] = useState<boolean | null>(null);
   const [passkeys, setPasskeys] = useState<Passkey[]>([]);
   const [password, setPassword] = useState('');
@@ -14,6 +16,7 @@ export function PasskeySettings() {
   const [checking, setChecking] = useState(true);
   const [listError, setListError] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
 
   const refreshPasskeys = useCallback(async () => {
     setChecking(true);
@@ -42,10 +45,11 @@ export function PasskeySettings() {
     setMessage(null);
     try {
       await PasskeyService.register(password);
-      setPasskeys(await PasskeyService.list());
-      setListError(false);
       setPassword('');
+      onRegistered?.();
       setMessage('Device unlock is ready for your next sign-in.');
+      try { setPasskeys(await PasskeyService.list()); setListError(false); }
+      catch { setListError(true); }
     } catch (error) {
       if (PasskeyService.isPreviouslyRegisteredError(error)) {
         // The authenticator is the source of truth for this condition. Refresh
@@ -55,12 +59,14 @@ export function PasskeySettings() {
           setPasskeys(await PasskeyService.list());
           setListError(false);
           setPassword('');
+          onRegistered?.();
           setMessage('This device unlock was already registered and is ready to use.');
         } catch {
           setListError(true);
           setMessage('This device unlock is already registered. Check its status again when the connection is available.');
         }
       } else {
+        setPassword('');
         setMessage(error instanceof Error ? error.message : 'Could not enable device unlock.');
       }
     } finally { setBusy(false); }
@@ -81,7 +87,7 @@ export function PasskeySettings() {
   };
 
   return (
-    <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3 dark:bg-slate-900 dark:border-slate-700">
+    <section className="rounded-2xl border border-border bg-card p-4 space-y-3 text-card-foreground">
       <div className="flex items-start gap-3">
         <span className="w-9 h-9 rounded-full bg-brand-alt-surface-100 text-brand-alt-ink-700 flex items-center justify-center shrink-0 dark:bg-brand-alt-surface-950 dark:text-brand-alt-ink-300"><Fingerprint className="w-5 h-5" /></span>
         <div>
@@ -104,13 +110,13 @@ export function PasskeySettings() {
         <ul className="space-y-2">
           {passkeys.map(key => <li key={key.id} className="flex items-center justify-between gap-2 text-xs text-gray-700 rounded-lg bg-gray-50 px-3 py-2 dark:text-slate-200 dark:bg-slate-900">
             <span>{key.name}{key.createdAt ? ` · added ${new Date(key.createdAt).toLocaleDateString()}` : ''}</span>
-            <button type="button" disabled={busy} onClick={() => void remove(key.id)} aria-label="Remove device unlock" className="text-red-600 disabled:opacity-50 p-2 dark:text-red-300"><Trash2 className="w-4 h-4" /></button>
+            {!setupMode && <button type="button" disabled={busy} onClick={() => void remove(key.id)} aria-label="Remove device unlock" className="text-red-600 disabled:opacity-50 p-2 dark:text-red-300"><Trash2 className="w-4 h-4" /></button>}
           </li>)}
         </ul>
       )}
       <label className="block text-xs font-medium text-gray-600 dark:text-slate-300" htmlFor="passkey-current-password">Current password</label>
       <input id="passkey-current-password" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)}
-        className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm dark:border-slate-700" placeholder="Required to add or remove a device" />
+        disabled={busy} className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm" placeholder={setupMode ? 'Required only to enable device unlock' : 'Required to add or remove a device'} />
       <button type="button" disabled={busy || checking || supported !== true || !password} onClick={() => void register()}
         className="w-full min-h-11 rounded-lg bg-brand-alt-surface-600 text-white text-sm font-semibold disabled:opacity-50">
         {busy ? 'Working…' : 'Enable on this device'}
