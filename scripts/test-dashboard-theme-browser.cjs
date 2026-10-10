@@ -47,7 +47,7 @@ function scheduleStyles() {
   const names = new Set(['SUBJECT_HUES_W', 'getSubjectHueW', 'getWeekCellStyle', 'WeekPeriodState']);
   return `import React from 'react';\n` + source.statements.filter(n => (ts.isFunctionDeclaration(n) || ts.isTypeAliasDeclaration(n)) ? names.has(n.name?.text) : ts.isVariableStatement(n) && n.declarationList.declarations.some(d => names.has(d.name.getText(source)))).map(n => n.getText(source)).join('\n') + '\nexport {getWeekCellStyle};';
 }
-async function build({ navigation = false, pageLayers = false } = {}) {
+async function build({ navigation = false, pageLayers = false, networkDetails = false } = {}) {
   const headerSource = ts.createSourceFile('header.tsx', fs.readFileSync(path.join(root, 'src/components/layout/enhanced-header.tsx'), 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const iconNames = headerSource.statements.filter(n => ts.isImportDeclaration(n) && n.moduleSpecifier.text === '@phosphor-icons/react').flatMap(n => n.importClause.namedBindings.elements.map(e => e.name.text));
   const navigationMocks = {
@@ -61,6 +61,11 @@ async function build({ navigation = false, pageLayers = false } = {}) {
     '@/components/layout/network-strength-indicator': `export const NetworkStrengthIndicator=()=>null;`,
   };
   const fixtureMocks = { ...mocks, ...(navigation ? navigationMocks : {}) };
+  if (networkDetails) {
+    delete fixtureMocks['@/components/layout/network-strength-indicator'];
+    fixtureMocks['@/lib/contexts/auth-context'] = `import {useEffect,useState} from 'react';` + mocks['@/lib/contexts/auth-context'].replace('export const useAuth=', 'const useBaseAuth=') + `
+export const useAuth=()=>{const base=useBaseAuth();const [session,setSession]=useState({isSessionVerificationDelayed:true,sessionMessage:'The live session check is waiting for a stable connection. Your current session remains available.'});useEffect(()=>{const update=e=>setSession(e.detail);window.addEventListener('fixture-session-change',update);return()=>window.removeEventListener('fixture-session-change',update);},[]);return {...base,...session};};`;
+  }
   const navigationImports = navigation ? `import EnhancedHeader from './src/components/layout/enhanced-header';import {MobileSidebar} from './src/components/layout/mobile-sidebar';import {SidebarNav} from './src/components/layout/sidebar-nav';import {navItems} from './src/config/nav';import {SchoolSettingsLoader} from './src/components/layout/school-settings-loader';` : '';
   const header = navigation ? '<EnhancedHeader onMenuClick={()=>setMobileOpen(true)} showMenuButton={true}/>' : '<header className="p-4 border-b border-border">School workspace</header>';
   const sidebarItems = navigation ? '<SidebarNav items={navItems}/>' : '<p className="px-4">Dashboard</p><p className="px-4">Timetable</p><p className="px-4">Pupils</p>';
@@ -86,6 +91,13 @@ function Fixture(){const [mobileOpen,setMobileOpen]=React.useState(false);return
 function ExtraControls(){const [open,setOpen]=React.useState(false);return <div className="grid gap-4 p-6" data-testid="settings"><AutoLockSettings/><PasskeySettings/><div data-testid="invalid-controls" className="grid gap-2"><Input aria-label="Invalid example" aria-invalid="true" value="Example" readOnly/><Textarea aria-invalid="true" aria-label="Invalid text" value="Example" readOnly/><Button aria-invalid="true">Invalid button</Button><Select><SelectTrigger aria-invalid="true"><SelectValue placeholder="Invalid selection"/></SelectTrigger></Select></div><button onClick={()=>setOpen(true)}>Preview payment</button><PaymentModal isOpen={open} onClose={()=>setOpen(false)} onSubmit={async()=>{window.paymentSubmitted=true}} fee={{feeId:'sample',name:'Sample tuition',amount:100000,balance:80000,amountPaid:20000}}/></div>}
 function EventExamples(){const [open,setOpen]=React.useState(false);return <div className="hidden lg:block p-6" style={{marginLeft:256}} data-testid="event-examples"><EventFilters filters={{types:[],statuses:[],priorities:[],academicYearIds:[],termIds:[],classIds:[],subjectIds:[]}} onFiltersChange={()=>{}}/><button onClick={()=>setOpen(true)}>Preview event</button><EventDetailsModal event={${JSON.stringify(events[0])}} isOpen={open} onClose={()=>setOpen(false)} onEdit={()=>{}}/></div>}
 createRoot(document.getElementById('app')).render(<><Fixture/><EventExamples/><ExtraControls/></>);`;
+  if (networkDetails) {
+    contents = contents.replace('<div className="lg:hidden fixed top-2 right-2 z-50"><ThemeToggle/></div>', '');
+    const start = contents.indexOf('<main className="p-6 '), end = contents.indexOf('</main></SidebarInset>', start);
+    assert.ok(start >= 0 && end > start);
+    contents = contents.slice(0, start) + '<main className="p-6 pt-16"><h1>School workspace</h1>' + contents.slice(end);
+    contents = contents.replace('<><Fixture/><EventExamples/><ExtraControls/></>', '<Fixture/>');
+  }
   if (pageLayers) {
     contents = `import {GlassPageTopBar,GlassActionDock,GlassActionButton} from './src/components/common/glass-page-top-bar';
 import {GlassSummaryBar} from './src/components/common/glass-summary-bar';

@@ -328,7 +328,7 @@ const getTimeBasedGreeting = () => {
 const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true }: HeaderProps) => {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isSessionVerificationDelayed, sessionMessage } = useAuth();
 
   // Safely get sidebar context - handle case where SidebarProvider might not be available
   const sidebarContext = useContext(SidebarContext);
@@ -1440,7 +1440,10 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
 
               {/* Network Strength Indicator */}
               <HeaderThemeToggle />
-              <NetworkStrengthIndicator />
+              <NetworkStrengthIndicator
+                sessionVerificationDelayed={isSessionVerificationDelayed}
+                sessionMessage={sessionMessage}
+              />
 
               {/* SchoolPay Live Feed Icon + Badge */}
               {canSeeSchoolPayFeed && (

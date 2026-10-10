@@ -133,23 +133,6 @@ function SessionStaleBanner({
   );
 }
 
-function SessionVerificationBanner({ message }: { message?: string | null }) {
-  return (
-    <div
-      role="status"
-      className="mx-3 my-3 rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-950 shadow-sm sm:mx-4 dark:border-orange-800/60 dark:bg-orange-950/40 dark:text-orange-100"
-    >
-      <p className="text-sm font-semibold">Live session check delayed</p>
-      <p className="mt-1 text-sm">
-        {message || 'Firebase Authentication could not refresh the signed session yet. The current signed session remains available.'}
-      </p>
-      <p className="mt-1 text-xs text-orange-900 dark:text-orange-200">
-        This check does not read Firestore and will retry after the connection recovers.
-      </p>
-    </div>
-  );
-}
-
 const SidebarHeaderWrapper = ({ isLoadingSettings, currentSettings }: { isLoadingSettings: boolean; currentSettings: any }) => {
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
@@ -254,7 +237,6 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   logout,
   refreshUser,
   isSessionStale,
-  isSessionVerificationDelayed,
   sessionMessage,
   router
 }: any) {
@@ -497,7 +479,6 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
           {isSessionStale && (
             <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
           )}
-          {isSessionVerificationDelayed && <SessionVerificationBanner message={sessionMessage} />}
           <AuthGuard>
             <ParentLayout />
           </AuthGuard>
@@ -530,7 +511,6 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
             {isSessionStale && (
               <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
             )}
-            {isSessionVerificationDelayed && <SessionVerificationBanner message={sessionMessage} />}
             <AuthGuard>
               {isAdminOnlyRoute ? <DevControlGate>{children}</DevControlGate> : children}
             </AuthGuard>
@@ -583,7 +563,6 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
                 {isSessionStale && (
                   <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
                 )}
-                {isSessionVerificationDelayed && <SessionVerificationBanner message={sessionMessage} />}
                 <AuthGuard>
                 {isAdminOnlyRoute ? <DevControlGate>{children}</DevControlGate> : children}
               </AuthGuard>
@@ -605,7 +584,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
     isAuthenticated,
     refreshUser,
     isSessionStale,
-    isSessionVerificationDelayed,
     sessionMessage,
   } = useAuth();
   const { data: schoolSettings, isLoading: isLoadingSettings, error: settingsError } = useSchoolSettings();
@@ -673,7 +651,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
         logout={logout}
         refreshUser={refreshUser}
         isSessionStale={isSessionStale}
-        isSessionVerificationDelayed={isSessionVerificationDelayed}
         sessionMessage={sessionMessage}
         router={router}
       >
