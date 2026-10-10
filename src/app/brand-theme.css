@@ -132,6 +132,9 @@
   --brand-secondary-alt-surface-800: var(--brand-secondary-alt-800);
   --brand-secondary-alt-surface-900: var(--brand-secondary-alt-900);
   --brand-secondary-alt-surface-950: var(--brand-secondary-alt-950);
+  --navigation-surface: 235 243 254;
+  --navigation-control: 245 249 255;
+  --navigation-border: 204 223 253;
 }
 [data-app-theme="soft-indigo"] {
   --brand-50: 238 242 255;
@@ -266,6 +269,9 @@
   --brand-secondary-alt-surface-800: var(--brand-secondary-alt-800);
   --brand-secondary-alt-surface-900: var(--brand-secondary-alt-900);
   --brand-secondary-alt-surface-950: var(--brand-secondary-alt-950);
+  --navigation-surface: 241 239 254;
+  --navigation-control: 248 247 254;
+  --navigation-border: 218 214 252;
 }
 .dark, .dark [data-app-theme] {
   --brand-ink-50: var(--brand-50);
@@ -358,6 +364,9 @@
   --brand-secondary-alt-surface-800: var(--brand-secondary-alt-800);
   --brand-secondary-alt-surface-900: var(--brand-secondary-alt-900);
   --brand-secondary-alt-surface-950: var(--brand-secondary-alt-950);
+  --navigation-surface: 25 40 67;
+  --navigation-control: 30 49 79;
+  --navigation-border: 41 68 109;
 }
 .dark[data-app-theme="soft-indigo"], .dark [data-app-theme="soft-indigo"] {
   --brand-surface-50: 28 32 65;
@@ -404,6 +413,9 @@
   --brand-secondary-alt-surface-800: var(--brand-secondary-alt-800);
   --brand-secondary-alt-surface-900: var(--brand-secondary-alt-900);
   --brand-secondary-alt-surface-950: var(--brand-secondary-alt-950);
+  --navigation-surface: 30 34 57;
+  --navigation-control: 38 41 70;
+  --navigation-border: 56 58 101;
 }
 :root, [data-app-theme] {
   --lesson-green-ink: 21 128 61;

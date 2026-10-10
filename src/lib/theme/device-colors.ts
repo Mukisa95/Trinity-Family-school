@@ -73,6 +73,11 @@ export function devicePaletteCss(palette: DevicePalette): string {
     }
     const map: Record<string, string> = { background: "background", foreground: "foreground", card: "surface", "card-foreground": "foreground", popover: "muted", "popover-foreground": "foreground", primary: "primary", "primary-foreground": "onPrimary", secondary: "secondaryContainer", "secondary-foreground": "onSecondaryContainer", muted: "muted", "muted-foreground": "mutedForeground", accent: "primaryContainer", "accent-foreground": "onPrimaryContainer", border: "outline", input: "outline", ring: "primary", "sidebar-background": "surface", "sidebar-foreground": "foreground", "sidebar-accent": "primaryContainer", "sidebar-accent-foreground": "onPrimaryContainer", "sidebar-border": "outline", "sidebar-primary": "primary", "sidebar-primary-foreground": "onPrimary", "sidebar-ring": "primary" };
     for (const [variable, role] of Object.entries(map)) add(variable, hsl(colors[role]));
+    // Navigation follows the wallpaper hue, including live palette updates.
+    const navigationTone = (weight: number) => rgb(colors.surface).map((n, i) => Math.round(n * (1 - weight) + rgb(colors.primary)[i] * weight)).join(" ");
+    add("navigation-surface", navigationTone(dark ? .08 : .12));
+    add("navigation-control", navigationTone(dark ? .12 : .06));
+    add("navigation-border", navigationTone(dark ? .28 : .30));
     add("glass-surface", channels(colors.surface)); add("glass-edge", channels(colors.outline));
     add("night-background", channels(colors.background));
     add("link", channels(colors.primary)); add("link-hover", channels(colors.foreground));

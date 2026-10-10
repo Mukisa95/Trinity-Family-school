@@ -3332,10 +3332,10 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
 .dashboard-bg-wrapper [data-sidebar="sidebar"] {
   background: hsl(var(--card)) !important;
   border: 1px solid hsl(var(--border)) !important;
-  border-radius: 18px !important;
+  border-radius: 0 !important;
   overflow: hidden !important;
   padding: 0 !important;
-  margin: 8px 0 8px 8px !important;
+  margin: 0 !important;
   display: flex !important;
   flex-direction: column !important;
   gap: 0 !important;
@@ -3383,7 +3383,7 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
 .dashboard-bg-wrapper [data-sidebar="inset"] > header {
   background: hsl(var(--card)) !important;
   border: 1px solid hsl(var(--border)) !important;
-  border-radius: 0 0 18px 18px !important;
+  border-radius: 0 !important;
   margin: 0 !important;
   width: 100% !important;
   left: 0 !important;
@@ -3416,10 +3416,6 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
   /* Keep cards opaque so text is always readable */
 }
 
-/* ── 9. Sidebar collapsed icon state – keep glass sharp ── */
-.dashboard-bg-wrapper [data-sidebar="sidebar"][data-state="collapsed"] {
-  border-bottom-right-radius: 20px !important;
-}
 
 /* ── 10. Remove background from SidebarProvider group wrapper ── */
 .dashboard-bg-wrapper .group\/sidebar-wrapper {

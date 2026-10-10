@@ -135,27 +135,38 @@ html[data-theme-reveal]::view-transition-new(theme-switch-moon) { animation-dura
   .theme-toggle:active .theme-toggle-track { transform: none; }
 }
 
-/* Navigation uses opaque semantic surfaces, an outline and no decorative glow. */
+/* One tinted frame joins navigation; a fine divider marks the sidebar edge. */
 @media screen {
   .dashboard-bg-wrapper [data-sidebar="sidebar"],
   .app-mobile-sidebar {
-    background: hsl(var(--sidebar-background)) !important;
+    background: rgb(var(--navigation-surface)) !important;
     color: hsl(var(--sidebar-foreground));
-    border: 1px solid hsl(var(--sidebar-border)) !important;
+    border: 0 !important;
+    border-right: 1px solid rgb(var(--navigation-border)) !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
   .app-topbar,
   .dashboard-bg-wrapper [data-sidebar="inset"] > header.app-topbar {
-    background: hsl(var(--card)) !important;
+    background: rgb(var(--navigation-surface)) !important;
     color: hsl(var(--card-foreground));
-    border: 1px solid hsl(var(--border)) !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgb(var(--navigation-border)) !important;
+    border-radius: 0 !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
-  .app-topbar-tile { background: hsl(var(--card)); border-color: hsl(var(--border)); }
+  .app-topbar-tile, .app-topbar [data-sidebar="trigger"], .app-topbar-menu {
+    background: rgb(var(--navigation-control));
+    border-color: rgb(var(--navigation-border));
+    box-shadow: none;
+  }
+  .dashboard-bg-wrapper [data-variant="sidebar"] > .fixed { border: 0; }
+  .dashboard-bg-wrapper [data-sidebar="footer"] {
+    border-top-color: rgb(var(--navigation-border)) !important;
+  }
   .dashboard-bg-wrapper [data-sidebar="menu-button"] {
     background: transparent !important;
     border-color: hsl(var(--sidebar-border)) !important;

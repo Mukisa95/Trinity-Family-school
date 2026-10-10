@@ -781,7 +781,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   whileHover={buttonHover}
                   whileTap={buttonTap}
                   transition={springConfig}
-                  className="h-8 w-8 sm:h-[36px] sm:w-[36px] rounded-full flex items-center justify-center bg-white hover:bg-brand-surface-50/80 text-gray-600 hover:text-brand-ink-600 border border-gray-200/60 shadow-sm flex-shrink-0 transition-all dark:bg-slate-900 dark:hover:bg-brand-surface-950/80 dark:text-slate-300 dark:hover:text-brand-ink-400 dark:border-slate-700/60"
+                  className="app-topbar-menu h-8 w-8 sm:h-[36px] sm:w-[36px] rounded-full flex items-center justify-center bg-white hover:bg-brand-surface-50/80 text-gray-600 hover:text-brand-ink-600 border border-gray-200/60 shadow-sm flex-shrink-0 transition-all dark:bg-slate-900 dark:hover:bg-brand-surface-950/80 dark:text-slate-300 dark:hover:text-brand-ink-400 dark:border-slate-700/60"
                 >
                   <List size={17} weight="duotone" />
                 </motion.button>
