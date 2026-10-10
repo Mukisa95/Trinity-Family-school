@@ -21,11 +21,20 @@ async function run(){
   const verify=async(name,mobile=false)=>{
    const header=await read(page.locator('.app-topbar'));const nav=await read(page.locator(mobile?'.app-mobile-sidebar':'[data-sidebar="sidebar"]'));
    for(const s of [header,nav]){assert.equal(s.image,'none',name+': solid surface');assert.equal(s.blur,'none');assert.equal(s.filter,'none');assert.equal(s.shadow,'none');assert.ok(contrast(s.color,s.background)>=4.5,name+': readable surface text');}
-   assert.equal(header.width,'1px',name+': fine bottom outline');
-   assert.equal(nav.right,'1px',name+': single sidebar divider');
+   assert.equal(header.width,'0px',name+': no top bar seam');
+   assert.equal(nav.right,'0px',name+': no sidebar seam');
    assert.equal(header.background,nav.background,name+': shared navigation tone');
    assert.equal(nav.radius,'0px',name+': flush sidebar');
    if(!mobile){assert.equal(nav.rect.x,0);assert.equal(nav.rect.y,0);assert.equal(nav.rect.height,page.viewportSize().height);assert.equal(header.rect.y,0);assert.equal(header.rect.x,nav.rect.right,name+': bars join without a gap or overlap');}
+   const corner=await page.locator('.app-topbar').evaluate(el=>{const s=getComputedStyle(el,'::after');return {content:s.content,background:s.backgroundColor,clip:s.clipPath,pointer:s.pointerEvents};});
+   if(!mobile){
+    assert.equal(corner.background,header.background);assert.ok(corner.clip.startsWith('path('));assert.equal(corner.pointer,'none');
+    // Check the rendered curve: frame colour outside the arc, page visible inside it.
+    const pixels=await page.screenshot({clip:{x:header.rect.x,y:header.rect.y+header.rect.height,width:20,height:20}});
+    const sampled=await page.evaluate(async data=>{const img=new Image();img.src=data;await img.decode();const c=document.createElement('canvas');c.width=c.height=20;const ctx=c.getContext('2d');ctx.drawImage(img,0,0);return [ctx.getImageData(1,1,1,1).data,ctx.getImageData(18,18,1,1).data].map(p=>Array.from(p).slice(0,3));},'data:image/png;base64,'+pixels.toString('base64'));
+    assert.deepEqual(sampled[0],header.background.match(/[\d.]+/g).slice(0,3).map(Number),name+': solid carved corner');
+    assert.notDeepEqual(sampled[1],sampled[0],name+': transparent inner arc reveals page');
+   }else assert.equal(corner.content,'none',name+': no desktop corner on mobile');
    for(const selector of ['.app-topbar',mobile?'.app-mobile-sidebar':'[data-sidebar="sidebar"]']){
     const effects=await page.locator(selector).evaluate(el=>[el,...el.querySelectorAll('*')].flatMap(e=>[getComputedStyle(e),getComputedStyle(e,'::before'),getComputedStyle(e,'::after')]).filter(s=>s.display!=='none'&&s.content!=='none').filter(s=>s.backgroundImage.includes('gradient')||/shimmer|subtle-glow/.test(s.animationName)).map(s=>({image:s.backgroundImage,animation:s.animationName})));assert.deepEqual(effects,[],name+': navigation has no gradient/shimmer/glow layers');
    }
@@ -57,9 +66,10 @@ async function run(){
   assert.notEqual(reports.at(-1).nav.background,reports.at(-2).nav.background,'Open sidebar follows live neutral palette changes');
   await page.setViewportSize({width:360,height:800});await page.getByTestId('open-mobile').click();await verify('small-phone-device-dark',true);
   await page.locator('.app-mobile-sidebar button').first().click();
-  await page.emulateMedia({media:'print'});assert.equal(await page.locator('.dashboard-bg-wrapper').evaluate(e=>getComputedStyle(e,'::before').content),'none');await page.emulateMedia({media:'screen'});
+  await page.setViewportSize({width:1440,height:1000});
+  await page.emulateMedia({media:'print'});assert.equal(await page.locator('.dashboard-bg-wrapper').evaluate(e=>getComputedStyle(e,'::before').content),'none');assert.equal(await page.locator('.app-topbar').evaluate(e=>getComputedStyle(e,'::after').content),'none');await page.emulateMedia({media:'screen'});
   assert.deepEqual(errors,[]);fs.writeFileSync(path.join(output,'verification.json'),JSON.stringify({reports,printIsolation:true,errors},null,2));
-  console.log('NAVIGATION_SURFACES_OK: actual desktop/mobile bars, tinted joined outlined surfaces, visible presets/device light-dark, collapse, mobile controls, static dimming, no gradients/glow/shimmer/blur and print isolation.');
+  console.log('NAVIGATION_SURFACES_OK: seamless tinted bars, rendered carved corner, visible presets/device light-dark, collapse, mobile controls, no gradients/glow/shimmer/blur and print isolation.');
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 }
 run().catch(e=>{console.error(e);process.exitCode=1;});
