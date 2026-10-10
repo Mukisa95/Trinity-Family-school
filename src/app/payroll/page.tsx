@@ -134,38 +134,38 @@ export default function PayrollPage() {
         }
       />
 
-      <main className="mx-auto max-w-7xl space-y-4 px-4 pb-10 pt-4 sm:px-6 lg:px-8">
-        <GlassSummaryBar
-          left={
-            <>
-              <p className="text-sm font-semibold">Payroll snapshot</p>
-              <p className="text-xs text-muted-foreground">
-                Expected salary release totals for this calendar month.
-              </p>
-            </>
-          }
-          right={
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-              <span className="rounded-lg border border-brand-100 bg-brand-surface-50 px-3 py-2 text-xs text-brand-ink-800 dark:border-brand-800/60 dark:bg-brand-surface-950/40 dark:text-brand-ink-200">
-                <Users className="mr-1 inline h-3.5 w-3.5" />
-                {totals.active} active
-              </span>
-              <span className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
-                <CalendarClock className="mr-1 inline h-3.5 w-3.5" />
-                {totals.dueSoon} due soon
-              </span>
-              <span className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-300">
-                <AlertCircle className="mr-1 inline h-3.5 w-3.5" />
-                {totals.overdue} overdue
-              </span>
-              <span className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-200">
-                <CircleDollarSign className="mr-1 inline h-3.5 w-3.5" />
-                {formatCurrency(totals.expected)}
-              </span>
-            </div>
-          }
-        />
+      <GlassSummaryBar
+        left={
+          <>
+            <p className="text-sm font-semibold">Payroll snapshot</p>
+            <p className="text-xs text-muted-foreground">
+              Expected salary release totals for this calendar month.
+            </p>
+          </>
+        }
+        right={
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+            <span className="rounded-lg border border-brand-100 bg-brand-surface-50 px-3 py-2 text-xs text-brand-ink-800 dark:border-brand-800/60 dark:bg-brand-surface-950/40 dark:text-brand-ink-200">
+              <Users className="mr-1 inline h-3.5 w-3.5" />
+              {totals.active} active
+            </span>
+            <span className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200">
+              <CalendarClock className="mr-1 inline h-3.5 w-3.5" />
+              {totals.dueSoon} due soon
+            </span>
+            <span className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-300">
+              <AlertCircle className="mr-1 inline h-3.5 w-3.5" />
+              {totals.overdue} overdue
+            </span>
+            <span className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-200">
+              <CircleDollarSign className="mr-1 inline h-3.5 w-3.5" />
+              {formatCurrency(totals.expected)}
+            </span>
+          </div>
+        }
+      />
 
+      <main className="mx-auto max-w-7xl space-y-4 px-4 pb-10 pt-4 sm:px-6 lg:px-8">
         {error ? (
           <Card className="border-red-200 dark:border-red-800/60">
             <CardContent className="p-6 text-red-700 dark:text-red-300">

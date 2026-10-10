@@ -119,6 +119,7 @@
     "test:theme-coverage": "node scripts/check-theme-coverage.cjs",
     "test:dashboard-theme-browser": "node scripts/test-dashboard-theme-browser.cjs",
     "test:navigation-surfaces-browser": "node scripts/test-navigation-surfaces-browser.cjs",
+    "test:page-chrome-browser": "node scripts/test-page-chrome-browser.cjs",
     "test:mobile-dashboard-theme-browser": "node scripts/test-mobile-dashboard-theme-browser.cjs",
     "test:summary-theme-browser": "node scripts/test-summary-theme-browser.cjs",
     "test:device-surfaces-browser": "node scripts/test-device-surfaces-browser.cjs",

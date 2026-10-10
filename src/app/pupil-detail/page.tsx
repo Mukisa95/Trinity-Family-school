@@ -3816,13 +3816,13 @@ function PupilDetailContent() {
   // Don't show error while loading or if we have cached data
   if (!pupil && !isLoading && !pupilLoading) {
     return (
-      <div className="p-4 sm:p-6 text-center">
+      <div className="min-h-screen">
         <GlassPageTopBar
           title="Pupil Profile"
           backHref="/pupils"
           backLabel="Back to pupils"
         />
-        <div className="mt-8 text-muted-foreground">
+        <div className="p-4 sm:p-6 mt-8 text-center text-muted-foreground">
           <p>The pupil you are looking for does not exist.</p>
         </div>
       </div>

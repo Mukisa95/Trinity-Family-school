@@ -15,7 +15,7 @@ export function GlassPageTopBarSkeleton({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "glass-page-topbar-enter -mx-3 mb-4 overflow-hidden rounded-b-[18px] border-b border-white/45 bg-white/90 shadow-sm backdrop-blur-md sm:-mx-6 dark:border-slate-700/45 dark:bg-slate-900/90",
+        "glass-page-topbar relative glass-page-topbar-skeleton glass-page-topbar-enter -mx-3 mb-4 overflow-hidden rounded-b-[18px] border-b border-white/45 bg-white/90 shadow-sm backdrop-blur-md md:-mx-6 dark:border-slate-700/45 dark:bg-slate-900/90",
         className
       )}
       aria-hidden="true"
@@ -180,7 +180,7 @@ export function GlassSummaryBarSkeleton({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "glass-page-topbar-enter -mx-3 mb-1.5 overflow-hidden rounded-[18px] border border-white/45 bg-white/90 shadow-sm backdrop-blur-md px-4 py-3 sm:-mx-6 sm:px-6 lg:px-8 dark:border-slate-700/45 dark:bg-slate-900/90",
+        "glass-summary-bar glass-summary-bar-skeleton glass-page-topbar-enter -mx-3 mb-1.5 overflow-hidden rounded-[18px] border border-white/45 bg-white/90 shadow-sm backdrop-blur-md px-4 py-3 md:-mx-6 sm:px-6 lg:px-8 dark:border-slate-700/45 dark:bg-slate-900/90",
         className
       )}
       aria-hidden="true"

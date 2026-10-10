@@ -31,7 +31,7 @@ export function GlassSummaryBar({
   return (
     <div
       className={cn(
-        "glass-summary-bar glass-page-topbar-enter -mx-3 mb-1.5 overflow-hidden rounded-[18px] border shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[20px] px-4 py-3 sm:-mx-6 sm:px-6 lg:px-8 transition-all duration-300",
+        "glass-summary-bar glass-page-topbar-enter -mx-3 mb-1.5 overflow-hidden rounded-[18px] border shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[20px] px-4 py-3 md:-mx-6 sm:px-6 lg:px-8 transition-all duration-300",
         className
       )}
     >

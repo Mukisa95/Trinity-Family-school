@@ -750,7 +750,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
     <>
       <header className="app-topbar bg-card text-card-foreground border-b border-border sticky md:absolute top-0 left-0 right-0 z-40 transition-all duration-300 shadow-none">
         <div className="px-2 sm:px-4 lg:px-6">
-          <div className="flex items-center justify-between h-11 sm:h-13">
+          <div className="flex items-center justify-between h-11 sm:h-[52px]">
             {/* Left side: Mobile Sidebar Trigger, Menu Button */}
             <div className="flex items-center gap-1.5 sm:gap-2 mr-1.5 sm:mr-3 lg:mr-4 flex-shrink-0">
               {/* Mobile Sidebar Trigger */}

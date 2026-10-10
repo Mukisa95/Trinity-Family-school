@@ -6,6 +6,8 @@
   --sidebar-background: 210 40% 98%;
   --sidebar-accent: 214 32% 94%;
   --sidebar-border: 214 32% 91%;
+  --app-frame-radius: 20px;
+  --app-frame-cutout: path('M 0 0 H 20 A 20 20 0 0 0 0 20 Z');
   --theme-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --night-dim-top: 0.32;
   --night-dim-bottom: 0.42;
@@ -185,10 +187,10 @@ html[data-theme-reveal]::view-transition-new(theme-switch-moon) { animation-dura
     position: absolute;
     top: 100%;
     left: 0;
-    width: 20px;
-    height: 20px;
+    width: var(--app-frame-radius);
+    height: var(--app-frame-radius);
     background: rgb(var(--navigation-surface));
-    clip-path: path('M 0 0 H 20 A 20 20 0 0 0 0 20 Z');
+    clip-path: var(--app-frame-cutout);
     pointer-events: none;
   }
 }
@@ -407,5 +409,53 @@ html[data-theme-reveal] .dashboard-bg-wrapper::after { transition: none !importa
     background-color: #fff;
     border-color: #e2e8f0;
     box-shadow: none;
+  }
+}
+
+/* Shared page chrome continues the main frame as distinct translucent layers. */
+@media screen {
+  .app-topbar:has(+ main .glass-page-topbar)::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: var(--app-frame-radius);
+    height: var(--app-frame-radius);
+    background: rgb(var(--navigation-surface));
+    clip-path: var(--app-frame-cutout);
+    pointer-events: none;
+  }
+  .glass-page-topbar, .glass-summary-bar {
+    --glass-layer-opacity: .72;
+    border: 0 !important;
+    border-radius: var(--app-frame-radius) 0 0 0 !important;
+    overflow: visible;
+    background-color: rgb(var(--glass-surface) / var(--glass-layer-opacity)) !important;
+    box-shadow: 0 3px 9px rgb(var(--glass-shadow) / .10) !important;
+  }
+  .glass-page-topbar > .h-px { display: none; }
+  .glass-summary-bar { position: relative; --glass-layer-opacity: .88; }
+  .dark .glass-summary-bar { --glass-layer-opacity: .94; }
+  .glass-page-topbar-skeleton, .glass-summary-bar-skeleton { --glass-layer-opacity: .90; }
+  .dark :is(.glass-page-topbar, .glass-summary-bar) {
+    box-shadow: 0 3px 9px rgb(var(--glass-shadow) / .24) !important;
+  }
+  .glass-page-topbar::after, .glass-summary-bar::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: var(--app-frame-radius);
+    height: var(--app-frame-radius);
+    background: rgb(var(--glass-surface) / var(--glass-layer-opacity));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    clip-path: var(--app-frame-cutout);
+    pointer-events: none;
+  }
+  /* Both direct siblings and a Tabs root whose first child is the summary layer. */
+  .glass-page-topbar:has(+ .glass-summary-bar),
+  .glass-page-topbar:has(+ * > .glass-summary-bar:first-child) {
+    margin-bottom: 0 !important;
   }
 }

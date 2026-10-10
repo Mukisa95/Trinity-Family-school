@@ -47,7 +47,7 @@ function scheduleStyles() {
   const names = new Set(['SUBJECT_HUES_W', 'getSubjectHueW', 'getWeekCellStyle', 'WeekPeriodState']);
   return `import React from 'react';\n` + source.statements.filter(n => (ts.isFunctionDeclaration(n) || ts.isTypeAliasDeclaration(n)) ? names.has(n.name?.text) : ts.isVariableStatement(n) && n.declarationList.declarations.some(d => names.has(d.name.getText(source)))).map(n => n.getText(source)).join('\n') + '\nexport {getWeekCellStyle};';
 }
-async function build({ navigation = false } = {}) {
+async function build({ navigation = false, pageLayers = false } = {}) {
   const headerSource = ts.createSourceFile('header.tsx', fs.readFileSync(path.join(root, 'src/components/layout/enhanced-header.tsx'), 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const iconNames = headerSource.statements.filter(n => ts.isImportDeclaration(n) && n.moduleSpecifier.text === '@phosphor-icons/react').flatMap(n => n.importClause.namedBindings.elements.map(e => e.name.text));
   const navigationMocks = {
@@ -66,7 +66,7 @@ async function build({ navigation = false } = {}) {
   const sidebarItems = navigation ? '<SidebarNav items={navItems}/>' : '<p className="px-4">Dashboard</p><p className="px-4">Timetable</p><p className="px-4">Pupils</p>';
   const mobileNav = navigation ? '<button data-testid="open-mobile" onClick={()=>setMobileOpen(true)}>Open mobile navigation</button><MobileSidebar items={navItems} isOpen={mobileOpen} onClose={()=>setMobileOpen(false)}/><div data-testid="settings-loader"><SchoolSettingsLoader/></div>' : '';
   fs.mkdirSync(output, { recursive: true });
-  const contents = `
+  let contents = `
 ${navigationImports}
 import React from 'react';import {createRoot} from 'react-dom/client';import {Users} from 'lucide-react';
 import {ThemeProvider} from './src/components/providers/theme-provider';import {ThemeToggle} from './src/components/ui/theme-toggle';
@@ -86,6 +86,22 @@ function Fixture(){const [mobileOpen,setMobileOpen]=React.useState(false);return
 function ExtraControls(){const [open,setOpen]=React.useState(false);return <div className="grid gap-4 p-6" data-testid="settings"><AutoLockSettings/><PasskeySettings/><div data-testid="invalid-controls" className="grid gap-2"><Input aria-label="Invalid example" aria-invalid="true" value="Example" readOnly/><Textarea aria-invalid="true" aria-label="Invalid text" value="Example" readOnly/><Button aria-invalid="true">Invalid button</Button><Select><SelectTrigger aria-invalid="true"><SelectValue placeholder="Invalid selection"/></SelectTrigger></Select></div><button onClick={()=>setOpen(true)}>Preview payment</button><PaymentModal isOpen={open} onClose={()=>setOpen(false)} onSubmit={async()=>{window.paymentSubmitted=true}} fee={{feeId:'sample',name:'Sample tuition',amount:100000,balance:80000,amountPaid:20000}}/></div>}
 function EventExamples(){const [open,setOpen]=React.useState(false);return <div className="hidden lg:block p-6" style={{marginLeft:256}} data-testid="event-examples"><EventFilters filters={{types:[],statuses:[],priorities:[],academicYearIds:[],termIds:[],classIds:[],subjectIds:[]}} onFiltersChange={()=>{}}/><button onClick={()=>setOpen(true)}>Preview event</button><EventDetailsModal event={${JSON.stringify(events[0])}} isOpen={open} onClose={()=>setOpen(false)} onEdit={()=>{}}/></div>}
 createRoot(document.getElementById('app')).render(<><Fixture/><EventExamples/><ExtraControls/></>);`;
+  if (pageLayers) {
+    contents = `import {GlassPageTopBar,GlassActionDock,GlassActionButton} from './src/components/common/glass-page-top-bar';
+import {GlassSummaryBar} from './src/components/common/glass-summary-bar';
+import {GlassPageRouteSkeleton} from './src/components/common/glass-page-loading';
+import {Tabs,TabsContent} from './src/components/ui/tabs';
+import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem} from './src/components/ui/dropdown-menu';
+function LayeredPage(){const [variant,setVariant]=React.useState('wrapped');window.setLayerVariant=setVariant;
+const summary=<GlassSummaryBar left={<div className="flex flex-wrap gap-2"><select aria-label="Academic year" className="border rounded-full bg-transparent px-3 py-1"><option>2025 (Current)</option></select><button className="border rounded-full px-3 py-1 text-link">Term 2</button><button className="border rounded-full px-3 py-1 text-link">Term 3</button></div>} right={<>{['Total fees: USh 740,000','Total paid: USh 680,000','Balance: USh 60,000'].map(t=><span key={t} className="rounded-full bg-brand-alt-surface-50 border border-brand-alt-100 px-2 py-1 text-xs text-brand-alt-ink-700 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-200">{t}</span>)}</>}/>;
+return <div data-testid="page-stack" className="min-h-screen">{variant==='skeleton'?<GlassPageRouteSkeleton showSummaryBar variant="list"/>:<><GlassPageTopBar title="KIRABO DAVID" recordDetails="TFU/12M/847 · P.7 · Boarding" backHref="/fees/collection" backMode="href" className="mb-1.5" inlineActions actions={<GlassActionDock>{['Notes','Pay','Family','Siblings','Assign','Wire','Print'].map(t=><GlassActionButton key={t} label={t} icon={<Users className="h-4 w-4"/>} onClick={()=>window.layerAction=t}/>)}<DropdownMenu><DropdownMenuTrigger asChild><GlassActionButton label="Track" icon={<Users className="h-4 w-4"/>}/></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuItem onSelect={()=>window.layerAction='Tracking'}>View tracking</DropdownMenuItem></DropdownMenuContent></DropdownMenu></GlassActionDock>}/>{variant==='wrapped'?<Tabs defaultValue="fees" className="w-full">{summary}<TabsContent value="fees"><div className="p-4">Fee records</div></TabsContent></Tabs>:variant==='direct'?summary:null}</>}<div className="p-4"><div className="border rounded-xl bg-card p-4 h-[1800px]">Workspace content</div></div></div>}
+` + contents;
+    const start = contents.indexOf('<main className="p-6 '), end = contents.indexOf('</main></SidebarInset>', start);
+    assert.ok(start >= 0 && end > start);
+    contents = contents.slice(0,start) + '<main data-testid="workspace-scroller" className="min-h-0 md:flex-1 md:overflow-y-auto px-3 md:px-6 md:pt-[52px]"><LayeredPage/>' + contents.slice(end);
+    contents = contents.replace('<div className="lg:hidden fixed top-2 right-2 z-50"><ThemeToggle/></div>', '');
+    contents = contents.replace('SidebarInset className="min-w-0"','SidebarInset className="min-w-0 md:h-[100dvh] md:overflow-hidden"');
+  }
   await esbuild.build({ absWorkingDir: root, stdin: { resolveDir: root, contents, loader: 'tsx' }, bundle: true, jsx: 'automatic', platform: 'browser', alias: { '@': path.join(root, 'src') }, outfile: path.join(output, 'fixture.js'), define: { 'process.env.NODE_ENV': '"production"', 'process.env.__NEXT_IMAGE_OPTS': 'undefined' }, plugins: [{ name: 'synthetic-data', setup(b) {
     b.onResolve({ filter: /.*/ }, a => Object.hasOwn(fixtureMocks, a.path) || ['dashboard-widgets', 'schedule-styles'].includes(a.path) ? { path: a.path, namespace: 'fixture' } : undefined);
     b.onLoad({ filter: /.*/, namespace: 'fixture' }, a => ({ contents: a.path === 'dashboard-widgets' ? extractedWidgets() : a.path === 'schedule-styles' ? scheduleStyles() : fixtureMocks[a.path], loader: 'tsx', resolveDir: root }));
