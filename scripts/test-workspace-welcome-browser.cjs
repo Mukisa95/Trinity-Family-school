@@ -52,11 +52,12 @@ createRoot(document.getElementById('app')).render(<ThemeProvider><QueryClientPro
     const percent=await screen.getByRole('progressbar').getAttribute('aria-valuenow');
     await page.waitForTimeout(1200);assert.equal(await screen.getByRole('progressbar').getAttribute('aria-valuenow'),percent);
     await screen.getByRole('button',{name:/Soft Indigo/}).click();await page.waitForFunction(()=>document.documentElement.dataset.appTheme==='soft-indigo');
+    await screen.getByRole('button',{name:/Pixel Terracotta/}).click();await page.waitForFunction(()=>document.documentElement.dataset.appTheme==='pixel-terracotta');
     await screen.getByRole('button',{name:'Light',exact:true}).click();await page.waitForFunction(()=>!document.documentElement.classList.contains('dark'));
     await page.waitForFunction(()=>!Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Continue')?.disabled);
     await page.screenshot({path:path.join(output,'desktop-light.png')});
     await screen.getByRole('button',{name:'Dark',exact:true}).click();await page.waitForFunction(()=>document.documentElement.classList.contains('dark'));
-    await screen.getByRole('button',{name:/Material You/}).click();await page.waitForFunction(()=>document.documentElement.dataset.deviceColors==='true');
+    await screen.getByRole('button',{name:/^Material You/}).click();await page.waitForFunction(()=>document.documentElement.dataset.deviceColors==='true');
     await page.waitForFunction(()=>!Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Continue')?.disabled);
     for(const width of [390,320]){await page.setViewportSize({width,height:800});assert.ok(await screen.evaluate(e=>e.scrollWidth<=window.innerWidth),'No phone overflow');await page.screenshot({path:path.join(output,width+'-device-dark.png')});}
     await page.setViewportSize({width:1440,height:900});

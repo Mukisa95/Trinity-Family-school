@@ -3,6 +3,7 @@ export const LOOK_AND_FEEL_STORAGE_KEY = "trinity-look-and-feel";
 export const THEME_PRESETS = [
   { id: "trinity-classic", name: "Trinity Classic", description: "Our familiar blue and purple, balanced for both appearances." },
   { id: "soft-indigo", name: "Soft Indigo", description: "Calmer indigo and lavender with the same Trinity layout." },
+  { id: "pixel-terracotta", name: "Pixel Terracotta", description: "Warm clay, peach and cocoa, inspired by Pixel Material You." },
 ] as const;
 
 export type ThemePreset = typeof THEME_PRESETS[number]["id"];
@@ -43,7 +44,7 @@ export const LOOK_AND_FEEL_BOOTSTRAP = `(${function () {
   let value: { preset?: string; background?: string; dimming?: number } = {};
   try { value = JSON.parse(localStorage.getItem("trinity-look-and-feel") || "{}") || {}; } catch {}
   const dim = typeof value.dimming === "number" && Number.isFinite(value.dimming) ? Math.min(70, Math.max(20, Math.round(value.dimming))) : 37;
-  root.dataset.appTheme = value.preset === "soft-indigo" ? "soft-indigo" : "trinity-classic";
+  root.dataset.appTheme = value.preset === "soft-indigo" || value.preset === "pixel-terracotta" ? value.preset : "trinity-classic";
   root.dataset.appBackground = value.background === "plain" ? "plain" : "illustration";
   root.style.setProperty("--night-dim-top", String((dim - 5) / 100));
   root.style.setProperty("--night-dim-bottom", String((dim + 5) / 100));

@@ -32,7 +32,9 @@ export function parseDevicePalette(value: unknown): DevicePalette | null {
   return { supported: true, palettes, light, dark };
 }
 
-export function devicePaletteCss(palette: DevicePalette): string {
+export function devicePaletteCss(palette: DevicePalette, selectors = {
+  light: 'html[data-device-colors="true"]', dark: 'html.dark[data-device-colors="true"]',
+}): string {
   const rgb = (hex: string) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
   const channels = (hex: string) => rgb(hex).join(" ");
   const hsl = (hex: string) => {
@@ -104,7 +106,7 @@ export function devicePaletteCss(palette: DevicePalette): string {
     return declarations.join("");
   };
   // Screen-only root roles leave report/PDF descendants and print colours on the existing pipeline.
-  return `@media screen{html[data-device-colors="true"]{${roles(false)}}html.dark[data-device-colors="true"]{${roles(true)}}}`;
+  return `@media screen{${selectors.light}{${roles(false)}}${selectors.dark}{${roles(true)}}}`;
 }
 
 export function applyDevicePalette(palette: DevicePalette | null, enabled: boolean) {

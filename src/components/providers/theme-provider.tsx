@@ -6,6 +6,7 @@ import { ThemeProvider as NextThemeProvider, useTheme } from "next-themes";
 import { androidOfflineRequest, hasAndroidOfflineBridge } from "@/lib/offline/android-bridge";
 import { applyLookAndFeel, DEFAULT_LOOK_AND_FEEL, LOOK_AND_FEEL_BOOTSTRAP, LOOK_AND_FEEL_STORAGE_KEY, parseLookAndFeel, type LookAndFeelSettings } from "@/lib/theme/appearance-settings";
 import { applyDevicePalette, DEVICE_COLORS_BOOTSTRAP, DEVICE_COLORS_STORAGE_KEY, parseDevicePalette, type DevicePalette } from "@/lib/theme/device-colors";
+import pixelTerracotta from '@/lib/theme/pixel-terracotta-palette.json';
 
 export type ThemePreference = "light" | "dark" | "system";
 type ThemeTransition = { ready: Promise<void>; finished: Promise<void>; skipTransition: () => void };
@@ -94,9 +95,10 @@ function AppearanceProvider({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => {
     if (!resolvedTheme) return;
-    const color = lookAndFeel.deviceColors && devicePalette ? (resolvedTheme === "dark" ? devicePalette.dark.background : devicePalette.light.background) : resolvedTheme === "dark" ? "#0b1120" : "#f1f7ff";
+    const selectedPalette = lookAndFeel.deviceColors && devicePalette ? devicePalette : lookAndFeel.preset === 'pixel-terracotta' ? pixelTerracotta : null;
+    const color = selectedPalette ? (resolvedTheme === "dark" ? selectedPalette.dark.background : selectedPalette.light.background) : resolvedTheme === "dark" ? "#0b1120" : "#f1f7ff";
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", color);
-  }, [resolvedTheme, devicePalette, lookAndFeel.deviceColors]);
+  }, [resolvedTheme, devicePalette, lookAndFeel.deviceColors, lookAndFeel.preset]);
 
   const transitionAppearance = async (apply: () => void, origin: HTMLElement) => {
     if (active.current) return;

@@ -46,7 +46,7 @@ export function LookAndFeelSettings({ sticky = true }: { sticky?: boolean }) {
 
       <Card><CardContent className="space-y-4 p-5 sm:p-6">
         <h2 className="text-lg font-semibold">Theme</h2>
-        <p className="text-sm text-muted-foreground">Both themes include matching light and dark colours.</p>
+        <p className="text-sm text-muted-foreground">Every theme includes matching light and dark colours.</p>
         {ready && hasAndroidOfflineBridge() && <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-background p-4">
           <div className="space-y-1"><label htmlFor="device-colors" className="cursor-pointer text-sm font-semibold">Use device colours</label>
             <p id="device-colors-description" className="text-xs text-muted-foreground">{deviceColorsSupported ? "Match your wallpaper colours across the app, widgets and timetable notification." : "Available in the updated Android app on Android 12 or later."}</p></div>

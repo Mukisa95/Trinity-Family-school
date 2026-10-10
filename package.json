@@ -17,6 +17,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "build:themes": "node scripts/build-theme-presets.cjs",
+    "test:theme-palettes": "node --import tsx --test tests/device-colors.test.ts tests/pixel-terracotta-theme.test.ts",
     "test:look-and-feel-browser": "node scripts/test-look-and-feel-browser.cjs",
     "test:look-and-feel-navigation": "node scripts/test-look-and-feel-navigation.cjs",
     "test:payment-dialog-completion": "node --import tsx --test tests/payment-dialog-completion.test.ts",
