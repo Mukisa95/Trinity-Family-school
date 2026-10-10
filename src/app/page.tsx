@@ -75,6 +75,7 @@ import { RecessStatusBanner } from '@/components/common/recess-status-banner';
 import { TermScheduleCard } from '@/components/dashboard/TermScheduleCard';
 import { MonthCalendarCard } from '@/components/dashboard/MonthCalendarCard';
 import { DashboardLiveTracker } from '@/components/dashboard/DashboardLiveTracker';
+import { DashboardWelcomeHeader } from '@/components/dashboard/dashboard-welcome-header';
 import { ClassAttendanceSummaryDialog } from '@/components/dashboard/class-attendance-summary-dialog';
 import { PhotoViewerDialog } from '@/components/common/photo-viewer-dialog';
 
@@ -2294,58 +2295,6 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
 
 
 
-// Enhanced Header Component
-const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
-  const { user } = useAuth();
-  const [timeGreeting, setTimeGreeting] = useState('Welcome back');
-
-  useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) setTimeGreeting('Good morning');
-    else if (hour < 17) setTimeGreeting('Good afternoon');
-    else setTimeGreeting('Good evening');
-  }, []);
-
-  const displayName = useMemo(() => {
-    if (user?.firstName) return user.firstName;
-    if (!user?.username) return 'Friend';
-
-    const username = user.username.trim();
-    if (username.includes(' ')) return username.split(' ')[0];
-    if (username.includes('_') || username.includes('.')) return username.split(/[_.]/)[0];
-    return username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
-  }, [user?.firstName, user?.username]);
-
-  return (
-    <div className="container mx-auto px-3 sm:px-6 lg:px-8 pt-2 pb-3 sm:pt-3 sm:pb-4">
-      <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-        {schoolSettings?.generalInfo?.logo && (
-          <img
-            src={schoolSettings.generalInfo.logo}
-            alt="School Logo"
-            className="h-10 w-10 flex-shrink-0 rounded-lg object-contain sm:h-12 sm:w-12"
-          />
-        )}
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-brand-alt-ink-700 sm:text-base dark:text-brand-alt-ink-300">
-            {timeGreeting}, {displayName}
-          </p>
-          <h1 className="truncate text-base font-bold tracking-tight text-gray-900 sm:text-lg md:text-xl dark:text-slate-100">
-            {schoolSettings?.generalInfo?.name || 'TRINITY FAMILY NURSERY AND PRIMARY SCHOOL'}
-          </h1>
-          <p className="truncate text-[11px] font-medium uppercase tracking-wide text-gray-500 sm:text-xs dark:text-slate-400">
-            {schoolSettings?.generalInfo?.motto || 'GUIDING GROWTH, INSPIRING GREATNESS'}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-
-
-
 export default function DashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -2456,7 +2405,7 @@ export default function DashboardPage() {
         <meta name="description" content="Trinity School Online Dashboard - Comprehensive overview of school activities and statistics." />
       </Head>
 
-      <EnhancedHeader schoolSettings={schoolSettings} />
+      <DashboardWelcomeHeader schoolSettings={schoolSettings} />
 
       <motion.div
         variants={groupVariants}
