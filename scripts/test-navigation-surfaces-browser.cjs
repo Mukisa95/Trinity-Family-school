@@ -36,7 +36,11 @@ async function run(){
     const sampled=await page.evaluate(async data=>{const img=new Image();img.src=data;await img.decode();const c=document.createElement('canvas');c.width=c.height=20;const ctx=c.getContext('2d');ctx.drawImage(img,0,0);return [ctx.getImageData(1,1,1,1).data,ctx.getImageData(18,18,1,1).data].map(p=>Array.from(p).slice(0,3));},'data:image/png;base64,'+pixels.toString('base64'));
     assert.deepEqual(sampled[0],header.background.match(/[\d.]+/g).slice(0,3).map(Number),name+': solid carved corner');
     assert.notDeepEqual(sampled[1],sampled[0],name+': transparent inner arc reveals page');
-   }else assert.equal(corner.content,'none',name+': no desktop corner on mobile');
+   }else {
+    assert.equal(corner.background,header.background);assert.ok(corner.clip.startsWith('path('));assert.equal(corner.pointer,'none');
+    const right=await page.locator('.app-topbar').evaluate(el=>{const s=getComputedStyle(el,'::before');return {content:s.content,background:s.backgroundColor,clip:s.clipPath,pointer:s.pointerEvents,transform:s.transform};});
+    assert.notEqual(right.content,'none',name+': dashboard has a right carve');assert.equal(right.background,header.background);assert.ok(right.clip.startsWith('path('));assert.equal(right.pointer,'none');assert.equal(right.transform,'matrix(-1, 0, 0, 1, 0, 0)');
+   }
    for(const selector of ['.app-topbar',mobile?'.app-mobile-sidebar':'[data-sidebar="sidebar"]']){
     const effects=await page.locator(selector).evaluate(el=>[el,...el.querySelectorAll('*')].flatMap(e=>[getComputedStyle(e),getComputedStyle(e,'::before'),getComputedStyle(e,'::after')]).filter(s=>s.display!=='none'&&s.content!=='none').filter(s=>s.backgroundImage.includes('gradient')||/shimmer|subtle-glow/.test(s.animationName)).map(s=>({image:s.backgroundImage,animation:s.animationName})));assert.deepEqual(effects,[],name+': navigation has no gradient/shimmer/glow layers');
    }
@@ -51,7 +55,17 @@ async function run(){
    if(width<768){await page.getByTestId('open-mobile').click();await page.locator('.app-mobile-sidebar').waitFor();}
    for(const preset of ['trinity-classic','soft-indigo'])for(const dark of [false,true]){await apply(preset,dark,false);await verify(width+'-'+preset+'-'+(dark?'dark':'light'),width<768);}
    for(const dark of [false,true]){await apply('trinity-classic',dark,true);await verify(width+'-device-'+(dark?'dark':'light'),width<768);}
-   if(width<768)await page.locator('.app-mobile-sidebar button').first().click();
+   if(width<768){
+    await page.locator('.app-mobile-sidebar button').first().click();await page.locator('.app-mobile-sidebar').waitFor({state:'detached'});await page.evaluate(()=>window.scrollTo(0,0));
+    // Dashboard has no shared page header: both rendered mobile carves still exist.
+    const h=await read(page.locator('.app-topbar'));
+    for(const right of [false,true]){
+     const pixels=await page.screenshot({clip:{x:right?h.rect.right-20:h.rect.x,y:h.rect.y+h.rect.height,width:20,height:20}});
+     const samples=await page.evaluate(async ({data,right})=>{const img=new Image();img.src=data;await img.decode();const c=document.createElement('canvas');c.width=c.height=20;const ctx=c.getContext('2d');ctx.drawImage(img,0,0);return [ctx.getImageData(right?18:1,1,1,1).data,ctx.getImageData(right?1:18,18,1,1).data].map(p=>Array.from(p).slice(0,3));},{data:'data:image/png;base64,'+pixels.toString('base64'),right});
+     assert.deepEqual(samples[0],h.background.match(/[\d.]+/g).slice(0,3).map(Number),'Mobile dashboard corner joins navigation');assert.notDeepEqual(samples[0],samples[1],'Mobile dashboard arc reveals workspace');
+    }
+    await page.screenshot({path:path.join(output,'mobile-dashboard-both-carves.png')});
+   }
   }
   for(const width of [1440,390])for(const mode of ['light','dark']){
    const classic=reports.find(r=>r.name===width+'-trinity-classic-'+mode),indigo=reports.find(r=>r.name===width+'-soft-indigo-'+mode),device=reports.find(r=>r.name===width+'-device-'+mode);
@@ -69,7 +83,7 @@ async function run(){
   await page.setViewportSize({width:360,height:800});await page.getByTestId('open-mobile').click();await verify('small-phone-device-dark',true);
   await page.locator('.app-mobile-sidebar button').first().click();
   await page.setViewportSize({width:1440,height:1000});
-  await page.emulateMedia({media:'print'});assert.equal(await page.locator('.dashboard-bg-wrapper').evaluate(e=>getComputedStyle(e,'::before').content),'none');assert.equal(await page.locator('.app-topbar').evaluate(e=>getComputedStyle(e,'::after').content),'none');await page.emulateMedia({media:'screen'});
+  await page.emulateMedia({media:'print'});assert.equal(await page.locator('.dashboard-bg-wrapper').evaluate(e=>getComputedStyle(e,'::before').content),'none');for(const pseudo of ['::before','::after'])assert.equal(await page.locator('.app-topbar').evaluate((e,p)=>getComputedStyle(e,p).content,pseudo),'none');await page.emulateMedia({media:'screen'});
   assert.deepEqual(errors,[]);fs.writeFileSync(path.join(output,'verification.json'),JSON.stringify({reports,printIsolation:true,errors},null,2));
   console.log('NAVIGATION_SURFACES_OK: seamless tinted bars, rendered carved corner, visible presets/device light-dark, collapse, mobile controls, no gradients/glow/shimmer/blur and print isolation.');
  }finally{await browser.close();await new Promise(r=>server.close(r));}

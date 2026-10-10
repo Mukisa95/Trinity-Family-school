@@ -180,9 +180,9 @@ html[data-theme-reveal]::view-transition-new(theme-switch-moon) { animation-dura
     border-color: hsl(var(--sidebar-border)) !important;
   }
 }
-@media screen and (min-width: 768px) {
+@media screen {
   /* Carve the content's inner corner out of the frame, preserving its background. */
-  .dashboard-bg-wrapper .app-topbar::after {
+  .app-topbar::after {
     content: '';
     position: absolute;
     top: 100%;
@@ -404,6 +404,7 @@ html[data-theme-reveal] .dashboard-bg-wrapper::after { transition: none !importa
   }
 }
 @media print {
+  .glass-page-topbar { position: relative !important; top: auto !important; }
   .glass-summary-bar {
     color: #0f172a;
     background-color: #fff;
@@ -414,23 +415,19 @@ html[data-theme-reveal] .dashboard-bg-wrapper::after { transition: none !importa
 
 /* Shared page chrome continues the main frame as distinct translucent layers. */
 @media screen {
-  .app-topbar:has(+ main .glass-page-topbar)::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: var(--app-frame-radius);
-    height: var(--app-frame-radius);
-    background: rgb(var(--navigation-surface));
-    clip-path: var(--app-frame-cutout);
-    pointer-events: none;
-  }
   .glass-page-topbar, .glass-summary-bar {
     --glass-layer-opacity: .72;
+    --glass-layer-radius: var(--app-frame-radius) 0 0 0;
+    /* One mask covers the body and its carve; no separately blurred corner patch. */
+    --glass-layer-mask: linear-gradient(#000 0 0) top / 100% calc(100% - var(--app-frame-radius)) no-repeat,
+      radial-gradient(circle at 100% 100%, transparent calc(var(--app-frame-radius) - .5px), #000 var(--app-frame-radius)) bottom left / var(--app-frame-radius) var(--app-frame-radius) no-repeat;
+    isolation: isolate;
     border: 0 !important;
-    border-radius: var(--app-frame-radius) 0 0 0 !important;
+    border-radius: var(--glass-layer-radius) !important;
     overflow: visible;
-    background-color: rgb(var(--glass-surface) / var(--glass-layer-opacity)) !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     box-shadow: 0 3px 9px rgb(var(--glass-shadow) / .10) !important;
   }
   .glass-page-topbar > .h-px { display: none; }
@@ -440,22 +437,42 @@ html[data-theme-reveal] .dashboard-bg-wrapper::after { transition: none !importa
   .dark :is(.glass-page-topbar, .glass-summary-bar) {
     box-shadow: 0 3px 9px rgb(var(--glass-shadow) / .24) !important;
   }
-  .glass-page-topbar::after, .glass-summary-bar::after {
+  .glass-page-topbar::before, .glass-summary-bar::before {
     content: '';
     position: absolute;
-    top: 100%;
-    left: 0;
-    width: var(--app-frame-radius);
-    height: var(--app-frame-radius);
+    inset: 0 0 calc(-1 * var(--app-frame-radius));
+    z-index: -1;
+    border-radius: var(--glass-layer-radius);
     background: rgb(var(--glass-surface) / var(--glass-layer-opacity));
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    clip-path: var(--app-frame-cutout);
+    mask: var(--glass-layer-mask);
+    -webkit-mask: var(--glass-layer-mask);
     pointer-events: none;
   }
   /* Both direct siblings and a Tabs root whose first child is the summary layer. */
   .glass-page-topbar:has(+ .glass-summary-bar),
   .glass-page-topbar:has(+ * > .glass-summary-bar:first-child) {
     margin-bottom: 0 !important;
+  }
+}
+@media screen and (max-width: 767px) {
+  .app-topbar::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: var(--app-frame-radius);
+    height: var(--app-frame-radius);
+    background: rgb(var(--navigation-surface));
+    clip-path: var(--app-frame-cutout);
+    transform: scaleX(-1);
+    pointer-events: none;
+  }
+  .glass-page-topbar, .glass-summary-bar {
+    --glass-layer-radius: var(--app-frame-radius) var(--app-frame-radius) 0 0;
+    --glass-layer-mask: linear-gradient(#000 0 0) top / 100% calc(100% - var(--app-frame-radius)) no-repeat,
+      radial-gradient(circle at 100% 100%, transparent calc(var(--app-frame-radius) - .5px), #000 var(--app-frame-radius)) bottom left / var(--app-frame-radius) var(--app-frame-radius) no-repeat,
+      radial-gradient(circle at 0 100%, transparent calc(var(--app-frame-radius) - .5px), #000 var(--app-frame-radius)) bottom right / var(--app-frame-radius) var(--app-frame-radius) no-repeat;
   }
 }

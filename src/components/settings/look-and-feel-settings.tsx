@@ -20,7 +20,7 @@ const choice = "min-h-12 rounded-xl border p-3 text-left transition-colors durat
 const selected = "border-brand-500 bg-brand-surface-50 text-brand-ink-800 dark:bg-brand-surface-950/50";
 const unselected = "border-border bg-card text-card-foreground hover:bg-accent";
 
-export function LookAndFeelSettings() {
+export function LookAndFeelSettings({ sticky = true }: { sticky?: boolean }) {
   const { ready, changing, preference, lookAndFeel, storageAvailable, deviceColorsSupported, changeTheme, changeLookAndFeel } = useAppearance();
   const disabled = !ready || changing;
   const usingDeviceColors = lookAndFeel.deviceColors && deviceColorsSupported;
@@ -30,7 +30,7 @@ export function LookAndFeelSettings() {
   };
 
   return <div className="mx-auto w-full max-w-5xl space-y-6 pb-8">
-    <GlassPageTopBar title="Look and Feel" recordDetails="Saved on this device" leading={<Palette className="h-6 w-6 text-link" aria-hidden="true" />} sticky={false} />
+    <GlassPageTopBar title="Look and Feel" recordDetails="Saved on this device" leading={<Palette className="h-6 w-6 text-link" aria-hidden="true" />} sticky={sticky} />
     <div className="space-y-6 px-4 sm:px-6">
       <Card><CardContent className="space-y-4 p-5 sm:p-6">
         <h2 className="text-lg font-semibold">Appearance</h2>

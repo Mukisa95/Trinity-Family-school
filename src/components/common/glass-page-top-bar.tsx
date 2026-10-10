@@ -109,7 +109,7 @@ export function GlassPageTopBar({
   const actionsAlreadyUseDock = isValidElement(actions) && actions.type === GlassActionDock;
 
   useEffect(() => {
-    if (!isSmallScreen || !hasMobileUtilityControls) {
+    if (sticky || !isSmallScreen || !hasMobileUtilityControls) {
       setMobileControlsFloating(false);
       return;
     }
@@ -132,7 +132,7 @@ export function GlassPageTopBar({
       window.removeEventListener("scroll", updateFloatingState);
       window.removeEventListener("resize", updateFloatingState);
     };
-  }, [hasMobileUtilityControls, isSmallScreen]);
+  }, [hasMobileUtilityControls, isSmallScreen, sticky]);
 
   const backClassName = "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-brand-300/65 bg-white/[0.72] text-brand-ink-600 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-brand-200/45 backdrop-blur-[20px] transition-all duration-200 after:absolute after:-inset-1 after:content-[''] hover:scale-[1.03] hover:bg-white/90 hover:text-brand-ink-700 active:scale-95 dark:border-brand-800/65 dark:bg-slate-900/[0.72] dark:text-brand-ink-400 dark:ring-brand-800/45 dark:hover:bg-slate-900/90 dark:hover:text-brand-ink-300";
   const backControl = backHref ? (backMode === "href" ? (
@@ -180,7 +180,7 @@ export function GlassPageTopBar({
         ref={topBarRef}
         className={cn(
           "glass-page-topbar relative glass-page-topbar-enter -mx-3 mb-4 overflow-visible rounded-b-[18px] border-b border-white/45 bg-white/[0.72] shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[20px] md:-mx-6 dark:border-slate-700/45 dark:bg-slate-900/[0.72]",
-          sticky && "sm:sticky sm:top-[52px] md:top-0 sm:z-30",
+          sticky && "sticky top-11 sm:top-[52px] md:top-0 z-30",
           className
         )}
       >
