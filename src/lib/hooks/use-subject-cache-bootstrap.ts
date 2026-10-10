@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { reportWorkspaceTask } from '@/lib/startup/workspace-setup';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { SubjectsService } from '@/lib/services/subjects.service';
 import { useDashboardDataRevisions } from './use-school-settings';
@@ -54,7 +55,11 @@ export function useSubjectCacheBootstrap() {
 
     const needsColdFetch = persisted === null && inMemory === undefined;
     const needsRevisionRefresh = revisionsReady && persisted?.revision !== revision;
-    if (!needsColdFetch && !needsRevisionRefresh) return;
+    if (!needsColdFetch && !needsRevisionRefresh) {
+      reportWorkspaceTask(queryClient, scope, 'subjects', 'ready');
+      return;
+    }
+    reportWorkspaceTask(queryClient, scope, 'subjects', 'loading');
 
     let disposed = false;
     let serverSucceeded = false;
@@ -87,9 +92,11 @@ export function useSubjectCacheBootstrap() {
         queryClient.setQueryData(queryKey, normalised);
         writeSubjectCache(scope, targetRevision, normalised);
         performance.mark?.('trinity:subjects-server-synced');
+        reportWorkspaceTask(queryClient, scope, 'subjects', 'ready');
       })
       .catch(error => {
         console.error('Subject cache reconciliation failed:', error);
+        if (!disposed) reportWorkspaceTask(queryClient, scope, 'subjects', 'error');
         if (!disposed && retryCount.current < 2) {
           retryCount.current += 1;
           retryTimer = setTimeout(() => setRetryEpoch(epoch => epoch + 1), 3000);

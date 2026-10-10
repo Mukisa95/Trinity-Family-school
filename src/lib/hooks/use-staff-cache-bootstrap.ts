@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { reportWorkspaceTask } from '@/lib/startup/workspace-setup';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { StaffService } from '@/lib/services/staff.service';
 import { useDashboardDataRevisions } from './use-school-settings';
@@ -63,7 +64,11 @@ export function useStaffCacheBootstrap() {
 
     const needsColdFetch = persisted === null && inMemory === undefined;
     const needsRevisionRefresh = revisionsReady && persisted?.revision !== revision;
-    if (!needsColdFetch && !needsRevisionRefresh) return;
+    if (!needsColdFetch && !needsRevisionRefresh) {
+      reportWorkspaceTask(queryClient, scope, 'staff', 'ready');
+      return;
+    }
+    reportWorkspaceTask(queryClient, scope, 'staff', 'loading');
 
     let disposed = false;
     let serverSucceeded = false;
@@ -95,8 +100,10 @@ export function useStaffCacheBootstrap() {
       queryClient.setQueryData(queryKey, normalised);
       writeStaffCache(scope, targetRevision, normalised);
       performance.mark?.('trinity:staff-server-synced');
+      reportWorkspaceTask(queryClient, scope, 'staff', 'ready');
     }).catch(error => {
       console.error('Staff cache reconciliation failed:', error);
+      if (!disposed) reportWorkspaceTask(queryClient, scope, 'staff', 'error');
       if (!disposed && retryCount.current < 2) {
         retryCount.current += 1;
         retryTimer = setTimeout(() => setRetryEpoch(epoch => epoch + 1), 3000);

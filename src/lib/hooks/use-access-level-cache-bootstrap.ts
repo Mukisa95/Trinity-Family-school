@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { reportWorkspaceTask } from '@/lib/startup/workspace-setup';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { AccessLevelsService } from '@/lib/services/access-levels.service';
 import { useDashboardDataRevisions } from './use-school-settings';
@@ -53,7 +54,11 @@ export function useAccessLevelCacheBootstrap() {
 
     const needsColdFetch = persisted === null && inMemory === undefined;
     const needsRevisionRefresh = revisionsReady && persisted?.revision !== revision;
-    if (!needsColdFetch && !needsRevisionRefresh) return;
+    if (!needsColdFetch && !needsRevisionRefresh) {
+      reportWorkspaceTask(queryClient, scope, 'accessLevels', 'ready');
+      return;
+    }
+    reportWorkspaceTask(queryClient, scope, 'accessLevels', 'loading');
 
     let disposed = false;
     let serverSucceeded = false;
@@ -86,9 +91,11 @@ export function useAccessLevelCacheBootstrap() {
         queryClient.setQueryData(queryKey, normalised);
         writeAccessLevelCache(scope, targetRevision, normalised);
         performance.mark?.('trinity:access-levels-server-synced');
+        reportWorkspaceTask(queryClient, scope, 'accessLevels', 'ready');
       })
       .catch(error => {
         console.error('Access-level cache reconciliation failed:', error);
+        if (!disposed) reportWorkspaceTask(queryClient, scope, 'accessLevels', 'error');
         if (!disposed && retryCount.current < 2) {
           retryCount.current += 1;
           retryTimer = setTimeout(() => setRetryEpoch(epoch => epoch + 1), 3000);

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { reportWorkspaceTask } from '@/lib/startup/workspace-setup';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { AcademicYearsService } from '@/lib/services/academic-years.service';
 import { useDashboardDataRevisions } from './use-school-settings';
@@ -67,7 +68,11 @@ export function useAcademicYearCacheBootstrap() {
 
     // Cold recovery is independent of revision readiness. Otherwise a delayed
     // settings snapshot can leave all year/term consumers loading forever.
-    if (!needsColdFetch && !needsRevisionRefresh) return;
+    if (!needsColdFetch && !needsRevisionRefresh) {
+      reportWorkspaceTask(queryClient, scope, 'academicYears', 'ready');
+      return;
+    }
+    reportWorkspaceTask(queryClient, scope, 'academicYears', 'loading');
 
     let disposed = false;
     let serverSucceeded = false;
@@ -104,8 +109,10 @@ export function useAcademicYearCacheBootstrap() {
       queryClient.setQueryData(queryKey, normalised);
       writeAcademicYearCache(scope, targetRevision, normalised);
       performance.mark?.('trinity:academic-years-server-synced');
+      reportWorkspaceTask(queryClient, scope, 'academicYears', 'ready');
     }).catch(error => {
       console.error('Academic-year cache reconciliation failed:', error);
+      if (!disposed) reportWorkspaceTask(queryClient, scope, 'academicYears', 'error');
       if (!disposed && retryCount.current < 2) {
         retryCount.current += 1;
         retryTimer = setTimeout(() => setRetryEpoch(epoch => epoch + 1), 3000);

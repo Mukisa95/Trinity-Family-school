@@ -45,6 +45,8 @@ import { SidebarUserFooter } from './sidebar-user-footer';
 import { SchoolSettingsLoader } from './school-settings-loader';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BrandedAuthScreen } from '@/components/common/premium-splash-loader';
+import { WorkspaceSetupScreen } from '@/components/common/workspace-setup-screen';
+import { useFirstWorkspaceSetup } from '@/lib/hooks/use-first-workspace-setup';
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { usePrint } from '@/lib/contexts/print-context';
 import { useQueryClient } from '@tanstack/react-query';
@@ -554,6 +556,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { data: schoolSettings, isLoading: isLoadingSettings, error: settingsError } = useSchoolSettings();
   const isPublicRoute = Boolean(pathname && ['/login', '/download', '/about-trinity', '/admin/setup', '/test-firebase'].some((route) => pathname === route || pathname.startsWith(`${route}/`)));
   const isNonLoginPublicRoute = isPublicRoute && pathname !== '/login';
+  const setup = useFirstWorkspaceSetup({ enabled: !isPublicRoute && !authLoading && isAuthenticated,
+    userId: user?.id, role: user?.role });
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (setup.required) workspaceRef.current?.setAttribute('inert', '');
+    else workspaceRef.current?.removeAttribute('inert');
+  }, [setup.required]);
   const [startupPhase, setStartupPhase] = useState<'visible' | 'fading' | 'complete'>(() => (
     isNonLoginPublicRoute ? 'complete' : 'visible'
   ));
@@ -570,6 +579,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
   // The workspace is already mounted beneath this overlay before the fade
   // begins. This gives a real cross-fade without an intermediate white frame.
   useEffect(() => {
+    if (setup.required) {
+      setStartupPhase('complete');
+      return;
+    }
     if (startupPhase !== 'visible') return;
 
     if (isPublicRoute && !isAuthenticated && !authLoading) {
@@ -581,7 +594,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
     const frame = window.requestAnimationFrame(() => setStartupPhase('fading'));
     return () => window.cancelAnimationFrame(frame);
-  }, [authLoading, isAuthenticated, isPublicRoute, minimumFrontendDisplayElapsed, pathname, startupPhase]);
+  }, [authLoading, isAuthenticated, isPublicRoute, minimumFrontendDisplayElapsed, pathname, setup.required, startupPhase]);
 
   useEffect(() => {
     if (startupPhase !== 'fading') return;
@@ -605,6 +618,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <NavigationProvider>
+      <div ref={workspaceRef} aria-hidden={setup.required || undefined}>
       <MemoizedAppLayout
         pathname={pathname}
         user={user}
@@ -621,7 +635,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
       >
         {children}
       </MemoizedAppLayout>
-      {startupPhase !== 'complete' && (
+      </div>
+      {setup.required && <WorkspaceSetupScreen {...setup} />}
+      {!setup.required && startupPhase !== 'complete' && (
         <BrandedAuthScreen
           message={startupPhase === 'fading' ? 'Your workspace is ready.' : 'Checking your secure sign-in…'}
           isExiting={startupPhase === 'fading'}

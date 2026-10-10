@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { reportWorkspaceTask } from '@/lib/startup/workspace-setup';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { ClassesService } from '@/lib/services/classes.service';
 import { useDashboardDataRevisions } from './use-school-settings';
@@ -70,7 +71,11 @@ export function useClassCacheBootstrap() {
 
     // A cold device must never wait indefinitely for the settings listener.
     // Revision readiness only controls reconciliation of an existing snapshot.
-    if (!needsColdFetch && !needsRevisionRefresh) return;
+    if (!needsColdFetch && !needsRevisionRefresh) {
+      reportWorkspaceTask(queryClient, scope, 'classes', 'ready');
+      return;
+    }
+    reportWorkspaceTask(queryClient, scope, 'classes', 'loading');
 
     let disposed = false;
     let serverSucceeded = false;
@@ -106,8 +111,10 @@ export function useClassCacheBootstrap() {
       queryClient.setQueryData(queryKey, normalised);
       writeClassCache(scope, targetRevision, normalised);
       performance.mark?.('trinity:classes-server-synced');
+      reportWorkspaceTask(queryClient, scope, 'classes', 'ready');
     }).catch(error => {
       console.error('Class cache reconciliation failed:', error);
+      if (!disposed) reportWorkspaceTask(queryClient, scope, 'classes', 'error');
       if (!disposed && retryCount.current < 2) {
         retryCount.current += 1;
         retryTimer = setTimeout(() => setRetryEpoch(epoch => epoch + 1), 3000);

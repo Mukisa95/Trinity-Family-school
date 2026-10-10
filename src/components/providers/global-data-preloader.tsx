@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from 'react';
+import { reportWorkspaceTask, workspaceSetupScope, type SetupTaskState } from '@/lib/startup/workspace-setup';
 import { useQueryClient } from '@tanstack/react-query';
 import { collection, query as firestoreQuery, onSnapshot, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -96,6 +97,12 @@ export function GlobalDataPreloader() {
     let pupilCacheWriteTimer: ReturnType<typeof setTimeout> | undefined;
     let pupilCacheIdleHandle: number | undefined;
     let disposed = false;
+    let pupilLoadFailed = false;
+    const setupScope = workspaceSetupScope(userId, userRole);
+    const report = (task: string, state: SetupTaskState) => {
+      if (!disposed) reportWorkspaceTask(queryClient, setupScope, task, state);
+    };
+    ['pupils', 'fees', ...(userRole === 'Parent' ? ['payments'] : ['requirements', 'uniforms'])].forEach(task => report(task, 'loading'));
 
     // ═══════════════════════════════════════════════════════════
     // REAL-TIME LISTENERS (onSnapshot) — Data that needs live sync
@@ -277,7 +284,9 @@ export function GlobalDataPreloader() {
             if (disposed) return;
             const pupils = queryClient.getQueryData<any[]>(['pupils', 'list']);
             if (!pupils) return;
-            void writePersistentCollection(persistentCacheKey, pupils);
+            void writePersistentCollection(persistentCacheKey, pupils).then(() => {
+              if (!pupilLoadFailed) report('pupils', 'ready');
+            });
           };
 
           if (typeof window.requestIdleCallback === 'function') {
@@ -298,6 +307,7 @@ export function GlobalDataPreloader() {
       };
       const publishPupils = (pupils: any[], source: 'cache' | 'server') => {
         if (disposed) return;
+        pupilLoadFailed = false;
         queryClient.setQueryData(['pupils', 'list'], pupils);
         PupilsService.hydrateSharedPupils(pupils);
         onParentPupilIds?.(pupils.map(pupil => pupil.id));
@@ -330,6 +340,8 @@ export function GlobalDataPreloader() {
           if (disposed) return;
           console.error('❌ PRELOADER: Parent account-link recovery failed:', error);
           scopeStatus('error');
+          pupilLoadFailed = true;
+          report('pupils', 'error');
         }
       };
 
@@ -356,6 +368,7 @@ export function GlobalDataPreloader() {
         onParentPupilIds?.(persistedPupils.map(pupil => pupil.id));
         scopeStatus('ready');
         performance.mark?.('trinity:pupils-fast-cache-ready');
+        if (!pupilLoadFailed) report('pupils', 'ready');
         console.log(
           `FAST CACHE: Restored ${persistedPupils.length} pupils in ${Math.round(performance.now() - fastCacheStartedAt)}ms`,
         );
@@ -385,6 +398,7 @@ export function GlobalDataPreloader() {
           PupilsService.hydrateSharedPupils(persistedPupils);
           onParentPupilIds?.(persistedPupils.map(pupil => pupil.id));
           performance.mark?.('trinity:pupils-revision-cache-ready');
+          if (!pupilLoadFailed) report('pupils', 'ready');
           console.log(
             `FAST CACHE: Restored ${persistedPupils.length} pupils from the shared revision cache in ${Math.round(performance.now() - fastCacheStartedAt)}ms`,
           );
@@ -458,6 +472,7 @@ export function GlobalDataPreloader() {
           const currentPupils = queryClient.getQueryData<any[]>(['pupils', 'list']);
           if (currentPupils) PupilsService.hydrateSharedPupils(currentPupils);
           scopeStatus('ready');
+          if (!pupilLoadFailed) report('pupils', 'ready');
           schedulePersistentPupilCacheWrite();
 
           if (!snapshot.metadata.fromCache) {
@@ -474,6 +489,8 @@ export function GlobalDataPreloader() {
             onParentPupilIds?.([]);
           }
           scopeStatus('error');
+          pupilLoadFailed = true;
+          report('pupils', 'error');
         }
       );
       unsubscribers.push(unsubscribe);
@@ -497,7 +514,9 @@ export function GlobalDataPreloader() {
           queryFn: FeesService.getAllFeeStructures,
           staleTime: Infinity,
         });
+        report('fees', 'ready');
       } catch (error: any) {
+        report('fees', 'error');
         console.error('❌ PRELOADER: Fees fetch error:', error.message);
       }
     };
@@ -506,14 +525,16 @@ export function GlobalDataPreloader() {
     const fetchRequirements = async () => {
       try {
         const cached = queryClient.getQueryData(['requirements']);
-        if (cached && (cached as any[]).length > 0) return;
+        if (cached !== undefined) { report('requirements', 'ready'); return; }
         const snapshot = await getDocs(firestoreQuery(collection(db, 'requirements')));
         const requirements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        queryClient.setQueryData(['requirements'], requirements);
+        report('requirements', 'ready');
         if (requirements.length > 0) {
-          queryClient.setQueryData(['requirements'], requirements);
           console.log(`⚡ PRELOADER: Loaded ${requirements.length} requirements`);
         }
       } catch (error: any) {
+        report('requirements', 'error');
         console.error('❌ PRELOADER: Requirements fetch error:', error.message);
       }
     };
@@ -526,7 +547,9 @@ export function GlobalDataPreloader() {
           queryFn: UniformsService.getAllUniforms,
           staleTime: Infinity,
         });
+        report('uniforms', 'ready');
       } catch (error: any) {
+        report('uniforms', 'error');
         console.error('❌ PRELOADER: Uniforms fetch error:', error.message);
       }
     };
@@ -637,14 +660,22 @@ export function GlobalDataPreloader() {
     const setupParentRecordsListeners = () => {
       if (!userId || userRole !== 'Parent') return;
       const childUnsubscribers = new Map<string, Array<() => void>>();
+      const paymentsReady = new Set<string>();
+      const paymentsFailed = new Set<string>();
+      let currentPupilIds = new Set<string>();
+      const reportPayments = () => report('payments', [...currentPupilIds].some(id => paymentsFailed.has(id)) ? 'error'
+        : [...currentPupilIds].every(id => paymentsReady.has(id)) ? 'ready' : 'loading');
 
       const syncParentPupilRecords = (parentPupilIds: string[]) => {
           const pupilIds = new Set(parentPupilIds);
+          currentPupilIds = pupilIds;
 
           childUnsubscribers.forEach((listeners, pupilId) => {
             if (!pupilIds.has(pupilId)) {
               listeners.forEach(unsubscribe => unsubscribe());
               childUnsubscribers.delete(pupilId);
+              paymentsReady.delete(pupilId);
+              paymentsFailed.delete(pupilId);
             }
           });
 
@@ -658,15 +689,23 @@ export function GlobalDataPreloader() {
 
             const paymentsUnsubscribe = onSnapshot(
               paymentsQuery,
+              { includeMetadataChanges: true },
               (snapshot) => {
                 const payments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (disposed) return;
                 queryClient.setQueryData(['payments', 'pupil', pupilId], payments);
+                if (!snapshot.metadata.fromCache || payments.length > 0) {
+                  paymentsReady.add(pupilId);
+                  paymentsFailed.delete(pupilId);
+                  reportPayments();
+                }
                 console.log(`⚡ PRELOADER: Loaded ${payments.length} payment records for pupil ${pupilId}`);
               },
-              (error) => console.error('❌ PRELOADER: Payments error:', error.message)
+              (error) => { paymentsFailed.add(pupilId); reportPayments(); console.error('❌ PRELOADER: Payments error:', error.message); }
             );
             childUnsubscribers.set(pupilId, [paymentsUnsubscribe]);
           });
+          reportPayments();
       };
 
       unsubscribers.push(() => {
@@ -693,12 +732,12 @@ export function GlobalDataPreloader() {
           console.log('🎯 PARENT MODE: Loading minimal essential data + pupil-specific records...');
           // Fire all in parallel — pupils load concurrently with classes and fees
           const syncParentPupilRecords = setupParentRecordsListeners();
-          setupPupilsListener(syncParentPupilRecords).catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
+          setupPupilsListener(syncParentPupilRecords).catch(e => { report('pupils', 'error'); console.error('❌ PRELOADER: Pupils load error:', e); });
           fetchFees();
           console.log('✅ PARENT PRELOADER: Essential data + payment listener active');
         } else {
           console.log('👥 ADMIN/STAFF MODE: Loading dashboard data first...');
-          setupPupilsListener().catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
+          setupPupilsListener().catch(e => { report('pupils', 'error'); console.error('❌ PRELOADER: Pupils load error:', e); });
           deferredTimer = setTimeout(() => {
             void fetchFees();
             void fetchRequirements();

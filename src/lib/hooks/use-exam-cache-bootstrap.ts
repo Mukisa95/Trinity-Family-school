@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { reportWorkspaceTask } from '@/lib/startup/workspace-setup';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { ExamsService } from '@/lib/services/exams.service';
 import { useDashboardDataRevisions } from './use-school-settings';
@@ -63,7 +64,11 @@ export function useExamCacheBootstrap() {
 
     const needsColdFetch = persisted === null && inMemory === undefined;
     const needsRevisionRefresh = revisionsReady && persisted?.revision !== revision;
-    if (!needsColdFetch && !needsRevisionRefresh) return;
+    if (!needsColdFetch && !needsRevisionRefresh) {
+      reportWorkspaceTask(queryClient, scope, 'exams', 'ready');
+      return;
+    }
+    reportWorkspaceTask(queryClient, scope, 'exams', 'loading');
 
     let disposed = false;
     let serverSucceeded = false;
@@ -95,8 +100,10 @@ export function useExamCacheBootstrap() {
       queryClient.setQueryData(queryKey, normalised);
       writeExamCache(scope, targetRevision, normalised);
       performance.mark?.('trinity:exams-server-synced');
+      reportWorkspaceTask(queryClient, scope, 'exams', 'ready');
     }).catch(error => {
       console.error('Exam cache reconciliation failed:', error);
+      if (!disposed) reportWorkspaceTask(queryClient, scope, 'exams', 'error');
       if (!disposed && retryCount.current < 2) {
         retryCount.current += 1;
         retryTimer = setTimeout(() => setRetryEpoch(epoch => epoch + 1), 3000);
