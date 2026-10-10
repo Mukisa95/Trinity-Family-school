@@ -24,6 +24,8 @@ async function run(){
    assert.equal(header.width,'0px',name+': no top bar seam');
    assert.equal(nav.right,'0px',name+': no sidebar seam');
    assert.equal(header.background,nav.background,name+': shared navigation tone');
+   const workspace=await page.evaluate(()=>{const el=document.createElement('div');el.style.background='hsl(var(--background))';document.body.appendChild(el);const color=getComputedStyle(el).backgroundColor;el.remove();return color;});
+   assert.ok(contrast(nav.background,workspace)>=1.2,name+': navigation visibly separates from the workspace');
    assert.equal(nav.radius,'0px',name+': flush sidebar');
    if(!mobile){assert.equal(nav.rect.x,0);assert.equal(nav.rect.y,0);assert.equal(nav.rect.height,page.viewportSize().height);assert.equal(header.rect.y,0);assert.equal(header.rect.x,nav.rect.right,name+': bars join without a gap or overlap');}
    const corner=await page.locator('.app-topbar').evaluate(el=>{const s=getComputedStyle(el,'::after');return {content:s.content,background:s.backgroundColor,clip:s.clipPath,pointer:s.pointerEvents};});
@@ -42,7 +44,7 @@ async function run(){
    assert.equal(await page.locator('.dashboard-bg-wrapper').evaluate(e=>getComputedStyle(e,'::before').backdropFilter),'none');
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),name+': fits viewport');
    const backdrop=await page.locator('.app-mobile-sidebar').evaluateAll(els=>els.length?getComputedStyle(els[0].previousElementSibling).backdropFilter:'none');assert.equal(backdrop,'none');
-   reports.push({name,width:page.viewportSize().width,header,nav});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(output,name+'.png')});
+   reports.push({name,width:page.viewportSize().width,header,nav,workspace,workspaceContrast:contrast(nav.background,workspace)});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(output,name+'.png')});
   };
   for(const width of [1440,390]){
    await page.setViewportSize({width,height:1000});

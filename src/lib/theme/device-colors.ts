@@ -75,9 +75,9 @@ export function devicePaletteCss(palette: DevicePalette): string {
     for (const [variable, role] of Object.entries(map)) add(variable, hsl(colors[role]));
     // Navigation follows the wallpaper hue, including live palette updates.
     const navigationTone = (weight: number) => rgb(colors.surface).map((n, i) => Math.round(n * (1 - weight) + rgb(colors.primary)[i] * weight)).join(" ");
-    add("navigation-surface", navigationTone(dark ? .08 : .12));
-    add("navigation-control", navigationTone(dark ? .12 : .06));
-    add("navigation-border", navigationTone(dark ? .28 : .30));
+    add("navigation-surface", navigationTone(dark ? .16 : .24));
+    add("navigation-control", navigationTone(.10));
+    add("navigation-border", navigationTone(dark ? .32 : .36));
     add("glass-surface", channels(colors.surface)); add("glass-edge", channels(colors.outline));
     add("night-background", channels(colors.background));
     add("link", channels(colors.primary)); add("link-hover", channels(colors.foreground));

@@ -40,9 +40,9 @@ function navigationRoles(preset, dark = false) {
   const blend = (base, accent, weight) => base.map((n,i)=>Math.round(n*(1-weight)+accent[i]*weight)).join(' ');
   const base = dark ? (preset === 'soft-indigo' ? [15,19,31] : [15,23,42]) : [255,255,255];
   const accent = tone(hue,dark?400:500).split(' ').map(Number);
-  return `  --navigation-surface: ${blend(base,accent,dark?.12:.10)};
-  --navigation-control: ${blend(base,accent,dark?.18:.05)};
-  --navigation-border: ${blend(base,accent,dark?.32:.26)};`;
+  return `  --navigation-surface: ${blend(base,accent,dark?.22:.24)};
+  --navigation-control: ${blend(base,accent,dark?.14:.10)};
+  --navigation-border: ${blend(base,accent,dark?.36:.34)};`;
 }
 // Small class/subject labels need their own paired colours, not translucent button fills.
 function lessonRoles(dark) {
