@@ -1453,7 +1453,7 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card className="theme-dashboard-surface dashboard-mobile-timetable-card h-full rounded-xl transition-all duration-300 relative group overflow-visible" style={{
+      <Card className="theme-dashboard-surface dashboard-themed-card h-full rounded-xl transition-all duration-300 relative group overflow-visible" style={{
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
         transform: 'translateZ(0)',
         background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(249, 250, 251, 1) 100%)',
@@ -1826,7 +1826,7 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.1 }}
     >
-      <Card className="theme-dashboard-surface dashboard-mobile-timetable-card h-full rounded-xl transition-all duration-300 relative group overflow-visible" style={{
+      <Card className="theme-dashboard-surface dashboard-themed-card h-full rounded-xl transition-all duration-300 relative group overflow-visible" style={{
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
         transform: 'translateZ(0)',
         background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(239, 246, 255, 0.5) 100%)',
@@ -2081,7 +2081,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
 
   if (!activePhotos.length) {
     return (
-      <Card className="dashboard-mobile-timetable-card h-full border-0 rounded-xl bg-gradient-to-br from-slate-50 via-white to-brand-surface-50 relative overflow-visible group dark:from-slate-900 dark:via-slate-900 dark:to-brand-surface-950/40" style={{
+      <Card className="dashboard-themed-card h-full border-0 rounded-xl bg-gradient-to-br from-slate-50 via-white to-brand-surface-50 relative overflow-visible group dark:from-slate-900 dark:via-slate-900 dark:to-brand-surface-950/40" style={{
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
         transform: 'translateZ(0)',
       }}>
@@ -2134,7 +2134,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
 
   return (
     <>
-    <Card className="dashboard-mobile-timetable-card h-full border-0 rounded-xl bg-gray-900 group relative overflow-visible" style={{
+    <Card className="dashboard-themed-card h-full border-0 rounded-xl bg-gray-900 group relative overflow-visible" style={{
       boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
       transform: 'translateZ(0)',
     }}>

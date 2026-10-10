@@ -119,7 +119,7 @@ export function MonthCalendarCard() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="h-full"
         >
-            <Card className="theme-dashboard-surface dashboard-mobile-timetable-card h-full cursor-pointer rounded-xl transition-all duration-300 relative group overflow-visible flex flex-col" style={{
+            <Card className="theme-dashboard-surface dashboard-themed-card h-full cursor-pointer rounded-xl transition-all duration-300 relative group overflow-visible flex flex-col" style={{
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
                 transform: 'translateZ(0)',
                 background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(239, 246, 255, 0.5) 100%)',

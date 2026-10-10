@@ -203,17 +203,20 @@ html[data-theme-reveal] .dashboard-bg-wrapper::after { transition: none !importa
   border: 2px solid var(--dashboard-tracker-border, #c7d2fe);
   box-shadow: var(--dashboard-timetable-glow);
 }
-/* Match the dashboard's single-column mobile layout, leaving desktop styling intact.
-   Important declarations replace the legacy inline gradients and dark card shadow. */
-@media screen and (max-width: 1023px) {
-  .dashboard-mobile-timetable-card,
-  .dark .dashboard-mobile-timetable-card {
+/* Use the timetable frame at every screen size. Legacy inline depth effects
+   remain the print fallback; screen overrides also replace the old dark shadow. */
+@media screen {
+  .dashboard-themed-card,
+  .dark .dashboard-themed-card {
     background: hsl(var(--card)) !important;
     color: hsl(var(--card-foreground));
     border: 2px solid var(--dashboard-tracker-border, #c7d2fe) !important;
     box-shadow: var(--dashboard-timetable-glow) !important;
   }
-  .dashboard-mobile-timetable-card > .dashboard-card-decoration { display: none; }
+  .dashboard-themed-card > .dashboard-card-decoration { display: none; }
+}
+/* Keep the compact statistics treatment on phone/tablet layouts. */
+@media screen and (max-width: 1023px) {
   .stat-card {
     border-left-color: rgb(var(--brand-500)) !important;
     background: linear-gradient(135deg, rgb(var(--brand-500) / .05), rgb(var(--brand-300) / .10)) !important;

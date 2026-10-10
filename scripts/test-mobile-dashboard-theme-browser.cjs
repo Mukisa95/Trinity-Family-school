@@ -1,4 +1,4 @@
-/* Exercise actual dashboard cards at phone/tablet widths with web and native palettes. */
+/* Exercise actual dashboard frames across phone, tablet and desktop palettes. */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -59,21 +59,29 @@ async function run() {
     const verify = async name => {
       await page.waitForTimeout(350);
       const timetable = await frame(page.locator('.dashboard-timetable-card'));
-      for (const id of cards) assert.deepEqual(await frame(page.getByTestId(id).locator('.dashboard-mobile-timetable-card')), timetable, `${name}/${id} must share the timetable frame`);
+      for (const id of cards) assert.deepEqual(await frame(page.getByTestId(id).locator('.dashboard-themed-card')), timetable, `${name}/${id} must share the timetable frame`);
       const colours = await stats(page); assert.equal(colours.length, 6);
-      for (const colour of colours) assert.deepEqual(colour, colours[0], `${name}: every statistic matches Total Pupils`);
-      assert.equal(await page.locator('.dashboard-mobile-timetable-card > .dashboard-card-decoration').evaluateAll(els => els.some(el => getComputedStyle(el).display !== 'none')), false);
-      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Phone has no horizontal overflow');
-      reports.push({ name, timetable, statistic: colours[0] });
+      if (page.viewportSize().width < 1024) {
+        for (const colour of colours) assert.deepEqual(colour, colours[0], `${name}: every statistic matches Total Pupils`);
+      } else {
+        assert.equal(new Set(colours.map(s => s.accent)).size, 6, 'Desktop category colours remain distinct');
+      }
+      assert.equal(await page.locator('.dashboard-themed-card > .dashboard-card-decoration').evaluateAll(els => els.some(el => getComputedStyle(el).display !== 'none')), false);
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${name}: dashboard has no horizontal overflow`);
+      reports.push({ name, width: page.viewportSize().width, timetable, statistic: colours[0] });
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.screenshot({ path: path.join(output, name + '.png') });
     };
-    for (const preset of ['trinity-classic', 'soft-indigo']) for (const dark of [false, true]) {
-      await apply(preset, dark, false); await verify(preset + '-' + (dark ? 'dark' : 'light'));
+    for (const width of [390, 1440, 1024]) {
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 1050 });
+      for (const preset of ['trinity-classic', 'soft-indigo']) for (const dark of [false, true]) {
+        await apply(preset, dark, false); await verify(width + '-' + preset + '-' + (dark ? 'dark' : 'light'));
+      }
+      for (const dark of [false, true]) {
+        await apply('trinity-classic', dark, true); await verify(width + '-material-you-' + (dark ? 'dark' : 'light'));
+      }
     }
-    for (const dark of [false, true]) {
-      await apply('trinity-classic', dark, true); await verify('material-you-' + (dark ? 'dark' : 'light'));
-    }
+    await page.setViewportSize({ width: 390, height: 844 });
     // A wallpaper palette update recolours the open dashboard without reloading it.
     await page.evaluate(() => {
       window.nativePalette.palettes.primary = window.nativePalette.palettes.secondary;
@@ -85,7 +93,9 @@ async function run() {
     await verify('material-you-cool-dark');
     assert.notDeepEqual(reports.at(-1).statistic, reports.at(-2).statistic, 'Statistic accents follow refreshed device colours');
     assert.notEqual(reports.at(-1).timetable.shadow, reports.at(-2).timetable.shadow, 'Card glow follows refreshed device colours');
+    await page.setViewportSize({ width: 1440, height: 1050 }); await verify('desktop-refreshed-device-dark');
     await page.setViewportSize({ width: 768, height: 1024 }); await verify('tablet-device-dark');
+    await page.setViewportSize({ width: 360, height: 800 }); await verify('small-phone-device-dark');
     await page.setViewportSize({ width: 390, height: 844 });
     // Exercise the cycling attendance card after its status/colour config changes.
     const lastLabel = page.locator('.stat-card').last().locator('.dashboard-stat-label');
@@ -108,10 +118,10 @@ async function run() {
     await page.emulateMedia({ media: 'screen' }); await apply('trinity-classic', false, false);
     await page.setViewportSize({ width: 1440, height: 1050 });
     const desktopStats = await stats(page); assert.equal(new Set(desktopStats.map(s => s.accent)).size, 6, 'Desktop category colours remain distinct');
-    assert.notEqual((await frame(page.getByTestId('enrollment').locator('.dashboard-mobile-timetable-card'))).shadow, (await frame(page.locator('.dashboard-timetable-card'))).shadow, 'Desktop card depth stays unchanged');
+    await verify('desktop-restored-classic-light');
     assert.deepEqual(errors, []);
     fs.writeFileSync(path.join(output, 'verification.json'), JSON.stringify({ reports, desktopCategories: 6, slideshowControls: true, printIsolation: true, errors }, null, 2));
-    console.log('MOBILE_DASHBOARD_THEME_OK: six actual statistics (including cycling/expandable cards), all chart/slideshow frames, Classic/Indigo/device light and dark, live palette refresh, tablet, photo controls, print isolation and unchanged desktop.');
+    console.log('RESPONSIVE_DASHBOARD_THEME_OK: six actual statistics (including cycling/expandable cards), all chart/slideshow frames, Classic/Indigo/device light and dark, live palette refresh, phone/tablet/desktop frame parity, photo controls, print isolation and distinct desktop statistics.');
   } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
 }
 run().catch(error => { console.error(error); process.exitCode = 1; });
