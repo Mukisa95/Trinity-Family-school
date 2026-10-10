@@ -2264,149 +2264,52 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
   border: 0 !important;
 }
 
-/* Enhanced Sidebar Glossy & Glowing Effects */
+/* Sidebar structure and interaction states */
 @layer components {
 
-  /* Main sidebar container with modern glass morphism */
+  /* Main sidebar container */
   [data-sidebar="sidebar"] {
-    background: linear-gradient(145deg,
-        rgba(255, 255, 255, 0.95) 0%,
-        rgba(250, 252, 255, 0.92) 30%,
-        rgba(248, 250, 252, 0.88) 70%,
-        rgba(245, 248, 252, 0.90) 100%) !important;
-    backdrop-filter: blur(25px) saturate(200%) !important;
+    background: hsl(var(--sidebar-background)) !important;
     border-right: 1px solid rgba(226, 232, 240, 0.4) !important;
-    box-shadow:
-      0 20px 60px rgba(0, 0, 0, 0.08),
-      0 8px 25px rgb(var(--brand-500) / 0.12),
-      0 4px 12px rgb(var(--brand-secondary-alt-500) / 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9),
-      inset 0 0 20px rgba(255, 255, 255, 0.3) !important;
     position: relative !important;
     overflow: hidden !important;
   }
 
   /* Sophisticated background pattern */
-  [data-sidebar="sidebar"]::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background:
-      radial-gradient(circle at 20% 20%, rgb(var(--brand-500) / 0.03) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgb(var(--brand-secondary-alt-500) / 0.02) 0%, transparent 50%),
-      radial-gradient(circle at 40% 60%, rgb(var(--brand-500) / 0.01) 0%, transparent 50%);
-    border-radius: inherit;
-    pointer-events: none;
-    z-index: 0;
-  }
 
   /* Animated glow overlay */
-  [data-sidebar="sidebar"]::after {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    background: linear-gradient(45deg,
-        rgb(var(--brand-500) / 0.1) 0%,
-        rgb(var(--brand-secondary-alt-500) / 0.05) 25%,
-        rgb(var(--brand-500) / 0.08) 50%,
-        rgb(var(--brand-secondary-alt-500) / 0.03) 75%,
-        rgb(var(--brand-500) / 0.1) 100%);
-    border-radius: inherit;
-    opacity: 0.6;
-    filter: blur(1px);
-    pointer-events: none;
-    z-index: -1;
-    animation: subtle-glow 4s ease-in-out infinite;
-  }
-
-  @keyframes subtle-glow {
-
-    0%,
-    100% {
-      opacity: 0.6;
-    }
-
-    50% {
-      opacity: 0.8;
-    }
-  }
 
   /* Modern sidebar menu buttons with card-like appearance */
   [data-sidebar="menu-button"] {
-    background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.7) 0%,
-        rgba(248, 250, 252, 0.5) 100%) !important;
-    backdrop-filter: blur(15px) !important;
+    background: transparent !important;
     border: 1px solid rgba(226, 232, 240, 0.4) !important;
     border-radius: 8px !important;
     margin: 2px 6px !important;
     padding: 8px 12px !important;
-    box-shadow:
-      0 4px 12px rgba(0, 0, 0, 0.04),
-      0 2px 6px rgb(var(--brand-500) / 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     position: relative !important;
     overflow: hidden !important;
     z-index: 1 !important;
   }
 
-  /* Menu button hover effects with sophisticated animations */
+  /* Menu button hover state */
   [data-sidebar="menu-button"]:hover {
-    background: linear-gradient(135deg,
-        rgb(var(--brand-500) / 0.08) 0%,
-        rgb(var(--brand-secondary-alt-500) / 0.04) 50%,
-        rgb(var(--brand-500) / 0.06) 100%) !important;
+    background: hsl(var(--sidebar-accent)) !important;
     border-color: rgb(var(--brand-500) / 0.3) !important;
-    box-shadow:
-      0 8px 30px rgb(var(--brand-500) / 0.15),
-      0 4px 15px rgb(var(--brand-secondary-alt-500) / 0.08),
-      0 2px 8px rgba(0, 0, 0, 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8),
-      0 0 20px rgb(var(--brand-500) / 0.1) !important;
     transform: translateY(-2px) scale(1.02) !important;
   }
 
   /* Menu button ripple effect */
-  [data-sidebar="menu-button"]::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgb(var(--brand-500) / 0.2) 0%, transparent 70%);
-    transform: translate(-50%, -50%);
-    transition: width 0.3s ease, height 0.3s ease;
-    pointer-events: none;
-    z-index: -1;
-  }
 
   [data-sidebar="menu-button"]:hover::before {
     width: 80px;
     height: 80px;
   }
 
-  /* Active state with premium glow */
+  /* Active navigation state */
   [data-sidebar="menu-button"][data-active="true"] {
-    background: linear-gradient(135deg,
-        rgb(var(--brand-500) / 0.15) 0%,
-        rgb(var(--brand-secondary-alt-500) / 0.08) 50%,
-        rgb(var(--brand-500) / 0.12) 100%) !important;
+    background: hsl(var(--sidebar-accent)) !important;
     border-color: rgb(var(--brand-500) / 0.4) !important;
-    box-shadow:
-      0 12px 40px rgb(var(--brand-500) / 0.25),
-      0 6px 20px rgb(var(--brand-secondary-alt-500) / 0.12),
-      0 3px 10px rgb(var(--brand-500) / 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6),
-      0 0 30px rgb(var(--brand-500) / 0.2) !important;
     color: rgb(var(--brand-ink-600)) !important;
     font-weight: 600 !important;
     transform: translateY(-1px) !important;
@@ -2414,17 +2317,8 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
 
   /* Active state for sub-menu buttons */
   [data-sidebar="menu-sub-button"][data-active="true"] {
-    background: linear-gradient(135deg,
-        rgb(var(--brand-500) / 0.12) 0%,
-        rgb(var(--brand-secondary-alt-500) / 0.06) 50%,
-        rgb(var(--brand-500) / 0.10) 100%) !important;
+    background: hsl(var(--sidebar-background)) !important;
     border-color: rgb(var(--brand-500) / 0.35) !important;
-    box-shadow:
-      0 8px 25px rgb(var(--brand-500) / 0.20),
-      0 4px 12px rgb(var(--brand-secondary-alt-500) / 0.08),
-      0 2px 6px rgb(var(--brand-500) / 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.5),
-      0 0 20px rgb(var(--brand-500) / 0.15) !important;
     color: rgb(var(--brand-ink-600)) !important;
     font-weight: 600 !important;
     transform: translateY(-0.5px) !important;
@@ -2433,84 +2327,30 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
 
   /* Hover states for sub-menu buttons */
   [data-sidebar="menu-sub-button"]:hover {
-    background: linear-gradient(135deg,
-        rgb(var(--brand-500) / 0.08) 0%,
-        rgb(var(--brand-secondary-alt-500) / 0.04) 50%,
-        rgb(var(--brand-500) / 0.06) 100%) !important;
+    background: hsl(var(--sidebar-background)) !important;
     border-color: rgb(var(--brand-500) / 0.25) !important;
-    box-shadow:
-      0 6px 20px rgb(var(--brand-500) / 0.15),
-      0 3px 10px rgb(var(--brand-secondary-alt-500) / 0.06),
-      0 1px 4px rgb(var(--brand-500) / 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
     transform: translateY(-0.5px) !important;
   }
 
   /* Enhanced sidebar header with modern styling */
   [data-sidebar="header"] {
-    background: linear-gradient(180deg,
-        rgba(255, 255, 255, 0.9) 0%,
-        rgba(252, 254, 255, 0.7) 50%,
-        rgba(250, 252, 255, 0.5) 100%) !important;
-    backdrop-filter: blur(20px) !important;
+    background: transparent !important;
     border-bottom: 1px solid rgba(226, 232, 240, 0.3) !important;
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.04),
-      0 4px 16px rgb(var(--brand-500) / 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
     padding: 16px 16px !important;
     position: relative !important;
   }
 
   /* Header glow effect */
-  [data-sidebar="header"]::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 20%;
-    right: 20%;
-    height: 1px;
-    background: linear-gradient(90deg,
-        transparent 0%,
-        rgb(var(--brand-500) / 0.3) 20%,
-        rgb(var(--brand-secondary-alt-500) / 0.2) 50%,
-        rgb(var(--brand-500) / 0.3) 80%,
-        transparent 100%);
-    filter: blur(0.5px);
-  }
 
   /* Enhanced sidebar footer */
   [data-sidebar="footer"] {
-    background: linear-gradient(180deg,
-        rgba(250, 252, 255, 0.5) 0%,
-        rgba(248, 250, 252, 0.7) 50%,
-        rgba(255, 255, 255, 0.9) 100%) !important;
-    backdrop-filter: blur(20px) !important;
+    background: transparent !important;
     border-top: 1px solid rgba(226, 232, 240, 0.3) !important;
-    box-shadow:
-      0 -8px 32px rgba(0, 0, 0, 0.04),
-      0 -4px 16px rgb(var(--brand-500) / 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
     padding: 12px !important;
     position: relative !important;
   }
 
   /* Footer top glow */
-  [data-sidebar="footer"]::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 20%;
-    right: 20%;
-    height: 1px;
-    background: linear-gradient(90deg,
-        transparent 0%,
-        rgb(var(--brand-500) / 0.3) 20%,
-        rgb(var(--brand-secondary-alt-500) / 0.2) 50%,
-        rgb(var(--brand-500) / 0.3) 80%,
-        transparent 100%);
-    filter: blur(0.5px);
-  }
 
   /* Enhanced logo container - Background removed for clean logo display */
   .relative.w-16.h-16 {
@@ -2542,25 +2382,11 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
   [data-sidebar="sidebar"][data-variant="inset"] {
     border-radius: 20px !important;
     margin: 12px !important;
-    box-shadow:
-      0 25px 50px rgba(0, 0, 0, 0.12),
-      0 12px 25px rgb(var(--brand-500) / 0.15),
-      0 6px 12px rgb(var(--brand-secondary-alt-500) / 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9),
-      0 0 0 1px rgba(226, 232, 240, 0.4) !important;
   }
 
   /* Enhanced mobile sheet */
   [data-sidebar="sidebar"][data-mobile="true"] {
-    background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.98) 0%,
-        rgba(250, 252, 255, 0.95) 50%,
-        rgba(248, 250, 252, 0.92) 100%) !important;
-    backdrop-filter: blur(30px) saturate(180%) !important;
-    box-shadow:
-      0 30px 60px rgba(0, 0, 0, 0.15),
-      0 15px 30px rgb(var(--brand-500) / 0.2),
-      0 8px 16px rgb(var(--brand-secondary-alt-500) / 0.1) !important;
+    background: hsl(var(--sidebar-background)) !important;
   }
 
   /* Custom Mobile Sidebar Scrollbar */
@@ -2608,7 +2434,6 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
       bottom: 0;
       background: rgba(0, 0, 0, 0.5);
       z-index: -1;
-      backdrop-filter: blur(2px);
     }
 
     /* Ensure mobile sidebar trigger is visible */
@@ -3031,13 +2856,7 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
 
   /* Premium sidebar toggle */
   [data-sidebar="trigger"]:hover {
-    background: linear-gradient(135deg,
-        rgb(var(--brand-500) / 0.08) 0%,
-        rgb(var(--brand-secondary-alt-500) / 0.04) 100%) !important;
-    box-shadow:
-      0 8px 25px rgb(var(--brand-500) / 0.2),
-      0 4px 12px rgb(var(--brand-secondary-alt-500) / 0.1),
-      0 2px 6px rgba(0, 0, 0, 0.08) !important;
+    background: hsl(var(--accent)) !important;
     border-radius: 12px !important;
     transform: scale(1.05) !important;
   }
@@ -3049,22 +2868,6 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
   }
 
   /* Subtle top accent line */
-  [data-sidebar="content"]::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 20px;
-    right: 20px;
-    height: 2px;
-    background: linear-gradient(90deg,
-        transparent 0%,
-        rgb(var(--brand-500) / 0.3) 20%,
-        rgb(var(--brand-secondary-alt-500) / 0.2) 50%,
-        rgb(var(--brand-500) / 0.3) 80%,
-        transparent 100%);
-    border-radius: 1px;
-    pointer-events: none;
-  }
 
   /* Enhanced menu item text */
   [data-sidebar="menu-button"] span {
@@ -3075,12 +2878,10 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
 
   /* Menu item icons with enhanced styling */
   [data-sidebar="menu-button"] svg {
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1)) !important;
     transition: all 0.3s ease !important;
   }
 
   [data-sidebar="menu-button"]:hover svg {
-    filter: drop-shadow(0 2px 4px rgb(var(--brand-500) / 0.3)) !important;
     transform: scale(1.1) !important;
   }
 
@@ -3095,16 +2896,12 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
   }
 
   [data-sidebar="content"]::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg,
-        rgb(var(--brand-500) / 0.4) 0%,
-        rgb(var(--brand-secondary-alt-500) / 0.3) 100%);
+    background: hsl(var(--muted-foreground));
     border-radius: 2px;
   }
 
   [data-sidebar="content"]::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg,
-        rgb(var(--brand-500) / 0.6) 0%,
-        rgb(var(--brand-secondary-alt-500) / 0.5) 100%);
+    background: hsl(var(--muted-foreground));
   }
 
   /* Enhanced smooth scrolling */
@@ -3144,9 +2941,7 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
     right: 2px;
     width: 2px;
     height: 20px;
-    background: linear-gradient(180deg,
-        rgb(var(--brand-500) / 0.6) 0%,
-        transparent 100%);
+    background: hsl(var(--sidebar-background));
     border-radius: 1px;
     animation: scroll-indicator 1s ease-in-out;
   }
@@ -3447,39 +3242,6 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
 
 
 
-/* ========================================
-   Header shimmer — CSS-only, GPU-safe
-   Replaces framer-motion looping x translate
-   on all top-bar pills and badges.
-   Uses `transform: translateX` which is
-   composited on the GPU — safe on weak devices.
-   ======================================== */
-@keyframes header-shimmer-pass {
-  0% {
-    transform: translateX(-150%);
-  }
-
-  100% {
-    transform: translateX(250%);
-  }
-}
-
-.header-shimmer::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg,
-      transparent 35%,
-      rgba(255, 255, 255, 0.32) 50%,
-      transparent 65%);
-  transform: translateX(-150%);
-  animation: header-shimmer-pass 4s ease-in-out infinite;
-  animation-delay: 1s;
-  pointer-events: none;
-  border-radius: inherit;
-}
-
-
 /* ─── Attendance auto-save indicator ─────────────────────────────────────────
    Styled via plain CSS because the className is set by direct DOM mutation
    (no React re-renders). The JS sets .saving or .saved on the element.       */
@@ -3548,20 +3310,17 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
   position: relative;
 }
 
-/* ── 1b. Scroll-driven blur overlay ── */
-/* A fixed pseudo-element sits over the entire background image.
-   Its backdrop-filter blur amount is driven by the --scroll-blur
-   CSS variable that JavaScript updates on scroll. */
-.dashboard-bg-wrapper::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  backdrop-filter: blur(var(--scroll-blur, 0px));
-  -webkit-backdrop-filter: blur(var(--scroll-blur, 0px));
-  transition: backdrop-filter 0.15s ease, -webkit-backdrop-filter 0.15s ease;
-  /* Only the background image bleeds through — content above z-index: 0 is unaffected */
+/* Static dimming keeps background artwork subdued without scroll-driven repainting. */
+@media screen {
+  .dashboard-bg-wrapper::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: hsl(var(--background) / .08);
+  }
+  [data-app-background="plain"] .dashboard-bg-wrapper::before { display: none; }
 }
 
 /* ── 2. Transparent SidebarInset – background shows through ── */
@@ -3569,16 +3328,10 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
   background: transparent !important;
 }
 
-/* ── 3. Sidebar – Single unified glass card (logo + nav + footer as ONE piece) ── */
+/* Sidebar frame; logo, navigation and footer share one themed surface. */
 .dashboard-bg-wrapper [data-sidebar="sidebar"] {
-  background: rgba(255, 255, 255, 0.82) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.6) !important;
-  box-shadow:
-    0 6px 24px rgba(0, 0, 0, 0.06),
-    0 1px 2px rgba(0, 0, 0, 0.03),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
   border-radius: 18px !important;
   overflow: hidden !important;
   padding: 0 !important;
@@ -3591,10 +3344,7 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
 /* ── 4a. Sidebar Header – part of the unified card, no separate styling ── */
 .dashboard-bg-wrapper [data-sidebar="header"] {
   background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
   border: none !important;
-  box-shadow: none !important;
   border-radius: 0 !important;
   width: 100% !important;
   margin: 0 !important;
@@ -3609,10 +3359,7 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
 /* ── 4c. Sidebar Content – transparent, part of the unified card ── */
 .dashboard-bg-wrapper [data-sidebar="content"] {
   background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
   border: none !important;
-  box-shadow: none !important;
   border-radius: 0 !important;
   width: 100% !important;
   margin: 0 !important;
@@ -3624,27 +3371,18 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
 /* ── 4d. Sidebar Footer – transparent, part of the unified card ── */
 .dashboard-bg-wrapper [data-sidebar="footer"] {
   background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
   border: none !important;
   border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
-  box-shadow: none !important;
   border-radius: 0 !important;
   width: 100% !important;
   margin: 0 !important;
   padding: 8px !important;
 }
 
-/* ── 5. Topbar (EnhancedHeader) – full-width glass bar aligned to the viewport top ── */
+/* Top bar frame aligned to the viewport top. */
 .dashboard-bg-wrapper [data-sidebar="inset"] > header {
-  background: rgba(255, 255, 255, 0.82) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.6) !important;
-  box-shadow:
-    0 6px 24px rgba(0, 0, 0, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.02),
-    inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
   border-radius: 0 0 18px 18px !important;
   margin: 0 !important;
   width: 100% !important;
@@ -3661,31 +3399,15 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
   display: none !important;
 }
 
-/* ── 7. Sidebar menu buttons – slightly more transparent over bg ── */
+/* Sidebar menu buttons use solid hover/selected surfaces. */
 .dashboard-bg-wrapper [data-sidebar="menu-button"] {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.72) 0%,
-    rgba(248, 251, 255, 0.60) 100%
-  ) !important;
+  background: transparent !important;
   border: 1px solid rgba(220, 232, 248, 0.50) !important;
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.80) !important;
 }
 
 .dashboard-bg-wrapper [data-sidebar="menu-button"]:hover {
-  background: linear-gradient(
-    135deg,
-    rgb(var(--brand-500) / 0.10) 0%,
-    rgb(var(--brand-secondary-alt-500) / 0.06) 50%,
-    rgb(var(--brand-500) / 0.08) 100%
-  ) !important;
+  background: hsl(var(--sidebar-accent)) !important;
   border-color: rgb(var(--brand-500) / 0.32) !important;
-  box-shadow:
-    0 8px 28px rgb(var(--brand-500) / 0.14),
-    0 3px 10px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
 }
 
 /* ── 8. Dashboard card glass – cards float over the background ── */

@@ -76,7 +76,7 @@ function MobileMenuButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="md:hidden p-2 rounded-xl bg-gradient-to-r from-brand-surface-500 to-brand-secondary-surface-600 hover:from-brand-surface-600 hover:to-brand-secondary-surface-700 text-white shadow-lg hover:shadow-xl"
+      className="md:hidden p-2 rounded-xl bg-card text-card-foreground border border-border hover:bg-accent shadow-none"
     >
       <Menu size={20} />
     </button>
@@ -451,38 +451,8 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
     setIsMobileSidebarOpen(false);
   };
 
-  // ── Background blur effect ──
-  // On dashboard (/): clear at top, blurs up to 8px as user scrolls 200px
-  // On all other pages: fixed 6px blur so background stays blurred
+
   const mainRef = useRef<HTMLElement>(null);
-  const isDashboard = pathname === '/';
-
-  useEffect(() => {
-    const mainEl = mainRef.current;
-    if (!mainEl) return;
-    const bgWrapper = mainEl.closest<HTMLElement>('.dashboard-bg-wrapper');
-    if (!bgWrapper) return;
-
-    if (!isDashboard) {
-      // Non-dashboard pages: immediately blurred
-      bgWrapper.style.setProperty('--scroll-blur', '6px');
-      return () => {
-        bgWrapper.style.setProperty('--scroll-blur', '0px');
-      };
-    }
-
-    // Dashboard: 0px blur at top, grows as user scrolls
-    bgWrapper.style.setProperty('--scroll-blur', '0px');
-    const onScroll = () => {
-      const blur = Math.min(8, (mainEl.scrollTop / 200) * 8);
-      bgWrapper.style.setProperty('--scroll-blur', `${blur}px`);
-    };
-    mainEl.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      mainEl.removeEventListener('scroll', onScroll);
-      bgWrapper.style.setProperty('--scroll-blur', '0px');
-    };
-  }, [isDashboard]);
 
   // Do not briefly mount the heavy login landing page for a signed-in user.
   // The redirect runs after this render, so keep the same boot surface visible

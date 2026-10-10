@@ -135,27 +135,41 @@ html[data-theme-reveal]::view-transition-new(theme-switch-moon) { animation-dura
   .theme-toggle:active .theme-toggle-track { transform: none; }
 }
 
-/* Preserve the existing glass construction and replace its light-only materials. */
-.dark [data-sidebar="sidebar"],
-.dark .dashboard-bg-wrapper [data-sidebar="sidebar"],
-.dark .dashboard-bg-wrapper [data-sidebar="inset"] > header {
-  background: rgb(var(--glass-surface) / 0.88) !important;
-  border-color: rgb(var(--glass-edge) / 0.28) !important;
-  box-shadow: 0 8px 28px rgb(var(--glass-shadow) / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.06) !important;
+/* Navigation uses opaque semantic surfaces, an outline and no decorative glow. */
+@media screen {
+  .dashboard-bg-wrapper [data-sidebar="sidebar"],
+  .app-mobile-sidebar {
+    background: hsl(var(--sidebar-background)) !important;
+    color: hsl(var(--sidebar-foreground));
+    border: 1px solid hsl(var(--sidebar-border)) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .app-topbar,
+  .dashboard-bg-wrapper [data-sidebar="inset"] > header.app-topbar {
+    background: hsl(var(--card)) !important;
+    color: hsl(var(--card-foreground));
+    border: 1px solid hsl(var(--border)) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .app-topbar-tile { background: hsl(var(--card)); border-color: hsl(var(--border)); }
+  .dashboard-bg-wrapper [data-sidebar="menu-button"] {
+    background: transparent !important;
+    border-color: hsl(var(--sidebar-border)) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+  .dashboard-bg-wrapper [data-sidebar="menu-button"]:hover,
+  .dashboard-bg-wrapper [data-sidebar="menu-button"][data-active="true"] {
+    background: hsl(var(--sidebar-accent)) !important;
+    color: hsl(var(--sidebar-accent-foreground)) !important;
+    border-color: hsl(var(--sidebar-border)) !important;
+  }
 }
-.dark [data-sidebar="menu-button"],
-.dark .dashboard-bg-wrapper [data-sidebar="menu-button"] {
-  background: linear-gradient(135deg, rgb(var(--ui-neutral-slate-800, 30 41 59) / 0.8), rgb(var(--ui-neutral-slate-900, 15 23 42) / 0.65)) !important;
-  border-color: rgb(var(--ui-neutral-slate-500, 100 116 139) / 0.2) !important;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
-}
-.dark [data-sidebar="menu-button"]:hover,
-.dark .dashboard-bg-wrapper [data-sidebar="menu-button"]:hover,
-.dark [data-sidebar="menu-button"][data-active="true"] {
-  background: linear-gradient(135deg, rgb(var(--brand-600) / 0.24), rgb(var(--brand-alt-500) / 0.18)) !important;
-  border-color: rgb(var(--brand-400) / 0.38) !important;
-}
-/* Keep both illustrations ready; only the night layer fades, below the scroll blur. */
+/* Keep both illustrations ready; only the night layer fades below the static dimmer. */
 .dashboard-bg-wrapper { isolation: isolate; background-color: hsl(var(--background)); }
 .dashboard-bg-wrapper::after {
   content: '';

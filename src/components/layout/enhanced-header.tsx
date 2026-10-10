@@ -148,7 +148,7 @@ function SearchFamilyBranch({
       aria-label={`Siblings of ${formatPupilDisplayName(anchorPupil)}`}
       onPointerUp={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
-      className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50/90 via-teal-50/50 to-white px-3 py-2 dark:border-emerald-800/60 dark:from-emerald-950/90 dark:via-teal-950/50 dark:to-slate-900"
+      className="border-b border-emerald-100 px-3 py-2 dark:border-emerald-800/60 "
     >
       <div className="mb-1.5 flex items-center justify-between gap-2 pl-5">
         <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
@@ -748,7 +748,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
 
   return (
     <>
-      <header className="bg-white/[0.72] dark:bg-slate-950/[0.72] backdrop-blur-[20px] border-b border-white/45 dark:border-slate-800/45 sticky md:absolute top-0 left-0 right-0 z-40 transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+      <header className="app-topbar bg-card text-card-foreground border-b border-border sticky md:absolute top-0 left-0 right-0 z-40 transition-all duration-300 shadow-none">
         <div className="px-2 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-11 sm:h-13">
             {/* Left side: Mobile Sidebar Trigger, Menu Button */}
@@ -760,7 +760,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   whileTap={buttonTap}
                   transition={springConfig}
                 >
-                  <SidebarTrigger className="md:hidden h-8 w-8 sm:h-[36px] sm:w-[36px] rounded-full bg-gradient-to-r from-brand-surface-500 via-brand-alt-surface-600 to-brand-secondary-surface-600 hover:from-brand-surface-600 hover:via-brand-alt-surface-700 hover:to-brand-secondary-surface-700 text-white shadow-sm flex-shrink-0 flex items-center justify-center border-0 relative overflow-hidden" />
+                  <SidebarTrigger className="md:hidden h-8 w-8 sm:h-[36px] sm:w-[36px] rounded-full bg-card text-card-foreground shadow-none flex-shrink-0 flex items-center justify-center border border-border relative overflow-hidden" />
                 </motion.div>
               )}
 
@@ -782,7 +782,6 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   whileTap={buttonTap}
                   transition={springConfig}
                   className="h-8 w-8 sm:h-[36px] sm:w-[36px] rounded-full flex items-center justify-center bg-white hover:bg-brand-surface-50/80 text-gray-600 hover:text-brand-ink-600 border border-gray-200/60 shadow-sm flex-shrink-0 transition-all dark:bg-slate-900 dark:hover:bg-brand-surface-950/80 dark:text-slate-300 dark:hover:text-brand-ink-400 dark:border-slate-700/60"
-                  style={{ boxShadow: "0 1px 4px rgba(59, 130, 246, 0.05)" }}
                 >
                   <List size={17} weight="duotone" />
                 </motion.button>
@@ -804,13 +803,11 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   <motion.div
                     whileHover={{
                       scale: 1.015,
-                      boxShadow: "0 4px 10px rgba(59, 130, 246, 0.15), 0 0 0 1px rgba(59, 130, 246, 0.18)"
                     }}
                     whileTap={{ scale: 0.98 }}
                     transition={{ duration: 0.18, ease: "easeOut" }}
-                    className="w-full max-w-[680px] h-[30px] sm:h-[36px] px-2 sm:px-4 flex items-center justify-center gap-1 sm:gap-2 font-semibold rounded-full bg-gradient-to-r from-brand-surface-50 via-white to-brand-surface-50 cursor-pointer border border-brand-200/60 shadow-sm relative overflow-hidden header-shimmer dark:from-brand-surface-950/40 dark:via-slate-900 dark:to-brand-surface-950/40 dark:border-brand-800/60"
+                    className="w-full max-w-[680px] h-[30px] sm:h-[36px] px-2 sm:px-4 flex items-center justify-center gap-1 sm:gap-2 font-semibold rounded-full app-topbar-tile bg-card text-card-foreground cursor-pointer border border-border shadow-none relative overflow-hidden"
                     style={{
-                      boxShadow: "0 2px 6px rgba(59, 130, 246, 0.05)",
                       willChange: "transform",
                     }}
                     onClick={handleMessageClick}
@@ -830,7 +827,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                         className="flex-1 min-w-0 flex items-center justify-center overflow-hidden"
                       >
                         <span
-                          className="w-full text-center bg-gradient-to-r from-brand-ink-600 to-brand-alt-ink-700 bg-clip-text text-transparent font-bold tracking-wide whitespace-nowrap overflow-hidden text-ellipsis block dark:from-brand-ink-400 dark:to-brand-alt-ink-400"
+                          className="w-full text-center text-foreground font-bold tracking-wide whitespace-nowrap overflow-hidden text-ellipsis block "
                           style={{ fontSize: "10px" }}
                         >
                           {currentMessage}
@@ -1029,11 +1026,10 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                 whileHover={{
                   scale: 1.015,
                   y: -0.5,
-                  boxShadow: "0 4px 10px rgba(59, 130, 246, 0.1), 0 0 0 1px rgba(59, 130, 246, 0.15)"
                 }}
                 whileTap={{ scale: 0.985 }}
                 transition={springConfig}
-                className="hidden lg:flex items-center gap-2 h-[34px] px-3 sm:px-3.5 bg-gradient-to-r from-brand-surface-50/80 via-brand-alt-surface-50/80 to-emerald-50/80 backdrop-blur-sm rounded-full border border-brand-200/50 shadow-sm relative overflow-hidden cursor-pointer header-shimmer dark:from-brand-surface-950/80 dark:via-brand-alt-surface-950/80 dark:to-emerald-950/80 dark:border-brand-800/50"
+                className="hidden lg:flex items-center gap-2 h-[34px] px-3 sm:px-3.5 app-topbar-tile bg-card text-card-foreground rounded-full border border-border shadow-none relative overflow-hidden cursor-pointer"
                 style={{ willChange: "transform" }}
               >
                 <Calendar size={13} className="text-brand-ink-600 flex-shrink-0 relative z-10 dark:text-brand-ink-400" weight="duotone" />
@@ -1096,8 +1092,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                           ? 'w-auto min-w-[160px] max-w-[240px]'
                           : searchBarWidth
                         }`}
-                      style={{ boxShadow: "0 1px 4px rgba(59, 130, 246, 0.05)" }}
-                    />
+                        />
 
                     {/* Animated placeholder content */}
                     {!searchTerm && (
@@ -1106,9 +1101,9 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                           {searchAnimationPhase === 'logo' && settings?.generalInfo?.logo && !searchAnimationComplete && (
                             <motion.div
                               key="logo"
-                              initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
-                              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                              exit={{ opacity: 0, y: -15, filter: 'blur(4px)' }}
+                              initial={{ opacity: 0, y: 15 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -15 }}
                               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                               className="flex items-center justify-center"
                             >
@@ -1126,9 +1121,9 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                           {searchAnimationPhase === 'name' && settings?.generalInfo?.name && !searchAnimationComplete && (
                             <motion.div
                               key="name"
-                              initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
-                              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                              exit={{ opacity: 0, y: -15, filter: 'blur(4px)' }}
+                              initial={{ opacity: 0, y: 15 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -15 }}
                               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                               className="text-xs text-gray-400 font-medium whitespace-nowrap pl-4 pr-12 dark:text-slate-400"
                             >
@@ -1138,9 +1133,9 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                           {(searchAnimationPhase === 'search' || searchAnimationComplete) && (
                             <motion.div
                               key="search"
-                              initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
-                              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                              exit={{ opacity: 0, y: -15, filter: 'blur(4px)' }}
+                              initial={{ opacity: 0, y: 15 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -15 }}
                               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                               className="text-xs text-gray-400 font-medium tracking-wide pl-4 pr-12 dark:text-slate-400"
                             >
@@ -1220,7 +1215,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute top-full right-0 mt-2 w-80 bg-white/95 backdrop-blur-sm rounded-xl shadow-xl border border-brand-100/50 overflow-hidden z-50 dark:bg-slate-900/95 dark:border-brand-800/50"
+                        className="absolute top-full right-0 mt-2 w-80 bg-popover text-popover-foreground rounded-xl shadow-sm border border-border overflow-hidden z-50"
                       >
                         {/* Filters Section (Compact) */}
                         {showFilters && (

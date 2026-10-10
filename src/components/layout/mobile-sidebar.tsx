@@ -24,31 +24,31 @@ const sectionColors: Record<string, { icon: string; text: string; activeBg: stri
   Overview: {
     icon: 'text-brand-ink-600 dark:text-brand-ink-400 group-hover:text-brand-ink-700',
     text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
-    activeBg: 'bg-brand-surface-50/80 dark:bg-brand-surface-950/20 text-brand-ink-800 dark:text-brand-ink-200 border border-brand-200/50 dark:border-brand-900/30 shadow-sm',
+    activeBg: 'bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border shadow-none',
     activeIcon: 'text-brand-ink-700 dark:text-brand-ink-300'
   },
   Academics: {
     icon: 'text-brand-alt-ink-600 dark:text-brand-alt-ink-400 group-hover:text-brand-alt-ink-700',
     text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
-    activeBg: 'bg-brand-alt-surface-50/80 dark:bg-brand-alt-surface-950/20 text-brand-alt-ink-800 dark:text-brand-alt-ink-200 border border-brand-alt-200/50 dark:border-brand-alt-900/30 shadow-sm',
+    activeBg: 'bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border shadow-none',
     activeIcon: 'text-brand-alt-ink-700 dark:text-brand-alt-ink-300'
   },
   Finance: {
     icon: 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-750',
     text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
-    activeBg: 'bg-emerald-50/80 dark:bg-emerald-950/20 text-emerald-850 dark:text-emerald-200 border border-emerald-200/50 dark:border-emerald-900/30 shadow-sm',
+    activeBg: 'bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border shadow-none',
     activeIcon: 'text-emerald-700 dark:text-emerald-300'
   },
   Communications: {
     icon: 'text-rose-600 dark:text-rose-400 group-hover:text-rose-750',
     text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
-    activeBg: 'bg-rose-50/80 dark:bg-rose-950/20 text-rose-850 dark:text-rose-200 border border-rose-200/50 dark:border-rose-900/30 shadow-sm',
+    activeBg: 'bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border shadow-none',
     activeIcon: 'text-rose-700 dark:text-rose-300'
   },
   Administration: {
     icon: 'text-amber-600 dark:text-amber-400 group-hover:text-amber-750',
     text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
-    activeBg: 'bg-amber-50/80 dark:bg-amber-950/20 text-amber-850 dark:text-amber-200 border border-amber-200/50 dark:border-amber-900/30 shadow-sm',
+    activeBg: 'bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border shadow-none',
     activeIcon: 'text-amber-700 dark:text-amber-300'
   }
 };
@@ -56,7 +56,7 @@ const sectionColors: Record<string, { icon: string; text: string; activeBg: stri
 const defaultColors = {
   icon: 'text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200',
   text: 'text-slate-700 group-hover:text-slate-900 dark:text-slate-200 dark:group-hover:text-slate-100',
-  activeBg: 'bg-brand-surface-50 text-brand-ink-800 border border-brand-200 shadow-sm dark:bg-brand-surface-950/40 dark:text-brand-ink-200 dark:border-brand-800/60',
+  activeBg: 'bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border shadow-none',
   activeIcon: 'text-brand-ink-700 dark:text-brand-ink-300'
 };
 
@@ -238,35 +238,29 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-40 bg-black/50"
         onClick={onClose}
       />
 
       {/* Sidebar */}
       <div 
-        className="fixed top-0 left-0 z-50 h-full w-80 max-w-[85vw]"
+        className="app-mobile-sidebar fixed top-0 left-0 z-50 h-full w-80 max-w-[85vw] bg-sidebar text-sidebar-foreground border-r border-sidebar-border"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Glass morphism background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-white/90 to-brand-surface-50/85 backdrop-blur-xl border-r border-white/20 shadow-2xl dark:from-slate-900/95 dark:via-slate-900/90 dark:to-brand-surface-950/85 dark:border-slate-700/20" />
-        
-        {/* Animated gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-surface-500/5 via-brand-secondary-surface-500/3 to-pink-500/5 opacity-70" />
-        
-        {/* Content */}
+        {/* Content shares the solid, outlined theme surface. */}
         <div className="relative h-full flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-3 border-b border-white/10 dark:border-slate-700/10">
             {isLoadingSettings ? (
               <div className="flex items-center space-x-2 flex-1">
                 <div className="relative w-8 h-8 rounded-lg overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-brand-surface-500/20 via-brand-secondary-surface-500/20 to-pink-500/20 animate-pulse" />
+                  <div className="absolute inset-0 bg-muted animate-pulse" />
                 </div>
                 <div className="flex-1 space-y-1">
-                  <div className="h-3 w-24 bg-gradient-to-r from-gray-200 to-gray-300 rounded animate-pulse dark:from-slate-800" />
-                  <div className="h-2 w-20 bg-gradient-to-r from-gray-200 to-gray-300 rounded animate-pulse dark:from-slate-800" />
+                  <div className="h-3 w-24 bg-muted rounded animate-pulse" />
+                  <div className="h-2 w-20 bg-muted rounded animate-pulse" />
                 </div>
               </div>
             ) : (
@@ -283,7 +277,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
                 </div>
               )}
               <div>
-                <h2 className="text-sm font-bold bg-gradient-to-r from-brand-ink-600 to-brand-secondary-ink-600 bg-clip-text text-transparent dark:from-brand-ink-400 dark:to-brand-secondary-ink-400">
+                <h2 className="text-sm font-bold text-foreground ">
                   {currentSettings.generalInfo.name || "School Name"}
                 </h2>
                 {currentSettings.generalInfo.motto && (
@@ -297,7 +291,8 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
             
             <button
               onClick={onClose}
-              className="p-1 rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg"
+              aria-label="Close sidebar"
+              className="p-1 rounded-full bg-accent text-accent-foreground border border-border shadow-none"
             >
               <X size={14} />
             </button>
@@ -360,14 +355,14 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
               'flex items-center space-x-1.5 px-2 py-1 rounded-lg border transition-all ease-out duration-200 active:scale-[0.98]',
               isActive
                 ? colors.activeBg
-                : 'bg-white/40 hover:bg-white/60 border-white/20 text-slate-700 hover:text-slate-900 dark:bg-slate-900/40 dark:hover:bg-slate-900/60 dark:border-slate-700/20 dark:text-slate-200 dark:hover:text-slate-100',
+                : 'bg-sidebar text-sidebar-foreground border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
               item.disabled && 'opacity-50 cursor-not-allowed'
             )}
           >
             <div className={cn(
               'p-1 rounded-lg flex items-center justify-center',
               isActive
-                ? 'bg-gradient-to-r from-brand-surface-500 to-brand-secondary-surface-500 text-white shadow-lg'
+                ? 'bg-accent text-accent-foreground border border-border shadow-none'
                 : cn('bg-white/60 dark:bg-slate-900/60', colors.icon)
             )}>
               <Icon size={12} />
@@ -409,13 +404,13 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
               'w-full flex items-center space-x-1.5 px-2 py-1 rounded-lg border transition-all ease-out duration-200 active:scale-[0.98]',
               isActive
                 ? colors.activeBg
-                : 'bg-white/40 hover:bg-white/60 border-white/20 text-slate-700 hover:text-slate-900 dark:bg-slate-900/40 dark:hover:bg-slate-900/60 dark:border-slate-700/20 dark:text-slate-200 dark:hover:text-slate-100'
+                : 'bg-sidebar text-sidebar-foreground border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
             )}
           >
             <div className={cn(
               'p-1 rounded-lg flex items-center justify-center',
               isActive
-                ? 'bg-gradient-to-r from-brand-surface-500 to-brand-secondary-surface-500 text-white shadow-lg'
+                ? 'bg-accent text-accent-foreground border border-border shadow-none'
                 : cn('bg-white/60 dark:bg-slate-900/60', colors.icon)
             )}>
               <Icon size={12} />

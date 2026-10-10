@@ -197,7 +197,7 @@ const StatCard = ({
         borderLeftColor: color.accent,
         background: color.gradient,
         willChange: 'transform',
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
+        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
         transform: 'translateZ(0)',
       }}
       onClick={handleClick}
@@ -657,11 +657,11 @@ const ExpandableStaffCard = ({
           borderLeftColor: color.accent,
           background: color.gradient,
           willChange: 'transform',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
+          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
           transform: 'translateZ(0)',
         }}
       >
-        <div className="dashboard-stat-surface absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl dark:bg-slate-900/80" />
+        <div className="dashboard-stat-surface absolute inset-0 bg-white/80 rounded-xl dark:bg-slate-900/80" />
         {/* 3D Depth Effect - Top highlight */}
         <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl dark:from-slate-900/40" />
         {/* 3D Depth Effect - Bottom shadow */}
@@ -1054,11 +1054,11 @@ const ExpandableAttendanceCard = ({
           borderLeftColor: currentColor.accent,
           background: currentColor.gradient,
           willChange: 'transform',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
+          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
           transform: 'translateZ(0)',
         }}
       >
-        <div className="dashboard-stat-surface absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl dark:bg-slate-900/80" />
+        <div className="dashboard-stat-surface absolute inset-0 bg-white/80 rounded-xl dark:bg-slate-900/80" />
         {/* 3D Depth Effect - Top highlight */}
         <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl dark:from-slate-900/40" />
         {/* 3D Depth Effect - Bottom shadow */}
