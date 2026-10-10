@@ -34,6 +34,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 import { sampleSchoolSettings } from '@/lib/sample-data';
 import { cn } from '@/lib/utils';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
+import { useTouchSwipe } from '@/lib/hooks/use-touch-swipe';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { NavigationProvider, useNavigation } from '@/lib/contexts/navigation-context';
 import { LoadingOverlay } from '@/components/ui/loading-indicator';
@@ -184,9 +185,10 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(0);
 
-  // Swipe detection state
-  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
-  const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
+  const sidebarSwipe = useTouchSwipe({
+    direction: 'right', startMaxX: 80, enabled: windowWidth < 768,
+    onSwipe: () => setIsMobileSidebarOpen(true),
+  });
 
   // Swipe hint state
   const [showSwipeHint, setShowSwipeHint] = useState(false);
@@ -225,39 +227,6 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
 
   // Get print context
   const { triggerPrint } = usePrint();
-
-  // Swipe detection functions
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart({
-      x: e.targetTouches[0].clientX,
-      y: e.targetTouches[0].clientY
-    });
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd({
-      x: e.targetTouches[0].clientX,
-      y: e.targetTouches[0].clientY
-    });
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-
-    const distanceX = touchStart.x - touchEnd.x;
-    const distanceY = touchStart.y - touchEnd.y;
-    const isHorizontalSwipe = Math.abs(distanceX) > Math.abs(distanceY);
-    const isLeftToRightSwipe = distanceX < -80;
-    const isFromLeftEdge = touchStart.x < 80;
-    const hasMinimumDistance = Math.abs(distanceX) > 50;
-
-    if (isHorizontalSwipe && isLeftToRightSwipe && isFromLeftEdge && hasMinimumDistance && windowWidth < 768) {
-      setIsMobileSidebarOpen(true);
-    }
-
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -481,9 +450,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
 
           <main
             className="px-3 pb-[calc(4.75rem+env(safe-area-inset-bottom))] pt-0 sm:pb-4"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
+            {...sidebarSwipe}
           >
             {isSessionStale && (
               <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
@@ -534,9 +501,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
             <main
               ref={mainRef}
               className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 px-4 sm:px-6 pb-4 sm:pb-6 pt-0 md:pt-[52px]"
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
+              {...sidebarSwipe}
             >
                 {isSessionStale && (
                   <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />

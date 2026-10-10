@@ -12,6 +12,7 @@ import { useNavigation } from '@/lib/contexts/navigation-context';
 import { LoadingIndicator } from '@/components/ui/loading-indicator';
 import { isNavGroup, isNavItem } from '@/types';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
+import { useTouchSwipe } from '@/lib/hooks/use-touch-swipe';
 import { sampleSchoolSettings } from '@/lib/sample-data';
 import { SidebarUserFooter } from './sidebar-user-footer';
 import { SchoolSettingsLoader } from './school-settings-loader';
@@ -74,9 +75,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
   const [mounted, setMounted] = useState(false);
 
-  // Swipe detection state for closing sidebar
-  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
-  const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
+  const closeSwipe = useTouchSwipe({ direction: 'left', onSwipe: onClose, enabled: isOpen });
 
   const currentSettings = React.useMemo(() => {
     // If still loading, don't use fallback yet - wait for the query to finish
@@ -113,40 +112,6 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
-
-  // Swipe detection functions for closing sidebar
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart({
-      x: e.targetTouches[0].clientX,
-      y: e.targetTouches[0].clientY
-    });
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd({
-      x: e.targetTouches[0].clientX,
-      y: e.targetTouches[0].clientY
-    });
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distanceX = touchStart.x - touchEnd.x;
-    const distanceY = touchStart.y - touchEnd.y;
-    const isHorizontalSwipe = Math.abs(distanceX) > Math.abs(distanceY);
-    const isRightToLeftSwipe = distanceX > 80; // Swipe from right to left (positive distance) - increased threshold
-    const hasMinimumDistance = Math.abs(distanceX) > 50; // Swipe distance minimum
-    
-    // Only trigger if horizontal from right to left
-    if (isHorizontalSwipe && isRightToLeftSwipe && hasMinimumDistance) {
-      onClose();
-    }
-    
-    // Reset touch state
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
 
   // Filter items based on user permissions
   const filteredItems = items.filter(item => {
@@ -245,9 +210,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
       {/* Sidebar */}
       <div 
         className="fixed top-0 left-0 z-50 h-full w-80 max-w-[85vw]"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        {...closeSwipe}
       >
         {/* Glass morphism background */}
         <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-white/90 to-brand-surface-50/85 backdrop-blur-xl border-r border-white/20 shadow-2xl dark:from-slate-900/95 dark:via-slate-900/90 dark:to-brand-surface-950/85 dark:border-slate-700/20" />
