@@ -6,9 +6,72 @@ import { Check, ChevronRight, Circle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const DropdownMenu = DropdownMenuPrimitive.Root
+const TouchMenuContext = React.createContext<(() => void) | null>(null)
 
-const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger
+function DropdownMenu({ open: controlledOpen, defaultOpen = false, onOpenChange, ...props }:
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Root>) {
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen)
+  const open = controlledOpen ?? uncontrolledOpen
+  const setOpen = React.useCallback((next: boolean) => {
+    if (controlledOpen === undefined) setUncontrolledOpen(next)
+    onOpenChange?.(next)
+  }, [controlledOpen, onOpenChange])
+  const toggle = React.useCallback(() => setOpen(!open), [open, setOpen])
+  return (
+    <TouchMenuContext.Provider value={toggle}>
+      <DropdownMenuPrimitive.Root {...props} open={open} onOpenChange={setOpen} />
+    </TouchMenuContext.Provider>
+  )
+}
+
+const DropdownMenuTrigger = React.forwardRef<
+  React.ElementRef<typeof DropdownMenuPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Trigger>
+>(({ onPointerDown, onPointerMove, onPointerCancel, onClick, disabled, ...props }, ref) => {
+  const toggle = React.useContext(TouchMenuContext)
+  const gesture = React.useRef<{ x: number; y: number; cancelled: boolean } | null>(null)
+  return (
+    <DropdownMenuPrimitive.Trigger
+      {...props}
+      ref={ref}
+      disabled={disabled}
+      onPointerDown={event => {
+        gesture.current = event.pointerType === "touch"
+          ? { x: event.clientX, y: event.clientY, cancelled: !event.isPrimary }
+          : null
+        onPointerDown?.(event)
+        if (event.defaultPrevented && gesture.current) gesture.current.cancelled = true
+        // Radix opens on pointerdown and locks scrolling immediately. Cancelling
+        // that default handler still allows the browser's native touch panning.
+        if (event.pointerType === "touch") event.preventDefault()
+      }}
+      onPointerMove={event => {
+        const start = gesture.current
+        if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10) {
+          start.cancelled = true
+        }
+        onPointerMove?.(event)
+      }}
+      onPointerCancel={event => {
+        if (gesture.current) gesture.current.cancelled = true
+        onPointerCancel?.(event)
+      }}
+      onClick={event => {
+        const start = gesture.current
+        gesture.current = null
+        if (start?.cancelled && event.detail !== 0) {
+          event.preventDefault()
+          return
+        }
+        onClick?.(event)
+        // Browsers emit this click only after a tap, not after native scrolling.
+        // Mouse and keyboard opening remain owned by Radix.
+        if (start && event.detail !== 0 && !disabled && !event.defaultPrevented) toggle?.()
+      }}
+    />
+  )
+})
+DropdownMenuTrigger.displayName = DropdownMenuPrimitive.Trigger.displayName
 
 const DropdownMenuGroup = DropdownMenuPrimitive.Group
 
