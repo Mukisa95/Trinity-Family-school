@@ -42,13 +42,13 @@ import EnhancedHeader from './enhanced-header';
 import AuthGuard from '@/components/common/AuthGuard';
 import { SidebarUserFooter } from './sidebar-user-footer';
 import { SchoolSettingsLoader } from './school-settings-loader';
-import { AnimatePresence, motion } from 'framer-motion';
 import { BrandedAuthScreen } from '@/components/common/premium-splash-loader';
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { usePrint } from '@/lib/contexts/print-context';
 import { useQueryClient } from '@tanstack/react-query';
 import { AutoNotificationPermission } from '@/components/notifications/auto-notification-permission';
 import { SchoolPayInboxPrompt } from '@/components/schoolpay/schoolpay-inbox-prompt';
+import { usePerformanceMode } from '@/components/providers/performance-provider';
 import { logger } from '@/lib/utils/logger';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { getRoutePagePermission, MODULE_ACTIONS } from '@/types/permissions';
@@ -150,96 +150,18 @@ function SessionVerificationBanner({ message }: { message?: string | null }) {
   );
 }
 
-const SidebarHeaderWrapper = ({ isLoadingSettings, currentSettings }: { isLoadingSettings: boolean; currentSettings: any }) => {
-  const { state } = useSidebar();
-  const isCollapsed = state === 'collapsed';
-  const [showName, setShowName] = useState(false);
-
-  useEffect(() => {
-    if (isCollapsed) {
-      setShowName(false);
-      return;
-    }
-    // Logo zooms in at the center first, then slides to the side to reveal the name after 500ms
-    const timer = setTimeout(() => {
-      setShowName(true);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [isCollapsed]);
-
-  return (
-    <SidebarHeader
-      className={cn(
-        "p-3 flex flex-row items-center border-b border-gray-100 transition-all duration-300 ease-in-out min-h-[56px] relative dark:border-slate-700",
-        (isCollapsed || !showName) ? "justify-center" : "justify-start gap-2.5"
-      )}
-    >
-      {/* Logo — centered when collapsed or during initial load zoom */}
-      {!isLoadingSettings && currentSettings.generalInfo.logo && (
-        <motion.div
-          layout
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{
-            scale: { type: "spring", stiffness: 200, damping: 18, delay: 0.1 },
-            opacity: { duration: 0.2, delay: 0.1 },
-            layout: { type: "spring", stiffness: 120, damping: 18 }
-          }}
-          className="flex-shrink-0"
-        >
-          <Link href="/">
-            <div className="relative w-10 h-10 bg-transparent">
-              <Image
-                src={currentSettings.generalInfo.logo}
-                alt={`${currentSettings.generalInfo.name || 'School'} Logo`}
-                fill
-                sizes="40px"
-                className="rounded-lg object-contain bg-transparent"
-                data-ai-hint="school logo"
-              />
-            </div>
-          </Link>
-        </motion.div>
-      )}
-
-      {/* School name + motto — hidden when collapsed or before reveal */}
-      <AnimatePresence initial={false}>
-        {!isCollapsed && showName && (
-          <motion.div
-            initial={{ opacity: 0, width: 0 }}
-            animate={{ opacity: 1, width: 'auto' }}
-            exit={{ opacity: 0, width: 0 }}
-            transition={{ 
-              opacity: { duration: 0.2 },
-              width: { type: "spring", stiffness: 100, damping: 15 } 
-            }}
-            className="flex flex-col items-start min-w-0 flex-1 overflow-hidden"
-          >
-            <div className="w-[180px]">
-              <AnimatePresence mode="wait">
-                {isLoadingSettings ? (
-                  <div className="h-8 w-24 bg-gray-100 animate-pulse rounded dark:bg-slate-900" />
-                ) : (
-                  <motion.div
-                    key="text-content"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex flex-col items-start min-w-0 w-full"
-                  >
-                    <h2 className="text-sm font-bold text-gray-900 leading-tight w-full break-words dark:text-slate-100">
-                      {currentSettings.generalInfo.name || "School Name"}
-                    </h2>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </SidebarHeader>
-  );
+const SidebarHeaderWrapper = ({ isLoadingSettings, currentSettings }: any) => {
+  const { state, isMobile } = useSidebar();
+  const isCollapsed = state === 'collapsed' && !isMobile;
+  return <SidebarHeader className={cn('p-3 flex flex-row items-center border-b border-gray-100 min-h-[56px] dark:border-slate-700', isCollapsed ? 'justify-center' : 'gap-2.5')}>
+    {!isLoadingSettings && currentSettings.generalInfo.logo && <Link href="/" className="shrink-0" aria-label="School dashboard">
+      <div className="relative w-10 h-10"><Image src={currentSettings.generalInfo.logo} alt={`${currentSettings.generalInfo.name || 'School'} Logo`} fill sizes="40px" className="rounded-lg object-contain" /></div>
+    </Link>}
+    <div className={cn('min-w-0 flex-1', isCollapsed && 'hidden')}>
+      {isLoadingSettings ? <div className="h-8 w-24 bg-gray-100 animate-pulse rounded dark:bg-slate-900" />
+        : <h2 className="text-sm font-bold text-gray-900 leading-tight break-words dark:text-slate-100">{currentSettings.generalInfo.name || 'School Name'}</h2>}
+    </div>
+  </SidebarHeader>;
 };
 
 const MemoizedAppLayout = memo(function MemoizedAppLayout({
@@ -454,6 +376,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   // ── Background blur effect ──
   // On dashboard (/): clear at top, blurs up to 8px as user scrolls 200px
   // On all other pages: fixed 6px blur so background stays blurred
+  const { reducedEffects } = usePerformanceMode();
   const mainRef = useRef<HTMLElement>(null);
   const isDashboard = pathname === '/';
 
@@ -463,6 +386,10 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
     const bgWrapper = mainEl.closest<HTMLElement>('.dashboard-bg-wrapper');
     if (!bgWrapper) return;
 
+    if (reducedEffects) {
+      bgWrapper.style.setProperty('--scroll-blur', '0px');
+      return;
+    }
     if (!isDashboard) {
       // Non-dashboard pages: immediately blurred
       bgWrapper.style.setProperty('--scroll-blur', '6px');
@@ -482,7 +409,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
       mainEl.removeEventListener('scroll', onScroll);
       bgWrapper.style.setProperty('--scroll-blur', '0px');
     };
-  }, [isDashboard]);
+  }, [isDashboard, reducedEffects]);
 
   // Do not briefly mount the heavy login landing page for a signed-in user.
   // The redirect runs after this render, so keep the same boot surface visible

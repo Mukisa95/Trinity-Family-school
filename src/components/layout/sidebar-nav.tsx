@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useMemo } from 'react';
+import { useState, useId } from 'react';
+import { usePerformanceMode } from '@/components/providers/performance-provider';
 import type { NavigationItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/contexts/auth-context';
@@ -22,7 +23,6 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { getRoutePagePermission } from '@/types/permissions';
 import { isDevControlPath } from '@/config/dev-control';
-import { motion, AnimatePresence } from 'framer-motion';
 
 // Premium deeper color palettes for each section's icons and active states
 const sectionColors: Record<string, { icon: string; text: string; activeBg: string; activeIcon: string }> = {
@@ -76,6 +76,9 @@ export function SidebarNav({ items }: SidebarNavProps) {
   const { data: schoolSettings } = useSchoolSettings();
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
   const [openPopovers, setOpenPopovers] = useState<Set<string>>(new Set());
+  const groupId = useId();
+  const { reducedEffects, saveData } = usePerformanceMode();
+  const prefetch = reducedEffects || saveData ? false : undefined;
 
   if (!items?.length) return null;
 
@@ -134,327 +137,73 @@ export function SidebarNav({ items }: SidebarNavProps) {
     if (isMobile) setOpenMobile(false);
   }
 
-  // ── Renderers ───────────────────────────────────────────────────────────────
-  function renderItem(item: NavigationItem, index: number) {
-    const section = item.section || 'Overview';
-    const colors = sectionColors[section] || defaultColors;
-
-    // ── Flat nav item ─────────────────────────────────────────────────────────
+  // Keep section, item, link and trigger identities stable across sidebar toggles.
+  function renderItem(item: NavigationItem) {
+    const colors = sectionColors[item.section || 'Overview'] || defaultColors;
+    const Icon = item.icon;
+    const row = cn('flex items-center w-full py-1.5 rounded-lg text-sm font-medium group transition-colors duration-150',
+      isCollapsed ? 'justify-center px-2' : 'px-3');
     if (isNavItem(item)) {
-      const Icon = item.icon;
       const active = isItemActive(item.href);
-
-      const content = (
-        <Link
-          href={item.disabled ? '#' : item.href}
-          onClick={handleLinkClick}
-          className={cn(
-            'flex items-center rounded-lg text-sm font-medium w-full py-1.5 group',
-            'transition-all ease-out duration-200 active:scale-[0.98]',
-            !isCollapsed && 'hover:translate-x-[3px]',
-            active
-              ? colors.activeBg
-              : 'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-900/70 dark:hover:text-slate-100',
-            item.disabled && 'opacity-50 cursor-not-allowed pointer-events-none',
-            isCollapsed ? 'justify-center px-2' : 'px-3'
-          )}
-        >
-          <Icon
-            size={18}
-            className={cn(
-              'shrink-0 transition-colors duration-200',
-              active ? colors.activeIcon : colors.icon
-            )}
-          />
-          <AnimatePresence initial={false} mode="popLayout">
-            {!isCollapsed && (
-              <motion.span
-                initial={{ opacity: 0, width: 0, marginLeft: 0 }}
-                animate={{ opacity: 1, width: 'auto', marginLeft: 12 }}
-                exit={{ opacity: 0, width: 0, marginLeft: 0 }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
-                className="truncate text-left whitespace-nowrap overflow-hidden flex-1"
-              >
-                {item.title}
-              </motion.span>
-            )}
-          </AnimatePresence>
-          <AnimatePresence initial={false}>
-            {!isCollapsed && active && (
-              <motion.span
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0, opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-surface-600 shrink-0"
-              />
-            )}
-          </AnimatePresence>
-        </Link>
-      );
-
-      if (isCollapsed) {
-        return (
-          <SidebarMenuItem 
-            key={index} 
-            className="sidebar-nav-item-enter" 
-            style={{ animationDelay: `${index * 35}ms` }}
-          >
-            <Tooltip delayDuration={100}>
-              <TooltipTrigger asChild>{content}</TooltipTrigger>
-              <TooltipContent side="right" sideOffset={12} className="font-semibold">
-                {item.title}
-              </TooltipContent>
-            </Tooltip>
-          </SidebarMenuItem>
-        );
-      }
-
-      return (
-        <SidebarMenuItem 
-          key={index} 
-          className="sidebar-nav-item-enter" 
-          style={{ animationDelay: `${index * 35}ms` }}
-        >
-          {content}
-        </SidebarMenuItem>
-      );
+      return <SidebarMenuItem key={item.href}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link href={item.disabled ? '#' : item.href} prefetch={prefetch} onClick={handleLinkClick} aria-label={item.title}
+              aria-current={active ? 'page' : undefined} aria-disabled={item.disabled || undefined}
+              className={cn(row, active ? colors.activeBg : 'text-slate-700 hover:bg-slate-100/70 dark:text-slate-200 dark:hover:bg-slate-900/70', item.disabled && 'opacity-50 pointer-events-none')}>
+              <Icon size={18} className={cn('shrink-0', active ? colors.activeIcon : colors.icon)} />
+              <span className={cn('ml-3 truncate text-left flex-1', isCollapsed && 'hidden')}>{item.title}</span>
+              <span className={cn('ml-auto w-1.5 h-1.5 rounded-full bg-brand-surface-600 shrink-0', (!active || isCollapsed) && 'hidden')} />
+            </Link>
+          </TooltipTrigger>
+          {isCollapsed && <TooltipContent side="right" sideOffset={12}>{item.title}</TooltipContent>}
+        </Tooltip>
+      </SidebarMenuItem>;
     }
-
-    // ── Group nav item ────────────────────────────────────────────────────────
-    if (isNavGroup(item)) {
-      const Icon = item.icon;
-      const isOpen = openGroups.has(item.title);
-      const active = isGroupActive(item);
-
-      const filteredSubs = item.items.filter(sub => checkItemPermission(sub.href));
-      if (filteredSubs.length === 0) return null;
-
-      // Collapsed: hover-triggered Popover so sub-items are fully clickable
-      if (isCollapsed) {
-        const isPopoverOpen = openPopovers.has(item.title);
-        const openPopover  = () => setOpenPopovers(p => new Set(p).add(item.title));
-        const closePopover = () => setOpenPopovers(p => { const n = new Set(p); n.delete(item.title); return n; });
-
-        return (
-          <SidebarMenuItem 
-            key={index} 
-            className="sidebar-nav-item-enter" 
-            style={{ animationDelay: `${index * 35}ms` }}
-          >
-            <Popover open={isPopoverOpen} onOpenChange={open => open ? openPopover() : closePopover()}>
-              <PopoverTrigger asChild>
-                <button
-                  onMouseEnter={openPopover}
-                  onMouseLeave={closePopover}
-                  className={cn(
-                    'flex items-center justify-center w-full px-2 py-1.5 rounded-lg group',
-                    'transition-all ease-out duration-200 active:scale-[0.98]',
-                    active ? colors.activeBg : 'text-slate-500 hover:bg-slate-100/70 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-900/70 dark:hover:text-slate-100'
-                  )}
-                >
-                  <Icon 
-                    size={18} 
-                    className={cn(
-                      'shrink-0 transition-colors duration-200', 
-                      active ? colors.activeIcon : colors.icon
-                    )} 
-                  />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent
-                side="right"
-                align="start"
-                sideOffset={8}
-                className="p-0 w-48 shadow-lg border border-gray-100 rounded-lg overflow-hidden dark:border-slate-700"
-                onMouseEnter={openPopover}
-                onMouseLeave={closePopover}
-                onOpenAutoFocus={e => e.preventDefault()}
-              >
-                {/* Group title */}
-                <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 dark:bg-slate-900 dark:border-slate-700">
-                  <p className="text-xs font-bold text-slate-700 uppercase tracking-wider dark:text-slate-200">
-                    {item.title}
-                  </p>
-                </div>
-
-                {/* Sub-items */}
-                <div className="py-1">
-                  {filteredSubs.map((sub, si) => {
-                    const SubIcon = sub.icon;
-                    const subActive = isItemActive(sub.href);
-
-                    if (sub.external) {
-                      return (
-                        <a
-                          key={si}
-                          href={sub.title === 'WhatsApp Group' && schoolSettings?.socialMedia?.whatsapp
-                            ? schoolSettings.socialMedia.whatsapp
-                            : sub.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={closePopover}
-                          className="flex items-center gap-2.5 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 transition-all ease-out duration-200 hover:translate-x-[3px] active:scale-[0.98] dark:text-slate-200 dark:hover:bg-slate-900"
-                        >
-                          <SubIcon size={14} className={cn("shrink-0", colors.icon)} />
-                          <span className="truncate">{sub.title}</span>
-                        </a>
-                      );
-                    }
-
-                    return (
-                      <Link
-                        key={si}
-                        href={sub.disabled ? '#' : sub.href}
-                        onClick={() => { closePopover(); handleLinkClick(); }}
-                        className={cn(
-                          'flex items-center gap-2.5 px-3 py-1.5 text-sm',
-                          'transition-all ease-out duration-200 hover:translate-x-[3px] active:scale-[0.98]',
-                          subActive
-                            ? colors.activeBg + ' font-medium'
-                            : 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900',
-                          sub.disabled && 'opacity-50 pointer-events-none'
-                        )}
-                      >
-                        <SubIcon
-                          size={14}
-                          className={cn('shrink-0', subActive ? colors.activeIcon : colors.icon)}
-                        />
-                        <span className="truncate">{sub.title}</span>
-                        {subActive && (
-                          <span className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-surface-600 shrink-0" />
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </PopoverContent>
-            </Popover>
-          </SidebarMenuItem>
-        );
-      }
-
-
-      // Expanded: group header + collapsible sub-items
-      return (
-        <SidebarMenuItem 
-          key={index} 
-          className="sidebar-nav-item-enter" 
-          style={{ animationDelay: `${index * 35}ms` }}
-        >
-          {/* Group trigger */}
-          <button
-            onClick={() => toggleGroup(item.title)}
-            className={cn(
-              'flex items-center w-full py-1.5 rounded-lg text-sm font-medium group',
-              'transition-all ease-out duration-200 active:scale-[0.98]',
-              !isCollapsed && 'hover:translate-x-[3px]',
-              active
-                ? colors.activeBg
-                : 'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-900/70 dark:hover:text-slate-100',
-              isCollapsed ? 'justify-center px-2' : 'px-3'
-            )}
-          >
-            <Icon
-              size={18}
-              className={cn('shrink-0 transition-colors duration-200', active ? colors.activeIcon : colors.icon)}
-            />
-            <AnimatePresence initial={false} mode="popLayout">
-              {!isCollapsed && (
-                <motion.span
-                  initial={{ opacity: 0, width: 0, marginLeft: 0 }}
-                  animate={{ opacity: 1, width: 'auto', marginLeft: 12 }}
-                  exit={{ opacity: 0, width: 0, marginLeft: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeInOut' }}
-                  className="truncate text-left whitespace-nowrap overflow-hidden flex-1"
-                >
-                  {item.title}
-                </motion.span>
-              )}
-            </AnimatePresence>
-            <AnimatePresence initial={false}>
-              {!isCollapsed && (
-                <motion.span
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className="shrink-0 text-slate-500 ml-auto group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200"
-                >
-                  {isOpen ? (
-                    <ChevronDown size={14} className="transition-transform duration-205" />
-                  ) : (
-                    <ChevronRight size={14} className="transition-transform duration-205" />
-                  )}
-                </motion.span>
-              )}
-            </AnimatePresence>
+    if (!isNavGroup(item)) return null;
+    const subs = item.items.filter(sub => checkItemPermission(sub.href));
+    if (!subs.length) return null;
+    const active = isGroupActive(item);
+    const isOpen = openGroups.has(item.title);
+    const popoverOpen = isCollapsed && openPopovers.has(item.title);
+    const openPopover = () => { if (isCollapsed) setOpenPopovers(previous => new Set(previous).add(item.title)); };
+    const closePopover = () => setOpenPopovers(previous => { const next = new Set(previous); next.delete(item.title); return next; });
+    const contentId = `${groupId}-${item.title.replace(/\s+/g, '-')}`;
+    const links = (inPopover: boolean) => subs.map(sub => {
+      const SubIcon = sub.icon;
+      const subActive = isItemActive(sub.href);
+      const className = cn('flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm transition-colors duration-150',
+        subActive ? colors.activeBg + ' font-semibold' : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900',
+        sub.disabled && 'opacity-50 pointer-events-none');
+      const content = <><SubIcon size={14} className={cn('shrink-0', subActive ? colors.activeIcon : colors.icon)} /><span className="truncate">{sub.title}</span></>;
+      const onClick = () => { if (inPopover) closePopover(); handleLinkClick(); };
+      return sub.external
+        ? <a key={sub.href} href={sub.title === 'WhatsApp Group' && schoolSettings?.socialMedia?.whatsapp ? schoolSettings.socialMedia.whatsapp : sub.href}
+            target="_blank" rel="noopener noreferrer" className={className} onClick={onClick} aria-disabled={sub.disabled || undefined}>{content}</a>
+        : <Link key={sub.href} href={sub.disabled ? '#' : sub.href} prefetch={prefetch} className={className} onClick={onClick}
+            aria-current={subActive ? 'page' : undefined} aria-disabled={sub.disabled || undefined}>{content}</Link>;
+    });
+    return <SidebarMenuItem key={item.title}>
+      <Popover open={popoverOpen} onOpenChange={open => open ? openPopover() : closePopover()}>
+        <PopoverTrigger asChild>
+          <button type="button" aria-label={item.title} aria-expanded={isCollapsed ? popoverOpen : isOpen}
+            aria-controls={isCollapsed ? undefined : contentId}
+            onClick={event => { if (!isCollapsed) { event.preventDefault(); closePopover(); toggleGroup(item.title); } }}
+            onMouseEnter={openPopover} onMouseLeave={() => { if (isCollapsed) closePopover(); }}
+            className={cn(row, active ? colors.activeBg : 'text-slate-700 hover:bg-slate-100/70 dark:text-slate-200 dark:hover:bg-slate-900/70')}>
+            <Icon size={18} className={cn('shrink-0', active ? colors.activeIcon : colors.icon)} />
+            <span className={cn('ml-3 truncate text-left flex-1', isCollapsed && 'hidden')}>{item.title}</span>
+            <ChevronDown size={14} className={cn('ml-auto shrink-0', !isOpen && '-rotate-90', isCollapsed && 'hidden')} />
           </button>
-
-          {/* Sub-items */}
-          <AnimatePresence initial={false}>
-            {isOpen && !isCollapsed && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
-                className="mt-0.5 ml-4 pl-3 border-l border-slate-200 space-y-0.5 overflow-hidden dark:border-slate-700"
-              >
-                {filteredSubs.map((sub, si) => {
-                  const SubIcon = sub.icon;
-                  const subActive = isItemActive(sub.href);
-
-                  if (sub.external) {
-                    return (
-                      <a
-                        key={si}
-                        href={sub.title === 'WhatsApp Group' && schoolSettings?.socialMedia?.whatsapp
-                          ? schoolSettings.socialMedia.whatsapp
-                          : sub.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2.5 px-3 py-1 rounded-md text-sm text-slate-750 hover:bg-slate-100 hover:text-slate-900 transition-all ease-out duration-200 hover:translate-x-[3px] active:scale-[0.98] dark:hover:bg-slate-900 dark:hover:text-slate-100"
-                      >
-                        <SubIcon size={14} className={cn("shrink-0", colors.icon)} />
-                        <span className="truncate">{sub.title}</span>
-                      </a>
-                    );
-                  }
-
-                  return (
-                    <Link
-                      key={si}
-                      href={sub.disabled ? '#' : sub.href}
-                      onClick={handleLinkClick}
-                      className={cn(
-                        'flex items-center gap-2.5 px-3 py-1 rounded-md text-sm',
-                        'transition-all ease-out duration-200 hover:translate-x-[3px] active:scale-[0.98]',
-                        subActive
-                          ? colors.activeBg + ' font-semibold'
-                          : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-100',
-                        sub.disabled && 'opacity-50 pointer-events-none'
-                      )}
-                    >
-                      <SubIcon
-                        size={14}
-                        className={cn('shrink-0', subActive ? colors.activeIcon : colors.icon)}
-                      />
-                      <span className="truncate">{sub.title}</span>
-                      {subActive && (
-                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-surface-600 shrink-0" />
-                      )}
-                    </Link>
-                  );
-                })}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </SidebarMenuItem>
-      );
-    }
-
-    return null;
+        </PopoverTrigger>
+        <PopoverContent side="right" align="start" sideOffset={8} className="p-0 w-48 overflow-hidden rounded-lg"
+          onMouseEnter={openPopover} onMouseLeave={closePopover} onOpenAutoFocus={event => event.preventDefault()}>
+          <div className="px-3 py-2 border-b text-xs font-bold uppercase">{item.title}</div>
+          <div className="py-1">{links(true)}</div>
+        </PopoverContent>
+      </Popover>
+      <div id={contentId} hidden={!isOpen || isCollapsed} className="mt-0.5 ml-4 pl-3 border-l border-slate-200 space-y-0.5 dark:border-slate-700">{links(false)}</div>
+    </SidebarMenuItem>;
   }
 
   // Group items by section
@@ -474,35 +223,16 @@ export function SidebarNav({ items }: SidebarNavProps) {
     };
   }).filter(group => group.items.length > 0);
 
-  // If collapsed: render all items together in a flat list with no section dividers or headers
-  if (isCollapsed) {
-    return (
-      <TooltipProvider>
-        <SidebarGroup className="p-0">
-          <SidebarGroupContent className="px-2 py-1">
-            <SidebarMenu className="gap-0.5">
-              {filteredItems.map((item, index) => renderItem(item, index))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </TooltipProvider>
-    );
-  }
-
   return (
-    <TooltipProvider>
-      <div className="space-y-3 py-1">
-        {groupedItems.map((group) => (
+    <TooltipProvider delayDuration={100} skipDelayDuration={300}>
+      <div className={isCollapsed ? 'space-y-0 py-1' : 'space-y-3 py-1'}>
+        {groupedItems.map(group => (
           <SidebarGroup key={group.id} className="p-0">
-            {/* Header label when expanded - styled with deeper Slate colors */}
-            <SidebarGroupLabel className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 tracking-wider px-4 py-1 uppercase select-none">
+            <SidebarGroupLabel className={cn('text-[11px] font-extrabold text-slate-700 dark:text-slate-300 tracking-wider px-4 py-1 uppercase select-none', isCollapsed && 'hidden')}>
               {group.label}
             </SidebarGroupLabel>
-
             <SidebarGroupContent className="px-2">
-              <SidebarMenu className="gap-0.5">
-                {group.items.map((item, index) => renderItem(item, index))}
-              </SidebarMenu>
+              <SidebarMenu className="gap-0.5">{group.items.map(renderItem)}</SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         ))}

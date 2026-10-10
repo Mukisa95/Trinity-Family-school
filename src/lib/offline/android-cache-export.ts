@@ -8,13 +8,14 @@ import { getAcademicYearCacheScope, readAcademicYearCache } from '@/lib/cache/ac
 import { getStaffCacheScope, readStaffCache } from '@/lib/cache/staff-cache';
 import { getSubjectCacheScope, readSubjectCache } from '@/lib/cache/subject-cache';
 import { liteRead, liteReadMetadata } from '@/lib/cache/lite-cache';
+import { yieldToInterface } from '@/lib/performance/background-task';
 import { projectOfflinePhotos } from './android-photo-projection';
 
 type Cache<T> = { schema: number; revision: number; data: T };
 const fields = (value: object, names: string[]) => Object.fromEntries(names.filter(name => name in value).map(name => [name, (value as Record<string, unknown>)[name]]));
 
 /** No network reads: reuse the same authorized caches that feed the PWA. */
-export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession): Promise<AndroidOfflineSnapshot | null> {
+export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession, reuse?: { previous: AndroidOfflineSnapshot; pupilsUnchanged: boolean }): Promise<AndroidOfflineSnapshot | null> {
   const capturedAt = new Date().toISOString();
   const result: AndroidOfflineSnapshot = { schema: 1, accountId: session.accountId, role: session.role, capturedAt, datasets: {} };
   if (session.role === 'Parent') {
@@ -32,7 +33,8 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
   }
   const scope = getClassCacheScope(session.accountId, session.role);
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
-  const pupils = await readPersistentCollectionWithMetadata<Pupil[]>(persistentCollectionCacheKey(projectId, 'pupils', `user:${session.accountId}`));
+  const previous = reuse?.pupilsUnchanged && reuse.previous.accountId === session.accountId && reuse.previous.role === session.role ? reuse.previous : undefined;
+  const pupils = previous ? null : await readPersistentCollectionWithMetadata<Pupil[]>(persistentCollectionCacheKey(projectId, 'pupils', `user:${session.accountId}`));
   const classes = readClassCache(scope);
   const years = readAcademicYearCache(getAcademicYearCacheScope(session.accountId, session.role));
   const staff = readStaffCache(getStaffCacheScope(session.accountId, session.role));
@@ -40,6 +42,7 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
   function saved<T>(data: T, revision?: number, key?: string): AndroidOfflineDataset<T> {
     return { data, revision, preparedAt: key ? new Date(liteReadMetadata(key)?.writtenAt || 0).toISOString() : capturedAt };
   }
+  if (session.grants.pupils && previous?.datasets.pupils) result.datasets.pupils = previous.datasets.pupils;
   if (session.grants.pupils && pupils && Array.isArray(pupils.data)) result.datasets.pupils = {
     data: await projectOfflinePhotos(session.accountId, pupils.data.map(pupil => projectOfflinePupil(pupil as unknown as Record<string, unknown>, session))),
     preparedAt: new Date(pupils.writtenAt).toISOString(),
@@ -51,6 +54,7 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
   if (session.grants.dashboard) {
     const counts: Record<string, number> = {};
     if (session.grants.dashboardCounts.includes('pupils') && pupils && Array.isArray(pupils.data)) counts.pupils = pupils.data.filter(item => item.status === 'Active').length;
+    if (session.grants.dashboardCounts.includes('pupils') && typeof previous?.datasets.dashboard?.data.pupils === 'number') counts.pupils = previous.datasets.dashboard.data.pupils;
     if (session.grants.dashboardCounts.includes('staff') && staff) counts.staff = staff.data.length;
     if (Object.keys(counts).length) result.datasets.dashboard = saved(counts);
   }
@@ -72,6 +76,7 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
       const profiles = liteRead<Cache<AndroidOfflineTimetable['profile'][]>>(key);
       if (profiles?.schema !== 2 || !Array.isArray(profiles.data)) continue;
       hasProfiles = true;
+      await yieldToInterface();
       for (const profile of profiles.data) {
         const base = `${prefix}${segments[0]}:${segments[1]}:`;
         const periods = liteRead<Cache<AndroidOfflineTimetable['periods']>>(`${base}periods:${encodeURIComponent(profile.id)}`);

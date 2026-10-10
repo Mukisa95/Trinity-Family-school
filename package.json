@@ -16,6 +16,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test:performance": "node --import tsx --test tests/performance-policy.test.ts tests/lite-cache-memoization.test.ts tests/android-snapshot-performance.test.ts",
+    "test:performance-browser": "node scripts/test-performance-browser.cjs",
     "build:themes": "node scripts/build-theme-presets.cjs",
     "test:look-and-feel-browser": "node scripts/test-look-and-feel-browser.cjs",
     "test:look-and-feel-navigation": "node scripts/test-look-and-feel-navigation.cjs",

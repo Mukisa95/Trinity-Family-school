@@ -372,3 +372,23 @@ html[data-theme-reveal] .dashboard-bg-wrapper::after { transition: none !importa
     box-shadow: none;
   }
 }
+
+/* Lighter presentation keeps data, controls, paper and loading indicators intact. */
+html[data-effects="reduced"] .dashboard-bg-wrapper::before {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: none !important;
+}
+html[data-effects="reduced"] :is([data-sidebar="sidebar"], header, [class*="backdrop-blur"]) {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html[data-effects="reduced"] :is([data-sidebar="sidebar"], .dashboard-bg-wrapper [data-sidebar="inset"] > header) {
+  background: rgb(var(--glass-surface) / .98) !important;
+  box-shadow: 0 1px 3px rgb(var(--glass-shadow) / .12) !important;
+}
+html[data-effects="reduced"] .header-shimmer::after { display: none; }
+html[data-effects="reduced"] .animate-pulse { animation: none !important; }
+html[data-effects="reduced"] :is([data-sidebar], .theme-toggle-thumb, .theme-toggle-track, .theme-toggle-icon, .timetable-lesson-chip) {
+  transition: none !important;
+}

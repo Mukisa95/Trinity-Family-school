@@ -85,6 +85,7 @@ export async function prepareParentAppShell(options: { force?: boolean } = {}): 
       routes: PARENT_OFFLINE_APP_ROUTES,
       assetUrls,
       force: options.force === true,
+      cacheDocuments: true,
     }, [channel.port2]);
   });
 }

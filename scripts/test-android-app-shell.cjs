@@ -19,6 +19,9 @@ const session = { schema: 1, accountId: 'fixture', role: 'Admin', expiresAt: new
  const server = http.createServer((req, res) => {
    const pathname = new URL(req.url, 'http://localhost').pathname; requests.push(pathname);
    if (pathname === '/sw.js') { res.setHeader('Content-Type', 'application/javascript'); res.end(fs.readFileSync(path.join(root, 'public/sw.js'))); return; }
+   if (pathname === '/_next/static/offline-document-assets.json') { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(['/_next/static/document-fixture.js', '/_next/static/document-worker.mjs', '/api/private'])); return; }
+   if (pathname === '/_next/static/document-fixture.js') { res.setHeader('Content-Type', 'application/javascript'); res.end('window.documentCodeExecuted=true;'); return; }
+   if (pathname === '/_next/static/document-worker.mjs') { res.setHeader('Content-Type', 'application/javascript'); res.end('export const ready=true;'); return; }
    if (pathname === '/shell.js') { res.setHeader('Content-Type', 'application/javascript'); res.end(fs.readFileSync(path.join(output, 'shell.js'))); return; }
    if (pathname === '/_next/static/style-fixture.css') { res.setHeader('Content-Type', 'text/css'); res.end('header{height:64px;background:#fff}body{font-family:sans-serif}'); return; }
    if (pathname === '/_next/static/runtime-fixture.js') { res.setHeader('Content-Type', 'application/javascript'); res.end('window.originalRuntime=true;'); return; }
@@ -35,12 +38,34 @@ const session = { schema: 1, accountId: 'fixture', role: 'Admin', expiresAt: new
    let page = await context.newPage(); await page.goto(url+'/');
    await page.addScriptTag({ url: '/shell.js' });
    await page.evaluate(async () => { await navigator.serviceWorker.register('/sw.js'); await navigator.serviceWorker.ready; });
+   await page.waitForFunction(async () => {
+     for (const name of await caches.keys()) {
+       if (!name.startsWith('static-')) continue;
+       const cache = await caches.open(name);
+       if (await cache.match('/_next/static/document-fixture.js') && await cache.match('/_next/static/document-worker.mjs')) return true;
+     }
+     return false;
+   }, undefined, { timeout: 20_000 });
+   assert.equal(await page.evaluate(() => window.documentCodeExecuted), undefined, 'Ordinary browser activation warms document assets without executing them');
    await page.waitForFunction(() => navigator.serviceWorker.controller);
    await page.evaluate(session => Shell.prepareAndroidAppShell(session), session);
+   await page.waitForFunction(async () => {
+     const names = (await caches.keys()).filter(name => name.startsWith('android-app-shell-'));
+     for (const name of names) {
+       const cache = await caches.open(name);
+       if (await cache.match('/_next/static/document-fixture.js') && await cache.match('/_next/static/document-worker.mjs')) return true;
+     }
+     return false;
+   });
+   assert.equal(await page.evaluate(() => window.documentCodeExecuted), undefined, 'Offline preparation caches document bytes without running them');
+   assert.equal(requests.includes('/api/private'), false, 'The document manifest cannot cache private API data');
    const online = await page.locator('body').innerText();
    await context.setOffline(true);
    await page.reload(); assert.equal(await page.locator('body').innerText(), online); assert.equal(await page.evaluate(() => originalRuntime), true);
    assert.equal(await page.locator('header').evaluate(el => getComputedStyle(el).height), '64px');
+   await page.addScriptTag({ url: '/_next/static/document-fixture.js' });
+   assert.equal(await page.evaluate(() => window.documentCodeExecuted), true, 'Documents can load for the first time after going offline');
+   assert.equal(await page.evaluate(() => import('/_next/static/document-worker.mjs').then(module => module.ready)), true, 'Deferred worker modules also load offline');
    await page.close(); page = await context.newPage();
    for (const route of ['/timetable', '/pupils', '/pupil-detail?id=child-1']) {
      await page.goto(url+route); assert.equal(await page.locator('main').getAttribute('data-route'), route.split('?')[0]);

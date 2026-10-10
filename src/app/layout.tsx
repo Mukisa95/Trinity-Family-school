@@ -1,3 +1,4 @@
+import { PerformanceProvider } from '@/components/providers/performance-provider';
 import { AndroidOfflineBoundary } from '@/components/common/android-offline-boundary';
 import { AndroidOfflineProvider } from '@/components/providers/android-offline-provider';
 import type { Metadata } from 'next';
@@ -17,7 +18,7 @@ import { GlobalDataPreloader } from '@/components/providers/global-data-preloade
 import { PrintProvider } from '@/lib/contexts/print-context';
 import { ServiceWorkerProvider } from '@/components/providers/service-worker-provider';
 import { PDFWorkspaceProvider } from '@/lib/pdf/pdf-workspace-context';
-import { PDFWorkspace } from '@/components/pdf/pdf-workspace';
+import { LazyPDFWorkspace } from '@/components/pdf/lazy-pdf-workspace';
 import { OperationalAuditProvider } from '@/components/providers/operational-audit-provider';
 
 const geistSans = GeistSans;
@@ -179,6 +180,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+        <PerformanceProvider>
         <ThemeProvider>
         <QueryProvider>
           <AuthProvider>
@@ -194,13 +196,14 @@ export default function RootLayout({
                   </AppLayout>
                   <Toaster />
                 </SyncProvider>
-                <PDFWorkspace />
+                <LazyPDFWorkspace />
               </PDFWorkspaceProvider>
             </PrintProvider>
           </AuthProvider>
         </QueryProvider>
         <Analytics />
         </ThemeProvider>
+        </PerformanceProvider>
       </body>
     </html>
   );

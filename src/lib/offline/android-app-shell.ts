@@ -41,7 +41,7 @@ export async function prepareAndroidAppShell(session: AndroidOfflineSession) {
       if (event.data?.type === 'ANDROID_APP_SHELL_CACHED') resolve();
       else reject(new Error(event.data?.message || 'The interface could not be prepared.'));
     };
-    worker.postMessage({ type: 'CACHE_ANDROID_APP_SHELL', routes, assetUrls }, [channel.port2]);
+    worker.postMessage({ type: 'CACHE_ANDROID_APP_SHELL', routes, assetUrls, cacheDocuments: true }, [channel.port2]);
   });
 }
 

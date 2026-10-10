@@ -59,8 +59,32 @@ export interface LiteCacheMetadata {
 // payload so a private staff event can never be restored into another session.
 const CACHE_VERSION = 4;
 
+// Opt-in for immutable reference snapshots. Always compare the stored envelope
+// so writes, logout eviction, TTL expiry and changes from another tab are visible.
+const parsedSnapshots = new Map<string, { raw: string; entry: CacheEntry<unknown> }>();
+export function liteReadMemoized<T>(key: string): T | null {
+  if (!isAvailable()) return null;
+  try {
+    const raw = localStorage.getItem(PREFIX + key);
+    if (!raw) { parsedSnapshots.delete(key); return null; }
+    const previous = parsedSnapshots.get(key);
+    const entry = previous?.raw === raw ? previous.entry : JSON.parse(raw) as CacheEntry<T>;
+    if (entry.version !== CACHE_VERSION || Date.now() - entry.writtenAt > entry.ttlMs) {
+      parsedSnapshots.delete(key);
+      localStorage.removeItem(PREFIX + key);
+      return null;
+    }
+    if (previous?.raw !== raw) {
+      if (parsedSnapshots.size >= 64) parsedSnapshots.delete(parsedSnapshots.keys().next().value!);
+      parsedSnapshots.set(key, { raw, entry });
+    }
+    return entry.data as T;
+  } catch { parsedSnapshots.delete(key); return null; }
+}
+
 function isAvailable(): boolean {
-  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+  try { return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'; }
+  catch { return false; }
 }
 
 /**
@@ -140,12 +164,14 @@ export function liteReadMetadata(key: string): LiteCacheMetadata | null {
  * after a create/update/delete operation.
  */
 export function liteInvalidate(key: string): void {
+  parsedSnapshots.delete(key);
   if (!isAvailable()) return;
   try { localStorage.removeItem(PREFIX + key); } catch { /* noop */ }
 }
 
 /** Wipe the entire lite cache (e.g. on logout). */
 export function liteClearAll(): void {
+  parsedSnapshots.clear();
   if (!isAvailable()) return;
   try {
     Object.keys(localStorage)

@@ -5,7 +5,7 @@ import { TimetableService, getPeriodsCollectionPath, getEntriesCollectionPath, g
 import type { TimetableProfile, GeneratedPeriod, TimetableEntry } from '@/types';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useDashboardDataRevisions } from './use-school-settings';
-import { liteRead, liteWrite } from '@/lib/cache/lite-cache';
+import { liteReadMemoized, liteWrite } from '@/lib/cache/lite-cache';
 import { getRevisionCachePolicy } from '@/lib/cache/revision-cache-policy';
 import { dashboardRevisionKeys } from '@/lib/services/dashboard-cache-revisions.service';
 
@@ -89,7 +89,7 @@ function timetableCacheKey(
 }
 
 function readTimetableCache<T>(cacheKey: string): TimetableCacheEntry<T> | undefined {
-    const entry = liteRead<TimetableCacheEntry<T>>(cacheKey);
+    const entry = liteReadMemoized<TimetableCacheEntry<T>>(cacheKey);
     if (!entry || entry.schema !== TIMETABLE_CACHE_SCHEMA) return undefined;
     return entry;
 }

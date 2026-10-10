@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from 'react';
-import { pdf } from '@react-pdf/renderer';
 import type { ReactElement } from 'react';
 import {
   PDFGenerationContext,
@@ -47,6 +46,8 @@ export function usePDFViewer(): UsePDFViewerReturn {
         async ({ signal, updateProgress }) => {
           updateProgress(8, 'Loading PDF renderer…');
           if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+          const { pdf } = await import('@react-pdf/renderer');
+          if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
           const asPdf = pdf(pdfDocument);
           updateProgress(24, 'Rendering pages…');
           const blob = await asPdf.toBlob();
@@ -65,6 +66,7 @@ export function usePDFViewer(): UsePDFViewerReturn {
       setPdfBlob(null); // Clear previous blob
       
       // Generate PDF blob
+      const { pdf } = await import('@react-pdf/renderer');
       const asPdf = pdf(pdfDocument);
       const blob = await asPdf.toBlob();
       

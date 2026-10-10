@@ -1,4 +1,5 @@
 "use client";
+import { usePerformanceMode } from '@/components/providers/performance-provider';
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
@@ -24,6 +25,7 @@ const AppearanceContext = createContext<{
 } | null>(null);
 
 function AppearanceProvider({ children }: { children: ReactNode }) {
+  const { reducedEffects } = usePerformanceMode();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [ready, setReady] = useState(false);
   const [changing, setChanging] = useState(false);
@@ -100,6 +102,7 @@ function AppearanceProvider({ children }: { children: ReactNode }) {
 
   const transitionAppearance = async (apply: () => void, origin: HTMLElement) => {
     if (active.current) return;
+    if (reducedEffects) { apply(); return; }
     active.current = true;
     setChanging(true);
     const root = document.documentElement;

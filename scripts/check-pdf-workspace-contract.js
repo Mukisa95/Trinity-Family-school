@@ -28,7 +28,10 @@ const sourceText = sourceFiles.map((file) => fs.readFileSync(file, 'utf8')).join
 const workspaceLaunchCount = sourceText.match(/(?:\.runPDFJob\(|pdfViewer\.openPDF\()/g)?.length || 0;
 
 requireText(layout, '<PDFWorkspaceProvider>', 'the provider must live in the persistent root layout');
-requireText(layout, '<PDFWorkspace />', 'the workspace window must be mounted globally');
+requireText(layout, '<LazyPDFWorkspace />', 'the workspace entry point must be mounted globally');
+const lazyWorkspace = read('src/components/pdf/lazy-pdf-workspace.tsx');
+requireText(lazyWorkspace, 'documents.length ? <Workspace /> : null', 'the viewer must load only when a document exists');
+requireText(lazyWorkspace, "import('./pdf-workspace')", 'the workspace must remain available through a lazy import');
 requireText(context, 'documents: PDFWorkspaceDocument[]', 'the workspace must support multiple documents');
 requireText(context, 'await waitForWorkspacePaint()', 'the loading window must paint before rendering starts');
 requireText(context, 'setMode("minimized")', 'the workspace must support minimized background operation');

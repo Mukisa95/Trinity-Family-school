@@ -30,8 +30,8 @@ import * as pdfjs from 'pdfjs-dist';pdfjs.GlobalWorkerOptions.workerSrc='/worker
 import {ThemeProvider,useAppearance} from './src/components/providers/theme-provider';
 import {ThemeToggle} from './src/components/ui/theme-toggle';
 import {PDFWorkspaceProvider,usePDFWorkspace} from './src/lib/pdf/pdf-workspace-context';
-import {PDFWorkspace} from './src/components/pdf/pdf-workspace';
-function Fixture(){const api=usePDFWorkspace(),appearance=useAppearance();useEffect(()=>{window.pdfAPI=api;window.appearance=appearance},[api,appearance]);return <div style={{'--theme-primary':'37 99 235'}}><div className="fixed bottom-4 left-4 z-[110]"><ThemeToggle/></div><PDFWorkspace/></div>}
+import {LazyPDFWorkspace} from './src/components/pdf/lazy-pdf-workspace';
+function Fixture(){const api=usePDFWorkspace(),appearance=useAppearance();useEffect(()=>{window.pdfAPI=api;window.appearance=appearance},[api,appearance]);return <div style={{'--theme-primary':'37 99 235'}}><div className="fixed bottom-4 left-4 z-[110]"><ThemeToggle/></div><LazyPDFWorkspace/></div>}
 createRoot(document.getElementById('app')).render(<ThemeProvider><PDFWorkspaceProvider><Fixture/></PDFWorkspaceProvider></ThemeProvider>);
 ` }, bundle: true, format: 'esm', jsx: 'automatic', platform: 'browser', alias: { '@': path.join(root, 'src') }, outfile: path.join(output, 'fixture.js'), define: { 'process.env.NODE_ENV': '"production"' } });
   const config = require('typescript').transpileModule(fs.readFileSync(path.join(root, 'tailwind.config.ts'), 'utf8'), { compilerOptions: { module: 1 } }).outputText;
@@ -57,6 +57,7 @@ async function run() {
     const errors = []; page.on('pageerror', e => errors.push(e.message));
     await page.goto(`http://127.0.0.1:${server.address().port}`);
     await page.waitForFunction(() => window.pdfAPI);
+    assert.equal(await page.locator('[data-pdf-page]').count(), 0, 'No document workspace mounts before first use');
     await page.evaluate(async () => { const blob = await (await fetch('/source.pdf')).blob(); window.pdfAPI.addPDFBlob(blob, { title: 'Test report', fileName: 'test-report.pdf' }); });
     const canvas = page.locator('[data-pdf-page="1"] canvas');
     await canvas.waitFor();

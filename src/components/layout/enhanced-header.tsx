@@ -1,5 +1,6 @@
 "use client";
 
+import { useVisibleClock } from '@/lib/hooks/use-visible-clock';
 import { HeaderThemeToggle } from '@/components/ui/theme-toggle';
 
 import {
@@ -48,6 +49,15 @@ declare module 'framer-motion' {
   export interface MotionProps {
     className?: string;
   }
+}
+
+function HeaderDateTime({ mobile }: { mobile: boolean }) {
+  const time = useVisibleClock(60_000);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  return <span suppressHydrationWarning>{mounted ? time.toLocaleDateString('en-US', {
+    ...(mobile ? {} : { weekday: 'short' as const }), month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+  }) : '—'}</span>;
 }
 
 interface HeaderProps {
@@ -335,7 +345,6 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   const hasSidebarProvider = sidebarContext !== null;
   const sidebarIsMobile = sidebarContext ? sidebarContext.isMobile : false;
 
-  const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Pupil[]>([]);
   const [showResults, setShowResults] = useState(false);
@@ -460,9 +469,6 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   useEffect(() => {
     setMounted(true);
 
-    const timer = setInterval(() => {
-      setCurrentDateTime(new Date());
-    }, 1000);
 
     // Handle window resize for responsive quote display
     const handleResize = () => {
@@ -475,7 +481,6 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
     window.addEventListener('resize', handleResize);
 
     return () => {
-      clearInterval(timer);
       window.removeEventListener('resize', handleResize);
     };
   }, []);
@@ -576,32 +581,6 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
       clearTimeout(phaseTimer);
     };
   }, [phase, motto]);
-
-  // Format date and time with responsive formatting
-  const formattedDateTime = useMemo(() => {
-    if (!mounted) {
-      const serverTime = new Date();
-      return serverTime.toLocaleDateString('en-US', {
-        weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-      });
-    }
-    const isMobile = windowWidth < 768;
-    const options: Intl.DateTimeFormatOptions = isMobile
-      ? {
-        hour: '2-digit',
-        minute: '2-digit',
-        month: 'short',
-        day: 'numeric'
-      }
-      : {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      };
-    return currentDateTime.toLocaleDateString('en-US', options);
-  }, [currentDateTime, windowWidth, mounted]);
 
   // Truncate message based on available space
   const getTruncatedMessage = (message: string, maxLength: number = 50) => {
@@ -1038,7 +1017,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
               >
                 <Calendar size={13} className="text-brand-ink-600 flex-shrink-0 relative z-10 dark:text-brand-ink-400" weight="duotone" />
                 <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 relative z-10 whitespace-nowrap">
-                  {formattedDateTime}
+                  <HeaderDateTime mobile={windowWidth < 768} />
                 </span>
 
                 {currentAcademicYear && currentTerm && (

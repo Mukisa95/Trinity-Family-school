@@ -228,7 +228,7 @@ const Sidebar = React.forwardRef<
         <div
           className={cn(
             "relative h-svh w-[--sidebar-width] bg-transparent",
-            "transition-[width] ease-in-out duration-300",
+            "",
             "group-data-[collapsible=offcanvas]:w-0",
             "group-data-[side=right]:rotate-180",
             variant === "floating" || variant === "inset"
@@ -239,7 +239,7 @@ const Sidebar = React.forwardRef<
         <div
           className={cn(
             "fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] md:flex",
-            "transition-[width,left,right,padding] ease-in-out duration-300",
+            "transition-[left,right] duration-150 ease-out",
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",

@@ -142,32 +142,10 @@ const nextConfig = {
         })
       );
 
-      // Improve chunk loading reliability
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            default: false,
-            vendors: false,
-            // Vendor chunk
-            vendor: {
-              name: 'vendor',
-              chunks: 'all',
-              test: /node_modules/,
-              priority: 20,
-            },
-            // Common chunk
-            common: {
-              name: 'common',
-              minChunks: 2,
-              chunks: 'all',
-              priority: 10,
-              reuseExistingChunk: true,
-            },
-          },
-        },
-      };
+      // Preserve Next.js route-aware splitting. A single forced vendor/common
+      // bundle pulled unrelated report and document code into ordinary pages.
+      config.plugins.push(new (require('./scripts/offline-document-assets-plugin.cjs'))(webpack));
+
     }
     return config;
   },

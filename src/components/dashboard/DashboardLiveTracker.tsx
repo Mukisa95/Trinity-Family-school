@@ -10,6 +10,7 @@ import { ChevronLeft, ChevronRight, BookOpen, Clock, User, X } from "lucide-reac
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { getDashboardTimetableTerm } from "@/lib/offline/timetable-feed";
+import { useVisibleClock } from "@/lib/hooks/use-visible-clock";
 import { getTimetableStreamInitial } from "@/lib/utils/timetable-streams";
 
 function parseTimeToMins(t: string): number {
@@ -107,11 +108,8 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
     const { data: subjects = [] } = useSubjects();
     const { data: staff = [] } = useStaff();
 
-    const [currentTime, setCurrentTime] = React.useState(new Date());
-    React.useEffect(() => {
-        const id = setInterval(() => setCurrentTime(new Date()), 1000);
-        return () => clearInterval(id);
-    }, []);
+    // The visible countdown still updates each second; hidden tabs pause entirely.
+    const currentTime = useVisibleClock();
 
     const [viewOffset, setViewOffset] = React.useState(0);
     const [openPillIdx, setOpenPillIdx] = React.useState<number | null>(null);
@@ -120,9 +118,9 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
     const currentTimeStr = format(currentTime, "HH:mm");
     const currentSecs = currentTime.getHours() * 3600 + currentTime.getMinutes() * 60 + currentTime.getSeconds();
 
-    const todayPeriods = periods
+    const todayPeriods = React.useMemo(() => periods
         .filter(p => p.dayOfWeek === currentDayOfWeek)
-        .sort((a, b) => parseTimeToMins(a.startTime) - parseTimeToMins(b.startTime));
+        .sort((a, b) => parseTimeToMins(a.startTime) - parseTimeToMins(b.startTime)), [periods, currentDayOfWeek]);
 
     let baseIndex = todayPeriods.findIndex(p => currentTimeStr >= p.startTime && currentTimeStr < p.endTime);
     if (baseIndex === -1) {
@@ -139,6 +137,54 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
     const handlePrev = () => { setViewOffset(prev => Math.max(0 - baseIndex, prev - 1)); setOpenPillIdx(null); };
     const handleLive = () => { setViewOffset(0); setOpenPillIdx(null); };
     const isLive = viewOffset === 0;
+
+    const classLookup = React.useMemo(() => new Map(classes.map(item => [item.id, item])), [classes]);
+    const subjectLookup = React.useMemo(() => new Map(subjects.map(item => [item.id, item])), [subjects]);
+    const staffLookup = React.useMemo(() => new Map(staff.map(item => [item.id, item])), [staff]);
+    const subjectCards = React.useMemo<PillData[]>(() => {
+      if (!activePeriod) return [];
+        const classesToRender = profile?.classIds?.length
+            ? classes.filter(c => profile!.classIds.includes(c.id))
+            : classes;
+
+        const activeEntries = entries
+            .filter(e => e.periodId === activePeriod.id)
+            .sort((a, b) => {
+                const ai = classesToRender.findIndex(c => c.id === a.classId);
+                const bi = classesToRender.findIndex(c => c.id === b.classId);
+                return (ai === -1 ? 9999 : ai) - (bi === -1 ? 9999 : bi);
+            });
+
+        return activeEntries.map((e, idx) => {
+            const cls = classLookup.get(e.classId);
+            const sub = subjectLookup.get(e.subjectId);
+            const teacherObj = staffLookup.get(e.teacherId);
+            let classCode = cls?.code || cls?.name || "Cls";
+            classCode = classCode.replace(/Senior\s+/i, "S").replace(/Primary\s+/i, "P");
+            const configuredStream = cls?.streams?.find(stream => stream.id === e.streamId);
+            const streamInitial = getTimetableStreamInitial(e, cls);
+            const streamName = e.streamName || configuredStream?.name || streamInitial;
+            if (streamInitial) classCode = `${classCode} ${streamInitial}`;
+            const subjectCode = sub?.code || sub?.name || e.activityName || "—";
+            const teacherName = teacherObj
+                ? [teacherObj.firstName, teacherObj.lastName].filter(Boolean).join(" ")
+                : "";
+            return {
+                id: e.id,
+                classCode,
+                className: streamInitial
+                    ? `${cls?.name || classCode} · ${streamName}`
+                    : cls?.name || classCode,
+                subjectCode,
+                subjectName: sub?.name || e.activityName || "—",
+                teacher: teacherName,
+                tone: getPillTone(idx),
+                startTime: activePeriod.startTime,
+                endTime: activePeriod.endTime,
+            };
+        });
+
+    }, [activePeriod, entries, classes, profile, classLookup, subjectLookup, staffLookup]);
 
     if (!activePeriod) {
         return (
@@ -177,52 +223,9 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
         ? `L${activePeriod.periodNumber}`
         : (activePeriod.customLabel || activePeriod.type);
 
-    const classesToRender = profile?.classIds?.length
-        ? classes.filter(c => profile!.classIds.includes(c.id))
-        : classes;
-
-    const activeEntries = entries
-        .filter(e => e.periodId === activePeriod.id)
-        .sort((a, b) => {
-            const ai = classesToRender.findIndex(c => c.id === a.classId);
-            const bi = classesToRender.findIndex(c => c.id === b.classId);
-            return (ai === -1 ? 9999 : ai) - (bi === -1 ? 9999 : bi);
-        });
-
-    const subjectCards: PillData[] = activeEntries.map((e, idx) => {
-        const cls = classes.find(c => c.id === e.classId);
-        const sub = subjects.find(s => s.id === e.subjectId);
-        const teacherObj = staff.find(t => t.id === e.teacherId);
-        let classCode = cls?.code || cls?.name || "Cls";
-        classCode = classCode.replace(/Senior\s+/i, "S").replace(/Primary\s+/i, "P");
-        const configuredStream = cls?.streams?.find(stream => stream.id === e.streamId);
-        const streamInitial = getTimetableStreamInitial(e, cls);
-        const streamName = e.streamName || configuredStream?.name || streamInitial;
-        if (streamInitial) classCode = `${classCode} ${streamInitial}`;
-        const subjectCode = sub?.code || sub?.name || e.activityName || "—";
-        const teacherName = teacherObj
-            ? [teacherObj.firstName, teacherObj.lastName].filter(Boolean).join(" ")
-            : "";
-        return {
-            id: e.id,
-            classCode,
-            className: streamInitial
-                ? `${cls?.name || classCode} · ${streamName}`
-                : cls?.name || classCode,
-            subjectCode,
-            subjectName: sub?.name || e.activityName || "—",
-            teacher: teacherName,
-            tone: getPillTone(idx),
-            startTime: activePeriod.startTime,
-            endTime: activePeriod.endTime,
-        };
-    });
-
     const nextLabel = nextPeriod
         ? (nextPeriod.type === "lesson" ? `L${nextPeriod.periodNumber}` : (nextPeriod.customLabel || nextPeriod.type))
         : null;
-
-    const BAR_HEIGHT = 22; // px
 
     return (
         <div className="flex flex-col gap-1 w-full min-w-0 py-0.5">
@@ -231,17 +234,17 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                 <div className="flex-shrink-0 w-3.5 h-3.5 rounded-full border border-red-300 flex items-center justify-center dark:border-red-800/60">
                     <div className={`w-1.5 h-1.5 rounded-full bg-red-500 ${isLive && !isUpcoming ? "animate-pulse" : "opacity-25"}`} />
                 </div>
-                
+
                 <div className="flex items-center flex-wrap gap-1 text-xs font-bold text-gray-900 tracking-tight dark:text-slate-100">
 
-                    
+
                     <span className="text-gray-800 dark:text-slate-100">{periodLabel}</span>
-                    
+
                     {/* Compact Countdown Badge */}
                     <span className={`px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded-md tracking-wider leading-none ${
-                        isUpcoming 
+                        isUpcoming
                             ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60'
-                            : currentSecs >= endSecs 
+                            : currentSecs >= endSecs
                                 ? 'bg-gray-100 text-gray-500 border border-gray-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700'
                                 : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60'
                     }`}>
@@ -253,7 +256,7 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                 </div>
 
                 <div className="flex-1" />
-                
+
                 {showClock && (
                     <div className="hidden sm:flex items-center px-2 py-0.5 bg-brand-alt-surface-50/50 border border-brand-alt-100/60 rounded-full mr-1 flex-shrink-0 dark:bg-brand-alt-surface-950/50 dark:border-brand-alt-800/60">
                         <Clock className="w-2.5 h-2.5 text-brand-alt-ink-600 mr-1 dark:text-brand-alt-ink-400" />
@@ -262,7 +265,7 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                         </span>
                     </div>
                 )}
-                
+
                 <div className="flex-shrink-0 flex items-center gap-0.5 p-0.5 bg-gray-50 border border-gray-200 rounded-full shadow-sm dark:bg-slate-900 dark:border-slate-700">
                     <button onClick={handlePrev} disabled={!prevPeriod} className="p-0.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-900">
                         <ChevronLeft className="w-3 h-3" />

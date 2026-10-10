@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { auth } from '@/lib/firebase';
 import { androidOfflineRequest, hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
 import { exportAndroidCachedSnapshot } from '@/lib/offline/android-cache-export';
-import { isAndroidOfflineSnapshot, type AndroidOfflineSession } from '@/lib/offline/android-contracts';
+import { isAndroidOfflineSnapshot, type AndroidOfflineSession, type AndroidOfflineSnapshot } from '@/lib/offline/android-contracts';
 import { subscribeToParentOfflineChanges } from '@/lib/parent-offline/repository';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { useTimetableEntries, useTimetablePeriods, useTimetableProfiles } from '@/lib/hooks/use-timetable';
@@ -15,6 +14,9 @@ import { useSubjects } from '@/lib/hooks/use-subjects';
 import { useStaff } from '@/lib/hooks/use-staff';
 import { prepareAndroidAppShell, isAndroidOffline, installAndroidOfflineNavigation } from '@/lib/offline/android-app-shell';
 import { toast } from '@/hooks/use-toast';
+import { affectsAndroidSnapshot } from '@/lib/offline/android-snapshot-changes';
+import { createSnapshotFingerprint } from '@/lib/offline/android-snapshot-fingerprint';
+import { yieldToInterface } from '@/lib/performance/background-task';
 import { getDashboardTimetableTerm } from '@/lib/offline/timetable-feed';
 
 function PrepareTimetable({ yearId, termId, id }: { yearId: string; termId: string; id: string }) {
@@ -36,7 +38,6 @@ function PrepareCurrentTimetables() {
 /** Inert in the normal browser/PWA; Android reuses existing caches and query owners. */
 export function AndroidOfflineProvider() {
   const { user, isLoading, isLocked } = useAuth();
-  const client = useQueryClient();
   const [session, setSession] = useState<AndroidOfflineSession | null>(null);
   const generation = useRef(0);
   useEffect(() => {
@@ -81,28 +82,50 @@ export function AndroidOfflineProvider() {
     let running = false;
     let dirty = false;
     let previous = '';
+    const fingerprintSnapshot = createSnapshotFingerprint();
+    let previousSnapshot: AndroidOfflineSnapshot | undefined;
+    let pupilsDirty = true;
+    let firstDirtyAt = 0;
     const synchronize = async () => {
       if (disposed) return;
       if (running) { dirty = true; return; }
       running = true;
+      firstDirtyAt = 0;
       try {
-        const snapshot = await exportAndroidCachedSnapshot(session);
+        await yieldToInterface();
+        if (disposed) return;
+        const pupilsChanged = pupilsDirty;
+        pupilsDirty = false;
+        const snapshot = await exportAndroidCachedSnapshot(session, previousSnapshot ? { previous: previousSnapshot, pupilsUnchanged: !pupilsChanged } : undefined);
         if (disposed || !snapshot || !isAndroidOfflineSnapshot(snapshot, session)) return;
         // copiedAt is not a data change; avoid repeated full snapshot bridge writes.
-        const fingerprint = JSON.stringify(snapshot.datasets, (key, value) => key === 'preparedAt' ? undefined : value);
+        const fingerprint = fingerprintSnapshot(snapshot);
         if (fingerprint === previous) return;
         await androidOfflineRequest('save', { snapshot });
         previous = fingerprint;
-      } catch (error) { console.warn('Android saved-data refresh failed:', error instanceof Error ? error.message : 'Unavailable'); }
+        previousSnapshot = snapshot;
+      } catch (error) { pupilsDirty = true; console.warn('Android saved-data refresh failed:', error instanceof Error ? error.message : 'Unavailable'); }
       finally { running = false; if (dirty && !disposed) { dirty = false; schedule(); } }
     };
-    const schedule = () => { if (timer) clearTimeout(timer); timer = setTimeout(() => void synchronize(), 600); };
-    const unsubscribe = client.getQueryCache().subscribe(event => { if (event.type === 'updated' && event.action.type === 'success') schedule(); });
+    const schedule = () => {
+      if (disposed) return;
+      if (running) { dirty = true; return; }
+      if (!firstDirtyAt) firstDirtyAt = Date.now();
+      if (timer) clearTimeout(timer);
+      // Coalesce actual writes, with a bound so a continuous stream cannot starve saving.
+      timer = setTimeout(() => void synchronize(), Math.max(0, Math.min(1_500, 5_000 - (Date.now() - firstDirtyAt))));
+    };
+    const cacheWritten = (event: Event) => {
+      const key = (event as CustomEvent<{ key?: unknown }>).detail?.key;
+      const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
+      if (key === `${projectId}::pupils::user:${session.accountId}`) pupilsDirty = true;
+      if (affectsAndroidSnapshot(session, key, projectId)) schedule();
+    };
     const unsubscribeParent = subscribeToParentOfflineChanges(session.accountId, schedule);
-    window.addEventListener('trinity-native-cache-written', schedule);
+    window.addEventListener('trinity-native-cache-written', cacheWritten);
     schedule();
-    return () => { disposed = true; if (timer) clearTimeout(timer); unsubscribe(); unsubscribeParent(); window.removeEventListener('trinity-native-cache-written', schedule); };
-  }, [client, session, user?.id, isLocked]);
+    return () => { disposed = true; if (timer) clearTimeout(timer); unsubscribeParent(); window.removeEventListener('trinity-native-cache-written', cacheWritten); };
+  }, [session, user?.id, isLocked]);
 
   useEffect(() => {
     // HTML and immutable assets contain no private records; prepare them even

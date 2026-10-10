@@ -1,3 +1,4 @@
+import { yieldToInterface } from '@/lib/performance/background-task';
 /** Private offline thumbnails derived from existing inline cache photos. Originals are untouched. */
 const thumbnails = new Map<string, Promise<string | undefined>>();
 let owner = '';
@@ -45,6 +46,8 @@ export async function projectOfflinePhotos(accountId: string, pupils: Record<str
   await Promise.all(Array.from({ length: Math.min(4, pupils.length) }, async () => {
     while (index < pupils.length) {
       const current = index++;
+      // Yield before decoding/hashing each batch; Promise continuations alone do not let input run.
+      if (current % 8 === 0) await yieldToInterface();
       photos[current] = await offlinePupilPhoto(accountId, pupils[current].photo);
     }
   }));

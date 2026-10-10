@@ -21,8 +21,8 @@
 
 // ⚠️ IMPORTANT: Increment this version number with EVERY deployment
 // This ensures users get the latest version of your app
-const SW_VERSION = 'build-20261007132014023';
-const BUILD_TIMESTAMP = '2026-10-07T13:20:14.023Z'; // Update this on each build
+const SW_VERSION = 'build-20261010064232779';
+const BUILD_TIMESTAMP = '2026-10-10T06:42:32.779Z'; // Update this on each build
 
 const CACHE_NAME = `trinity-schools-${SW_VERSION}`;
 const STATIC_CACHE = `static-${SW_VERSION}`;
@@ -150,6 +150,12 @@ self.addEventListener('activate', (event) => {
           console.log(`✅ Notified ${clients.length} client(s) about SW update to ${SW_VERSION}`);
         });
       })
+      .then(async () => {
+        // Retain first-use document availability for ordinary browser/PWA users,
+        // after taking control and letting their initial page requests finish.
+        await new Promise(resolve => setTimeout(resolve, 5_000));
+        await cacheOfflineDocumentAssets(await caches.open(STATIC_CACHE));
+      })
   );
 });
 
@@ -187,6 +193,29 @@ function startHeartbeat() {
  * was received" errors when two handlers both tried to respond on the
  * same MessageChannel port.
  */
+// Public document chunks are optional: never delay or invalidate saved pages.
+async function cacheOfflineDocumentAssets(cache) {
+  try {
+    const response = await fetch('/_next/static/offline-document-assets.json', { cache: 'no-store' });
+    const manifest = response.ok ? await response.json() : [];
+    const pending = Array.isArray(manifest) ? manifest.filter(value => typeof value === 'string' && value.startsWith('/_next/static/')) : [];
+    let cursor = 0;
+    await Promise.all(Array.from({ length: Math.min(2, pending.length) }, async () => {
+      while (cursor < pending.length) {
+        const asset = pending[cursor++];
+        try {
+          const url = new URL(asset, self.location.origin);
+          if (url.origin !== self.location.origin || !url.pathname.startsWith('/_next/static/')) continue;
+          if (await cache.match(url.toString())) continue;
+          const existing = await caches.match(url.toString());
+          const response = existing || await fetch(url.toString(), { priority: 'low' });
+          if (response.ok) await cache.put(url.toString(), response);
+        } catch { /* Retry when the shell prepares again. */ }
+      }
+    }));
+  } catch { /* Keep existing pages available on a weak connection. */ }
+}
+
 self.addEventListener('message', (event) => {
   console.log('Message received in service worker:', event);
 
@@ -256,6 +285,7 @@ self.addEventListener('message', (event) => {
       }));
       await Promise.all(assets.map(saveAsset));
       event.ports?.[0]?.postMessage({ type: 'ANDROID_APP_SHELL_CACHED' });
+      if (event.data.cacheDocuments === true) await cacheOfflineDocumentAssets(cache);
     })().catch(error => event.ports?.[0]?.postMessage({ type: 'ANDROID_APP_SHELL_CACHE_FAILED', message: error.message })));
     return;
   }
@@ -301,8 +331,9 @@ self.addEventListener('message', (event) => {
             }
           }));
         })
-        .then(() => {
+        .then(async () => {
           if (event.ports && event.ports[0]) event.ports[0].postMessage({ type: 'PARENT_APP_SHELL_CACHED' });
+          if (event.data.cacheDocuments === true) await cacheOfflineDocumentAssets(await caches.open(PARENT_APP_SHELL_CACHE));
         })
         .catch(error => {
           console.warn('Could not cache parent application shell:', error);

@@ -2,6 +2,8 @@
 
 import { Check, Monitor, Moon, Sun, RotateCcw, Palette, Image as ImageIcon } from "lucide-react";
 import { GlassPageTopBar } from "@/components/common/glass-page-top-bar";
+import { usePerformanceMode } from '@/components/providers/performance-provider';
+import type { EffectsPreference } from '@/lib/performance/presentation-policy';
 import { useAppearance, type ThemePreference } from "@/components/providers/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,9 +24,11 @@ const unselected = "border-border bg-card text-card-foreground hover:bg-accent";
 
 export function LookAndFeelSettings() {
   const { ready, changing, preference, lookAndFeel, storageAvailable, deviceColorsSupported, changeTheme, changeLookAndFeel } = useAppearance();
+  const { preference: effects, reducedEffects, changePreference } = usePerformanceMode();
   const disabled = !ready || changing;
   const usingDeviceColors = lookAndFeel.deviceColors && deviceColorsSupported;
   const reset = async (origin: HTMLElement) => {
+    changePreference('automatic');
     await changeLookAndFeel(DEFAULT_LOOK_AND_FEEL, origin);
     await changeTheme("system", origin);
   };
@@ -32,6 +36,17 @@ export function LookAndFeelSettings() {
   return <div className="mx-auto w-full max-w-5xl space-y-6 pb-8">
     <GlassPageTopBar title="Look and Feel" recordDetails="Saved on this device" leading={<Palette className="h-6 w-6 text-link" aria-hidden="true" />} sticky={false} />
     <div className="space-y-6 px-4 sm:px-6">
+      <Card><CardContent className="space-y-4 p-5 sm:p-6">
+        <h2 className="text-lg font-semibold">Visual effects</h2>
+        <p className="text-sm text-muted-foreground">Automatic adjusts decorative effects to keep this device responsive. All application features remain available.</p>
+        <div role="group" aria-label="Visual effects" className="grid grid-cols-3 gap-2 sm:gap-3">
+          {([{ id: 'automatic', name: 'Automatic' }, { id: 'full', name: 'Full effects' }, { id: 'reduced', name: 'Reduced effects' }] as const).map(mode =>
+            <button key={mode.id} type="button" disabled={!ready} aria-pressed={ready && effects === mode.id}
+              onClick={() => changePreference(mode.id as EffectsPreference)} className={cn(choice, 'text-xs sm:text-sm', ready && effects === mode.id ? selected : unselected)}>{mode.name}</button>)}
+        </div>
+        {ready && <p className="text-xs text-muted-foreground">{reducedEffects ? 'Reduced effects are active.' : 'Full effects are active.'} Your device’s reduced-motion setting is always respected.</p>}
+      </CardContent></Card>
+
       <Card><CardContent className="space-y-4 p-5 sm:p-6">
         <h2 className="text-lg font-semibold">Appearance</h2>
         <p className="text-sm text-muted-foreground">Follow your device automatically, or choose the appearance you prefer.</p>

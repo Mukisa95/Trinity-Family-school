@@ -147,6 +147,13 @@ final class OfflineController {
             reply(reply, id, true, null, null); return;
         }
         if ("checkAppUpdate".equals(action)) { ((MainActivity)activity).checkForAppUpdates(); reply(reply,id,true,null,null); return; }
+        if ("deviceCapabilities".equals(action)) {
+            try {
+                android.app.ActivityManager manager = (android.app.ActivityManager) activity.getSystemService(android.content.Context.ACTIVITY_SERVICE);
+                reply(reply, id, true, null, new JSONObject().put("lowRam", manager != null && manager.isLowRamDevice()));
+            } catch (Exception unavailable) { reply(reply, id, false, "Device capabilities are unavailable.", null); }
+            return;
+        }
         if ("deviceColors".equals(action)) {
             try { reply(reply,id,true,null,new JSONObject().put("palette",DeviceColors.status(activity))); }
             catch(Exception unavailable){reply(reply,id,false,"Device colours are unavailable.",null);}
