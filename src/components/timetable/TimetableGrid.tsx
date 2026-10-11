@@ -1,5 +1,6 @@
 "use client";
 
+import { getSubjectTeacherIds, getSubjectTeacherRoleLabel } from '@/lib/utils/teaching-assignments';
 import * as React from "react";
 import { useTimetablePeriods, useTimetableEntries, useSaveTimetableEntries, useDeleteTimetableEntry, useTimetableProfiles, useSaveTimetablePeriods, useSetTimetableClassStreamMode } from "@/lib/hooks/use-timetable";
 import { useClasses } from "@/lib/hooks/use-classes";
@@ -1417,9 +1418,7 @@ function AssignmentPopup({
                                     {assignments.map(assign => {
                                         const sub = subjects.find(s => s.id === assign.subjectId);
                                         if (!sub) return null;
-                                        const teachIds = Array.isArray(assign.teacherIds) && assign.teacherIds.length > 0
-                                            ? assign.teacherIds
-                                            : assign.teacherId ? [assign.teacherId] : [];
+                                        const teachIds = getSubjectTeacherIds(assign);
                                         const teachersToRender = teachIds.map(id => staffList.find(s => s.id === id)).filter(Boolean) as Staff[];
                                         if (teachersToRender.length === 0) teachersToRender.push({ id: 'UNASSIGNED', firstName: 'Teacher', lastName: 'Not Assigned' } as Staff);
 
@@ -1434,6 +1433,7 @@ function AssignmentPopup({
                                                     <span className="font-bold truncate">{sub.name}</span>
                                                     <span className={`text-[10px] truncate max-w-[50%] text-right ${isSelected ? 'text-brand-ink-100' : 'text-gray-500 dark:text-slate-400'}`}>
                                                         {teacher.firstName} {teacher.lastName}
+                                                        {teacher.id !== 'UNASSIGNED' && <span className="block text-[9px]">{getSubjectTeacherRoleLabel(teachIds.indexOf(teacher.id))}</span>}
                                                     </span>
                                                 </button>
                                             );
@@ -1473,7 +1473,7 @@ function AssignmentPopup({
                                             // Don't show the primary subject as an option for alternative
                                             if (sub.id === primarySubId) return null;
 
-                                            const teachIds = Array.isArray(assign.teacherIds) && assign.teacherIds.length > 0 ? assign.teacherIds : assign.teacherId ? [assign.teacherId] : [];
+                                            const teachIds = getSubjectTeacherIds(assign);
                                             const teachersToRender = teachIds.map(id => staffList.find(s => s.id === id)).filter(Boolean) as Staff[];
                                             if (teachersToRender.length === 0) teachersToRender.push({ id: 'UNASSIGNED', firstName: 'Teacher', lastName: 'Not Assigned' } as Staff);
 
@@ -1488,6 +1488,7 @@ function AssignmentPopup({
                                                         <span className="truncate">{sub.name}</span>
                                                         <span className="truncate max-w-[50%] text-right opacity-70">
                                                             {teacher.firstName} {teacher.lastName}
+                                                            {teacher.id !== 'UNASSIGNED' && <span className="block text-[9px]">{getSubjectTeacherRoleLabel(teachIds.indexOf(teacher.id))}</span>}
                                                         </span>
                                                     </button>
                                                 );

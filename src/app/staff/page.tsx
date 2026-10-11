@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { PlusCircle, MoreHorizontal, Edit, Trash2, GraduationCap, Loader2, UserPlus, UserCircle2, Search, Filter, X, Grid3X3, List, Users, Phone, Mail, Building, Calendar, MapPin } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, UserPlus, UserCircle2, Filter, X, Users, Phone, Mail } from "lucide-react";
 import { GlassActionButton, GlassActionDock, GlassPageSearchInput, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
 import { GlassPageRouteSkeleton } from "@/components/common/glass-page-loading";
@@ -21,7 +21,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -33,48 +32,29 @@ import {
 import type { Staff } from "@/types";
 import { STAFF_DEPARTMENTS } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useStaff, useDeleteStaff } from "@/lib/hooks/use-staff";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { formatStaffRoles } from "@/lib/utils/format";
-import { useTermStatus } from "@/lib/hooks/use-term-status";
+import { getStaffStatus, STAFF_STATUS_LABELS } from "@/lib/utils/staff-status";
 import { RecessStatusBanner } from "@/components/common/recess-status-banner";
 
 export default function StaffPage() {
   const { toast } = useToast();
   
-  // Use the new term status system
-  const { effectiveTerm, isRecessMode, periodMessage } = useTermStatus();
+  const reduceMotion = useReducedMotion();
   const { data: staffList = [], isLoading, error } = useStaff();
   const deleteStaffMutation = useDeleteStaff();
   const router = useRouter();
 
   // View and filter states
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [viewMode, setViewMode] = React.useState<'cards' | 'table'>('cards');
   const [departmentFilter, setDepartmentFilter] = React.useState<string>('all');
-  const [statusFilter, setStatusFilter] = React.useState<string>('all');
+  const [statusFilter, setStatusFilter] = React.useState<string>('active');
   const [filtersExpanded, setFiltersExpanded] = React.useState(false);
-  const [isMobile, setIsMobile] = React.useState(false);
-
-  // Check mobile on mount and resize
-  React.useEffect(() => {
-    const checkScreenSize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (mobile) {
-        setViewMode('cards');
-      }
-    };
-    
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
 
   // Filter staff based on search and filters
   const filteredStaff = React.useMemo(() => {
@@ -86,8 +66,7 @@ export default function StaffPage() {
       const matchesDepartment = departmentFilter === 'all' || 
         (Array.isArray(staff.department) ? staff.department.includes(departmentFilter) : staff.department === departmentFilter);
       
-      // For status, we'll assume active staff for now
-      const matchesStatus = statusFilter === 'all' || true;
+      const matchesStatus = statusFilter === 'all' || getStaffStatus(staff) === statusFilter;
       
       return matchesSearch && matchesDepartment && matchesStatus;
     });
@@ -207,15 +186,6 @@ export default function StaffPage() {
         }
         actions={
           <GlassActionDock>
-            {!isMobile && (
-              <GlassActionButton
-                label={viewMode === 'table' ? "Cards" : "List"}
-                icon={viewMode === 'table' ? <Grid3X3 className="h-4 w-4" /> : <List className="h-4 w-4" />}
-                tone="slate"
-                onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
-                aria-label={viewMode === 'table' ? "Switch to Grid View" : "Switch to List View"}
-              />
-            )}
             <GlassActionButton
               label="Filters"
               tone="blue"
@@ -278,9 +248,29 @@ export default function StaffPage() {
         }
       />
 
-      <div className="max-w-7xl mx-auto px-4 pb-6 space-y-4 sm:space-y-6">
+      <div className="max-w-7xl mx-auto px-4 pb-28 sm:pb-6 space-y-4 sm:space-y-6">
         {/* Show recess status banner if in recess mode */}
         <RecessStatusBanner />
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Showing <span className="font-semibold text-foreground">{filteredStaff.length}</span> of {stats.total} staff members
+          </p>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="staff-status-filter" className="text-xs text-muted-foreground">Status</Label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger id="staff-status-filter" className="h-11 w-36 bg-background">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All staff</SelectItem>
+                {Object.entries(STAFF_STATUS_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
         {/* Expandable Filters */}
         <AnimatePresence>
@@ -289,7 +279,7 @@ export default function StaffPage() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: reduceMotion ? 0 : 0.2 }}
               className="overflow-hidden"
             >
               <Card className="bg-white/80 backdrop-blur-sm border-brand-100/50 dark:bg-slate-900/80 dark:border-brand-800/50">
@@ -307,11 +297,11 @@ export default function StaffPage() {
                       </Button>
                     )}
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs font-medium mb-1.5 block">Department</Label>
+                      <Label htmlFor="staff-department-filter" className="text-xs font-medium mb-1.5 block">Department</Label>
                       <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                        <SelectTrigger className="h-9 text-xs">
+                        <SelectTrigger id="staff-department-filter" className="h-11 text-sm">
                           <SelectValue placeholder="All Departments" />
                         </SelectTrigger>
                         <SelectContent>
@@ -323,26 +313,12 @@ export default function StaffPage() {
                       </Select>
                     </div>
 
-                    <div>
-                      <Label className="text-xs font-medium mb-1.5 block">Status</Label>
-                      <Select value={statusFilter} onValueChange={statusFilter => setStatusFilter(statusFilter)}>
-                        <SelectTrigger className="h-9 text-xs">
-                          <SelectValue placeholder="All Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Status</SelectItem>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="inactive">Inactive</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
                     <div className="flex items-end">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={clearFilters}
-                        className="h-9 text-xs"
+                        className="h-11 text-sm"
                         disabled={!hasActiveFilters}
                       >
                         Clear Filters
@@ -386,36 +362,20 @@ export default function StaffPage() {
           )}
         </Card>
       ) : (
-        <AnimatePresence mode="wait">
-          {viewMode === 'cards' ? (
-            <motion.div
-              key="cards"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-            >
-              {filteredStaff.map((staff: Staff, index: number) => (
+        <>
+            <div className="grid grid-cols-1 gap-3 md:hidden" data-staff-view="cards">
+              {filteredStaff.map((staff: Staff) => (
                 <StaffCard
                   key={staff.id}
                   staff={staff}
-                  index={index}
                   onEdit={() => router.push(`/staff/form?id=${staff.id}`)}
                   onView={() => router.push(`/staff/${staff.id}`)}
                   onDelete={() => handleDeleteStaff(staff.id, `${staff.firstName} ${staff.lastName}`)}
                   isDeleting={deleteStaffMutation.isPending}
                 />
               ))}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="table"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
+            </div>
+            <div className="hidden md:block" data-staff-view="table">
               <Card className="overflow-hidden">
                 <Table>
                   <TableHeader>
@@ -425,6 +385,7 @@ export default function StaffPage() {
                       <TableHead className="font-semibold">Department</TableHead>
                       <TableHead className="font-semibold">Role</TableHead>
                       <TableHead className="font-semibold">Contact</TableHead>
+                      <TableHead className="font-semibold">Status</TableHead>
                       <TableHead className="text-right font-semibold">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -434,7 +395,8 @@ export default function StaffPage() {
                         <TableCell>
                           <div className="flex items-center space-x-3">
                             <Avatar className="h-8 w-8">
-                              <AvatarFallback className="bg-brand-surface-100 text-brand-ink-700 text-sm font-medium dark:bg-brand-surface-950/40 dark:text-brand-ink-300">
+                              <AvatarImage src={staff.photo} alt={`${staff.firstName} ${staff.lastName}`} />
+                              <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-medium dark:bg-blue-950/40 dark:text-blue-300">
                                 {staff.firstName[0]}{staff.lastName[0]}
                               </AvatarFallback>
                             </Avatar>
@@ -485,10 +447,11 @@ export default function StaffPage() {
                             </div>
                           </div>
                         </TableCell>
+                        <TableCell><StaffStatusBadge staff={staff} /></TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
+                              <Button variant="ghost" className="h-11 w-11 p-0" aria-label={`Actions for ${staff.firstName} ${staff.lastName}`}>
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -518,9 +481,8 @@ export default function StaffPage() {
                   </TableBody>
                 </Table>
               </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+        </>
       )}
       </div>
     </div>
@@ -530,44 +492,38 @@ export default function StaffPage() {
 // Staff Card Component
 function StaffCard({ 
   staff, 
-  index, 
   onEdit, 
   onView, 
   onDelete,
   isDeleting 
 }: { 
   staff: Staff; 
-  index: number; 
   onEdit: () => void; 
   onView: () => void; 
   onDelete: () => void;
   isDeleting: boolean;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.05 }}
-    >
-      <Card className="group hover:shadow-lg transition-all duration-300 hover:border-brand-200 overflow-hidden dark:hover:border-brand-800/60">
+      <Card className="group overflow-hidden border-border/70 bg-card/95 shadow-sm transition-colors hover:border-primary/30">
         <CardContent className="p-4">
           {/* Header */}
           <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-gradient-to-br from-brand-surface-500 to-brand-secondary-surface-600 text-white font-medium">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <Avatar className="h-10 w-10 shrink-0">
+                <AvatarImage src={staff.photo} alt={`${staff.firstName} ${staff.lastName}`} />
+                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-medium">
                   {staff.firstName[0]}{staff.lastName[0]}
                 </AvatarFallback>
               </Avatar>
-              <div>
+              <div className="min-w-0">
                 <Button
                   variant="link"
-                  className="p-0 h-auto font-semibold text-left text-gray-900 hover:text-brand-ink-600 dark:text-slate-100 dark:hover:text-brand-ink-400"
+                  className="h-auto min-h-11 whitespace-normal break-words p-0 text-left font-semibold text-foreground hover:text-primary"
                   onClick={onView}
                 >
                   {staff.firstName} {staff.lastName}
                 </Button>
-                <p className="text-xs text-gray-500 font-mono dark:text-slate-400">{staff.employeeId}</p>
+                <p className="break-all text-xs font-mono text-muted-foreground">{staff.employeeId}</p>
               </div>
             </div>
 
@@ -576,7 +532,8 @@ function StaffCard({
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="h-11 w-11 shrink-0 p-0"
+                  aria-label={`Actions for ${staff.firstName} ${staff.lastName}`}
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
@@ -605,6 +562,7 @@ function StaffCard({
 
           {/* Department & Role */}
           <div className="space-y-2 mb-3">
+            <StaffStatusBadge staff={staff} />
             <div className="flex items-center justify-between">
               <Badge 
                 variant={Array.isArray(staff.department) ? 
@@ -612,12 +570,12 @@ function StaffCard({
                    staff.department.includes('Management') ? 'secondary' : 'outline') :
                   (staff.department === 'Teaching' ? 'default' : 
                    staff.department === 'Management' ? 'secondary' : 'outline')}
-                className="text-xs"
+                className="text-xs break-words"
               >
                 {Array.isArray(staff.department) ? staff.department.join(', ') : staff.department}
               </Badge>
             </div>
-            <p className="text-sm font-medium text-gray-900 dark:text-slate-100">{formatStaffRoles(staff.role)}</p>
+            <p className="break-words text-sm font-medium text-foreground">{formatStaffRoles(staff.role)}</p>
           </div>
 
           {/* Contact Info */}
@@ -642,6 +600,16 @@ function StaffCard({
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+  );
+}
+
+function StaffStatusBadge({ staff }: { staff: Staff }) {
+  const status = getStaffStatus(staff);
+  return (
+    <Badge variant="outline" className={status === 'active'
+      ? 'whitespace-nowrap border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+      : 'whitespace-nowrap border-border bg-muted text-muted-foreground'}>
+      {STAFF_STATUS_LABELS[status]}
+    </Badge>
   );
 }

@@ -19,7 +19,7 @@ import {
   selectPupilsWithFilters,
   selectPupilsWithoutPhotos,
 } from '@/lib/selectors/pupil-selectors';
-import type { Pupil } from '@/types';
+import type { Pupil, FeesHolidayDraft } from '@/types';
 
 // Query keys
 export const pupilsKeys = {
@@ -335,9 +335,11 @@ export function useCreatePupil() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (pupilData: Omit<Pupil, 'id' | 'createdAt'>) =>
-      PupilsService.createPupil(pupilData),
-    onSuccess: (id, pupilData) => {
+    mutationFn: (input: Omit<Pupil, 'id' | 'createdAt'> & { mofusPrivilege?: FeesHolidayDraft }) => {
+      const { mofusPrivilege, ...pupilData } = input;
+      return PupilsService.createPupil(mofusPrivilege ? pupilData : input, { mofusPrivilege });
+    },
+    onSuccess: (id, { mofusPrivilege, ...pupilData }) => {
       const now = new Date().toISOString();
       patchPupilQueryCaches(queryClient, {
         ...pupilData,
@@ -345,6 +347,7 @@ export function useCreatePupil() {
         createdAt: now,
         updatedAt: now,
       } as Pupil);
+      if (mofusPrivilege) queryClient.invalidateQueries({ queryKey: ['feesHolidays'] });
     },
   });
 }

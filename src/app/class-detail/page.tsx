@@ -73,6 +73,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
+import { SubjectTeacherSelector as SearchableSubjectTeacherSelector } from '@/components/class/subject-teacher-selector';
+import { getSubjectTeacherIds, getSubjectTeacherRoleLabel } from '@/lib/utils/teaching-assignments';
 import { cn } from "@/lib/utils";
 import { PupilRequirementsModal } from "@/components/class/pupil-requirements-modal";
 import { ClassRequirementsOverviewModal } from "@/components/class/class-requirements-overview-modal";
@@ -279,93 +281,6 @@ function SearchableTeacherSelector({
   );
 }
 
-// Searchable Subject-Teacher Selector Component
-function SearchableSubjectTeacherSelector({
-  subjectId,
-  assignedTeacherIds = [],
-  onTeacherToggle,
-  teachers,
-  buttonClassName,
-}: {
-  subjectId: string;
-  assignedTeacherIds: string[];
-  onTeacherToggle: (subjectId: string, teacherId: string, isChecked: boolean) => void;
-  teachers: any[];
-  buttonClassName?: string;
-}) {
-  const [open, setOpen] = React.useState(false);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen} modal={true}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className={cn("h-7 w-7 p-0 rounded-lg border border-brand-secondary-200 bg-white hover:border-brand-secondary-300 hover:bg-brand-secondary-surface-50 transition-all duration-200 flex-shrink-0 dark:border-brand-secondary-800/60 dark:bg-slate-900 dark:hover:border-brand-secondary-800/60 dark:hover:bg-brand-secondary-surface-950/40", buttonClassName)}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setOpen(!open);
-          }}
-        >
-          <User className="h-3.5 w-3.5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-[260px] p-0 !z-[100000]"
-        align="end"
-        side="bottom"
-        sideOffset={4}
-        onOpenAutoFocus={(e) => e.preventDefault()}
-        onInteractOutside={(e) => {
-          const target = e.target as HTMLElement;
-          if (target.closest('[role="dialog"]')) {
-            e.preventDefault();
-          }
-        }}
-      >
-        <Command className="rounded-xl">
-          <CommandInput placeholder="Search teacher..." className="h-8 text-xs" />
-          <CommandList className="max-h-48">
-            <CommandEmpty className="py-2 text-xs text-center text-gray-500 dark:text-slate-400">No teachers found.</CommandEmpty>
-            <CommandGroup>
-              {teachers.length === 0 && (
-                <CommandItem value="no-teachers" disabled className="text-xs text-gray-500 dark:text-slate-400">
-                  No teaching staff available
-                </CommandItem>
-              )}
-              {teachers.map((teacher: any) => {
-                const isChecked = assignedTeacherIds.includes(teacher.id);
-                const name = `${teacher.firstName} ${teacher.lastName}`;
-                return (
-                  <CommandItem
-                    key={teacher.id}
-                    value={name}
-                    onSelect={() => {
-                      onTeacherToggle(subjectId, teacher.id, !isChecked);
-                    }}
-                    className="flex items-center gap-2 py-1.5 px-2 text-xs"
-                  >
-                    <Checkbox
-                      checked={isChecked}
-                      className="h-3.5 w-3.5 rounded-sm"
-                      onClick={(e) => e.stopPropagation()}
-                      onCheckedChange={(checked) => {
-                        onTeacherToggle(subjectId, teacher.id, checked === true);
-                      }}
-                    />
-                    <span className="font-medium text-gray-700 dark:text-slate-200">{name}</span>
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 // Calculate age from date of birth
 function calculateAge(dateOfBirth: string): number {
@@ -765,7 +680,9 @@ function ClassDetailContent() {
       ['TEACHER', 'HEAD TEACHER', 'DEPUTY HEAD TEACHER', 'DIRECTOR OF STUDIES',
         'HEAD OF DEPARTMENT', 'SENIOR TEACHER', 'TEACHING ASSISTANT'].includes(role)
     );
-    return hasTeachingDepartment || hasTeachingRoles;
+    return hasTeachingDepartment || hasTeachingRoles || classDetail?.classTeacherId === s.id ||
+      classDetail?.coClassTeacherId === s.id ||
+      !!classDetail?.subjectAssignments?.some(assignment => getSubjectTeacherIds(assignment).includes(s.id));
   });
 
   // Edit dialog state
@@ -852,15 +769,11 @@ function ClassDetailContent() {
     if (!shouldLoadSubjects || !classSubjects.length) return [];
 
     return classSubjects.map(subject => {
-      // Support both old format (teacherId) and new format (teacherIds)
-      const teacherIds = Array.isArray(subject.teacherIds)
-        ? subject.teacherIds
-        : (subject.teacherId ? [subject.teacherId] : []);
-
-      const teachers = teacherIds
-        .map(teacherId => allStaff.find(staff => staff.id === teacherId))
-        .filter(Boolean)
-        .map(teacher => `${teacher!.firstName} ${teacher!.lastName}`);
+      const teacherIds = getSubjectTeacherIds(subject);
+      const teachers = teacherIds.map((id, index) => {
+        const teacher = allStaff.find(staff => staff.id === id);
+        return `${getSubjectTeacherRoleLabel(index)}: ${teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unavailable teacher'}`;
+      });
 
       return {
         ...subject,
@@ -897,13 +810,7 @@ function ClassDetailContent() {
     const initialSelectedSubjects: string[] = [];
     classDetail.subjectAssignments?.forEach(sa => {
       initialSelectedSubjects.push(sa.subjectId);
-      if (Array.isArray(sa.teacherIds)) {
-        initialAssignments[sa.subjectId] = sa.teacherIds;
-      } else if ('teacherId' in sa && sa.teacherId) {
-        initialAssignments[sa.subjectId] = [sa.teacherId];
-      } else {
-        initialAssignments[sa.subjectId] = [];
-      }
+      initialAssignments[sa.subjectId] = getSubjectTeacherIds(sa);
     });
     setSelectedSubjectIds(initialSelectedSubjects);
     setSubjectTeacherAssignments(initialAssignments);
@@ -1596,7 +1503,7 @@ function ClassDetailContent() {
                           >
                             <div className="font-semibold text-foreground">{subject.name}</div>
                             <div className="text-muted-foreground text-[10px] mt-1">
-                              <span className="font-medium">Teacher:</span> {subject.teacherName}
+                              <span className="font-medium">Teachers:</span> {subject.teacherName}
                             </div>
                           </div>
                         ))}
@@ -2024,9 +1931,9 @@ function ClassDetailContent() {
                           if (!subject) return null;
                           const assignedTeachers = (subjectTeacherAssignments[subjectId] || []);
                           const teacherNames = assignedTeachers
-                            .map(teacherId => {
+                            .map((teacherId, index) => {
                               const teacher = teachingStaff.find(t => t.id === teacherId);
-                              return teacher ? `${teacher.firstName} ${teacher.lastName}` : null;
+                              return `${getSubjectTeacherRoleLabel(index)}: ${teacher ? `${teacher.firstName} ${teacher.lastName}` : teacherId}`;
                             })
                             .filter(Boolean)
                             .join(', ');
@@ -2042,6 +1949,7 @@ function ClassDetailContent() {
                                 subjectId={subjectId}
                                 assignedTeacherIds={assignedTeachers}
                                 onTeacherToggle={handleSubjectTeacherChange}
+                                onTeacherOrderChange={(id, ids) => setSubjectTeacherAssignments(prev => ({ ...prev, [id]: ids }))}
                                 teachers={teachingStaff}
                               />
                             </div>

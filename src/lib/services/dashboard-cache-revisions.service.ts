@@ -44,7 +44,7 @@ export function bumpTimetableRevisionInBatch(
 }
 
 /** Add a class-definition revision bump to the same batch as its mutation. */
-export function bumpClassesRevisionInBatch(batch: WriteBatch) {
+export function bumpClassesRevisionInBatch(batch: WriteBatch | Transaction) {
   writeRevision(batch, 'reference', { classes: increment(1) });
 }
 

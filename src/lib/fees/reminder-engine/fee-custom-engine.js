@@ -149,6 +149,34 @@ function isAssignmentValidForContext(assignment, academicYearId, termId, academi
   }
 }
 
+// src/lib/utils/fees-holiday-terms.ts
+var schoolDateFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Nairobi", year: "numeric", month: "2-digit", day: "2-digit" });
+function holidayCategories(holiday) {
+  const legacy = holiday.category;
+  return Array.isArray(holiday.categories) ? holiday.categories : legacy ? [legacy] : ["required"];
+}
+function resolveFeesHoliday(holiday, academicYearId, termId, years) {
+  const saved = holiday.termHistory?.find((item) => item.academicYearId === academicYearId && item.termId === termId);
+  if (saved) return { ...holiday, ...saved };
+  if (!holiday.schedule) return { ...holiday, categories: holidayCategories(holiday) };
+  const findTerm = (yearId, id) => years.find((year) => year.id === yearId)?.terms.find((term) => term.id === id);
+  const target = findTerm(academicYearId, termId);
+  if (!target) return { ...holiday, isActive: false };
+  const phases = holiday.schedule.map((phase2) => ({
+    phase: phase2,
+    term: findTerm(phase2.academicYearId, phase2.termId) ?? (phase2.startDate ? { startDate: phase2.startDate } : void 0)
+  })).filter((item) => item.term && item.term.startDate <= target.startDate).sort((a, b) => a.term.startDate.localeCompare(b.term.startDate));
+  const phase = phases.at(-1)?.phase;
+  if (!phase || phase.discountType === "off") return { ...holiday, isActive: false };
+  return {
+    ...holiday,
+    categories: holidayCategories(holiday),
+    discountType: phase.discountType,
+    discountValue: phase.discountValue,
+    isActive: holiday.isActive
+  };
+}
+
 // src/lib/utils/fee-discount-calculation.ts
 function getHolidayCategories(holiday) {
   if (Array.isArray(holiday.categories)) return holiday.categories;
@@ -178,7 +206,7 @@ function calculateFeeAmountAfterDiscounts({
   allAcademicYears,
   feesHolidays = []
 }) {
-  const applicableHoliday = feesHolidays.filter((holiday) => holiday.isActive).find((holiday) => {
+  const applicableHoliday = feesHolidays.map((holiday) => resolveFeesHoliday(holiday, academicYearId, termId, allAcademicYears)).filter((holiday) => holiday.isActive).find((holiday) => {
     const categories = getHolidayCategories(holiday);
     return categories.some(
       (category) => category === "required" ? fee.isRequired === true : category === "non-required" ? fee.isRequired !== true : false
