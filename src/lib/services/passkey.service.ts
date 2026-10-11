@@ -1,9 +1,11 @@
 import { browserSupportsPasskeys, platformAuthenticatorIsAvailable, startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import { auth } from '@/lib/firebase';
 import { SecureAuthService } from './secure-auth.service';
+import { authenticateNativeDevice, hasNativeDeviceUnlock, nativeDeviceUnlockAvailable } from '@/lib/android/device-unlock';
 
 type PasskeyRecord = { id: string; name: string; createdAt: string | null };
 const LOCAL_PASSKEY_KEY_PREFIX = 'trinity_local_passkeys:';
+const NATIVE_UNLOCK_KEY_PREFIX = 'trinity_native_unlock:';
 export const PASSKEYS_CHANGED_EVENT = 'trinity:passkeys-changed';
 
 function localPasskeyKey(userId: string) {
@@ -68,6 +70,31 @@ export const PasskeyService = {
       && await platformAuthenticatorIsAvailable();
   },
 
+  async localSupported() {
+    if (hasNativeDeviceUnlock()) return nativeDeviceUnlockAvailable();
+    return this.supported();
+  },
+
+  async enableNativeUnlock(password: string) {
+    if (!await nativeDeviceUnlockAvailable()) throw new Error('Set up a screen PIN, fingerprint or face unlock in Android settings first.');
+    const verified = await requestPasskey<{ userId: string }>({ action: 'verify-local', password }, true);
+    if (!verified.userId || verified.userId !== auth.currentUser?.uid) throw new Error('Sign in again to enable device unlock.');
+    await authenticateNativeDevice(verified.userId);
+    if (verified.userId !== auth.currentUser?.uid) throw new Error('The signed account changed. Please try again.');
+    localStorage.setItem(`${NATIVE_UNLOCK_KEY_PREFIX}${verified.userId}`, 'enabled');
+    window.dispatchEvent(new Event(PASSKEYS_CHANGED_EVENT));
+  },
+
+  disableNativeUnlock(userId: string) {
+    localStorage.removeItem(`${NATIVE_UNLOCK_KEY_PREFIX}${userId}`);
+    window.dispatchEvent(new Event(PASSKEYS_CHANGED_EVENT));
+  },
+
+  hasNativeUnlock(userId: string) {
+    try { return hasNativeDeviceUnlock() && localStorage.getItem(`${NATIVE_UNLOCK_KEY_PREFIX}${userId}`) === 'enabled'; }
+    catch { return false; }
+  },
+
   async list(): Promise<PasskeyRecord[]> {
     const payload = await requestPasskey<{ passkeys: PasskeyRecord[] }>({ action: 'list' }, true);
     const userId = auth.currentUser?.uid;
@@ -92,7 +119,7 @@ export const PasskeyService = {
   },
 
   hasLocalUnlock(userId: string) {
-    return readLocalPasskeyIds(userId).length > 0;
+    return this.hasNativeUnlock(userId) || readLocalPasskeyIds(userId).length > 0;
   },
 
   /**
@@ -101,6 +128,12 @@ export const PasskeyService = {
    * Full account sign-in continues to use the server-verified passkey flow.
    */
   async unlockLocalSession(userId: string) {
+    if (hasNativeDeviceUnlock()) {
+      if (!this.hasLocalUnlock(userId)) throw new Error('Enable device unlock in Settings for this account first.');
+      await authenticateNativeDevice(userId);
+      if (auth.currentUser && auth.currentUser.uid !== userId) throw new Error('The signed account changed. Access remains locked.');
+      return true;
+    }
     if (!await this.supported()) throw new Error('Device unlock is not available on this device.');
     const credentialIds = readLocalPasskeyIds(userId);
     if (!credentialIds.length) throw new Error('Set up biometric / device unlock in Settings while online first.');

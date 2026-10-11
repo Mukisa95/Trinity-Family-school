@@ -46,7 +46,7 @@ export function WorkspaceWelcomeScreen({ setup, userId, privacy, applyPrivacy }:
     heading.current?.focus();
     const interval = setInterval(() => setTip(value => (value + 1) % tips.length), 6500);
     let active = true;
-    void PasskeyService.supported().then(value => { if (active) setSupported(value); }).catch(() => {});
+    void PasskeyService.localSupported().then(value => { if (active) setSupported(value); }).catch(() => {});
     return () => { active = false; clearInterval(interval); previous?.focus(); };
   }, []);
   useEffect(() => {

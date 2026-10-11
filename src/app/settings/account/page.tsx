@@ -39,12 +39,12 @@ export default function AccountSettingsPage() {
   const [isUpdatingUsername, setIsUpdatingUsername] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [showLockModal, setShowLockModal] = useState(false);
-  const [localDeviceUnlockAvailable, setLocalDeviceUnlockAvailable] = useState(false);
+  const [localDeviceUnlockAvailable, setLocalDeviceUnlockAvailable] = useState<boolean | null>(null);
 
   useEffect(() => {
     const check = async () => {
       if (!user) return setLocalDeviceUnlockAvailable(false);
-      const supported = await PasskeyService.supported().catch(() => false);
+      const supported = await PasskeyService.localSupported().catch(() => false);
       setLocalDeviceUnlockAvailable(supported && PasskeyService.hasLocalUnlock(user.id));
     };
     void check();
@@ -57,7 +57,7 @@ export default function AccountSettingsPage() {
   }, [user]);
 
   useEffect(() => {
-    if (deviceUnlockForAutoLock && (!localDeviceUnlockAvailable || autoLockAction === 'signout')) {
+    if (deviceUnlockForAutoLock && autoLockAction === 'signout') {
       setDeviceUnlockForAutoLock(false);
     }
   }, [autoLockAction, deviceUnlockForAutoLock, localDeviceUnlockAvailable, setDeviceUnlockForAutoLock]);

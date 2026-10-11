@@ -4,9 +4,9 @@
   "applicationId": "ug.trinityfamilyschool.live",
   "websiteOrigin": "https://trinityfamilyschool.vercel.app",
   "firebaseProjectId": "trinity-family-schools",
-  "versionCode": 23,
-  "versionName": "1.21",
-  "releaseNotes": "Optional Material You device colours for the app, timetable widgets, persistent notification and native settings. Works with Light, Dark and Follow device, preserves school and lesson colours, and keeps printed reports unchanged.",
+  "versionCode": 24,
+  "versionName": "1.22",
+  "releaseNotes": "Native Android fingerprint, face and screen PIN privacy unlock, including offline. Adds Android passkey sign-in, verified school website association and preserves saved privacy preferences when updating.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {

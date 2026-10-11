@@ -10,11 +10,12 @@ import {
 import { z } from 'zod';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { issueAppUserCustomToken, requireAppUser, verifyLegacyCredentials } from '@/lib/server/app-auth';
+import { passkeyExpectedOrigins } from '@/lib/server/android-credentials';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const actions = z.enum(['list', 'register-options', 'register-verify', 'login-options', 'login-verify', 'remove']);
+const actions = z.enum(['list', 'register-options', 'register-verify', 'login-options', 'login-verify', 'remove', 'verify-local']);
 const requestSchema = z.object({
   action: actions,
   password: z.string().min(1).max(512).optional(),
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
       if (!record || typeof record.userId !== 'string' || typeof record.publicKey !== 'string') return json({ error: 'Passkey not registered.' }, 401);
       const verified = await verifyAuthenticationResponse({
         response: parsed.response as unknown as Parameters<typeof verifyAuthenticationResponse>[0]['response'],
-        expectedChallenge: challenge, expectedOrigin: rp.origin, expectedRPID: rp.rpID,
+        expectedChallenge: challenge, expectedOrigin: passkeyExpectedOrigins(rp.origin), expectedRPID: rp.rpID,
         requireUserVerification: true,
         credential: { id: key.id, publicKey: new Uint8Array(Buffer.from(record.publicKey, 'base64url')), counter: record.counter || 0, transports: record.transports || [] },
       });
@@ -136,6 +137,12 @@ export async function POST(request: NextRequest) {
     }
 
     const actor = await requireAppUser(request);
+    if (action === 'verify-local') {
+      if (!parsed.password) return json({ error: 'Enter your current password to enable device unlock.' }, 400);
+      const verifiedUser = await verifyLegacyCredentials(actor.user.username, parsed.password);
+      if (verifiedUser?.id !== actor.user.id) return json({ error: 'Current password is incorrect.' }, 401);
+      return json({ userId: actor.user.id });
+    }
     if (action === 'list') {
       const snapshot = await passkeys().where('userId', '==', actor.user.id).limit(20).get();
       return json({ passkeys: snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name || 'This device', createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null })) });
@@ -169,7 +176,7 @@ export async function POST(request: NextRequest) {
       if (!challenge) return json({ error: 'This setup request expired. Please try again.' }, 400);
       const verification = await verifyRegistrationResponse({
         response: parsed.response as unknown as Parameters<typeof verifyRegistrationResponse>[0]['response'],
-        expectedChallenge: challenge, expectedOrigin: rp.origin, expectedRPID: rp.rpID,
+        expectedChallenge: challenge, expectedOrigin: passkeyExpectedOrigins(rp.origin), expectedRPID: rp.rpID,
         requireUserVerification: true,
       });
       if (!verification.verified || !verification.registrationInfo) return json({ error: 'Device verification failed.' }, 400);

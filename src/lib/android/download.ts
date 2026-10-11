@@ -16,6 +16,7 @@ export interface AndroidRelease {
   bytes: number;
   sha256: string;
   releaseNotes?: string;
+  signingCertificateSha256?: string;
 }
 
 const releases: readonly AndroidRelease[] = releaseRegistry;

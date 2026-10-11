@@ -1,7 +1,6 @@
 package ug.trinityfamilyschool.photo;
 
 import android.app.Activity;
-import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
@@ -25,10 +24,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 final class OfflineController {
-    static final int UNLOCK_REQUEST = 72;
     private final Activity activity;
     private final WebView web;
     private final OfflineStore store;
+    private final DeviceUnlock deviceUnlock;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final WebViewAssetLoader assets;
     private JavaScriptReplyProxy pendingUnlock;
@@ -40,8 +39,8 @@ final class OfflineController {
     private android.content.BroadcastReceiver pushChanges, appearanceChanges;
     private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
     private final Runnable relock = this::lock;
-    OfflineController(Activity activity, WebView web) {
-        this.activity = activity; this.web = web; this.store = new OfflineStore(activity);
+    OfflineController(Activity activity, WebView web, DeviceUnlock deviceUnlock) {
+        this.activity = activity; this.web = web; this.store = new OfflineStore(activity); this.deviceUnlock = deviceUnlock;
         WebViewAssetLoader.AssetsPathHandler packaged = new WebViewAssetLoader.AssetsPathHandler(activity);
         assets = new WebViewAssetLoader.Builder().addPathHandler("/offline/", path -> packaged.handle("offline/" + path)).build();
         network = new ConnectivityManager.NetworkCallback() {
@@ -240,12 +239,8 @@ final class OfflineController {
     private void unlock(String id, JavaScriptReplyProxy reply) {
         if (unlockOpen) { reply(reply, id, false, "An unlock is already in progress.", null); return; }
         if (unlocked()) { sendSaved(id, reply); return; }
-        KeyguardManager keyguard = (KeyguardManager) activity.getSystemService(Context.KEYGUARD_SERVICE);
-        if (!keyguard.isDeviceSecure()) { reply(reply, id, false, "Set a PIN, password or pattern on your phone to protect offline school information.", null); return; }
-        Intent intent = keyguard.createConfirmDeviceCredentialIntent("" + SchoolApp.NAME, "Unlock " + SchoolApp.NAME);
-        if (intent == null) { reply(reply, id, false, "Device unlock is unavailable.", null); return; }
         pendingUnlock = reply; unlockId = id; unlockOpen = true;
-        activity.startActivityForResult(intent, UNLOCK_REQUEST);
+        deviceUnlock.authenticate((success, error) -> result(success ? Activity.RESULT_OK : Activity.RESULT_CANCELED));
     }
     void result(int result) {
         JavaScriptReplyProxy reply = pendingUnlock; String id = unlockId;

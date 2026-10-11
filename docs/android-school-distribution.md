@@ -42,6 +42,16 @@ The existing `/download` page and login/account download links display the selec
 
 Website publication remains a separate action requiring the user's explicit request. Registering the Firebase Android app does not deploy either website. Download/update tests verify actual APK bytes and metadata for both schools; native registration tests use local transaction doubles and send no alerts to real users.
 
+## Android device unlock and passkeys (1.22)
+
+Both school APKs enable WebView's app-scoped WebAuthn integration with Android Credential Manager. Each production website serves `/.well-known/assetlinks.json` for its own package and permanent signing certificate. The local artifact preparation script extracts that certificate directly from the verified APK and rejects a changed signing key. Passkey verification accepts the website origin and only that school's `android:apk-key-hash` origin; the existing server challenge, relying-party ID, account ownership and user-verification checks still apply.
+
+Android privacy unlock is separate from passkey sign-in. Setup requires the signed account's current password and a successful system biometric/PIN prompt. Its account-scoped preference is kept in the app's existing website storage. Reopening the saved session uses Android's biometric/PIN prompt without making a server request, even when the installed WebView cannot offer passkeys. The packaged offline reader uses the same native prompt. Cancelling, navigation or failed verification leaves access locked; no password, fingerprint or face data is passed through the native bridge. Disabling native privacy unlock explicitly turns off the corresponding automatic-lock requirement. Capability checks and app updates do not clear saved privacy preferences.
+
+Passkey sign-in still registers and verifies a real credential on the school's server. It needs a compatible, updated Android System WebView and credential provider. Local privacy unlock does not establish a new server session or bypass account sign-in. Install updates over the existing school package with its permanent signing key; do not uninstall first.
+
+Validation: both signed release builds and 60 Android unit tests passed. The 42 web contracts cover APK distribution, updates, native push, school certificate isolation, cryptographically signed WebAuthn assertions, password-verified local enrollment and offline/cancelled unlock. Focused distribution/settings type checks passed. A broader route-inclusive check still reports the existing unrelated TS2367 in `src/lib/server/app-auth.ts` at its already-narrowed `action === 'read'` branch. Pixel checks exercise both actual release APKs without clearing account storage: native capabilities, other-school/frame restrictions, cancellation, successful authentication with no active network, and automatic/manual theme changes. Theme fixtures wait for rendered frames before polling media-query changes, then restore the user's appearance preference and device mode; offline tests restore connectivity.
+
 ## Validation on 8 October 2026
 
 ### Android notification identity and permission status (1.11)

@@ -20,6 +20,8 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 import androidx.core.content.FileProvider;
+import androidx.fragment.app.FragmentActivity;
+import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.JavaScriptReplyProxy;
 import androidx.webkit.WebViewCompat;
 import androidx.webkit.WebViewFeature;
@@ -45,11 +47,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public final class MainActivity extends Activity {
+public final class MainActivity extends FragmentActivity {
     private static final int CAMERA_RESULT = 40, FILE_RESULT = 41;
     private WebView web;
     private OfflineController offline;
     private AppUpdater updater;
+    private DeviceUnlock deviceUnlock;
     private File exchange;
     private ValueCallback<Uri[]> fileCallback;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -72,13 +75,20 @@ public final class MainActivity extends Activity {
         web = new WebView(this);
         frame.addView(web, new android.widget.LinearLayout.LayoutParams(-1, 0, 1));
         setContentView(frame);
-        offline = new OfflineController(this, web);
+        deviceUnlock = new DeviceUnlock(this, web);
+        offline = new OfflineController(this, web, deviceUnlock);
         SystemBars.install(this, frame);
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true); settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(false); settings.setAllowContentAccess(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) {
+            WebSettingsCompat.setWebAuthenticationSupport(settings, WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_APP);
+        }
         web.setWebViewClient(new WebViewClient() {
+            @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                if (deviceUnlock != null) deviceUnlock.navigation();
+            }
             @Override public void onPageFinished(WebView view, String url) {
                 offline.publishConnectivity();
                 if (PhotoPolicy.trusted(url)) view.evaluateJavascript("(()=>{const send=()=>window.TrinityOffline?.postMessage(JSON.stringify({id:crypto.randomUUID(),action:'appearance',preference:localStorage.getItem('trinity-appearance')||'system',dark:document.documentElement.classList.contains('dark')}));window.__trinityBarsObserver?.disconnect();window.__trinityBarsObserver=new MutationObserver(send);window.__trinityBarsObserver.observe(document.documentElement,{attributes:true,attributeFilter:['class']});send();})()", null);
@@ -198,7 +208,6 @@ public final class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
-        if (request == OfflineController.UNLOCK_REQUEST) { offline.result(result); return; }
         if (request == FILE_RESULT && fileCallback != null) {
             fileCallback.onReceiveValue(PhotoPolicy.trusted(web.getUrl()) ? WebChromeClient.FileChooserParams.parseResult(result, data) : null);
             fileCallback = null;
@@ -328,6 +337,7 @@ public final class MainActivity extends Activity {
     @Override protected void onPause() { if (updater != null) updater.pause(); if (offline != null) offline.pause(); super.onPause(); }
     @Override protected void onResume() { super.onResume(); if (offline != null) offline.resume(); if (updater != null) updater.resume(); }
     @Override protected void onDestroy() {
+        if (deviceUnlock != null) deviceUnlock.destroy();
         if (updater != null) updater.destroy();
         if (offline != null) offline.destroy();
         if (fileCallback != null) fileCallback.onReceiveValue(null);

@@ -4,9 +4,9 @@
   "applicationId": "ug.trinityfamilyganda.live",
   "websiteOrigin": "https://trinityfamilyganda.vercel.app",
   "firebaseProjectId": "trinity-family-ganda",
-  "versionCode": 23,
-  "versionName": "1.21",
-  "releaseNotes": "First Trinity Ganda Android release: Ganda website and school accounts, offline dashboard, timetables and pupil details, timetable widgets, lesson reminders, native background push, app updates and Material You colours.",
+  "versionCode": 24,
+  "versionName": "1.22",
+  "releaseNotes": "Native Android fingerprint, face and screen PIN privacy unlock, including offline. Adds Android passkey sign-in, verified Ganda website association and preserves saved privacy preferences when updating.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {
