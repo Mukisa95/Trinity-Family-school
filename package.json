@@ -52,6 +52,8 @@
     "test:purchase-units": "node --import tsx --test tests/purchase-unit-conversion.test.ts",
     "test:item-request-state": "node --import tsx --test tests/item-request-state.test.ts",
     "test:item-request-permissions": "node --import tsx --test tests/item-request-permissions.test.ts",
+    "test:profile-access": "node --import tsx --test tests/profile-access.test.ts",
+    "test:profile-navigation-browser": "node scripts/test-profile-navigation-browser.cjs",
     "test:item-request-query-contract": "node --import tsx --test tests/item-request-query-contract.test.ts",
     "test:item-release-inventory": "node --import tsx --test tests/item-release-inventory-contract.test.ts",
     "test:operations-cache-contract": "node --import tsx --test tests/operations-cache-contract.test.ts",
