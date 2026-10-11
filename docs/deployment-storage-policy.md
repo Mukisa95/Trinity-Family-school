@@ -26,8 +26,22 @@ when this configuration is deployed.
 
 Both school projects build from this repository, so these source changes apply
 to Trinity and Ganda. Deployment retention and cleanup are separate project
-settings: Ganda's settings were not changed or verified because the signed-in
-Vercel account cannot access that team.
+settings and must be configured for each project.
+
+## Ganda hosting settings applied on 11 October 2026
+
+Project: trinity-school-ganda, team trinity-school-gandas-projects.
+
+- Cancelled, failed and preview retention: 1 day.
+- Production retention: 1 week, subject to Vercel's protected-deployment exceptions.
+- Saved values were verified in the project dashboard. The deployed repository
+  configuration already overrides the dashboard's ignored-build setting.
+- Removed preview AEyZdV7hV1R6QEVCX3hRpyqc9baP (merged touch-scroll work) and
+  6aoQPXnPiwo42h2wQAuByUaPu5zM (superseded startup-loader preview).
+  Both appeared in Recently Deleted Deployments with 29 days left to restore.
+- Preserved current production CD8as7FbR75eJMBowAa3xnYkyxRU, recent production
+  rollback versions and latest performance preview 2aBfLrQiJr2PXKDarQEVTo8HC3xc.
+  No source changes, Git push, promotion or redeployment were needed for cleanup.
 
 The icon-generation route has a separate 120-second image-processing budget.
 Vercel groups routes with matching duration settings and unions their traced
