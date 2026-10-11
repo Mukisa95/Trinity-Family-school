@@ -1,12 +1,12 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { useAuth } from "@/lib/contexts/auth-context";
-import { GlassPageTopBar } from "@/components/common/glass-page-top-bar";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { GlassActionButton, GlassActionDock, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
+import { AccountField, AccountIdentity, AccountSection, AccountStatus } from "@/components/account/account-profile";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { User, Mail, Shield, Calendar, Settings, CheckCircle2 } from "lucide-react";
+import { User, Shield, Calendar, Settings, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 
@@ -100,194 +100,60 @@ export default function ProfilePage() {
     return ['Standard User Access'];
   };
 
-  const getRoleColor = () => {
-    if (user.role === 'Admin') return 'bg-gradient-to-br from-brand-secondary-surface-500 to-brand-alt-surface-600';
-    if (user.role === 'Staff') return 'bg-gradient-to-br from-brand-surface-500 to-cyan-600';
-    return 'bg-gradient-to-br from-green-500 to-emerald-600';
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-brand-surface-50 to-brand-alt-surface-50 pb-12 dark:from-slate-900 dark:via-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
+    <div className="min-h-screen">
       <GlassPageTopBar
         title="My Profile"
-        subtitle="View and manage your account details and permissions"
+        recordDetails={`@${user.username} · ${user.role}`}
         backHref="/dashboard"
-        backLabel="Dashboard"
+        backLabel="Back to dashboard"
+        meta={<AccountStatus active={user.isActive} />}
+        actions={<GlassActionDock><GlassActionButton label="Settings" tone="blue" icon={<Settings className="h-4 w-4" />} onClick={() => router.push('/settings/account')} aria-label="Account Settings" /></GlassActionDock>}
       />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="space-y-6">
-          {/* Hero Profile Section */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-surface-50 via-brand-alt-surface-50 to-brand-secondary-surface-50 border border-brand-100/50 shadow-lg dark:from-brand-surface-950/40 dark:via-brand-alt-surface-950/40 dark:to-brand-secondary-surface-950/40 dark:border-brand-800/50">
-        <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-0" />
-        <div className="relative p-6 sm:p-8 lg:p-10">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            {/* Avatar */}
-            <div className={`relative ${getRoleColor()} rounded-full p-1 shadow-xl`}>
-              <div className="bg-white rounded-full p-4 sm:p-6 dark:bg-slate-900">
-                <div className={`${getRoleColor()} rounded-full p-6 sm:p-8 flex items-center justify-center`}>
-                  <User className="h-12 w-12 sm:h-16 sm:w-16 text-white" />
+      <div className="mx-auto max-w-6xl space-y-4 px-3 pb-28 sm:px-4 sm:pb-6">
+        <AccountIdentity user={user} />
+        <div className="grid items-start gap-4 lg:grid-cols-3">
+          <div className="min-w-0 space-y-4 lg:col-span-2">
+            <AccountSection title="Basic information" icon={<User className="h-4 w-4" />}>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                <AccountField label="Display name">{getUserDisplayName()}</AccountField>
+                <AccountField label="Username"><span className="break-all">{user.username}</span></AccountField>
+                <AccountField label="Role">{user.role}</AccountField>
+                <AccountField label="Account status">{user.isActive ? 'Active' : 'Inactive'}</AccountField>
+                {user.email && <div className="col-span-2"><AccountField label="Email address"><span className="break-all">{user.email}</span></AccountField></div>}
+              </dl>
+            </AccountSection>
+            <AccountSection title="Permissions & access" icon={<Shield className="h-4 w-4" />}>
+              <ul className="space-y-2">
+                {getPermissionSummary().map((permission, index) => <li key={index} className="flex min-w-0 items-start gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                  <span className="min-w-0 break-words text-sm">{permission}</span>
+                </li>)}
+              </ul>
+              {user.role === 'Staff' && !!user.granularPermissions?.length && <div className="mt-4 border-t border-border/60 pt-3">
+                <h3 className="mb-3 text-xs font-medium text-muted-foreground">Detailed module access</h3>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {user.granularPermissions.map(gp => <div key={gp.moduleId} className="min-w-0 rounded-lg border border-border/60 p-3">
+                    <p className="break-words text-sm font-medium">{gp.moduleId}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{gp.pages.length} page{gp.pages.length === 1 ? '' : 's'} accessible</p>
+                  </div>)}
                 </div>
-              </div>
-              <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-1.5 shadow-lg border-2 border-brand-50 dark:bg-slate-900 dark:border-brand-800/60">
-                <div className={`w-4 h-4 rounded-full ${user.isActive ? 'bg-green-500' : 'bg-gray-400'}`} />
-              </div>
-            </div>
-
-            {/* Profile Info */}
-            <div className="flex-1 space-y-3">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 dark:text-slate-100">
-                  {getUserDisplayName()}
-                </h1>
-                <p className="text-sm sm:text-base text-gray-600 font-mono dark:text-slate-300">
-                  @{user.username}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <Badge 
-                  variant={user.role === 'Admin' ? 'default' : user.role === 'Staff' ? 'secondary' : 'outline'}
-                  className="text-sm px-3 py-1"
-                >
-                  <Shield className="h-3.5 w-3.5 mr-1.5" />
-                  {user.role}
-                </Badge>
-                <Badge variant={user.isActive ? 'default' : 'destructive'} className="text-sm px-3 py-1">
-                  {user.isActive ? 'Active' : 'Inactive'}
-                </Badge>
-              </div>
-
-              {user.email && (
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
-                  <Mail className="h-4 w-4" />
-                  <span>{user.email}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Action Button */}
-            <div className="w-full sm:w-auto">
-              <Button 
-                onClick={() => router.push('/settings/account')} 
-                className="w-full sm:w-auto flex items-center gap-2 bg-gradient-to-r from-brand-surface-600 to-brand-alt-surface-600 hover:from-brand-surface-700 hover:to-brand-alt-surface-700 shadow-lg hover:shadow-xl transition-all rounded-full"
-                size="lg"
-              >
-                <Settings className="h-4 w-4" />
-                Account Settings
-              </Button>
-            </div>
+              </div>}
+            </AccountSection>
           </div>
+          <aside className="min-w-0 space-y-4">
+            <AccountSection title="Account activity" icon={<Calendar className="h-4 w-4" />}>
+              <dl className="space-y-3">
+                <AccountField label="Created">{formatSafeDate(user.createdAt, 'dd MMM yyyy')}</AccountField>
+                <AccountField label="Last login">{formatSafeDate(user.lastLogin, 'dd MMM yyyy, HH:mm', 'No login recorded')}</AccountField>
+              </dl>
+            </AccountSection>
+            <AccountSection title="Account settings" icon={<Settings className="h-4 w-4" />}>
+              <p className="text-sm text-muted-foreground">Manage your username, password and automatic lock preferences.</p>
+              <Link href="/settings/account" className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Settings className="h-4 w-4" />Account Settings</Link>
+            </AccountSection>
+          </aside>
         </div>
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Basic Information Card */}
-        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 border-b dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-brand-surface-100 rounded-lg dark:bg-brand-surface-950/40">
-                <User className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
-              </div>
-              Basic Information
-            </CardTitle>
-            <CardDescription>
-              Your account details and personal information
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6 space-y-4">
-            <div className="space-y-4">
-              <div className="flex items-start justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Display Name</p>
-                  <p className="text-base font-semibold text-gray-900 dark:text-slate-100">{getUserDisplayName()}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Username</p>
-                  <p className="text-sm font-mono text-gray-900 bg-white px-2 py-1 rounded border dark:text-slate-100 dark:bg-slate-900">{user.username}</p>
-                </div>
-              </div>
-
-              {user.email && (
-                <div className="flex items-start justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-muted-foreground mb-1">Email Address</p>
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-gray-400 dark:text-slate-400" />
-                      <p className="text-sm text-gray-900 dark:text-slate-100">{user.email}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-start justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Account Status</p>
-                  <Badge variant={user.isActive ? 'default' : 'destructive'} className="mt-1">
-                    {user.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Permissions & Access Card */}
-        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow lg:col-span-2">
-          <CardHeader className="bg-gradient-to-r from-brand-secondary-surface-50 to-pink-50 border-b dark:from-brand-secondary-surface-950/40 dark:to-pink-950/40">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-brand-secondary-surface-100 rounded-lg dark:bg-brand-secondary-surface-950/40">
-                <Shield className="h-5 w-5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
-              </div>
-              Permissions & Access
-            </CardTitle>
-            <CardDescription>
-              Your current system permissions and access levels
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {getPermissionSummary().map((permission, index) => (
-                  <div 
-                    key={index} 
-                    className="flex items-start gap-3 p-4 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 hover:shadow-md transition-all dark:from-green-950/40 dark:to-emerald-950/40 dark:border-green-800/60"
-                  >
-                    <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0 dark:text-green-400" />
-                    <p className="text-sm font-medium text-gray-900 leading-relaxed dark:text-slate-100">{permission}</p>
-                  </div>
-                ))}
-              </div>
-
-              {user.role === 'Staff' && user.granularPermissions && user.granularPermissions.length > 0 && (
-                <div className="mt-6 pt-6 border-t">
-                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 dark:text-slate-100">
-                    <Shield className="h-4 w-4" />
-                    Detailed Module Access
-                  </h4>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {user.granularPermissions.map((gp) => (
-                      <div 
-                        key={gp.moduleId} 
-                        className="p-4 rounded-lg border-2 border-brand-100 bg-gradient-to-br from-brand-surface-50 to-brand-alt-surface-50 hover:border-brand-300 hover:shadow-md transition-all dark:border-brand-800/60 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40 dark:hover:border-brand-800/60"
-                      >
-                        <div className="font-semibold text-sm text-gray-900 mb-1 dark:text-slate-100">{gp.moduleId}</div>
-                        <div className="text-xs text-gray-600 dark:text-slate-300">
-                          {gp.pages.length} page{gp.pages.length > 1 ? 's' : ''} accessible
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      </div>
       </div>
     </div>
   );
