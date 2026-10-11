@@ -1,4 +1,8 @@
 {
+  "ignoreCommand": "node scripts/vercel-ignore-build.cjs",
+  "git": {
+    "deploymentEnabled": { "*": false, "main": true }
+  },
   "crons": [
     {
       "path": "/api/maintenance/snapshots",
