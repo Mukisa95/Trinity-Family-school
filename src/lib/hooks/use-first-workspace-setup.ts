@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { readWorkspaceSetup, workspaceSetupMarker, workspaceSetupScope } from '@/lib/startup/workspace-setup';
+import { readWorkspaceSetup, retryWorkspaceTasks, workspaceSetupMarker, workspaceSetupScope } from '@/lib/startup/workspace-setup';
 
 export function useFirstWorkspaceSetup({ enabled, userId, role, awaitPersonalization = false }: { enabled: boolean; userId?: string; role?: string; awaitPersonalization?: boolean }) {
   const client = useQueryClient();
@@ -17,6 +17,18 @@ export function useFirstWorkspaceSetup({ enabled, userId, role, awaitPersonaliza
   const [slow, setSlow] = useState(false);
   const [personalizedScope, setPersonalizedScope] = useState('');
   const personalized = !awaitPersonalization || personalizedScope === scope;
+  const recoveringScope = useRef('');
+  const [recovering, setRecovering] = useState('');
+  const retry = useCallback(async () => {
+    if (!enabled || !scope || !role || !navigator.onLine || recoveringScope.current === scope) return;
+    recoveringScope.current = scope;
+    setRecovering(scope);
+    try { await retryWorkspaceTasks(client, scope, role); }
+    finally {
+      if (recoveringScope.current === scope) recoveringScope.current = '';
+      setRecovering(previous => previous === scope ? '' : previous);
+    }
+  }, [client, enabled, role, scope]);
 
   useEffect(() => {
     if (!enabled || !scope || !role) {
@@ -28,13 +40,15 @@ export function useFirstWorkspaceSetup({ enabled, userId, role, awaitPersonaliza
     setSession({ scope, phase: saved ? 'complete' : 'loading' });
     if (saved) return;
     setSlow(false);
-    const connection = () => setOnline(navigator.onLine);
-    connection();
+    const connection = () => { setOnline(navigator.onLine); if (navigator.onLine) void retry(); };
+    setOnline(navigator.onLine);
     window.addEventListener('online', connection);
     window.addEventListener('offline', connection);
     let completionTimer: ReturnType<typeof setTimeout> | undefined;
     let fadeTimer: ReturnType<typeof setTimeout> | undefined;
     let finished = false;
+    let recoveryTimer: ReturnType<typeof setTimeout> | undefined;
+    let recoveryAttempts = 0;
     // Coalesce cache events; rendering this screen must not become another
     // subscriber that repeatedly redraws during large collection hydration.
     let updateTimer: ReturnType<typeof setTimeout> | undefined;
@@ -43,6 +57,15 @@ export function useFirstWorkspaceSetup({ enabled, userId, role, awaitPersonaliza
       const next = readWorkspaceSetup(client, scope, role);
       const scopedProgress = { scope, ...next };
       setProgress(previous => JSON.stringify(previous) === JSON.stringify(scopedProgress) ? previous : scopedProgress);
+      if (next.failed && navigator.onLine && recoveryAttempts < 3 && !recoveryTimer) {
+        recoveryTimer = setTimeout(() => {
+          recoveryTimer = undefined;
+          if (navigator.onLine && readWorkspaceSetup(client, scope, role).failed) {
+            recoveryAttempts += 1;
+            void retry().then(update);
+          }
+        }, 2000 * 2 ** recoveryAttempts);
+      }
       if (!next.ready || !personalized) {
         if (completionTimer) clearTimeout(completionTimer);
         completionTimer = undefined;
@@ -65,17 +88,18 @@ export function useFirstWorkspaceSetup({ enabled, userId, role, awaitPersonaliza
     });
     const slowTimer = setTimeout(() => setSlow(true), 25000);
     return () => {
+      finished = true;
       unsubscribe();
-      clearTimeout(updateTimer); clearTimeout(completionTimer); clearTimeout(fadeTimer); clearTimeout(slowTimer);
+      clearTimeout(updateTimer); clearTimeout(completionTimer); clearTimeout(fadeTimer); clearTimeout(slowTimer); clearTimeout(recoveryTimer);
       window.removeEventListener('online', connection); window.removeEventListener('offline', connection);
     };
-  }, [client, enabled, personalized, role, scope]);
+  }, [client, enabled, personalized, retry, role, scope]);
 
   return { ...(progress.scope === scope ? progress : readWorkspaceSetup(client, scope, role || 'Parent')), online, slow,
     required: enabled && Boolean(scope) && !completedBefore && (session.scope !== scope || session.phase !== 'complete'),
     fading: session.scope === scope && session.phase === 'fading',
     scope,
     finishPersonalization: () => setPersonalizedScope(scope),
-    retry: () => window.location.reload(),
+    recovering: recovering === scope, retry,
   };
 }

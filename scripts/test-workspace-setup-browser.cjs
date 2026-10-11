@@ -16,7 +16,7 @@ import {readWorkspaceSetup,reportWorkspaceTask,workspaceSetupScope,workspaceSetu
 const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:Infinity}}});
 function Fixture(){const [user,setUser]=useState({id:'first',role:'Admin',enabled:true});
 const setup=useFirstWorkspaceSetup({enabled:user.enabled,userId:user.id,role:user.role});const scope=workspaceSetupScope(user.id,user.role);
-window.fixture={user:setUser,report:(id,state)=>reportWorkspaceTask(client,scope,id,state),
+window.fixture={user:setUser,percent:()=>readWorkspaceSetup(client,scope,user.role).percent,report:(id,state)=>reportWorkspaceTask(client,scope,id,state),
 readyExcept:(id)=>{client.setQueryData(['schoolSettings','settings'],{});readWorkspaceSetup(client,scope,user.role).tasks.filter(t=>!['settings','page',id].includes(t.id)).forEach(t=>reportWorkspaceTask(client,scope,t.id,'ready'));},
 marker:()=>localStorage.getItem(workspaceSetupMarker(scope)),
 pending:()=>{const observer=new QueryObserver(client,{queryKey:['timetable','entries',user.id],queryFn:()=>new Promise(resolve=>window.finishPage=()=>resolve([]))});window.stopPage=observer.subscribe(()=>{});}};
@@ -49,7 +49,7 @@ createRoot(document.getElementById('app')).render(<ThemeProvider><QueryClientPro
     await screen.waitFor();
     assert.ok(await screen.getByText(/This is a one-time setup/).isVisible());
     await page.evaluate(() => window.fixture.readyExcept('pupils'));
-    await page.waitForTimeout(250);
+    await page.waitForFunction(()=>Number(document.querySelector('[role="progressbar"]').getAttribute('aria-valuenow'))===window.fixture.percent());
     const value = await screen.getByRole('progressbar').getAttribute('aria-valuenow');
     await page.waitForTimeout(1300);
     assert.equal(await screen.getByRole('progressbar').getAttribute('aria-valuenow'), value, 'Elapsed time does not invent progress');

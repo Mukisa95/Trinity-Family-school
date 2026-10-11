@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { reportWorkspaceTask } from '@/lib/startup/workspace-setup';
+import { registerWorkspaceRecovery, reportWorkspaceTask } from '@/lib/startup/workspace-setup';
+import { withWorkspaceIdentity } from '@/lib/startup/workspace-auth';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { AcademicYearsService } from '@/lib/services/academic-years.service';
 import { useDashboardDataRevisions } from './use-school-settings';
@@ -32,6 +33,14 @@ export function useAcademicYearCacheBootstrap() {
   const scope = isAuthenticated ? getAcademicYearCacheScope(user?.id, user?.role) : '';
   const revision = revisionsQuery.data?.academicYears ?? 0;
   const revisionsReady = revisionsQuery.data !== undefined;
+
+  useEffect(() => {
+    if (!scope) return;
+    return registerWorkspaceRecovery(queryClient, scope, 'academicYears', () => {
+      retryCount.current = 0;
+      setRetryEpoch(epoch => epoch + 1);
+    });
+  }, [queryClient, scope]);
 
   useEffect(() => {
     if (!scope) {
@@ -98,9 +107,9 @@ export function useAcademicYearCacheBootstrap() {
       });
     }
 
-    void AcademicYearsService.refreshSharedAcademicYears(
+    void withWorkspaceIdentity(user?.id, () => AcademicYearsService.refreshSharedAcademicYears(
       () => AcademicYearsService.getAllForCache(),
-    ).then(years => {
+    )).then(years => {
       if (disposed) return;
       serverSucceeded = true;
       retryCount.current = 0;

@@ -121,6 +121,7 @@
     "test:dashboard-theme-browser": "node scripts/test-dashboard-theme-browser.cjs",
     "test:dashboard-welcome-browser": "node scripts/test-dashboard-welcome-browser.cjs",
     "test:workspace-setup": "node --import tsx --test tests/workspace-setup.test.ts tests/startup-loader-contract.test.ts",
+    "test:workspace-recovery-browser": "node scripts/test-workspace-recovery-browser.cjs",
     "test:workspace-setup-browser": "node scripts/test-workspace-setup-browser.cjs",
     "test:workspace-welcome": "node --import tsx --test tests/welcome-preferences.test.ts",
     "test:workspace-welcome-browser": "node scripts/test-workspace-welcome-browser.cjs",

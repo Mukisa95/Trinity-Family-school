@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { reportWorkspaceTask } from '@/lib/startup/workspace-setup';
+import { registerWorkspaceRecovery, reportWorkspaceTask } from '@/lib/startup/workspace-setup';
+import { withWorkspaceIdentity } from '@/lib/startup/workspace-auth';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { ClassesService } from '@/lib/services/classes.service';
 import { useDashboardDataRevisions } from './use-school-settings';
@@ -32,6 +33,14 @@ export function useClassCacheBootstrap() {
   const scope = isAuthenticated ? getClassCacheScope(user?.id, user?.role) : '';
   const revision = revisionsQuery.data?.classes ?? 0;
   const revisionsReady = revisionsQuery.data !== undefined;
+
+  useEffect(() => {
+    if (!scope) return;
+    return registerWorkspaceRecovery(queryClient, scope, 'classes', () => {
+      retryCount.current = 0;
+      setRetryEpoch(epoch => epoch + 1);
+    });
+  }, [queryClient, scope]);
 
   useEffect(() => {
     if (!scope) {
@@ -102,7 +111,7 @@ export function useClassCacheBootstrap() {
       });
     }
 
-    void ClassesService.refreshSharedClasses(() => ClassesService.getAllForCache()).then(classes => {
+    void withWorkspaceIdentity(user?.id, () => ClassesService.refreshSharedClasses(() => ClassesService.getAllForCache())).then(classes => {
       if (disposed) return;
       serverSucceeded = true;
       retryCount.current = 0;

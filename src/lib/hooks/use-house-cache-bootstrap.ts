@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { reportWorkspaceTask } from '@/lib/startup/workspace-setup';
+import { registerWorkspaceRecovery, reportWorkspaceTask } from '@/lib/startup/workspace-setup';
+import { withWorkspaceIdentity } from '@/lib/startup/workspace-auth';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { HousesService } from '@/lib/services/houses.service';
 import { useDashboardDataRevisions } from './use-school-settings';
@@ -28,6 +29,14 @@ export function useHouseCacheBootstrap() {
   const scope = isAuthenticated ? getHouseCacheScope(user?.id, user?.role) : '';
   const revision = revisionsQuery.data?.houses ?? 0;
   const revisionsReady = revisionsQuery.data !== undefined;
+
+  useEffect(() => {
+    if (!scope) return;
+    return registerWorkspaceRecovery(queryClient, scope, 'houses', () => {
+      retryCount.current = 0;
+      setRetryEpoch(epoch => epoch + 1);
+    });
+  }, [queryClient, scope]);
 
   useEffect(() => {
     if (!scope) {
@@ -81,7 +90,7 @@ export function useHouseCacheBootstrap() {
       });
     }
 
-    void HousesService.refreshSharedHouses(() => HousesService.getAllForCache())
+    void withWorkspaceIdentity(user?.id, () => HousesService.refreshSharedHouses(() => HousesService.getAllForCache()))
       .then(houses => {
         if (disposed) return;
         serverSucceeded = true;

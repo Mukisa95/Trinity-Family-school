@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { reportWorkspaceTask } from '@/lib/startup/workspace-setup';
+import { registerWorkspaceRecovery, reportWorkspaceTask } from '@/lib/startup/workspace-setup';
+import { withWorkspaceIdentity } from '@/lib/startup/workspace-auth';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { StaffService } from '@/lib/services/staff.service';
 import { useDashboardDataRevisions } from './use-school-settings';
@@ -32,6 +33,14 @@ export function useStaffCacheBootstrap() {
   const scope = isAuthenticated ? getStaffCacheScope(user?.id, user?.role) : '';
   const revision = revisionsQuery.data?.staff ?? 0;
   const revisionsReady = revisionsQuery.data !== undefined;
+
+  useEffect(() => {
+    if (!scope) return;
+    return registerWorkspaceRecovery(queryClient, scope, 'staff', () => {
+      retryCount.current = 0;
+      setRetryEpoch(epoch => epoch + 1);
+    });
+  }, [queryClient, scope]);
 
   useEffect(() => {
     if (!scope) {
@@ -91,7 +100,7 @@ export function useStaffCacheBootstrap() {
       });
     }
 
-    void StaffService.refreshSharedStaff(() => StaffService.getAllForCache()).then(staff => {
+    void withWorkspaceIdentity(user?.id, () => StaffService.refreshSharedStaff(() => StaffService.getAllForCache())).then(staff => {
       if (disposed) return;
       serverSucceeded = true;
       retryCount.current = 0;

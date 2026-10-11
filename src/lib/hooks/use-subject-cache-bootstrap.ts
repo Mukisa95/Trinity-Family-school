@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { reportWorkspaceTask } from '@/lib/startup/workspace-setup';
+import { registerWorkspaceRecovery, reportWorkspaceTask } from '@/lib/startup/workspace-setup';
+import { withWorkspaceIdentity } from '@/lib/startup/workspace-auth';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { SubjectsService } from '@/lib/services/subjects.service';
 import { useDashboardDataRevisions } from './use-school-settings';
@@ -28,6 +29,14 @@ export function useSubjectCacheBootstrap() {
   const scope = isAuthenticated ? getSubjectCacheScope(user?.id, user?.role) : '';
   const revision = revisionsQuery.data?.subjects ?? 0;
   const revisionsReady = revisionsQuery.data !== undefined;
+
+  useEffect(() => {
+    if (!scope) return;
+    return registerWorkspaceRecovery(queryClient, scope, 'subjects', () => {
+      retryCount.current = 0;
+      setRetryEpoch(epoch => epoch + 1);
+    });
+  }, [queryClient, scope]);
 
   useEffect(() => {
     if (!scope) {
@@ -82,7 +91,7 @@ export function useSubjectCacheBootstrap() {
       });
     }
 
-    void SubjectsService.refreshSharedSubjects(() => SubjectsService.getAllForCache())
+    void withWorkspaceIdentity(user?.id, () => SubjectsService.refreshSharedSubjects(() => SubjectsService.getAllForCache()))
       .then(subjects => {
         if (disposed) return;
         serverSucceeded = true;

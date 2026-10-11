@@ -3,6 +3,37 @@ import type { QueryClient } from '@tanstack/react-query';
 export type SetupTaskState = 'loading' | 'ready' | 'error';
 export type SetupTask = { id: string; label: string; state: SetupTaskState };
 
+// Recovery belongs to the existing data owners. Retrying setup must not reload
+// the document, clear successful caches, or create another collection reader.
+type Recovery = () => void | Promise<unknown>;
+const recoveryOwners = new WeakMap<QueryClient, Map<string, Set<Recovery>>>();
+export function registerWorkspaceRecovery(client: QueryClient, scope: string, id: string, recover: Recovery) {
+  let owners = recoveryOwners.get(client);
+  if (!owners) { owners = new Map(); recoveryOwners.set(client, owners); }
+  const key = `${scope}/${id}`;
+  const callbacks = owners.get(key) || new Set<Recovery>();
+  callbacks.add(recover); owners.set(key, callbacks);
+  return () => { callbacks.delete(recover); if (!callbacks.size) owners.delete(key); };
+}
+
+export async function retryWorkspaceTasks(client: QueryClient, scope: string, role: string) {
+  const owners = recoveryOwners.get(client);
+  const jobs: Promise<unknown>[] = [];
+  for (const task of readWorkspaceSetup(client, scope, role).tasks) {
+    if (task.state === 'ready' || task.id === 'page' || task.state === 'loading' && task.id !== 'settings') continue;
+    const callbacks = owners?.get(`${scope}/${task.id}`) || owners?.get(`*/${task.id}`);
+    const recover = callbacks ? Array.from(callbacks).at(-1) : undefined;
+    if (recover) jobs.push(Promise.resolve().then(recover));
+  }
+  // Active destination queries already own their network requests. Refetch only
+  // terminal errors; disabled/cache-only and healthy queries are left intact.
+  jobs.push(client.refetchQueries({ predicate: query => query.isActive()
+    && !optionalServices.has(String(query.queryKey[0]))
+    && query.state.status === 'error' && query.state.data === undefined
+    && query.state.fetchStatus === 'idle' }, { cancelRefetch: false }));
+  await Promise.allSettled(jobs);
+}
+
 const commonTasks = [
   ['classes', 'Classes and streams'],
   ['academicYears', 'Academic years and terms'],
@@ -47,7 +78,8 @@ export function readWorkspaceSetup(client: QueryClient, scope: string, role: str
     id, label, state: client.getQueryData<SetupTaskState>(['workspaceSetup', scope, id]) || 'loading',
   }));
   const settings = client.getQueryData(['schoolSettings', 'settings']);
-  tasks.unshift({ id: 'settings', label: 'School profile and preferences', state: settings !== undefined ? 'ready' : 'loading' });
+  tasks.unshift({ id: 'settings', label: 'School profile and preferences', state: settings !== undefined ? 'ready'
+    : client.getQueryData<SetupTaskState>(['workspaceSetup', '*', 'settings']) === 'error' ? 'error' : 'loading' });
   const pageQueries = client.getQueryCache().getAll().filter(query =>
     !optionalServices.has(String(query.queryKey[0])) && query.isActive());
   const failed = pageQueries.some(query => query.state.status === 'error' && query.state.data === undefined);

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { reportWorkspaceTask } from '@/lib/startup/workspace-setup';
+import { registerWorkspaceRecovery, reportWorkspaceTask } from '@/lib/startup/workspace-setup';
+import { withWorkspaceIdentity } from '@/lib/startup/workspace-auth';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { AccessLevelsService } from '@/lib/services/access-levels.service';
 import { useDashboardDataRevisions } from './use-school-settings';
@@ -28,6 +29,14 @@ export function useAccessLevelCacheBootstrap() {
   const scope = isAuthenticated ? getAccessLevelCacheScope(user?.id, user?.role) : '';
   const revision = revisionsQuery.data?.accessLevels ?? 0;
   const revisionsReady = revisionsQuery.data !== undefined;
+
+  useEffect(() => {
+    if (!scope) return;
+    return registerWorkspaceRecovery(queryClient, scope, 'accessLevels', () => {
+      retryCount.current = 0;
+      setRetryEpoch(epoch => epoch + 1);
+    });
+  }, [queryClient, scope]);
 
   useEffect(() => {
     if (!scope) {
@@ -81,7 +90,7 @@ export function useAccessLevelCacheBootstrap() {
       });
     }
 
-    void AccessLevelsService.refreshSharedAccessLevels(() => AccessLevelsService.getAllForCache())
+    void withWorkspaceIdentity(user?.id, () => AccessLevelsService.refreshSharedAccessLevels(() => AccessLevelsService.getAllForCache()))
       .then(levels => {
         if (disposed) return;
         serverSucceeded = true;

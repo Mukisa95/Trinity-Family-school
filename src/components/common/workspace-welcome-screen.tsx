@@ -35,6 +35,7 @@ export function WorkspaceWelcomeScreen({ setup, userId, privacy, applyPrivacy }:
   const [registered, setRegistered] = useState(false);
   const [supported, setSupported] = useState(false);
   const [finished, setFinished] = useState(false);
+  const finishStarted = useRef(false);
   const [tip, setTip] = useState(0);
   const [storageAvailable, setStorageAvailable] = useState(true);
   const root = useRef<HTMLDivElement>(null);
@@ -66,15 +67,16 @@ export function WorkspaceWelcomeScreen({ setup, userId, privacy, applyPrivacy }:
   const themeBusy = !appearance.ready || appearance.changing;
   const setPrivacy = (patch: Partial<PrivacyChoices>) => setDraft(value => ({ ...value, privacy: { ...value.privacy, ...patch } }));
   const advance = (step: number) => setDraft(value => ({ ...value, step }));
-  const finish = () => {
-    if (!setup.ready || busy || themeBusy || finished) return;
+  useEffect(() => {
+    if (draft.step !== 3 || !setup.ready || busy || themeBusy || finishStarted.current) return;
+    finishStarted.current = true;
     // Apply security preferences only after the OS enrollment prompt and
     // initial downloads have finished, never while the user is switching apps.
     applyPrivacy({ ...draft.privacy, deviceUnlock: draft.privacy.action !== 'signout' && draft.privacy.deviceUnlock });
     setFinished(true);
     setup.finishPersonalization();
-  };
-  const message = setup.ready ? 'Your data is ready. Take your time choosing your settings.' : !setup.online ? 'Waiting for your connection. You can still personalise your workspace.' : setup.failed ? 'Some records need another download attempt.' : tips[tip];
+  }, [draft.step, draft.privacy, setup.ready, setup.finishPersonalization, busy, themeBusy, applyPrivacy]);
+  const message = setup.ready ? 'Your data is ready. Take your time choosing your settings.' : !setup.online ? 'Waiting for your connection. Downloads will resume when you reconnect.' : setup.failed || setup.recovering ? 'Reconnecting and retrying unfinished downloads. Your choices and session are kept.' : tips[tip];
 
   return <div ref={root} role="dialog" aria-modal="true" aria-labelledby="workspace-welcome-title"
     onKeyDown={event => {
@@ -113,7 +115,7 @@ export function WorkspaceWelcomeScreen({ setup, userId, privacy, applyPrivacy }:
               ...(draft.privacy.enabled && draft.privacy.action !== 'signout' ? [['Require device unlock', draft.privacy.deviceUnlock ? 'On' : 'Off']] : []),
             ].map(([label, value]) => <div key={label} className="flex flex-wrap justify-between gap-2 py-3"><dt className="text-muted-foreground">{label}</dt><dd className="font-medium">{value}</dd></div>)}</dl>}
           </div>
-          <div className="mt-7 flex items-center justify-between gap-3 border-t border-border pt-5"><Button variant="ghost" disabled={busy || finished || draft.step === 0} onClick={() => advance(draft.step - 1)}><ArrowLeft className="mr-1 h-4 w-4" />Back</Button>{draft.step < 3 ? <Button disabled={busy || themeBusy} onClick={() => advance(draft.step + 1)}>{draft.step === 1 && !registered ? 'Skip for now' : 'Continue'}<ArrowRight className="ml-1 h-4 w-4" /></Button> : <Button disabled={!setup.ready || busy || themeBusy || finished} onClick={finish}>{finished ? 'Opening…' : setup.ready ? 'Open my workspace' : 'Waiting for data…'}</Button>}</div>
+          <div className="mt-7 flex items-center justify-between gap-3 border-t border-border pt-5"><Button variant="ghost" disabled={busy || finished || draft.step === 0} onClick={() => advance(draft.step - 1)}><ArrowLeft className="mr-1 h-4 w-4" />Back</Button>{draft.step < 3 ? <Button disabled={busy || themeBusy} onClick={() => advance(draft.step + 1)}>{draft.step === 1 && !registered ? 'Skip for now' : 'Continue'}<ArrowRight className="ml-1 h-4 w-4" /></Button> : <p role="status" className="text-sm text-muted-foreground">{finished ? 'Opening your workspace…' : 'Your workspace will open automatically when downloads finish.'}</p>}</div>
           {draft.step < 3 && <button disabled={busy || themeBusy} className="mt-3 min-h-10 w-full text-xs text-muted-foreground underline underline-offset-4 disabled:opacity-50" onClick={() => setDraft({ step: 3, privacy })}>Use current settings and skip personalisation</button>}
         </section>
         <aside aria-label="Download progress" className="min-w-0 border-t border-border bg-muted/40 p-5 md:border-l md:border-t-0 sm:p-6">
@@ -122,7 +124,7 @@ export function WorkspaceWelcomeScreen({ setup, userId, privacy, applyPrivacy }:
           <div role="progressbar" aria-label="Workspace setup progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={setup.percent} className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${setup.percent}%` }} /></div>
           <p role="status" aria-live="polite" className="mt-4 text-xs leading-relaxed text-muted-foreground">{finished && setup.ready ? 'Finishing setup and opening your workspace…' : message}</p>
           <details className="mt-4"><summary className="min-h-10 cursor-pointer text-xs font-medium">What’s downloading?</summary><ul className="space-y-2 pt-2">{setup.tasks.map(task => <li key={task.id} className="flex gap-2 text-xs text-muted-foreground"><span aria-hidden="true">{task.state === 'ready' ? '✓' : task.state === 'error' ? '!' : '·'}</span>{task.label}<span className="sr-only">: {task.state}</span></li>)}</ul></details>
-          {(setup.failed || !setup.online || setup.slow && !setup.ready) && <div className="mt-4 border-t border-border pt-4"><p className="mb-3 text-xs text-muted-foreground">{!setup.online ? 'Reconnect to continue downloading.' : 'Still downloading. Retry if the connection has recovered.'} Your saved choices will be kept.</p><Button variant="outline" disabled={!setup.online || busy} onClick={setup.retry}>Retry setup</Button></div>}
+          {(setup.failed || !setup.online || setup.slow && !setup.ready) && <div className="mt-4 border-t border-border pt-4"><p className="mb-3 text-xs text-muted-foreground">{!setup.online ? 'Reconnect to continue downloading.' : 'Unfinished downloads retry automatically. You can also retry now.'} Your saved choices will be kept.</p><Button variant="outline" disabled={!setup.online || busy || setup.recovering} onClick={setup.retry}>{setup.recovering ? 'Retrying…' : 'Retry setup'}</Button></div>}
           <p className="mt-5 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">Next time, you’ll use the normal quick startup. Clearing app data or changing accounts may require setup again.</p>
         </aside>
       </div>

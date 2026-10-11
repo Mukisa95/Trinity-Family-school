@@ -7,15 +7,16 @@ const palette = require('../tests/fixtures/android-device-palette.json');
 async function run() {
   fs.mkdirSync(output, { recursive: true });
   const contents = `
-import React,{useState} from 'react';import {createRoot} from 'react-dom/client';
+import React,{useEffect,useState} from 'react';import {createRoot} from 'react-dom/client';
 import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
 import {ThemeProvider} from './src/components/providers/theme-provider';
 import {WorkspaceWelcomeScreen} from './src/components/common/workspace-welcome-screen';
 import {useFirstWorkspaceSetup} from './src/lib/hooks/use-first-workspace-setup';
-import {readWorkspaceSetup,reportWorkspaceTask,workspaceSetupScope,workspaceSetupMarker} from './src/lib/startup/workspace-setup';
+import {registerWorkspaceRecovery,readWorkspaceSetup,reportWorkspaceTask,workspaceSetupScope,workspaceSetupMarker} from './src/lib/startup/workspace-setup';
 const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:Infinity}}});
 function Fixture(){const [user,setUser]=useState({id:'welcome',role:'Admin',enabled:true});
 const setup=useFirstWorkspaceSetup({enabled:user.enabled,userId:user.id,role:user.role,awaitPersonalization:true});const scope=workspaceSetupScope(user.id,user.role);
+useEffect(()=>registerWorkspaceRecovery(client,scope,'pupils',async()=>{window.recoveryCalls=(window.recoveryCalls||0)+1;reportWorkspaceTask(client,scope,'pupils','loading');await new Promise(resolve=>{window.finishRecovery=()=>{reportWorkspaceTask(client,scope,'pupils','ready');resolve();};});}),[scope]);
 window.fixture={user:setUser,percent:()=>readWorkspaceSetup(client,scope,user.role).percent,report:(id,state)=>reportWorkspaceTask(client,scope,id,state),
 readyExcept:(id)=>{client.setQueryData(['schoolSettings','settings'],{});readWorkspaceSetup(client,scope,user.role).tasks.filter(t=>!['settings','page',id].includes(t.id)).forEach(t=>reportWorkspaceTask(client,scope,t.id,'ready'));},
 marker:()=>localStorage.getItem(workspaceSetupMarker(scope))};
@@ -87,20 +88,32 @@ createRoot(document.getElementById('app')).render(<ThemeProvider><QueryClientPro
     assert.equal(await screen.getByRole('button',{name:'Turn on'}).getAttribute('aria-pressed'),'true');
     assert.ok(await screen.getByLabel('Require device unlock after auto-lock').isChecked(),'Capability recheck preserves chosen requirement');
     await screen.getByRole('button',{name:'Continue',exact:true}).click();
+    await page.evaluate(()=>window.fixture.readyExcept('pupils'));
     await page.screenshot({path:path.join(output,'review-dark.png')});
-    assert.ok(await screen.getByRole('button',{name:'Waiting for data…'}).isDisabled());
+    assert.ok(await screen.getByText('Your workspace will open automatically when downloads finish.').isVisible());
+    assert.equal(await screen.getByRole('button',{name:'Open my workspace'}).count(),0);
     await page.evaluate(()=>{window.fixtureOnline=false;window.dispatchEvent(new Event('offline'));});
     assert.ok(await screen.getByRole('button',{name:'Retry setup'}).isDisabled());
     await page.evaluate(()=>{window.fixtureOnline=true;window.dispatchEvent(new Event('online'));window.fixture.report('pupils','error');});
-    await screen.getByText('Some records need another download attempt.').waitFor();
+    await screen.getByText('Reconnecting and retrying unfinished downloads. Your choices and session are kept.').waitFor();
     assert.ok(await screen.getByRole('button',{name:'Retry setup'}).isEnabled());
-    await page.evaluate(()=>window.fixture.readyExcept());
-    await screen.getByRole('button',{name:'Open my workspace'}).click();
+    await page.evaluate(()=>window.sameDocument='kept');
+    await screen.getByRole('button',{name:'Retry setup'}).click();
+    await page.waitForFunction(()=>window.recoveryCalls===1);
+    assert.ok(await screen.getByRole('button',{name:'Retrying…'}).isDisabled());
+    assert.equal(await page.evaluate(()=>window.sameDocument),'kept','Retry must not reload or navigate');
+    assert.equal(page.url(),url+'/');
+    assert.equal(await page.evaluate(()=>window.appliedPrivacy),undefined,'Retry keeps privacy choices staged');
+    await page.evaluate(()=>window.finishRecovery());
+    await page.waitForFunction(()=>window.appliedCount===1);
+
     await page.evaluate(()=>window.fixture.report('pupils','error'));
-    await screen.getByText('Some records need another download attempt.').waitFor();
+    await screen.getByText('Reconnecting and retrying unfinished downloads. Your choices and session are kept.').waitFor();
     assert.ok(await screen.getByRole('button',{name:'Retry setup'}).isEnabled(),'A late download failure can recover even after Finish');
     assert.equal(await page.evaluate(()=>window.fixture.marker()),null);
-    await page.evaluate(()=>window.fixture.report('pupils','ready'));
+    await page.waitForFunction(()=>window.recoveryCalls===2,{},{timeout:8000});
+    assert.equal(await page.evaluate(()=>window.fixture.marker()),null,'Automatic retry still waits for real data');
+    await page.evaluate(()=>window.finishRecovery());
     await page.getByRole('heading',{name:'Workspace available'}).waitFor();
     assert.deepEqual(await page.evaluate(()=>window.appliedPrivacy),{enabled:true,action:'lock-on-leave',deviceUnlock:true});
     assert.equal(await page.evaluate(()=>window.appliedCount),1);assert.equal(await page.evaluate(()=>window.fixture.marker()),'complete');
@@ -112,7 +125,7 @@ createRoot(document.getElementById('app')).render(<ThemeProvider><QueryClientPro
     assert.equal(await screen.getByLabel('Require device unlock after auto-lock').count(),0);
     await screen.getByRole('button',{name:/Use current settings/}).click();
     await screen.getByText('Off',{exact:true}).waitFor();await page.evaluate(()=>window.fixture.readyExcept());
-    await screen.getByRole('button',{name:'Open my workspace'}).click();await page.getByRole('heading',{name:'Workspace available'}).waitFor();
+    await page.getByRole('heading',{name:'Workspace available'}).waitFor();
     assert.deepEqual(await page.evaluate(()=>window.appliedPrivacy),{enabled:false,action:'lock-on-close',deviceUnlock:false},'Skip preserves existing privacy settings');
     assert.deepEqual(errors,[]);
     console.log('WORKSPACE_WELCOME_BROWSER_OK: live downloads, separate completion gate, preview/persistence, OS enrollment cancellation/success, password hygiene, staged privacy, retry resume, unsupported/skip, parent/account isolation, mobile Material You and focus.');

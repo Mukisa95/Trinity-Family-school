@@ -1,6 +1,7 @@
 import { skipToken, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { useEffect } from 'react';
+import { registerWorkspaceRecovery, reportWorkspaceTask } from '@/lib/startup/workspace-setup';
 import type { SchoolSettings } from '@/types';
 import { db } from '@/lib/firebase';
 import {
@@ -40,6 +41,7 @@ function profileOnly(settings: SchoolSettings): SchoolSettings {
 
 function publishSettings(clients: Set<QueryClient>, settings: SchoolSettings | null) {
   clients.forEach(client => {
+    reportWorkspaceTask(client, '*', 'settings', 'ready');
     const current = client.getQueryData<SchoolSettings | null>(schoolSettingsKeys.settings());
     if (!sameValue(current, settings)) {
       client.setQueryData(schoolSettingsKeys.settings(), settings);
@@ -55,13 +57,14 @@ interface SettingsListenerRegistry {
   fallbackTimer?: ReturnType<typeof setTimeout>;
   recoveryPromise?: Promise<void>;
   persisted?: SchoolSettingsCacheSnapshot | null;
+  cacheRestore?: Promise<void>;
 }
 
 let settingsListenerRegistry: SettingsListenerRegistry | null = null;
 
 async function restorePersistedSettings(registry: SettingsListenerRegistry) {
   const persisted = await readSchoolSettingsCache();
-  if (settingsListenerRegistry !== registry) return;
+  if (settingsListenerRegistry !== registry || registry.persisted !== undefined) return;
   registry.persisted = persisted;
   if (persisted) {
     publishSettings(registry.clients, persisted.data);
@@ -73,9 +76,15 @@ function reconcileSettingsRevision(registry: SettingsListenerRegistry, revision:
   if (registry.recoveryPromise) return registry.recoveryPromise;
 
   registry.recoveryPromise = (async () => {
-    const persisted = registry.persisted ?? await readSchoolSettingsCache();
+    // A slow/blocked optional cache must not prevent the authoritative read.
+    let cacheTimer: ReturnType<typeof setTimeout> | undefined;
+    if (registry.persisted === undefined) {
+      try {
+        await Promise.race([registry.cacheRestore, new Promise(resolve => { cacheTimer = setTimeout(resolve, 500); })]);
+      } finally { clearTimeout(cacheTimer); }
+    }
     if (settingsListenerRegistry !== registry) return;
-    registry.persisted = persisted;
+    const persisted = registry.persisted;
 
     if (persisted?.revision === revision) {
       publishSettings(registry.clients, persisted.data);
@@ -86,14 +95,17 @@ function reconcileSettingsRevision(registry: SettingsListenerRegistry, revision:
     if (settingsListenerRegistry !== registry) return;
     if (settings) {
       const profile = profileOnly(settings);
-      await writeSchoolSettingsCache(revision, profile);
       registry.persisted = { schema: 1, revision, data: profile };
       publishSettings(registry.clients, profile);
+      void writeSchoolSettingsCache(revision, profile).catch(error => console.warn('School profile cache write failed:', error));
       performance.mark?.('trinity:settings-server-synced');
     } else {
+      registry.persisted = null;
       publishSettings(registry.clients, null);
     }
   })().catch(error => {
+    if (settingsListenerRegistry !== registry) return;
+    registry.clients.forEach(client => reportWorkspaceTask(client, '*', 'settings', 'error'));
     console.error('School settings cache reconciliation failed:', error);
   }).finally(() => {
     registry.recoveryPromise = undefined;
@@ -122,12 +134,16 @@ function startLegacySettingsFallback(registry: SettingsListenerRegistry) {
         registry.persisted = { schema: 1, revision: 0, data: settings };
       }
     },
-    error => console.error('Legacy school-settings listener failed:', error),
+    error => {
+      if (settingsListenerRegistry !== registry) return;
+      registry.clients.forEach(client => reportWorkspaceTask(client, '*', 'settings', 'error'));
+      console.error('Legacy school-settings listener failed:', error);
+    },
   );
 }
 
 function startSettingsListener(registry: SettingsListenerRegistry) {
-  void restorePersistedSettings(registry);
+  registry.cacheRestore = restorePersistedSettings(registry);
 
   registry.unsubscribeMeta = onSnapshot(
     schoolSettingsMetaDocumentRef(),
@@ -154,11 +170,7 @@ function startSettingsListener(registry: SettingsListenerRegistry) {
   registry.fallbackTimer = setTimeout(() => {
     if (settingsListenerRegistry !== registry) return;
     if (!registry.persisted) {
-      void SchoolSettingsService.getSchoolSettings().then(settings => {
-        if (settingsListenerRegistry === registry && settings) {
-          publishSettings(registry.clients, settings);
-        }
-      }).catch(error => console.error('School settings recovery read failed:', error));
+      void reconcileSettingsRevision(registry, 0);
     }
   }, 4000);
 }
@@ -194,6 +206,21 @@ export function useSchoolSettings(options?: { enabled?: boolean }) {
   useEffect(() => {
     if (options?.enabled === false) return;
     return subscribeToSchoolSettings(queryClient);
+  }, [queryClient, options?.enabled]);
+
+  useEffect(() => {
+    if (options?.enabled === false) return;
+    return registerWorkspaceRecovery(queryClient, '*', 'settings', () => {
+      const registry = settingsListenerRegistry;
+      if (!registry) return;
+      if (registry.recoveryPromise) return registry.recoveryPromise;
+      registry.unsubscribeMeta();
+      registry.unsubscribeLegacy?.();
+      registry.unsubscribeLegacy = undefined;
+      clearTimeout(registry.fallbackTimer);
+      reportWorkspaceTask(queryClient, '*', 'settings', 'loading');
+      startSettingsListener(registry);
+    });
   }, [queryClient, options?.enabled]);
 
   const query = useQuery({
