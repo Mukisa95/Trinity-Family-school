@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { NextRequest } from 'next/server';
 import { androidReleaseForSite, androidRequestOrigin } from '../src/lib/android/download';
 import release from '../src/lib/android/app-release.json';
+import releases from '../src/lib/android/app-releases.json';
 import { GET, HEAD } from '../src/app/api/android/download/route';
 
 test('only the configured school website and database receive the APK', () => {
@@ -13,6 +14,48 @@ test('only the configured school website and database receive the APK', () => {
   assert.equal(androidReleaseForSite(`${release.websiteOrigin}.evil.test`, release.firebaseProjectId), null);
   assert.equal(androidReleaseForSite(`${release.websiteOrigin}@evil.test`, release.firebaseProjectId), null);
   assert.equal(androidReleaseForSite(release.websiteOrigin.replace('https:', 'http:'), release.firebaseProjectId), null);
+});
+
+test('the shared frontend has independent Trinity Live and Trinity Ganda releases', () => {
+  const ganda = releases.find(item => item.firebaseProjectId === 'trinity-family-ganda');
+  assert.ok(ganda, 'Ganda must have its own prepared release');
+  assert.equal(ganda.appName, 'Trinity Ganda');
+  assert.equal(ganda.websiteOrigin, 'https://trinityfamilyganda.vercel.app');
+  assert.notEqual(ganda.applicationId, release.applicationId);
+  assert.notEqual(ganda.filename, release.filename);
+  assert.deepEqual(releases.find(item => item.firebaseProjectId === release.firebaseProjectId), release, 'Preparing Ganda must preserve the existing Trinity Live release');
+  for (const selected of releases) {
+    assert.equal(androidReleaseForSite(selected.websiteOrigin, selected.firebaseProjectId)?.applicationId, selected.applicationId);
+    assert.equal(androidReleaseForSite('http://localhost:9009', selected.firebaseProjectId, true)?.applicationId, selected.applicationId);
+    for (const other of releases.filter(item => item !== selected)) {
+      assert.equal(androidReleaseForSite(selected.websiteOrigin, other.firebaseProjectId), null);
+    }
+  }
+});
+
+test('both school endpoints return their own signed APK and exact HEAD metadata', async () => {
+  const previous = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  try {
+    for (const selected of releases) {
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = selected.firebaseProjectId;
+      const request = new NextRequest(`${selected.websiteOrigin}/api/android/download`);
+      const response = await GET(request);
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('Content-Disposition'), `attachment; filename="${selected.filename}"`);
+      assert.equal(response.headers.get('Content-Type'), 'application/vnd.android.package-archive');
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      assert.equal(bytes.length, selected.bytes);
+      assert.equal(createHash('sha256').update(bytes).digest('hex'), selected.sha256);
+      const head = await HEAD(request);
+      assert.equal(head.status, 200);
+      assert.equal(head.headers.get('Content-Length'), String(selected.bytes));
+      assert.equal(head.headers.get('X-APK-SHA256'), selected.sha256);
+      assert.equal(await head.text(), '');
+      for (const other of releases.filter(item => item !== selected)) {
+        assert.equal((await GET(new NextRequest(`${other.websiteOrigin}/api/android/download`))).status, 404);
+      }
+    }
+  } finally { if (previous === undefined) delete process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID; else process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = previous; }
 });
 test('local preview is explicit and still checks the school database', () => {
   assert.equal(androidReleaseForSite('http://localhost:9009', release.firebaseProjectId), null);

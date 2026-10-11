@@ -2,11 +2,13 @@ import 'server-only';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { getFirebaseAdminApp, getFirebaseAdminProjectId } from '@/lib/firebase-admin';
-import release from '@/lib/android/app-release.json';
+import { androidReleaseForProject, websiteFirebaseProjectId } from '@/lib/android/download';
 import { assertNativeSchool, nativeBindingOwner, expiredNativeToken, nativeDeviceId, nativeSecretHash, nativeSecretMatches, nativeMessageData, type NativeDeviceInput } from './native-push-contract';
 import type { ServerPushSubscription, WebPushPayload } from './push-notifications';
 
 function verifySchool(input: NativeDeviceInput) {
+  const release = androidReleaseForProject(websiteFirebaseProjectId());
+  if (!release) throw new Error('NATIVE_SCHOOL_MISMATCH');
   assertNativeSchool(input, release.applicationId, release.firebaseProjectId, getFirebaseAdminProjectId());
 }
 /** Bearer authentication is used for initial registration/account changes. Device proofs only rotate or retire that binding. */

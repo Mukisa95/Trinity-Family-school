@@ -1,4 +1,4 @@
-# Trinity Live school app distribution
+# School Android app distribution
 
 Trinity Live is the production Android app for `https://trinityfamilyschool.vercel.app`, which uses the `trinity-family-schools` Firebase project. The current preview's package is retained on the device; the production package is `ug.trinityfamilyschool.live`. Production requires its own initial login and permissions. No preview data is deleted or transferred.
 
@@ -6,7 +6,7 @@ Trinity Live is the production Android app for `https://trinityfamilyschool.verc
 
 `/download` is available without sign-in and is linked from the login page's quick links, the staff account menu and the parent sidebar. `/api/android/download` serves the signed APK as an Android package attachment, including its byte size and SHA-256 header. It checks both the configured website origin and the deployment's public Firebase project ID, so another school deployment cannot receive the Trinity Live APK. The download page shows availability, version, size, offline features and installation instructions. Only explicit development localhost previews bypass the production hostname check; project isolation remains enforced.
 
-The immutable release artifact lives in `android-releases/trinity-live.apk`. Next.js explicitly traces this file into the download function. Release metadata in `src/lib/android/app-release.json` binds name, package, origin, project, version, filename, size and hash. A mismatched/missing artifact returns a 503 rather than sending the wrong package. The endpoint does not read Firestore or include credentials.
+Signed release artifacts live in `android-releases/`: `trinity-live.apk` and `trinity-ganda.apk`. Next.js explicitly traces the APKs into the download function. The shared `src/lib/android/app-releases.json` registry binds each school's name, package, origin, project, version, filename, size and hash. The website selects by its public Firebase project and verifies the request origin. `app-release.json` remains the legacy Trinity Live metadata for existing tooling. A mismatched/missing artifact returns a 503 rather than sending the wrong package. The endpoint does not read Firestore or include credentials.
 
 ## Android school configuration
 
@@ -25,7 +25,22 @@ node scripts/publish-android-apk.cjs trinity-live
 
 Permanent signing credentials are kept outside the repository under `%USERPROFILE%/.codex/android-signing/trinity-live/`. Preserve and securely back up that directory: subsequent production updates must use the same key. No signing credentials are shipped in the website, JSON metadata or APK. Increasing the configured version code produces an update for the same production app. Building the same source with another school's configuration produces that school's independent APK.
 
-Trinity Ganda is intentionally not configured or published in this step. Its website origin, Firebase project, PWA icons, app name and unique Android package will be added in its own configuration when that deployment is supplied. Publishing another school replaces the deployment's release metadata with the matching artifact; ensure each website release carries its own configuration and APK.
+## Trinity Ganda
+
+`config/android-schools/trinity-ganda.json` builds **Trinity Ganda** (`ug.trinityfamilyganda.live`) for `https://trinityfamilyganda.vercel.app` and the `trinity-family-ganda` Firebase project. Its initial native version is 1.21 / version code 23, using the same current native feature baseline as Trinity Live. The PWA icon bytes were verified against the Ganda website before reusing the shared crest assets.
+
+The Ganda Firebase Android app was registered with explicit user authorization on 11 October 2026. Its app ID is `1:386680805645:android:a0fc711d49a00d16a5b844`; SDK configuration supplies the matching project/sender/API key. Permanent Ganda signing credentials are outside the repository at `%USERPROFILE%/.codex/android-signing/trinity-ganda/`. They are separate from Trinity Live's key and must be retained for Ganda updates.
+
+```powershell
+./scripts/build-android-app.ps1 -School trinity-ganda -Signed -Tasks ':app:testDebugUnitTest',':app:assembleRelease'
+node scripts/publish-android-apk.cjs trinity-ganda
+```
+
+Despite its historical filename, `publish-android-apk.cjs` only prepares the verified APK and metadata **locally**; it does not push or deploy. Preparing Ganda adds its registry entry without replacing Trinity Live's release. Identity collisions with another school's package, project, website or artifact are rejected before copying the APK.
+
+The existing `/download` page and login/account download links display the selected school's name automatically. Ganda users receive `trinity-ganda.apk`; Trinity Family School users continue receiving `trinity-live.apk`. Download and updater endpoints reject mismatched origins/projects, and native push registration checks the selected school's Android package against both public and Admin project identities. Android accounts, cached data, widget preferences and update state stay isolated by package.
+
+Website publication remains a separate action requiring the user's explicit request. Registering the Firebase Android app does not deploy either website. Download/update tests verify actual APK bytes and metadata for both schools; native registration tests use local transaction doubles and send no alerts to real users.
 
 ## Validation on 8 October 2026
 

@@ -27,8 +27,22 @@ fs.mkdirSync(path.join(root, 'android-releases'), { recursive: true });
 const metadata = { schema: 1, schoolId: school.schoolId, appName: school.appName, applicationId: school.applicationId, websiteOrigin: school.websiteOrigin, firebaseProjectId: school.firebaseProjectId, iconUrl: '/' + school.smallIcon.replace(/^public\//, ''), versionCode: school.versionCode, versionName: school.versionName, minAndroid: '8.0', filename, bytes: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex') };
 metadata.minSdk = Number(manifest.match(/^(?:minSdkVersion|sdkVersion):'([0-9]+)'/m)?.[1]);
 if (!Number.isInteger(metadata.minSdk) || metadata.minSdk < 26) throw new Error('APK minimum Android version could not be verified.');
-fs.copyFileSync(source, path.join(root, 'android-releases', filename));
 fs.mkdirSync(path.join(root, 'src/lib/android'), { recursive: true });
 if (school.releaseNotes) metadata.releaseNotes = school.releaseNotes;
-fs.writeFileSync(path.join(root, 'src/lib/android/app-release.json'), JSON.stringify(metadata, null, 2) + '\n');
-console.log(`Published ${metadata.appName} ${metadata.versionName}: ${metadata.bytes} bytes, SHA-256 ${metadata.sha256}`);
+// Both websites deploy the same source tree. Preparing another school must not
+// replace the existing school's metadata or silently change its native identity.
+const registryPath = path.join(root, 'src/lib/android/app-releases.json');
+const legacyPath = path.join(root, 'src/lib/android/app-release.json');
+const registry = fs.existsSync(registryPath)
+  ? JSON.parse(fs.readFileSync(registryPath, 'utf8'))
+  : [JSON.parse(fs.readFileSync(legacyPath, 'utf8'))];
+if (!Array.isArray(registry) || registry.some(release => release.schoolId !== metadata.schoolId
+  && (release.applicationId === metadata.applicationId || release.firebaseProjectId === metadata.firebaseProjectId || release.websiteOrigin === metadata.websiteOrigin || release.filename === metadata.filename))) {
+  throw new Error('A school release cannot reuse another school\'s app, project, website or artifact identity.');
+}
+const releases = [...registry.filter(release => release.schoolId !== metadata.schoolId), metadata].sort((a, b) => a.schoolId.localeCompare(b.schoolId));
+fs.copyFileSync(source, path.join(root, 'android-releases', filename));
+fs.writeFileSync(registryPath, JSON.stringify(releases, null, 2) + '\n');
+// Keep the original Trinity Live metadata path for existing tooling.
+if (school.key === 'trinity-live') fs.writeFileSync(legacyPath, JSON.stringify(metadata, null, 2) + '\n');
+console.log(`Prepared locally ${metadata.appName} ${metadata.versionName}: ${metadata.bytes} bytes, SHA-256 ${metadata.sha256}`);
