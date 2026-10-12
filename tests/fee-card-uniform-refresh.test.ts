@@ -27,6 +27,12 @@ function fixture() {
     module: catalogueModule, exports: catalogueModule.exports,
     require(name: string) {
       if (name === '@tanstack/react-query') return { useQueryClient: () => client, useQuery: (options: any) => options };
+      if (name === './use-school-catalogue') return { useSchoolCatalogue: (_: string, read: () => unknown) => ({ queryKey: ['uniforms'], queryFn: read, staleTime: Infinity, refetchOnMount: false }) };
+      if (name === '@/lib/cache/school-catalogue-queries') return { readUniformsCatalogue: async () => {
+        reads++;
+        return [{ id: 'shirt', name: 'SHIRT', group: 'Shirts', price, isActive: true }];
+      } };
+      if (name === '@/lib/selectors/school-catalogue-selectors') return { filterSchoolCatalogue: (items: unknown[]) => items };
       if (name === '../services/uniforms.service') return { UniformsService: { getAllUniforms: async () => {
         reads++;
         return [{ id: 'shirt', name: 'SHIRT', group: 'Shirts', price, isActive: true }];

@@ -13,9 +13,8 @@ import {
 } from '@/lib/services/operational-audit.service';
 import {
   auditQueryFamily,
+  bufferOperationalEvent,
   isOperationalAuditTransportResource,
-  mergeOperationalEvent,
-  operationalEventKey,
   sanitizeAuditRoute,
   sanitizeAuditText,
 } from '@/lib/operational-audit/core';
@@ -24,7 +23,6 @@ const FLUSH_INTERVAL_MS = 10 * 60 * 1000;
 const MIN_EARLY_FLUSH_MS = 5 * 60 * 1000;
 const PERSIST_INTERVAL_MS = 30 * 1000;
 const SLOW_OPERATION_MS = 2000;
-const MAX_BUFFER_KEYS = 39; // Reserve the fortieth key for combined signals.
 const PENDING_PREFIX = 'trinity_operational_audit_pending_v1:';
 const SESSION_KEY = 'trinity_operational_audit_session_v1';
 
@@ -129,35 +127,7 @@ export function OperationalAuditProvider() {
       message: sanitizeAuditText(event.message),
       code: sanitizeAuditText(event.code, 80),
     };
-    let key = operationalEventKey(normalized);
-    if (!bufferRef.current.has(key) && bufferRef.current.size >= MAX_BUFFER_KEYS
-      && (normalized.source === 'workspace-timing' || normalized.name.startsWith('interaction-'))) {
-      const disposable = [...bufferRef.current].find(([, item]) => item.source === 'react-query' && item.kind === 'performance' && item.severity === 'info');
-      if (disposable) {
-        bufferRef.current.delete(disposable[0]);
-        const combined: OperationalAuditEvent = { ...disposable[1], kind: 'activity', name: 'additional_signals',
-          source: 'collector', severity: 'info', route: '/multiple', message: 'Low-frequency signals were combined to keep the audit lightweight.' };
-        const combinedKey = operationalEventKey(combined);
-        bufferRef.current.set(combinedKey, mergeOperationalEvent(bufferRef.current.get(combinedKey), combined));
-      }
-    }
-    if (!bufferRef.current.has(key) && bufferRef.current.size >= MAX_BUFFER_KEYS) {
-      const priority = normalized.source === 'workspace-timing' || normalized.name.startsWith('interaction-');
-      // A reserved combined key plus an evicted routine query leaves space for
-      // a stage measurement. Errors retain their existing collector priority.
-      if (!(priority && bufferRef.current.size < 40 && [...bufferRef.current.values()].some(item => item.name === 'additional_signals'))) {
-      normalized.kind = 'activity';
-      normalized.name = 'additional_signals';
-      normalized.source = 'collector';
-      normalized.severity = 'info';
-      normalized.route = '/multiple';
-      normalized.message = 'Additional low-frequency signals were combined to keep the audit lightweight.';
-      normalized.code = undefined;
-      normalized.status = undefined;
-      key = operationalEventKey(normalized);
-      }
-    }
-    bufferRef.current.set(key, mergeOperationalEvent(bufferRef.current.get(key), normalized));
+    bufferOperationalEvent(bufferRef.current, normalized);
   }, []);
 
   const pauseRouteTimer = useCallback(() => {
@@ -238,8 +208,7 @@ export function OperationalAuditProvider() {
     } catch {
       if (account !== accountRef.current || !activeRef.current) return;
       events.forEach(event => {
-        const key = operationalEventKey(event);
-        bufferRef.current.set(key, mergeOperationalEvent(bufferRef.current.get(key), event));
+        bufferOperationalEvent(bufferRef.current, event);
       });
       startedAtRef.current = startedAt;
       persist();
@@ -286,8 +255,7 @@ export function OperationalAuditProvider() {
         if (key !== pendingKeyRef.current) { recoveryRef.current.set(key, pending); return; }
         if (pending.startedAt < startedAtRef.current) startedAtRef.current = pending.startedAt;
         if (bufferRef.current.size === 0) pending.events.forEach(event => {
-          const eventKey = operationalEventKey(event);
-          bufferRef.current.set(eventKey, mergeOperationalEvent(bufferRef.current.get(eventKey), event));
+          bufferOperationalEvent(bufferRef.current, event);
         });
       } catch {
         // Ignore invalid telemetry only; application data is never stored here.

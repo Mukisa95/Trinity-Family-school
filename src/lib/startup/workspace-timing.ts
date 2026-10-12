@@ -1,17 +1,18 @@
 import { sanitizeAuditRoute } from '@/lib/operational-audit/core';
+let pupilsPaintRecorded = false;
 
 /** Named elapsed times and a sanitized route; no account IDs or private records. */
-export function measureWorkspaceStep(name: string, startedAt: number): void {
+export function measureWorkspaceStep(name: string, startedAt: number, route?: string): void {
   if (typeof performance === 'undefined') return;
-  measureWorkspaceDuration(name, performance.now() - startedAt, startedAt);
+  measureWorkspaceDuration(name, performance.now() - startedAt, startedAt, route);
 }
 
 /** Active durations can span background pauses; preserve their actual observation window. */
-export function measureWorkspaceDuration(name: string, duration: number, startedAt = performance.now() - duration): void {
+export function measureWorkspaceDuration(name: string, duration: number, startedAt = performance.now() - duration, route?: string): void {
   if (typeof performance === 'undefined') return;
   try {
     performance.measure(`trinity:workspace:${name}`, { start: startedAt, duration: Math.max(0, duration),
-      detail: { route: sanitizeAuditRoute(typeof location === 'undefined' ? '/' : location.pathname), observedEnd: performance.now() } });
+      detail: { route: sanitizeAuditRoute(route || (typeof location === 'undefined' ? '/' : location.pathname)), observedEnd: performance.now() } });
     // Keep local profiling bounded during long sessions. Observers still receive
     // the completed entries even when old names are cleared from the timeline.
     const entries = performance.getEntriesByType('measure').filter(entry => entry.name.startsWith('trinity:workspace:'));
@@ -41,7 +42,8 @@ export function measurePupilsPaint(): () => void {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const frame = requestAnimationFrame(() => {
     timer = setTimeout(() => {
-      if (performance.getEntriesByName('trinity:workspace:pupils-first-paint').length === 0) {
+      if (!pupilsPaintRecorded) {
+        pupilsPaintRecorded = true;
         measureWorkspaceStep('pupils-first-paint', 0);
       }
     }, 0);

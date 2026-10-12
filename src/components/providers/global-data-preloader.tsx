@@ -29,7 +29,7 @@ import { clearPupilSessionQueries, isParentPupilSnapshotOwnedByAccount } from '@
 import { FeesService } from '@/lib/services/fees.service';
 import { FEES_QUERY_KEYS } from '@/lib/hooks/use-fees';
 import { restoreCatalogue } from '@/lib/cache/school-catalogue-cache';
-import { schoolCatalogueOptions } from '@/lib/cache/school-catalogue-queries';
+import { ensureSchoolCatalogue, subscribeSchoolCatalogue } from '@/lib/cache/school-catalogue-queries';
 
 /**
  * 🚀 ROLE-AWARE DATA PRELOADER (OPTIMIZED FOR QUOTA)
@@ -145,6 +145,12 @@ export function GlobalDataPreloader() {
     restoreCatalogues();
     window.addEventListener('trinity-workspace-cache-access', restoreCatalogues);
     unsubscribers.push(() => window.removeEventListener('trinity-workspace-cache-access', restoreCatalogues));
+    const watchedCatalogues = new Set<string>();
+    const watchCatalogue = (name: 'requirements' | 'uniforms' | 'excludedDays') => {
+      if (watchedCatalogues.has(name)) return;
+      watchedCatalogues.add(name);
+      unsubscribers.push(subscribeSchoolCatalogue(queryClient, name, user!));
+    };
 
     // ═══════════════════════════════════════════════════════════
     // REAL-TIME LISTENERS (onSnapshot) — Data that needs live sync
@@ -592,7 +598,8 @@ export function GlobalDataPreloader() {
       try {
         await withWorkspaceIdentity(userId, async () => undefined);
         if (disposed) return;
-        const requirements = await queryClient.fetchQuery(schoolCatalogueOptions(queryClient, 'requirements', user!));
+        watchCatalogue('requirements');
+        const requirements = await ensureSchoolCatalogue(queryClient, 'requirements', user!, () => !disposed);
         if (disposed) return;
         report('requirements', 'ready');
         if (requirements.length > 0) {
@@ -610,7 +617,8 @@ export function GlobalDataPreloader() {
       try {
         await withWorkspaceIdentity(userId, async () => undefined);
         if (disposed) return;
-        await queryClient.fetchQuery(schoolCatalogueOptions(queryClient, 'uniforms', user!));
+        watchCatalogue('uniforms');
+        await ensureSchoolCatalogue(queryClient, 'uniforms', user!, () => !disposed);
         report('uniforms', 'ready');
       } catch (error: any) {
         report('uniforms', 'error');
@@ -623,27 +631,14 @@ export function GlobalDataPreloader() {
       try {
         await withWorkspaceIdentity(userId, async () => undefined);
         if (disposed) return;
-        await queryClient.fetchQuery(schoolCatalogueOptions(queryClient, 'excludedDays', user!));
+        watchCatalogue('excludedDays');
+        await ensureSchoolCatalogue(queryClient, 'excludedDays', user!, () => !disposed);
         report('excludedDays', 'ready');
       } catch { report('excludedDays', 'error'); }
     };
 
-    const reconcileCatalogues = () => {
-      if (disposed || userRole === 'Parent') return;
-      const owners = { requirements: fetchRequirements, uniforms: fetchUniforms, excludedDays: fetchExcludedDays };
-      const jobs = (Object.keys(owners) as Array<keyof typeof owners>).filter(name => {
-        const key = schoolCatalogueOptions(queryClient, name, user!).queryKey;
-        // Mounted pages already own refetchOnReconnect; background owners
-        // recover inactive copies without cancelling or duplicating those reads.
-        if (queryClient.getQueryCache().find({ queryKey: key })?.isActive()) return false;
-        void queryClient.invalidateQueries({ queryKey: key, exact: true, refetchType: 'none' });
-        return true;
-      });
-      const run = async () => { while (!disposed && jobs.length) await owners[jobs.shift()!](); };
-      void run(); void run();
-    };
-    window.addEventListener('online', reconcileCatalogues);
-    unsubscribers.push(() => window.removeEventListener('online', reconcileCatalogues));
+    // The shared catalogue owners recover failures and reconcile revision
+    // changes on reconnect; healthy unchanged lists are never invalidated here.
 
     // 10. 👤 USERS - One-time read (rarely changes)
     /*

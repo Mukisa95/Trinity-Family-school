@@ -73,6 +73,11 @@ export function bumpAccessLevelsRevisionInBatch(batch: WriteBatch) {
   writeRevision(batch, 'reference', { accessLevels: increment(1) });
 }
 
+/** Catalogue content and its invalidation token always commit atomically. */
+export function bumpCatalogueRevisionInBatch(batch: WriteBatch, name: 'requirements' | 'uniforms' | 'excludedDays') {
+  writeRevision(batch, 'reference', { [name]: increment(1) });
+}
+
 /**
  * Reserve the next ordered pupil revision inside the source transaction.
  * The modern operational document is small. Reading the legacy profile is

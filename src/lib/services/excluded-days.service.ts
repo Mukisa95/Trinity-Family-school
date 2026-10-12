@@ -3,15 +3,14 @@ import {
   doc, 
   getDocsFromServer,
   getDoc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
+  writeBatch,
   query, 
   orderBy, 
   Timestamp
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { ExcludedDay } from '@/types';
+import { bumpCatalogueRevisionInBatch } from './dashboard-cache-revisions.service';
 
 const COLLECTION_NAME = 'excludedDays';
 
@@ -63,7 +62,11 @@ export class ExcludedDaysService {
         createdAt: Timestamp.now()
       };
       
-      const docRef = await addDoc(collection(db, COLLECTION_NAME), newExcludedDay);
+      const docRef = doc(collection(db, COLLECTION_NAME));
+      const batch = writeBatch(db);
+      batch.set(docRef, newExcludedDay);
+      bumpCatalogueRevisionInBatch(batch, 'excludedDays');
+      await batch.commit();
       return docRef.id;
     } catch (error) {
       console.error('Error creating excluded day:', error);
@@ -79,7 +82,10 @@ export class ExcludedDaysService {
         updatedAt: Timestamp.now()
       };
       
-      await updateDoc(docRef, updateData);
+      const batch = writeBatch(db);
+      batch.update(docRef, updateData);
+      bumpCatalogueRevisionInBatch(batch, 'excludedDays');
+      await batch.commit();
     } catch (error) {
       console.error('Error updating excluded day:', error);
       throw error;
@@ -89,7 +95,10 @@ export class ExcludedDaysService {
   static async deleteExcludedDay(id: string): Promise<void> {
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
-      await deleteDoc(docRef);
+      const batch = writeBatch(db);
+      batch.delete(docRef);
+      bumpCatalogueRevisionInBatch(batch, 'excludedDays');
+      await batch.commit();
     } catch (error) {
       console.error('Error deleting excluded day:', error);
       throw error;

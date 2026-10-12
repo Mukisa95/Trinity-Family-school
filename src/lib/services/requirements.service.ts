@@ -4,9 +4,7 @@ import {
   getDocs, 
   getDocsFromServer,
   getDoc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
+  writeBatch,
   query, 
   orderBy,
   where,
@@ -15,6 +13,7 @@ import {
 import { db } from '../firebase';
 import type { RequirementItem, CreateRequirementData, UpdateRequirementData, RequirementGender, RequirementSection } from '@/types';
 import { HistoryLogService } from './history-log.service';
+import { bumpCatalogueRevisionInBatch } from './dashboard-cache-revisions.service';
 
 const COLLECTION_NAME = 'requirements';
 
@@ -161,7 +160,11 @@ export class RequirementsService {
       // Clean undefined values before sending to Firebase
       const cleanedData = this.cleanUndefinedValues(newRequirement);
       
-      const docRef = await addDoc(collection(db, COLLECTION_NAME), cleanedData);
+      const docRef = doc(collection(db, COLLECTION_NAME));
+      const batch = writeBatch(db);
+      batch.set(docRef, cleanedData);
+      bumpCatalogueRevisionInBatch(batch, 'requirements');
+      await batch.commit();
       await HistoryLogService.log({
         action: 'create',
         entity: 'requirement',
@@ -190,7 +193,10 @@ export class RequirementsService {
       // Clean undefined values before sending to Firebase
       const cleanedData = this.cleanUndefinedValues(updateData);
       
-      await updateDoc(docRef, cleanedData);
+      const batch = writeBatch(db);
+      batch.update(docRef, cleanedData);
+      bumpCatalogueRevisionInBatch(batch, 'requirements');
+      await batch.commit();
       await HistoryLogService.log({
         action: 'update',
         entity: 'requirement',
@@ -212,7 +218,10 @@ export class RequirementsService {
     try {
       const requirement = await this.getRequirementById(id);
       const docRef = doc(db, COLLECTION_NAME, id);
-      await deleteDoc(docRef);
+      const batch = writeBatch(db);
+      batch.delete(docRef);
+      bumpCatalogueRevisionInBatch(batch, 'requirements');
+      await batch.commit();
       await HistoryLogService.log({
         action: 'delete',
         entity: 'requirement',
@@ -232,10 +241,13 @@ export class RequirementsService {
   static async toggleRequirementStatus(id: string, isActive: boolean): Promise<void> {
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
-      await updateDoc(docRef, {
+      const batch = writeBatch(db);
+      batch.update(docRef, {
         isActive,
         updatedAt: Timestamp.now()
       });
+      bumpCatalogueRevisionInBatch(batch, 'requirements');
+      await batch.commit();
       const requirement = await this.getRequirementById(id);
       await HistoryLogService.log({
         action: 'status',

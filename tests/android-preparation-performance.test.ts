@@ -15,9 +15,12 @@ test('foreground clock excludes several background intervals and initially hidde
   assert.deepEqual(hidden.sample(550), {elapsed:550,foreground:50,background:500});
 });
 
-test('record projection stops between batches during navigation and resumes in order', async () => {
+test('record projection stops between batches during navigation and resumes in order', { timeout: 3000 }, async () => {
   const seen:number[]=[]; const records=Array.from({length:96},(_,i)=>i);
-  const done=projectAndroidRecords(records,i=>{seen.push(i);if(i===31)setNavigationPending(true);return i*2;});
+  let reachBatch!: () => void;
+  const firstBatch = new Promise<void>(resolve => { reachBatch = resolve; });
+  const done=projectAndroidRecords(records,i=>{seen.push(i);if(i===31){setNavigationPending(true);reachBatch();}return i*2;});
+  await firstBatch;
   await new Promise(r=>setTimeout(r,25)); assert.equal(seen.length,32);
   setNavigationPending(false); assert.deepEqual(await done,records.map(i=>i*2));
 });

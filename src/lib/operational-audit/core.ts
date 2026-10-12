@@ -100,6 +100,46 @@ export function operationalEventKey(event: OperationalAuditEvent): string {
   return [event.kind, event.name, event.source, event.route, event.severity, event.code || '', event.status || ''].join('|');
 }
 
+/** Retain failures and unfinished navigation ahead of repetitive thumbnail/click timings. */
+export function operationalEventPriority(event: Pick<OperationalAuditEvent, 'name' | 'severity' | 'source'>): number {
+  if (event.severity === 'error') return 7;
+  if (event.name.startsWith('workspace:navigation:')) return 6;
+  if (event.name.startsWith('workspace:page:')) return 5;
+  if (/^workspace:(startup:|identity|pupils-cache)/.test(event.name)) return 4;
+  if (event.severity === 'warning' && event.source !== 'workspace-timing') return 3;
+  if (event.source === 'workspace-timing') return 2;
+  return 1;
+}
+
+export function bufferOperationalEvent(buffer: Map<string, OperationalAuditEvent>, incoming: OperationalAuditEvent, maxKeys = 40): void {
+  const key = operationalEventKey(incoming);
+  const combine = (event: OperationalAuditEvent) => {
+    const grouped: OperationalAuditEvent = { ...event, kind: 'activity', name: 'additional_signals', source: 'collector',
+      route: '/multiple', code: undefined, status: undefined,
+      message: 'Signals were combined to keep the audit bounded; individual names and routes are unavailable.' };
+    const combinedKey = operationalEventKey(grouped);
+    buffer.set(combinedKey, mergeOperationalEvent(buffer.get(combinedKey), grouped));
+  };
+  const named = () => [...buffer].filter(([, event]) => event.name !== 'additional_signals');
+  const lowest = () => named().sort((a, b) => operationalEventPriority(a[1]) - operationalEventPriority(b[1])
+    || a[1].lastAt.localeCompare(b[1].lastAt))[0];
+  if (buffer.has(key)) buffer.set(key, mergeOperationalEvent(buffer.get(key), incoming));
+  else if (named().length < maxKeys - 3) buffer.set(key, incoming);
+  else {
+    const disposable = lowest();
+    const priority = operationalEventPriority(incoming);
+    if (disposable && (priority > operationalEventPriority(disposable[1])
+      || priority >= 5 && priority === operationalEventPriority(disposable[1]))) {
+      buffer.delete(disposable[0]); combine(disposable[1]); buffer.set(key, incoming);
+    } else combine(incoming);
+  }
+  // Three separate overflow buckets preserve info/warning/error occurrence counts.
+  while (buffer.size > maxKeys || named().length > maxKeys - 3) {
+    const disposable = lowest(); if (!disposable) break;
+    buffer.delete(disposable[0]); combine(disposable[1]);
+  }
+}
+
 export function mergeOperationalEvent(
   existing: OperationalAuditEvent | undefined,
   incoming: OperationalAuditEvent,
@@ -213,8 +253,9 @@ export function buildOperationalAuditMarkdown(
   });
   const activeRoutes = [...routeTotals.values()].sort((a, b) => b.count - a.count).slice(0, 30);
   const appVersions = [...new Set(events.map(event => event.appVersion || 'unknown'))].sort();
-  const measurements = events.filter(event => event.source === 'workspace-timing' || event.name.startsWith('interaction-') || event.name === 'click-handler-to-paint-opportunity')
-    .sort((a, b) => a.name.localeCompare(b.name) || a.firstAt.localeCompare(b.firstAt)).slice(0, 200);
+  const allMeasurements = events.filter(event => event.source === 'workspace-timing' || event.name.startsWith('interaction-') || event.name === 'click-handler-to-paint-opportunity');
+  const measurements = [...allMeasurements]
+    .sort((a, b) => operationalEventPriority(b) - operationalEventPriority(a) || b.firstAt.localeCompare(a.firstAt)).slice(0, 200);
   const environments = new Map<string, number>();
   records.forEach(record => {
     const label = record.context ? `${record.appVersion}; ${record.context.runtime}; ${record.context.browser}; ${record.context.os}; ${record.context.startup}` : `${record.appVersion}; ${record.device}; runtime/startup unknown`;
@@ -238,6 +279,8 @@ export function buildOperationalAuditMarkdown(
     `- Application versions: ${appVersions.map(markdownCell).join(', ') || 'none'}`,
     `- Transport observations excluded: ${excludedTransportEvents.reduce((total, event) => total + Math.max(1, event.count), 0)}`,
     `- Read limit reached: ${limitReached ? 'Yes — later records may be absent' : 'No'}`,
+    `- Stage measurements shown: ${measurements.length} of ${allMeasurements.length}${allMeasurements.length > measurements.length ? ' — navigation and page readiness prioritised; other rows omitted' : ''}`,
+    '- Collector limit: 40 signal groups per batch; additional_signals preserves severity counts but loses individual signal names and routes.',
     ...[...environments].map(([label, count]) => `- Environment: ${markdownCell(label)} — ${count} summary document(s)`),
     '',
     '## Incidents and observations',

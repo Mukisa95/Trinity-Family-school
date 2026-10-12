@@ -47,6 +47,8 @@ interface LoadingOverlayProps {
   message?: string;
   destination?: string;
   slow?: boolean;
+  timedOut?: boolean;
+  onRetry?: () => void;
 }
 
 export function LoadingOverlay({ 
@@ -54,6 +56,8 @@ export function LoadingOverlay({
   message = 'Loading page...',
   destination,
   slow = false,
+  timedOut = false,
+  onRetry,
 }: LoadingOverlayProps) {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -88,12 +92,17 @@ export function LoadingOverlay({
         <div className="text-center space-y-3">
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
-            <span>{slow ? 'This is taking longer than usual.' : 'Your next page is being prepared.'}</span>
+            <span>{timedOut ? 'The page has not finished opening.' : slow ? 'This is taking longer than usual.' : 'Your next page is being prepared.'}</span>
           </div>
           <div className="text-xs text-muted-foreground/70 max-w-sm space-y-1">
             <p>Records and live updates load on the page once it opens.</p>
           </div>
         </div>
+
+        {timedOut && onRetry && <button type="button" onClick={onRetry}
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+          Retry opening page
+        </button>}
         
         {/* Progress dots */}
         <div className="flex space-x-1">

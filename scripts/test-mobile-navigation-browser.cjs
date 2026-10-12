@@ -11,7 +11,7 @@ import {NavigationProvider,useNavigation} from './src/lib/contexts/navigation-co
 import {NavigationContent} from './src/components/layout/navigation-content';import {MobileSidebar} from './src/components/layout/mobile-sidebar';
 import {AndroidOfflineProvider} from './src/components/providers/android-offline-provider';
 import {isNavigationPending} from './src/lib/navigation/navigation-work';
-window.Auth=createContext(null);window.NavFixture=createContext(null);window.prefetchCalls=[];window.prepared=new Set();window.exportCount=0;window.saveCount=0;window.Native=true;
+window.Auth=createContext(null);window.NavFixture=createContext(null);window.prefetchCalls=[];window.prepared=new Set();window.exportCount=0;window.saveCount=0;window.Native=true;window.recoveryRequests=[];
 window.session={schema:1,accountId:'test-admin',role:'Admin',grants:{pupils:true,timetable:false},pupilIds:[]};
 const client=new QueryClient({defaultOptions:{queries:{retry:false}}});window.changeSavedData=()=>client.setQueryData(['pupils','list'],[{id:'synthetic'}]);
 const items=[{title:'Dashboard',href:'/',icon:Home,section:'Overview'},{title:'Pupils',href:'/pupils',icon:Users,section:'Academics'},
@@ -19,20 +19,22 @@ const items=[{title:'Dashboard',href:'/',icon:Home,section:'Overview'},{title:'P
 {title:'Fees',href:'/fees/collection',icon:Wallet,section:'Finance'},{title:'SchoolPay',href:'/accounts/schoolpay-feed',icon:Zap,section:'Finance'},
 {title:'Disabled',href:'/disabled',icon:Zap,disabled:true,section:'Administration'}];
 function Page(){const nav=useNavigation();window.nav=nav;window.navigationPending=isNavigationPending;
+const state=React.useContext(window.NavFixture);if(state.loading)return <div data-workspace-page-loading id='route-fallback'>Loading route</div>;
 return <><span id='path'>{nav.currentPath}</span><button id='old-record'>Old page action</button><div style={{height:1800}}>Page content</div></>;}
-function App(){const [pathname,setPath]=useState('/'),[open,setOpen]=useState(false),[signed,setSigned]=useState(false),[epoch,setEpoch]=useState(0);
+function App(){const [pathname,setPath]=useState('/'),[open,setOpen]=useState(false),[signed,setSigned]=useState(false),[epoch,setEpoch]=useState(0),[loading,setLoading]=useState(false);window.setRouteLoading=setLoading;
 const timer=useRef();window.setSigned=setSigned;window.setDrawer=setOpen;window.wake=()=>setEpoch(n=>n+1);
 window.setOffline=offline=>{window.trinityAndroidConnected=!offline;window.dispatchEvent(new Event('trinity-android-connectivity'));};
 window.commit=(href)=>{history.pushState({},'',href);setPath(new URL(href,location.origin).pathname);};
 window.router=window.router||{prefetch:href=>{window.prefetchCalls.push(href);setTimeout(()=>window.prepared.add(href),20);},
 push:href=>{clearTimeout(timer.current);const delay=window.routeDelay??(window.prepared.has(href)?25:5200);timer.current=setTimeout(()=>window.commit(href),delay);},replace:href=>window.router.push(href)};
 const auth={user:{id:'test-admin',role:'Admin',username:'Test',isActive:true},isLoading:false,isLocked:false,isSignedIdentityReady:signed};
-return <window.Auth.Provider value={auth}><window.NavFixture.Provider value={{path:pathname,epoch}}><QueryClientProvider client={client}>
+return <window.Auth.Provider value={auth}><window.NavFixture.Provider value={{path:pathname,epoch,loading}}><QueryClientProvider client={client}>
 <AndroidOfflineProvider/><NavigationProvider><header className='app-topbar'><button id='menu' onClick={()=>setOpen(true)}>Menu</button><button id='header-action' onClick={()=>window.headerClicks=(window.headerClicks||0)+1}>Header action</button></header>
 <aside id='desktop-nav'>Desktop sidebar</aside><main id='main'><NavigationContent><Page/></NavigationContent></main>
 <MobileSidebar items={items} isOpen={open} onClose={()=>setOpen(false)}/></NavigationProvider></QueryClientProvider></window.NavFixture.Provider></window.Auth.Provider>;}
 createRoot(document.getElementById('root')).render(<App/>);`;
  const mocks={
+  '@/lib/navigation/route-recovery':`export {claimAutomaticRouteRecovery,internalNavigationHref,ROUTE_RECOVERY_AFTER_MS} from './src/lib/navigation/route-recovery';export const navigateToRecoveryRoute=href=>window.recoveryRequests.push(href);`,
   'next/navigation':`import {useContext} from 'react';export const usePathname=()=>useContext(window.NavFixture).path;export const useRouter=()=>window.router;`,
   'next/link':`import React from 'react';export default function Link({href,onClick,children,...rest}){return <a {...rest} href={href} onClick={e=>{onClick?.(e);if(!e.defaultPrevented&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&!e.altKey){e.preventDefault();window.router.push(href);}}}>{children}</a>;}`,
   'next/image':`import React from 'react';export default ({fill,...props})=><img {...props}/>;`,
@@ -89,9 +91,18 @@ createRoot(document.getElementById('root')).render(<App/>);`;
   await page.waitForFunction(()=>window.nav.currentPath==='/fees/collection');assert.equal(await page.getByRole('status').count(),0,'Fast prepared navigation should not flash a card');
   await page.evaluate(()=>{window.nav.startNavigation('Another term','/fees/collection?term=two');window.commit('/fees/collection?term=two');});
   await page.waitForFunction(()=>!window.nav.isNavigating,'query-only route changes must finish progress');
+  await page.evaluate(()=>{window.setRouteLoading(true);window.exportsBefore=window.exportCount;window.nav.startNavigation('Pupils','/pupils');window.commit('/pupils');window.changeSavedData();});
+  await page.locator('#route-fallback').waitFor();await page.waitForTimeout(900);
+  assert.equal(await page.evaluate(()=>window.nav.isNavigating&&window.navigationPending()),true,'A committed URL with a route fallback must remain busy');
+  assert.equal(await page.evaluate(()=>window.exportCount),await page.evaluate(()=>window.exportsBefore),'Fallback must keep Android preparation paused after URL commit');
+  await page.evaluate(()=>window.setRouteLoading(false));await page.waitForFunction(()=>!window.nav.isNavigating);
+  assert.equal(await page.getByRole('status').count(),0,'Ready content must immediately remove the card');
+  assert.equal(await page.locator('#old-record').evaluate(el=>!!el.closest('[inert]')),false);
+  await page.evaluate(()=>{const node=document.createElement('div');node.hidden=true;node.setAttribute('data-workspace-page-loading','');document.querySelector('[aria-busy]').append(node);});
+  await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.navigationPending()),false,'Hidden streaming fallbacks must not block ready content');
   await page.evaluate(()=>window.nav.startNavigation('Current page',location.pathname+location.search));assert.equal(await page.evaluate(()=>window.nav.isNavigating),false);
   await page.evaluate(()=>{window.setOffline(true);window.prefetchCalls=[];window.setDrawer(true);});await page.waitForTimeout(1000);assert.equal(await page.evaluate(()=>window.prefetchCalls.length),0);
-  await page.evaluate(()=>{window.setOffline(false);window.routeDelay=5500;document.documentElement.classList.add('dark');window.nav.startNavigation('Pupils','/pupils');});
+  await page.evaluate(()=>{window.setOffline(false);window.routeDelay=5500;document.documentElement.classList.add('dark');window.nav.startNavigation('Timetable','/timetable');});
   await page.getByRole('status').waitFor();await page.setViewportSize({width:320,height:640});await page.screenshot({path:path.join(output,'mobile-wait-dark-menu-320.png')});
   await page.evaluate(()=>window.setDrawer(false));await page.screenshot({path:path.join(output,'mobile-wait-dark-320.png')});
   await page.emulateMedia({reducedMotion:'reduce'});
@@ -101,7 +112,19 @@ createRoot(document.getElementById('root')).render(<App/>);`;
   const desktopBounds=await page.evaluate(()=>{const card=document.querySelector('[role=status]').getBoundingClientRect(),sidebar=document.querySelector('#desktop-nav').getBoundingClientRect(),header=document.querySelector('.app-topbar').getBoundingClientRect();return {cardLeft:card.left,sidebarRight:sidebar.right,cardTop:card.top,headerBottom:header.bottom};});
   assert.ok(desktopBounds.cardLeft>=desktopBounds.sidebarRight&&desktopBounds.cardTop>=desktopBounds.headerBottom);
   await page.screenshot({path:path.join(output,'desktop-wait-dark.png')});await page.evaluate(()=>window.nav.stopNavigation());
-  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(output,'verification.json'),JSON.stringify({fiveSecondProgress:true,chromeUsable:true,contentInert:true,prefetchBeforeTap:true,offlineNoPrefetch:true,queryOnlyCompletion:true,snapshotDeferred:true,fastNoFlash:true,errors},null,2));
+  const recovery=await browser.newPage({viewport:{width:390,height:844}});await recovery.clock.install();await recovery.goto(url);await recovery.waitForFunction(()=>window.nav);
+  await recovery.evaluate(()=>{const gate=document.createElement('div');gate.id='workspace-gate';gate.setAttribute('data-workspace-visible','false');document.body.append(gate);window.testHidden=true;Object.defineProperty(document,'visibilityState',{configurable:true,get:()=>window.testHidden?'hidden':'visible'});document.dispatchEvent(new Event('visibilitychange'));window.setRouteLoading(true);window.nav.startNavigation('Pupils','/pupils');window.commit('/pupils');});
+  await recovery.clock.fastForward(35_000);assert.equal(await recovery.evaluate(()=>window.recoveryRequests.length),0,'Background time must not trigger recovery');
+  await recovery.evaluate(()=>{window.testHidden=false;document.dispatchEvent(new Event('visibilitychange'));});
+  await recovery.clock.fastForward(25_000);assert.equal(await recovery.evaluate(()=>window.recoveryRequests.length),0,'Welcome/startup time must not trigger recovery');
+  await recovery.evaluate(()=>{document.querySelector('#workspace-gate').setAttribute('data-workspace-visible','true');window.dispatchEvent(new Event('trinity-workspace-visible'));});
+  await recovery.clock.fastForward(21_000);await recovery.waitForFunction(()=>window.recoveryRequests.length===1);
+  assert.deepEqual(await recovery.evaluate(()=>window.recoveryRequests),['/pupils']);
+  await recovery.getByRole('button',{name:'Retry opening page'}).waitFor();await recovery.clock.fastForward(40_000);
+  assert.equal(await recovery.evaluate(()=>window.recoveryRequests.length),1,'A stuck page must not trigger repeated automatic reloads');
+  await recovery.getByRole('button',{name:'Retry opening page'}).click();assert.equal(await recovery.evaluate(()=>window.recoveryRequests.length),2);
+  await recovery.close();
+  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(output,'verification.json'),JSON.stringify({fiveSecondProgress:true,chromeUsable:true,contentInert:true,prefetchBeforeTap:true,offlineNoPrefetch:true,queryOnlyCompletion:true,snapshotDeferred:true,urlCommitIsNotReadiness:true,hiddenFallbackIgnored:true,foregroundRecovery:true,retryAvailable:true,fastNoFlash:true,errors},null,2));
   console.log('Mobile navigation browser checks passed.');
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
 }

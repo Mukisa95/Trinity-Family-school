@@ -228,7 +228,7 @@ export function GlassPageRouteSkeleton({
   showSummaryBar?: boolean;
 }) {
   return (
-    <div className="glass-page-route-skeleton">
+    <div className="glass-page-route-skeleton" data-workspace-page-loading>
       <GlassPageTopBarSkeleton />
       {showSummaryBar && <GlassSummaryBarSkeleton />}
       {variant === "list" && <ListSkeleton />}

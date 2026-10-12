@@ -42,7 +42,7 @@ export const getDocs=async()=>{window.reads++;return {docs:[]};};
 export const onSnapshot=(query,options,next,error)=>{const l={query,next,error,active:true};window.listeners.push(l);return()=>l.active=false;};
 `);
 mocks.set('src/lib/cache/school-catalogue-cache', 'export const restoreCatalogue=async()=>{};');
-mocks.set('src/lib/cache/school-catalogue-queries', 'export const schoolCatalogueOptions=(_,name)=>({queryKey:[name],queryFn:async()=>[],staleTime:Infinity});');
+mocks.set('src/lib/cache/school-catalogue-queries', 'export const ensureSchoolCatalogue=(client,name)=>client.fetchQuery({queryKey:[name],queryFn:async()=>{window.reads ||= {};window.reads[name]=(window.reads[name]||0)+1;if(window.failReads?.[name])throw new Error("Transient download failure");return [];},staleTime:Infinity});export const subscribeSchoolCatalogue=()=>()=>{};');
 async function run() {
   fs.mkdirSync(output, { recursive: true });
   const cssDirectory = path.join(root, '.next/static/css');

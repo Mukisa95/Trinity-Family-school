@@ -78,22 +78,22 @@ function loadUniformHook() {
   return loadHook('src/lib/hooks/use-uniforms.ts', 'useUniforms', '../services/uniforms.service', 'UniformsService', 'getAllUniforms', ['uniforms']);
 }
 
-test('uniform management retries an empty preloaded catalogue when opened', async () => {
+test('confirmed empty uniforms remain cached when opened', async () => {
   const subject = loadUniformHook();
   subject.queryClient.setQueryData(subject.queryKey, []);
   const observer = new QueryObserver(subject.queryClient, subject.hook() as never);
   const unsubscribe = observer.subscribe(() => {});
   try {
     await new Promise<void>(resolve => setImmediate(resolve));
-    assert.equal(subject.getReads(), 1);
-    assert.deepEqual(subject.queryClient.getQueryData(subject.queryKey), [{ id: 'shared-record', amount: 800 }]);
+    assert.equal(subject.getReads(), 0);
+    assert.deepEqual(subject.queryClient.getQueryData(subject.queryKey), []);
   } finally {
     unsubscribe();
     subject.queryClient.clear();
   }
 });
 
-test('uniform management retries an empty catalogue after reconnecting', async () => {
+test('confirmed empty uniforms remain cached after reconnecting', async () => {
   const subject = loadUniformHook();
   subject.queryClient.mount();
   subject.queryClient.setQueryData(subject.queryKey, []);
@@ -103,8 +103,8 @@ test('uniform management retries an empty catalogue after reconnecting', async (
     onlineManager.setOnline(false);
     onlineManager.setOnline(true);
     await new Promise<void>(resolve => setImmediate(resolve));
-    assert.equal(subject.getReads(), 1);
-    assert.deepEqual(subject.queryClient.getQueryData(subject.queryKey), [{ id: 'shared-record', amount: 800 }]);
+    assert.equal(subject.getReads(), 0);
+    assert.deepEqual(subject.queryClient.getQueryData(subject.queryKey), []);
   } finally {
     unsubscribe();
     subject.queryClient.unmount();
@@ -113,23 +113,23 @@ test('uniform management retries an empty catalogue after reconnecting', async (
   }
 });
 
-test('uniform management automatically refreshes populated data when reopened', async () => {
+test('populated uniforms remain cached across repeated mounts', async () => {
   const subject = loadUniformHook();
   subject.queryClient.setQueryData(subject.queryKey, [{ id: 'shared-record', amount: 500 }]);
   const observer = new QueryObserver(subject.queryClient, subject.hook() as never);
   const unsubscribe = observer.subscribe(() => {});
   try {
     await new Promise<void>(resolve => setImmediate(resolve));
-    assert.equal(subject.getReads(), 1);
-    assert.deepEqual(subject.queryClient.getQueryData(subject.queryKey), [{ id: 'shared-record', amount: 800 }]);
+    assert.equal(subject.getReads(), 0);
+    assert.deepEqual(subject.queryClient.getQueryData(subject.queryKey), [{ id: 'shared-record', amount: 500 }]);
     unsubscribe();
     subject.queryClient.setQueryData(subject.queryKey, [{ id: 'shared-record', amount: 500 }]);
     const reopened = new QueryObserver(subject.queryClient, subject.hook() as never);
     const unsubscribeReopened = reopened.subscribe(() => {});
     try {
       await new Promise<void>(resolve => setImmediate(resolve));
-      assert.equal(subject.getReads(), 2);
-      assert.deepEqual(subject.queryClient.getQueryData(subject.queryKey), [{ id: 'shared-record', amount: 800 }]);
+      assert.equal(subject.getReads(), 0);
+      assert.deepEqual(subject.queryClient.getQueryData(subject.queryKey), [{ id: 'shared-record', amount: 500 }]);
     } finally {
       unsubscribeReopened();
     }
@@ -143,15 +143,15 @@ for (const catalog of [
   ['useActiveUniforms', 'getActiveUniforms', ['uniforms', 'active'], []],
   ['useUniformsByFilter', 'getUniformsByFilter', ['uniforms', 'filtered', { gender: 'male' }], [{ gender: 'male' }]],
 ] as const) {
-  test(`${catalog[0]} fetches again when opened with a recently cached list`, async () => {
+  test(`${catalog[0]} shares the cached owner without a mount fetch`, async () => {
     const subject = loadHook('src/lib/hooks/use-uniforms.ts', catalog[0], '../services/uniforms.service', 'UniformsService', catalog[1], catalog[2]);
     subject.queryClient.setQueryData(subject.queryKey, [{ id: 'shared-record', amount: 500 }]);
     const observer = new QueryObserver(subject.queryClient, subject.hook(...catalog[3]) as never);
     const unsubscribe = observer.subscribe(() => {});
     try {
       await new Promise<void>(resolve => setImmediate(resolve));
-      assert.equal(subject.getReads(), 1);
-      assert.deepEqual(subject.queryClient.getQueryData(subject.queryKey), [{ id: 'shared-record', amount: 800 }]);
+      assert.equal(subject.getReads(), 0);
+      assert.deepEqual(subject.queryClient.getQueryData(subject.queryKey), [{ id: 'shared-record', amount: 500 }]);
     } finally {
       unsubscribe();
       subject.queryClient.clear();

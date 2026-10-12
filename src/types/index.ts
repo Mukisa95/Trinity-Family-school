@@ -466,6 +466,9 @@ export interface SchoolSettings {
     subjects?: number;
     houses?: number;
     accessLevels?: number;
+    requirements?: number;
+    uniforms?: number;
+    excludedDays?: number;
     pupils?: number;
     attendance?: number;
     /** Full exam-definition collection revision. */

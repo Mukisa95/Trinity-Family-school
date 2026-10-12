@@ -80,7 +80,7 @@ test('reference owners report real success and errors without a second data read
   const preloader = readFileSync('src/components/providers/global-data-preloader.tsx', 'utf8');
   assert.match(preloader, /scopeStatus\('ready'\);\s+report\('pupils', 'ready'\);\s+schedulePersistentPupilCacheWrite/);
   assert.doesNotMatch(preloader, /writePersistentCollection\(persistentCacheKey, pupils\)\.then/);
-  assert.match(preloader, /fetchQuery\(schoolCatalogueOptions\(queryClient, 'requirements', user!\)\)/);
+  assert.match(preloader, /ensureSchoolCatalogue\(queryClient, 'requirements', user!, \(\) => !disposed\)/);
   assert.match(preloader, /!snapshot.metadata.fromCache \|\| payments.length > 0/);
 });
 
