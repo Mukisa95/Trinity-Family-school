@@ -1,5 +1,7 @@
 "use client";
 
+import { CatalogueDataNotice } from '@/components/common/catalogue-data-notice';
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,7 +52,8 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
 
   // Hooks
-  const { data: requirements = [], isLoading } = useRequirements();
+  const catalogue = useRequirements();
+  const { data: requirements = [], isLoading, isFetching, error, refetch, isSavedData } = catalogue;
   const { data: classes = [] } = useClasses();
   const createRequirementMutation = useCreateRequirement();
   const updateRequirementMutation = useUpdateRequirement();
@@ -203,6 +206,7 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
 
   return (
     <div className="space-y-6">
+      <CatalogueDataNotice label="requirements" saved={isSavedData} refreshing={isFetching} error={error} hasData={catalogue.data !== undefined} retry={refetch} />
       {/* Filters */}
       {showFilters && (
         <Card className="border-gray-200 dark:border-slate-700">
@@ -304,12 +308,14 @@ export function RequirementManagement({ showFilters, addTrigger }: RequirementMa
         <CardHeader className="py-4 px-6">
           <CardTitle className="text-lg font-semibold text-gray-900 dark:text-slate-100">Required Items</CardTitle>
           <p className="text-sm text-gray-600 dark:text-slate-300">
-            {filteredRequirements.length} of {totalRequirements} requirements
-            {filteredRequirements.length !== totalRequirements && ' (filtered)'}
+            {catalogue.data === undefined ? error ? 'Requirements unavailable' : 'Loading requirements…' : `${filteredRequirements.length} of ${totalRequirements} requirements`}
+            {catalogue.data !== undefined && filteredRequirements.length !== totalRequirements && ' (filtered)'}
           </p>
         </CardHeader>
         <CardContent className="p-0">
-          {isLoading ? (
+          {error && catalogue.data === undefined ? (
+            <p role="alert" className="p-6 text-sm text-muted-foreground">Requirements are unavailable. Use Retry above to try again.</p>
+          ) : isLoading ? (
             <div className="p-6 space-y-4">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="animate-pulse">

@@ -1,5 +1,7 @@
 "use client";
 
+import { usePageDataTiming } from '@/lib/hooks/use-page-data-timing';
+
 import React, { useState, useMemo, useEffect, useRef, useTransition, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -400,7 +402,9 @@ function PupilsContent() {
   // 🚀 OPTIMIZED: Get all pupils from cache immediately for search functionality
   // This allows search to work instantly even when no class is selected
   // The dashboard already loaded this data, so it's cached and instant!
-  const { data: allCachedPupils = [], isLoading: isLoadingAllPupils } = usePupils();
+  const { data: allCachedPupils = [], isLoading: isLoadingAllPupils, error: allPupilsError } = usePupils();
+
+  usePageDataTiming('pupils', !isLoadingAllPupils && !allPupilsError);
 
   // 🔍 DEBUG: Log when cached pupils are available
   React.useEffect(() => {
@@ -3728,11 +3732,15 @@ function PupilsContent() {
               </div>
             </div>
           </div>
-        ) : isLoadingPupils || isLoadingClassesFinal || isLoadingSettingsFinal ? (
+        ) : error ? (
+          <div role="alert" className="rounded-xl border border-border bg-card p-6 text-center text-muted-foreground">
+            Pupil records could not load. Reconnect or retry the unfinished download above.
+          </div>
+        ) : isLoadingPupils ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-alt-600"></div>
             <span className="ml-3 text-brand-alt-ink-600 dark:text-brand-alt-ink-400">
-              Loading pupils and school information...
+              Loading pupils...
             </span>
           </div>
         ) : filteredAndSortedPupils.length === 0 ? (

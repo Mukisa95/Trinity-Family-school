@@ -1,4 +1,5 @@
 'use client';
+import { measureWorkspaceRequest } from '@/lib/startup/workspace-timing';
 
 import { useMemo, useState } from 'react';
 import { CalendarSearch, Loader2, ShieldCheck } from 'lucide-react';
@@ -56,7 +57,7 @@ export function SchoolPayReconcileDialog() {
     try {
       const token = await auth.currentUser?.getIdToken();
       if (!token) throw new Error('Your session is not ready. Refresh and try again.');
-      const response = await fetch('/api/schoolpay/reconcile', {
+      const response = await measureWorkspaceRequest('schoolpay:reconcile-request', '/api/schoolpay/reconcile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ dateFrom, dateTo }),

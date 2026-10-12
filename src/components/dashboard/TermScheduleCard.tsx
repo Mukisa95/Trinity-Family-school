@@ -102,7 +102,7 @@ export function TermScheduleCard() {
             });
 
             if (upcomingOrOngoingEvent && eventRefs.current[upcomingOrOngoingEvent.id]) {
-                setTimeout(() => {
+                const scrollTimer = setTimeout(() => {
                     const container = scrollContainerRef.current;
                     const element = eventRefs.current[upcomingOrOngoingEvent.id];
 
@@ -116,6 +116,7 @@ export function TermScheduleCard() {
                         });
                     }
                 }, 300); // Slight delay to ensure render is complete
+                return () => clearTimeout(scrollTimer);
             }
         }
     }, [isLoading, termFilteredEvents]);

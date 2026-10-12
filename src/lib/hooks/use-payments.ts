@@ -71,6 +71,7 @@ export function useCreatePayment() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ["payments","create"],
     mutationFn: async (paymentData: Omit<PaymentRecord, 'id' | 'createdAt'>) => {
       // 🔔 Use API route for client-side (enables notifications)
       const response = await fetch('/api/payments/create', {
@@ -104,6 +105,7 @@ export function useRevertPayment() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ["payments","revert"],
     mutationFn: ({ paymentId, revertedBy }: { 
       paymentId: string; 
       revertedBy: { id: string; name: string; role: string } 

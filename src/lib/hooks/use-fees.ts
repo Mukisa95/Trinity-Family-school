@@ -83,6 +83,7 @@ export function useCreateFeeStructure() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ["fees","create"],
     mutationFn: (feeData: Omit<FeeStructure, 'id' | 'createdAt' | 'status' | 'disableHistory'>) =>
       FeesService.createFeeStructure(feeData),
     onSuccess: () => {
@@ -95,6 +96,7 @@ export function useUpdateFeeStructure() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ["fees","update"],
     mutationFn: ({ id, data }: { id: string; data: Partial<Omit<FeeStructure, 'id' | 'createdAt'>> }) =>
       FeesService.updateFeeStructure(id, data),
     onSuccess: (_, { id }) => {
@@ -108,6 +110,7 @@ export function useDeleteFeeStructure() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ["fees","delete"],
     mutationFn: (id: string) => FeesService.deleteFeeStructure(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FEES_QUERY_KEYS.structures() });
@@ -119,6 +122,7 @@ export function useCreateFeeAdjustment() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ["fees","adjust"],
     mutationFn: (adjustmentData: Omit<FeeAdjustmentEntry, 'id' | 'createdAt'>) =>
       FeesService.createFeeAdjustment(adjustmentData),
     onSuccess: () => {

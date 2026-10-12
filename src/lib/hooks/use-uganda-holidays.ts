@@ -53,9 +53,9 @@ function convertHolidayToEvent(holiday: UgandaHoliday): Event {
 }
 
 export function useUgandaHolidays(currentDate: Date = new Date()) {
+  const currentYear = currentDate.getFullYear();
   const holidayEvents = useMemo(() => {
     // Get holidays for current year and adjacent years to cover calendar view
-    const currentYear = currentDate.getFullYear();
     const startYear = currentYear - 1;
     const endYear = currentYear + 1;
     
@@ -64,10 +64,8 @@ export function useUgandaHolidays(currentDate: Date = new Date()) {
     // Convert holidays to calendar events
     const events = holidays.map(convertHolidayToEvent);
     
-    console.log(`🇺🇬 Loaded ${events.length} Uganda public holidays for ${startYear}-${endYear}`, events);
-    
     return events;
-  }, [currentDate]);
+  }, [currentYear]);
 
   return {
     data: holidayEvents,
@@ -97,4 +95,4 @@ export function useIsUgandaHoliday(date: string) {
     const holidays = getUgandaHolidaysForYears(year, year);
     return holidays.find(holiday => holiday.date === date) || null;
   }, [date]);
-} 
+}

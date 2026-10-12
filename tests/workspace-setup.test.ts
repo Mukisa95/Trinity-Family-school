@@ -13,7 +13,7 @@ function readyClient(role = 'Admin') {
   return { client, scope };
 }
 
-test('progress requires every initial task, including valid empty catalogues', () => {
+test('background progress requires every initial task, including valid empty catalogues', () => {
   const { client, scope } = readyClient();
   reportWorkspaceTask(client, scope, 'uniforms', 'loading');
   assert.equal(readWorkspaceSetup(client, scope, 'Admin').ready, false);
@@ -43,7 +43,7 @@ test('scope and completion markers cannot be reused by another account, role or 
   client.clear();
 });
 
-test('dependent opening-page requests keep setup open and errors do not claim completion', async () => {
+test('pending page requests and errors remain visible in preparation progress', async () => {
   const { client, scope } = readyClient();
   let resolve!: (value: never[]) => void;
   const observer = new QueryObserver(client, { queryKey: ['timetable', 'entries', 'term'], queryFn: () => new Promise<never[]>(done => { resolve = done; }) });
@@ -80,7 +80,7 @@ test('reference owners report real success and errors without a second data read
   const preloader = readFileSync('src/components/providers/global-data-preloader.tsx', 'utf8');
   assert.match(preloader, /scopeStatus\('ready'\);\s+report\('pupils', 'ready'\);\s+schedulePersistentPupilCacheWrite/);
   assert.doesNotMatch(preloader, /writePersistentCollection\(persistentCacheKey, pupils\)\.then/);
-  assert.match(preloader, /queryClient\.setQueryData\(\['requirements'\], requirements\);\s+report\('requirements', 'ready'\)/);
+  assert.match(preloader, /fetchQuery\(schoolCatalogueOptions\(queryClient, 'requirements', user!\)\)/);
   assert.match(preloader, /!snapshot.metadata.fromCache \|\| payments.length > 0/);
 });
 

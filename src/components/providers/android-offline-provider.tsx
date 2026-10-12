@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { auth } from '@/lib/firebase';
 import { androidOfflineRequest, hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
 import { exportAndroidCachedSnapshot } from '@/lib/offline/android-cache-export';
+import { androidSnapshotRevision, isAndroidSavedDataQuery } from '@/lib/offline/android-sync-policy';
 import { isAndroidOfflineSnapshot, type AndroidOfflineSession } from '@/lib/offline/android-contracts';
 import { subscribeToParentOfflineChanges } from '@/lib/parent-offline/repository';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
@@ -16,6 +17,7 @@ import { useStaff } from '@/lib/hooks/use-staff';
 import { prepareAndroidAppShell, isAndroidOffline, installAndroidOfflineNavigation } from '@/lib/offline/android-app-shell';
 import { toast } from '@/hooks/use-toast';
 import { getDashboardTimetableTerm } from '@/lib/offline/timetable-feed';
+import { measureWorkspaceOperation } from '@/lib/startup/workspace-timing';
 
 function PrepareTimetable({ yearId, termId, id }: { yearId: string; termId: string; id: string }) {
   useTimetablePeriods(yearId, termId, id);
@@ -86,22 +88,28 @@ export function AndroidOfflineProvider() {
       if (running) { dirty = true; return; }
       running = true;
       try {
-        const snapshot = await exportAndroidCachedSnapshot(session);
+        const snapshot = await measureWorkspaceOperation('android:snapshot-export', () => exportAndroidCachedSnapshot(session));
         if (disposed || !snapshot || !isAndroidOfflineSnapshot(snapshot, session)) return;
         // copiedAt is not a data change; avoid repeated full snapshot bridge writes.
-        const fingerprint = JSON.stringify(snapshot.datasets, (key, value) => key === 'preparedAt' ? undefined : value);
+        const fingerprint = await measureWorkspaceOperation('android:snapshot-revision', () => androidSnapshotRevision(snapshot));
         if (fingerprint === previous) return;
-        await androidOfflineRequest('save', { snapshot });
+        await measureWorkspaceOperation('android:snapshot-save', () => androidOfflineRequest('save', { snapshot }));
         previous = fingerprint;
       } catch (error) { console.warn('Android saved-data refresh failed:', error instanceof Error ? error.message : 'Unavailable'); }
       finally { running = false; if (dirty && !disposed) { dirty = false; schedule(); } }
     };
     const schedule = () => { if (timer) clearTimeout(timer); timer = setTimeout(() => void synchronize(), 600); };
-    const unsubscribe = client.getQueryCache().subscribe(event => { if (event.type === 'updated' && event.action.type === 'success') schedule(); });
-    const unsubscribeParent = subscribeToParentOfflineChanges(session.accountId, schedule);
-    window.addEventListener('trinity-native-cache-written', schedule);
+    const unsubscribe = client.getQueryCache().subscribe(event => {
+      if (event.type === 'updated' && event.action.type === 'success'
+        && isAndroidSavedDataQuery(event.query.queryKey, session)) schedule();
+    });
+    // A repository write may change a projected photo or occur in the same
+    // millisecond as the prior write. Do not deduplicate confirmed disk writes.
+    const persistedChange = () => { previous = ''; schedule(); };
+    const unsubscribeParent = subscribeToParentOfflineChanges(session.accountId, persistedChange);
+    window.addEventListener('trinity-native-cache-written', persistedChange);
     schedule();
-    return () => { disposed = true; if (timer) clearTimeout(timer); unsubscribe(); unsubscribeParent(); window.removeEventListener('trinity-native-cache-written', schedule); };
+    return () => { disposed = true; if (timer) clearTimeout(timer); unsubscribe(); unsubscribeParent(); window.removeEventListener('trinity-native-cache-written', persistedChange); };
   }, [client, session, user?.id, isLocked]);
 
   useEffect(() => {
@@ -112,7 +120,7 @@ export function AndroidOfflineProvider() {
     let retry: ReturnType<typeof setTimeout> | undefined;
     const prepare = async () => {
       if (disposed || isAndroidOffline()) return;
-      try { await prepareAndroidAppShell(session); }
+      try { await measureWorkspaceOperation('android:app-shell-preparation', () => prepareAndroidAppShell(session)); }
       catch { if (!disposed) retry = setTimeout(() => void prepare(), 15_000); }
     };
     void prepare();

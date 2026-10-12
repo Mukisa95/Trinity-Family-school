@@ -117,6 +117,7 @@ export function useCreateRequirementTracking(options: { deferInvalidation?: bool
   const { user } = useAuth();
 
   return useMutation({
+    mutationKey: ["requirement-collection","create"],
     mutationFn: async (data: Omit<RequirementTracking, 'id' | 'createdAt' | 'updatedAt'>) => {
       const newRecord = await RequirementTrackingService.create(data);
       
@@ -179,6 +180,7 @@ export function useUpdateRequirementTracking() {
   const { user } = useAuth();
 
   return useMutation({
+    mutationKey: ["requirement-collection","update"],
     mutationFn: async ({ id, data }: { id: string; data: Partial<RequirementTracking> }) => {
       const updatedRecord = await RequirementTrackingService.update(id, data);
       
@@ -249,6 +251,7 @@ export function useDeleteRequirementTracking() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ["requirement-collection","delete"],
     mutationFn: (id: string) => RequirementTrackingService.delete(id),
     onSuccess: (_, deletedId) => {
       // Invalidate and refetch all related queries

@@ -10,24 +10,25 @@ async function run() {
 import React,{useEffect,useState} from 'react';import {createRoot} from 'react-dom/client';
 import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
 import {ThemeProvider} from './src/components/providers/theme-provider';
+import {WorkspacePreparationStatus} from './src/components/common/workspace-preparation-status';
 import {WorkspaceWelcomeScreen} from './src/components/common/workspace-welcome-screen';
 import {useFirstWorkspaceSetup} from './src/lib/hooks/use-first-workspace-setup';
 import {registerWorkspaceRecovery,readWorkspaceSetup,reportWorkspaceTask,workspaceSetupScope,workspaceSetupMarker} from './src/lib/startup/workspace-setup';
 const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:Infinity}}});
 function Fixture(){const [user,setUser]=useState({id:'welcome',role:'Admin',enabled:true});
-const setup=useFirstWorkspaceSetup({enabled:user.enabled,userId:user.id,role:user.role,awaitPersonalization:true});const scope=workspaceSetupScope(user.id,user.role);
+const [accessReady,setAccessReady]=useState(false);const setup=useFirstWorkspaceSetup({enabled:user.enabled,userId:user.id,role:user.role,accessReady,awaitPersonalization:true});const scope=workspaceSetupScope(user.id,user.role);
 useEffect(()=>registerWorkspaceRecovery(client,scope,'pupils',async()=>{window.recoveryCalls=(window.recoveryCalls||0)+1;reportWorkspaceTask(client,scope,'pupils','loading');await new Promise(resolve=>{window.finishRecovery=()=>{reportWorkspaceTask(client,scope,'pupils','ready');resolve();};});}),[scope]);
-window.fixture={user:setUser,percent:()=>readWorkspaceSetup(client,scope,user.role).percent,report:(id,state)=>reportWorkspaceTask(client,scope,id,state),
+window.fixture={verify:()=>setAccessReady(true),user:next=>{setAccessReady(false);setUser(next);},percent:()=>readWorkspaceSetup(client,scope,user.role).percent,report:(id,state)=>reportWorkspaceTask(client,scope,id,state),
 readyExcept:(id)=>{client.setQueryData(['schoolSettings','settings'],{});readWorkspaceSetup(client,scope,user.role).tasks.filter(t=>!['settings','page',id].includes(t.id)).forEach(t=>reportWorkspaceTask(client,scope,t.id,'ready'));},
 marker:()=>localStorage.getItem(workspaceSetupMarker(scope))};
-return setup.required?<WorkspaceWelcomeScreen key={scope} setup={setup} userId={user.id} privacy={{enabled:false,action:'lock-on-close',deviceUnlock:false}} applyPrivacy={choices=>{window.appliedPrivacy=choices;window.appliedCount=(window.appliedCount||0)+1;}}/>:<h1>Workspace available</h1>}
+return setup.required?<WorkspaceWelcomeScreen key={scope} setup={setup} userId={user.id} privacy={{enabled:false,action:'lock-on-close',deviceUnlock:false}} applyPrivacy={choices=>{window.appliedPrivacy=choices;window.appliedCount=(window.appliedCount||0)+1;}}/>:<><WorkspacePreparationStatus scope={scope} role={user.role}/><h1>Workspace available</h1><button onClick={()=>window.clicked=true}>Open pupils</button></>}
 createRoot(document.getElementById('app')).render(<ThemeProvider><QueryClientProvider client={client}><Fixture/></QueryClientProvider></ThemeProvider>);`;
-  const service = `export const PasskeyService={supported:async()=>window.passkeySupported!==false,hasLocalUnlock:()=>Boolean(window.enrolled),list:async()=>window.enrolled?[{id:'fixture',name:'This device',createdAt:null}]:[],isPreviouslyRegisteredError:e=>e.code==='ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED',register:async(password)=>{window.registerCalls=(window.registerCalls||0)+1;await new Promise((resolve,reject)=>{window.finishRegistration=()=>{window.enrolled=true;resolve()};window.cancelRegistration=()=>reject(new Error('Device unlock cancelled. You can try again or skip.'))});},remove:async()=>{throw new Error('Removal must not be offered during setup')}};`;
-  await esbuild.build({ absWorkingDir: root, stdin: { contents, resolveDir: root, loader: 'tsx' }, bundle: true, jsx: 'automatic', platform: 'browser', alias: { '@': path.join(root, 'src') }, outfile: path.join(output, 'fixture.js'), define: { 'process.env.NODE_ENV': '"production"', 'process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID': 'undefined' }, plugins: [{name:'os-credential-fixture',setup(build){build.onResolve({filter:/passkey\.service$/},()=>({path:'fixture-service',namespace:'fixture'}));build.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:service,loader:'js'}));}}] });
+  const service = `export const PasskeyService={supported:async()=>window.passkeySupported!==false,localSupported:async()=>window.passkeySupported!==false,hasLocalUnlock:()=>Boolean(window.enrolled),list:async()=>window.enrolled?[{id:'fixture',name:'This device',createdAt:null}]:[],isPreviouslyRegisteredError:e=>e.code==='ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED',register:async(password)=>{window.registerCalls=(window.registerCalls||0)+1;await new Promise((resolve,reject)=>{window.finishRegistration=()=>{window.enrolled=true;resolve()};window.cancelRegistration=()=>reject(new Error('Device unlock cancelled. You can try again or skip.'))});},remove:async()=>{throw new Error('Removal must not be offered during setup')}};`;
+  await esbuild.build({ absWorkingDir: root, stdin: { contents, resolveDir: root, loader: 'tsx' }, bundle: true, jsx: 'automatic', platform: 'browser', alias: { '@': path.join(root, 'src') }, outfile: path.join(output, 'fixture.js'), define: { 'process.env.NODE_ENV': '"production"', 'process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID': 'undefined' }, plugins: [{name:'os-credential-fixture',setup(build){build.onResolve({filter:/auth-context$/},()=>({path:'fixture-auth',namespace:'fixture-auth'}));build.onLoad({filter:/.*/,namespace:'fixture-auth'},()=>({contents:'export const useAuth=()=>({user:{id:"welcome"},setDeviceUnlockForAutoLock:()=>{}});',loader:'js'}));build.onResolve({filter:/passkey\.service$/},()=>({path:'fixture-service',namespace:'fixture'}));build.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:service,loader:'js'}));}}] });
   const mod = { exports: {} };
   new Function('require', 'module', 'exports', ts.transpileModule(fs.readFileSync(path.join(root, 'tailwind.config.ts'), 'utf8'), { compilerOptions: { module: 1 } }).outputText)(require, mod, mod.exports);
   const css = fs.readFileSync(path.join(root, 'src/app/globals.css'), 'utf8').replace(/^@import[^;]+;/, '') + '\n' + fs.readFileSync(path.join(root, 'src/app/theme.css'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'src/app/brand-theme.css'), 'utf8');
-  const built = await require('postcss')([require('tailwindcss')({ ...mod.exports.default, content: [path.join(root, 'src/components/common/workspace-welcome-screen.tsx'), path.join(root, 'src/components/settings/passkey-settings.tsx'), path.join(root, 'src/components/ui/button.tsx'), { raw: contents, extension: 'tsx' }] })]).process(css, { from: path.join(root, 'src/app/globals.css') });
+  const built = await require('postcss')([require('tailwindcss')({ ...mod.exports.default, content: [path.join(root, 'src/components/common/workspace-welcome-screen.tsx'), path.join(root, 'src/components/common/workspace-preparation-status.tsx'), path.join(root, 'src/components/settings/passkey-settings.tsx'), path.join(root, 'src/components/ui/button.tsx'), { raw: contents, extension: 'tsx' }] })]).process(css, { from: path.join(root, 'src/app/globals.css') });
   fs.writeFileSync(path.join(output, 'fixture.css'), built.css);
   const server = http.createServer((req, res) => {
     if (['/fixture.js', '/fixture.css'].includes(req.url)) { res.setHeader('Content-Type', req.url.endsWith('.js') ? 'text/javascript; charset=utf-8' : 'text/css; charset=utf-8'); res.end(fs.readFileSync(path.join(output, req.url.slice(1)))); }
@@ -90,7 +91,7 @@ createRoot(document.getElementById('app')).render(<ThemeProvider><QueryClientPro
     await screen.getByRole('button',{name:'Continue',exact:true}).click();
     await page.evaluate(()=>window.fixture.readyExcept('pupils'));
     await page.screenshot({path:path.join(output,'review-dark.png')});
-    assert.ok(await screen.getByText('Your workspace will open automatically when downloads finish.').isVisible());
+    assert.ok(await screen.getByText('Verifying your sign-in and access…').isVisible());
     assert.equal(await screen.getByRole('button',{name:'Open my workspace'}).count(),0);
     await page.evaluate(()=>{window.fixtureOnline=false;window.dispatchEvent(new Event('offline'));});
     assert.ok(await screen.getByRole('button',{name:'Retry setup'}).isDisabled());
@@ -105,29 +106,28 @@ createRoot(document.getElementById('app')).render(<ThemeProvider><QueryClientPro
     assert.equal(page.url(),url+'/');
     assert.equal(await page.evaluate(()=>window.appliedPrivacy),undefined,'Retry keeps privacy choices staged');
     await page.evaluate(()=>window.finishRecovery());
-    await page.waitForFunction(()=>window.appliedCount===1);
-
-    await page.evaluate(()=>window.fixture.report('pupils','error'));
-    await screen.getByText('Reconnecting and retrying unfinished downloads. Your choices and session are kept.').waitFor();
-    assert.ok(await screen.getByRole('button',{name:'Retry setup'}).isEnabled(),'A late download failure can recover even after Finish');
-    assert.equal(await page.evaluate(()=>window.fixture.marker()),null);
-    await page.waitForFunction(()=>window.recoveryCalls===2,{},{timeout:8000});
-    assert.equal(await page.evaluate(()=>window.fixture.marker()),null,'Automatic retry still waits for real data');
-    await page.evaluate(()=>window.finishRecovery());
+    assert.equal(await page.evaluate(()=>window.appliedPrivacy),undefined,'Completed downloads do not replace access verification');
+    await page.evaluate(()=>{window.fixture.report('pupils','error');window.fixture.report('uniforms','loading');window.fixture.verify();});
     await page.getByRole('heading',{name:'Workspace available'}).waitFor();
+    await page.getByRole('button',{name:'Open pupils'}).click();assert.equal(await page.evaluate(()=>window.clicked),true,'Pending downloads do not block clicks');
+    assert.ok(await page.getByText(/Background downloads:/).isVisible());
+    await page.setViewportSize({width:390,height:844});await page.getByText(/Background downloads:/).click();
+    assert.ok(await page.locator('details').evaluate(element=>element.scrollWidth<=window.innerWidth));
+    await page.screenshot({path:path.join(output,'background-downloads-mobile.png')});
     assert.deepEqual(await page.evaluate(()=>window.appliedPrivacy),{enabled:true,action:'lock-on-leave',deviceUnlock:true});
     assert.equal(await page.evaluate(()=>window.appliedCount),1);assert.equal(await page.evaluate(()=>window.fixture.marker()),'complete');
     await page.reload();await page.getByRole('heading',{name:'Workspace available'}).waitFor();assert.equal(await screen.count(),0);
     await page.evaluate(()=>{window.passkeySupported=false;window.fixture.user({id:'other',role:'Parent',enabled:true});});
     await page.getByRole('heading',{name:'Make Trinity yours'}).waitFor();await screen.getByRole('button',{name:'Continue',exact:true}).click();
-    await screen.getByText(/does not offer secure device unlock/).waitFor();await screen.getByRole('button',{name:'Skip for now'}).click();
+    await screen.getByText(/does not offer secure device unlock|Update the Android app/).waitFor();await screen.getByRole('button',{name:'Skip for now'}).click();
     await screen.getByRole('button',{name:'Turn on'}).click();await screen.getByRole('button',{name:/Sign out when I close/}).click();
     assert.equal(await screen.getByLabel('Require device unlock after auto-lock').count(),0);
     await screen.getByRole('button',{name:/Use current settings/}).click();
-    await screen.getByText('Off',{exact:true}).waitFor();await page.evaluate(()=>window.fixture.readyExcept());
+    await screen.getByText('Off',{exact:true}).waitFor();await page.evaluate(()=>window.fixture.verify());
     await page.getByRole('heading',{name:'Workspace available'}).waitFor();
     assert.deepEqual(await page.evaluate(()=>window.appliedPrivacy),{enabled:false,action:'lock-on-close',deviceUnlock:false},'Skip preserves existing privacy settings');
     assert.deepEqual(errors,[]);
+    fs.writeFileSync(path.join(output,'verification.json'),JSON.stringify({firstRunVerifiedAccess:true,pendingDownloadsDoNotBlock:true,backgroundClicks:true,parentAccount:true,privacyPreserved:true,errors},null,2));
     console.log('WORKSPACE_WELCOME_BROWSER_OK: live downloads, separate completion gate, preview/persistence, OS enrollment cancellation/success, password hygiene, staged privacy, retry resume, unsupported/skip, parent/account isolation, mobile Material You and focus.');
   } finally {await browser.close();await new Promise(resolve=>server.close(resolve));}
 }

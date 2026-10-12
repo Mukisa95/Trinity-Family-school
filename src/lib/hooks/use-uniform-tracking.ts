@@ -111,6 +111,7 @@ export function useCreateUniformTracking() {
   const { user } = useAuth();
   
   return useMutation({
+    mutationKey: ["uniform-collection","create"],
     mutationFn: async (data: CreateUniformTrackingData) => {
       const recordId = await UniformTrackingService.createTrackingRecord(data);
       const newRecord: UniformTracking = {
@@ -160,6 +161,7 @@ export function useUpdateUniformTracking() {
   const { user } = useAuth();
   
   return useMutation({
+    mutationKey: ["uniform-collection","update"],
     mutationFn: async ({
       id,
       data,
@@ -246,6 +248,7 @@ export function useDeleteUniformTracking() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ["uniform-collection","delete"],
     mutationFn: (id: string) => UniformTrackingService.deleteTrackingRecord(id),
     onSuccess: (_, id) => {
       queryClient.setQueriesData(

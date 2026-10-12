@@ -5,6 +5,7 @@ import test from 'node:test';
 import vm from 'node:vm';
 import ts from 'typescript';
 import { onlineManager, QueryClient, QueryObserver } from '@tanstack/react-query';
+import { filterSchoolCatalogue } from '../src/lib/selectors/school-catalogue-selectors';
 
 const workspaceRoot = process.cwd();
 
@@ -20,6 +21,20 @@ function loadHook(
     defaultOptions: { queries: { retry: false, gcTime: Infinity } },
   });
   let reads = 0;
+  const readServer = async () => { reads += 1; return [{ id: 'shared-record', amount: 800 }]; };
+  const scoped = relativePath.endsWith('use-uniforms.ts') || relativePath.endsWith('use-requirements.ts');
+  if (scoped) queryKey = [relativePath.endsWith('use-uniforms.ts') ? 'uniforms' : 'requirements', 'saved-catalogue-v1', 'fixture-scope'];
+  // Use the real catalogue query owner; simulate only signed identity/storage.
+  const owner = { exports: {} as any };
+  if (scoped) vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/lib/cache/school-catalogue-cache.ts', 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+  }).outputText, { module: owner, exports: owner.exports, process: { env: {} }, require(name: string) {
+    if (name === '@/lib/firebase') return { auth: { currentUser: { uid: 'fixture-account', isAnonymous: false } } };
+    if (name.includes('workspace-auth')) return { withWorkspaceIdentity: (_: string, read: () => unknown) => read() };
+    if (name.includes('workspace-cache-access')) return { workspaceCacheAccessScope: () => 'fixture-scope' };
+    if (name.includes('persistent-collection-cache')) return { persistentCollectionCacheKey: (...parts: string[]) => parts.join(':'), writePersistentCollection: async () => {} };
+    throw new Error(name);
+  }});
   const source = fs.readFileSync(path.join(workspaceRoot, relativePath), 'utf8');
   const output = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
@@ -30,6 +45,9 @@ function loadHook(
     module,
     exports: module.exports,
     require(name: string) {
+      if (name === './use-school-catalogue') return { useSchoolCatalogue: (catalogue: string, read: () => unknown) => owner.exports.catalogueQueryOptions(queryClient, catalogue, {id:'fixture-account'}, read) };
+      if (name === '@/lib/cache/school-catalogue-queries') return { readUniformsCatalogue: readServer, readRequirementsCatalogue: readServer };
+      if (name === '@/lib/selectors/school-catalogue-selectors') return { filterSchoolCatalogue };
       if (name === '@tanstack/react-query') {
         return { useQuery: (options: unknown) => options, useQueryClient: () => queryClient };
       }

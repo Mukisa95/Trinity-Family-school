@@ -1,5 +1,8 @@
 'use client';
 
+import { usePageDataTiming } from '@/lib/hooks/use-page-data-timing';
+import { measureWorkspaceRequest } from '@/lib/startup/workspace-timing';
+
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
@@ -637,6 +640,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   // A cached payment snapshot is not authoritative until the server confirms it.
   const isWaitingForTermYear = !selectedTermId || !selectedAcademicYear;
   const isFinancialDataLoading = isPupilFeesLoading || isLoadingAcademicYears || isWaitingForTermYear;
+  usePageDataTiming('fee-collection', !!pupil && !isFinancialDataLoading && !isPaymentDataLoading && !pupilFeesError, pupilId || '');
   const hasTermSelectionError = !isLoadingAcademicYears &&
     (validAcademicYears.length === 0 || (selectedAcademicYear !== null && validTerms.length === 0));
 
@@ -944,7 +948,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           throw new Error('Select at least one fee before recording a payment.');
         }
 
-        const response = await fetch('/api/payments/create', {
+        const response = await measureWorkspaceRequest('payment:create-request', '/api/payments/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ operationId: operation.operationId, allocations }),
@@ -1003,7 +1007,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           ...regularSelections.map(item => `${item.feeSelection.feeId}:${item.feeSelection.selectedAmount}`),
         ].join(':');
         const regularPaymentOperation = getPaymentOperation(regularPaymentIntent);
-        const response = await fetch('/api/payments/create', {
+        const response = await measureWorkspaceRequest('payment:create-request', '/api/payments/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1313,7 +1317,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         };
 
         // 🔔 Call server-side API to create payment and trigger notifications
-        const response = await fetch('/api/payments/create', {
+        const response = await measureWorkspaceRequest('payment:create-request', '/api/payments/create', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

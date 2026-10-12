@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import { useTouchSwipe } from '@/lib/hooks/use-touch-swipe';
 import { useAuth } from '@/lib/contexts/auth-context';
+import { measureWorkspaceStep } from '@/lib/startup/workspace-timing';
 import { NavigationProvider, useNavigation } from '@/lib/contexts/navigation-context';
 import { LoadingOverlay } from '@/components/ui/loading-indicator';
 import { ParentLayout } from '@/components/parent/parent-layout';
@@ -47,6 +48,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { BrandedAuthScreen } from '@/components/common/premium-splash-loader';
 import { WorkspaceWelcomeScreen } from '@/components/common/workspace-welcome-screen';
 import { useFirstWorkspaceSetup } from '@/lib/hooks/use-first-workspace-setup';
+import { WorkspacePreparationStatus } from '@/components/common/workspace-preparation-status';
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { usePrint } from '@/lib/contexts/print-context';
 import { useQueryClient } from '@tanstack/react-query';
@@ -552,6 +554,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     refreshUser,
     isSessionStale,
     sessionMessage,
+    isSignedIdentityReady,
     autoLockEnabled, autoLockAction, deviceUnlockForAutoLock,
     setAutoLockEnabled, setAutoLockAction, setDeviceUnlockForAutoLock,
   } = useAuth();
@@ -559,7 +562,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const isPublicRoute = Boolean(pathname && ['/login', '/download', '/about-trinity', '/admin/setup', '/test-firebase'].some((route) => pathname === route || pathname.startsWith(`${route}/`)));
   const isNonLoginPublicRoute = isPublicRoute && pathname !== '/login';
   const setup = useFirstWorkspaceSetup({ enabled: !isPublicRoute && !authLoading && isAuthenticated,
-    userId: user?.id, role: user?.role, awaitPersonalization: true });
+    userId: user?.id, role: user?.role, accessReady: isSignedIdentityReady, awaitPersonalization: true });
   const workspaceRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (setup.required) workspaceRef.current?.setAttribute('inert', '');
@@ -604,6 +607,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [startupPhase]);
 
+  const visibleRecorded = useRef(false);
+  useEffect(() => {
+    if (setup.required || startupPhase !== 'complete' || !isAuthenticated || isPublicRoute) return;
+    if (!visibleRecorded.current) { visibleRecorded.current = true; measureWorkspaceStep('startup:workspace-visible', 0); }
+    window.dispatchEvent(new Event('trinity-workspace-visible'));
+  }, [setup.required, startupPhase, isAuthenticated, isPublicRoute]);
+
   // The service worker focuses an existing app window and forwards the
   // notification destination here. Using the App Router keeps the current
   // session, React Query cache, and Firestore listeners intact.
@@ -620,7 +630,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <NavigationProvider>
-      <div ref={workspaceRef} aria-hidden={setup.required || undefined}>
+      <div ref={workspaceRef} data-workspace-visible={!setup.required && startupPhase === 'complete' ? 'true' : 'false'} aria-hidden={setup.required || undefined}>
       <MemoizedAppLayout
         pathname={pathname}
         user={user}
@@ -635,6 +645,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         sessionMessage={sessionMessage}
         router={router}
       >
+        {!isPublicRoute && !setup.required && user && <WorkspacePreparationStatus scope={setup.scope} role={user.role} />}
         {children}
       </MemoizedAppLayout>
       </div>

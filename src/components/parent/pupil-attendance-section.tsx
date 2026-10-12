@@ -1,5 +1,7 @@
 "use client";
 
+import { CatalogueDataNotice } from '@/components/common/catalogue-data-notice';
+
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -72,7 +74,8 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
     user?.role === 'Parent',
   );
   const { data: academicYears = [], isLoading: academicYearsLoading } = useAcademicYears();
-  const { data: excludedDays = [] } = useExcludedDays();
+  const excludedDaysQuery = useExcludedDays();
+  const { data: excludedDays = [] } = excludedDaysQuery;
   const { data: pupil } = usePupil(pupilId);
   const academicNow = useAcademicNow();
   const currentAcademicYear = useMemo(
@@ -907,7 +910,11 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
     );
   }
 
-  if (academicYearsLoading) {
+  if (excludedDaysQuery.error && excludedDaysQuery.data === undefined) {
+    return <CatalogueDataNotice label="school-day calendar" error={excludedDaysQuery.error} hasData={false} retry={excludedDaysQuery.refetch} />;
+  }
+
+  if (academicYearsLoading || excludedDaysQuery.isLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-full" />

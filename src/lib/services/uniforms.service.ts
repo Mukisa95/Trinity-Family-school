@@ -35,13 +35,13 @@ async function getUniformQuerySnapshot(uniformQuery: Query<DocumentData>) {
 }
 
 export class UniformsService {
-  static async getAllUniforms(): Promise<UniformItem[]> {
+  static async getAllUniforms(serverOnly = false): Promise<UniformItem[]> {
     try {
       const q = query(
         collection(db, COLLECTION_NAME), 
         orderBy('name', 'asc')
       );
-      const querySnapshot = await getUniformQuerySnapshot(q);
+      const querySnapshot = serverOnly === true ? await getDocsFromServer(q) : await getUniformQuerySnapshot(q);
       
       const uniforms = querySnapshot.docs.map(doc => ({
         id: doc.id,

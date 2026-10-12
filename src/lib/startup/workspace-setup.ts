@@ -45,7 +45,7 @@ const commonTasks = [
 ] as const;
 const schoolTasks = [
   ['accessLevels', 'Workspace access'], ['exams', 'Exam definitions'],
-  ['requirements', 'School requirements'], ['uniforms', 'Uniform catalogue'],
+  ['requirements', 'School requirements'], ['uniforms', 'Uniform catalogue'], ['excludedDays', 'Excluded school days'],
 ] as const;
 
 export function workspaceSetupScope(userId: string, role: string) {

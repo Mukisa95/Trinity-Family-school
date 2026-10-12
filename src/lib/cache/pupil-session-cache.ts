@@ -23,8 +23,9 @@ export function clearPupilSessionQueries(queryClient: QueryClient) {
     });
   }
   queryClient.setQueryData(['pupils', 'list'], []);
+  queryClient.setQueryData(['pupils', 'hydration'], 'loading');
   queryClient.removeQueries({ queryKey: ['pupils'], predicate: query => (
-    query.queryKey.length !== 2 || query.queryKey[1] !== 'list'
+    query.queryKey.length !== 2 || !['list', 'hydration'].includes(String(query.queryKey[1]))
   ) });
   queryClient.removeQueries({ queryKey: ['pupils-by-class'] });
   queryClient.removeQueries({ queryKey: ['payments'] });

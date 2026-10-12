@@ -1,5 +1,7 @@
 "use client";
 
+import { CatalogueDataNotice } from '@/components/common/catalogue-data-notice';
+
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Eye, EyeOff, Package, DollarSign, CheckCircle, XCircle, Loader2, Shirt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,8 +24,9 @@ interface UniformManagementProps {
 
 export function UniformManagement({ showFilters, addTrigger }: UniformManagementProps) {
   const { toast } = useToast();
-  const { data: uniforms = [], isLoading, isFetching, error, refetch } = useUniforms();
-  const catalogueLoading = isLoading || (isFetching && uniforms.length === 0);
+  const catalogue = useUniforms();
+  const { data: uniforms = [], isLoading, isFetching, error, refetch, isSavedData } = catalogue;
+  const catalogueLoading = isLoading || (isFetching && catalogue.data === undefined);
   const { data: classes = [] } = useClasses();
   const createUniform = useCreateUniform();
   const updateUniform = useUpdateUniform();
@@ -231,7 +234,7 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
     />
   );
 
-  if (error) {
+  if (error && catalogue.data === undefined) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="bg-white p-8 rounded-2xl shadow-lg border border-red-200 text-center max-w-md w-full dark:bg-slate-900 dark:border-red-800/60">
@@ -255,6 +258,7 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
 
   return (
     <div className="space-y-6">
+      <CatalogueDataNotice label="uniforms" saved={isSavedData} refreshing={isFetching} error={error} hasData={catalogue.data !== undefined} retry={refetch} />
       {/* Filters */}
       {showFilters && (
         <Card className="border-gray-200 dark:border-slate-700">

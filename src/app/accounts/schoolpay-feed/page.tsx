@@ -1,5 +1,7 @@
 'use client';
 
+import { usePageDataTiming } from '@/lib/hooks/use-page-data-timing';
+
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -330,6 +332,7 @@ function FeedContent() {
   const [payments, setPayments] = useState<LivePayment[]>([]);
   const [allTermLabels, setAllTermLabels] = useState<Map<string, string>>(new Map());
   const [connectionState, setConnectionState] = useState<FeedConnectionState>('connecting');
+  usePageDataTiming('schoolpay-feed', connectionState === 'live' && pupilsQuery.data !== undefined);
   const [statusFilter, setStatusFilter] = useState<'all' | 'new' | 'seen' | 'clicked' | 'today'>('all');
 
   const pupils = useMemo(() => {

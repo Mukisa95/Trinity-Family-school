@@ -1,4 +1,6 @@
 "use client";
+
+import { CatalogueDataNotice } from '@/components/common/catalogue-data-notice';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
 import { GlassActionButton, GlassActionDock, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
@@ -147,7 +149,8 @@ export default function ViewAttendanceReportsPage() {
   const { data: allClasses = [], isLoading: classesLoading } = useClasses();
   // 🚀 PERFORMANCE: Use optimized hook that excludes photos
   const { data: allPupils = [], isLoading: pupilsLoading } = usePupilsWithoutPhotos();
-  const { data: excludedDays = [], isLoading: excludedDaysLoading } = useExcludedDays();
+  const excludedDaysQuery = useExcludedDays();
+  const { data: excludedDays = [], isLoading: excludedDaysLoading } = excludedDaysQuery;
   const { data: academicYears = [], isLoading: academicYearsLoading } = useAcademicYears();
   const { data: activeAcademicYear } = useActiveAcademicYear();
   const { data: schoolSettings } = useSchoolSettings();
@@ -1270,6 +1273,10 @@ export default function ViewAttendanceReportsPage() {
     router.push(`/attendance/view?${params.toString()}`);
   };
 
+  if (excludedDaysQuery.error && excludedDaysQuery.data === undefined) {
+    return <CatalogueDataNotice label="school-day calendar" saved={excludedDaysQuery.isSavedData} refreshing={excludedDaysQuery.isFetching} error={excludedDaysQuery.error} hasData={excludedDaysQuery.data !== undefined} retry={excludedDaysQuery.refetch} />;
+  }
+
   if (classesLoading || pupilsLoading || excludedDaysLoading || academicYearsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -1280,6 +1287,7 @@ export default function ViewAttendanceReportsPage() {
 
   return (
     <div className="min-h-screen">
+      <CatalogueDataNotice label="school-day calendar" saved={excludedDaysQuery.isSavedData} refreshing={excludedDaysQuery.isFetching} error={excludedDaysQuery.error} hasData={excludedDaysQuery.data !== undefined} retry={excludedDaysQuery.refetch} />
       {/* Recess status banner */}
       <RecessStatusBanner />
 

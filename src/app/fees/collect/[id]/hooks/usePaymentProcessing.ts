@@ -44,6 +44,7 @@ export function usePaymentProcessing({
   const queryClient = useQueryClient();
 
   const paymentMutation = useMutation({
+    mutationKey: ['payments', 'fee-collection-submit'],
     mutationFn: async (data: PaymentSubmissionData) => {
       // Validate payment amount
       const validation = validatePaymentAmount(data.amount, data.balance);

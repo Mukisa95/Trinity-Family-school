@@ -1,5 +1,7 @@
 "use client";
 
+import { CatalogueDataNotice } from '@/components/common/catalogue-data-notice';
+
 import React, { useState } from 'react';
 import { Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +19,8 @@ import type { UniformItem, UniformFormData, UniformGender, UniformSection } from
 
 export function UniformManagement() {
   const { toast } = useToast();
-  const { data: uniforms = [], isLoading, isFetching, error, refetch } = useUniforms();
+  const catalogue = useUniforms();
+  const { data: uniforms = [], isLoading, isFetching, error, refetch, isSavedData } = catalogue;
   const { data: classes = [] } = useClasses();
   const createUniform = useCreateUniform();
   const updateUniform = useUpdateUniform();
@@ -178,7 +181,7 @@ export function UniformManagement() {
     return section ? `${section} Section` : 'Unknown Section';
   };
 
-  if (isLoading || (isFetching && uniforms.length === 0)) {
+  if (isLoading || (isFetching && catalogue.data === undefined)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -189,7 +192,7 @@ export function UniformManagement() {
     );
   }
 
-  if (error) {
+  if (error && catalogue.data === undefined) {
     return (
       <Alert variant="destructive">
         <AlertDescription>
@@ -204,6 +207,7 @@ export function UniformManagement() {
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
+      <CatalogueDataNotice label="uniforms" saved={isSavedData} refreshing={isFetching} error={error} hasData={catalogue.data !== undefined} retry={refetch} />
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

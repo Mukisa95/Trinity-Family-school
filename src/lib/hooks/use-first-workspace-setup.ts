@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { readWorkspaceSetup, retryWorkspaceTasks, workspaceSetupMarker, workspaceSetupScope } from '@/lib/startup/workspace-setup';
 
-export function useFirstWorkspaceSetup({ enabled, userId, role, awaitPersonalization = false }: { enabled: boolean; userId?: string; role?: string; awaitPersonalization?: boolean }) {
+export function useFirstWorkspaceSetup({ enabled, userId, role, accessReady = false, awaitPersonalization = false }: { enabled: boolean; userId?: string; role?: string; accessReady?: boolean; awaitPersonalization?: boolean }) {
   const client = useQueryClient();
   const scope = userId && role ? workspaceSetupScope(userId, role) : '';
   const completedBefore = useMemo(() => {
@@ -66,21 +66,21 @@ export function useFirstWorkspaceSetup({ enabled, userId, role, awaitPersonaliza
           }
         }, 2000 * 2 ** recoveryAttempts);
       }
-      if (!next.ready || !personalized) {
+      if (!accessReady || !personalized) {
         if (completionTimer) clearTimeout(completionTimer);
         completionTimer = undefined;
         return;
       }
       if (completionTimer) return;
-      // Allow dependent page queries to mount before declaring setup complete.
+      // Welcome completion records access and preferences, never download
+      // completion. Pages and offline preparation remain independent owners.
       completionTimer = setTimeout(() => {
         completionTimer = undefined;
-        if (!readWorkspaceSetup(client, scope, role).ready) return;
         finished = true;
         try { localStorage.setItem(workspaceSetupMarker(scope), 'complete'); } catch { /* Never block a ready workspace on storage. */ }
         setSession({ scope, phase: 'fading' });
         fadeTimer = setTimeout(() => setSession({ scope, phase: 'complete' }), 300);
-      }, 750);
+      }, 0);
     };
     update();
     const unsubscribe = client.getQueryCache().subscribe(() => {
@@ -93,12 +93,12 @@ export function useFirstWorkspaceSetup({ enabled, userId, role, awaitPersonaliza
       clearTimeout(updateTimer); clearTimeout(completionTimer); clearTimeout(fadeTimer); clearTimeout(slowTimer); clearTimeout(recoveryTimer);
       window.removeEventListener('online', connection); window.removeEventListener('offline', connection);
     };
-  }, [client, enabled, personalized, retry, role, scope]);
+  }, [accessReady, client, enabled, personalized, retry, role, scope]);
 
   return { ...(progress.scope === scope ? progress : readWorkspaceSetup(client, scope, role || 'Parent')), online, slow,
     required: enabled && Boolean(scope) && !completedBefore && (session.scope !== scope || session.phase !== 'complete'),
     fading: session.scope === scope && session.phase === 'fading',
-    scope,
+    scope, canEnter: accessReady,
     finishPersonalization: () => setPersonalizedScope(scope),
     recovering: recovering === scope, retry,
   };

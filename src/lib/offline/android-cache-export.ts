@@ -52,7 +52,11 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
     const counts: Record<string, number> = {};
     if (session.grants.dashboardCounts.includes('pupils') && pupils && Array.isArray(pupils.data)) counts.pupils = pupils.data.filter(item => item.status === 'Active').length;
     if (session.grants.dashboardCounts.includes('staff') && staff) counts.staff = staff.data.length;
-    if (Object.keys(counts).length) result.datasets.dashboard = saved(counts);
+    if (Object.keys(counts).length) result.datasets.dashboard = {
+      data: counts, preparedAt: new Date(Math.max(
+        pupils?.writtenAt || 0, liteReadMetadata(`staff:${getStaffCacheScope(session.accountId, session.role)}`)?.writtenAt || 0,
+      )).toISOString(),
+    };
   }
   if (session.grants.timetable) {
     if (subjects) result.datasets.subjects = saved(subjects.data.map(item => fields(item, ['id', 'name', 'code'])), subjects.revision, `subjects:${scope}`);
@@ -76,6 +80,9 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
         const base = `${prefix}${segments[0]}:${segments[1]}:`;
         const periods = liteRead<Cache<AndroidOfflineTimetable['periods']>>(`${base}periods:${encodeURIComponent(profile.id)}`);
         const entries = liteRead<Cache<AndroidOfflineTimetable['entries']>>(`${base}entries:${encodeURIComponent(profile.id)}`);
+        preparedAt = Math.max(preparedAt,
+          liteReadMetadata(`${base}periods:${encodeURIComponent(profile.id)}`)?.writtenAt || 0,
+          liteReadMetadata(`${base}entries:${encodeURIComponent(profile.id)}`)?.writtenAt || 0);
         const complete = periods?.schema === 2 && entries?.schema === 2 && Array.isArray(periods.data) && Array.isArray(entries.data)
           && periods.revision === profiles.revision && entries.revision === profiles.revision;
         tables.push({ profile, periods: complete ? periods.data : [], entries: complete ? entries.data : [], complete });

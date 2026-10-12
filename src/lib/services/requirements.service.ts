@@ -2,6 +2,7 @@ import {
   collection, 
   doc, 
   getDocs, 
+  getDocsFromServer,
   getDoc, 
   addDoc, 
   updateDoc, 
@@ -18,13 +19,13 @@ import { HistoryLogService } from './history-log.service';
 const COLLECTION_NAME = 'requirements';
 
 export class RequirementsService {
-  static async getAllRequirements(): Promise<RequirementItem[]> {
+  static async getAllRequirements(serverOnly = false): Promise<RequirementItem[]> {
     try {
       const q = query(
         collection(db, COLLECTION_NAME), 
         orderBy('name', 'asc')
       );
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = serverOnly === true ? await getDocsFromServer(q) : await getDocs(q);
       
       const requirements = querySnapshot.docs.map(doc => ({
         id: doc.id,

@@ -1,5 +1,7 @@
 "use client";
 
+import { usePageDataTiming } from '@/lib/hooks/use-page-data-timing';
+
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -76,6 +78,8 @@ import { TermScheduleCard } from '@/components/dashboard/TermScheduleCard';
 import { MonthCalendarCard } from '@/components/dashboard/MonthCalendarCard';
 import { DashboardLiveTracker } from '@/components/dashboard/DashboardLiveTracker';
 import { DashboardWelcomeHeader } from '@/components/dashboard/dashboard-welcome-header';
+import { SavedPupilDataNotice } from '@/components/pupils/saved-pupil-data-notice';
+import { CatalogueDataNotice } from '@/components/common/catalogue-data-notice';
 import { ClassAttendanceSummaryDialog } from '@/components/dashboard/class-attendance-summary-dialog';
 import { PhotoViewerDialog } from '@/components/common/photo-viewer-dialog';
 
@@ -1616,7 +1620,8 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
   const attendanceLoading = !attendanceData;
 
   // Get excluded days and academic year data
-  const { data: excludedDays = [] } = useExcludedDays();
+  const excludedDaysQuery = useExcludedDays();
+  const { data: excludedDays = [] } = excludedDaysQuery;
   const { data: allAcademicYears = [] } = useAcademicYears();
   // Use the globally correct year (two-pass cross-year scan, no isActive bias)
   const activeAcademicYear = useMemo(
@@ -1629,8 +1634,8 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
 
   // Check if today is a school day
   const isToday = useMemo(() => {
-    return isSchoolDay(currentDate, activeAcademicYear || null, excludedDays);
-  }, [currentDate, activeAcademicYear, excludedDays]);
+    return excludedDaysQuery.data !== undefined && isSchoolDay(currentDate, activeAcademicYear || null, excludedDays);
+  }, [currentDate, activeAcademicYear, excludedDays, excludedDaysQuery.data]);
 
   // Function to get the next school day
   const getNextSchoolDay = useMemo(() => {
@@ -1821,12 +1826,21 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
     return '#EF4444'; // Red
   };
 
+  if (excludedDaysQuery.data === undefined) {
+    return <Card className="theme-dashboard-surface dashboard-themed-card p-4">
+      <CardTitle>Present Today</CardTitle>
+      <p role="status" className="mt-3 text-sm text-muted-foreground">{excludedDaysQuery.error ? 'School-day calendar could not load.' : 'Loading the school-day calendar…'}</p>
+      {excludedDaysQuery.error && <Button variant="outline" className="mt-3" onClick={() => void excludedDaysQuery.refetch()}>Retry calendar</Button>}
+    </Card>;
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.1 }}
     >
+      <CatalogueDataNotice label="school-day calendar" saved={excludedDaysQuery.isSavedData} refreshing={excludedDaysQuery.isFetching} error={excludedDaysQuery.error} hasData={true} retry={excludedDaysQuery.refetch} />
       <Card className="theme-dashboard-surface dashboard-themed-card h-full rounded-xl transition-all duration-300 relative group overflow-visible" style={{
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
         transform: 'translateZ(0)',
@@ -2340,6 +2354,8 @@ export default function DashboardPage() {
     hasError,
     refetchAll
   } = useDashboardData();
+  usePageDataTiming('dashboard:pupils', !pupilsLoading && (canViewTotalPupils || canViewGenderBreakdown || canViewClassEnrollment), user?.id);
+  usePageDataTiming('dashboard:staff', !staffLoading && canViewTotalStaff, user?.id);
   const attendanceNoticeDate = searchParams.get('attendanceDate') || '';
   const attendanceNoticeClassId = searchParams.get('attendanceClassId') || '';
   const validAttendanceNoticeDate = /^\d{4}-\d{2}-\d{2}$/.test(attendanceNoticeDate);
@@ -2406,6 +2422,7 @@ export default function DashboardPage() {
       </Head>
 
       <DashboardWelcomeHeader schoolSettings={schoolSettings} />
+      <SavedPupilDataNotice />
 
       <motion.div
         variants={groupVariants}

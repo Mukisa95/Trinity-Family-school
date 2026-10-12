@@ -1,7 +1,7 @@
 import { 
   collection, 
   doc, 
-  getDocs, 
+  getDocsFromServer,
   getDoc, 
   addDoc, 
   updateDoc, 
@@ -19,7 +19,7 @@ export class ExcludedDaysService {
   static async getAllExcludedDays(): Promise<ExcludedDay[]> {
     try {
       const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
+      const snapshot = await getDocsFromServer(q);
       
       return snapshot.docs.map(doc => {
         const data = doc.data();
@@ -95,4 +95,4 @@ export class ExcludedDaysService {
       throw error;
     }
   }
-} 
+}
