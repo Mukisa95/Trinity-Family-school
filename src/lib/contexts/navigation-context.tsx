@@ -4,9 +4,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { usePathname, useRouter } from 'next/navigation';
 import { setNavigationPending } from '@/lib/navigation/navigation-work';
 import { measureWorkspaceStep } from '@/lib/startup/workspace-timing';
-import { createForegroundClock } from '@/lib/startup/foreground-clock';
-import { hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
-import { claimAutomaticRouteRecovery, internalNavigationHref, navigateToRecoveryRoute, ROUTE_RECOVERY_AFTER_MS } from '@/lib/navigation/route-recovery';
+import { internalNavigationHref } from '@/lib/navigation/route-recovery';
 import {
   SMART_BACK_HISTORY_STORAGE_KEY,
   normalizeSmartBackHistory,
@@ -22,9 +20,6 @@ interface NavigationContextType {
   currentPath: string;
   destination: string | null;
   isSlow: boolean;
-  timedOut: boolean;
-  reportContentState: (loading: boolean, href: string) => void;
-  retryNavigation: () => void;
 }
 
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
@@ -33,20 +28,15 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const [isNavigating, setIsNavigating] = useState(false);
   const [destination, setDestination] = useState<string | null>(null);
   const [isSlow, setIsSlow] = useState(false);
-  const [timedOut, setTimedOut] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
   const previousPathname = useRef<string>('');
+  const navigationTimeout = useRef<NodeJS.Timeout | null>(null);
   const routeHistory = useRef<string[]>([]);
   const historyInitialized = useRef(false);
   const fromHref = useRef('');
   const startedAt = useRef(0);
-  const active = useRef(false);
-  const startedInPlace = useRef(false);
-  const targetHref = useRef('');
-  const routeCommitted = useRef(false);
-  const contentLoading = useRef(false);
 
   const persistRouteHistory = useCallback((history: string[]) => {
     routeHistory.current = history;
@@ -69,66 +59,42 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     return routeHistory.current;
   }, []);
 
-  const beginNavigation = useCallback((dest?: string, href?: string, inPlace = false) => {
+  const startNavigation = useCallback((dest?: string, href?: string) => {
     const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    const target = href ? internalNavigationHref(href, window.location.href) : current;
+    const target = href ? internalNavigationHref(href, window.location.href) : undefined;
     if (href && !target) return;
-    if (!inPlace && target === current && href) {
-      active.current = false;
+    if (target === current) {
       setNavigationPending(false); setIsNavigating(false); setDestination(null); setIsSlow(false);
-      setTimedOut(false);
       return;
     }
     fromHref.current = current;
-    targetHref.current = target || current;
-    active.current = true;
-    startedInPlace.current = inPlace;
-    routeCommitted.current = false;
-    contentLoading.current = false;
     startedAt.current = performance.now();
-    measureWorkspaceStep('navigation:start', startedAt.current, targetHref.current);
+    measureWorkspaceStep('navigation:start', startedAt.current, target ?? undefined);
     setNavigationPending(true);
     setIsSlow(false);
-    setTimedOut(false);
     setAttempt(value => value + 1);
     setIsNavigating(true);
     setDestination(dest || null);
     previousPathname.current = pathname || '';
-    
+
+    // Clear any existing timeout
+    if (navigationTimeout.current) {
+      clearTimeout(navigationTimeout.current);
+    }
   }, [pathname]);
-  const startNavigation = useCallback((dest?: string, href?: string) => beginNavigation(dest, href), [beginNavigation]);
 
   const stopNavigation = useCallback(() => {
-    active.current = false;
     setNavigationPending(false);
     setIsNavigating(false);
     setDestination(null);
     setIsSlow(false);
-    setTimedOut(false);
+    if (navigationTimeout.current) {
+      clearTimeout(navigationTimeout.current);
+      navigationTimeout.current = null;
+    }
   }, []);
 
-  const reportContentState = useCallback((loading: boolean, href: string) => {
-    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    if (href !== current) return;
-    if (loading && !active.current) beginNavigation(undefined, current, true);
-    if (!active.current) return;
-    if (loading && !contentLoading.current) {
-      contentLoading.current = true;
-      measureWorkspaceStep('navigation:route-loading', startedAt.current, targetHref.current);
-    }
-    if (!loading && (startedInPlace.current || current !== fromHref.current)) {
-      measureWorkspaceStep('navigation:content-ready', startedAt.current, current);
-      stopNavigation();
-    }
-  }, [beginNavigation, stopNavigation]);
-
-  const retryNavigation = useCallback(() => {
-    if (!active.current) return;
-    measureWorkspaceStep('navigation:retry', startedAt.current, targetHref.current);
-    navigateToRecoveryRoute(targetHref.current);
-  }, []);
-
-  // Record internal page URLs. Using the full query string preserves
+  // Record settled, internal page URLs. Using the full query string preserves
   // entity context such as /pupil-detail?id=... without trusting browser/tab
   // history entries that may belong to another website or an old redirect.
   useEffect(() => {
@@ -150,53 +116,49 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     router.replace(resolution.target);
   }, [persistRouteHistory, readStoredRouteHistory, router, startNavigation]);
 
-  // A changed URL is a route commit, not proof that its page has mounted.
+  // Release the transition UI when the destination route commits. Page data
+  // readiness must never restart navigation or make cached records inert.
   useEffect(() => {
     if (isNavigating && pathname && pathname !== previousPathname.current) {
-      if (!routeCommitted.current) measureWorkspaceStep('navigation:route-commit', startedAt.current, targetHref.current);
-      routeCommitted.current = true;
+      // Stop navigation immediately for instant page transitions
+      measureWorkspaceStep('navigation:route-commit', startedAt.current);
+      stopNavigation();
+      if (navigationTimeout.current) {
+        clearTimeout(navigationTimeout.current);
+        navigationTimeout.current = null;
+      }
     }
   }, [pathname, isNavigating, stopNavigation]);
 
-  // Preserve the busy state until content commits. Hidden time never triggers recovery.
+  // Keep truthful progress through slower transitions; also detect same-path
+  // query changes, which pathname alone cannot observe.
   useEffect(() => {
     if (isNavigating) {
-      const visible = () => document.visibilityState === 'visible' && !document.querySelector('[data-workspace-visible="false"]');
-      const clock = createForegroundClock(performance.now(), visible());
-      let timeoutRecorded = false;
-      const visibility = () => clock.setVisible(performance.now(), visible());
-      document.addEventListener('visibilitychange', visibility);
       const poll = setInterval(() => {
-        visibility();
         const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-        if (current !== fromHref.current && !routeCommitted.current) {
-          measureWorkspaceStep('navigation:route-commit', startedAt.current, targetHref.current); routeCommitted.current = true;
-        }
-        const foreground = clock.sample(performance.now()).foreground;
-        if (foreground >= 4000) setIsSlow(true);
-        if (foreground < ROUTE_RECOVERY_AFTER_MS || timeoutRecorded) return;
-        timeoutRecorded = true; setTimedOut(true);
-        measureWorkspaceStep('navigation:timeout', startedAt.current, targetHref.current);
-        // A full document discards a stuck router/prefetch request without deleting saved records.
-        if (hasAndroidOfflineBridge() && new URL(targetHref.current, location.origin).pathname === '/pupils'
-          && navigator.onLine && window.trinityAndroidConnected !== false) {
-          try {
-            if (claimAutomaticRouteRecovery(window.sessionStorage, targetHref.current)) {
-              measureWorkspaceStep('navigation:automatic-recovery', startedAt.current, targetHref.current);
-              navigateToRecoveryRoute(targetHref.current);
-            }
-          } catch { /* Keep the explicit retry available when storage cannot be used. */ }
-        }
+        if (current !== fromHref.current) { measureWorkspaceStep('navigation:route-commit', startedAt.current); stopNavigation(); }
       }, 100);
-      return () => { clearInterval(poll); document.removeEventListener('visibilitychange', visibility); };
+      const slowTimer = setTimeout(() => setIsSlow(true), 4000);
+      const maxTimer = setTimeout(() => {
+        measureWorkspaceStep('navigation:timeout', startedAt.current);
+        stopNavigation();
+        if (navigationTimeout.current) {
+          clearTimeout(navigationTimeout.current);
+          navigationTimeout.current = null;
+        }
+      }, 30_000);
+
+      return () => { clearInterval(poll); clearTimeout(slowTimer); clearTimeout(maxTimer); };
     }
   }, [isNavigating, attempt, stopNavigation]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      active.current = false;
       setNavigationPending(false);
+      if (navigationTimeout.current) {
+        clearTimeout(navigationTimeout.current);
+      }
     };
   }, []);
 
@@ -208,9 +170,6 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     currentPath: pathname || '',
     destination,
     isSlow,
-    timedOut,
-    reportContentState,
-    retryNavigation,
   };
 
   return (

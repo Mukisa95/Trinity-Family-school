@@ -25,7 +25,7 @@ function execute(expression: string, bindings: Record<string, unknown>, argument
 }
 
 const arrowCases: Array<[string, string, (query: string) => Record<string, unknown>, unknown]> = [
-  ['src/app/pupils/page.tsx', 'pupil', query => ({ searchQuery: query }), pupil],
+  ['src/app/pupils/pupils-management.tsx', 'pupil', query => ({ searchQuery: query }), pupil],
   ['src/components/PupilSelector.tsx', 'pupil', query => ({ searchTerm: query }), pupil],
   ['src/components/users/filtered-pupil-selector.tsx', 'pupil', query => ({ filters: { searchTerm: query } }), pupil],
   ['src/components/users/bulk-parent-account-creator.tsx', 'pupil', query => ({ searchTerm: query }), pupil],

@@ -19,7 +19,7 @@ const items=[{title:'Dashboard',href:'/',icon:Home,section:'Overview'},{title:'P
 {title:'Fees',href:'/fees/collection',icon:Wallet,section:'Finance'},{title:'SchoolPay',href:'/accounts/schoolpay-feed',icon:Zap,section:'Finance'},
 {title:'Disabled',href:'/disabled',icon:Zap,disabled:true,section:'Administration'}];
 function Page(){const nav=useNavigation();window.nav=nav;window.navigationPending=isNavigationPending;
-const state=React.useContext(window.NavFixture);if(state.loading)return <div data-workspace-page-loading id='route-fallback'>Loading route</div>;
+const state=React.useContext(window.NavFixture);if(state.loading)return <div data-route-content-pending id='route-fallback'>Loading route</div>;
 return <><span id='path'>{nav.currentPath}</span><button id='old-record'>Old page action</button><div style={{height:1800}}>Page content</div></>;}
 function App(){const [pathname,setPath]=useState('/'),[open,setOpen]=useState(false),[signed,setSigned]=useState(false),[epoch,setEpoch]=useState(0),[loading,setLoading]=useState(false);window.setRouteLoading=setLoading;
 const timer=useRef();window.setSigned=setSigned;window.setDrawer=setOpen;window.wake=()=>setEpoch(n=>n+1);
@@ -71,7 +71,7 @@ createRoot(document.getElementById('root')).render(<App/>);`;
   await page.evaluate(()=>{window.routeDelay=9000;window.exportsBefore=window.exportCount;});
   await page.locator('#menu').click();await page.locator('.app-mobile-sidebar').getByRole('link',{name:'Pupils',exact:true}).click();
   await page.getByRole('status').waitFor();await page.evaluate(()=>window.changeSavedData());
-  assert.equal(await page.locator('#old-record').evaluate(el=>!!el.closest('[inert]')),true);
+  assert.equal(await page.locator('#old-record').evaluate(el=>!!el.closest('[inert]')),false,'Navigation must not make existing records inert');
   await page.waitForTimeout(5100);assert.ok(await page.getByRole('status').isVisible(),'Progress must remain through a five-second wait');
   assert.ok(await page.getByText('This is taking longer than usual.').isVisible());
   assert.equal(await page.evaluate(()=>window.exportCount),await page.evaluate(()=>window.exportsBefore),'Native snapshot export must wait until navigation settles');
@@ -93,12 +93,12 @@ createRoot(document.getElementById('root')).render(<App/>);`;
   await page.waitForFunction(()=>!window.nav.isNavigating,'query-only route changes must finish progress');
   await page.evaluate(()=>{window.setRouteLoading(true);window.exportsBefore=window.exportCount;window.nav.startNavigation('Pupils','/pupils');window.commit('/pupils');window.changeSavedData();});
   await page.locator('#route-fallback').waitFor();await page.waitForTimeout(900);
-  assert.equal(await page.evaluate(()=>window.nav.isNavigating&&window.navigationPending()),true,'A committed URL with a route fallback must remain busy');
+  assert.equal(await page.evaluate(()=>!window.nav.isNavigating&&window.navigationPending()),true,'URL commit releases UI while native preparation waits for an explicit route fallback');
   assert.equal(await page.evaluate(()=>window.exportCount),await page.evaluate(()=>window.exportsBefore),'Fallback must keep Android preparation paused after URL commit');
   await page.evaluate(()=>window.setRouteLoading(false));await page.waitForFunction(()=>!window.nav.isNavigating);
   assert.equal(await page.getByRole('status').count(),0,'Ready content must immediately remove the card');
   assert.equal(await page.locator('#old-record').evaluate(el=>!!el.closest('[inert]')),false);
-  await page.evaluate(()=>{const node=document.createElement('div');node.hidden=true;node.setAttribute('data-workspace-page-loading','');document.querySelector('[aria-busy]').append(node);});
+  await page.evaluate(()=>{const node=document.createElement('div');node.hidden=true;node.setAttribute('data-route-content-pending','');document.querySelector('[aria-busy]').append(node);});
   await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.navigationPending()),false,'Hidden streaming fallbacks must not block ready content');
   await page.evaluate(()=>window.nav.startNavigation('Current page',location.pathname+location.search));assert.equal(await page.evaluate(()=>window.nav.isNavigating),false);
   await page.evaluate(()=>{window.setOffline(true);window.prefetchCalls=[];window.setDrawer(true);});await page.waitForTimeout(1000);assert.equal(await page.evaluate(()=>window.prefetchCalls.length),0);
@@ -112,19 +112,13 @@ createRoot(document.getElementById('root')).render(<App/>);`;
   const desktopBounds=await page.evaluate(()=>{const card=document.querySelector('[role=status]').getBoundingClientRect(),sidebar=document.querySelector('#desktop-nav').getBoundingClientRect(),header=document.querySelector('.app-topbar').getBoundingClientRect();return {cardLeft:card.left,sidebarRight:sidebar.right,cardTop:card.top,headerBottom:header.bottom};});
   assert.ok(desktopBounds.cardLeft>=desktopBounds.sidebarRight&&desktopBounds.cardTop>=desktopBounds.headerBottom);
   await page.screenshot({path:path.join(output,'desktop-wait-dark.png')});await page.evaluate(()=>window.nav.stopNavigation());
-  const recovery=await browser.newPage({viewport:{width:390,height:844}});await recovery.clock.install();await recovery.goto(url);await recovery.waitForFunction(()=>window.nav);
-  await recovery.evaluate(()=>{const gate=document.createElement('div');gate.id='workspace-gate';gate.setAttribute('data-workspace-visible','false');document.body.append(gate);window.testHidden=true;Object.defineProperty(document,'visibilityState',{configurable:true,get:()=>window.testHidden?'hidden':'visible'});document.dispatchEvent(new Event('visibilitychange'));window.setRouteLoading(true);window.nav.startNavigation('Pupils','/pupils');window.commit('/pupils');});
-  await recovery.clock.fastForward(35_000);assert.equal(await recovery.evaluate(()=>window.recoveryRequests.length),0,'Background time must not trigger recovery');
-  await recovery.evaluate(()=>{window.testHidden=false;document.dispatchEvent(new Event('visibilitychange'));});
-  await recovery.clock.fastForward(25_000);assert.equal(await recovery.evaluate(()=>window.recoveryRequests.length),0,'Welcome/startup time must not trigger recovery');
-  await recovery.evaluate(()=>{document.querySelector('#workspace-gate').setAttribute('data-workspace-visible','true');window.dispatchEvent(new Event('trinity-workspace-visible'));});
-  await recovery.clock.fastForward(21_000);await recovery.waitForFunction(()=>window.recoveryRequests.length===1);
-  assert.deepEqual(await recovery.evaluate(()=>window.recoveryRequests),['/pupils']);
-  await recovery.getByRole('button',{name:'Retry opening page'}).waitFor();await recovery.clock.fastForward(40_000);
-  assert.equal(await recovery.evaluate(()=>window.recoveryRequests.length),1,'A stuck page must not trigger repeated automatic reloads');
-  await recovery.getByRole('button',{name:'Retry opening page'}).click();assert.equal(await recovery.evaluate(()=>window.recoveryRequests.length),2);
-  await recovery.close();
-  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(output,'verification.json'),JSON.stringify({fiveSecondProgress:true,chromeUsable:true,contentInert:true,prefetchBeforeTap:true,offlineNoPrefetch:true,queryOnlyCompletion:true,snapshotDeferred:true,urlCommitIsNotReadiness:true,hiddenFallbackIgnored:true,foregroundRecovery:true,retryAvailable:true,fastNoFlash:true,errors},null,2));
+  // Ordinary page loaders do not start navigation or trigger reloads.
+  await page.evaluate(()=>{window.commit('/timetable');const node=document.createElement('div');node.setAttribute('data-workspace-page-loading','');node.textContent='Loading one field';document.querySelector('[aria-busy]').append(node);});
+  await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.nav.isNavigating),false);
+  assert.equal(await page.getByRole('status').count(),0);assert.equal(await page.evaluate(()=>window.recoveryRequests.length),0);
+  await page.evaluate(()=>{window.Native=false;window.setRouteLoading(true);window.commit('/browser-pupils');});
+  await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.nav.isNavigating||window.navigationPending()),false,'Browser route fallbacks must not acquire native preparation pauses or a navigation card');
+  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(output,'verification.json'),JSON.stringify({fiveSecondProgress:true,chromeUsable:true,contentInteractive:true,prefetchBeforeTap:true,offlineNoPrefetch:true,queryOnlyCompletion:true,snapshotDeferred:true,urlCommitReleasesUI:true,hiddenFallbackIgnored:true,ordinaryLoadersDoNotBlock:true,noAutomaticReload:true,fastNoFlash:true,errors},null,2));
   console.log('Mobile navigation browser checks passed.');
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
 }

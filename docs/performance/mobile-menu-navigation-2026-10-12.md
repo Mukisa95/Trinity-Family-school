@@ -1,5 +1,7 @@
 # Mobile menu navigation and page-content loading
 
+This is the earlier implementation record. The current correction in [navigation-readiness-2026-10-12.md](navigation-readiness-2026-10-12.md) removes the old-page inert guard and separates cached list rendering from management-code preparation.
+
 Follow-up to release `69c84063`. The user identified opening a page from the Android side menu as the delayed interaction. On 2026-10-12 the user explicitly authorized implementing the remaining audit priorities and pushing all pending chat changes together.
 
 ## Findings and changes

@@ -1,50 +1,41 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { useNavigation } from '@/lib/contexts/navigation-context';
 import { LoadingOverlay } from '@/components/ui/loading-indicator';
 import { setRouteContentPending } from '@/lib/navigation/navigation-work';
+import { hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
 
-/** Only the old page is busy; the application header and menus stay usable. */
+/** Route progress never prevents interaction with records already rendered. */
 export function NavigationContent({ children }: { children: ReactNode }) {
-  const { isNavigating, destination, isSlow, timedOut, reportContentState, retryNavigation } = useNavigation();
+  const { isNavigating, destination, isSlow } = useNavigation();
   const pathname = usePathname();
   const content = useRef<HTMLDivElement>(null);
   const owner = useRef({});
   useLayoutEffect(() => {
     const root = content.current;
-    if (!root) return;
+    if (!root || !hasAndroidOfflineBridge()) return;
     let frame: number | undefined;
     const check = () => {
       frame = undefined;
-      const loading = root.childElementCount === 0 || [...root.querySelectorAll<HTMLElement>('[data-workspace-page-loading]')]
+      // Field loaders cannot restart navigation or block saved records.
+      const loading = [...root.querySelectorAll<HTMLElement>('[data-route-content-pending]')]
         .some(node => node.getClientRects().length > 0 && getComputedStyle(node).visibility !== 'hidden');
       setRouteContentPending(owner.current, loading);
-      if (document.querySelector('[data-workspace-visible="false"]')) return;
-      reportContentState(loading, `${location.pathname}${location.search}${location.hash}`);
     };
     const schedule = () => { if (frame === undefined) frame = requestAnimationFrame(check); };
     const observer = new MutationObserver(schedule);
-    observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'data-workspace-page-loading'] });
-    const poll = isNavigating ? setInterval(schedule, 100) : undefined;
+    observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'data-route-content-pending'] });
     check();
-    window.addEventListener('resize', schedule);
-    window.addEventListener('trinity-workspace-visible', schedule);
-    document.addEventListener('visibilitychange', schedule);
     return () => {
-      observer.disconnect(); clearInterval(poll); if (frame !== undefined) cancelAnimationFrame(frame);
-      window.removeEventListener('resize', schedule); window.removeEventListener('trinity-workspace-visible', schedule);
-      document.removeEventListener('visibilitychange', schedule);
+      observer.disconnect();
+      if (frame !== undefined) cancelAnimationFrame(frame);
       setRouteContentPending(owner.current, false);
     };
-  }, [pathname, isNavigating, reportContentState]);
-  useEffect(() => {
-    if (isNavigating) content.current?.setAttribute('inert', '');
-    else content.current?.removeAttribute('inert');
-  }, [isNavigating]);
+  }, [pathname]);
   return <div className="relative isolate min-h-[16rem]" data-navigation-content>
-    <LoadingOverlay isLoading={isNavigating} destination={destination || undefined} slow={isSlow} timedOut={timedOut} onRetry={retryNavigation} />
+    <LoadingOverlay isLoading={isNavigating} destination={destination || undefined} slow={isSlow} />
     <div ref={content} className="relative z-0" aria-busy={isNavigating}>{children}</div>
   </div>;
 }
