@@ -18,6 +18,7 @@ import { prepareAndroidAppShell, isAndroidOffline, installAndroidOfflineNavigati
 import { toast } from '@/hooks/use-toast';
 import { getDashboardTimetableTerm } from '@/lib/offline/timetable-feed';
 import { measureWorkspaceOperation } from '@/lib/startup/workspace-timing';
+import { isNavigationPending, subscribeNavigationWork } from '@/lib/navigation/navigation-work';
 
 function PrepareTimetable({ yearId, termId, id }: { yearId: string; termId: string; id: string }) {
   useTimetablePeriods(yearId, termId, id);
@@ -83,22 +84,29 @@ export function AndroidOfflineProvider() {
     let running = false;
     let dirty = false;
     let previous = '';
+    const preparation = new AbortController();
     const synchronize = async () => {
       if (disposed) return;
+      if (isNavigationPending()) { dirty = true; return; }
       if (running) { dirty = true; return; }
       running = true;
       try {
-        const snapshot = await measureWorkspaceOperation('android:snapshot-export', () => exportAndroidCachedSnapshot(session));
+        const snapshot = await measureWorkspaceOperation('android:snapshot-export', () => exportAndroidCachedSnapshot(session, preparation.signal));
         if (disposed || !snapshot || !isAndroidOfflineSnapshot(snapshot, session)) return;
+        if (isNavigationPending()) { dirty = true; return; }
         // copiedAt is not a data change; avoid repeated full snapshot bridge writes.
         const fingerprint = await measureWorkspaceOperation('android:snapshot-revision', () => androidSnapshotRevision(snapshot));
         if (fingerprint === previous) return;
         await measureWorkspaceOperation('android:snapshot-save', () => androidOfflineRequest('save', { snapshot }));
         previous = fingerprint;
-      } catch (error) { console.warn('Android saved-data refresh failed:', error instanceof Error ? error.message : 'Unavailable'); }
-      finally { running = false; if (dirty && !disposed) { dirty = false; schedule(); } }
+      } catch (error) { if (!disposed && !preparation.signal.aborted) console.warn('Android saved-data refresh failed:', error instanceof Error ? error.message : 'Unavailable'); }
+      finally { running = false; if (dirty && !disposed && !isNavigationPending()) { dirty = false; schedule(); } }
     };
     const schedule = () => { if (timer) clearTimeout(timer); timer = setTimeout(() => void synchronize(), 600); };
+    const unsubscribeNavigation = subscribeNavigationWork(pending => {
+      if (pending) { clearTimeout(timer); dirty = true; }
+      else if (dirty && !disposed) { dirty = false; schedule(); }
+    });
     const unsubscribe = client.getQueryCache().subscribe(event => {
       if (event.type === 'updated' && event.action.type === 'success'
         && isAndroidSavedDataQuery(event.query.queryKey, session)) schedule();
@@ -109,7 +117,7 @@ export function AndroidOfflineProvider() {
     const unsubscribeParent = subscribeToParentOfflineChanges(session.accountId, persistedChange);
     window.addEventListener('trinity-native-cache-written', persistedChange);
     schedule();
-    return () => { disposed = true; if (timer) clearTimeout(timer); unsubscribe(); unsubscribeParent(); window.removeEventListener('trinity-native-cache-written', persistedChange); };
+    return () => { disposed = true; preparation.abort(); if (timer) clearTimeout(timer); unsubscribe(); unsubscribeNavigation(); unsubscribeParent(); window.removeEventListener('trinity-native-cache-written', persistedChange); };
   }, [client, session, user?.id, isLocked]);
 
   useEffect(() => {

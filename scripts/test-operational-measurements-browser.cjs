@@ -9,7 +9,7 @@ import React,{createContext,useState} from 'react';import {createRoot} from 'rea
 import {QueryClient,QueryClientProvider,useMutation} from '@tanstack/react-query';
 import {OperationalAuditProvider} from './src/components/providers/operational-audit-provider';
 import {usePageDataTiming} from './src/lib/hooks/use-page-data-timing';
-import {measureWorkspaceStep,measureWorkspaceOperation} from './src/lib/startup/workspace-timing';
+import {measureWorkspaceStep,measureWorkspaceDuration,measureWorkspaceOperation} from './src/lib/startup/workspace-timing';
 import {androidOfflineRequest} from './src/lib/offline/android-bridge';
 import {buildOperationalAuditMarkdown} from './src/lib/operational-audit/core';
 window.Auth=createContext(null);window.auditWrites=[];window.failRecovery=true;
@@ -24,6 +24,7 @@ window.cloneUser=()=>setUser(u=>({...u}));window.setReady=setReady;window.setVis
 window.runMutation=()=>mutation.mutateAsync();window.runQuery=()=>client.fetchQuery({queryKey:['pupils','list'],queryFn:async()=>{await new Promise(r=>setTimeout(r,50));return [];}});
 window.fillQueries=()=>Promise.all(Array.from({length:70},(_,i)=>client.fetchQuery({queryKey:['reference','family-'+i],queryFn:async()=>[]})));
 window.measure=(name)=>measureWorkspaceStep(name,performance.now()-75);
+window.measureActive=()=>measureWorkspaceDuration('test:foreground',25,performance.now()-500);
 window.bridgeSave=()=>measureWorkspaceOperation('android:snapshot-save',()=>androidOfflineRequest('save',{snapshot:{accountId:'private-account',datasets:{pupils:['private pupil']}}}));
 window.exportAudit=()=>buildOperationalAuditMarkdown(window.auditWrites.map((s,i)=>({...s,id:String(i),ts:new Date()})),'2026-10-12',false);
 return <window.Auth.Provider value={{user,isAuthenticated:true}}><QueryClientProvider client={client}>
@@ -68,6 +69,10 @@ createRoot(document.getElementById('root')).render(<QueryClientProvider client={
   assert.ok(all.some(e=>e.name==='workspace:android:snapshot-serialize'));
   assert.ok(all.some(e=>e.name==='workspace:android:snapshot-save'));
   assert.ok(all.some(e=>e.name==='interaction-to-paint'||e.name==='click-handler-to-paint-opportunity'));
+  await page.evaluate(()=>window.measureActive());await page.waitForTimeout(80);await page.evaluate(()=>window.flushAudit());
+  await page.waitForFunction(()=>window.auditWrites.some(s=>s.events.some(e=>e.name==='workspace:test:foreground')));
+  const active=await page.evaluate(()=>window.auditWrites.flatMap(s=>s.events).find(e=>e.name==='workspace:test:foreground'));
+  assert.equal(active.maxMs,25);assert.ok(Date.parse(active.lastAt)-Date.parse(active.firstAt)>=490,'Active duration must retain the real observation window');
   assert.doesNotMatch(JSON.stringify(writes),/private-account|private pupil|first-data-visible.*private/);
   assert.equal(await page.evaluate(()=>!!localStorage.getItem('trinity_operational_audit_pending_v1:fixture-admin:abandoned')),true,'A failed recovery must retain the disk batch');
   await page.evaluate(()=>{window.failRecovery=false;window.flushAudit();});await page.waitForFunction(()=>window.auditWrites.some(s=>s.appVersion==='old-build'));

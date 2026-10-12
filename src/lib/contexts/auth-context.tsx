@@ -1,6 +1,6 @@
 "use client";
 import { clearAndroidOfflineAccess } from '@/lib/offline/android-bridge';
-import { measureWorkspaceOperation } from '@/lib/startup/workspace-timing';
+import { measureWorkspaceOperation, measureWorkspaceStep } from '@/lib/startup/workspace-timing';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -201,6 +201,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const initializeAuth = async () => {
+      const restorationStarted = performance.now();
+      let restorationRecorded = false;
       try {
         // First, try to restore user from localStorage immediately
         const storedAutoLock = localStorage.getItem('trinity_auto_lock');
@@ -301,6 +303,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Firebase's listener waits for its own initialization. Adding an extra
         // timer here only delays cold starts and does not make auth safer.
         unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+          if (!restorationRecorded) {
+            restorationRecorded = true;
+            measureWorkspaceStep(firebaseUser && !firebaseUser.isAnonymous ? 'identity:restored-signed' : 'identity:restored-without-session', restorationStarted);
+          }
           const currentGeneration = ++authGeneration;
           logger.debug('Firebase signed-token state changed', {
             userId: firebaseUser?.uid || 'No user',

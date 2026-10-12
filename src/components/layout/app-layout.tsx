@@ -37,8 +37,8 @@ import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import { useTouchSwipe } from '@/lib/hooks/use-touch-swipe';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { measureWorkspaceStep } from '@/lib/startup/workspace-timing';
-import { NavigationProvider, useNavigation } from '@/lib/contexts/navigation-context';
-import { LoadingOverlay } from '@/components/ui/loading-indicator';
+import { NavigationProvider } from '@/lib/contexts/navigation-context';
+import { NavigationContent } from './navigation-content';
 import { ParentLayout } from '@/components/parent/parent-layout';
 import EnhancedHeader from './enhanced-header';
 import AuthGuard from '@/components/common/AuthGuard';
@@ -59,23 +59,6 @@ import { GranularPermissionService } from '@/lib/services/granular-permissions.s
 import { getRoutePagePermission, MODULE_ACTIONS } from '@/types/permissions';
 
 const Sidebar연구 = Sidebar;
-
-// Wrapper component that uses navigation context
-function NavigationWrapper({ children }: { children: ReactNode }) {
-  const { isNavigating, destination } = useNavigation();
-
-  return (
-    <>
-      <LoadingOverlay
-        isLoading={isNavigating}
-        message="Loading page..."
-        destination={destination || undefined}
-      />
-      {children}
-    </>
-  );
-}
-
 
 function MobileMenuButton({ onClick }: { onClick: () => void }) {
   return (
@@ -449,12 +432,14 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
           loadSchoolSettings={false}
         />
         <main className="flex-1 overflow-y-auto h-[calc(100vh-4rem)]">
+          <NavigationContent>
           {isSessionStale && (
             <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
           )}
           <AuthGuard>
             <ParentLayout />
           </AuthGuard>
+          </NavigationContent>
         </main>
       </div>
     );
@@ -466,7 +451,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   // Mobile layout with custom sidebar
   if (isMobile) {
     return (
-      <NavigationWrapper>
+      <>
         <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-secondary-surface-50 dark:from-brand-surface-950/40 dark:via-slate-900 dark:to-brand-secondary-surface-950/40">
           <EnhancedHeader
             onMenuClick={handleMobileMenuClick}
@@ -479,12 +464,14 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
             className="px-3 pb-[calc(4.75rem+env(safe-area-inset-bottom))] pt-0 sm:pb-4"
             {...sidebarSwipe}
           >
+            <NavigationContent>
             {isSessionStale && (
               <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
             )}
             <AuthGuard>
               {isAdminOnlyRoute ? <DevControlGate>{children}</DevControlGate> : children}
             </AuthGuard>
+            </NavigationContent>
           </main>
 
           <MobileSidebar
@@ -496,13 +483,13 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
           <AutoNotificationPermission />
           <SchoolPayInboxPrompt />
         </div>
-      </NavigationWrapper>
+      </>
     );
   }
 
   // Desktop layout with existing sidebar
   return (
-    <NavigationWrapper>
+    <>
       <AutoNotificationPermission />
       <SchoolPayInboxPrompt />
       {/* Dashboard background wrapper — background image covers the full viewport */}
@@ -529,17 +516,19 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
               className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 px-4 sm:px-6 pb-4 sm:pb-6 pt-0 md:pt-[52px]"
               {...sidebarSwipe}
             >
+                <NavigationContent>
                 {isSessionStale && (
                   <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
                 )}
                 <AuthGuard>
                 {isAdminOnlyRoute ? <DevControlGate>{children}</DevControlGate> : children}
               </AuthGuard>
+                </NavigationContent>
             </main>
           </SidebarInset>
         </SidebarProvider>
       </div>
-    </NavigationWrapper>
+    </>
   );
 });
 

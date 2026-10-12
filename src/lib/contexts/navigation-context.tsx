@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { setNavigationPending } from '@/lib/navigation/navigation-work';
+import { measureWorkspaceStep } from '@/lib/startup/workspace-timing';
 import {
   SMART_BACK_HISTORY_STORAGE_KEY,
   normalizeSmartBackHistory,
@@ -11,11 +13,12 @@ import {
 
 interface NavigationContextType {
   isNavigating: boolean;
-  startNavigation: (destination?: string) => void;
+  startNavigation: (destination?: string, href?: string) => void;
   stopNavigation: () => void;
   goBack: (fallbackHref?: string) => void;
   currentPath: string;
   destination: string | null;
+  isSlow: boolean;
 }
 
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
@@ -23,12 +26,16 @@ const NavigationContext = createContext<NavigationContextType | undefined>(undef
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
   const [isNavigating, setIsNavigating] = useState(false);
   const [destination, setDestination] = useState<string | null>(null);
+  const [isSlow, setIsSlow] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
   const previousPathname = useRef<string>('');
   const navigationTimeout = useRef<NodeJS.Timeout | null>(null);
   const routeHistory = useRef<string[]>([]);
   const historyInitialized = useRef(false);
+  const fromHref = useRef('');
+  const startedAt = useRef(0);
 
   const persistRouteHistory = useCallback((history: string[]) => {
     routeHistory.current = history;
@@ -51,7 +58,17 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     return routeHistory.current;
   }, []);
 
-  const startNavigation = useCallback((dest?: string) => {
+  const startNavigation = useCallback((dest?: string, href?: string) => {
+    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (href && new URL(href, window.location.origin).href === window.location.href) {
+      setNavigationPending(false); setIsNavigating(false); setDestination(null); setIsSlow(false);
+      return;
+    }
+    fromHref.current = current;
+    startedAt.current = performance.now();
+    setNavigationPending(true);
+    setIsSlow(false);
+    setAttempt(value => value + 1);
     setIsNavigating(true);
     setDestination(dest || null);
     previousPathname.current = pathname || '';
@@ -63,8 +80,10 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   }, [pathname]);
 
   const stopNavigation = useCallback(() => {
+    setNavigationPending(false);
     setIsNavigating(false);
     setDestination(null);
+    setIsSlow(false);
     if (navigationTimeout.current) {
       clearTimeout(navigationTimeout.current);
       navigationTimeout.current = null;
@@ -87,7 +106,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     persistRouteHistory(resolution.history);
     if (resolution.target === currentRoute) return;
 
-    startNavigation(resolution.target);
+    startNavigation(resolution.target, resolution.target);
     // Replace the current page instead of pushing a synthetic back entry. This
     // avoids A -> B -> A -> B loops while still restoring the exact prior URL.
     router.replace(resolution.target);
@@ -97,35 +116,41 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     if (isNavigating && pathname && pathname !== previousPathname.current) {
       // Stop navigation immediately for instant page transitions
-      setIsNavigating(false);
-      setDestination(null);
+      measureWorkspaceStep('navigation:route-commit', startedAt.current);
+      stopNavigation();
       if (navigationTimeout.current) {
         clearTimeout(navigationTimeout.current);
         navigationTimeout.current = null;
       }
     }
-  }, [pathname, isNavigating]);
+  }, [pathname, isNavigating, stopNavigation]);
 
-  // Fallback: stop navigation after 3 seconds maximum
+  // Keep truthful progress through slower transitions; also detect same-path
+  // query changes, which pathname alone cannot observe.
   useEffect(() => {
     if (isNavigating) {
+      const poll = setInterval(() => {
+        const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        if (current !== fromHref.current) { measureWorkspaceStep('navigation:route-commit', startedAt.current); stopNavigation(); }
+      }, 100);
+      const slowTimer = setTimeout(() => setIsSlow(true), 4000);
       const maxTimer = setTimeout(() => {
-        console.warn('Navigation timeout reached, forcing stop');
-        setIsNavigating(false);
-        setDestination(null);
+        measureWorkspaceStep('navigation:timeout', startedAt.current);
+        stopNavigation();
         if (navigationTimeout.current) {
           clearTimeout(navigationTimeout.current);
           navigationTimeout.current = null;
         }
-      }, 3000);
+      }, 30_000);
       
-      return () => clearTimeout(maxTimer);
+      return () => { clearInterval(poll); clearTimeout(slowTimer); clearTimeout(maxTimer); };
     }
-  }, [isNavigating]);
+  }, [isNavigating, attempt, stopNavigation]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      setNavigationPending(false);
       if (navigationTimeout.current) {
         clearTimeout(navigationTimeout.current);
       }
@@ -139,6 +164,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     goBack,
     currentPath: pathname || '',
     destination,
+    isSlow,
   };
 
   return (

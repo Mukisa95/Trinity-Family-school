@@ -9,6 +9,8 @@ import type { NavigationItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useNavigation } from '@/lib/contexts/navigation-context';
+import { useNavigationPrefetch } from '@/lib/hooks/use-navigation-prefetch';
+import { workspaceCacheAccessScope } from '@/lib/startup/workspace-cache-access';
 import { LoadingIndicator } from '@/components/ui/loading-indicator';
 import { isNavGroup, isNavItem } from '@/types';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
@@ -69,7 +71,7 @@ interface MobileSidebarProps {
 
 export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, isSignedIdentityReady } = useAuth();
   const { isNavigating, startNavigation } = useNavigation();
   const { data: schoolSettings, error: settingsError, isLoading: isLoadingSettings } = useSchoolSettings();
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
@@ -173,9 +175,16 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
     return false;
   }
 
-  function handleMenuItemClick(destination?: string) {
-    return () => {
-      startNavigation(destination); // Start navigation loading with destination
+  const permittedRoutes = filteredItems.flatMap(item => isNavItem(item) ? (item.disabled ? [] : [item.href])
+    : isNavGroup(item) ? item.items.filter(sub => !sub.disabled && (user?.role === 'Admin' || checkItemPermission(sub.href))).map(sub => sub.href) : []);
+  const warmRoute = useNavigationPrefetch(permittedRoutes, pathname || '', user ? workspaceCacheAccessScope(user) : '', !!isSignedIdentityReady, isOpen);
+
+  function handleMenuItemClick(destination?: string, href?: string, disabled = false) {
+    return (event: React.MouseEvent<HTMLAnchorElement>) => {
+      if (disabled) { event.preventDefault(); return; }
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if ((event.currentTarget.target && event.currentTarget.target !== '_self') || (href && !href.startsWith('/'))) { onClose(); return; }
+      startNavigation(destination, href);
       onClose();
     };
   }
@@ -312,7 +321,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
       }
 
       return (
-        <Link href={item.disabled ? '#' : item.href} onClick={handleMenuItemClick(item.title)}>
+        <Link href={item.disabled ? '#' : item.href} onTouchStart={() => warmRoute(item.href)} onFocus={() => warmRoute(item.href)} onClick={handleMenuItemClick(item.title, item.href, item.disabled)} aria-disabled={item.disabled || undefined}>
           <div
             className={cn(
               'flex items-center space-x-1.5 px-2 py-1 rounded-lg border transition-all ease-out duration-200 active:scale-[0.98]',
@@ -416,7 +425,8 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
                         href={subItem.title === 'WhatsApp Group' && currentSettings?.socialMedia?.whatsapp ? currentSettings.socialMedia.whatsapp : subItem.href} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        onClick={handleMenuItemClick(subItem.title)}
+                        onTouchStart={() => warmRoute(subItem.href)} onFocus={() => warmRoute(subItem.href)}
+                        onClick={handleMenuItemClick(subItem.title, subItem.href, subItem.disabled)}
                       >
                         <div className="flex items-center space-x-2 px-3 py-1 rounded-md bg-white/20 hover:bg-white/40 border border-white/10 dark:bg-slate-900/20 dark:hover:bg-slate-900/40 dark:border-slate-700/10">
                           <SubIcon size={12} className={cn("shrink-0", colors.icon)} />
@@ -426,7 +436,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
                         </div>
                       </a>
                     ) : (
-                      <Link href={subItem.disabled ? '#' : subItem.href} onClick={handleMenuItemClick(subItem.title)}>
+                      <Link href={subItem.disabled ? '#' : subItem.href} onTouchStart={() => warmRoute(subItem.href)} onFocus={() => warmRoute(subItem.href)} onClick={handleMenuItemClick(subItem.title, subItem.href, subItem.disabled)} aria-disabled={subItem.disabled || undefined}>
                         <div className={cn(
                           'flex items-center space-x-2 px-3 py-1 rounded-md border',
                           isSubActive

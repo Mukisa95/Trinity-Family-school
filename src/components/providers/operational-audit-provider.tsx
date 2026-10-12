@@ -485,7 +485,7 @@ export function OperationalAuditProvider() {
         list.getEntries().forEach(entry => {
           if (!entry.name.startsWith('trinity:workspace:')) return;
           if (!observeOnce(entry)) return;
-          const detail = (entry as PerformanceMeasure).detail as { route?: string } | null;
+          const detail = (entry as PerformanceMeasure).detail as { route?: string; observedEnd?: number } | null;
           addEvent({
             kind: 'performance',
             name: entry.name.slice('trinity:'.length),
@@ -493,7 +493,9 @@ export function OperationalAuditProvider() {
             route: detail?.route || routeRef.current,
             source: 'workspace-timing',
             totalMs: entry.duration, minMs: entry.duration, maxMs: entry.duration,
-            ...observation(entry),
+            ...auditObservationWindow(entry.startTime,
+              typeof detail?.observedEnd === 'number' && Number.isFinite(detail.observedEnd) && detail.observedEnd >= entry.startTime
+                ? detail.observedEnd - entry.startTime : entry.duration, performance.timeOrigin),
           });
         });
       });

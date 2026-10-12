@@ -9,19 +9,22 @@ import { getStaffCacheScope, readStaffCache } from '@/lib/cache/staff-cache';
 import { getSubjectCacheScope, readSubjectCache } from '@/lib/cache/subject-cache';
 import { liteRead, liteReadMetadata } from '@/lib/cache/lite-cache';
 import { projectOfflinePhotos } from './android-photo-projection';
+import { measureWorkspaceOperation } from '@/lib/startup/workspace-timing';
+import { projectAndroidRecords, yieldAndroidPreparation } from './android-preparation-work';
 
 type Cache<T> = { schema: number; revision: number; data: T };
 const fields = (value: object, names: string[]) => Object.fromEntries(names.filter(name => name in value).map(name => [name, (value as Record<string, unknown>)[name]]));
 
 /** No network reads: reuse the same authorized caches that feed the PWA. */
-export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession): Promise<AndroidOfflineSnapshot | null> {
+export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession, signal?: AbortSignal): Promise<AndroidOfflineSnapshot | null> {
+  await yieldAndroidPreparation(signal);
   const capturedAt = new Date().toISOString();
   const result: AndroidOfflineSnapshot = { schema: 1, accountId: session.accountId, role: session.role, capturedAt, datasets: {} };
   if (session.role === 'Parent') {
-    const bundle = await readParentOfflineBundle(session.accountId);
+    const bundle = await measureWorkspaceOperation('android:cache-read', () => readParentOfflineBundle(session.accountId));
     if (!bundle) return null;
     bundle.family.pupils = bundle.family.pupils.filter(pupil => session.pupilIds.includes(pupil.id));
-    await projectOfflinePhotos(session.accountId, bundle.family.pupils as unknown as Record<string, unknown>[]);
+    bundle.family.pupils = await projectOfflinePhotos(session.accountId, bundle.family.pupils as unknown as Record<string, unknown>[], signal) as unknown as typeof bundle.family.pupils;
     const ids = new Set(bundle.family.pupils.map(pupil => pupil.id));
     bundle.fees = bundle.fees.filter(record => ids.has(record.pupilId));
     bundle.banking = bundle.banking.filter(record => ids.has(record.pupilId));
@@ -32,7 +35,7 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
   }
   const scope = getClassCacheScope(session.accountId, session.role);
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
-  const pupils = await readPersistentCollectionWithMetadata<Pupil[]>(persistentCollectionCacheKey(projectId, 'pupils', `user:${session.accountId}`));
+  const pupils = await measureWorkspaceOperation('android:cache-read', () => readPersistentCollectionWithMetadata<Pupil[]>(persistentCollectionCacheKey(projectId, 'pupils', `user:${session.accountId}`)));
   const classes = readClassCache(scope);
   const years = readAcademicYearCache(getAcademicYearCacheScope(session.accountId, session.role));
   const staff = readStaffCache(getStaffCacheScope(session.accountId, session.role));
@@ -41,7 +44,8 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
     return { data, revision, preparedAt: key ? new Date(liteReadMetadata(key)?.writtenAt || 0).toISOString() : capturedAt };
   }
   if (session.grants.pupils && pupils && Array.isArray(pupils.data)) result.datasets.pupils = {
-    data: await projectOfflinePhotos(session.accountId, pupils.data.map(pupil => projectOfflinePupil(pupil as unknown as Record<string, unknown>, session))),
+    data: await projectOfflinePhotos(session.accountId,
+      await measureWorkspaceOperation('android:record-projection', () => projectAndroidRecords(pupils.data, pupil => projectOfflinePupil(pupil as unknown as Record<string, unknown>, session), signal)), signal),
     preparedAt: new Date(pupils.writtenAt).toISOString(),
   };
   if (session.grants.pupils || session.grants.timetable || session.grants.dashboard) {
@@ -68,6 +72,7 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
     let preparedAt = 0;
     let hasProfiles = false;
     for (let index = 0; index < localStorage.length; index++) {
+      if (index % 16 === 0) await yieldAndroidPreparation(signal);
       const storageKey = localStorage.key(index);
       if (!storageKey?.startsWith(`trinity_lite_${prefix}`)) continue;
       const key = storageKey.slice('trinity_lite_'.length);

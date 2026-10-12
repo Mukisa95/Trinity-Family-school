@@ -48,13 +48,27 @@ export function rememberVerifiedWorkspaceAccess(user: WorkspaceUser): void {
   window.dispatchEvent(new Event('trinity-workspace-cache-access'));
 }
 
-export function hasSavedWorkspaceAccess(user: WorkspaceUser): boolean {
-  if (typeof window === 'undefined') return false;
+export function savedWorkspaceAccessStatus(value: unknown, user: WorkspaceUser, now = Date.now()): string {
+  if (!value) return 'missing-receipt';
+  if (!value || typeof value !== 'object') return 'invalid-receipt';
+  const access = value as CacheAccess;
+  if (access.scope !== workspaceCacheAccessScope(user)) return 'scope-changed';
+  if (Number.isFinite(access.expiresAt) && access.expiresAt <= now) return 'expired-receipt';
+  return isWorkspaceCacheAccessValid(value, user, now) ? 'eligible' : 'invalid-receipt';
+}
+
+/** Broad local diagnostic reasons only; never export the receipt or its private scope. */
+export function getSavedWorkspaceAccessStatus(user: WorkspaceUser): string {
+  if (typeof window === 'undefined') return 'storage-unavailable';
   try {
     const profile = JSON.parse(window.localStorage.getItem('trinity_user') || 'null');
-    if (workspaceCacheAccessScope(profile?.user || profile || {}) !== workspaceCacheAccessScope(user)) return false;
-    return isWorkspaceCacheAccessValid(JSON.parse(window.localStorage.getItem(ACCESS_KEY) || 'null'), user);
-  } catch { return false; }
+    if (workspaceCacheAccessScope(profile?.user || profile || {}) !== workspaceCacheAccessScope(user)) return 'profile-mismatch';
+    return savedWorkspaceAccessStatus(JSON.parse(window.localStorage.getItem(ACCESS_KEY) || 'null'), user);
+  } catch { return 'storage-unavailable'; }
+}
+
+export function hasSavedWorkspaceAccess(user: WorkspaceUser): boolean {
+  return getSavedWorkspaceAccessStatus(user) === 'eligible';
 }
 
 export function clearSavedWorkspaceAccess(): void {

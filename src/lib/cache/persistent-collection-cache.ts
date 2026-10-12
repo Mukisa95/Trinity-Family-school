@@ -119,7 +119,7 @@ export async function readPersistentCollection<T>(key: string): Promise<T | null
   return snapshot?.data ?? null;
 }
 
-export async function writePersistentCollection<T>(key: string, data: T, authorizationScope?: string, complete?: boolean): Promise<void> {
+export async function writePersistentCollection<T>(key: string, data: T, authorizationScope?: string, complete?: boolean, notifyNative = true): Promise<void> {
   if (!canUseIndexedDb()) return;
 
   try {
@@ -136,7 +136,7 @@ export async function writePersistentCollection<T>(key: string, data: T, authori
       key,
     );
     await completeTransaction(transaction);
-    if ('TrinityOffline' in window) window.dispatchEvent(new CustomEvent('trinity-native-cache-written', { detail: { key } }));
+    if (notifyNative && 'TrinityOffline' in window) window.dispatchEvent(new CustomEvent('trinity-native-cache-written', { detail: { key } }));
   } catch {
     // Cache writes are an optimization. A failed write must never disrupt live data.
   }

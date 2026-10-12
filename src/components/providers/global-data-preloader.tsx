@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { registerWorkspaceRecovery, reportWorkspaceTask, workspaceSetupScope, type SetupTaskState } from '@/lib/startup/workspace-setup';
 import { withWorkspaceIdentity } from '@/lib/startup/workspace-auth';
-import { clearSavedWorkspaceAccess, hasSavedWorkspaceAccess, workspaceCacheAccessScope } from '@/lib/startup/workspace-cache-access';
+import { clearSavedWorkspaceAccess, getSavedWorkspaceAccessStatus, hasSavedWorkspaceAccess, workspaceCacheAccessScope } from '@/lib/startup/workspace-cache-access';
 import { measureWorkspaceStep } from '@/lib/startup/workspace-timing';
 import { useQueryClient } from '@tanstack/react-query';
 import { collection, query as firestoreQuery, onSnapshot, where, getDocs } from 'firebase/firestore';
@@ -275,8 +275,16 @@ export function GlobalDataPreloader() {
     // AuthContext. Reading IndexedDB itself never waits for authentication.
     const restoreSavedPupils = () => {
       const startedAt = performance.now();
+      const reported = new Set<string>();
+      const diagnose = (reason: string) => {
+        if (!disposed && !reported.has(reason)) {
+          reported.add(reason); measureWorkspaceStep(`pupils-cache-access:${reason}`, performance.now());
+        }
+      };
+      diagnose(getSavedWorkspaceAccessStatus(user!));
       const candidates: { pupils: any[]; source: string; complete?: boolean }[] = [];
       const publishSaved = (pupils: any[] | null | undefined, source: string, complete = false) => {
+        diagnose(getSavedWorkspaceAccessStatus(user!));
         if (
           disposed || pupilLocalAccessRevoked || pupilDataFromServer || normalizedPupilsRestored
           || !Array.isArray(pupils) || (pupils.length === 0 && !complete)
@@ -287,6 +295,7 @@ export function GlobalDataPreloader() {
         const existing = queryClient.getQueryData<any[]>(['pupils', 'list']);
         if (existing?.length) return;
         normalizedPupilsRestored = true;
+        diagnose(auth.currentUser?.uid === userId ? 'published-with-identity' : 'published-before-identity');
         queryClient.setQueryData(['pupils', 'list'], pupils);
         queryClient.setQueryData(['pupils', 'hydration'], 'saved');
         PupilsService.hydrateSharedPupils(pupils);
@@ -308,7 +317,9 @@ export function GlobalDataPreloader() {
       const primaryRead = readPersistentCollectionWithMetadata<any[]>(persistentCacheKey);
       void primaryRead.then(snapshot => {
         measureWorkspaceStep('pupils-cache-read', startedAt);
-        if (!snapshot || (snapshot.authorizationScope && snapshot.authorizationScope !== authorizationScope)) return;
+        if (!snapshot) { diagnose('missing-snapshot'); return; }
+        if (snapshot.authorizationScope && snapshot.authorizationScope !== authorizationScope) { diagnose('snapshot-scope-changed'); return; }
+        if (Array.isArray(snapshot.data) && snapshot.data.length === 0 && !snapshot.complete) diagnose('incomplete-empty-snapshot');
         candidates.push({ pupils: snapshot.data, source: 'saved snapshot', complete: snapshot.complete });
         retrySavedPublication();
       }).catch(() => undefined);
