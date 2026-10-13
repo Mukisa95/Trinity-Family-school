@@ -181,4 +181,13 @@ final class OfflineStore {
         validate(value.getJSONObject("snapshot"), value.getJSONObject("session"));
         return value;
     }
+    static JSONObject accessStatus(JSONObject saved) throws Exception {
+        JSONObject session = saved == null ? null : saved.optJSONObject("session");
+        boolean active = active(session);
+        boolean available = active && saved.optJSONObject("snapshot") != null;
+        JSONObject result = new JSONObject().put("available", available)
+            .put("state", saved == null ? "not_prepared" : !active ? "expired" : available ? "ready" : "data_preparing");
+        if (active) result.put("session", session);
+        return result;
+    }
 }

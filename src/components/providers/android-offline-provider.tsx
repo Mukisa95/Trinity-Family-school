@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { auth } from '@/lib/firebase';
 import { androidOfflineRequest, hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
 import { exportAndroidCachedSnapshot } from '@/lib/offline/android-cache-export';
-import { androidSnapshotRevision, isAndroidSavedDataQuery } from '@/lib/offline/android-sync-policy';
+import { androidSnapshotRevision } from '@/lib/offline/android-sync-policy';
 import { isAndroidOfflineSnapshot, type AndroidOfflineSession } from '@/lib/offline/android-contracts';
 import { subscribeToParentOfflineChanges } from '@/lib/parent-offline/repository';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
@@ -17,6 +16,7 @@ import { useStaff } from '@/lib/hooks/use-staff';
 import { prepareAndroidAppShell, isAndroidOffline, installAndroidOfflineNavigation } from '@/lib/offline/android-app-shell';
 import { toast } from '@/hooks/use-toast';
 import { getDashboardTimetableTerm } from '@/lib/offline/timetable-feed';
+import { recordAppDiagnostic } from '@/lib/utils/app-diagnostics';
 import { measureWorkspaceOperation } from '@/lib/startup/workspace-timing';
 import { isNavigationPending, subscribeNavigationWork } from '@/lib/navigation/navigation-work';
 
@@ -39,7 +39,6 @@ function PrepareCurrentTimetables() {
 /** Inert in the normal browser/PWA; Android reuses existing caches and query owners. */
 export function AndroidOfflineProvider() {
   const { user, isLoading, isLocked } = useAuth();
-  const client = useQueryClient();
   const [session, setSession] = useState<AndroidOfflineSession | null>(null);
   const generation = useRef(0);
   useEffect(() => {
@@ -50,15 +49,23 @@ export function AndroidOfflineProvider() {
     let refreshing = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
+    let lastConnectionAt = 0;
     const connect = async () => {
       if (refreshing || disposed || isAndroidOffline() || !user || isLocked || auth.currentUser?.uid !== user.id) return;
+      if (Date.now() - lastConnectionAt < 15 * 60 * 1000) return;
       refreshing = true;
       try {
         const token = await auth.currentUser.getIdToken();
         if (disposed || current !== generation.current || auth.currentUser?.uid !== user.id) return;
         const reply = await androidOfflineRequest('connect', { token });
-        if (!disposed && current === generation.current && reply.session?.accountId === user.id) { setSession(reply.session); attempts = 0; }
+        if (!disposed && current === generation.current && reply.session?.accountId === user.id) {
+          setSession(reply.session); attempts = 0;
+          lastConnectionAt = Date.now();
+          recordAppDiagnostic('offline_access_ready');
+          window.dispatchEvent(new Event('trinity-android-session-updated'));
+        }
       } catch (error) {
+        recordAppDiagnostic('offline_connect_failed');
         console.warn('Android offline access could not be prepared:', error instanceof Error ? error.message : 'Unavailable');
         if (!disposed) { if (retry) clearTimeout(retry); retry = setTimeout(() => void connect(), Math.min(60_000, 5_000 * 2 ** attempts++)); }
       }
@@ -72,9 +79,11 @@ export function AndroidOfflineProvider() {
       void connect();
     }
     const unsubscribeAuth = auth.onIdTokenChanged(() => void connect());
+    const onVisible = () => { if (document.visibilityState === 'visible') void connect(); };
+    document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('online', connect);
     window.addEventListener('trinity-android-connectivity', connect);
-    return () => { disposed = true; if (retry) clearTimeout(retry); unsubscribeAuth(); window.removeEventListener('online', connect); window.removeEventListener('trinity-android-connectivity', connect); };
+    return () => { disposed = true; if (retry) clearTimeout(retry); unsubscribeAuth(); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('online', connect); window.removeEventListener('trinity-android-connectivity', connect); };
   }, [user?.id, user?.role, user?.granularPermissions, user?.modulePermissions, isLoading, isLocked]);
 
   useEffect(() => {
@@ -83,13 +92,19 @@ export function AndroidOfflineProvider() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let running = false;
     let dirty = false;
-    let previous = '';
     const preparation = new AbortController();
+    let previous = '';
+    let lastExportAt = 0;
+    let retryAt = 0;
+    let failures = 0;
     const synchronize = async () => {
       if (disposed) return;
-      if (isNavigationPending()) { dirty = true; return; }
+      if (document.visibilityState === 'hidden' || isNavigationPending()) { dirty = true; return; }
       if (running) { dirty = true; return; }
       running = true;
+      dirty = false;
+      lastExportAt = Date.now();
+      const startedAt = performance.now();
       try {
         const snapshot = await measureWorkspaceOperation('android:snapshot-export', () => exportAndroidCachedSnapshot(session, preparation.signal));
         if (disposed || !snapshot || !isAndroidOfflineSnapshot(snapshot, session)) return;
@@ -99,26 +114,36 @@ export function AndroidOfflineProvider() {
         if (fingerprint === previous) return;
         await measureWorkspaceOperation('android:snapshot-save', () => androidOfflineRequest('save', { snapshot }));
         previous = fingerprint;
-      } catch (error) { if (!disposed && !preparation.signal.aborted) console.warn('Android saved-data refresh failed:', error instanceof Error ? error.message : 'Unavailable'); }
-      finally { running = false; if (dirty && !disposed && !isNavigationPending()) { dirty = false; schedule(); } }
+        failures = 0; retryAt = 0;
+        recordAppDiagnostic('offline_snapshot_saved', performance.now() - startedAt);
+        window.dispatchEvent(new Event('trinity-android-session-updated'));
+      } catch (error) {
+        if (disposed || preparation.signal.aborted) return;
+        recordAppDiagnostic('offline_snapshot_failed');
+        console.warn('Android saved-data refresh failed:', error instanceof Error ? error.message : 'Unavailable');
+        dirty = true;
+        retryAt = Date.now() + Math.min(60_000, 5000 * 2 ** Math.min(4, failures++));
+      }
+      finally { running = false; if (dirty && !disposed) { dirty = false; schedule(); } }
     };
-    const schedule = () => { if (timer) clearTimeout(timer); timer = setTimeout(() => void synchronize(), 600); };
-    const unsubscribeNavigation = subscribeNavigationWork(pending => {
-      if (pending) { clearTimeout(timer); dirty = true; }
-      else if (dirty && !disposed) { dirty = false; schedule(); }
-    });
-    const unsubscribe = client.getQueryCache().subscribe(event => {
-      if (event.type === 'updated' && event.action.type === 'success'
-        && isAndroidSavedDataQuery(event.query.queryKey, session)) schedule();
-    });
-    // A repository write may change a projected photo or occur in the same
-    // millisecond as the prior write. Do not deduplicate confirmed disk writes.
-    const persistedChange = () => { previous = ''; schedule(); };
-    const unsubscribeParent = subscribeToParentOfflineChanges(session.accountId, persistedChange);
-    window.addEventListener('trinity-native-cache-written', persistedChange);
+    // Coalesce cache changes without postponing forever during a busy query stream.
+    const schedule = () => {
+      dirty = true;
+      if (timer || running || document.visibilityState === 'hidden' || isNavigationPending()) return;
+      timer = setTimeout(() => { timer = undefined; void synchronize(); }, Math.max(1500, 15_000 - (Date.now() - lastExportAt), retryAt - Date.now()));
+    };
+    const onVisible = () => { if (document.visibilityState === 'visible' && dirty) schedule(); };
+    document.addEventListener('visibilitychange', onVisible);
+    const onCacheWritten = (event: Event) => {
+      const key = (event as CustomEvent<{ key?: string }>).detail?.key;
+      if (!key || /^(classes|academic-years|staff|subjects|timetable):/.test(key) || key.includes('::pupils::')) schedule();
+    };
+    const unsubscribeNavigation = subscribeNavigationWork(() => { if (!isNavigationPending() && dirty) schedule(); });
+    const unsubscribeParent = subscribeToParentOfflineChanges(session.accountId, schedule);
+    window.addEventListener('trinity-native-cache-written', onCacheWritten);
     schedule();
-    return () => { disposed = true; preparation.abort(); if (timer) clearTimeout(timer); unsubscribe(); unsubscribeNavigation(); unsubscribeParent(); window.removeEventListener('trinity-native-cache-written', persistedChange); };
-  }, [client, session, user?.id, isLocked]);
+    return () => { disposed = true; preparation.abort(); unsubscribeNavigation(); if (timer) clearTimeout(timer); unsubscribeParent(); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('trinity-native-cache-written', onCacheWritten); };
+  }, [session, user?.id, isLocked]);
 
   useEffect(() => {
     // HTML and immutable assets contain no private records; prepare them even
@@ -129,13 +154,13 @@ export function AndroidOfflineProvider() {
     const prepare = async () => {
       if (disposed || isAndroidOffline()) return;
       try { await measureWorkspaceOperation('android:app-shell-preparation', () => prepareAndroidAppShell(session)); }
-      catch { if (!disposed) retry = setTimeout(() => void prepare(), 15_000); }
+      catch { recordAppDiagnostic('offline_shell_failed'); if (!disposed) retry = setTimeout(() => void prepare(), 15_000); }
     };
     void prepare();
     window.addEventListener('online', prepare);
     window.addEventListener('trinity-service-worker-updated', prepare);
     return () => { disposed = true; if (retry) clearTimeout(retry); window.removeEventListener('online', prepare); window.removeEventListener('trinity-service-worker-updated', prepare); };
-  }, [session, isLocked]);
+  }, [session?.accountId, session?.role, session?.grants.dashboard, session?.grants.pupils, session?.grants.timetable]);
 
   useEffect(() => {
     if (!hasAndroidOfflineBridge() || !user) return;

@@ -8,7 +8,7 @@ let attached: Bridge | undefined;
 
 export function hasAndroidOfflineBridge() { return typeof window !== 'undefined' && Boolean(window.TrinityOffline); }
 
-export async function androidOfflineRequest(action: string, data: Record<string, unknown> = {}): Promise<Reply> {
+export async function androidOfflineRequest(action: string, data: Record<string, unknown> = {}, timeoutMs = 30_000): Promise<Reply> {
   const bridge = typeof window !== 'undefined' ? window.TrinityOffline : undefined;
   if (!bridge) throw new Error('Android offline access is unavailable.');
   if (attached !== bridge) {
@@ -26,7 +26,7 @@ export async function androidOfflineRequest(action: string, data: Record<string,
   }
   const id = crypto.randomUUID();
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => { pending.delete(id); reject(new Error('Android offline preparation timed out.')); }, 30_000);
+    const timer = setTimeout(() => { pending.delete(id); reject(new Error('Android offline preparation timed out.')); }, timeoutMs);
     pending.set(id, { resolve, reject, timer });
     try {
       const startedAt = performance.now();

@@ -25,14 +25,14 @@
     "websiteOrigin": "https://trinityfamilyschool.vercel.app",
     "firebaseProjectId": "trinity-family-schools",
     "iconUrl": "/trinity-logo-192.png",
-    "versionCode": 24,
-    "versionName": "1.22",
+    "versionCode": 25,
+    "versionName": "1.23",
     "minAndroid": "8.0",
     "filename": "trinity-live.apk",
-    "bytes": 4679181,
-    "sha256": "17f508e3339314b54264fb40acbe82204b80d662846b70baa85e873358d62609",
+    "bytes": 4684601,
+    "sha256": "3ce0a140e6a8b95072de1b825aa921962c596f086be711809fa33a7ebcc00bab",
     "signingCertificateSha256": "53:F5:25:7A:02:C4:B4:6C:33:47:E0:49:6F:67:36:55:1D:57:4F:44:91:56:44:D1:3C:02:79:22:BC:04:FC:08",
     "minSdk": 26,
-    "releaseNotes": "Native Android fingerprint, face and screen PIN privacy unlock, including offline. Adds Android passkey sign-in, verified school website association and preserves saved privacy preferences when updating."
+    "releaseNotes": "Improve session and offline recovery, reduce background cache work, recover interrupted Android pages, and add App help with private device-local bug reports."
   }
 ]

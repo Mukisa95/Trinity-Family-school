@@ -53,6 +53,8 @@ public final class MainActivity extends FragmentActivity {
     private OfflineController offline;
     private AppUpdater updater;
     private DeviceUnlock deviceUnlock;
+    private AppDiagnostics diagnostics;
+    private boolean loadErrorShown;
     private File exchange;
     private ValueCallback<Uri[]> fileCallback;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -73,10 +75,21 @@ public final class MainActivity extends FragmentActivity {
         android.widget.LinearLayout frame = new android.widget.LinearLayout(this);
         frame.setOrientation(android.widget.LinearLayout.VERTICAL);
         web = new WebView(this);
-        frame.addView(web, new android.widget.LinearLayout.LayoutParams(-1, 0, 1));
+        android.widget.FrameLayout browserFrame = new android.widget.FrameLayout(this);
+        browserFrame.addView(web, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        android.widget.Button help = new android.widget.Button(this);
+        help.setText("App help"); help.setContentDescription("Open app problem report"); help.setTextSize(12);
+        android.widget.FrameLayout.LayoutParams helpPosition = new android.widget.FrameLayout.LayoutParams(-2, -2, android.view.Gravity.BOTTOM | android.view.Gravity.END);
+        helpPosition.setMargins(8, 8, 8, 8); browserFrame.addView(help, helpPosition);
+        frame.addView(browserFrame, new android.widget.LinearLayout.LayoutParams(-1, 0, 1));
         setContentView(frame);
         deviceUnlock = new DeviceUnlock(this, web);
-        offline = new OfflineController(this, web, deviceUnlock);
+        diagnostics = new AppDiagnostics(this);
+        offline = new OfflineController(this, web, deviceUnlock, diagnostics);
+        help.setOnClickListener(view -> {
+            if (offline != null) offline.showDiagnostics();
+            else diagnostics.show(diagnostics.report(null, json("state", "renderer_stopped")), true);
+        });
         SystemBars.install(this, frame);
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true); settings.setDomStorageEnabled(true);
@@ -86,10 +99,35 @@ public final class MainActivity extends FragmentActivity {
             WebSettingsCompat.setWebAuthenticationSupport(settings, WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_APP);
         }
         web.setWebViewClient(new WebViewClient() {
-            @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+            @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
                 if (deviceUnlock != null) deviceUnlock.navigation();
+                loadErrorShown = false;
+                diagnostics.record("web_navigation_started", 0);
+            }
+            @Override public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
+                if (!request.isForMainFrame()) return;
+                diagnostics.record("web_load_error_" + Math.abs(error.getErrorCode()), 0);
+                showLoadError();
+            }
+            @Override public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse response) {
+                if (request.isForMainFrame()) diagnostics.record("web_http_" + response.getStatusCode(), 0);
+            }
+            @Override public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+                diagnostics.record(detail.didCrash() ? "web_renderer_crashed" : "web_renderer_killed", 0);
+                if (deviceUnlock != null) { deviceUnlock.destroy(); deviceUnlock = null; }
+                offline.destroy(); offline = null;
+                if (view.getParent() instanceof android.view.ViewGroup) ((android.view.ViewGroup) view.getParent()).removeView(view);
+                view.destroy(); web = null;
+                new android.app.AlertDialog.Builder(MainActivity.this).setTitle("App interrupted")
+                    .setMessage("Android stopped the page. Your saved sign-in data has been kept. Copy a problem report, then reopen the app.")
+                    .setPositiveButton("Reopen", (dialog, which) -> recreate())
+                    .setNeutralButton("App help", (dialog, which) -> diagnostics.show(diagnostics.report(null, json("state", "renderer_stopped")), true))
+                    .setCancelable(false).show();
+                return true;
             }
             @Override public void onPageFinished(WebView view, String url) {
+                if (offline == null) return;
+                diagnostics.record("web_navigation_finished", 0);
                 offline.publishConnectivity();
                 if (PhotoPolicy.trusted(url)) view.evaluateJavascript("(()=>{const send=()=>window.TrinityOffline?.postMessage(JSON.stringify({id:crypto.randomUUID(),action:'appearance',preference:localStorage.getItem('trinity-appearance')||'system',dark:document.documentElement.classList.contains('dark')}));window.__trinityBarsObserver?.disconnect();window.__trinityBarsObserver=new MutationObserver(send);window.__trinityBarsObserver.observe(document.documentElement,{attributes:true,attributeFilter:['class']});send();})()", null);
                 if (OfflinePolicy.local(url)) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
@@ -113,7 +151,8 @@ public final class MainActivity extends FragmentActivity {
                 return true;
             }
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                WebResourceResponse saved = offline.intercept(request);
+                OfflineController controller = offline;
+                WebResourceResponse saved = controller == null ? null : controller.intercept(request);
                 return saved != null ? saved : photoResponse(request);
             }
         });
@@ -305,7 +344,7 @@ public final class MainActivity extends FragmentActivity {
             reply.postMessage(message.toString());
         } catch (Exception ignored) { /* The original document may have closed. */ }
     }
-    @Override public void onBackPressed() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }
+    @Override public void onBackPressed() { if (web != null && web.canGoBack()) web.goBack(); else super.onBackPressed(); }
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent); setIntent(intent);
         String route=NativePush.tapRoute(this,intent); if(route!=null&&web!=null)web.loadUrl(route);
@@ -334,11 +373,21 @@ public final class MainActivity extends FragmentActivity {
         }
     }
 
-    @Override protected void onPause() { if (updater != null) updater.pause(); if (offline != null) offline.pause(); super.onPause(); }
-    @Override protected void onResume() { super.onResume(); if (offline != null) offline.resume(); if (updater != null) updater.resume(); }
+    private void showLoadError() {
+        if (loadErrorShown || isDestroyed() || isFinishing()) return;
+        loadErrorShown = true;
+        new android.app.AlertDialog.Builder(this).setTitle("Page could not open")
+            .setMessage("The page could not load. Your saved sign-in data has been kept. App help can identify the connection and offline preparation state.")
+            .setPositiveButton("Retry", (dialog, which) -> { if (web != null) web.reload(); })
+            .setNeutralButton("App help", (dialog, which) -> { if (offline != null) offline.showDiagnostics(); })
+            .setNegativeButton("Close", null).show();
+    }
+    @Override protected void onPause() { if (diagnostics != null) diagnostics.pause(); if (updater != null) updater.pause(); if (offline != null) offline.pause(); super.onPause(); }
+    @Override protected void onResume() { super.onResume(); if (diagnostics != null) diagnostics.resume(); if (offline != null) offline.resume(); if (updater != null) updater.resume(); }
     @Override protected void onDestroy() {
         if (deviceUnlock != null) deviceUnlock.destroy();
         if (updater != null) updater.destroy();
+        if (diagnostics != null) diagnostics.destroy();
         if (offline != null) offline.destroy();
         if (fileCallback != null) fileCallback.onReceiveValue(null);
         clearCapture(true); io.shutdownNow();

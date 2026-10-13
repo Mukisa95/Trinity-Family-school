@@ -26,6 +26,7 @@ import java.util.concurrent.Executors;
 final class OfflineController {
     private final Activity activity;
     private final WebView web;
+    private final AppDiagnostics diagnostics;
     private final OfflineStore store;
     private final DeviceUnlock deviceUnlock;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -35,12 +36,14 @@ final class OfflineController {
     private long unlockedAt;
     private volatile String role = "";
     private boolean unlockOpen;
+    private boolean preparingDiagnostics;
     private ConnectivityManager.NetworkCallback network;
     private android.content.BroadcastReceiver pushChanges, appearanceChanges;
     private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
     private final Runnable relock = this::lock;
-    OfflineController(Activity activity, WebView web, DeviceUnlock deviceUnlock) {
+    OfflineController(Activity activity, WebView web, DeviceUnlock deviceUnlock, AppDiagnostics diagnostics) {
         this.activity = activity; this.web = web; this.store = new OfflineStore(activity); this.deviceUnlock = deviceUnlock;
+        this.diagnostics = diagnostics;
         WebViewAssetLoader.AssetsPathHandler packaged = new WebViewAssetLoader.AssetsPathHandler(activity);
         assets = new WebViewAssetLoader.Builder().addPathHandler("/offline/", path -> packaged.handle("offline/" + path)).build();
         network = new ConnectivityManager.NetworkCallback() {
@@ -93,7 +96,7 @@ final class OfflineController {
         if (activity.isDestroyed() || !PhotoPolicy.trusted(web.getUrl())) return;
         boolean online = connected();
         web.getSettings().setCacheMode(online ? android.webkit.WebSettings.LOAD_DEFAULT : android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK);
-        web.evaluateJavascript("if(window.trinityAndroidConnected!==" + online + "){window.trinityAndroidConnected=" + online + ";window.dispatchEvent(new Event('trinity-android-connectivity'))}", null);
+        web.evaluateJavascript("window.trinityNativeDiagnostics=true;window.dispatchEvent(new Event('trinity-native-diagnostics'));if(window.trinityAndroidConnected!==" + online + "){window.trinityAndroidConnected=" + online + ";window.dispatchEvent(new Event('trinity-android-connectivity'))}", null);
     }
     private void reply(JavaScriptReplyProxy reply, String id, boolean success, String error, JSONObject data) {
         activity.runOnUiThread(() -> {
@@ -123,6 +126,11 @@ final class OfflineController {
             if (!PhotoPolicy.validId(id)) return;
         } catch (Exception ignored) { return; }
         String action = input.optString("action");
+        if ("recordDiagnostic".equals(action)) {
+            diagnostics.record(input.optString("code"), input.optLong("durationMs", 0));
+            return;
+        }
+        if ("diagnostics".equals(action)) { showDiagnostics(); reply(reply, id, true, null, null); return; }
         if ("notificationStatus".equals(action)) {
             try { reply(reply, id, true, null, NativePush.status(activity).put("appName", SchoolApp.NAME)
                 .put("notificationPermission", LessonReminders.notificationsAllowed(activity) ? "granted" : "denied")); }
@@ -200,14 +208,14 @@ final class OfflineController {
                     case "save": store.save(input.getJSONObject("snapshot")); TimetableUpdates.refresh(activity, store); break;
                     case "clear": store.clear(); role = ""; TimetableUpdates.clear(activity); break;
                     case "status":
-                        JSONObject available = store.available();
-                        output.put("available", available != null);
-                        if (available != null) output.put("session", available.getJSONObject("session"));
+                        // Access and snapshot preparation are different states.
+                        output = OfflineStore.accessStatus(store.read());
                         break;
                     default: throw new IllegalArgumentException("Unsupported offline action.");
                 }
                 reply(reply, id, true, null, output);
             } catch (Exception error) {
+                diagnostics.record("offline_" + action + "_failed", 0);
                 reply(reply, id, false, error.getMessage() == null ? "Offline access is unavailable." : error.getMessage(), null);
             }
         });
@@ -219,6 +227,7 @@ final class OfflineController {
         connection.setRequestProperty("Authorization", "Bearer " + token); connection.setRequestProperty("Accept", "application/json");
         try {
             int status = connection.getResponseCode();
+            if (status != 200) diagnostics.record("offline_session_http_" + status, 0);
             if (status == 401 || status == 403) { store.clear(); TimetableUpdates.clear(activity); throw new IllegalStateException("Sign in again to continue."); }
             if (status != 200) throw new IllegalStateException("Offline preparation is temporarily unavailable.");
             try (InputStream input = connection.getInputStream(); ByteArrayOutputStream bytes = new ByteArrayOutputStream()) {
@@ -229,6 +238,30 @@ final class OfflineController {
         } finally { connection.disconnect(); }
     }
     private boolean unlocked() { return unlockedAt > 0 && SystemClock.elapsedRealtime() - unlockedAt < 300_000L; }
+    void showDiagnostics() {
+        if (preparingDiagnostics) return;
+        preparingDiagnostics = true;
+        // A slow session HTTP request on the preparation queue must not delay help.
+        new Thread(() -> {
+            JSONObject status = new JSONObject();
+            try {
+                JSONObject saved = store.read();
+                JSONObject session = saved == null ? null : saved.optJSONObject("session");
+                status.put("state", OfflineStore.accessStatus(saved).getString("state"));
+                if (session != null) status.put("expiresAt", session.optString("expiresAt"));
+                JSONObject snapshot = saved == null ? null : saved.optJSONObject("snapshot");
+                if (snapshot != null) {
+                    status.put("capturedAt", snapshot.optString("capturedAt"));
+                    JSONObject data = snapshot.optJSONObject("datasets"), present = new JSONObject();
+                    for (String name : new String[]{"pupils", "classes", "academicYears", "dashboard", "timetables", "subjects", "teachers", "parent"})
+                        present.put(name, data != null && data.has(name));
+                    status.put("datasets", present);
+                }
+            } catch (Exception ignored) { try { status.put("state", "storage_unreadable"); } catch (Exception ignoredAgain) { } }
+            String report = diagnostics.report(connected(), status);
+            activity.runOnUiThread(() -> { preparingDiagnostics = false; diagnostics.show(report); });
+        }, "school-app-report").start();
+    }
     private void requestNotifications() {
         if (activity.isDestroyed() || android.os.Build.VERSION.SDK_INT < 33 || !TimetableSurfaces.prefs(activity).getBoolean("card", true)) return;
         android.content.SharedPreferences settings = activity.getSharedPreferences("offline-ui", Context.MODE_PRIVATE);

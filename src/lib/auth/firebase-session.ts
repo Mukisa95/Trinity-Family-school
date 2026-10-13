@@ -1,4 +1,5 @@
 import { auth } from '@/lib/firebase';
+import { isDefinitiveSessionError } from './session-error-policy';
 
 export type AppSessionValidation =
   | {
@@ -13,20 +14,6 @@ export type AppSessionValidation =
       status: 'invalid';
       message: string;
     };
-
-const TRANSIENT_AUTH_CODES = new Set([
-  'auth/network-request-failed',
-  'auth/quota-exceeded',
-  'auth/too-many-requests',
-  'auth/internal-error',
-  'auth/timeout',
-]);
-
-function getAuthErrorCode(error: unknown): string {
-  if (!error || typeof error !== 'object') return '';
-  const code = (error as { code?: unknown }).code;
-  return typeof code === 'string' ? code : '';
-}
 
 /**
  * Validates the signed Firebase session without reading Firestore.
@@ -67,7 +54,7 @@ export async function validateCurrentAppSession(
         : undefined,
     };
   } catch (error) {
-    if (TRANSIENT_AUTH_CODES.has(getAuthErrorCode(error))) {
+    if (!isDefinitiveSessionError(error)) {
       return {
         status: 'unavailable',
         message: 'The live session check is waiting for a stable connection. Your current session remains available.',

@@ -6,6 +6,7 @@ import {
 } from 'firebase/auth';
 import type { SystemUser } from '@/types';
 import { auth } from '@/lib/firebase';
+import { recordAppDiagnostic } from '@/lib/utils/app-diagnostics';
 import { requirePersistentSession } from '@/lib/auth/persistent-session';
 
 export type SecureAuthErrorCode =
@@ -89,9 +90,9 @@ export class SecureAuthService {
       // Both backends survive an Android process restart or APK update.
       // If neither works, report failure instead of accepting a temporary login.
       await requirePersistentSession(
-        () => setPersistence(auth, browserLocalPersistence),
-        () => setPersistence(auth, indexedDBLocalPersistence),
-      ).catch(() => { throw new SecureAuthError(
+        async () => { await setPersistence(auth, browserLocalPersistence); recordAppDiagnostic('auth_persistence_localstorage'); },
+        async () => { await setPersistence(auth, indexedDBLocalPersistence); recordAppDiagnostic('auth_persistence_indexeddb'); },
+      ).catch(() => { recordAppDiagnostic('auth_persistence_failed'); throw new SecureAuthError(
         'secure-session-failed',
         'This device could not save your sign-in. Check that app storage is available, then try again.',
       ); });
