@@ -15,7 +15,8 @@ public final class TimetableSettingsActivity extends Activity {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private OfflineStore store; private JSONObject datasets; private String accountId = "";
     private int widgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
-    private LinearLayout content; private Switch progress, notificationCard;
+    private LinearLayout content; private Switch progress, notificationCard, events, eventReminders;
+    private boolean eventsAllowed;
     private final List<String> tableIds = new ArrayList<>();
     private final Map<String, CheckBox> visibility = new LinkedHashMap<>(); private Set<String> hidden;
     private TextView message, timing; private Button apply;
@@ -33,14 +34,15 @@ public final class TimetableSettingsActivity extends Activity {
         ScrollView scroll = new ScrollView(this); content = new LinearLayout(this); content.setOrientation(LinearLayout.VERTICAL);
         int inset = dp(20); SystemBars.install(this, scroll); SystemBars.apply(this, scroll, dark);
         content.setPadding(inset, inset, inset, inset); scroll.addView(content); setContentView(scroll);
-        TextView title = label(widgetId == AppWidgetManager.INVALID_APPWIDGET_ID ? "Timetable card" : "Timetable widget"); title.setTextSize(26);
-        label(widgetId == AppWidgetManager.INVALID_APPWIDGET_ID ? "Choose timetables for the notification card and widgets using the default selection." : "Choose timetables for this widget.");
+        TextView title = label(widgetId == AppWidgetManager.INVALID_APPWIDGET_ID ? "Timetables & events" : "Timetables & events widget"); title.setTextSize(26);
+        label(widgetId == AppWidgetManager.INVALID_APPWIDGET_ID ? "Choose timetables for the notification card and widgets using the default selection." : "Choose schedules for this widget.");
         button("Lesson reminder settings").setOnClickListener(view -> startActivity(new Intent(this, LessonReminderSettingsActivity.class)));
-        message = label("Loading timetable…");
+        message = label("Loading schedules…");
         io.execute(() -> {
             try {
                 JSONObject envelope = store.timetableAvailable();
-                if (envelope == null || !envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable")) throw new IllegalStateException("Open " + SchoolApp.NAME + " and sign in online to load your timetable.");
+                if (envelope == null || !TimetableSurfaces.authorized(envelope)) throw new IllegalStateException("Open " + SchoolApp.NAME + " and sign in online to load your timetable.");
+                eventsAllowed=envelope.getJSONObject("session").getJSONObject("grants").optBoolean("events");
                 datasets = envelope.getJSONObject("snapshot").getJSONObject("datasets");
                 accountId = envelope.getJSONObject("session").getString("accountId"); hidden = TimetableSurfaces.hidden(this, widgetId);
                 runOnUiThread(() -> { if (!isDestroyed()) form(); });
@@ -57,7 +59,7 @@ public final class TimetableSettingsActivity extends Activity {
         try {
             JSONObject saved = datasets.optJSONObject("timetables"); JSONArray tables = saved == null ? null : saved.optJSONArray("data"); List<String> names = new ArrayList<>();
             if (tables != null) for (int i = 0; i < tables.length(); i++) { JSONObject row = tables.getJSONObject(i); if (!row.optBoolean("complete")) continue; tableIds.add(row.getJSONObject("profile").getString("id")); names.add(row.getJSONObject("profile").optString("name", "Timetable")); }
-            if (tableIds.isEmpty()) { message.setText("Connect and open the timetable page to load the class schedules."); Button open = button("Open timetable"); open.setOnClickListener(view -> { startActivity(new Intent(this, MainActivity.class).putExtra("onlineRoute", PhotoPolicy.ORIGIN + "/timetable")); finish(); }); return; }
+            if (tableIds.isEmpty() && !eventsAllowed) { message.setText("Connect and open the timetable page to load the class schedules."); Button open = button("Open timetable"); open.setOnClickListener(view -> { startActivity(new Intent(this, MainActivity.class).putExtra("onlineRoute", PhotoPolicy.ORIGIN + "/timetable")); finish(); }); return; }
             message.setVisibility(View.GONE);
             label("Timetables to show");
             for (int i = 0; i < tableIds.size(); i++) {
@@ -74,6 +76,15 @@ public final class TimetableSettingsActivity extends Activity {
                 notificationCard = new Switch(this); notificationCard.setText("Show notification card"); notificationCard.setMinHeight(dp(48));
                 notificationCard.setChecked(TimetableSurfaces.prefs(this).getBoolean("card", true)); content.addView(notificationCard);
             }
+            if (eventsAllowed) {
+                events=new Switch(this); events.setText("Show all upcoming events"); events.setMinHeight(dp(48));
+                events.setChecked(TimetableSurfaces.showEvents(this,widgetId)); content.addView(events);
+                label("Even when off, events appear from the day before they start until they end. Scroll through events and timetables.");
+                if(widgetId==AppWidgetManager.INVALID_APPWIDGET_ID) {
+                    eventReminders=new Switch(this); eventReminders.setText("Event reminders: one day before and at the start"); eventReminders.setMinHeight(dp(48));
+                    eventReminders.setChecked(TimetableSurfaces.prefs(this).getBoolean("eventReminders",false)); content.addView(eventReminders);
+                } else button("Event notification settings").setOnClickListener(view -> startActivity(new Intent(this,TimetableSettingsActivity.class)));
+            }
             progress = new Switch(this); progress.setText("Show lesson progress"); progress.setMinHeight(dp(48));
             android.appwidget.AppWidgetProviderInfo info = AppWidgetManager.getInstance(this).getAppWidgetInfo(widgetId);
             boolean defaultProgress = widgetId == AppWidgetManager.INVALID_APPWIDGET_ID || (info != null && TimetableProgressWidget.class.getName().equals(info.provider.getClassName()));
@@ -86,13 +97,15 @@ public final class TimetableSettingsActivity extends Activity {
     }
     private void apply() {
         try {
-            if (notificationCard != null && notificationCard.isChecked() && android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            if (((notificationCard != null && notificationCard.isChecked()) || (eventReminders != null && eventReminders.isChecked())) && android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 73); return;
             }
             JSONObject selected = new JSONObject();
             Set<String> chosenHidden = new HashSet<>(hidden);
             for (Map.Entry<String, CheckBox> choice : visibility.entrySet()) { if (choice.getValue().isChecked()) chosenHidden.remove(choice.getKey()); else chosenHidden.add(choice.getKey()); }
             selected.put("accountId", accountId).put("hiddenTables", new JSONArray(chosenHidden));
+            if(events!=null) selected.put("events",events.isChecked());
+            if(eventReminders!=null) selected.put("eventReminders",eventReminders.isChecked());
             if (progress != null) selected.put("progress", progress.isChecked());
             if (notificationCard != null) selected.put("notificationCard", notificationCard.isChecked());
             apply.setEnabled(false); message.setVisibility(View.VISIBLE); message.setText("Updating…");

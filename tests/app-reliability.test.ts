@@ -23,17 +23,37 @@ test('the actual signed-session validator preserves outage access and rejects mi
       builder.onResolve({ filter: /^@\/lib\/firebase$/ }, () => ({ path: 'identity', namespace: 'fixture' }));
       builder.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({ contents: 'export const auth = fixture;', loader: 'js' }));
     } }] });
-  const fixture: { currentUser: any } = { currentUser: null };
+  const fixture: { currentUser: any; authStateReady: () => Promise<void> } = { currentUser: null, authStateReady: async () => {} };
   const module = { exports: {} as any };
   new Function('module', 'exports', 'fixture', result.outputFiles[0].text)(module, module.exports, fixture);
   const validate = module.exports.validateCurrentAppSession;
-  assert.equal((await validate('fixture-user')).status, 'invalid');
+  const missing = await validate('fixture-user');
+  assert.equal(missing.status, 'invalid');
+  assert.equal(missing.reason, 'identity-missing');
+  // Reproduce a cold start: the profile is available before Firebase's stored
+  // identity. The old validator returned invalid immediately at this point.
+  let completeRestore!: () => void;
+  fixture.authStateReady = () => new Promise<void>(resolve => { completeRestore = resolve; });
+  let settled = false;
+  const restoring = validate('fixture-user', true).then((value: any) => { settled = true; return value; });
+  await Promise.resolve();
+  assert.equal(settled, false);
+  fixture.currentUser = { uid: 'fixture-user', isAnonymous: false, getIdTokenResult: async () => ({ claims: { appUser: true, isActive: true, role: 'Staff' } }) };
+  completeRestore();
+  assert.deepEqual(await restoring, { status: 'valid', role: 'Staff' });
+  fixture.authStateReady = async () => { throw new Error('fixture restoration failure'); };
+  const delayed = await validate('fixture-user');
+  assert.equal(delayed.status, 'unavailable');
+  assert.equal(delayed.reason, 'identity-restore-failed');
+  fixture.authStateReady = async () => {};
   fixture.currentUser = { uid: 'different-user', isAnonymous: false };
   assert.equal((await validate('fixture-user')).status, 'invalid');
   fixture.currentUser = { uid: 'fixture-user', isAnonymous: false, getIdTokenResult: async () => { throw { code: 'auth/internal-error' }; } };
   assert.equal((await validate('fixture-user', true)).status, 'unavailable');
   fixture.currentUser.getIdTokenResult = async () => { throw { code: 'auth/user-disabled' }; };
-  assert.equal((await validate('fixture-user', true)).status, 'invalid');
+  const disabled = await validate('fixture-user', true);
+  assert.equal(disabled.status, 'invalid');
+  assert.equal(disabled.reason, 'auth/user-disabled');
   fixture.currentUser.getIdTokenResult = async () => ({ claims: { appUser: true, isActive: false } });
   assert.equal((await validate('fixture-user')).status, 'invalid');
   fixture.currentUser.getIdTokenResult = async (force: boolean) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAndroidOfflineStatus } from './use-android-offline-status';
 import { useMemo } from 'react';
 import {
   collection,
@@ -312,6 +313,7 @@ function writeCachedEvents(
 
 // Get all events with proper error handling
 export function useEvents(filters?: EventFilters) {
+  const androidOffline = useAndroidOfflineStatus();
   const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuth();
   const revisionsQuery = useDashboardDataRevisions();
@@ -338,7 +340,7 @@ export function useEvents(filters?: EventFilters) {
     // A warm calendar paints without a read. A genuinely cold calendar may
     // fetch before revisions arrive so settings-listener trouble cannot freeze
     // the page; a later non-zero revision will reconcile through a new key.
-    enabled: !!scope && cachePolicy.shouldFetch,
+    enabled: !!scope && cachePolicy.shouldFetch && !androidOffline,
     queryFn: async () => {
       const currentCache = getCachedEvents(queryClient, scope);
       if (!cachePolicy.shouldFetch && currentCache !== undefined) {
@@ -749,6 +751,7 @@ export function useExamEvents() {
 
 // Get all exams and convert them to events (for testing)
 export function useExamsAsEvents(options?: { enabled?: boolean }) {
+  const androidOffline = useAndroidOfflineStatus();
   const { user, isAuthenticated } = useAuth();
   const examsQuery = useExams();
   const { data: academicYears = [], isLoading: yearsLoading } = useAcademicYears();
@@ -784,6 +787,7 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
     ],
     enabled:
       (options?.enabled ?? true) &&
+      !androidOffline &&
       !!scope &&
       !eventsQuery.isLoading &&
       !yearsLoading &&

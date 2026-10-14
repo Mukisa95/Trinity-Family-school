@@ -7,6 +7,9 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
 import { EventClickArg, DateSelectArg, EventDropArg } from '@fullcalendar/core';
+import { useAndroidOfflineStatus } from '@/lib/hooks/use-android-offline-status';
+import { toast } from '@/hooks/use-toast';
+import { hasAndroidOfflineBridge, androidOfflineRequest } from '@/lib/offline/android-bridge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -63,6 +66,7 @@ export function CalendarWrapper({
   height = 'auto'
 }: CalendarWrapperProps) {
   const { user } = useAuth();
+  const offline = useAndroidOfflineStatus();
   const { data: activeAcademicYear } = useActiveAcademicYear();
 
   // State management
@@ -83,7 +87,9 @@ export function CalendarWrapper({
   const calendarRef = useRef<FullCalendar>(null);
 
   // Hooks
-  const { data: events = [], error: eventsError } = useEvents(filters);
+  const eventsQuery = useEvents(filters);
+  const events = eventsQuery.data || [];
+  const eventsError = eventsQuery.error;
   const createEventMutation = useCreateEvent();
   const updateEventMutation = useUpdateEvent();
   const deleteEventMutation = useDeleteEvent();
@@ -391,6 +397,7 @@ export function CalendarWrapper({
 
   return (
     <div className={`min-h-screen ${className}`}>
+      {offline && eventsQuery.data === undefined && <p role="status" className="p-4 text-muted-foreground">Connect once to download your calendar events for offline viewing.</p>}
       {/* Modern Error State */}
       {eventsError && (
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -450,6 +457,7 @@ export function CalendarWrapper({
             }
             actions={
               <GlassActionDock>
+                {hasAndroidOfflineBridge() && <GlassActionButton label="Widgets & reminders" icon={<CalendarIcon className="h-4 w-4" />} onClick={() => void androidOfflineRequest('openTimetableSettings').catch(error => toast({title:'Widgets & reminders',description:error instanceof Error ? error.message : 'Reopen the app to change reminders.'}))} />}
                 <GlassActionButton
                   label="Month"
                   icon={<CalendarDays className="h-4 w-4" />}
@@ -795,8 +803,8 @@ export function CalendarWrapper({
                           initialDate={currentDate}
                           height={height}
                           events={calendarEvents}
-                          editable={true}
-                          selectable={true}
+                          editable={!offline}
+                          selectable={!offline}
                           selectMirror={true}
                           dayMaxEvents={isCompactView ? 2 : true}
                           dayMaxEventRows={isCompactView ? 2 : undefined}

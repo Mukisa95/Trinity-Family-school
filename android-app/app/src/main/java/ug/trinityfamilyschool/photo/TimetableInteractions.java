@@ -24,7 +24,7 @@ final class TimetableInteractions {
     }
     static void apply(Context context, OfflineStore store, Intent intent) throws Exception {
         JSONObject envelope = store.timetableAvailable();
-        if (envelope == null || !envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable")) return;
+        if (envelope == null || !TimetableSurfaces.authorized(envelope)) return;
         JSONObject session = envelope.getJSONObject("session");
         if (!session.optString("accountId").equals(intent.getStringExtra("accountId"))) return;
         int scope = intent.getIntExtra("surfaceId", AppWidgetManager.INVALID_APPWIDGET_ID);
@@ -36,6 +36,12 @@ final class TimetableInteractions {
         TimetableSchedule.Frame feed = TimetableSurfaces.feed(context, envelope, scope, now);
         TimetableSchedule.Frame row = null;
         for (TimetableSchedule.Frame candidate : feed.profiles) if (candidate.profileId.equals(intent.getStringExtra("profileId"))) row = candidate;
+        if ("EVENT".equals(intent.getStringExtra("operation")) && session.getJSONObject("grants").optBoolean("events")) {
+            for(TimetableSchedule.Frame event:feed.profiles) if(!event.eventId.isEmpty() && event.eventId.equals(intent.getStringExtra("eventId"))) {
+                context.startActivity(new Intent(context,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("onlineRoute",PhotoPolicy.ORIGIN+"/events")); return;
+            }
+            return;
+        }
         if (row == null || !row.hasPeriod) return;
         String action = intent.getStringExtra("operation");
         SharedPreferences.Editor edit = TimetableSurfaces.prefs(context).edit();

@@ -1,5 +1,5 @@
 import { auth } from '@/lib/firebase';
-import { isDefinitiveSessionError } from './session-error-policy';
+import { isDefinitiveSessionError, sessionErrorCode } from './session-error-policy';
 
 export type AppSessionValidation =
   | {
@@ -9,10 +9,12 @@ export type AppSessionValidation =
   | {
       status: 'unavailable';
       message: string;
+      reason: string;
     }
   | {
       status: 'invalid';
       message: string;
+      reason: string;
     };
 
 /**
@@ -26,11 +28,19 @@ export async function validateCurrentAppSession(
   expectedUserId: string,
   forceRefresh = false,
 ): Promise<AppSessionValidation> {
+  // A restored profile paints before Firebase finishes reading its persisted
+  // identity. A null currentUser during that read is not a revoked session.
+  try { await auth.authStateReady(); }
+  catch {
+    return { status: 'unavailable', reason: 'identity-restore-failed',
+      message: 'Your saved sign-in is still being restored. Please try again shortly.' };
+  }
   const firebaseUser = auth.currentUser;
 
   if (!firebaseUser || firebaseUser.isAnonymous || firebaseUser.uid !== expectedUserId) {
     return {
       status: 'invalid',
+      reason: !firebaseUser ? 'identity-missing' : firebaseUser.isAnonymous ? 'anonymous-identity' : 'identity-mismatch',
       message: 'Your secure session is no longer available. Please sign in again.',
     };
   }
@@ -43,6 +53,7 @@ export async function validateCurrentAppSession(
     ) {
       return {
         status: 'invalid',
+        reason: 'inactive-claims',
         message: 'Your access has been changed or disabled. Please sign in again.',
       };
     }
@@ -57,12 +68,14 @@ export async function validateCurrentAppSession(
     if (!isDefinitiveSessionError(error)) {
       return {
         status: 'unavailable',
+        reason: sessionErrorCode(error),
         message: 'The live session check is waiting for a stable connection. Your current session remains available.',
       };
     }
 
     return {
       status: 'invalid',
+      reason: sessionErrorCode(error),
       message: 'Your session was revoked, disabled, or expired. Please sign in again.',
     };
   }

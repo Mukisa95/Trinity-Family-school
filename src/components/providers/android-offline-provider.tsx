@@ -10,6 +10,7 @@ import { isAndroidOfflineSnapshot, type AndroidOfflineSession } from '@/lib/offl
 import { subscribeToParentOfflineChanges } from '@/lib/parent-offline/repository';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { useTimetableEntries, useTimetablePeriods, useTimetableProfiles } from '@/lib/hooks/use-timetable';
+import { useEvents, useExamsAsEvents } from '@/lib/hooks/use-events-fixed';
 import { useClasses } from '@/lib/hooks/use-classes';
 import { useSubjects } from '@/lib/hooks/use-subjects';
 import { useStaff } from '@/lib/hooks/use-staff';
@@ -36,6 +37,8 @@ function PrepareCurrentTimetables() {
   const { year, term } = getDashboardTimetableTerm(years);
   return year && term ? <PrepareTerm yearId={year.id} termId={term.id} /> : null;
 }
+
+function PrepareEvents() { useEvents(); useExamsAsEvents(); useAcademicYears(); return null; }
 
 /** Inert in the normal browser/PWA; Android reuses existing caches and query owners. */
 export function AndroidOfflineProvider() {
@@ -97,13 +100,19 @@ export function AndroidOfflineProvider() {
       if (disposed) return;
       const startedAt = performance.now();
       const capturedGeneration = sourceGeneration;
+      const exportAt = performance.now();
       const snapshot = await measureWorkspaceOperation('android:snapshot-export', () => exportAndroidCachedSnapshot(session, preparation.signal));
+      if (performance.now() - exportAt >= 2000) recordAppDiagnostic('offline_snapshot_export_slow', performance.now() - exportAt);
       if (disposed || !snapshot || !isAndroidOfflineSnapshot(snapshot, session)) return;
       if (isNavigationPending() || document.visibilityState === 'hidden') { scheduler.request(); return; }
       // copiedAt is not a data change; avoid repeated full snapshot bridge writes.
+      const revisionAt = performance.now();
       const fingerprint = await measureWorkspaceOperation('android:snapshot-revision', () => androidSnapshotRevision(snapshot));
+      if (performance.now() - revisionAt >= 2000) recordAppDiagnostic('offline_snapshot_revision_slow', performance.now() - revisionAt);
       if (fingerprint === previous) return;
+      const bridgeAt = performance.now();
       await measureWorkspaceOperation('android:snapshot-save', () => androidOfflineRequest('save', { snapshot }));
+      if (performance.now() - bridgeAt >= 2000) recordAppDiagnostic('offline_snapshot_bridge_slow', performance.now() - bridgeAt);
       // A disk write during export/save must survive even if timestamps match.
       previous = capturedGeneration === sourceGeneration ? fingerprint : '';
       recordAppDiagnostic('offline_snapshot_saved', performance.now() - startedAt);
@@ -149,12 +158,12 @@ export function AndroidOfflineProvider() {
     window.addEventListener('online', prepare);
     window.addEventListener('trinity-service-worker-updated', prepare);
     return () => { disposed = true; if (retry) clearTimeout(retry); window.removeEventListener('online', prepare); window.removeEventListener('trinity-service-worker-updated', prepare); };
-  }, [session?.accountId, session?.role, session?.grants.dashboard, session?.grants.pupils, session?.grants.timetable]);
+  }, [session?.accountId, session?.role, session?.grants.dashboard, session?.grants.pupils, session?.grants.timetable, session?.grants.events]);
 
   useEffect(() => {
     if (!hasAndroidOfflineBridge() || !user) return;
     return installAndroidOfflineNavigation(user.role, () => toast({ title: 'Connection needed', description: 'Connect to open this section or make changes.' }));
   }, [user?.id, user?.role]);
 
-  return session?.grants.timetable && !isLocked ? <PrepareCurrentTimetables /> : null;
+  return !isLocked ? <>{session?.grants.timetable && <PrepareCurrentTimetables />}{session?.grants.events && <PrepareEvents />}</> : null;
 }

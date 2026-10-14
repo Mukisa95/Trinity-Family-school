@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { readWorkspaceSetup, retryWorkspaceTasks, workspaceSetupMarker, workspaceSetupScope } from '@/lib/startup/workspace-setup';
+import { canDownloadWorkspaceRecords } from '@/lib/startup/workspace-connectivity';
 
 export function useFirstWorkspaceSetup({ enabled, userId, role, accessReady = false, awaitPersonalization = false }: { enabled: boolean; userId?: string; role?: string; accessReady?: boolean; awaitPersonalization?: boolean }) {
   const client = useQueryClient();
@@ -20,7 +21,7 @@ export function useFirstWorkspaceSetup({ enabled, userId, role, accessReady = fa
   const recoveringScope = useRef('');
   const [recovering, setRecovering] = useState('');
   const retry = useCallback(async () => {
-    if (!enabled || !scope || !role || !navigator.onLine || recoveringScope.current === scope) return;
+    if (!enabled || !scope || !role || !canDownloadWorkspaceRecords() || recoveringScope.current === scope) return;
     recoveringScope.current = scope;
     setRecovering(scope);
     try { await retryWorkspaceTasks(client, scope, role); }
@@ -40,10 +41,11 @@ export function useFirstWorkspaceSetup({ enabled, userId, role, accessReady = fa
     setSession({ scope, phase: saved ? 'complete' : 'loading' });
     if (saved) return;
     setSlow(false);
-    const connection = () => { setOnline(navigator.onLine); if (navigator.onLine) void retry(); };
-    setOnline(navigator.onLine);
+    const connection = () => { const connected = canDownloadWorkspaceRecords(); setOnline(connected); if (connected) void retry(); };
+    setOnline(canDownloadWorkspaceRecords());
     window.addEventListener('online', connection);
     window.addEventListener('offline', connection);
+    window.addEventListener('trinity-android-connectivity', connection);
     let completionTimer: ReturnType<typeof setTimeout> | undefined;
     let fadeTimer: ReturnType<typeof setTimeout> | undefined;
     let finished = false;
@@ -57,10 +59,10 @@ export function useFirstWorkspaceSetup({ enabled, userId, role, accessReady = fa
       const next = readWorkspaceSetup(client, scope, role);
       const scopedProgress = { scope, ...next };
       setProgress(previous => JSON.stringify(previous) === JSON.stringify(scopedProgress) ? previous : scopedProgress);
-      if (next.failed && navigator.onLine && recoveryAttempts < 3 && !recoveryTimer) {
+      if (next.failed && canDownloadWorkspaceRecords() && recoveryAttempts < 3 && !recoveryTimer) {
         recoveryTimer = setTimeout(() => {
           recoveryTimer = undefined;
-          if (navigator.onLine && readWorkspaceSetup(client, scope, role).failed) {
+          if (canDownloadWorkspaceRecords() && readWorkspaceSetup(client, scope, role).failed) {
             recoveryAttempts += 1;
             void retry().then(update);
           }
@@ -92,6 +94,7 @@ export function useFirstWorkspaceSetup({ enabled, userId, role, accessReady = fa
       unsubscribe();
       clearTimeout(updateTimer); clearTimeout(completionTimer); clearTimeout(fadeTimer); clearTimeout(slowTimer); clearTimeout(recoveryTimer);
       window.removeEventListener('online', connection); window.removeEventListener('offline', connection);
+      window.removeEventListener('trinity-android-connectivity', connection);
     };
   }, [accessReady, client, enabled, personalized, retry, role, scope]);
 

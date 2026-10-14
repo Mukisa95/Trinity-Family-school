@@ -5,9 +5,10 @@ import type { AndroidOfflineSession, AndroidOfflineSnapshot } from './android-co
 export function isAndroidSavedDataQuery(key: QueryKey, session: AndroidOfflineSession): boolean {
   if (session.role === 'Parent') return false;
   const root = String(key[0] || '');
+  if (root === 'events' || root === 'legacy-exam-events' || root === 'exams-as-events') return !!session.grants.events;
   if (root === 'pupils') return session.grants.pupils || session.grants.dashboard;
   if (['classes', 'academicYears', 'academic-years'].includes(root)) {
-    return session.grants.pupils || session.grants.dashboard || session.grants.timetable;
+    return session.grants.pupils || session.grants.dashboard || session.grants.timetable || !!session.grants.events;
   }
   if (root === 'staff') return session.grants.dashboard || session.grants.timetable;
   return ['subjects', 'timetable', 'timetables'].includes(root) && session.grants.timetable;
@@ -22,6 +23,8 @@ export function isAndroidSavedCacheKey(key: unknown, session: AndroidOfflineSess
   for (const root of ['classes', 'academic-years', 'staff', 'subjects']) {
     if (key === `${root}:${scope}`) return isAndroidSavedDataQuery([root], session);
   }
+  const eventScope = session.grants.eventCacheScope || [projectId, session.accountId, session.role, 'school'].map(encodeURIComponent).join(':');
+  if (session.grants.events && (key === `events:${eventScope}` || key === `legacy-exam-events:${eventScope}`)) return true;
   const timetableScope = [projectId, session.accountId, session.role, 'school'].map(encodeURIComponent).join(':');
   return key.startsWith(`timetable:${encodeURIComponent(timetableScope)}:`) && session.grants.timetable;
 }

@@ -296,6 +296,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
           if (!restorationRecorded) {
             restorationRecorded = true;
+            recordAppDiagnostic(firebaseUser && !firebaseUser.isAnonymous ? 'auth_identity_restored' : 'auth_restore_no_identity');
             measureWorkspaceStep(firebaseUser && !firebaseUser.isAnonymous ? 'identity:restored-signed' : 'identity:restored-without-session', restorationStarted);
           }
           const currentGeneration = ++authGeneration;
@@ -580,9 +581,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (validationInFlight.current) return true;
     validationInFlight.current = true;
-    const checkedIdentity = auth.currentUser;
+    let checkedIdentity = auth.currentUser;
     let validation;
-    try { validation = await validateCurrentAppSession(user.id, forceRefresh); }
+    try {
+      await auth.authStateReady();
+      checkedIdentity = auth.currentUser;
+      // A session switched while restoration was pending belongs to its new owner.
+      if (checkedIdentity && checkedIdentity.uid !== user.id) return false;
+      validation = await validateCurrentAppSession(user.id, forceRefresh);
+    }
+    catch {
+      recordAppDiagnostic('auth_restore_delayed');
+      return true;
+    }
     finally { validationInFlight.current = false; }
     if (auth.currentUser !== checkedIdentity) return false;
     setLastSessionValidationAt(Date.now());
@@ -600,6 +611,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (validation.status === 'unavailable') {
       recordAppDiagnostic('auth_revalidation_delayed');
+      recordAppDiagnostic(`auth_validation_reason/${validation.reason}`);
       // A network interruption must not turn a privacy lock into a lockout.
       // Live Firestore operations remain governed by the signed token/rules.
       setSessionStatus('degraded');
@@ -609,6 +621,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     logger.info('Signed session is no longer valid', { userId: user.id });
     recordAppDiagnostic('auth_revalidation_invalid');
+    recordAppDiagnostic(`auth_validation_reason/${validation.reason}`);
     clearPrivateParentOfflineData(user.id);
     setUser(null);
     setHasStoredUser(false);
@@ -762,6 +775,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined' || !user) return;
 
     const validateIfDue = () => {
+      // The initial token listener owns startup verification. Focus/visibility
+      // checks begin after it resolves, so they cannot race Firebase restoration.
+      if (sessionStatus === 'checking') return;
       const age = Date.now() - lastSessionValidationAt;
       if (age < SESSION_VALIDATION_INTERVAL_MS) return;
       void revalidateSignedSession(true);
@@ -785,7 +801,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.clearInterval(validationTimer);
     };
-  }, [user, lastSessionValidationAt]);
+  }, [user, lastSessionValidationAt, sessionStatus]);
 
   const canAccessModule = (module: string): boolean => {
     if (!user) return false;

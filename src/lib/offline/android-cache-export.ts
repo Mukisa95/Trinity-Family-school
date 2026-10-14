@@ -1,5 +1,6 @@
 import type { AndroidOfflineDataset, AndroidOfflineSession, AndroidOfflineSnapshot, AndroidOfflineTimetable } from './android-contracts';
 import { projectOfflinePupil } from './android-contracts';
+import { readEventCache, readLegacyExamEventCache, getEventCacheKey, getLegacyExamEventCacheKey, getEventCacheScope } from '@/lib/cache/event-cache';
 import { readParentOfflineBundle } from '@/lib/parent-offline/repository';
 import type { Pupil } from '@/types';
 import { persistentCollectionCacheKey, readPersistentCollectionWithMetadata } from '@/lib/cache/persistent-collection-cache';
@@ -48,7 +49,7 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
       await measureWorkspaceOperation('android:record-projection', () => projectAndroidRecords(pupils.data, pupil => projectOfflinePupil(pupil as unknown as Record<string, unknown>, session), signal)), signal),
     preparedAt: new Date(pupils.writtenAt).toISOString(),
   };
-  if (session.grants.pupils || session.grants.timetable || session.grants.dashboard) {
+  if (session.grants.pupils || session.grants.timetable || session.grants.dashboard || session.grants.events) {
     if (classes) result.datasets.classes = saved(classes.data.map(item => fields(item, ['id', 'name', 'code', 'level', 'order', 'streams'])), classes.revision, `classes:${scope}`);
     if (years) result.datasets.academicYears = saved(years.data.map(item => fields(item, ['id', 'name', 'startDate', 'endDate', 'terms', 'isActive'])), years.revision, `academic-years:${scope}`);
   }
@@ -61,6 +62,17 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
         pupils?.writtenAt || 0, liteReadMetadata(`staff:${getStaffCacheScope(session.accountId, session.role)}`)?.writtenAt || 0,
       )).toISOString(),
     };
+  }
+  if (session.grants.events) {
+    const eventScope = session.grants.eventCacheScope || getEventCacheScope(session.accountId, session.role as import('@/types').UserRole);
+    const events = readEventCache(eventScope);
+    const legacy = readLegacyExamEventCache(eventScope);
+    if (events) {
+      const ids = new Set(events.data.map(event => event.linkedExamId).filter(Boolean));
+      const rows = [...events.data, ...(legacy?.data || []).filter(event => !ids.has(event.linkedExamId))];
+      const projected = rows.map(event => fields(event, ['id', 'title', 'description', 'type', 'priority', 'status', 'startDate', 'endDate', 'startTime', 'endTime', 'isAllDay', 'location', 'sendReminders', 'requiresApproval', 'approvalStatus', 'approvedBy', 'isExamEvent', 'academicYearId', 'termId', 'classIds', 'subjectIds', 'colorCode'])) as unknown as import('@/types').Event[];
+      result.datasets.events = {data: projected, revision: events.revision, preparedAt: new Date(Math.max(liteReadMetadata(getEventCacheKey(eventScope))?.writtenAt || 0, liteReadMetadata(getLegacyExamEventCacheKey(eventScope))?.writtenAt || 0)).toISOString()};
+    }
   }
   if (session.grants.timetable) {
     if (subjects) result.datasets.subjects = saved(subjects.data.map(item => fields(item, ['id', 'name', 'code'])), subjects.revision, `subjects:${scope}`);

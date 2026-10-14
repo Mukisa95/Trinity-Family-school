@@ -37,12 +37,12 @@ final class TimetableRefresh {
             || manager.getAppWidgetIds(new ComponentName(context, TimetableProgressWidget.class)).length > 0;
     }
     private static boolean active(Context context) {
-        return TimetableSurfaces.prefs(context).contains("account") && (TimetableSurfaces.prefs(context).getBoolean("card", true) || hasWidgets(context));
+        return TimetableSurfaces.prefs(context).contains("account") && (TimetableSurfaces.prefs(context).getBoolean("card", true) || TimetableSurfaces.prefs(context).getBoolean("eventReminders",false) || hasWidgets(context));
     }
     static void request(Context context) {
         if (!queued.compareAndSet(false, true)) return;
         Context application = context.getApplicationContext();
-        io.execute(() -> { try { TimetableSurfaces.refresh(application, new OfflineStore(application)); } finally { queued.set(false); } });
+        io.execute(() -> { try { TimetableUpdates.refresh(application, new OfflineStore(application)); } finally { queued.set(false); } });
     }
     static PendingIntent alarm(Context context, boolean visual) {
         return PendingIntent.getBroadcast(context, visual ? 74 : 72,

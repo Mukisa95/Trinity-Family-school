@@ -11,13 +11,13 @@ export function isAndroidOffline() {
 export function isAndroidOfflineRoute(path: string, role?: string) {
   return role === 'Parent'
     ? ['/parent', '/parent/settings'].includes(path)
-    : ['/', '/pupils', '/pupil-detail', '/timetable'].includes(path);
+    : ['/', '/pupils', '/pupil-detail', '/timetable', '/events'].includes(path);
 }
 
 export function canOpenAndroidOfflineRoute(path: string, session: AndroidOfflineSession) {
   if (!isAndroidOfflineRoute(path, session.role)) return false;
   if (session.role === 'Parent') return true;
-  return path === '/' ? session.grants.dashboard : path === '/timetable' ? session.grants.timetable : session.grants.pupils;
+  return path === '/events' ? !!session.grants.events : path === '/' ? session.grants.dashboard : path === '/timetable' ? session.grants.timetable : session.grants.pupils;
 }
 
 /** Save original Next pages; never copy data or credentials into HTML caches. */
@@ -27,7 +27,7 @@ export async function prepareAndroidAppShell(session: AndroidOfflineSession) {
   const worker = (await navigator.serviceWorker.ready).active;
   if (!worker) throw new Error('The interface is still preparing.');
   const routes = ['/login', ...(session.grants.dashboard ? ['/'] : []),
-    ...(session.grants.pupils ? ['/pupils', '/pupil-detail'] : []), ...(session.grants.timetable ? ['/timetable'] : [])];
+    ...(session.grants.pupils ? ['/pupils', '/pupil-detail'] : []), ...(session.grants.timetable ? ['/timetable'] : []), ...(session.grants.events ? ['/events'] : [])];
   const assetUrls = performance.getEntriesByType('resource').map(entry => entry.name).filter(value => {
     const url = new URL(value, location.origin);
     return url.origin === location.origin && url.pathname.startsWith('/_next/static/');

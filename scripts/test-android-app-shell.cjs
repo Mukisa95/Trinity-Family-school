@@ -12,7 +12,7 @@ async function buildBoundary() {
   await require('esbuild').build({ jsx:'automatic', absWorkingDir:root, stdin:{contents:`import React from 'react'; import {createRoot} from 'react-dom/client'; import {AndroidOfflineBoundary} from './src/components/common/android-offline-boundary'; const node=document.createElement('div'); document.body.append(node); const root=createRoot(node); window.renderBoundary=()=>root.render(<AndroidOfflineBoundary><div id="original-content"><input aria-label="Search pupils" defaultValue="retained search"/><button onClick={()=>window.edits++}>Edit pupil</button></div></AndroidOfflineBoundary>); window.renderBoundary();`,resolveDir:root,loader:'tsx'}, bundle:true,platform:'browser', alias:{'@':path.join(root,'src')},outfile:path.join(output,'boundary.js'),plugins:[{name:'fixture-auth',setup(build){build.onResolve({filter:/^@\/lib\/contexts\/auth-context$/},args=>({path:args.path,namespace:'fixture'}));build.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:"export function useAuth(){return {user:window.fixtureUser}}",loader:'js'}));}}]});
 }
 const html = route => `<!DOCTYPE html><html><head><link rel="stylesheet" href="/_next/static/style-fixture.css"></head><body><header>Original school header</header><nav><a href="/">Dashboard</a><a href="/timetable">Timetables</a><a href="/pupil-detail?id=child-1">Pupil details</a><a href="/finance">Finance</a></nav><main data-route="${route}">Original ${route} interface</main><script src="/_next/static/runtime-fixture.js"></script></body></html>`;
-const session = { schema: 1, accountId: 'fixture', role: 'Admin', expiresAt: new Date(Date.now()+86400000).toISOString(), grants: { dashboard: true, pupils: true, timetable: true } };
+const session = { schema: 1, accountId: 'fixture', role: 'Admin', expiresAt: new Date(Date.now()+86400000).toISOString(), grants: { dashboard: true, pupils: true, timetable: true, events: true } };
 (async () => {
  await buildBoundary();
  let requests = [], failPages = false;
@@ -42,7 +42,7 @@ const session = { schema: 1, accountId: 'fixture', role: 'Admin', expiresAt: new
    await page.reload(); assert.equal(await page.locator('body').innerText(), online); assert.equal(await page.evaluate(() => originalRuntime), true);
    assert.equal(await page.locator('header').evaluate(el => getComputedStyle(el).height), '64px');
    await page.close(); page = await context.newPage();
-   for (const route of ['/timetable', '/pupils', '/pupil-detail?id=child-1']) {
+   for (const route of ['/events', '/timetable', '/pupils', '/pupil-detail?id=child-1']) {
      await page.goto(url+route); assert.equal(await page.locator('main').getAttribute('data-route'), route.split('?')[0]);
      assert.equal(await page.evaluate(() => originalRuntime), true);
    }

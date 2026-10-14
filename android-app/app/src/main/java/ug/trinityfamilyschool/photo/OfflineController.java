@@ -225,6 +225,7 @@ final class OfflineController {
         HttpURLConnection connection = (HttpURLConnection) new URL(PhotoPolicy.ORIGIN + "/api/offline/session").openConnection();
         connection.setInstanceFollowRedirects(false); connection.setConnectTimeout(12000); connection.setReadTimeout(12000);
         connection.setRequestProperty("Authorization", "Bearer " + token); connection.setRequestProperty("Accept", "application/json");
+        connection.setRequestProperty("X-Trinity-Offline-Features", "events");
         try {
             int status = connection.getResponseCode();
             if (status != 200) diagnostics.record("offline_session_http_" + status, 0);

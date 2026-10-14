@@ -25,14 +25,14 @@
     "websiteOrigin": "https://trinityfamilyschool.vercel.app",
     "firebaseProjectId": "trinity-family-schools",
     "iconUrl": "/trinity-logo-192.png",
-    "versionCode": 25,
-    "versionName": "1.23",
+    "versionCode": 26,
+    "versionName": "1.24",
     "minAndroid": "8.0",
     "filename": "trinity-live.apk",
-    "bytes": 4684601,
-    "sha256": "3ce0a140e6a8b95072de1b825aa921962c596f086be711809fa33a7ebcc00bab",
+    "bytes": 4691229,
+    "sha256": "b33b155330441ae07c2cd1790e71aa77148ef6136bf9f4965743e0bb58f74bcb",
     "signingCertificateSha256": "53:F5:25:7A:02:C4:B4:6C:33:47:E0:49:6F:67:36:55:1D:57:4F:44:91:56:44:D1:3C:02:79:22:BC:04:FC:08",
     "minSdk": 26,
-    "releaseNotes": "Improve session and offline recovery, reduce background cache work, recover interrupted Android pages, and add App help with private device-local bug reports."
+    "releaseNotes": "Offline calendar and events, scrollable widget event cards and event reminders. Hide offline downloads and preserve sessions during startup restoration."
   }
 ]
