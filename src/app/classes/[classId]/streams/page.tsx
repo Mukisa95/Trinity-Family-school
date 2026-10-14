@@ -21,7 +21,7 @@ import { applyPupilChangesToQueryCaches, usePupils } from '@/lib/hooks/use-pupil
 import { classesKeys } from '@/lib/hooks/use-classes';
 import { useActiveAcademicYear } from '@/lib/hooks/use-academic-years';
 import { useToast } from '@/hooks/use-toast';
-import { reconcileStreamDraftAssignments } from '@/lib/utils/class-stream-draft';
+import { reconcileStreamDraft } from '@/lib/utils/class-stream-draft';
 import { getPupilClassDisplay } from '@/lib/utils/class-streams';
 import type { Class, ClassStream, ClassStreamConfiguration } from '@/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -77,9 +77,6 @@ export default function ClassStreamSetupPage() {
     key: '', activeStreamIds: [] as string[], assignments: {} as Record<string, string>, focusStreamId: '', editedPupilIds: [] as string[],
   });
   const { activeStreamIds, assignments, focusStreamId } = draft;
-  const setActiveStreamIds = (value: React.SetStateAction<string[]>) => setDraft(current => ({
-    ...current, activeStreamIds: typeof value === 'function' ? value(current.activeStreamIds) : value,
-  }));
   const setAssignments = (value: React.SetStateAction<Record<string, string>>) => setDraft(current => {
     const next = typeof value === 'function' ? value(current.assignments) : value;
     const changed = Object.keys(next).filter(id => next[id] !== current.assignments[id]);
@@ -119,7 +116,7 @@ export default function ClassStreamSetupPage() {
   );
 
   React.useEffect(() => {
-    if (!schoolClass || !activeAcademicYear || pupilsLoading) return;
+    if (!schoolClass || !activeAcademicYear || pupilsLoading || !definitions.length) return;
     const key = `${schoolClass.id}:${activeAcademicYear.id}:${currentConfiguration?.version || 0}`;
     if (initialisedForRef.current === key) return;
     initialisedForRef.current = key;
@@ -131,7 +128,7 @@ export default function ClassStreamSetupPage() {
     // mount effect must never clear saved choices using an empty initial ID list.
     setDraft({ key, activeStreamIds: initialActiveIds, editedPupilIds: [],
       focusStreamId: initialActiveIds[1] || initialActiveIds[0] || '',
-      assignments: reconcileStreamDraftAssignments({}, activePupils, initialActiveIds, schoolClass.id, activeAcademicYear.id),
+      assignments: reconcileStreamDraft(activePupils, initialActiveIds, {}, schoolClass.id, activeAcademicYear.id),
     });
   }, [activeAcademicYear, activePupils, currentConfiguration, definitions, pupilsLoading, schoolClass]);
 
@@ -148,8 +145,7 @@ export default function ClassStreamSetupPage() {
     if (draft.key !== key) return;
     setDraft(current => {
       if (current.key !== key) return current;
-      const edited = Object.fromEntries(current.editedPupilIds.map(id => [id, current.assignments[id]]));
-      const next = reconcileStreamDraftAssignments(edited, activePupils, current.activeStreamIds, schoolClass.id, activeAcademicYear.id);
+      const next = reconcileStreamDraft(activePupils, current.activeStreamIds, current.assignments, schoolClass.id, activeAcademicYear.id, new Set(current.editedPupilIds));
       const focus = current.activeStreamIds.includes(current.focusStreamId) ? current.focusStreamId
         : current.activeStreamIds[1] || current.activeStreamIds[0] || '';
       if (JSON.stringify(next) === JSON.stringify(current.assignments) && focus === current.focusStreamId) return current;
@@ -180,9 +176,12 @@ export default function ClassStreamSetupPage() {
 
   const toggleActiveStream = (streamId: string, checked: boolean) => {
     setErrors([]);
-    setActiveStreamIds(current => checked
-      ? [...current, streamId]
-      : current.length === 1 ? current : current.filter(id => id !== streamId));
+    setDraft(current => ({
+      ...current,
+      editedPupilIds: [...new Set([...current.editedPupilIds, ...activePupils.map(pupil => pupil.id)])],
+      activeStreamIds: checked ? [...current.activeStreamIds, streamId]
+        : current.activeStreamIds.length === 1 ? current.activeStreamIds : current.activeStreamIds.filter(id => id !== streamId),
+    }));
   };
 
   const toggleTwoStreamPupil = (pupilId: string, checked: boolean) => {

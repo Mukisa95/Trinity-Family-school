@@ -116,9 +116,9 @@ export function ClassExamsCard({
                 return (
                   <Link key={exam.id}
                     href={'/exams/' + encodeURIComponent(exam.id) + '/view-results?classId=' + encodeURIComponent(classId || exam.classId)}
-                    className="group block min-w-0 rounded-xl border border-border bg-background px-3 py-3 transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                    <h3 className="break-words text-base font-semibold leading-6 text-foreground group-hover:text-link">{exam.name}</h3>
-                    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-5 text-muted-foreground">
+                    className="group block min-w-0 rounded-xl border border-border bg-background px-3 py-2.5 transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                    <h3 className="break-words text-[0.875rem] font-semibold leading-5 text-foreground group-hover:text-link">{exam.name}</h3>
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem] leading-5 text-muted-foreground">
                       {hasDate ? <time dateTime={date.toISOString()}>{dateLabel}</time> : dateLabel}
                       {showTerm && <><span aria-hidden="true">·</span><span>{term?.name || 'Term not set'}</span></>}
                     </p>
