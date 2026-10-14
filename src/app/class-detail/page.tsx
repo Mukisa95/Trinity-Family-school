@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { DetailItem } from '@/components/common/detail-item';
 import { useClassDetail } from '@/lib/hooks/use-class-detail';
 import { useExamsByClass } from '@/lib/hooks/use-exams';
+import { ClassExamsCard } from '@/components/class/class-exams-card';
 import { useActiveAcademicYear, useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { useTerms } from '@/lib/hooks/use-terms';
 import { useStaff } from '@/lib/hooks/use-staff';
@@ -574,7 +575,6 @@ function ClassDetailContent() {
 
   // State for exam loading
   const [shouldLoadExams, setShouldLoadExams] = React.useState(false);
-  const [showExamsDropdown, setShowExamsDropdown] = React.useState(false);
 
   // State for subjects loading
   const [shouldLoadSubjects, setShouldLoadSubjects] = React.useState(false);
@@ -734,7 +734,7 @@ function ClassDetailContent() {
   // Track if photos are still loading
   const photosLoading = isLoadingPhotos || isFetchingPhotos;
 
-  const { data: classExams = [], isLoading: examsLoading } = useExamsByClass(classId || '', { enabled: shouldLoadExams });
+  const { data: classExams = [], isLoading: examsLoading, error: examsError, refetch: refetchExams } = useExamsByClass(classId || '', { enabled: shouldLoadExams });
   const { data: classSubjects = [], isLoading: subjectsLoading } = useSubjectsByClass(classId || '', { enabled: shouldLoadSubjects });
   // Reuse activeAcademicYear and allAcademicYears from above (lines 590-591)
   const academicYears = allAcademicYears;
@@ -752,17 +752,6 @@ function ClassDetailContent() {
       });
     }
   }, [activeAcademicYear]);
-
-  // Filter exams based on selected filters
-  const filteredExams = React.useMemo(() => {
-    if (!shouldLoadExams) return [];
-
-    return classExams.filter(exam => {
-      const matchesYear = !examFilters.academicYearId || exam.academicYearId === examFilters.academicYearId;
-      const matchesTerm = !examFilters.termId || exam.termId === examFilters.termId;
-      return matchesYear && matchesTerm;
-    });
-  }, [classExams, examFilters, shouldLoadExams]);
 
   // Enhance subjects with teacher names
   const subjectsWithTeacherNames = React.useMemo(() => {
@@ -787,7 +776,8 @@ function ClassDetailContent() {
   const handleExamFilterChange = (field: 'academicYearId' | 'termId', value: string) => {
     setExamFilters(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
+      ...(field === 'academicYearId' ? { termId: 'all' } : {}),
     }));
   };
 
@@ -1385,103 +1375,20 @@ function ClassDetailContent() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:h-[calc(100vh-12rem)]">
-        {/* Left Column: Basic Class Info / Exams / Subjects */}
+      <div className={cn(
+        "grid grid-cols-1 items-start gap-6",
+        (shouldLoadExams || shouldLoadSubjects) && "lg:grid-cols-[minmax(20rem,1fr)_minmax(0,2fr)] xl:grid-cols-[minmax(22rem,1fr)_minmax(0,2fr)] 2xl:grid-cols-[minmax(24rem,1fr)_minmax(0,2fr)]"
+      )}>
         {(shouldLoadExams || shouldLoadSubjects) && (
-          <div className="lg:col-span-1 space-y-3 lg:space-y-6 lg:overflow-y-auto lg:pr-2 animate-in slide-in-from-left duration-300">
+          <div className="min-w-0 space-y-4">
+            {shouldLoadExams && (
+              <ClassExamsCard classId={classId || ''} exams={classExams} academicYears={academicYears} terms={terms}
+                filters={examFilters} onFilterChange={handleExamFilterChange} isLoading={examsLoading}
+                error={examsError} onRetry={() => { void refetchExams(); }} />
+            )}
+            {shouldLoadSubjects && (
             <Card className="shadow-xl border-2 border-primary/10 bg-gradient-to-br from-card via-card to-muted/5 rounded-2xl overflow-hidden backdrop-blur-sm">
               <CardContent className="space-y-4 text-xs lg:text-sm p-4 sm:p-6">
-                {/* Exams List */}
-                {shouldLoadExams && (
-                  <div>
-                    <div className="text-xs font-semibold text-muted-foreground mb-3 flex items-center gap-1.5 uppercase tracking-wider">
-                      <Calendar className="h-3.5 w-3.5 text-link" />
-                      Class Exams
-                    </div>
-                    {examsLoading ? (
-                      <div className="text-center py-4">
-                        <Loader2 className="h-4 w-4 animate-spin text-link mx-auto" />
-                        <div className="text-xs text-muted-foreground mt-2">Loading exams...</div>
-                      </div>
-                    ) : (
-                      <>
-                        {/* Academic Year and Term filters - always visible when exams loaded */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="space-y-1 flex-1">
-                            <Label className="text-xs font-medium text-muted-foreground">Academic Year</Label>
-                            <Select
-                              value={examFilters.academicYearId}
-                              onValueChange={(value) => handleExamFilterChange('academicYearId', value)}
-                              disabled={academicYears.length === 0}
-                            >
-                              <SelectTrigger className="h-8 text-xs rounded-xl border-2 border-primary/20 focus:border-primary/50 shadow-sm bg-gradient-to-br from-background to-muted/10">
-                                <SelectValue placeholder="Select Year" />
-                              </SelectTrigger>
-                              <SelectContent position="popper" className="max-h-[200px] overflow-y-auto rounded-xl border-2">
-                                <SelectItem value="all">All Academic Years</SelectItem>
-                                {academicYears.map(year => (
-                                  <SelectItem key={year.id} value={year.id}>
-                                    {year.name}{year.isActive ? ' (Active)' : ''}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-1 flex-1">
-                            <Label className="text-xs font-medium text-muted-foreground">Term</Label>
-                            <Select
-                              value={examFilters.termId}
-                              onValueChange={(value) => handleExamFilterChange('termId', value)}
-                              disabled={terms.length === 0}
-                            >
-                              <SelectTrigger className="h-8 text-xs rounded-xl border-2 border-primary/20 focus:border-primary/50 shadow-sm bg-gradient-to-br from-background to-muted/10">
-                                <SelectValue placeholder="Select Term" />
-                              </SelectTrigger>
-                              <SelectContent position="popper" className="max-h-[200px] overflow-y-auto rounded-xl border-2">
-                                <SelectItem value="all">All Terms</SelectItem>
-                                {terms
-                                  .filter(term => !examFilters.academicYearId || examFilters.academicYearId === 'all' || term.academicYearId === examFilters.academicYearId)
-                                  .map(term => (
-                                    <SelectItem key={term.id} value={term.id}>
-                                      {term.name}{term.isCurrent ? ' (Current)' : ''}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        {filteredExams.length > 0 ? (
-                          <div className="space-y-2 max-h-60 lg:max-h-80 overflow-y-auto pr-1">
-                            {filteredExams.map((exam) => (
-                              <Link
-                                key={exam.id}
-                                href={`/exams/${exam.id}`}
-                                className="block p-3 border-2 border-primary/10 rounded-xl hover:border-primary/30 hover:shadow-md transition-all duration-200 bg-gradient-to-br from-card to-muted/5 group/exam"
-                              >
-                                <div className="font-semibold text-foreground text-xs group-hover/exam:text-link transition-colors">{exam.name}</div>
-                                <div className="text-[10px] text-muted-foreground mt-1">
-                                  {exam.startDate ? new Date(exam.startDate).toLocaleDateString() : 'No date set'}
-                                </div>
-                              </Link>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-xs text-muted-foreground text-center py-4 bg-muted/20 rounded-xl border border-dashed">
-                            No exams found for the selected filters.
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Divider if both shown */}
-                {shouldLoadExams && shouldLoadSubjects && (
-                  <div className="border-t border-border/50 my-2" />
-                )}
-
                 {/* Subjects List */}
                 {shouldLoadSubjects && (
                   <div>
@@ -1517,14 +1424,12 @@ function ClassDetailContent() {
                 )}
               </CardContent>
             </Card>
+            )}
           </div>
         )}
 
-        {/* Right Column: Pupils List */}
-        <div className={cn(
-          "space-y-3 lg:space-y-6 lg:overflow-y-auto",
-          (shouldLoadExams || shouldLoadSubjects) ? "lg:col-span-3" : "lg:col-span-4"
-        )}>
+        {/* Pupils stay beside the exam column on large screens. */}
+        <div role="region" aria-label="Class pupils" className="min-w-0 space-y-3 lg:space-y-6 lg:overflow-y-auto">
           <Card className="shadow-xl border-2 border-primary/10 bg-gradient-to-br from-card via-card to-muted/5 rounded-2xl overflow-hidden backdrop-blur-sm">
             <CardContent className="p-0">
               {pupilsInClass.length === 0 && allPupilsLoading ? (
