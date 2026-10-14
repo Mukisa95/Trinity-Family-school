@@ -90,7 +90,7 @@ function SearchResultStatusControl({
   }
 
   return (
-    <div className="flex w-6 flex-none flex-col items-center gap-1 pt-0.5">
+    <div className="flex flex-none items-center gap-1">
       <span
         className={`flex items-center justify-center rounded-full p-0.5 ${statusBg}`}
         title={pupil.status || 'Unknown'}
@@ -104,7 +104,7 @@ function SearchResultStatusControl({
           aria-expanded={expanded}
           aria-controls={controlsId}
           aria-label={`${expanded ? 'Hide' : 'Show'} ${siblingCount} sibling${siblingCount === 1 ? '' : 's'} of ${formatPupilDisplayName(pupil)}`}
-          title={`${expanded ? 'Hide' : 'Show'} siblings`}
+          title={`${expanded ? 'Hide' : 'Show'} ${siblingCount} sibling${siblingCount === 1 ? '' : 's'}`}
           onPointerUp={(event) => event.stopPropagation()}
           onClick={(event) => {
             event.stopPropagation();
@@ -112,12 +112,7 @@ function SearchResultStatusControl({
           }}
           className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition-colors hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
         >
-          <CaretDown
-            aria-hidden="true"
-            size={11}
-            weight="bold"
-            className={`transition-transform duration-200 motion-reduce:transition-none ${expanded ? '' : '-rotate-90'}`}
-          />
+          <span aria-hidden="true" className="text-[10px] font-bold tabular-nums">{siblingCount}</span>
         </button>
       )}
     </div>
@@ -187,12 +182,12 @@ function SearchFamilyBranch({
                     className="flex min-w-0 flex-1 items-center gap-2 rounded px-0.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
                   >
                     <UserCircle aria-hidden="true" size={16} weight="duotone" className="flex-none text-emerald-600 dark:text-emerald-400" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs font-semibold text-gray-800 dark:text-slate-100">
+                    <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                      <span title={formatPupilDisplayName(sibling)} className="min-w-0 flex-1 truncate text-xs font-semibold text-gray-800 dark:text-slate-100">
                         {formatPupilDisplayName(sibling)}
                       </span>
-                      <span className="block truncate text-[10px] text-gray-500 dark:text-slate-400">
-                        {classDisplay} • {sibling.admissionNumber || 'No admission number'}
+                      <span className="flex-none whitespace-nowrap text-[10px] text-gray-500 dark:text-slate-400">
+                        {classDisplay}
                       </span>
                     </span>
                     <span className={`flex-none rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${sibling.status === 'Active'
@@ -935,8 +930,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                   }}
                                   className="cursor-pointer select-none border-b px-3 py-2.5 hover:bg-brand-surface-50 active:bg-brand-surface-100 dark:hover:bg-brand-surface-950/40 dark:active:bg-brand-surface-950/40"
                                 >
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex min-w-0 flex-1 items-start gap-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex min-w-0 flex-1 items-center gap-2">
                                       <SearchResultStatusControl
                                         pupil={pupil}
                                         siblingCount={siblings.length}
@@ -945,11 +940,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                         onToggle={() => setExpandedSearchPupilId(current => current === pupil.id ? null : pupil.id)}
                                       />
                                       <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-medium text-gray-900 dark:text-slate-100">
+                                        <p title={formatPupilDisplayName(pupil)} className="truncate text-sm font-medium text-gray-900 dark:text-slate-100">
                                           {formatPupilDisplayName(pupil)}
-                                        </p>
-                                        <p className="truncate text-[10px] text-gray-500 dark:text-slate-400">
-                                          {pupil.admissionNumber}
                                         </p>
                                       </div>
                                     </div>
@@ -1315,8 +1307,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                     onClick={() => handlePupilSelect(pupil.id)}
                                     className="cursor-pointer border-b px-3 py-2 transition-all duration-200 hover:bg-brand-surface-50/80 dark:hover:bg-brand-surface-950/80"
                                   >
-                                    <div className="flex items-start justify-between">
-                                      <div className="mr-2 flex min-w-0 flex-1 items-start gap-2">
+                                    <div className="flex items-center justify-between">
+                                      <div className="mr-2 flex min-w-0 flex-1 items-center gap-2">
                                         <SearchResultStatusControl
                                           pupil={pupil}
                                           siblingCount={siblings.length}
@@ -1324,21 +1316,15 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                           controlsId={familyControlsId}
                                           onToggle={() => setExpandedSearchPupilId(current => current === pupil.id ? null : pupil.id)}
                                         />
-                                        <div className="min-w-0 flex-1">
-                                          <p className="break-words text-sm font-medium text-gray-900 dark:text-slate-100">
+                                        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                                          <p title={formatPupilDisplayName(pupil)} className="min-w-0 flex-1 truncate text-sm font-medium text-gray-900 dark:text-slate-100">
                                             {formatPupilDisplayName(pupil)}
                                           </p>
-                                          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                                            <span className="text-xs text-gray-500 dark:text-slate-400">
-                                              {pupil.admissionNumber}
+                                          {pupil.status === 'Graduated' && pupil.graduationYear && (
+                                            <span className="flex-none rounded-full border border-gray-100 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+                                              {pupil.graduationYear}
                                             </span>
-
-                                            {pupil.status === 'Graduated' && pupil.graduationYear && (
-                                              <span className="rounded-full border border-gray-100 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-                                                {pupil.graduationYear}
-                                              </span>
-                                            )}
-                                          </div>
+                                          )}
                                         </div>
                                       </div>
                                       <div className="flex flex-shrink-0 items-center gap-2">
