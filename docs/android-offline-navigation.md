@@ -26,6 +26,8 @@ either source reports offline.
   same-page plain links, retained document/header, cold offline launch, native
   offline signal with browser online, no periodic offline probes, unsupported or
   missing routes, mismatched build and online recovery.
+- `node --test tests/android-route-response.test.cjs`: long UTF-8 metadata and
+  binary Flight records, including records without a newline before the root.
 - `node scripts/test-android-app-shell.cjs`: original HTML/assets and styles,
   cold launch, 503 fallback, older shell preservation, blocked writes,
   account/grant isolation, and legacy parent browser launches.

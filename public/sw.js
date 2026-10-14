@@ -50,15 +50,45 @@ async function androidShellMatch(request) {
 function androidRouteRequest(path, build) {
   return new Request(new URL(`/__trinity_saved_route/${encodeURIComponent(build)}/${encodeURIComponent(path)}`, self.location.origin));
 }
+function androidRouteBuildFromBytes(bytes) {
+  // Flight has both newline-delimited records and length-prefixed binary/text
+  // records. Long metadata strings have no trailing newline; skip their UTF-8
+  // byte length before looking for the root record (React/Next 15 protocol).
+  const decoder = new TextDecoder();
+  let cursor = 0;
+  while (cursor < bytes.length) {
+    const colon = bytes.indexOf(58, cursor);
+    if (colon < 0) break;
+    const id = decoder.decode(bytes.subarray(cursor, colon));
+    // Resource hints can omit the numeric ID (for example :HL[...]).
+    if (!/^[0-9a-f]*$/.test(id)) break;
+    cursor = colon + 1;
+    if ('TAOoUSsLlGgMmV'.includes(String.fromCharCode(bytes[cursor]))) {
+      const comma = bytes.indexOf(44, ++cursor);
+      if (comma < 0) break;
+      const length = decoder.decode(bytes.subarray(cursor, comma));
+      if (!/^[0-9a-f]+$/.test(length)) break;
+      cursor = comma + 1 + parseInt(length, 16);
+      if (!Number.isSafeInteger(cursor) || cursor > bytes.length) break;
+    } else {
+      const end = bytes.indexOf(10, cursor);
+      if (end < 0) break;
+      if (id === '0' && bytes[cursor] === 123) {
+        const build = JSON.parse(decoder.decode(bytes.subarray(cursor, end))).b;
+        if (typeof build === 'string' && build && build.length <= 200) return build;
+        break;
+      }
+      cursor = end + 1;
+    }
+  }
+  throw new Error('The page interface version is unavailable.');
+}
 async function saveAndroidRoute(cache, url) {
   const response = await fetch(new Request(new URL(url.pathname, self.location.origin), {
     credentials: 'omit', headers: { RSC: '1' }, cache: 'no-store',
   }));
   if (!response.ok || response.redirected || !response.headers.get('Content-Type')?.includes('text/x-component')) throw new Error('Page navigation is still preparing.');
-  const text = await response.clone().text();
-  const root = text.split('\n').find(line => line.startsWith('0:'));
-  const build = root && JSON.parse(root.slice(2)).b;
-  if (typeof build !== 'string' || !build || build.length > 200) throw new Error('The page interface version is unavailable.');
+  const build = androidRouteBuildFromBytes(new Uint8Array(await response.clone().arrayBuffer()));
   await cache.put(androidRouteRequest(url.pathname, build), response);
 }
 const PARENT_OFFLINE_LAUNCH_ROUTE = '/';
