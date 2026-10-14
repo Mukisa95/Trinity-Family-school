@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { groupHistoryLogs, historyDay } from '../src/lib/utils/history-log-groups';
+import { groupHistoryLogs, historyDay, historyDaySections, historyRangeBounds } from '../src/lib/utils/history-log-groups';
 import { getHistoryLogRoute, getHistoryPupilId, normaliseHistoryRoute, uniquePupilNameLookup } from '../src/lib/utils/history-log-navigation';
 import type { HistoryLogRecord } from '../src/lib/services/history-log.service';
 
@@ -58,4 +58,21 @@ test('stored action page wins; legacy payments/banking/pupils resolve real page 
   assert.equal(getHistoryLogRoute(entry('5', { a: 'delete' })), '/pupils');
   assert.equal(getHistoryLogRoute(entry('6', { e: 'unknown', rp: '//other.test' })), undefined);
   assert.equal(getHistoryPupilId(entry('7', { e: 'bank_account', rp: '/banking/pupil-banking-details?pupilId=a' })), 'a');
+});
+
+
+test('date sections stay chronological even when pupil stacks interleave, with pending dates last', () => {
+  const sections = historyDaySections(groupHistoryLogs([entry('new'), entry('old', { ts: '2026-10-13T12:00:00Z' }), entry('other-new', { rid: 'b' }), entry('pending', { ts: undefined })]));
+  assert.deepEqual(sections.map(section => section.day), ['2026-10-14', '2026-10-13', 'pending']);
+  assert.deepEqual(sections[0].groups.flatMap(group => group.logs).map(log => log.id), ['new', 'other-new']);
+  assert.equal(sections.flatMap(section => section.groups.flatMap(group => group.logs)).length, 4);
+});
+
+test('range boundaries use school midnight and include the entire last day without including tomorrow', () => {
+  const { start, end } = historyRangeBounds('2026-10-01', '2026-10-14');
+  assert.equal(start.toISOString(), '2026-09-30T21:00:00.000Z');
+  assert.equal(end.toISOString(), '2026-10-14T21:00:00.000Z');
+  for (const [from, to] of [['2026-02-30', '2026-03-01'], ['invalid', '2026-10-14'], ['2026-10-14', '2026-10-01']]) {
+    assert.throws(() => historyRangeBounds(from, to));
+  }
 });

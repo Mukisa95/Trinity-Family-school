@@ -8,6 +8,8 @@ import {
   orderBy,
   query,
   Timestamp,
+  startAfter,
+  type QueryDocumentSnapshot,
   type Transaction,
   type WriteBatch,
   where,
@@ -15,6 +17,7 @@ import {
 import { db } from '@/lib/firebase';
 import { logger } from '@/lib/utils/logger';
 import { currentHistoryRoute, normaliseHistoryRoute } from '../utils/history-log-navigation';
+import { historyRangeBounds } from '../utils/history-log-groups';
 
 const HISTORY_COLLECTION = 'historyLogs';
 const MAX_LABEL_LENGTH = 80;
@@ -89,6 +92,8 @@ export type HistorySubscriptionMeta = {
   fromCache: boolean;
   hasPendingWrites: boolean;
 };
+
+export type HistoryRangePage = { logs: HistoryLogRecord[]; cursor?: QueryDocumentSnapshot; hasMore: boolean; fromCache: boolean };
 
 function trimText(value: unknown, maxLength: number): string | undefined {
   if (typeof value !== 'string') return undefined;
@@ -290,6 +295,17 @@ export class HistoryLogService {
   static async getRecent(limitCount = 200): Promise<HistoryLogRecord[]> {
     const snapshot = await getDocs(recentHistoryQuery(limitCount));
     return mapHistorySnapshot(snapshot);
+  }
+
+  /** Read only the selected school dates, in bounded pages; never scan all history. */
+  static async getRangePage(from: string, to: string, cursor?: QueryDocumentSnapshot): Promise<HistoryRangePage> {
+    const { start, end } = historyRangeBounds(from, to);
+    const pageSize = 200;
+    const snapshot = await getDocs(query(collection(db, HISTORY_COLLECTION),
+      where('ts', '>=', Timestamp.fromDate(start)), where('ts', '<', Timestamp.fromDate(end)),
+      orderBy('ts', 'desc'), ...(cursor ? [startAfter(cursor)] : []), limit(pageSize + 1)));
+    return { logs: mapHistorySnapshot(snapshot).slice(0, pageSize),
+      cursor: snapshot.docs[Math.min(snapshot.docs.length, pageSize) - 1], hasMore: snapshot.docs.length > pageSize, fromCache: snapshot.metadata.fromCache };
   }
 
   static subscribeRecent(
