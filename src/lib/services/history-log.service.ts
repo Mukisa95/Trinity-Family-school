@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { logger } from '@/lib/utils/logger';
+import { currentHistoryRoute, normaliseHistoryRoute } from '../utils/history-log-navigation';
 
 const HISTORY_COLLECTION = 'historyLogs';
 const MAX_LABEL_LENGTH = 80;
@@ -46,6 +47,7 @@ export type HistoryLogInput = {
   changedFields?: string[];
   meta?: Record<string, unknown>;
   actor?: HistoryActor;
+  route?: string;
 };
 
 export type AuditTrailInput = Omit<HistoryLogInput, 'meta'> & {
@@ -65,6 +67,7 @@ export type ExportLogInput = {
   scope?: string;
   sensitive?: boolean;
   actor?: HistoryActor;
+  route?: string;
 };
 
 export type HistoryLogRecord = {
@@ -79,6 +82,7 @@ export type HistoryLogRecord = {
   un?: string;
   ur?: string;
   ts?: Date | string;
+  rp?: string;
 };
 
 export type HistorySubscriptionMeta = {
@@ -217,6 +221,7 @@ export class HistoryLogService {
       un: actor?.username,
       ur: actor?.role,
       ts: Timestamp.now(),
+      rp: normaliseHistoryRoute(input.route) || currentHistoryRoute(),
     };
 
     return stripUndefined(rawPayload as Record<string, unknown>);
@@ -250,6 +255,7 @@ export class HistoryLogService {
       label: input.label,
       changedFields: input.changedFields,
       actor: input.actor,
+      route: input.route,
       meta: {
         ...input.meta,
         module: input.module,
@@ -268,6 +274,7 @@ export class HistoryLogService {
       recordId: `${input.dataType}:${Date.now()}`,
       label,
       actor: input.actor,
+      route: input.route,
       meta: {
         dataType: input.dataType,
         recordCount: input.recordCount ?? 0,

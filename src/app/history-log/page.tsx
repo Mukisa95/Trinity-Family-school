@@ -2,18 +2,19 @@
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { HistoryLogRecord, HistoryLogService } from '@/lib/services/history-log.service';
 import { FeeStructuresService } from '@/lib/services/fee-structures.service';
 import { useClasses } from '@/lib/hooks/use-classes';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { usePupils } from '@/lib/hooks/use-pupils';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Download, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, Download, Layers, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react';
 import { logger } from '@/lib/utils/logger';
+import { groupHistoryLogs, historyDate, HISTORY_TIME_ZONE } from '@/lib/utils/history-log-groups';
+import { getHistoryLogRoute, historyMeta, uniquePupilNameLookup } from '@/lib/utils/history-log-navigation';
 import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
 
 const actionLabels: Record<string, string> = {
@@ -37,13 +38,14 @@ const entityLabels: Record<string, string> = {
   fee_structure: 'Fee Structure',
   requirement: 'Requirement',
   banking: 'Banking',
+  bank_account: 'Bank Account',
+  bank_loan: 'Bank Loan',
+  bank_transaction: 'Bank Transaction',
 };
 
 function formatDate(value: HistoryLogRecord['ts']) {
-  if (!value) return 'Pending';
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Pending';
-  return date.toLocaleString();
+  const date = historyDate(value);
+  return date ? date.toLocaleString(undefined, { timeZone: HISTORY_TIME_ZONE }) : 'Pending';
 }
 
 function actionVariant(action: string) {
@@ -146,6 +148,44 @@ function isSecurityLog(log: HistoryLogRecord) {
   return log.a === 'permission' || log.e === 'user' || log.m?.module === 'security';
 }
 
+type HistoryLookups = Parameters<typeof formatMetaValue>[2];
+
+function recordLabel(log: HistoryLogRecord, lookups: HistoryLookups) {
+  const label = log.rl || log.rid;
+  if (log.e === 'pupil') return lookups.pupils[label] || label;
+  if (log.e === 'fee_structure') return lookups.fees[label] || label;
+  return label;
+}
+
+function HistoryEntryCard({ log, lookups, names }: {
+  log: HistoryLogRecord; lookups: HistoryLookups; names: Map<string, string | null>;
+}) {
+  const href = getHistoryLogRoute(log, names);
+  const content = <Card data-history-entry={log.id} className={href ? 'transition-colors hover:border-primary/40 hover:bg-muted/30' : ''}>
+    <CardContent className="space-y-1.5 p-3">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Badge variant={actionVariant(log.a)}>{actionLabels[log.a] || log.a}</Badge>
+        <Badge variant="outline">{entityLabel(log.e)}</Badge>
+        {isSensitiveLog(log) && <Badge variant="secondary">Sensitive</Badge>}
+        <span className="min-w-0 break-words text-sm font-medium">{recordLabel(log, lookups)}</span>
+        {href && <ArrowUpRight aria-hidden="true" className="ml-auto h-3.5 w-3.5 shrink-0 text-primary" />}
+      </div>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <p className="min-w-0 break-words">{log.un || 'Unknown user'}{log.ur ? ` | ${log.ur}` : ''} | {formatDate(log.ts)}</p>
+        <span className="min-w-0 break-all text-[11px]">Record ID: {log.rid}</span>
+      </div>
+      {!!log.cf?.length && <p className="break-words text-xs text-muted-foreground">Fields: {log.cf.join(', ')}</p>}
+      {log.m && Object.keys(log.m).length > 0 && <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        {Object.entries(log.m).map(([key, value]) => <span key={key} className="min-w-0 break-words">
+          <span className="font-semibold text-foreground">{formatMetaKey(key)}:</span>{' '}{formatMetaValue(key, value, lookups)}
+        </span>)}
+      </div>}
+    </CardContent>
+  </Card>;
+  return href ? <Link href={href} prefetch={false} className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+    aria-label={`Open ${entityLabel(log.e)} action page for ${recordLabel(log, lookups)}`} title="Open action page">{content}</Link> : content;
+}
+
 export default function HistoryLogPage() {
   const { data: classes = [] } = useClasses();
   const { data: academicYears = [] } = useAcademicYears();
@@ -156,13 +196,16 @@ export default function HistoryLogPage() {
   const [action, setAction] = useState('all');
   const [category, setCategory] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set());
 
   // Lookup maps to resolve database IDs to actual display names
-  const [pupilsMap, setPupilsMap] = useState<Record<string, string>>({});
   const [feesMap, setFeesMap] = useState<Record<string, string>>({});
-  const [classesMap, setClassesMap] = useState<Record<string, string>>({});
-  const [yearsMap, setYearsMap] = useState<Record<string, string>>({});
-  const [termsMap, setTermsMap] = useState<Record<string, string>>({});
+  const pupilsMap = useMemo(() => Object.fromEntries(pupils.map(pupil => [pupil.id, formatPupilDisplayName(pupil).trim()])), [pupils]);
+  const classesMap = useMemo(() => Object.fromEntries(classes.map(item => [item.id, item.name])), [classes]);
+  const yearsMap = useMemo(() => Object.fromEntries(academicYears.map(year => [year.id, year.name])), [academicYears]);
+  const termsMap = useMemo(() => Object.fromEntries(academicYears.flatMap(year => (year.terms || []).map(term => [term.id, term.name]))), [academicYears]);
+  const pupilNames = useMemo(() => uniquePupilNameLookup(pupilsMap), [pupilsMap]);
+  const lookups = { pupils: pupilsMap, fees: feesMap, classes: classesMap, years: yearsMap, terms: termsMap };
 
   const loadLogs = async () => {
     setLoading(true);
@@ -201,29 +244,6 @@ export default function HistoryLogPage() {
       unsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    setPupilsMap(Object.fromEntries(
-      pupils.map(pupil => [pupil.id, `${formatPupilDisplayName(pupil)}`.trim()]),
-    ));
-  }, [pupils]);
-
-  useEffect(() => {
-    setClassesMap(Object.fromEntries(classes.map(classItem => [classItem.id, classItem.name])));
-  }, [classes]);
-
-  useEffect(() => {
-    const years: Record<string, string> = {};
-    const terms: Record<string, string> = {};
-    academicYears.forEach(year => {
-      years[year.id] = year.name;
-      year.terms?.forEach(term => {
-        terms[term.id] = term.name;
-      });
-    });
-    setYearsMap(years);
-    setTermsMap(terms);
-  }, [academicYears]);
 
   const entities = useMemo(() => {
     return Array.from(new Set(logs.map(log => log.e).filter(Boolean))).sort();
@@ -277,6 +297,8 @@ export default function HistoryLogPage() {
     });
   }, [action, category, entity, logs, search, pupilsMap, feesMap, classesMap, yearsMap, termsMap]);
 
+  const groups = useMemo(() => groupHistoryLogs(filteredLogs, pupilNames), [filteredLogs, pupilNames]);
+
   const logStats = useMemo(() => {
     return {
       total: logs.length,
@@ -317,50 +339,50 @@ export default function HistoryLogPage() {
         }
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 space-y-3">
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         <Card>
-          <CardContent className="flex items-center justify-between p-4">
+          <CardContent className="flex items-center justify-between p-3">
             <div>
-              <p className="text-sm text-muted-foreground">Recent entries</p>
-              <p className="text-2xl font-semibold">{logStats.total}</p>
+              <p className="whitespace-nowrap text-xs text-muted-foreground">Recent entries</p>
+              <p className="text-xl font-semibold">{logStats.total}</p>
             </div>
             <RefreshCw className="h-5 w-5 text-muted-foreground" />
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center justify-between p-4">
+          <CardContent className="flex items-center justify-between p-3">
             <div>
-              <p className="text-sm text-muted-foreground">Sensitive</p>
-              <p className="text-2xl font-semibold">{logStats.sensitive}</p>
+              <p className="whitespace-nowrap text-xs text-muted-foreground">Sensitive</p>
+              <p className="text-xl font-semibold">{logStats.sensitive}</p>
             </div>
             <ShieldCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center justify-between p-4">
+          <CardContent className="flex items-center justify-between p-3">
             <div>
-              <p className="text-sm text-muted-foreground">Exports</p>
-              <p className="text-2xl font-semibold">{logStats.exports}</p>
+              <p className="whitespace-nowrap text-xs text-muted-foreground">Exports</p>
+              <p className="text-xl font-semibold">{logStats.exports}</p>
             </div>
             <Download className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center justify-between p-4">
+          <CardContent className="flex items-center justify-between p-3">
             <div>
-              <p className="text-sm text-muted-foreground">Reversals</p>
-              <p className="text-2xl font-semibold">{logStats.reversals}</p>
+              <p className="whitespace-nowrap text-xs text-muted-foreground">Reversals</p>
+              <p className="text-xl font-semibold">{logStats.reversals}</p>
             </div>
             <Undo2 className="h-5 w-5 text-red-600 dark:text-red-400" />
           </CardContent>
         </Card>
       </div>
 
-      <div className="flex flex-wrap gap-3 items-center bg-white/40 backdrop-blur-md p-4 rounded-2xl border border-gray-150 shadow-sm dark:bg-slate-900/40">
+      <div className="flex flex-wrap gap-2 items-center bg-white/40 backdrop-blur-md p-3 rounded-2xl border border-gray-150 shadow-sm dark:bg-slate-900/40">
         <Select value={entity} onValueChange={setEntity}>
-          <SelectTrigger className="rounded-full bg-white/80 w-full sm:w-[200px] dark:bg-slate-900/80">
+          <SelectTrigger className="rounded-full bg-white/80 w-full sm:w-[180px] dark:bg-slate-900/80">
             <SelectValue placeholder="All modules" />
           </SelectTrigger>
           <SelectContent>
@@ -373,7 +395,7 @@ export default function HistoryLogPage() {
           </SelectContent>
         </Select>
         <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="rounded-full bg-white/80 w-full sm:w-[200px] dark:bg-slate-900/80">
+          <SelectTrigger className="rounded-full bg-white/80 w-full sm:w-[180px] dark:bg-slate-900/80">
             <SelectValue placeholder="All categories" />
           </SelectTrigger>
           <SelectContent>
@@ -385,7 +407,7 @@ export default function HistoryLogPage() {
           </SelectContent>
         </Select>
         <Select value={action} onValueChange={setAction}>
-          <SelectTrigger className="rounded-full bg-white/80 w-full sm:w-[200px] dark:bg-slate-900/80">
+          <SelectTrigger className="rounded-full bg-white/80 w-full sm:w-[180px] dark:bg-slate-900/80">
             <SelectValue placeholder="All actions" />
           </SelectTrigger>
           <SelectContent>
@@ -399,64 +421,42 @@ export default function HistoryLogPage() {
         </Select>
       </div>
 
-      <div className="grid gap-3">
-        {filteredLogs.map((log) => (
-          <Card key={log.id}>
-            <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-start md:justify-between">
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={actionVariant(log.a)}>{actionLabels[log.a] || log.a}</Badge>
-                  <Badge variant="outline">{entityLabel(log.e)}</Badge>
-                  {isSensitiveLog(log) && <Badge variant="secondary">Sensitive</Badge>}
-                  <span className="text-sm font-medium">
-                    {(() => {
-                      const lowerEntity = log.e?.toLowerCase() || '';
-                      if (lowerEntity === 'pupil' && pupilsMap[log.rl || '']) {
-                        return pupilsMap[log.rl || ''];
-                      }
-                      if (lowerEntity === 'fee_structure' && feesMap[log.rl || '']) {
-                        return feesMap[log.rl || ''];
-                      }
-                      return log.rl || log.rid;
-                    })()}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {log.un || 'Unknown user'}{log.ur ? ` | ${log.ur}` : ''} | {formatDate(log.ts)}
-                </p>
-                {log.cf && log.cf.length > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    Fields: {log.cf.join(', ')}
-                  </p>
-                )}
-                {log.m && Object.keys(log.m).length > 0 && (
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground mt-1">
-                    {Object.entries(log.m).map(([key, value]) => {
-                      const displayKey = formatMetaKey(key);
-                      const displayValue = formatMetaValue(key, value, {
-                        pupils: pupilsMap,
-                        fees: feesMap,
-                        classes: classesMap,
-                        years: yearsMap,
-                        terms: termsMap,
-                      });
-                      
-                      return (
-                        <span key={key} className="inline-flex items-center gap-1">
-                          <span className="font-semibold text-foreground">{displayKey}:</span>
-                          <span>{displayValue}</span>
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Record ID: {log.rid}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <p className="text-xs text-muted-foreground" role="status">{loading ? 'Loading history\u2026' : `${filteredLogs.length} action${filteredLogs.length === 1 ? '' : 's'} in ${groups.length} card${groups.length === 1 ? '' : 's'}`}</p>
+      <div className="space-y-2">
+        {groups.map(group => {
+          if (group.logs.length === 1) return <HistoryEntryCard key={group.key} log={group.logs[0]} lookups={lookups} names={pupilNames} />;
+          const expanded = expandedGroups.has(group.key);
+          const controlsId = `history-stack-${encodeURIComponent(group.key)}`;
+          const first = group.logs[0];
+          const pupilName = pupilsMap[group.pupilId || ''] || group.logs.map(log => historyMeta(log, 'pupilName')
+            || (log.e === 'pupil' ? log.rl : undefined)).find(Boolean) || group.pupilId || 'Pupil';
+          const day = historyDate(first.ts)?.toLocaleDateString(undefined, { timeZone: HISTORY_TIME_ZONE, day: 'numeric', month: 'short', year: 'numeric' }) || 'Pending';
+          return <Card key={group.key} data-history-stack={group.key} className="overflow-hidden">
+            <button type="button" aria-expanded={expanded} aria-controls={controlsId}
+              aria-label={`${expanded ? 'Collapse' : 'Expand'} ${group.logs.length} actions for ${pupilName} on ${day}`}
+              onClick={() => setExpandedGroups(current => {
+                const next = new Set(current);
+                if (next.has(group.key)) next.delete(group.key); else next.add(group.key);
+                return next;
+              })}
+              className="flex min-h-11 w-full items-center gap-2.5 p-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+              <Layers aria-hidden="true" className="h-4 w-4 shrink-0 text-primary" />
+              <span className="min-w-0 flex-1">
+                <span className="block break-words text-sm font-semibold">{pupilName}</span>
+                <span className="block break-words text-xs text-muted-foreground">{day}</span>
+              </span>
+              <span className="flex shrink-0 flex-col items-end gap-1">
+                <Badge variant="secondary">{group.logs.length} actions</Badge>
+                {group.logs.some(isSensitiveLog) && <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400">Sensitive</span>}
+              </span>
+              <ChevronDown aria-hidden="true" className={`h-4 w-4 shrink-0 transition-transform motion-reduce:transition-none ${expanded ? 'rotate-180' : ''}`} />
+            </button>
+            {expanded && <div id={controlsId} role="group" aria-label={`${pupilName} activities on ${day}`}
+              className="space-y-2 border-t bg-muted/20 p-2 sm:p-3">
+              {group.logs.map(log => <HistoryEntryCard key={log.id} log={log} lookups={lookups} names={pupilNames} />)}
+            </div>}
+          </Card>;
+        })}
 
         {!loading && filteredLogs.length === 0 && (
           <Card>
