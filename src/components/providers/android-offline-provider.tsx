@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { auth } from '@/lib/firebase';
@@ -42,6 +43,7 @@ function PrepareEvents() { useEvents(); useExamsAsEvents(); useAcademicYears(); 
 
 /** Inert in the normal browser/PWA; Android reuses existing caches and query owners. */
 export function AndroidOfflineProvider() {
+  const router = useRouter();
   const { user, isLoading, isLocked } = useAuth();
   const [session, setSession] = useState<AndroidOfflineSession | null>(null);
   const generation = useRef(0);
@@ -148,22 +150,27 @@ export function AndroidOfflineProvider() {
     // while the existing session privacy screen is locked.
     if (!session) return;
     let disposed = false;
+    let preparing = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
     const prepare = async () => {
-      if (disposed || isAndroidOffline()) return;
+      if (disposed || preparing || isAndroidOffline()) return;
+      preparing = true;
+      if (retry) { clearTimeout(retry); retry = undefined; }
       try { await measureWorkspaceOperation('android:app-shell-preparation', () => prepareAndroidAppShell(session)); }
       catch { recordAppDiagnostic('offline_shell_failed'); if (!disposed) retry = setTimeout(() => void prepare(), 15_000); }
+      finally { preparing = false; }
     };
     void prepare();
     window.addEventListener('online', prepare);
+    window.addEventListener('trinity-android-connectivity', prepare);
     window.addEventListener('trinity-service-worker-updated', prepare);
-    return () => { disposed = true; if (retry) clearTimeout(retry); window.removeEventListener('online', prepare); window.removeEventListener('trinity-service-worker-updated', prepare); };
+    return () => { disposed = true; if (retry) clearTimeout(retry); window.removeEventListener('online', prepare); window.removeEventListener('trinity-android-connectivity', prepare); window.removeEventListener('trinity-service-worker-updated', prepare); };
   }, [session?.accountId, session?.role, session?.grants.dashboard, session?.grants.pupils, session?.grants.timetable, session?.grants.events]);
 
   useEffect(() => {
     if (!hasAndroidOfflineBridge() || !user) return;
-    return installAndroidOfflineNavigation(user.role, () => toast({ title: 'Connection needed', description: 'Connect to open this section or make changes.' }));
-  }, [user?.id, user?.role]);
+    return installAndroidOfflineNavigation(user.role, () => toast({ title: 'Connection needed', description: 'This page has not finished downloading, or needs a connection to make changes.' }), { navigate: href => router.push(href) });
+  }, [user?.id, user?.role, router]);
 
   return !isLocked ? <>{session?.grants.timetable && <PrepareCurrentTimetables />}{session?.grants.events && <PrepareEvents />}</> : null;
 }

@@ -94,6 +94,11 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     }
   }, []);
 
+  useEffect(() => {
+    window.addEventListener('trinity-android-navigation-blocked', stopNavigation);
+    return () => window.removeEventListener('trinity-android-navigation-blocked', stopNavigation);
+  }, [stopNavigation]);
+
   // Record settled, internal page URLs. Using the full query string preserves
   // entity context such as /pupil-detail?id=... without trusting browser/tab
   // history entries that may belong to another website or an old redirect.

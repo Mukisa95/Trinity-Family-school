@@ -1,5 +1,6 @@
 "use client";
 
+import { canDownloadWorkspaceRecords } from '@/lib/startup/workspace-connectivity';
 import { useState, useEffect, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -26,26 +27,34 @@ export function NetworkStrengthIndicator({
     const [network, setNetwork] = useState<NetworkInfo>({
         strength: 'good',
         latency: 0,
-        online: typeof navigator !== 'undefined' ? navigator.onLine : true
+        online: true
     });
     const [showTooltip, setShowTooltip] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
     const detailsTitleId = useId();
 
     useEffect(() => {
+        let disposed = false;
+        let generation = 0;
+        let pending: AbortController | undefined;
         const measureLatency = async () => {
-            if (!navigator.onLine) {
+            const current = ++generation;
+            pending?.abort();
+            if (!canDownloadWorkspaceRecords()) {
                 setNetwork(prev => ({ ...prev, online: false, strength: 'offline' }));
                 return;
             }
 
             try {
+                pending = new AbortController();
                 const start = performance.now();
                 // Ping a small endpoint to measure latency
                 await fetch('https://www.gstatic.com/generate_204', {
+                    signal: pending.signal,
                     mode: 'no-cors',
                     cache: 'no-store'
                 });
+                if (disposed || current !== generation || !canDownloadWorkspaceRecords()) return;
                 const latency = performance.now() - start;
 
                 // Determine strength based on latency
@@ -62,11 +71,12 @@ export function NetworkStrengthIndicator({
 
                 setNetwork({ strength, latency: Math.round(latency), online: true });
             } catch (error) {
+                if (disposed || current !== generation) return;
                 // If fetch fails, we're likely offline or have very poor connection
                 setNetwork(prev => ({
                     ...prev,
-                    strength: navigator.onLine ? 'poor' : 'offline',
-                    online: navigator.onLine
+                    strength: canDownloadWorkspaceRecords() ? 'poor' : 'offline',
+                    online: canDownloadWorkspaceRecords()
                 }));
             }
         };
@@ -79,21 +89,24 @@ export function NetworkStrengthIndicator({
 
         // Listen for online/offline events
         const handleOnline = () => {
-            setNetwork(prev => ({ ...prev, online: true }));
             measureLatency();
         };
 
         const handleOffline = () => {
+            generation++; pending?.abort();
             setNetwork({ strength: 'offline', latency: 0, online: false });
         };
 
         window.addEventListener('online', handleOnline);
         window.addEventListener('offline', handleOffline);
+        window.addEventListener('trinity-android-connectivity', measureLatency);
 
         return () => {
+            disposed = true; generation++; pending?.abort();
             clearInterval(interval);
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
+            window.removeEventListener('trinity-android-connectivity', measureLatency);
         };
     }, []);
 

@@ -24,6 +24,7 @@ const session = { schema: 1, accountId: 'fixture', role: 'Admin', expiresAt: new
    if (pathname === '/_next/static/runtime-fixture.js') { res.setHeader('Content-Type', 'application/javascript'); res.end('window.originalRuntime=true;'); return; }
    if (pathname === '/trinity-logo-192.png' || pathname === '/images/D.B%20background.png') { res.setHeader('Content-Type', 'image/png'); res.end(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==','base64')); return; }
    if (failPages) { res.writeHead(503); res.end(); return; }
+   if (req.headers.rsc === '1') { res.setHeader('Content-Type','text/x-component'); res.end('0:{"b":"fixture-build","f":[],"S":false}\n'); return; }
    res.setHeader('Content-Type', 'text/html'); res.end(html(pathname));
  });
  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -49,13 +50,14 @@ const session = { schema: 1, accountId: 'fixture', role: 'Admin', expiresAt: new
    assert.equal(await page.evaluate(() => new URL(location.href).searchParams.get('id')), 'child-1');
    // Install actual navigation guard from source, with network still blocked.
    await page.addScriptTag({ content: fs.readFileSync(path.join(output,'shell.js'),'utf8') });
-   await page.evaluate(() => { window.blocked=0; window.removeGuard=Shell.installAndroidOfflineNavigation('Admin',()=>window.blocked++); });
+   await page.evaluate(() => { window.documentMarker='same-document';window.blocked=0; window.removeGuard=Shell.installAndroidOfflineNavigation('Admin',()=>window.blocked++,{buildId:()=> 'fixture-build',navigate:href=>{history.pushState(null,'',href);document.querySelector('main').dataset.route=new URL(href,location.href).pathname}}); });
    await page.getByRole('link',{ name:'Finance', exact:true }).click(); assert.equal(await page.evaluate(()=>window.blocked),1); assert.equal(new URL(page.url()).pathname,'/pupil-detail');
    await page.getByRole('link',{name:'Timetables',exact:true}).click(); await page.waitForURL('**/timetable'); assert.equal(await page.locator('main').getAttribute('data-route'),'/timetable');
-   await page.addScriptTag({content:fs.readFileSync(path.join(output,'shell.js'),'utf8')});
-   await page.evaluate(()=>{window.blocked=0;window.removeGuard=Shell.installAndroidOfflineNavigation('Admin',()=>window.blocked++);});
+   assert.equal(await page.evaluate(()=>window.documentMarker),'same-document');
+   await page.evaluate(()=>{window.blocked=0;});
    const rsc = await page.evaluate(async()=>{try {await fetch('/finance?_rsc=fixture',{headers:{RSC:'1'}})} catch {} return window.blocked;}); assert.equal(rsc,1);
-   await page.evaluate(()=>{void fetch('/pupil-detail?id=child-2&_rsc=fixture',{headers:{RSC:'1'}})}); await page.waitForURL('**/pupil-detail?id=child-2');
+   const savedRoute=await page.evaluate(async()=> (await fetch('/pupil-detail?id=child-2&_rsc=fixture',{headers:{RSC:'1'}})).text());assert.ok(savedRoute.includes('fixture-build'));assert.equal(new URL(page.url()).pathname,'/timetable');
+   await page.getByRole('link',{name:'Pupil details',exact:true}).click();await page.waitForURL('**/pupil-detail?id=child-1');
    // Reconnect changes availability without replacing the document.
    const documentId = await page.evaluate(()=>window.documentMarker='original-document');
    await context.setOffline(false); assert.equal(await page.evaluate(()=>window.documentMarker),documentId);

@@ -1,5 +1,6 @@
 "use client";
 
+import { canDownloadWorkspaceRecords } from '@/lib/startup/workspace-connectivity';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { SyncStatus } from '@/types';
 import { enableNetwork, waitForPendingWrites } from 'firebase/firestore';
@@ -30,11 +31,11 @@ export const SyncProvider: React.FC<SyncProviderProps> = ({ children }) => {
   useEffect(() => {
     // Set the actual online status after mounting
     if (typeof navigator !== 'undefined') {
-      setSyncStatus(prev => ({ ...prev, isOnline: navigator.onLine }));
+      setSyncStatus(prev => ({ ...prev, isOnline: canDownloadWorkspaceRecords() }));
     }
 
     const handleOnline = () => {
-      setSyncStatus(prev => ({ ...prev, isOnline: true }));
+      setSyncStatus(prev => ({ ...prev, isOnline: canDownloadWorkspaceRecords() }));
     };
 
     const handleOffline = () => {
@@ -44,10 +45,12 @@ export const SyncProvider: React.FC<SyncProviderProps> = ({ children }) => {
     if (typeof window !== 'undefined') {
       window.addEventListener('online', handleOnline);
       window.addEventListener('offline', handleOffline);
+      window.addEventListener('trinity-android-connectivity', handleOnline);
 
       return () => {
         window.removeEventListener('online', handleOnline);
         window.removeEventListener('offline', handleOffline);
+        window.removeEventListener('trinity-android-connectivity', handleOnline);
       };
     }
   }, []);
@@ -88,7 +91,7 @@ export const SyncProvider: React.FC<SyncProviderProps> = ({ children }) => {
   };
 
   const markOnline = () => {
-    setSyncStatus(prev => ({ ...prev, isOnline: true }));
+    setSyncStatus(prev => ({ ...prev, isOnline: canDownloadWorkspaceRecords() }));
   };
 
   const value: SyncContextType = {

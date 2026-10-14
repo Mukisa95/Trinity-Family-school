@@ -35,7 +35,7 @@ const PARENT_APP_SHELL_CACHE = `parent-app-shell-${SW_VERSION}`;
 const PARENT_APP_ROUTES = new Set(['/parent', '/parent/settings']);
 const ANDROID_APP_SHELL_CACHE = `android-app-shell-${SW_VERSION}`;
 const ANDROID_SHELL_IMAGES = new Set(['/images/D.B%20background.png', '/trinity-logo-192.png']);
-const ANDROID_APP_ROUTES = new Set(['/', '/pupils', '/pupil-detail', '/timetable', '/events', '/login']);
+const ANDROID_APP_ROUTES = new Set(['/', '/pupils', '/pupil-detail', '/timetable', '/events', '/login', '/parent', '/parent/settings']);
 
 async function androidShellMatch(request) {
   const names = (await caches.keys()).filter(name => name.startsWith('android-app-shell-')).sort().reverse();
@@ -43,6 +43,23 @@ async function androidShellMatch(request) {
     const response = await (await caches.open(name)).match(request);
     if (response) return response;
   }
+}
+// Only explicitly prepared public client-page interfaces enter this cache.
+// Omit credentials and the router-state header so the saved tree is a complete
+// route shell, usable from any sibling page. Private records stay in their owners.
+function androidRouteRequest(path, build) {
+  return new Request(new URL(`/__trinity_saved_route/${encodeURIComponent(build)}/${encodeURIComponent(path)}`, self.location.origin));
+}
+async function saveAndroidRoute(cache, url) {
+  const response = await fetch(new Request(new URL(url.pathname, self.location.origin), {
+    credentials: 'omit', headers: { RSC: '1' }, cache: 'no-store',
+  }));
+  if (!response.ok || response.redirected || !response.headers.get('Content-Type')?.includes('text/x-component')) throw new Error('Page navigation is still preparing.');
+  const text = await response.clone().text();
+  const root = text.split('\n').find(line => line.startsWith('0:'));
+  const build = root && JSON.parse(root.slice(2)).b;
+  if (typeof build !== 'string' || !build || build.length > 200) throw new Error('The page interface version is unavailable.');
+  await cache.put(androidRouteRequest(url.pathname, build), response);
 }
 const PARENT_OFFLINE_LAUNCH_ROUTE = '/';
 
@@ -251,6 +268,7 @@ self.addEventListener('message', (event) => {
         }
         const html = await response.clone().text();
         await Promise.all(parentStaticAssetUrlsFromHtml(html, url.toString()).map(saveAsset));
+        if (event.data.navigation === true && url.pathname !== '/login') await saveAndroidRoute(cache, url);
         // Publish the page only AFTER all of its referenced assets are ready.
         await cache.put(request, response);
       }));
@@ -648,7 +666,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.origin === self.location.origin && ANDROID_APP_ROUTES.has(url.pathname) && event.request.mode === 'navigate') {
+  if (url.origin === self.location.origin && ANDROID_APP_ROUTES.has(url.pathname) && !PARENT_APP_ROUTES.has(url.pathname) && event.request.mode === 'navigate') {
     event.respondWith((async () => {
       const request = parentAppRouteRequest(url);
       // Existing parent installations also fall back to the root shell.
@@ -674,7 +692,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.open(PARENT_APP_SHELL_CACHE).then(async cache => {
         const canonicalRequest = parentAppRouteRequest(url);
-        const cached = await cache.match(canonicalRequest);
+        const cached = await androidShellMatch(canonicalRequest) || await cache.match(canonicalRequest);
         if (cached) return cached;
         const response = await fetch(event.request, { cache: 'no-store' });
           if (response.ok) {
