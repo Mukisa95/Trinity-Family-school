@@ -1,1314 +1,305 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
-import { EventClickArg, DateSelectArg, EventDropArg } from '@fullcalendar/core';
-import { useAndroidOfflineStatus } from '@/lib/hooks/use-android-offline-status';
-import { toast } from '@/hooks/use-toast';
-import { hasAndroidOfflineBridge, androidOfflineRequest } from '@/lib/offline/android-bridge';
-import { Card } from '@/components/ui/card';
+import type { EventDropArg, EventInput } from '@fullcalendar/core';
+import { addDays, format, isValid, parseISO } from 'date-fns';
+import { CalendarDays, Check, ChevronLeft, ChevronRight, Filter, Loader2, PanelRightClose, PanelRightOpen, Plus, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Calendar as CalendarIcon, Plus, List, Grid3X3, Filter, ChevronDown, ChevronUp, Search, Clock, BookOpen, CalendarDays, CalendarRange } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useEvents, useCreateEvent, useUpdateEvent, useDeleteEvent, useExamsAsEvents, useAcademicYearsForEvents, useCurrentTerm } from '@/lib/hooks/use-events-fixed';
-import { useUgandaHolidays } from '@/lib/hooks/use-uganda-holidays';
-import { useActiveAcademicYear } from '@/lib/hooks/use-academic-years';
-import { detectCurrentAcademicYear, getCurrentTerm } from '@/lib/utils/academic-year-utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/lib/contexts/auth-context';
-import type {
-  Event,
-  EventType,
-  CalendarViewType,
-  EventFilters,
-  CreateEventData,
-  UpdateEventData
-} from '@/types';
-import { EventForm } from '../forms/event-form';
-import { EventDetailsModal } from '../ui/event-details-modal';
-import { EventFilters as EventFiltersComponent } from '../ui/event-filters';
-import { ColorLegend } from '../ui/color-legend';
-import { EventsList } from '../ui/events-list';
-import { format, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
-import { getComputedEventStatus } from '@/lib/utils/event-status-utils';
-import { cn } from '@/lib/utils';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { GlassPageTopBar, GlassActionDock, GlassActionButton } from '@/components/common/glass-page-top-bar';
 import { CatalogueDataNotice } from '@/components/common/catalogue-data-notice';
+import { useEvents, useCreateEvent, useUpdateEvent, useDeleteEvent, useExamsAsEvents, useAcademicYearsForEvents, useCurrentTerm } from '@/lib/hooks/use-events-fixed';
+import { useUgandaHolidays } from '@/lib/hooks/use-uganda-holidays';
+import { useClasses } from '@/lib/hooks/use-classes';
+import { useSubjects } from '@/lib/hooks/use-subjects';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { useAndroidOfflineStatus } from '@/lib/hooks/use-android-offline-status';
+import { hasAndroidOfflineBridge, androidOfflineRequest } from '@/lib/offline/android-bridge';
+import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { activeCalendarFilterCount, calendarCustomColours, calendarDateLabel, calendarMovePatch, calendarTone, eventOccursOn, filterCalendarEvents, findCalendarConflicts, fullCalendarDates, isGeneratedCalendarEvent, isPersonalCalendarEvent, mergeCalendarEvents } from '@/lib/utils/calendar-planning';
+import { getComputedEventStatus } from '@/lib/utils/event-status-utils';
+import type { CalendarConflict } from '@/lib/utils/calendar-planning';
+import type { CalendarViewType, CreateEventData, Event, EventFilters, UpdateEventData } from '@/types';
+import { PlanningFilters } from '../ui/planning-filters';
+import { EventPlanningDetails, PlanningEventButton, UpcomingPanel } from '../ui/planning-panel';
+import { TermPlanner } from './term-planner';
+import './planning-calendar.css';
 
-// Event type color mapping
-const EVENT_TYPE_COLORS = {
-  'Academic': '#3b82f6',
-  'Co-curricular': '#10b981',
-  'Administrative': '#f59e0b',
-  'Holiday': '#dc2626',
-} as const;
-
-const UGANDA_HOLIDAY_COLOR = '#f59e0b';
+const EventForm = lazy(() => import('../forms/event-form').then(module => ({ default: module.EventForm })));
+const views = ['month', 'week', 'day', 'agenda', 'term'] as const;
+type PlanningView = typeof views[number];
+const calendarViews = { month: 'dayGridMonth', week: 'timeGridWeek', day: 'timeGridDay', agenda: 'listWeek' };
+type Confirmation = { title: string; description: string; conflicts?: CalendarConflict[]; apply: () => Promise<void>; cancel?: () => void };
 
 interface CalendarWrapperProps {
-  className?: string;
-  defaultView?: CalendarViewType;
-  showFilters?: boolean;
-  showLegend?: boolean;
-  height?: string | number;
+  className?: string; defaultView?: CalendarViewType; showFilters?: boolean; showLegend?: boolean; height?: string | number;
 }
 
-export function CalendarWrapper({
-  className = "",
-  defaultView = 'month',
-  showFilters = true,
-  showLegend = true,
-  height = 'auto'
-}: CalendarWrapperProps) {
-  const { user } = useAuth();
+export function CalendarWrapper({ className = '', defaultView = 'month', showFilters = true, showLegend = true, height = 'auto' }: CalendarWrapperProps) {
+  const auth = useAuth();
+  const { user } = auth;
   const offline = useAndroidOfflineStatus();
-  const { data: activeAcademicYear } = useActiveAcademicYear();
-
-  // State management
-  const [currentView, setCurrentView] = useState<CalendarViewType | 'term'>(defaultView);
-  const [selectedTermId, setSelectedTermId] = useState<string>('');
-  const [selectedAcademicYearId, setSelectedAcademicYearId] = useState<string>('');
+  // The hook remains the one revision-scoped owner. Filters are applied only
+  // after combining its authoritative data with exams and public holidays.
+  const eventsQuery = useEvents();
+  const examsQuery = useExamsAsEvents();
+  const createMutation = useCreateEvent();
+  const updateMutation = useUpdateEvent();
+  const deleteMutation = useDeleteEvent();
+  const { data: years = [] } = useAcademicYearsForEvents();
+  const currentTerm = useCurrentTerm(years);
+  const { data: classes = [] } = useClasses();
+  const { data: subjects = [] } = useSubjects();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [isEventFormOpen, setIsEventFormOpen] = useState(false);
-  const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
-  const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
-  const [isCompactView, setIsCompactView] = useState(false);
-  const [isViewTransitioning, setIsViewTransitioning] = useState(false);
-  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
-  const [filters, setFilters] = useState<EventFilters>({
-    academicYearIds: activeAcademicYear ? [activeAcademicYear.id] : [],
-  });
+  const holidays = useUgandaHolidays(currentDate);
+  const [currentView, setCurrentView] = useState<PlanningView>(defaultView);
+  const [title, setTitle] = useState(format(new Date(), 'MMMM yyyy'));
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [wideScreen, setWideScreen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [filters, setFilters] = useState<EventFilters>({});
+  const [personal, setPersonal] = useState(user?.role === 'Staff');
+  const [selectedId, setSelectedId] = useState('');
+  const [selectedDay, setSelectedDay] = useState('');
+  const [formEvent, setFormEvent] = useState<Event | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [yearId, setYearId] = useState('');
+  const [termId, setTermId] = useState('');
+  const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const [confirmError, setConfirmError] = useState('');
+  const completedCreates = useRef(new Set<string>());
   const calendarRef = useRef<FullCalendar>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const calendarHost = useRef<HTMLDivElement>(null);
+  const [today, setToday] = useState(format(new Date(), 'yyyy-MM-dd'));
 
-  // Hooks
-  const eventsQuery = useEvents(filters);
-  const events = eventsQuery.data || [];
-  const eventsError = eventsQuery.error;
-  const createEventMutation = useCreateEvent();
-  const updateEventMutation = useUpdateEvent();
-  const deleteEventMutation = useDeleteEvent();
-  // Older exams without canonical event documents come from the same
-  // revision-scoped persistent projection used by the dashboard.
-  const examsAsEvents = useExamsAsEvents();
-  const ugandaHolidays = useUgandaHolidays(currentDate);
-  const { data: academicYears = [], isLoading: isLoadingAcademicYears } = useAcademicYearsForEvents();
-  const currentTerm = useCurrentTerm(academicYears);
+  const allowed = (action: string) => !offline && (auth.canPerformAction ? auth.canPerformAction('events', 'calendar', action) : user?.role === 'Admin');
+  const canCreate = allowed('create_event');
+  const canEdit = (event: Event) => allowed('edit_event') && !isGeneratedCalendarEvent(event);
+  const canDelete = (event: Event) => allowed('delete_event') && !isGeneratedCalendarEvent(event);
+  const canOverrideConflicts = user?.role === 'Admin' && allowed('edit_event');
+  const allSources = useMemo(() => mergeCalendarEvents(eventsQuery.data || [], examsQuery.data || [], holidays.data || []).map(event => ({
+    ...event,
+    createdByName: event.createdByName || (event.createdBy === user?.id ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username : ''),
+    classNames: event.classIds?.length ? event.classIds.map(id => classes.find(item => item.id === id)?.name || event.classNames?.[event.classIds!.indexOf(id)] || id) : event.classNames,
+    subjectNames: event.subjectIds?.map(id => subjects.find(item => item.id === id)?.name || id),
+  })), [eventsQuery.data, examsQuery.data, holidays.data, classes, subjects, user]);
+  const allEvents = useMemo(() => filterCalendarEvents(allSources, filters, years).filter(event => !personal || !!user && isPersonalCalendarEvent(event, user, classes)), [allSources, filters, years, personal, user, classes]);
+  const selected = allSources.find(event => event.id === selectedId);
+  const nextWeek = format(addDays(parseISO(today), 7), 'yyyy-MM-dd');
+  const upcoming = allEvents.filter(event => !['Cancelled', 'Draft'].includes(event.status) && (event.endDate || event.startDate) >= today && event.startDate <= nextWeek);
+  const filterCount = activeCalendarFilterCount(filters);
+  const loadingEvents = eventsQuery.data === undefined && !eventsQuery.error;
 
-  // Get available terms for selected academic year
-  const availableTerms = useMemo(() => {
-    const selectedYear = academicYears.find((year: any) => year.id === selectedAcademicYearId);
-    return selectedYear ? selectedYear.terms : [];
-  }, [academicYears, selectedAcademicYearId]);
-
-  // Helper function to get FullCalendar view name (must be before useEffect that uses it)
-  const getFullCalendarView = (view: CalendarViewType) => {
-    switch (view) {
-      case 'month': return 'dayGridMonth';
-      case 'week': return 'timeGridWeek';
-      case 'day': return 'timeGridDay';
-      case 'agenda': return 'listWeek';
-      default: return 'dayGridMonth';
-    }
-  };
-
-  // Set default academic year and term
   useEffect(() => {
-    if (academicYears.length > 0 && !selectedAcademicYearId) {
-      const activeYear = detectCurrentAcademicYear(academicYears) || academicYears[0];
-      if (activeYear) {
-        setSelectedAcademicYearId(activeYear.id);
-        if (currentTerm && currentTerm.year.id === activeYear.id) {
-          setSelectedTermId(currentTerm.term.id);
-        } else if (activeYear.terms.length > 0) {
-          setSelectedTermId(getCurrentTerm(activeYear)?.id || activeYear.terms[0].id);
-        }
-      }
-    }
-  }, [academicYears, currentTerm, selectedAcademicYearId]);
-
-  // Effect to change FullCalendar view when currentView state changes
+    const media = window.matchMedia('(min-width: 1536px)');
+    const update = () => setWideScreen(media.matches);
+    update(); media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
   useEffect(() => {
-    if (calendarRef.current && currentView !== 'term') {
-      const calendarApi = calendarRef.current.getApi();
-      const fullCalendarView = getFullCalendarView(currentView as CalendarViewType);
-      calendarApi.changeView(fullCalendarView);
-    }
+    setFilters({}); setSelectedId(''); setSelectedDay(''); setFormOpen(false); setFormEvent(null); setPersonal(user?.role === 'Staff');
+  }, [user?.id, user?.role]);
+  useEffect(() => {
+    const refresh = () => setToday(format(new Date(), 'yyyy-MM-dd'));
+    const timer = window.setInterval(refresh, 60_000);
+    window.addEventListener('focus', refresh);
+    return () => { clearInterval(timer); window.removeEventListener('focus', refresh); };
+  }, []);
+  useEffect(() => {
+    if (yearId || !years.length) return;
+    const year = currentTerm?.year || years.find(item => item.isActive) || years[0];
+    setYearId(year.id); setTermId(currentTerm?.term.id || year.terms[0]?.id || '');
+  }, [years, currentTerm, yearId]);
+  useEffect(() => {
+    if (currentView !== 'term') calendarRef.current?.getApi().changeView(calendarViews[currentView]);
   }, [currentView]);
+  useEffect(() => {
+    const host = calendarHost.current;
+    if (!host || typeof ResizeObserver === 'undefined') return;
+    let frame = 0;
+    const resize = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => calendarRef.current?.getApi().updateSize?.()); };
+    const observer = new ResizeObserver(resize); observer.observe(host); resize();
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); };
+  }, [currentView, filtersOpen, panelOpen]);
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey && !(event.target instanceof HTMLElement && (event.target.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')))) {
+        event.preventDefault(); searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', shortcut); return () => window.removeEventListener('keydown', shortcut);
+  }, []);
 
-  // Combine and filter events
-  const allEvents = useMemo(() => {
-    const regularEvents = events || [];
-    const examEvents = examsAsEvents.data || [];
-    const holidayEvents = ugandaHolidays.data || [];
-
-    // The useExamsAsEvents hook now automatically filters out exams that are already 
-    // represented as regular events, so we don't need additional filtering here
-    const filterableEvents = [...regularEvents, ...examEvents];
-    let filteredEvents = filterableEvents;
-
-    // Apply client-side filters
-    if (filters.searchTerm) {
-      const searchTerm = filters.searchTerm.toLowerCase();
-      filteredEvents = filteredEvents.filter(event =>
-        event.title.toLowerCase().includes(searchTerm) ||
-        (event.description || '').toLowerCase().includes(searchTerm) ||
-        (event.location || '').toLowerCase().includes(searchTerm)
-      );
-
-      const filteredHolidays = holidayEvents.filter(event =>
-        event.title.toLowerCase().includes(searchTerm) ||
-        (event.description || '').toLowerCase().includes(searchTerm) ||
-        (event.location || '').toLowerCase().includes(searchTerm)
-      );
-
-      return [...filteredEvents, ...filteredHolidays];
-    }
-
-    if (filters.types?.length) {
-      filteredEvents = filteredEvents.filter(event => filters.types!.includes(event.type));
-      const shouldIncludeHolidays = filters.types.includes('Holiday');
-      const finalHolidays = shouldIncludeHolidays ? holidayEvents : [];
-      return [...filteredEvents, ...finalHolidays];
-    }
-
-    if (filters.statuses?.length) {
-      filteredEvents = filteredEvents.filter(event => filters.statuses!.includes(getComputedEventStatus(event as unknown as Partial<Event>)));
-    }
-
-    if (filters.priorities?.length) {
-      filteredEvents = filteredEvents.filter(event => filters.priorities!.includes(event.priority));
-    }
-
-    if (filters.academicYearIds?.length) {
-      filteredEvents = filteredEvents.filter(event =>
-        event.academicYearId && filters.academicYearIds!.includes(event.academicYearId)
-      );
-    }
-
-    if (filters.termIds?.length) {
-      filteredEvents = filteredEvents.filter(event =>
-        event.termId && filters.termIds!.includes(event.termId)
-      );
-    }
-
-    if (filters.classIds?.length) {
-      filteredEvents = filteredEvents.filter(event =>
-        event.classIds?.some((classId: any) => filters.classIds!.includes(classId))
-      );
-    }
-
-    if (filters.subjectIds?.length) {
-      filteredEvents = filteredEvents.filter(event =>
-        event.subjectIds?.some((subjectId: any) => filters.subjectIds!.includes(subjectId))
-      );
-    }
-
-    if (filters.isExamEvent !== undefined) {
-      filteredEvents = filteredEvents.filter(event => event.isExamEvent === filters.isExamEvent);
-    }
-
-    return [...filteredEvents, ...holidayEvents];
-  }, [events, examsAsEvents.data, ugandaHolidays.data, filters]);
-
-  // Transform events for FullCalendar
-  const calendarEvents = useMemo(() => {
-    return allEvents.map(event => {
-      const startDateTime = event.isAllDay
-        ? event.startDate
-        : `${event.startDate}T${event.startTime || '00:00'}`;
-      const endDateTime = event.isAllDay
-        ? event.endDate
-        : `${event.endDate}T${event.endTime || '23:59'}`;
-
-      return {
-        id: event.id,
-        title: event.title,
-        start: startDateTime,
-        end: endDateTime,
-        allDay: event.isAllDay,
-        backgroundColor: (event.customFields as any)?.isUgandaPublicHoliday
-          ? UGANDA_HOLIDAY_COLOR
-          : (event.colorCode || EVENT_TYPE_COLORS[event.type]),
-        borderColor: (event.customFields as any)?.isUgandaPublicHoliday
-          ? UGANDA_HOLIDAY_COLOR
-          : (event.colorCode || EVENT_TYPE_COLORS[event.type]),
-        textColor: '#ffffff',
-        className: `calendar-event event-type-${event.type.toLowerCase()}`,
-        extendedProps: {
-          ...event,
-          isUgandaHoliday: event.type === 'Holiday' && (event.customFields as any)?.isUgandaPublicHoliday,
-        }
-      };
+  const selectEvent = (event: Event) => {
+    setSelectedId(event.id); setSelectedDay(''); setPanelOpen(true);
+    requestAnimationFrame(() => {
+      const panel = document.getElementById('calendar-event-details');
+      panel?.focus({ preventScroll: true });
+      if (window.innerWidth < 1280) panel?.scrollIntoView({ block: 'start', behavior: 'auto' });
     });
-  }, [allEvents]);
+  };
+  const selectDay = (date: string) => { setSelectedId(''); setSelectedDay(date); setPanelOpen(true); };
+  const newEvent = (startDate = selectedDay || today, endDate = startDate, time?: { startTime: string; endTime: string }) => {
+    if (!canCreate) return;
+    completedCreates.current.clear();
+    setFormEvent({ id: '', title: '', type: 'Academic', priority: 'Medium', status: 'Scheduled', startDate, endDate,
+      isAllDay: !time, ...time, targetAudience: [], recurrence: { frequency: 'None' }, isExamEvent: false, isRecurringInstance: false,
+      reminders: [], notificationsSent: [], sendReminders: true, colorCode: '#3b82f6', requiresApproval: false,
+      requiresAttendance: false, isPublic: true, createdBy: user?.id || '', createdAt: new Date().toISOString() });
+    setFormOpen(true);
+  };
+  const requestConfirmation = (value: Confirmation) => { setConfirmError(''); setConfirmation(value); };
+  const cancelConfirmation = () => { if (!confirmBusy) { confirmation?.cancel?.(); setConfirmation(null); setConfirmError(''); } };
+  const confirm = async () => {
+    if (!confirmation || confirmBusy) return;
+    setConfirmBusy(true); setConfirmError('');
+    try { await confirmation.apply(); setConfirmation(null); }
+    catch (error) { setConfirmError(error instanceof Error ? error.message : 'Changes could not be saved. Try again.'); }
+    finally { setConfirmBusy(false); }
+  };
+  const save = async (value: CreateEventData | UpdateEventData | CreateEventData[]) => {
+    if (!canCreate && !formEvent?.id || formEvent?.id && !canEdit(formEvent)) throw new Error('You do not have permission to save this event.');
+    const items = Array.isArray(value) ? value : [value];
+    const createData = (item: UpdateEventData) => ({ ...item, createdBy: user?.id || '', requiresAttendance: item.requiresAttendance ?? false, sendReminders: item.sendReminders ?? true }) as CreateEventData;
+    const candidates = items.filter(item => formEvent?.id || !completedCreates.current.has(JSON.stringify(createData(item))))
+      .map(item => ({ ...formEvent, ...item, id: formEvent?.id || '' }));
+    const conflicts = candidates.flatMap(item => findCalendarConflicts(item, allSources));
+    const write = async () => {
+      if (formEvent?.id) {
+        if (Array.isArray(value)) throw new Error('Edit one event at a time. Use Duplicate to create additional dates.');
+        const { id: _id, createdAt: _createdAt, createdBy: _createdBy, createdByName: _createdByName, notificationsSent: _notificationsSent, ...data } = value as Partial<Event>;
+        await updateMutation.mutateAsync({ eventId: formEvent.id, data });
+      } else {
+        for (const item of items) {
+          const data = createData(item);
+          const key = JSON.stringify(data);
+          if (completedCreates.current.has(key)) continue;
+          await createMutation.mutateAsync(data); completedCreates.current.add(key);
+        }
+      }
+      setFormOpen(false); setFormEvent(null);
+    };
+    if (conflicts.length) {
+      if (!canOverrideConflicts) throw new Error(`Resolve the scheduling conflict with ${conflicts[0].title}, or ask an administrator to review it.`);
+      await new Promise<void>((resolve, reject) => requestConfirmation({ title: 'Review scheduling conflicts', description: 'These activities overlap in the currently loaded school schedule. Review the shared resources before saving.', conflicts,
+        apply: async () => { await write(); resolve(); }, cancel: () => reject(new Error('Save cancelled. Your changes are still here.')) }));
+    } else await write();
+  };
+  const moveEvent = (change: Pick<EventDropArg, 'event' | 'revert'>) => {
+    const event = allSources.find(item => item.id === change.event.id);
+    const start = change.event.start, end = change.event.end, allDay = change.event.allDay;
+    change.revert();
+    if (!event || !start || !canEdit(event)) return;
+    const data = calendarMovePatch(start, end, allDay);
+    const conflicts = findCalendarConflicts({ ...event, ...data }, allSources);
+    if (conflicts.length && !canOverrideConflicts) { toast({ title: 'Scheduling conflict', description: `Resolve the conflict with ${conflicts[0].title} before rescheduling.`, variant: 'destructive' }); return; }
+    requestConfirmation({ title: 'Reschedule event?', description: `${event.title}: ${calendarDateLabel(event.startDate)} to ${calendarDateLabel(data.startDate!)}${data.endDate !== data.startDate ? ` – ${calendarDateLabel(data.endDate!)}` : ''}.`, conflicts,
+      apply: async () => { if (!canEdit(event)) throw new Error('You no longer have permission to edit this event.'); await updateMutation.mutateAsync({ eventId: event.id, data }); } });
+  };
+  const updateStatus = (event: Event, status: Event['status']) => requestConfirmation({ title: status === 'Cancelled' ? 'Cancel event?' : 'Publish event?', description: `${event.title} will be marked ${status.toLowerCase()}.`,
+    apply: async () => { if (!canEdit(event)) throw new Error('You do not have permission to edit this event.'); await updateMutation.mutateAsync({ eventId: event.id, data: { status } }); } });
+  const calendarEvents: EventInput[] = useMemo(() => allEvents.filter(event => isValid(parseISO(event.startDate))).map(event => ({
+    id: event.id, title: event.title, ...fullCalendarDates(event), ...calendarCustomColours(event), interactive: true,
+    editable: canEdit(event), classNames: [`calendar-tone-${calendarTone(event)}`, `calendar-status-${getComputedEventStatus(event).toLowerCase()}`, event.id === selectedId ? 'calendar-event-selected' : ''],
+    extendedProps: { schoolEvent: event, calendarStatus: getComputedEventStatus(event) },
+  })), [allEvents, offline, selectedId, user, auth.canPerformAction]);
+  const navigate = (direction: 'prev' | 'next' | 'today') => {
+    const api = calendarRef.current?.getApi();
+    if (api) api[direction]();
+  };
+  const filtersContent = <PlanningFilters key={`${user?.id}:${user?.role}`} filters={filters} onChange={setFilters} years={years} classes={classes} subjects={subjects} accountId={`${user?.id || ''}:${user?.role || ''}`} />;
+  const failedColdRead = !!eventsQuery.error && eventsQuery.data === undefined;
 
-  // Early return AFTER all hooks (React rules: hooks must not be called conditionally)
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Please log in to view the calendar.</p>
+  if (!user) return <p className="p-6 text-sm text-muted-foreground">Please log in to view the calendar.</p>;
+  return <div className={cn('school-calendar min-w-0', className)}>
+    {offline && eventsQuery.data === undefined && <p role="status" className="p-4 text-muted-foreground">Connect once to download your calendar events for offline viewing.</p>}
+    <GlassPageTopBar title="Events & Calendar" backHref="/dashboard" backLabel="Dashboard"
+      meta={<div className="flex flex-wrap gap-2 text-xs"><span className="rounded-full border bg-card px-2.5 py-1"><strong>{loadingEvents ? '…' : upcoming.length}</strong> next 7 days</span><span className="rounded-full border bg-card px-2.5 py-1"><strong>{loadingEvents ? '…' : upcoming.filter(event => event.isExamEvent).length}</strong> exams</span><span className="rounded-full border bg-card px-2.5 py-1"><strong>{loadingEvents ? '…' : upcoming.filter(event => event.type === 'Holiday').length}</strong> holidays</span></div>}
+      actions={<GlassActionDock className="!w-auto gap-1 px-2">
+        {hasAndroidOfflineBridge() && <GlassActionButton label="Widgets & reminders" icon={<CalendarDays className="h-4 w-4" />} onClick={() => void androidOfflineRequest('openTimetableSettings').catch(error => toast({ title: 'Widgets & reminders', description: error instanceof Error ? error.message : 'Reopen the app to change reminders.' }))} />}
+        {showFilters && <Button type="button" variant="outline" aria-label={`Filters (${filterCount} active)`} aria-expanded={filtersOpen} onClick={() => setFiltersOpen(value => !value)} className="min-h-11 gap-2"><Filter className="h-4 w-4" />Filters{filterCount > 0 && <span className="rounded-full bg-muted px-1.5 text-xs">{filterCount}</span>}</Button>}
+        <Button type="button" variant="outline" aria-pressed={panelOpen} aria-label={panelOpen ? 'Hide planning panel' : 'Show planning panel'} onClick={() => setPanelOpen(value => !value)} className="min-h-11 gap-2">{panelOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}<span className="hidden sm:inline">Planning</span></Button>
+        {canCreate && <Button type="button" onClick={() => newEvent()} className="min-h-11 gap-2 bg-brand-surface-600 text-white hover:bg-brand-surface-700"><Plus className="h-4 w-4" />New Event</Button>}
+      </GlassActionDock>} />
+    <div className="space-y-4 px-3 pb-10 sm:px-5 lg:px-6">
+      <CatalogueDataNotice label="calendar events" hasData={eventsQuery.data !== undefined} refreshing={eventsQuery.isFetching} error={eventsQuery.error} retry={() => eventsQuery.refetch()} />
+      {examsQuery.error && <CatalogueDataNotice label="exam dates" hasData={examsQuery.data !== undefined} refreshing={examsQuery.isFetching} error={examsQuery.error} retry={() => examsQuery.refetch()} />}
+      {failedColdRead ? <section role="alert" className="rounded-2xl border bg-card p-8 text-center"><h2 className="text-lg font-semibold">Unable to Load Events</h2><p className="my-3 text-sm text-muted-foreground">Your school schedule could not be loaded.</p><Button type="button" disabled={eventsQuery.isFetching} onClick={() => void eventsQuery.refetch()}>Try Again</Button></section> : <>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full min-w-0 sm:w-auto sm:flex-1 sm:max-w-sm"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input ref={searchRef} aria-label="Search calendar events" placeholder="Search events, classes, organisers..." value={filters.searchTerm || ''} onChange={event => setFilters(current => ({ ...current, searchTerm: event.target.value }))} onKeyDown={event => { if (event.key === 'Escape') setFilters(current => ({ ...current, searchTerm: '' })); }} className="h-10 pl-9 pr-9" />{filters.searchTerm && <button type="button" aria-label="Clear event search" className="absolute right-0 top-0 flex h-10 w-9 items-center justify-center" onClick={() => setFilters(current => ({ ...current, searchTerm: '' }))}><X className="h-4 w-4" /></button>}</div>
+        <div role="group" aria-label="Calendar scope" className="flex rounded-lg border bg-card p-1">{[false, true].map(value => <button key={String(value)} type="button" aria-pressed={personal === value} onClick={() => setPersonal(value)} className={cn('min-h-9 rounded-md px-3 text-xs font-medium', personal === value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted')}>{value ? 'My calendar' : 'School calendar'}</button>)}</div>
+        {currentTerm && <Button type="button" size="sm" variant="outline" onClick={() => setFilters(current => ({ ...current, academicYearIds: [currentTerm.year.id], termIds: [currentTerm.term.id] }))}>This term</Button>}
+        {filterCount > 0 && <Button type="button" size="sm" variant="ghost" onClick={() => setFilters({})}>Reset filters ({filterCount})</Button>}
       </div>
-    );
-  }
-
-  // Event handlers
-  const handleEventClick = (clickInfo: EventClickArg) => {
-    const event = allEvents.find(e => e.id === clickInfo.event.id);
-    if (event) {
-      setSelectedEvent(event as unknown as Event);
-      setIsEventDetailsOpen(true);
-    }
-  };
-
-  const handleDeleteEvent = (eventId: string) => {
-    console.log('handleDeleteEvent called with eventId:', eventId);
-    const event = allEvents.find(e => e.id === eventId);
-    console.log('Found event:', event);
-    if (event) {
-      setEventToDelete(event as unknown as Event);
-    } else {
-      console.error('Event not found in allEvents array:', eventId);
-      console.log('Available events:', allEvents.map(e => ({ id: e.id, title: e.title })));
-    }
-  };
-
-  const confirmDeleteEvent = async () => {
-    if (eventToDelete) {
-      console.log('confirmDeleteEvent called for event:', eventToDelete.id, eventToDelete.title);
-      try {
-        await deleteEventMutation.mutateAsync(eventToDelete.id);
-        setEventToDelete(null);
-        setIsEventDetailsOpen(false);
-        setSelectedEvent(null);
-      } catch (error) {
-        console.error('Failed to delete event:', error);
-      }
-    }
-  };
-
-  const cancelDeleteEvent = () => {
-    setEventToDelete(null);
-  };
-
-  const handleDateSelect = (selectInfo: DateSelectArg) => {
-    // Validate dates before formatting
-    const isValidStart = !isNaN(selectInfo.start.getTime());
-    const isValidEnd = selectInfo.end ? !isNaN(selectInfo.end.getTime()) : true;
-
-    if (!isValidStart || !isValidEnd) {
-      console.error('Invalid date values in handleDateSelect');
-      return;
-    }
-
-    const startDate = format(selectInfo.start, 'yyyy-MM-dd');
-    // For all-day selection in month view, FullCalendar sets end to day+1 — normalise to same day as start
-    const rawEnd = selectInfo.end || selectInfo.start;
-    const endDate = selectInfo.allDay
-      ? startDate  // single day click → same start and end date
-      : format(rawEnd, 'yyyy-MM-dd');
-    const startTime = selectInfo.allDay ? undefined : format(selectInfo.start, 'HH:mm');
-    const endTime = selectInfo.allDay || !selectInfo.end ? undefined : format(rawEnd, 'HH:mm');
-
-    // When clicking a date cell, always default to All Day event so the
-    // EventForm opens with the multi-date picker pre-selected on that date.
-    const isAllDay = selectInfo.allDay ?? true;
-
-    setSelectedEvent({
-      id: '',
-      title: '',
-      type: 'Academic',
-      priority: 'Medium',
-      status: 'Scheduled',
-      startDate,
-      endDate,
-      startTime,
-      endTime,
-      isAllDay,
-      targetAudience: [],
-      recurrence: { frequency: 'None' },
-      isExamEvent: false,
-      isRecurringInstance: false,
-      reminders: [],
-      notificationsSent: [],
-      sendReminders: true,
-      colorCode: EVENT_TYPE_COLORS['Academic'],
-      requiresApproval: false,
-      isPublic: true,
-      createdBy: user?.id || '',
-      createdAt: new Date().toISOString(),
-    } as unknown as Event);
-    setIsEventFormOpen(true);
-    selectInfo.view.calendar.unselect();
-  };
-
-  const handleEventDrop = (dropInfo: EventDropArg) => {
-    const event = allEvents.find(e => e.id === dropInfo.event.id);
-    if (event && dropInfo.event.start) {
-      // Validate dates before formatting
-      const isValidStart = !isNaN(dropInfo.event.start.getTime());
-      const isValidEnd = dropInfo.event.end ? !isNaN(dropInfo.event.end.getTime()) : true;
-
-      if (!isValidStart || !isValidEnd) {
-        console.error('Invalid date values in handleEventDrop');
-        return;
-      }
-
-      const updatedEvent = {
-        ...event,
-        startDate: format(dropInfo.event.start, 'yyyy-MM-dd'),
-        endDate: format(dropInfo.event.end || dropInfo.event.start, 'yyyy-MM-dd'),
-        startTime: !dropInfo.event.allDay ? format(dropInfo.event.start, 'HH:mm') : undefined,
-        endTime: !dropInfo.event.allDay && dropInfo.event.end ? format(dropInfo.event.end, 'HH:mm') : undefined,
-        reminders: event.reminders as unknown as any,
-      };
-
-      updateEventMutation.mutate({
-        eventId: event.id,
-        data: updatedEvent as any
-      });
-    }
-  };
-
-  const handleViewChange = (view: CalendarViewType) => {
-    // Immediate view change with smooth transition
-    setIsViewTransitioning(true);
-    setCurrentView(view);
-
-    // Single timeout for clean transition end
-    setTimeout(() => {
-      setIsViewTransitioning(false);
-    }, 250);
-  };
-
-  const handleCreateEvent = () => {
-    setSelectedEvent(null);
-    setIsEventFormOpen(true);
-  };
-
-  const handleFilterChange = (newFilters: EventFilters) => {
-    setFilters(newFilters);
-  };
-
-  return (
-    <div className={`min-h-screen ${className}`}>
-      {offline && eventsQuery.data === undefined && <p role="status" className="p-4 text-muted-foreground">Connect once to download your calendar events for offline viewing.</p>}
-      {/* Modern Error State */}
-      {eventsError && eventsQuery.data === undefined && (
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 text-center max-w-md mx-4 dark:bg-slate-900/80 dark:border-slate-700/20">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-red-950/40">
-              <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+      <div className={cn('grid min-w-0 items-start gap-4', panelOpen && 'xl:grid-cols-[minmax(0,1fr)_19rem]', filtersOpen && showFilters && (panelOpen ? '2xl:grid-cols-[15rem_minmax(0,1fr)_19rem]' : '2xl:grid-cols-[15rem_minmax(0,1fr)]'))}>
+        {showFilters && filtersOpen && <aside aria-label="Calendar filters" className="hidden min-w-0 rounded-2xl border bg-card shadow-sm 2xl:block">{filtersContent}</aside>}
+        <section role="region" ref={calendarHost} className="min-w-0 overflow-hidden rounded-2xl border bg-card shadow-sm" aria-label="School planning calendar">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b p-3 sm:p-4">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              {currentView !== 'term' && <><Button type="button" variant="outline" size="icon" aria-label="Previous calendar period" onClick={() => navigate('prev')} className="h-11 w-11 sm:h-10 sm:w-10"><ChevronLeft className="h-4 w-4" /></Button><Button type="button" variant="outline" size="icon" aria-label="Next calendar period" onClick={() => navigate('next')} className="h-11 w-11 sm:h-10 sm:w-10"><ChevronRight className="h-4 w-4" /></Button><Button type="button" variant="outline" size="sm" className="h-10" onClick={() => navigate('today')}>Today</Button></>}
+              <h2 aria-live="polite" className="ml-1 text-lg font-semibold tracking-tight">{currentView === 'term' ? 'Term planner' : title}</h2>
             </div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-2 dark:text-slate-100">Unable to Load Events</h3>
-            <p className="text-slate-600 mb-6 dark:text-slate-300">
-              {eventsError instanceof Error ? eventsError.message : 'Something went wrong while loading your calendar'}
-            </p>
-            <Button
-              onClick={() => void eventsQuery.refetch()}
-              disabled={eventsQuery.isFetching}
-              className="bg-gradient-to-r from-brand-surface-600 to-brand-alt-surface-600 hover:from-brand-surface-700 hover:to-brand-alt-surface-700 text-white px-6 py-2 rounded-xl transition-all duration-200 transform hover:scale-105"
-            >
-              Try Again
-            </Button>
+            <div role="group" aria-label="Calendar view" className="flex max-w-full rounded-lg border bg-muted/40 p-1">{views.map(view => <button key={view} type="button" aria-pressed={currentView === view} onClick={() => setCurrentView(view)} className={cn('min-h-11 rounded-md px-2.5 sm:min-h-9 text-xs font-medium capitalize sm:px-3', currentView === view ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted')}>{view.charAt(0).toUpperCase() + view.slice(1)}</button>)}</div>
           </div>
-        </div>
-      )}
-
-      {/* Main Content */}
-      {(!eventsError || eventsQuery.data !== undefined) && (
-        <div className="animate-in fade-in duration-500">
-          <GlassPageTopBar
-            title="Events & Calendar"
-            subtitle="View and manage school events, exams, and holidays"
-            backHref="/dashboard"
-            backLabel="Dashboard"
-            meta={
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-brand-surface-50/80 border border-brand-200/60 text-[10px] font-semibold text-brand-ink-700 dark:bg-brand-surface-950/80 dark:border-brand-800/60 dark:text-brand-ink-300">
-                  <div className="w-1.5 h-1.5 bg-brand-surface-500 rounded-full animate-pulse" />
-                  {allEvents.length} event{allEvents.length !== 1 ? 's' : ''}
-                </div>
-                {ugandaHolidays.data && ugandaHolidays.data.length > 0 && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50/80 border border-amber-200/60 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/80 dark:border-amber-800/60 dark:text-amber-300">
-                    <span>🇺🇬</span>
-                    {ugandaHolidays.data.length} holiday{ugandaHolidays.data.length !== 1 ? 's' : ''}
-                  </div>
-                )}
-              </div>
-            }
-            actionsLeading={
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5 pointer-events-none dark:text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search events..."
-                  value={filters.searchTerm || ''}
-                  onChange={(e) => handleFilterChange({ searchTerm: e.target.value || undefined })}
-                  className="pl-8 pr-3 h-[30px] w-36 sm:w-48 focus:w-56 transition-all duration-200 rounded-full border border-brand-200/60 bg-white/90 text-[11px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-400/50 placeholder:text-gray-400 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-slate-200 dark:placeholder:text-slate-400"
-                />
-              </div>
-            }
-            actions={
-              <GlassActionDock>
-                {hasAndroidOfflineBridge() && <GlassActionButton label="Widgets & reminders" icon={<CalendarIcon className="h-4 w-4" />} onClick={() => void androidOfflineRequest('openTimetableSettings').catch(error => toast({title:'Widgets & reminders',description:error instanceof Error ? error.message : 'Reopen the app to change reminders.'}))} />}
-                <GlassActionButton
-                  label="Month"
-                  icon={<CalendarDays className="h-4 w-4" />}
-                  tone={currentView === 'month' ? 'blue' : 'slate'}
-                  onClick={() => handleViewChange('month')}
-                />
-                <GlassActionButton
-                  label="Week"
-                  icon={<CalendarRange className="h-4 w-4" />}
-                  tone={currentView === 'week' ? 'blue' : 'slate'}
-                  onClick={() => handleViewChange('week')}
-                />
-                <GlassActionButton
-                  label="Day"
-                  icon={<Clock className="h-4 w-4" />}
-                  tone={currentView === 'day' ? 'blue' : 'slate'}
-                  onClick={() => handleViewChange('day')}
-                />
-                <GlassActionButton
-                  label="Agenda"
-                  icon={<List className="h-4 w-4" />}
-                  tone={currentView === 'agenda' ? 'blue' : 'slate'}
-                  onClick={() => handleViewChange('agenda')}
-                />
-                <GlassActionButton
-                  label="Term"
-                  icon={<BookOpen className="h-4 w-4" />}
-                  tone={currentView === 'term' ? 'blue' : 'slate'}
-                  onClick={() => setCurrentView('term')}
-                />
-                {showFilters && (
-                  <GlassActionButton
-                    label="Filters"
-                    icon={<Filter className="h-4 w-4" />}
-                    tone={isMobileFiltersOpen ? 'emerald' : 'slate'}
-                    onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
-                  />
-                )}
-                <GlassActionButton
-                  label="New Event"
-                  icon={<Plus className="h-4 w-4" />}
-                  tone="emerald"
-                  onClick={handleCreateEvent}
-                />
-              </GlassActionDock>
-            }
-          />
-
-          {/* Wrapper for body layout spacing */}
-          <div className="px-4 sm:px-6 lg:px-8 pb-12">
-          <CatalogueDataNotice label="calendar events" hasData={eventsQuery.data !== undefined}
-            refreshing={eventsQuery.isFetching} error={eventsError} retry={() => eventsQuery.refetch()} />
-
-          {/* Mobile Filters - Desktop Inspired */}
-          <AnimatePresence>
-            {showFilters && isMobileFiltersOpen && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="xl:hidden px-4 sm:px-6 lg:px-8 overflow-hidden"
-              >
-                <div className="space-y-4 pb-6">
-                  <div className="bg-white backdrop-blur-xl rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden dark:bg-slate-900 dark:border-slate-700/60">
-                    <EventFiltersComponent
-                      filters={filters}
-                      onFiltersChange={handleFilterChange}
-                      isCompactView={isCompactView}
-                      onToggleCompactView={() => setIsCompactView(!isCompactView)}
-                    />
-                  </div>
-
-                  {showLegend && (
-                    <div className="bg-white backdrop-blur-xl rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden dark:bg-slate-900 dark:border-slate-700/60">
-                      <ColorLegend colors={EVENT_TYPE_COLORS} />
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Desktop Layout */}
-          <div className="grid grid-cols-1 xl:grid-cols-5 gap-8 px-4 sm:px-6 lg:px-8 pb-12">
-            {/* Desktop Filters Sidebar */}
-            {showFilters && (
-              <div className="hidden xl:block xl:col-span-1 space-y-6 animate-in slide-in-from-left-4 duration-500">
-                <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-200/60 overflow-hidden p-1 dark:bg-slate-900/80 dark:border-slate-700/60">
-                  <EventFiltersComponent
-                    filters={filters}
-                    onFiltersChange={handleFilterChange}
-                    isCompactView={isCompactView}
-                    onToggleCompactView={() => setIsCompactView(!isCompactView)}
-                  />
-                </div>
-
-                {showLegend && (
-                  <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-200/60 overflow-hidden p-1 dark:bg-slate-900/80 dark:border-slate-700/60">
-                    <ColorLegend colors={EVENT_TYPE_COLORS} />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Main Calendar */}
-            <div className={cn(
-              "transition-all duration-300",
-              showFilters ? "xl:col-span-4" : "col-span-1 xl:col-span-5"
-            )}>
-              <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 relative overflow-hidden animate-in slide-in-from-bottom-4 duration-500 dark:bg-slate-900 dark:border-slate-700/60">
-                {/* Subtle header flair within the calendar body */}
-                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-brand-surface-500 via-brand-alt-surface-500 to-brand-surface-500" />
-
-                <div className={cn(
-                  "p-2 ssm:p-4 md:p-8 transition-all duration-300 ease-spring",
-                  isViewTransitioning ? "opacity-60 scale-[0.98] blur-sm" : "opacity-100 scale-100 blur-0"
-                )}>
-                  <div className="transition-opacity duration-200"
-                    style={{
-                      opacity: isViewTransitioning ? 0.8 : 1
-                    }}>
-                    {currentView === 'term' ? (
-                      // Term View Content
-                      <div className="space-y-6">
-                        {!isLoadingAcademicYears && (
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-sm rounded-2xl p-4 sm:p-5 mb-6 dark:bg-slate-900/80 dark:border-slate-700/60">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-brand-alt-surface-100 text-brand-alt-ink-600 rounded-xl flex items-center justify-center shrink-0 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-400">
-                                <BookOpen className="w-5 h-5" />
-                              </div>
-                              <div>
-                                <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight dark:text-slate-100">Academic Timeline</h3>
-                                <p className="text-xs text-slate-500 font-medium dark:text-slate-400">Select a period to view events</p>
-                              </div>
-                            </div>
-
-                            {/* Consolidated Divided Pill Selectors */}
-                            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-full p-1 shadow-inner relative z-20 w-full sm:w-auto mt-2 sm:mt-0 dark:bg-slate-900 dark:border-slate-700">
-                              <div className="flex-1 sm:w-[180px]">
-                                <Select value={selectedAcademicYearId} onValueChange={setSelectedAcademicYearId}>
-                                  <SelectTrigger className="w-full h-[42px] border-0 bg-transparent hover:bg-white rounded-full transition-colors shadow-none focus:ring-0 text-sm font-semibold pl-4 dark:hover:bg-slate-900">
-                                    <SelectValue placeholder="Year" />
-                                  </SelectTrigger>
-                                  <SelectContent className="rounded-xl min-w-[200px] z-[100]">
-                                    {academicYears.map((year: any) => (
-                                      <SelectItem key={year.id} value={year.id} className="rounded-lg font-medium cursor-pointer">
-                                        {year.name || `Year ${year.id}`} {year.isActive && ' (Active)'}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-
-                              <div className="w-px h-6 bg-slate-300 mx-1 shrink-0 dark:bg-slate-700"></div>
-
-                              <div className="flex-1 sm:w-[160px]">
-                                <Select value={selectedTermId} onValueChange={setSelectedTermId}>
-                                  <SelectTrigger className="w-full h-[42px] border-0 bg-transparent hover:bg-white rounded-full transition-colors shadow-none focus:ring-0 text-sm font-semibold pl-4 pr-3 dark:hover:bg-slate-900">
-                                    <SelectValue placeholder="Term" />
-                                  </SelectTrigger>
-                                  <SelectContent className="rounded-xl min-w-[160px] z-[100]">
-                                    {availableTerms.map((term: any) => (
-                                      <SelectItem key={term.id} value={term.id} className="rounded-lg font-medium cursor-pointer">
-                                        {term.name || `Term ${term.id}`}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Term Events Display */}
-                        {(() => {
-                          const selectedTerm = availableTerms.find((term: any) => term.id === selectedTermId);
-                          const selectedYear = academicYears.find((year: any) => year.id === selectedAcademicYearId);
-
-                          if (!selectedTerm || !selectedYear) {
-                            return (
-                              <div className="p-12 text-center bg-slate-50/50 rounded-2xl border border-slate-100 dark:bg-slate-900/50 dark:border-slate-700">
-                                <p className="text-slate-500 font-medium dark:text-slate-400">Please select an academic year and term to view events.</p>
-                              </div>
-                            );
-                          }
-
-                          const termStart = new Date(selectedTerm.startDate);
-                          const termEnd = new Date(selectedTerm.endDate);
-                          const today = new Date();
-
-                          // Validate dates before using them
-                          const isValidStartDate = !isNaN(termStart.getTime());
-                          const isValidEndDate = !isNaN(termEnd.getTime());
-
-                          if (!isValidStartDate || !isValidEndDate) {
-                            return (
-                              <div className="p-8 text-center text-red-600 bg-red-50 rounded-2xl border border-red-100 dark:text-red-400 dark:bg-red-950/40 dark:border-red-800/60">
-                                <p className="font-semibold">Invalid term dates. Please check the term configuration.</p>
-                                <div className="text-sm mt-3 opacity-80">
-                                  <p>Start: {selectedTerm.startDate || 'undefined'}</p>
-                                  <p>End: {selectedTerm.endDate || 'undefined'}</p>
-                                </div>
-                              </div>
-                            );
-                          }
-
-                          const isCurrentTerm = today >= termStart && today <= termEnd;
-                          const termProgress = isCurrentTerm ?
-                            Math.min(100, Math.max(0, ((today.getTime() - termStart.getTime()) / (termEnd.getTime() - termStart.getTime())) * 100)) :
-                            today > termEnd ? 100 : 0;
-
-                          const termFilteredEvents = allEvents.filter(event => {
-                            const eventStart = new Date(event.startDate);
-                            return eventStart >= termStart && eventStart <= termEnd;
-                          });
-
-                          return (
-                            <div className="space-y-8 animate-in slide-in duration-500">
-                              {/* Term Stats Dashboard */}
-                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                {/* Main Info Card */}
-                                <div className="lg:col-span-2 bg-gradient-to-br from-brand-surface-600 to-brand-alt-surface-700 rounded-3xl p-8 text-white shadow-xl shadow-brand-900/10 relative overflow-hidden">
-                                  <div className="absolute top-0 right-0 p-8 opacity-10">
-                                    <CalendarIcon className="w-48 h-48 -mr-12 -mt-12" />
-                                  </div>
-                                  <div className="relative z-10 h-full flex flex-col justify-between">
-                                    <div>
-                                      <div className="flex items-center gap-3 mb-2">
-                                        <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-md dark:bg-slate-900/20 dark:hover:bg-slate-900/30">
-                                          {isCurrentTerm ? "Current Term" : today > termEnd ? "Past Term" : "Upcoming Term"}
-                                        </Badge>
-                                        <Badge variant="outline" className="border-white/30 text-white/90 dark:border-slate-700/30">
-                                          {selectedYear.name || selectedYear.id}
-                                        </Badge>
-                                      </div>
-                                      <h2 className="text-3xl md:text-4xl font-black mb-2 tracking-tight">{selectedTerm.name}</h2>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-8">
-                                      <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-md border border-white/10 dark:bg-slate-900/10 dark:border-slate-700/10">
-                                        <p className="text-brand-ink-100 text-sm font-medium mb-1">Start Date</p>
-                                        <p className="font-bold">{format(termStart, 'MMM d, yyyy')}</p>
-                                      </div>
-                                      <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-md border border-white/10 dark:bg-slate-900/10 dark:border-slate-700/10">
-                                        <p className="text-brand-ink-100 text-sm font-medium mb-1">End Date</p>
-                                        <p className="font-bold">{format(termEnd, 'MMM d, yyyy')}</p>
-                                      </div>
-                                      <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-md border border-white/10 sm:col-span-1 col-span-2 dark:bg-slate-900/10 dark:border-slate-700/10">
-                                        <p className="text-brand-ink-100 text-sm font-medium mb-1">Duration</p>
-                                        <p className="font-bold">{Math.ceil((termEnd.getTime() - termStart.getTime()) / (1000 * 60 * 60 * 24))} days</p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Progress/Stats Card */}
-                                <div className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col justify-center dark:bg-slate-900 dark:border-slate-700">
-                                  {isCurrentTerm ? (
-                                    <div className="space-y-6">
-                                      <div>
-                                        <div className="flex justify-between items-end mb-3">
-                                          <h4 className="text-slate-500 font-medium dark:text-slate-400">Term Progress</h4>
-                                          <span className="text-2xl font-black text-brand-ink-600 dark:text-brand-ink-400">{Math.round(termProgress)}%</span>
-                                        </div>
-                                        <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden dark:bg-slate-900">
-                                          <div
-                                            className="bg-gradient-to-r from-brand-surface-500 to-brand-alt-surface-600 h-full rounded-full transition-all duration-1000 ease-out relative"
-                                            style={{ width: `${termProgress}%` }}
-                                          >
-                                            <div className="absolute inset-0 bg-white/20 w-full dark:bg-slate-900/20" style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <div className="pt-6 border-t border-slate-100 dark:border-slate-700">
-                                        <p className="text-slate-500 font-medium mb-1 dark:text-slate-400">Events This Term</p>
-                                        <p className="text-3xl font-black text-slate-800 dark:text-slate-100">{termFilteredEvents.length}</p>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="text-center space-y-4">
-                                      <div className="w-16 h-16 bg-brand-surface-50 rounded-2xl flex items-center justify-center mx-auto text-brand-ink-500 dark:bg-brand-surface-950/40 dark:text-brand-ink-400">
-                                        <CalendarIcon size={32} />
-                                      </div>
-                                      <div>
-                                        <p className="text-slate-500 font-medium mb-1 dark:text-slate-400">Total Events</p>
-                                        <p className="text-4xl font-black text-slate-800 dark:text-slate-100">{termFilteredEvents.length}</p>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div>
-                                <div className="flex items-center justify-between mb-6">
-                                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                                    Term Schedule
-                                  </h3>
-                                </div>
-
-                                {termFilteredEvents.length === 0 ? (
-                                  <div className="border-2 border-dashed border-slate-200 rounded-3xl p-12 text-center bg-slate-50/50 mt-4 dark:border-slate-700 dark:bg-slate-900/50">
-                                    <div className="w-20 h-20 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-4 text-slate-300 dark:bg-slate-900">
-                                      <CalendarIcon size={40} />
-                                    </div>
-                                    <h4 className="text-lg font-bold text-slate-700 mb-2 dark:text-slate-200">No scheduled events</h4>
-                                    <p className="text-slate-500 mb-6 max-w-sm mx-auto dark:text-slate-400">There are currently no events scheduled for this academic term.</p>
-                                    <Button
-                                      onClick={handleCreateEvent}
-                                      className="bg-brand-surface-600 hover:bg-brand-surface-700 text-white rounded-xl shadow-lg shadow-brand-600/20"
-                                    >
-                                      <Plus className="mr-2 h-4 w-4" />
-                                      Schedule First Event
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden dark:bg-slate-900 dark:border-slate-700">
-                                    <EventsList
-                                      events={termFilteredEvents as Event[]}
-                                      isCompact={isCompactView}
-                                      onEventClick={(event: Event) => {
-                                        setSelectedEvent(event);
-                                        setIsEventDetailsOpen(true);
-                                      }}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    ) : (
-                      // Regular FullCalendar View
-                      <div className="fullcalendar-container">
-                        <FullCalendar
-                          ref={calendarRef}
-                          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-                          timeZone="local"
-                          headerToolbar={{
-                            left: 'prev,next today',
-                            center: 'title',
-                            right: ''
-                          }}
-                          initialView={getFullCalendarView(currentView as CalendarViewType)}
-                          initialDate={currentDate}
-                          height={height}
-                          events={calendarEvents}
-                          editable={!offline}
-                          selectable={!offline}
-                          selectMirror={true}
-                          dayMaxEvents={isCompactView ? 2 : true}
-                          dayMaxEventRows={isCompactView ? 2 : undefined}
-                          moreLinkClick={isCompactView ? "popover" : "day"}
-                          weekends={true}
-                          eventClick={handleEventClick}
-                          select={handleDateSelect}
-                          selectLongPressDelay={50}
-                          eventLongPressDelay={50}
-                          eventDrop={handleEventDrop}
-                          eventDisplay="block"
-                          displayEventTime={true}
-                          allDaySlot={true}
-                          slotMinTime="06:00:00"
-                          slotMaxTime="22:00:00"
-                          expandRows={true}
-                          stickyHeaderDates={true}
-                          nowIndicator={true}
-                          businessHours={{
-                            daysOfWeek: [1, 2, 3, 4, 5],
-                            startTime: '07:00',
-                            endTime: '17:00',
-                          }}
-                          eventClassNames="calendar-event"
-                          dayCellClassNames="calendar-day"
-                          slotLabelClassNames="calendar-time-label"
-                          viewClassNames={`calendar-view-${currentView}`}
-                          datesSet={(dateInfo) => {
-                            setCurrentDate(dateInfo.start);
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+          {currentView === 'term' ? <TermPlanner years={years} yearId={yearId} termId={termId} onYear={id => { setYearId(id); setTermId(years.find(year => year.id === id)?.terms[0]?.id || ''); }} onTerm={setTermId} events={allEvents} onSelect={selectEvent} /> : <>
+            <div className="flex flex-wrap items-center justify-between gap-2 px-3 pt-3 text-xs text-muted-foreground"><label className="flex items-center gap-2">Go to date<Input type="date" aria-label="Go to calendar date" value={format(currentDate, 'yyyy-MM-dd')} onChange={event => { const date = parseISO(event.target.value); if (isValid(date)) calendarRef.current?.getApi().gotoDate(date); }} className="h-9 w-36 text-xs" /></label><span role={loadingEvents ? 'status' : undefined}>{loadingEvents ? 'Loading school activities...' : `${allEvents.length} matching activities`}</span></div>
+            <div className="p-1 sm:p-3" onDoubleClick={event => { const cell = (event.target as HTMLElement).closest<HTMLElement>('[data-date]'); if (cell?.dataset.date && !(event.target as HTMLElement).closest('.fc-event')) newEvent(cell.dataset.date); }}>
+              <FullCalendar ref={calendarRef} plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]} timeZone="local" headerToolbar={false} initialView={calendarViews[currentView]} initialDate={currentDate} height={height} events={calendarEvents}
+                editable={allowed('edit_event')} selectable={canCreate} selectMirror dayMaxEvents={3} moreLinkClick={info => { selectDay(format(info.date, 'yyyy-MM-dd')); return 'popover'; }} weekends fixedWeekCount={false}
+                eventClick={info => { const event = allSources.find(item => item.id === info.event.id); if (event) selectEvent(event); }} dateClick={info => selectDay(info.dateStr.slice(0, 10))}
+                select={info => {
+                  const start = format(info.start, 'yyyy-MM-dd');
+                  const end = format(info.allDay ? addDays(info.end, -1) : info.end, 'yyyy-MM-dd');
+                  if (info.allDay && start === end) selectDay(start);
+                  else newEvent(start, end, info.allDay ? undefined : { startTime: format(info.start, 'HH:mm'), endTime: format(info.end, 'HH:mm') });
+                  info.view.calendar.unselect();
+                }}
+                eventDrop={moveEvent} eventResize={moveEvent} eventLongPressDelay={500} selectLongPressDelay={500} eventDisplay="block" displayEventTime allDaySlot slotMinTime="06:00:00" slotMaxTime="22:00:00" nowIndicator
+                eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }}
+                eventContent={info => <div className="planning-event-content" title={`${info.timeText ? info.timeText + ' · ' : ''}${info.event.title} · ${info.event.extendedProps.calendarStatus}`}><span className="planning-event-time">{info.timeText}</span><span className="planning-event-title">{info.event.title}</span>{info.event.extendedProps.calendarStatus === 'Completed' && <Check role="img" aria-label="Completed" className="h-3 w-3 shrink-0" />}{['Cancelled', 'Draft'].includes(info.event.extendedProps.schoolEvent?.status) && <span className="planning-event-status">{info.event.extendedProps.schoolEvent.status}</span>}</div>}
+                dayCellClassNames={info => format(info.date, 'yyyy-MM-dd') === selectedDay ? ['planning-selected-day'] : []}
+                dayCellDidMount={info => { const date = format(info.date, 'yyyy-MM-dd'); const target = info.el.querySelector<HTMLElement>('.fc-daygrid-day-number'); if (target) { target.tabIndex = 0; target.setAttribute('role', 'button'); target.setAttribute('aria-label', `View schedule for ${calendarDateLabel(date)}`); target.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectDay(date); } }; } }}
+                datesSet={info => { const date = info.view.calendar.getDate(); setCurrentDate(previous => previous.getTime() === date.getTime() ? previous : date); setTitle(info.view.title); }} />
             </div>
-          </div>
-
-          {/* Event Form Modal */}
-          <EventForm
-            event={selectedEvent}
-            isOpen={isEventFormOpen}
-            onClose={() => {
-              setIsEventFormOpen(false);
-              setSelectedEvent(null);
-            }}
-            onSave={(eventData) => {
-              if (selectedEvent?.id && !Array.isArray(eventData)) {
-                updateEventMutation.mutate({
-                  eventId: selectedEvent.id,
-                  data: eventData as UpdateEventData
-                });
-              } else {
-                const eventsToCreate = Array.isArray(eventData) ? eventData : [eventData];
-
-                eventsToCreate.forEach((singleEventData) => {
-                  const createData: CreateEventData = {
-                    title: singleEventData.title || '',
-                    description: singleEventData.description || '',
-                    type: singleEventData.type || 'Academic',
-                    priority: singleEventData.priority || 'Medium',
-                    status: singleEventData.status || 'Draft',
-                    startDate: singleEventData.startDate || '',
-                    endDate: singleEventData.endDate || '',
-                    startTime: singleEventData.startTime,
-                    endTime: singleEventData.endTime,
-                    isAllDay: singleEventData.isAllDay || false,
-                    location: singleEventData.location,
-                    targetAudience: singleEventData.targetAudience || [],
-                    academicYearId: singleEventData.academicYearId || activeAcademicYear?.id || '',
-                    termId: singleEventData.termId,
-                    classIds: singleEventData.classIds || [],
-                    subjectIds: singleEventData.subjectIds || [],
-                    isExamEvent: singleEventData.isExamEvent || false,
-                    isRecurringInstance: singleEventData.isRecurringInstance || false,
-                    recurrence: singleEventData.recurrence || { frequency: 'None' },
-                    reminders: singleEventData.reminders || [],
-                    sendReminders: singleEventData.sendReminders || true,
-                    colorCode: singleEventData.colorCode || EVENT_TYPE_COLORS['Academic'],
-                    requiresApproval: singleEventData.requiresApproval || false,
-                    requiresAttendance: singleEventData.requiresAttendance || false,
-                    isPublic: singleEventData.isPublic !== false,
-                    tags: singleEventData.tags || [],
-                    createdBy: user?.id || '',
-                  };
-                  createEventMutation.mutate(createData);
-                });
-              }
-              setIsEventFormOpen(false);
-              setSelectedEvent(null);
-            }}
-          />
-
-          {/* Event Details Modal */}
-          <EventDetailsModal
-            event={selectedEvent}
-            isOpen={isEventDetailsOpen}
-            onClose={() => {
-              setIsEventDetailsOpen(false);
-              setSelectedEvent(null);
-            }}
-            onEdit={(event) => {
-              setSelectedEvent(event);
-              setIsEventDetailsOpen(false);
-              setIsEventFormOpen(true);
-            }}
-            onDelete={handleDeleteEvent}
-          />
-
-          {/* Delete Confirmation Dialog */}
-          {eventToDelete && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 dark:bg-slate-900">
-                <div className="flex items-center mb-4">
-                  <div className="flex-shrink-0">
-                    <svg className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100">Delete Event</h3>
-                  </div>
-                </div>
-                <div className="mb-4">
-                  <p className="text-sm text-gray-500 dark:text-slate-400">
-                    Are you sure you want to delete "{eventToDelete.title}"? This action cannot be undone.
-                  </p>
-                </div>
-                <div className="flex justify-end space-x-3">
-                  <Button
-                    variant="outline"
-                    onClick={cancelDeleteEvent}
-                    disabled={deleteEventMutation.isPending}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={confirmDeleteEvent}
-                    disabled={deleteEventMutation.isPending}
-                  >
-                    {deleteEventMutation.isPending ? 'Deleting...' : 'Delete'}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Modern Custom CSS */}
-          <style jsx global>{`
-            .hide-scrollbar {
-              -ms-overflow-style: none; /* IE and Edge */
-              scrollbar-width: none; /* Firefox */
-            }
-            .hide-scrollbar::-webkit-scrollbar {
-              display: none; /* Chrome, Safari and Opera */
-            }
-
-            .fullcalendar-container .fc {
-              font-family: inherit;
-              --fc-border-color: rgba(226, 232, 240, 0.6);
-              --fc-today-bg-color: rgb(var(--brand-500) / 0.04);
-              --fc-page-bg-color: transparent;
-            }
-            
-            /* Clean up borders for a lighter look */
-            .fullcalendar-container .fc-theme-standard th {
-              border: none;
-              padding: 12px 0 8px 0;
-              font-weight: 600;
-              color: var(--calendar-muted, #475569);
-              text-transform: uppercase;
-              font-size: 0.70rem;
-              letter-spacing: 0.05em;
-              text-align: right;
-              padding-right: 8px;
-            }
-            
-            .fullcalendar-container .fc-theme-standard td,
-            .fullcalendar-container .fc-theme-standard th {
-              border: 1px solid var(--calendar-border, rgba(226, 232, 240, 0.4));
-            }
-
-            .fullcalendar-container .fc-scrollgrid {
-              border: 1px solid var(--calendar-border, rgba(226, 232, 240, 0.4)) !important;
-            }
-
-            .fullcalendar-container .fc-daygrid-day-number {
-              font-size: 0.8rem;
-              color: var(--calendar-muted, #64748b);
-              padding: 4px 8px;
-            }
-            
-            /* Modernized Title & Standardized Buttons */
-            .fullcalendar-container .fc-toolbar-title {
-              font-size: 1.5rem !important;
-              font-weight: 700 !important;
-              letter-spacing: -0.025em;
-              color: hsl(var(--foreground));
-            }
-
-            .fullcalendar-container .fc-button-primary {
-              /* Default (inactive): white center + colorful outer ring */
-              background: var(--calendar-control-bg, white) !important;
-              color: var(--calendar-control, rgb(var(--brand-alt-ink-600))) !important;
-              border: none !important;
-              outline: 3px solid #60a5fa !important;
-              outline-offset: 0px !important;
-              border-radius: 50% !important;
-              font-weight: 700 !important;
-              padding: 0 !important;
-              text-transform: capitalize !important;
-              transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-              box-shadow: 0 0 0 5px rgb(var(--brand-400) / 0.25), 0 6px 16px rgb(var(--brand-500) / 0.35) !important;
-              display: inline-flex !important;
-              flex-direction: column !important;
-              align-items: center !important;
-              justify-content: center !important;
-              width: 44px !important;
-              height: 44px !important;
-              flex: 0 0 auto !important;
-            }
-            
-            @media (min-width: 640px) {
-              .fullcalendar-container .fc-button-primary {
-                width: 44px !important;
-                height: 44px !important;
-              }
-            }
-            
-            @media (min-width: 768px) {
-              .fullcalendar-container .fc-button-primary {
-                width: 46px !important;
-                height: 46px !important;
-              }
-            }
-
-            .fullcalendar-container .fc-button-primary .fc-icon {
-              font-size: 1.1rem !important;
-              font-weight: 900 !important;
-            }
-
-            /* Prev button = LEFT half of a split pill (semicircle on left, slightly rounded on right) */
-            .fullcalendar-container .fc-button-primary.fc-prev-button {
-              border-radius: 999px 8px 8px 999px !important;
-              width: 44px !important;
-              height: 44px !important;
-              outline-color: #86efac !important;
-              box-shadow: 0 0 0 4px rgba(134, 239, 172, 0.4), 0 6px 18px rgba(34, 197, 94, 0.45) !important;
-              color: #15803d !important;
-              margin-right: 2px !important;
-            }
-            @media (min-width: 768px) {
-              .fullcalendar-container .fc-button-primary.fc-prev-button {
-                width: 46px !important;
-                height: 46px !important;
-              }
-            }
-
-            /* Next button = RIGHT half of a split pill (slightly rounded on left, semicircle on right) */
-            .fullcalendar-container .fc-button-primary.fc-next-button {
-              border-radius: 8px 999px 999px 8px !important;
-              width: 44px !important;
-              height: 44px !important;
-              outline-color: #86efac !important;
-              box-shadow: 0 0 0 4px rgba(134, 239, 172, 0.4), 0 6px 18px rgba(34, 197, 94, 0.45) !important;
-              color: #15803d !important;
-              margin-left: 2px !important;
-            }
-            @media (min-width: 768px) {
-              .fullcalendar-container .fc-button-primary.fc-next-button {
-                width: 46px !important;
-                height: 46px !important;
-              }
-            }
-
-            /* Hover state for prev/next: fills green */
-            .fullcalendar-container .fc-prev-button:hover:not(:disabled),
-            .fullcalendar-container .fc-next-button:hover:not(:disabled) {
-              background: linear-gradient(135deg, #16a34a, #4ade80, #16a34a) !important;
-              color: white !important;
-              outline-color: white !important;
-              box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.45), 0 10px 24px rgba(34, 197, 94, 0.55) !important;
-              transform: scale(1.05) !important;
-            }
-            
-            .fullcalendar-container .fc-button-primary.fc-today-button {
-              font-size: 10px !important;
-              letter-spacing: -0.03em !important;
-              border-radius: 50% !important;
-            }
-            
-            .fullcalendar-container .fc-button-primary:hover:not(:disabled) {
-              transform: scale(1.08) !important;
-              box-shadow: 0 0 0 5px rgb(var(--brand-400) / 0.35), 0 10px 24px rgb(var(--brand-500) / 0.50) !important;
-            }
-            
-            .fullcalendar-container .fc-button-primary:active {
-              transform: scale(0.93) !important;
-            }
-
-            /* Active (clicked): colorful gradient center + white inner ring */
-            .fullcalendar-container .fc-button-active,
-            .fullcalendar-container .fc-button-primary:not(:disabled):focus {
-              background: linear-gradient(135deg, rgb(var(--brand-surface-500)), rgb(var(--brand-alt-surface-500)), rgb(var(--brand-surface-600))) !important;
-              color: white !important;
-              outline: 3px solid white !important;
-              outline-offset: 0px !important;
-              box-shadow: 0 0 0 5px rgb(var(--brand-alt-500) / 0.45), 0 8px 20px rgb(var(--brand-alt-500) / 0.50) !important;
-            }
-
-            /* Toolbar container - transparent so ring shadows show */
-            .fullcalendar-container .fc-toolbar-chunk:first-child {
-              background-color: transparent;
-              border-radius: 9999px;
-              padding: 0.5rem;
-              display: flex;
-              align-items: center;
-              gap: 0.5rem;
-            }
-
-            .fullcalendar-container .fc-button-group {
-              display: flex !important;
-              gap: 0.5rem !important;
-            }
-
-            .fullcalendar-container .fc-button-group > .fc-button {
-              margin: 0 !important;
-              border-radius: 50% !important;
-            }
-
-            /* Event Chips - Base Configuration */
-            .fullcalendar-container .fc-event {
-              border-radius: 2px;
-              border: none;
-              font-size: clamp(0.5rem, 0.4rem + 0.4vw, 0.65rem);
-              font-weight: 500;
-              line-height: 1.2;
-              cursor: pointer;
-              transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            
-            /* Standardized Block Events */
-            .fullcalendar-container .fc-daygrid-event,
-            .fullcalendar-container .fc-timegrid-event {
-              padding: clamp(1px, 0.4vw, 2px) clamp(4px, 0.6vw, 6px);
-              box-shadow: none !important;
-              color: #ffffff !important;
-            }
-            
-            .fullcalendar-container .fc-daygrid-event .fc-event-title,
-            .fullcalendar-container .fc-daygrid-event .fc-event-time {
-              color: #ffffff !important;
-              font-weight: 600;
-            }
-
-            .fullcalendar-container .fc-event:hover {
-              transform: scale(1.02);
-              z-index: 20 !important;
-            }
-            
-            .fullcalendar-container .fc-day-today {
-              background: linear-gradient(135deg, rgb(var(--brand-500) / 0.05), rgb(var(--brand-alt-500) / 0.05)) !important;
-            }
-            
-            .fullcalendar-container .fc-highlight {
-              background: rgb(var(--brand-500) / 0.1) !important;
-            }
-            
-            .fullcalendar-container .fc-daygrid-event {
-              white-space: normal; /* Allow text to wrap */
-              word-break: break-word; /* Ensure long words break */
-              margin: 1px 2px;
-            }
-            
-            .fullcalendar-container .fc-timegrid-event {
-              border-radius: 8px;
-              padding: 4px;
-            }
-            
-            .fullcalendar-container .fc-list-event:hover td {
-              background: linear-gradient(135deg, rgb(var(--brand-500) / 0.03), rgb(var(--brand-alt-500) / 0.03));
-            }
-            
-            /* Uganda Holiday Styles */
-            .fullcalendar-container .fc-event[title*="🇺🇬"] {
-              background: linear-gradient(135deg, #f59e0b, #f97316) !important;
-              border-color: transparent !important;
-              box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
-            }
-            
-            .fullcalendar-container .fc-event[title*="🇺🇬"]:hover {
-              background: linear-gradient(135deg, #d97706, #ea580c) !important;
-              box-shadow: 0 6px 16px rgba(245, 158, 11, 0.5);
-            }
-            
-            /* Regular Holiday Styles */
-            .fullcalendar-container .fc-event[data-event-type="Holiday"]:not([title*="🇺🇬"]) {
-              background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-              border-color: transparent !important;
-              box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
-            }
-            
-            .fullcalendar-container .fc-event[data-event-type="Holiday"]:not([title*="🇺🇬"]):hover {
-              background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
-              box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
-            }
-            
-            /* Responsive Design */
-            @media (max-width: 768px) {
-              .fullcalendar-container .fc-toolbar {
-                flex-direction: column;
-                gap: 8px;
-                margin-bottom: 12px !important;
-              }
-              
-              .fullcalendar-container .fc-toolbar-chunk {
-                display: flex;
-                justify-content: center;
-                width: 100%;
-                flex-wrap: wrap; /* allow wrapping if buttons are too wide */
-              }
-
-              .fullcalendar-container .fc-toolbar-title {
-                font-size: 1.1rem !important;
-                text-align: center;
-              }
-
-              .fullcalendar-container .fc-toolbar-chunk:last-child {
-                justify-content: space-between;
-              }
-              
-              .fullcalendar-container .fc-button {
-                padding: 6px 10px !important;
-                font-size: 0.75rem !important;
-                border-radius: 6px !important;
-              }
-              
-              .fullcalendar-container .fc-event {
-                padding: 1px 2px;
-                line-height: 1.1;
-              }
-
-              .fullcalendar-container .fc-theme-standard th {
-                padding: 8px 4px;
-                font-size: 0.65rem;
-              }
-            }
-            
-            /* Smooth Animation Classes */
-            @keyframes fadeIn {
-              from { opacity: 0; transform: translateY(8px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-            
-            @keyframes slideIn {
-              from { opacity: 0; transform: translateX(12px); }
-              to { opacity: 1; transform: translateX(0); }
-            }
-            
-            .animate-in {
-              animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            }
-            
-            .fade-in {
-              animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            }
-            
-            .slide-in {
-              animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            }
-            
-            /* Smooth View Transitions */
-            .calendar-view-month,
-            .calendar-view-week, 
-            .calendar-view-day,
-            .calendar-view-agenda {
-              transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            }
-            
-            /* Custom Scrollbar for TimeGrid */
-            .fc-scroller::-webkit-scrollbar {
-              width: 6px;
-              height: 6px;
-            }
-            .fc-scroller::-webkit-scrollbar-track {
-              background: rgba(0,0,0,0.02);
-            }
-            .fc-scroller::-webkit-scrollbar-thumb {
-              background: rgba(148, 163, 184, 0.4);
-              border-radius: 4px;
-            }
-            .fc-scroller::-webkit-scrollbar-thumb:hover {
-              background: rgba(148, 163, 184, 0.6);
-            }
-          `}</style>
-        </div>
-        </div>
-      )}
+          </>}
+          {showLegend && <div aria-label="Event colour legend" className="flex flex-wrap gap-3 border-t px-4 py-3 text-xs text-muted-foreground">{[['exam', 'Exams'], ['holiday', 'Holidays'], ['academic', 'Academic'], ['meeting', 'Meetings'], ['activity', 'Activities']].map(([tone, label]) => <span key={tone} className="flex items-center gap-1.5"><span aria-hidden="true" className={`planning-legend-dot calendar-tone-${tone}`} />{label}</span>)}</div>}
+        </section>
+        {panelOpen && <aside aria-label="School planning panel" className="min-w-0 space-y-4">
+          {selected && <EventPlanningDetails event={selected} events={allSources} canEdit={canEdit(selected)} canCreate={canCreate} canDelete={canDelete(selected)} canViewAttendance={allowed('view_attendance') && !isGeneratedCalendarEvent(selected)} busy={!!updateMutation.isPending || !!deleteMutation.isPending} onClose={() => setSelectedId('')} onEdit={() => { if (canEdit(selected)) { setFormEvent(selected); setFormOpen(true); } }} onDuplicate={() => { if (!canCreate) return; completedCreates.current.clear(); setFormEvent({ ...selected, id: '', title: `${selected.title} (copy)`, status: 'Draft', isExamEvent: false, linkedExamId: undefined, examIntegration: undefined, createdBy: user.id, createdByName: '', expectedAttendees: [], actualAttendees: [], notificationsSent: [], customFields: {} }); setFormOpen(true); }} onStatus={status => updateStatus(selected, status)} onDelete={() => requestConfirmation({ title: 'Delete event?', description: `${selected.title} will be permanently deleted.`, apply: async () => { if (!canDelete(selected)) throw new Error('You do not have permission to delete this event.'); await deleteMutation.mutateAsync(selected.id); setSelectedId(''); } })} />}
+          {selectedDay && <section aria-label="Selected day schedule" className="rounded-2xl border bg-card p-3 shadow-sm"><div className="flex items-center justify-between gap-2"><h2 className="text-sm font-semibold">{calendarDateLabel(selectedDay, 'EEE, d MMM')}</h2><Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label="Close day schedule" onClick={() => setSelectedDay('')}><X className="h-4 w-4" /></Button></div>{allEvents.filter(event => eventOccursOn(event, selectedDay)).map(event => <PlanningEventButton key={event.id} event={event} onSelect={selectEvent} />)}{!allEvents.some(event => eventOccursOn(event, selectedDay)) && <p className="py-4 text-xs text-muted-foreground">No activities match this date.</p>}{canCreate && <Button type="button" size="sm" variant="outline" className="mt-2 w-full" onClick={() => newEvent(selectedDay)}><Plus className="mr-1.5 h-4 w-4" />Add event on this date</Button>}</section>}
+          <UpcomingPanel events={allEvents} today={today} nextWeek={nextWeek} onSelect={selectEvent} loading={loadingEvents} onAgenda={() => { setCurrentView('agenda'); requestAnimationFrame(() => calendarRef.current?.getApi().today()); }} />
+        </aside>}
+      </div>
+      </>}
     </div>
-  );
+    <Sheet open={showFilters && filtersOpen && !wideScreen} onOpenChange={setFiltersOpen}>
+      <SheetContent side="left" className="z-[100001] w-[min(90vw,22rem)] overflow-y-auto p-0 2xl:hidden" onOpenAutoFocus={event => { if (window.innerWidth >= 1536) event.preventDefault(); }} onInteractOutside={event => { if (window.innerWidth >= 1536) event.preventDefault(); }}>
+        <SheetHeader className="px-4 pb-1 pt-5"><SheetTitle>Calendar filters</SheetTitle><SheetDescription>Combine classes, terms and activity types.</SheetDescription></SheetHeader>{filtersContent}
+      </SheetContent>
+    </Sheet>
+    {formOpen && <Suspense fallback={<p role="status" className="fixed bottom-4 right-4 rounded-xl border bg-card p-4 shadow-lg"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Opening event editor...</p>}><EventForm event={formEvent} isOpen={formOpen} onClose={() => { if (!confirmation) { setFormOpen(false); setFormEvent(null); } }} onSave={save} onReviewSchedule={async candidate => {
+      const conflicts = findCalendarConflicts(candidate, allSources);
+      if (!conflicts.length) return;
+      if (!canOverrideConflicts) throw new Error(`Resolve the scheduling conflict with ${conflicts[0].title} before scheduling this examination.`);
+      await new Promise<void>((resolve, reject) => requestConfirmation({ title: 'Review examination conflicts', description: 'Review overlapping school activities before scheduling these exams.', conflicts,
+        apply: async () => resolve(), cancel: () => reject(new Error('Scheduling cancelled. Your changes are still here.')) }));
+    }} /></Suspense>}
+    <AlertDialog open={!!confirmation} onOpenChange={open => { if (!open) cancelConfirmation(); }}>
+      <AlertDialogContent className="z-[200001] max-h-[85dvh] overflow-y-auto"><AlertDialogHeader><AlertDialogTitle>{confirmation?.title}</AlertDialogTitle><AlertDialogDescription>{confirmation?.description}</AlertDialogDescription></AlertDialogHeader>
+        {!!confirmation?.conflicts?.length && <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">{confirmation.conflicts.map((conflict, index) => <p key={`${conflict.eventId}:${index}`}><strong>{conflict.title}</strong><span className="block text-xs">{conflict.reasons.join(' · ')}</span></p>)}</div>}
+        {confirmError && <p role="alert" className="text-sm text-destructive">{confirmError}</p>}
+        <AlertDialogFooter><Button type="button" variant="outline" disabled={confirmBusy} onClick={cancelConfirmation}>Continue editing</Button><Button type="button" disabled={confirmBusy} onClick={() => void confirm()}>{confirmBusy ? 'Saving...' : confirmation?.conflicts?.length ? 'Save despite conflicts' : 'Confirm'}</Button></AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </div>;
 }
