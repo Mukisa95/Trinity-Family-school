@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { auth } from '@/lib/firebase';
 import { androidOfflineRequest, hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
 import { exportAndroidCachedSnapshot } from '@/lib/offline/android-cache-export';
-import { androidSnapshotRevision } from '@/lib/offline/android-sync-policy';
+import { androidSnapshotRevision, isAndroidSavedCacheKey } from '@/lib/offline/android-sync-policy';
 import { isAndroidOfflineSnapshot, type AndroidOfflineSession } from '@/lib/offline/android-contracts';
 import { subscribeToParentOfflineChanges } from '@/lib/parent-offline/repository';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
@@ -19,6 +19,7 @@ import { getDashboardTimetableTerm } from '@/lib/offline/timetable-feed';
 import { recordAppDiagnostic } from '@/lib/utils/app-diagnostics';
 import { measureWorkspaceOperation } from '@/lib/startup/workspace-timing';
 import { isNavigationPending, subscribeNavigationWork } from '@/lib/navigation/navigation-work';
+import { createAndroidSnapshotScheduler } from '@/lib/offline/android-snapshot-scheduler';
 
 function PrepareTimetable({ yearId, termId, id }: { yearId: string; termId: string; id: string }) {
   useTimetablePeriods(yearId, termId, id);
@@ -89,60 +90,48 @@ export function AndroidOfflineProvider() {
   useEffect(() => {
     if (!session || !user || session.accountId !== user.id || isLocked) return;
     let disposed = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let running = false;
-    let dirty = false;
-    const preparation = new AbortController();
     let previous = '';
-    let lastExportAt = 0;
-    let retryAt = 0;
-    let failures = 0;
+    let sourceGeneration = 0;
+    const preparation = new AbortController();
     const synchronize = async () => {
       if (disposed) return;
-      if (document.visibilityState === 'hidden' || isNavigationPending()) { dirty = true; return; }
-      if (running) { dirty = true; return; }
-      running = true;
-      dirty = false;
-      lastExportAt = Date.now();
       const startedAt = performance.now();
-      try {
-        const snapshot = await measureWorkspaceOperation('android:snapshot-export', () => exportAndroidCachedSnapshot(session, preparation.signal));
-        if (disposed || !snapshot || !isAndroidOfflineSnapshot(snapshot, session)) return;
-        if (isNavigationPending()) { dirty = true; return; }
-        // copiedAt is not a data change; avoid repeated full snapshot bridge writes.
-        const fingerprint = await measureWorkspaceOperation('android:snapshot-revision', () => androidSnapshotRevision(snapshot));
-        if (fingerprint === previous) return;
-        await measureWorkspaceOperation('android:snapshot-save', () => androidOfflineRequest('save', { snapshot }));
-        previous = fingerprint;
-        failures = 0; retryAt = 0;
-        recordAppDiagnostic('offline_snapshot_saved', performance.now() - startedAt);
-        window.dispatchEvent(new Event('trinity-android-session-updated'));
-      } catch (error) {
+      const capturedGeneration = sourceGeneration;
+      const snapshot = await measureWorkspaceOperation('android:snapshot-export', () => exportAndroidCachedSnapshot(session, preparation.signal));
+      if (disposed || !snapshot || !isAndroidOfflineSnapshot(snapshot, session)) return;
+      if (isNavigationPending() || document.visibilityState === 'hidden') { scheduler.request(); return; }
+      // copiedAt is not a data change; avoid repeated full snapshot bridge writes.
+      const fingerprint = await measureWorkspaceOperation('android:snapshot-revision', () => androidSnapshotRevision(snapshot));
+      if (fingerprint === previous) return;
+      await measureWorkspaceOperation('android:snapshot-save', () => androidOfflineRequest('save', { snapshot }));
+      // A disk write during export/save must survive even if timestamps match.
+      previous = capturedGeneration === sourceGeneration ? fingerprint : '';
+      recordAppDiagnostic('offline_snapshot_saved', performance.now() - startedAt);
+      window.dispatchEvent(new Event('trinity-android-session-updated'));
+    };
+    const scheduler = createAndroidSnapshotScheduler(synchronize,
+      () => !isNavigationPending() && document.visibilityState === 'visible',
+      error => {
         if (disposed || preparation.signal.aborted) return;
         recordAppDiagnostic('offline_snapshot_failed');
         console.warn('Android saved-data refresh failed:', error instanceof Error ? error.message : 'Unavailable');
-        dirty = true;
-        retryAt = Date.now() + Math.min(60_000, 5000 * 2 ** Math.min(4, failures++));
-      }
-      finally { running = false; if (dirty && !disposed) { dirty = false; schedule(); } }
-    };
-    // Coalesce cache changes without postponing forever during a busy query stream.
-    const schedule = () => {
-      dirty = true;
-      if (timer || running || document.visibilityState === 'hidden' || isNavigationPending()) return;
-      timer = setTimeout(() => { timer = undefined; void synchronize(); }, Math.max(1500, 15_000 - (Date.now() - lastExportAt), retryAt - Date.now()));
-    };
-    const onVisible = () => { if (document.visibilityState === 'visible' && dirty) schedule(); };
+      });
+    const schedule = () => scheduler.request();
+    const unsubscribeNavigation = subscribeNavigationWork(pending => {
+      if (!pending) scheduler.resume();
+    });
+    const onVisible = () => { if (document.visibilityState === 'visible') scheduler.resume(); };
     document.addEventListener('visibilitychange', onVisible);
+    // A repository write may change a projected photo or occur in the same
+    // millisecond as the prior write. Do not deduplicate confirmed disk writes.
+    const persistedChange = () => { sourceGeneration++; previous = ''; schedule(); };
     const onCacheWritten = (event: Event) => {
-      const key = (event as CustomEvent<{ key?: string }>).detail?.key;
-      if (!key || /^(classes|academic-years|staff|subjects|timetable):/.test(key) || key.includes('::pupils::')) schedule();
+      if (isAndroidSavedCacheKey((event as CustomEvent<{ key?: string }>).detail?.key, session)) persistedChange();
     };
-    const unsubscribeNavigation = subscribeNavigationWork(() => { if (!isNavigationPending() && dirty) schedule(); });
-    const unsubscribeParent = subscribeToParentOfflineChanges(session.accountId, schedule);
+    const unsubscribeParent = subscribeToParentOfflineChanges(session.accountId, persistedChange);
     window.addEventListener('trinity-native-cache-written', onCacheWritten);
     schedule();
-    return () => { disposed = true; preparation.abort(); unsubscribeNavigation(); if (timer) clearTimeout(timer); unsubscribeParent(); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('trinity-native-cache-written', onCacheWritten); };
+    return () => { disposed = true; preparation.abort(); scheduler.dispose(); unsubscribeNavigation(); unsubscribeParent(); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('trinity-native-cache-written', onCacheWritten); };
   }, [session, user?.id, isLocked]);
 
   useEffect(() => {

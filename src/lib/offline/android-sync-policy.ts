@@ -13,6 +13,19 @@ export function isAndroidSavedDataQuery(key: QueryKey, session: AndroidOfflineSe
   return ['subjects', 'timetable', 'timetables'].includes(root) && session.grants.timetable;
 }
 
+/** Ignore writes to unrelated modules/accounts before starting an expensive export. */
+export function isAndroidSavedCacheKey(key: unknown, session: AndroidOfflineSession): boolean {
+  if (typeof key !== 'string' || session.role === 'Parent') return false;
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
+  if (key === `${projectId}::pupils::user:${session.accountId}`) return isAndroidSavedDataQuery(['pupils'], session);
+  const scope = [projectId, session.accountId, session.role].map(encodeURIComponent).join(':');
+  for (const root of ['classes', 'academic-years', 'staff', 'subjects']) {
+    if (key === `${root}:${scope}`) return isAndroidSavedDataQuery([root], session);
+  }
+  const timetableScope = [projectId, session.accountId, session.role, 'school'].map(encodeURIComponent).join(':');
+  return key.startsWith(`timetable:${encodeURIComponent(timetableScope)}:`) && session.grants.timetable;
+}
+
 /** Compare source revisions/timestamps instead of serializing every private record twice. */
 export function androidSnapshotRevision(snapshot: AndroidOfflineSnapshot): string {
   return JSON.stringify(Object.entries(snapshot.datasets).map(([name, dataset]) => {

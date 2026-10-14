@@ -62,16 +62,14 @@ export async function offlinePupilPhoto(accountId: string, photo: unknown, signa
           const scale = Math.min(96 / bitmap.width, 96 / bitmap.height);
           const width = bitmap.width * scale, height = bitmap.height * scale;
           context.drawImage(bitmap, (96 - width) / 2, (96 - height) / 2, width, height);
-          return await measureWorkspaceOperation('android:photo-encode', async () => {
+          return await measureWorkspaceOperation('android:photo-thumbnail', async () => {
             for (const quality of [0.65, 0.45, 0.25]) {
               await yieldAndroidPreparation(signal);
-              const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
-              if (!blob) return undefined;
-              const thumbnail = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader(); reader.onload = () => resolve(String(reader.result));
-                reader.onerror = () => reject(reader.error); reader.readAsDataURL(blob);
-              });
-              if (thumbnail.length <= 8192) { current.revision++; return thumbnail; }
+              // This is a bounded 96x96 thumbnail, not the original photo.
+              // WebView may defer HTMLCanvas.toBlob callbacks for seconds;
+              // encode this tiny image within its yielded task instead.
+              const thumbnail = await measureWorkspaceOperation('android:photo-encode', () => canvas.toDataURL('image/jpeg', quality));
+              if (thumbnail.startsWith('data:image/jpeg;base64,') && thumbnail.length <= 8192) { current.revision++; return thumbnail; }
             }
             return undefined;
           });

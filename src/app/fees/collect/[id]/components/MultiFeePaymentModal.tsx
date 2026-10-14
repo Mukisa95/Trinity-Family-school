@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { UnsavedPaymentDialog, usePaymentDraftGuard } from '@/components/common/unsaved-payment-dialog';
+
+import React, { useEffect, useRef, useState } from 'react';
 import { X, CurrencyDollar, Users } from '@phosphor-icons/react';
 import { toast } from '@/hooks/use-toast';
 import { formatMoneyInput, parseFormattedMoney } from '@/lib/utils';
@@ -63,6 +65,8 @@ export function MultiFeePaymentModal({
   const [paidBy, setPaidBy] = useState<string>(pupilName || 'Parent / Guardian');
   const [distributionMode, setDistributionMode] = useState<DistributionMode>('smart');
   const [isRecording, setIsRecording] = useState(false);
+  const submitting = useRef(false);
+  const [submissionError, setSubmissionError] = useState('');
 
   // Helper: recalculate distributed amounts for automatic modes
   const recalculateDistributedAmounts = (
@@ -171,6 +175,7 @@ export function MultiFeePaymentModal({
   useEffect(() => {
     if (isOpen) {
       setSelectedFees([]);
+      setSubmissionError('');
       setTotalAmount('');
       setPaymentMethod('Cash');
       setPaidBy(pupilName || 'Parent / Guardian');
@@ -258,6 +263,8 @@ export function MultiFeePaymentModal({
   };
 
   const handleSubmit = async () => {
+    if (submitting.current) return;
+    setSubmissionError('');
     if (selectedFees.length === 0) {
       toast({
         title: 'No fees selected',
@@ -321,6 +328,7 @@ export function MultiFeePaymentModal({
       }
     }
 
+    submitting.current = true;
     setIsRecording(true);
     try {
       await onPaymentSubmit({
@@ -331,6 +339,9 @@ export function MultiFeePaymentModal({
       });
     } catch (error) {
       console.error('Payment submission error:', error);
+      setSubmissionError(error instanceof Error ? error.message : 'The payment could not be recorded. Your entries are still here.');
+    } finally {
+      submitting.current = false;
       setIsRecording(false);
     }
   };
@@ -344,15 +355,29 @@ export function MultiFeePaymentModal({
     0
   );
 
-  const handleClose = () => {
-    if (!isRecording) {
-      onClose();
-    }
-  };
+  const draftGuard = usePaymentDraftGuard({
+    isOpen,
+    dirty: selectedFees.length > 0 || totalAmount.trim() !== '' || paymentMethod !== 'Cash'
+      || paidBy !== (pupilName || 'Parent / Guardian') || distributionMode !== 'smart',
+    busy: isRecording,
+    onDiscard: onClose,
+  });
+  const changes = [
+    { label: 'Total amount', value: distributionMode === 'manual'
+      ? `UGX ${totalSelectedAmount.toLocaleString()} (manual)` : (totalAmount ? `UGX ${totalAmount}` : 'Not entered') },
+    { label: 'Payment method', value: paymentMethod },
+    { label: 'Paid by', value: paidBy || 'Not entered' },
+    { label: 'Distribution', value: { smart: 'Smart distribution', equal: 'Equal distribution', proportional: 'Proportional to balance', manual: 'Manual allocation' }[distributionMode] },
+    ...selectedFees.map((fee) => ({
+      label: fee.feeName,
+      value: `UGX ${fee.selectedAmount.toLocaleString()}${fee.isComplete ? ' (pay in full)' : ''}`,
+    })),
+  ];
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 flex flex-col">
+    <>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) draftGuard.requestClose(); }}>
+      <DialogContent onClick={(event) => { if (event.target === event.currentTarget) draftGuard.requestClose(); }} className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 flex flex-col">
         {/* Header */}
         <DialogHeader className="pl-4 pr-10 pt-3 pb-2 border-b">
           <DialogTitle className="flex items-center gap-2">
@@ -364,6 +389,7 @@ export function MultiFeePaymentModal({
         </DialogHeader>
 
         <div className="px-4 pt-2.5 pb-4 overflow-y-auto flex-1">
+          {submissionError && <p role="alert" className="mb-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">{submissionError}</p>}
           {/* Payment Details */}
           <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
@@ -591,7 +617,7 @@ export function MultiFeePaymentModal({
         {/* Footer */}
         <div className="flex items-center justify-center gap-2 pb-6 pt-2 px-6 bg-transparent">
           <button
-            onClick={handleClose}
+            onClick={draftGuard.requestClose}
             disabled={isRecording}
             className="px-4 py-2 text-gray-700 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors text-sm disabled:bg-gray-100 disabled:cursor-not-allowed dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-900 dark:disabled:bg-slate-900"
           >
@@ -617,6 +643,10 @@ export function MultiFeePaymentModal({
         </div>
       </DialogContent>
     </Dialog>
+    <UnsavedPaymentDialog open={draftGuard.showWarning} changes={changes}
+      onContinue={draftGuard.continueEditing} onDiscard={draftGuard.discard}
+      onSave={() => void handleSubmit()} />
+    </>
   );
 }
 

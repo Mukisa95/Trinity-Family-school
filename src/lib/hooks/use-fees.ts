@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FeesService } from '../services/fees.service';
 import type { FeeStructure, FeeAdjustmentEntry } from '@/types';
+import { recoverFailedConnectionRead, retryConnectionRead } from '@/lib/query/connection-recovery';
 
 export const FEES_QUERY_KEYS = {
   all: ['fees'] as const,
@@ -17,7 +18,7 @@ export function useFeeStructures() {
   const queryClient = useQueryClient();
   
   // ⚡ Use preloaded data from GlobalDataPreloader
-  return useQuery({
+  return useQuery<FeeStructure[]>({
     queryKey: FEES_QUERY_KEYS.structures(),
     // initialData below provides the preloaded snapshot. A query run caused by
     // an explicit invalidation must read the authoritative collection instead
@@ -25,11 +26,12 @@ export function useFeeStructures() {
     queryFn: FeesService.getAllFeeStructures,
     staleTime: Infinity,
     gcTime: Infinity, // Keep in cache forever
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
+    refetchOnMount: recoverFailedConnectionRead,
+    refetchOnWindowFocus: recoverFailedConnectionRead,
     // A failed read may recover when connectivity returns; a successful
     // catalogue remains fresh and never incurs a reconnect read.
-    refetchOnReconnect: query => query.state.status === 'error',
+    refetchOnReconnect: recoverFailedConnectionRead,
+    retry: retryConnectionRead,
     placeholderData: (previousData) => previousData,
     initialData: () => {
       const cached = queryClient.getQueryData(FEES_QUERY_KEYS.structures());

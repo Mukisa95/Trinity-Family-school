@@ -15,6 +15,7 @@ import {
 import { useDashboardDataRevisions } from './use-school-settings';
 import { flushDueAttendanceSummaryOutbox } from '@/lib/services/attendance-summary-outbox';
 import { useAuth } from '@/lib/contexts/auth-context';
+import { recoverFailedConnectionRead, retryConnectionRead } from '@/lib/query/connection-recovery';
 
 export const attendanceSummaryKeys = {
   daily: (scope: string, date: string, revision: number) =>
@@ -78,17 +79,18 @@ export function useAttendanceSummary(date: string, enabled = true) {
     initialData: persistedMatchesRevision ? persisted : undefined,
     staleTime: Infinity,
     gcTime: 60 * 60 * 1000,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    refetchOnMount: recoverFailedConnectionRead,
+    refetchOnWindowFocus: recoverFailedConnectionRead,
+    refetchOnReconnect: recoverFailedConnectionRead,
+    retry: retryConnectionRead,
     placeholderData: previous => previous || persisted || undefined,
   });
 
   useEffect(() => {
-    if (persisted && !queryClient.getQueryData(attendanceSummaryKeys.daily(scope, date, revision))) {
+    if (persistedMatchesRevision && persisted && !queryClient.getQueryData(attendanceSummaryKeys.daily(scope, date, revision))) {
       queryClient.setQueryData(attendanceSummaryKeys.daily(scope, date, revision), persisted);
     }
-  }, [date, persisted, queryClient, revision, scope]);
+  }, [date, persisted, persistedMatchesRevision, queryClient, revision, scope]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

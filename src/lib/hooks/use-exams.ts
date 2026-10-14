@@ -592,6 +592,7 @@ export function useCreateExamResult() {
   const { user } = useAuth();
 
   return useMutation({
+    mutationKey: ['examResults', 'create'],
     mutationFn: async (data: Omit<ExamResult, 'id'>) => {
       const result = await ExamsService.createExamResult(data);
       if (user) {
@@ -626,6 +627,7 @@ export function useUpdateExamResult() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   return useMutation({
+    mutationKey: ['examResults', 'update'],
     mutationFn: ({ id, data, lease, overrideLease }: { id: string; data: Partial<ExamResult>; lease?: ExamLeaseToken; overrideLease?: ExamLeaseOverride }) =>
       ExamsService.updateExamResult(id, data, { lease, overrideLease }),
     onSuccess: receipt => {
@@ -648,6 +650,7 @@ export function useDeleteExamResult() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   return useMutation({
+    mutationKey: ['examResults', 'delete'],
     mutationFn: (id: string) => ExamsService.deleteExamResult(id),
     onSuccess: receipt => {
       const scope = getExamResultCacheScope(user?.id, user?.role);

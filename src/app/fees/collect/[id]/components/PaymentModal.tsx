@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { UnsavedPaymentDialog, usePaymentDraftGuard } from '@/components/common/unsaved-payment-dialog';
+import React, { useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CurrencyCircleDollar } from '@phosphor-icons/react';
@@ -24,6 +25,7 @@ interface PaymentModalProps {
 export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalProps) {
   const [amount, setAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const submitting = useRef(false);
 
   const balance = fee.balance;
   const maxPayment = balance;
@@ -58,11 +60,13 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
     formValidation.handleFieldChange('paymentAmount');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (submitting.current) return;
     
     if (!formValidation.validateAll().isValid) return;
 
+    submitting.current = true;
     setIsProcessing(true);
 
     try {
@@ -73,17 +77,26 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
       console.error('Payment submission error:', error);
       formValidation.setSubmissionError(error instanceof Error ? error.message : 'The payment could not be recorded. Please try again.');
     } finally {
+      submitting.current = false;
       setIsProcessing(false);
     }
   };
 
-  const handleClose = () => {
+  const discardDraft = () => {
     if (!isProcessing) {
       setAmount('');
       formValidation.resetValidation();
       onClose();
     }
   };
+
+  const draftGuard = usePaymentDraftGuard({
+    isOpen, dirty: amount.trim() !== '', busy: isProcessing, onDiscard: discardDraft,
+  });
+  const changes = [
+    { label: 'Fee', value: fee.name },
+    { label: 'Payment amount', value: `UGX ${amount || 'Not entered'}` },
+  ];
 
   const suggestedAmounts = [
     { label: 'Full', value: balance },
@@ -92,8 +105,9 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
   ].filter(item => item.value > 0);
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="!flex !w-full !max-w-md !flex-col !gap-0 !overflow-hidden !rounded-2xl !border-slate-200 !bg-white !p-0 sm:!max-w-lg dark:!border-slate-700 dark:!bg-slate-900">
+    <>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) draftGuard.requestClose(); }}>
+      <DialogContent onClick={(event) => { if (event.target === event.currentTarget) draftGuard.requestClose(); }} className="!flex !w-full !max-w-md !flex-col !gap-0 !overflow-hidden !rounded-2xl !border-slate-200 !bg-white !p-0 sm:!max-w-lg dark:!border-slate-700 dark:!bg-slate-900">
         <DialogHeader className="flex-none border-b border-slate-100 bg-gradient-to-r from-brand-alt-surface-50 to-white px-4 py-3.5 pr-12 sm:px-6 sm:py-4 dark:border-slate-700 dark:from-brand-alt-surface-950/40 dark:to-slate-900">
           <DialogTitle className="flex items-center gap-2.5 text-base font-semibold text-slate-900 sm:text-lg dark:text-slate-100">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-alt-surface-600 text-white shadow-sm">
@@ -145,6 +159,12 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
                 inputMode="numeric"
                 autoFocus
                 {...formValidation.getFieldProps('paymentAmount')}
+                onBlur={(event) => {
+                  // Let button clicks finish before introducing a validation summary
+                  // that can move the centered dialog out from under the pointer.
+                  if (event.relatedTarget instanceof HTMLElement && event.relatedTarget.closest('button')) return;
+                  formValidation.validateField('paymentAmount');
+                }}
                 className={`min-h-11 w-full rounded-xl border px-3.5 py-2.5 text-base tabular-nums shadow-sm outline-none transition-colors focus:ring-2 focus:ring-brand-alt-500 focus:ring-offset-1 aria-[invalid=true]:border-red-600 aria-[invalid=true]:bg-red-50/70 aria-[invalid=true]:ring-red-200  dark:aria-[invalid=true]:bg-red-950/70 dark:aria-[invalid=true]:ring-red-800 ${
                   formValidation.getFieldError('paymentAmount') ? 'border-red-600' : 'border-slate-300 dark:border-slate-700'
                 }`}
@@ -203,7 +223,7 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleClose}
+                onClick={draftGuard.requestClose}
                 disabled={isProcessing}
                 className="min-h-11 w-full rounded-full border-slate-300 sm:w-auto sm:min-w-28 dark:border-slate-700"
               >
@@ -228,5 +248,9 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
         </div>
       </DialogContent>
     </Dialog>
+    <UnsavedPaymentDialog open={draftGuard.showWarning} changes={changes}
+      onContinue={draftGuard.continueEditing} onDiscard={draftGuard.discard}
+      onSave={() => void handleSubmit()} />
+    </>
   );
 }

@@ -6,6 +6,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import { onlineManager, QueryClient, QueryObserver } from '@tanstack/react-query';
 import { filterSchoolCatalogue } from '../src/lib/selectors/school-catalogue-selectors';
+import { recoverFailedConnectionRead, retryConnectionRead } from '../src/lib/query/connection-recovery';
 
 const workspaceRoot = process.cwd();
 
@@ -45,6 +46,7 @@ function loadHook(
     module,
     exports: module.exports,
     require(name: string) {
+      if (name === '@/lib/query/connection-recovery') return { recoverFailedConnectionRead, retryConnectionRead };
       if (name === './use-school-catalogue') return { useSchoolCatalogue: (catalogue: string, read: () => unknown) => owner.exports.catalogueQueryOptions(queryClient, catalogue, {id:'fixture-account'}, read) };
       if (name === '@/lib/cache/school-catalogue-queries') return { readUniformsCatalogue: readServer, readRequirementsCatalogue: readServer };
       if (name === '@/lib/selectors/school-catalogue-selectors') return { filterSchoolCatalogue };

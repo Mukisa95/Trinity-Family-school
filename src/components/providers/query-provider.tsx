@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { isAndroidOffline } from '@/lib/offline/android-app-shell';
 import { toast } from '@/hooks/use-toast';
 import { QueryClient, QueryClientProvider, MutationCache } from '@tanstack/react-query';
+import { subscribeQueryConnectivity } from '@/lib/query/native-connectivity';
 
 const ReactQueryDevtools = dynamic(
   () => import('@tanstack/react-query-devtools').then(module => module.ReactQueryDevtools),
@@ -70,6 +71,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   // the in-memory cache.
   const [queryClient] = React.useState(getQueryClient);
   React.useEffect(recoverFeeReminderChanges, []);
+  React.useEffect(subscribeQueryConnectivity, []);
 
   return (
     <QueryClientProvider client={queryClient}>
