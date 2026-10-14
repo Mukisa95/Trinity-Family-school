@@ -21,6 +21,7 @@ import { applyPupilChangesToQueryCaches, usePupils } from '@/lib/hooks/use-pupil
 import { classesKeys } from '@/lib/hooks/use-classes';
 import { useActiveAcademicYear } from '@/lib/hooks/use-academic-years';
 import { useToast } from '@/hooks/use-toast';
+import { reconcileStreamDraftAssignments } from '@/lib/utils/class-stream-draft';
 import { getPupilClassDisplay } from '@/lib/utils/class-streams';
 import type { Class, ClassStream, ClassStreamConfiguration } from '@/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -72,9 +73,19 @@ export default function ClassStreamSetupPage() {
     [allPupils, classId],
   );
   const definitions = schoolClass?.streams || [];
-  const [activeStreamIds, setActiveStreamIds] = React.useState<string[]>([]);
-  const [assignments, setAssignments] = React.useState<Record<string, string>>({});
-  const [focusStreamId, setFocusStreamId] = React.useState('');
+  const [draft, setDraft] = React.useState({
+    key: '', activeStreamIds: [] as string[], assignments: {} as Record<string, string>, focusStreamId: '', editedPupilIds: [] as string[],
+  });
+  const { activeStreamIds, assignments, focusStreamId } = draft;
+  const setActiveStreamIds = (value: React.SetStateAction<string[]>) => setDraft(current => ({
+    ...current, activeStreamIds: typeof value === 'function' ? value(current.activeStreamIds) : value,
+  }));
+  const setAssignments = (value: React.SetStateAction<Record<string, string>>) => setDraft(current => {
+    const next = typeof value === 'function' ? value(current.assignments) : value;
+    const changed = Object.keys(next).filter(id => next[id] !== current.assignments[id]);
+    return { ...current, assignments: next, editedPupilIds: [...new Set([...current.editedPupilIds, ...changed])] };
+  });
+  const setFocusStreamId = (value: string) => setDraft(current => ({ ...current, focusStreamId: value }));
   const [search, setSearch] = React.useState('');
   const [errors, setErrors] = React.useState<string[]>([]);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -116,19 +127,12 @@ export default function ClassStreamSetupPage() {
     const initialActiveIds = currentConfiguration?.enabled
       ? currentConfiguration.activeStreamIds.filter(id => definitions.some(stream => stream.id === id))
       : definitions.map(stream => stream.id);
-    setActiveStreamIds(initialActiveIds);
-    setFocusStreamId(initialActiveIds[1] || initialActiveIds[0] || '');
-    const initialAssignments: Record<string, string> = {};
-    activePupils.forEach(pupil => {
-      initialAssignments[pupil.id] = pupil.streamId && initialActiveIds.includes(pupil.streamId)
-        ? pupil.streamId
-        : initialActiveIds.length === 1
-          ? initialActiveIds[0]
-          : initialActiveIds.length === 2
-            ? initialActiveIds[0]
-            : '';
+    // Publish the scope, active IDs and saved assignments together. A separate
+    // mount effect must never clear saved choices using an empty initial ID list.
+    setDraft({ key, activeStreamIds: initialActiveIds, editedPupilIds: [],
+      focusStreamId: initialActiveIds[1] || initialActiveIds[0] || '',
+      assignments: reconcileStreamDraftAssignments({}, activePupils, initialActiveIds, schoolClass.id, activeAcademicYear.id),
     });
-    setAssignments(initialAssignments);
   }, [activeAcademicYear, activePupils, currentConfiguration, definitions, pupilsLoading, schoolClass]);
 
   const activeStreams = React.useMemo(
@@ -139,27 +143,19 @@ export default function ClassStreamSetupPage() {
   );
 
   React.useEffect(() => {
-    if (!activePupils.length) return;
-    setAssignments(current => {
-      const next = { ...current };
-      if (activeStreamIds.length === 1) {
-        activePupils.forEach(pupil => { next[pupil.id] = activeStreamIds[0]; });
-      } else if (activeStreamIds.length === 2) {
-        const fallback = activeStreamIds[0];
-        activePupils.forEach(pupil => {
-          if (!activeStreamIds.includes(next[pupil.id])) next[pupil.id] = fallback;
-        });
-      } else {
-        activePupils.forEach(pupil => {
-          if (!activeStreamIds.includes(next[pupil.id])) next[pupil.id] = '';
-        });
-      }
-      return next;
+    if (!schoolClass || !activeAcademicYear || pupilsLoading) return;
+    const key = `${schoolClass.id}:${activeAcademicYear.id}:${currentConfiguration?.version || 0}`;
+    if (draft.key !== key) return;
+    setDraft(current => {
+      if (current.key !== key) return current;
+      const edited = Object.fromEntries(current.editedPupilIds.map(id => [id, current.assignments[id]]));
+      const next = reconcileStreamDraftAssignments(edited, activePupils, current.activeStreamIds, schoolClass.id, activeAcademicYear.id);
+      const focus = current.activeStreamIds.includes(current.focusStreamId) ? current.focusStreamId
+        : current.activeStreamIds[1] || current.activeStreamIds[0] || '';
+      if (JSON.stringify(next) === JSON.stringify(current.assignments) && focus === current.focusStreamId) return current;
+      return { ...current, assignments: next, focusStreamId: focus };
     });
-    if (!activeStreamIds.includes(focusStreamId)) {
-      setFocusStreamId(activeStreamIds[1] || activeStreamIds[0] || '');
-    }
-  }, [activePupils, activeStreamIds, focusStreamId]);
+  }, [activePupils, activeStreamIds, draft.key, currentConfiguration?.version, pupilsLoading, schoolClass?.id, activeAcademicYear?.id]);
 
   const filteredPupils = React.useMemo(() => {
     const query = search.trim().toLocaleLowerCase();

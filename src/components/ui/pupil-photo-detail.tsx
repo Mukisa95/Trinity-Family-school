@@ -17,10 +17,16 @@ import { ModernDialog, ModernDialogContent, ModernDialogHeader, ModernDialogTitl
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PhotoCropEditor } from "@/components/ui/photo-crop-editor";
+import dynamic from 'next/dynamic';
 import { createImage, readFileAsDataUrl } from "@/components/ui/photo-editor-utils";
 import type { Pupil } from "@/types";
 import Image from "next/image";
+
+// Avatar rows need only their image and trigger. Download editing tools when
+// the user opens the crop screen rather than before the pupil list can mount.
+const PhotoCropEditor = dynamic(() => import('@/components/ui/photo-crop-editor').then(module => module.PhotoCropEditor), {
+  loading: () => <p role="status" className="p-6 text-center text-muted-foreground">Opening photo editor…</p>,
+});
 
 interface PupilPhotoDetailProps {
   pupil?: Pupil | null;

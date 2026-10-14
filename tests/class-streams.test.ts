@@ -46,6 +46,23 @@ const pupil = {
   createdAt: '2026-01-01',
 } satisfies Pupil;
 
+test('current class labels resolve a stream definition by ID instead of stale copied names', () => {
+  const display = getPupilClassDisplay({ ...pupil, streamId: 'east', streamName: 'West', streamCode: 'W', streamClassId: schoolClass.id }, schoolClass);
+  assert.equal(display.name, 'Primary One East');
+  assert.equal(display.code, 'P.1 E');
+});
+
+test('a historical stream with missing labels cannot borrow another current stream name', () => {
+  const snapshot: ExamRecordPupilInfo = { pupilId: pupil.id, name: 'Ada A', admissionNumber: pupil.admissionNumber, classNameAtExam: 'Primary One', classCodeAtExam: 'P.1', streamIdAtExam: 'east' };
+  const current = { ...pupil, streamId: 'west', streamName: 'West', streamCode: 'W', streamClassId: schoolClass.id, streamAcademicYearId: 'year-2026' };
+  const result = enrichExamPupilStreamIdentity(snapshot, current, schoolClass, 'year-2026');
+  assert.equal(result.streamIdAtExam, 'east');
+  assert.equal(result.streamNameAtExam, 'East');
+  assert.equal(result.streamCodeAtExam, 'E');
+  const immutable = enrichExamPupilStreamIdentity({ ...snapshot, streamNameAtExam: 'Original East', streamCodeAtExam: 'OE' }, current, schoolClass, 'year-2026');
+  assert.equal(immutable.streamNameAtExam, 'Original East');
+});
+
 test('pupil class display is unchanged before stream assignment', () => {
   assert.deepEqual(getPupilClassDisplay(pupil, schoolClass), {
     name: 'Primary One',

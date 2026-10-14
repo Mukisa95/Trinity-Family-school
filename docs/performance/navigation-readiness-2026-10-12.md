@@ -1,5 +1,7 @@
 # Pupils cache rendering and navigation correction
 
+The two-screen Pupils handover described here is superseded by [the 14 October correction](pupils-streams-calendar-2026-10-14.md). The current route uses the normal page from its first completed render; optional tools remain deferred and the canonical pupil read owner is unchanged. The measurements below describe the earlier build.
+
 The connected Pixel 7 showed the Pupils route skeleton for more than five minutes on web build b171456d, although the canonical pupil cache was populated within three seconds. Other pupil consumers could use that cache. The subsequent af1e2a0 release kept navigation pending whenever any shared page skeleton was visible and introduced an automatic Android route reload. The phone still failed to show the list after normal retry, and the user reported slower browser navigation too. The underlying WebView request or call stack remains unobserved; the production app does not expose remote debugging.
 
 ## Current correction

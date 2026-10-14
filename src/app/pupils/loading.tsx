@@ -1,5 +1,5 @@
-import { CachedPupilsList } from '@/components/pupils/cached-pupils-list';
+import { PupilsPageLoading } from '@/components/pupils/pupils-page-loading';
 
 export default function Loading() {
-  return <CachedPupilsList />;
+  return <PupilsPageLoading />;
 }

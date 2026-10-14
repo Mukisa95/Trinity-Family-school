@@ -8,6 +8,7 @@ import type {
 } from '@/types';
 
 type ClassIdentity = Pick<Class, 'id' | 'name' | 'code' | 'streams' | 'streamConfigurations'>;
+type DisplayClass = Pick<ClassIdentity, 'id' | 'name' | 'code'> & Partial<Pick<ClassIdentity, 'streams'>>;
 type PupilStreamIdentity = Pick<
   Pupil,
   'classId' | 'className' | 'classCode' | 'streamId' | 'streamName' | 'streamCode' | 'streamClassId'
@@ -59,12 +60,14 @@ export function hasCurrentStreamAssignment(pupil: PupilStreamIdentity): boolean 
  */
 export function getPupilClassDisplay(
   pupil: PupilStreamIdentity,
-  schoolClass?: Pick<ClassIdentity, 'id' | 'name' | 'code'> | null,
+  schoolClass?: DisplayClass | null,
 ): PupilClassDisplay {
   const matchingClass = schoolClass && schoolClass.id === pupil.classId ? schoolClass : null;
   const baseName = matchingClass?.name || pupil.className || '';
   const baseCode = matchingClass?.code || pupil.classCode || '';
-  const hasStream = hasCurrentStreamAssignment(pupil);
+  const definition = matchingClass?.streams?.find(stream => stream.id === pupil.streamId);
+  const hasStream = hasCurrentStreamAssignment(pupil) || Boolean(definition
+    && (!pupil.streamClassId || pupil.streamClassId === pupil.classId));
 
   return {
     baseName,
@@ -72,15 +75,15 @@ export function getPupilClassDisplay(
     // Pupil records persist the composed label. Only append here when the
     // authoritative base Class document is available, preventing "East East"
     // if a caller only has the denormalized pupil record.
-    name: hasStream && matchingClass ? joinClassAndStream(baseName, pupil.streamName) : baseName,
-    code: hasStream && matchingClass ? joinClassAndStream(baseCode, pupil.streamCode) : baseCode,
+    name: hasStream && matchingClass ? joinClassAndStream(baseName, definition?.name || pupil.streamName) : baseName,
+    code: hasStream && matchingClass ? joinClassAndStream(baseCode, definition?.code || pupil.streamCode) : baseCode,
     hasStream,
   };
 }
 
 export function enrichPupilClassIdentity<T extends Pupil>(
   pupil: T,
-  schoolClass?: Pick<ClassIdentity, 'id' | 'name' | 'code'> | null,
+  schoolClass?: DisplayClass | null,
 ): T {
   const display = getPupilClassDisplay(pupil, schoolClass);
   return {
@@ -92,7 +95,7 @@ export function enrichPupilClassIdentity<T extends Pupil>(
 
 export function applyPupilClassIdentity<T extends Pupil>(
   pupil: T,
-  schoolClass?: Pick<ClassIdentity, 'id' | 'name' | 'code'> | null,
+  schoolClass?: DisplayClass | null,
 ): T {
   const display = getPupilClassDisplay(pupil, schoolClass);
   pupil.className = display.name;
@@ -188,7 +191,7 @@ function appendStreamOnce(baseValue: string, streamValue?: string): string {
 export function enrichExamPupilStreamIdentity<T extends ExamRecordPupilInfo>(
   snapshot: T,
   currentPupil?: CurrentExamPupilIdentity | null,
-  schoolClass?: Pick<ClassIdentity, 'id' | 'name' | 'code'> | null,
+  schoolClass?: DisplayClass | null,
   examAcademicYearId?: string,
 ): T {
   const snapshotHasStream = Boolean(snapshot.streamIdAtExam);
@@ -204,8 +207,15 @@ export function enrichExamPupilStreamIdentity<T extends ExamRecordPupilInfo>(
   if (!snapshotHasStream && !currentAssignmentIsUsable) return snapshot;
 
   const streamId = snapshot.streamIdAtExam || currentPupil?.streamId;
-  const streamName = snapshot.streamNameAtExam || currentPupil?.streamName;
-  const streamCode = snapshot.streamCodeAtExam || currentPupil?.streamCode;
+  // Pupil exam snapshots store class labels; the caller supplies the exam's
+  // class. Match only that class's definitions by the saved stream ID.
+  const definition = schoolClass?.streams?.find(stream => stream.id === streamId);
+  const sameCurrentStream = currentPupil?.streamId === streamId ? currentPupil : undefined;
+  // A historical stream ID must never inherit the name of a pupil's different
+  // current stream. Existing exam labels remain immutable; missing labels use
+  // the matching definition/assignment ID only.
+  const streamName = snapshot.streamNameAtExam || definition?.name || sameCurrentStream?.streamName;
+  const streamCode = snapshot.streamCodeAtExam || definition?.code || sameCurrentStream?.streamCode;
   const currentDisplay = currentPupil && schoolClass
     ? getPupilClassDisplay(currentPupil, schoolClass)
     : null;

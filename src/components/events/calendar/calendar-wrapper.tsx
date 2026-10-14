@@ -39,6 +39,7 @@ import { format, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns
 import { getComputedEventStatus } from '@/lib/utils/event-status-utils';
 import { cn } from '@/lib/utils';
 import { GlassPageTopBar, GlassActionDock, GlassActionButton } from '@/components/common/glass-page-top-bar';
+import { CatalogueDataNotice } from '@/components/common/catalogue-data-notice';
 
 // Event type color mapping
 const EVENT_TYPE_COLORS = {
@@ -399,7 +400,7 @@ export function CalendarWrapper({
     <div className={`min-h-screen ${className}`}>
       {offline && eventsQuery.data === undefined && <p role="status" className="p-4 text-muted-foreground">Connect once to download your calendar events for offline viewing.</p>}
       {/* Modern Error State */}
-      {eventsError && (
+      {eventsError && eventsQuery.data === undefined && (
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 text-center max-w-md mx-4 dark:bg-slate-900/80 dark:border-slate-700/20">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-red-950/40">
@@ -412,7 +413,8 @@ export function CalendarWrapper({
               {eventsError instanceof Error ? eventsError.message : 'Something went wrong while loading your calendar'}
             </p>
             <Button
-              onClick={() => window.location.reload()}
+              onClick={() => void eventsQuery.refetch()}
+              disabled={eventsQuery.isFetching}
               className="bg-gradient-to-r from-brand-surface-600 to-brand-alt-surface-600 hover:from-brand-surface-700 hover:to-brand-alt-surface-700 text-white px-6 py-2 rounded-xl transition-all duration-200 transform hover:scale-105"
             >
               Try Again
@@ -422,7 +424,7 @@ export function CalendarWrapper({
       )}
 
       {/* Main Content */}
-      {!eventsError && (
+      {(!eventsError || eventsQuery.data !== undefined) && (
         <div className="animate-in fade-in duration-500">
           <GlassPageTopBar
             title="Events & Calendar"
@@ -508,6 +510,8 @@ export function CalendarWrapper({
 
           {/* Wrapper for body layout spacing */}
           <div className="px-4 sm:px-6 lg:px-8 pb-12">
+          <CatalogueDataNotice label="calendar events" hasData={eventsQuery.data !== undefined}
+            refreshing={eventsQuery.isFetching} error={eventsError} retry={() => eventsQuery.refetch()} />
 
           {/* Mobile Filters - Desktop Inspired */}
           <AnimatePresence>

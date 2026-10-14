@@ -1,6 +1,8 @@
 "use client";
 
-import { CachedPupilsList } from '@/components/pupils/cached-pupils-list';
+import { PupilsPageLoading } from '@/components/pupils/pupils-page-loading';
+import { PupilsPageHeader } from '@/components/pupils/pupils-page-header';
+import { PupilsSelectClassNotice } from '@/components/pupils/pupils-select-class-notice';
 import { usePageDataTiming } from '@/lib/hooks/use-page-data-timing';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
@@ -3375,7 +3377,7 @@ function PupilsContent() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" data-pupils-page>
       {/* Background fetching indicator - Fixed at top */}
       {pupilsManager.isFetching && !isLoadingPupils && (
         <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-gradient-to-r from-brand-surface-500 via-brand-alt-surface-500 to-brand-secondary-surface-500 animate-pulse">
@@ -3386,65 +3388,12 @@ function PupilsContent() {
       {/* Show recess status banner if in recess mode */}
       <RecessStatusBanner />
 
-      <GlassPageTopBar
-        title={
-          <>
-            <span className="hidden lg:inline">{dynamicHeading}</span>
-            <span className="sr-only lg:hidden">Pupils</span>
-          </>
-        }
-        backHref="/"
-        backLabel="Back to dashboard"
-        meta={null}
-        inlineActions
-        mobileTitleControlsBesideBack
-        contentClassName="overflow-x-auto px-2 sm:px-4 lg:px-8"
-        actionsClassName="min-w-0 shrink gap-1 lg:flex-none lg:gap-2 flex-1"
-        titleControls={
-          <div className="min-w-0 shrink-0 lg:hidden">
-            <ClassSelector
-              selectedClassId={selectedClassId}
-              onClassChange={handleClassChangeWithTransition}
-              placeholder="Class"
-              size="sm"
-              showIcon={false}
-              className="shrink-0"
-              triggerClassName="h-[34px] w-[58px] min-w-0 max-w-[58px] rounded-full border-brand-200/60 bg-white/90 px-2 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 sm:w-[68px] sm:max-w-[68px] dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
-              includeAllOption={true}
-              allOptionLabel="All"
-            />
-          </div>
-        }
-        center={
-          <>
-            <ClassSelector
-              selectedClassId={selectedClassId}
-              onClassChange={handleClassChangeWithTransition}
-              placeholder="Class"
-              size="sm"
-              showIcon={false}
-              className="shrink-0"
-              triggerClassName="h-[34px] min-w-[120px] max-w-[160px] rounded-full border-brand-200/60 bg-white/90 px-3 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300"
-              includeAllOption={true}
-              allOptionLabel="All Classes"
-            />
-
-            <GlassPageSearchInput
-              placeholder="Search pupils..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-            />
-          </>
-        }
-        actionsLeading={
-          <GlassPageSearchInput
-            placeholder="Search pupils..."
-            value={searchQuery}
-            onChange={(event) => handleSearch(event.target.value)}
-            containerClassName="min-w-0 flex-1 lg:hidden"
-            className="w-full min-w-0"
-          />
-        }
+      <PupilsPageHeader
+        heading={dynamicHeading}
+        selectedClassId={selectedClassId}
+        onClassChange={handleClassChangeWithTransition}
+        searchQuery={searchQuery}
+        onSearch={handleSearch}
         actions={
           <GlassActionDock className="flex-nowrap gap-0.5 px-1 sm:gap-1 sm:px-2">
             {pendingPupilsCount > 0 && selectedClassId && selectedClassId !== '' && selectedClassId !== 'all' && (
@@ -3513,158 +3462,13 @@ function PupilsContent() {
         }
       />
 
-      <div className="hidden">
-        <div className="h-px bg-gradient-to-r from-transparent via-brand-surface-200/60 to-transparent dark:via-brand-surface-900/60" />
-        <div className="max-w-7xl mx-auto py-1">
-          <div className="flex flex-row items-center justify-between gap-1.5 sm:gap-3 w-full flex-nowrap">
-
-            {/* Left section: Title + count badge + class selector */}
-            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
-              <div className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full bg-brand-surface-50/80 border border-brand-200/60 text-brand-ink-600 shadow-sm flex-shrink-0 dark:bg-brand-surface-950/80 dark:border-brand-800/60 dark:text-brand-ink-400">
-                <Users className="w-4 h-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                  <h1 className="text-xs sm:text-lg font-bold text-brand-alt-ink-900 leading-tight dark:text-brand-alt-ink-200">
-                    Pupils
-                  </h1>
-                  <span className="bg-brand-alt-surface-50 text-brand-alt-ink-700 text-[8px] sm:text-[10px] font-bold px-1 sm:px-2 py-0.5 rounded-full border border-brand-alt-100/80 whitespace-nowrap dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300 dark:border-brand-alt-800/80">
-                    {statusCount} {statusLabel}
-                  </span>
-
-                  <span className="text-gray-300 hidden xs:inline">•</span>
-
-                  <div className="flex items-center gap-0.5">
-                    <ClassSelector
-                      selectedClassId={selectedClassId}
-                      onClassChange={handleClassChangeWithTransition}
-                      placeholder="Class"
-                      size="sm"
-                      className="bg-transparent border-0 ring-0 focus:ring-0 text-brand-ink-700 font-semibold text-[10px] sm:text-xs min-w-[70px] sm:min-w-[100px] dark:text-brand-ink-300"
-                      includeAllOption={true}
-                      allOptionLabel="All Classes"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Middle section: Dynamic flex-growing Search bar */}
-            <div className="relative group flex-1 min-w-[50px] max-w-[200px] sm:max-w-xs mx-1 sm:mx-2">
-              <div className="absolute inset-y-0 left-0 pl-1.5 sm:pl-2.5 flex items-center pointer-events-none text-brand-ink-500/80 group-hover:text-brand-ink-600 transition-all duration-500 z-10 dark:text-brand-ink-400/80 dark:group-hover:text-brand-ink-400">
-                <MagnifyingGlass size={11} className="w-3 h-3 sm:w-3.5 sm:h-3.5" weight="duotone" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="w-full pl-5 sm:pl-8 pr-1.5 py-1 text-[10px] sm:text-xs bg-white/70 rounded-full focus:ring-2 focus:ring-brand-400/50 focus:outline-none shadow-sm hover:shadow-md transition-all duration-500 ease-in-out placeholder:text-gray-400 border border-gray-200/60 dark:bg-slate-900/70 dark:placeholder:text-slate-400 dark:border-slate-700/60"
-              />
-            </div>
-
-            {/* Right section: Action buttons floating pill */}
-            <div className="bg-white/85 rounded-full px-1.5 sm:px-2 py-1 shadow-sm border border-gray-200/60 backdrop-blur-sm flex items-center justify-center gap-1 sm:gap-1.5 flex-shrink-0 dark:bg-slate-900/85 dark:border-slate-700/60">
-                {pendingPupilsCount > 0 && selectedClassId && selectedClassId !== '' && selectedClassId !== 'all' && (
-                  <Link
-                    href={`/classes/pending?classId=${selectedClassId}`}
-                    className="relative flex items-center justify-center w-7 h-7 rounded-full bg-white text-amber-600 border border-amber-300 shadow-sm hover:bg-gradient-to-br hover:from-amber-400 hover:via-orange-500 hover:to-amber-600 hover:text-white transition-all duration-300 hover:scale-105 active:scale-95 dark:bg-slate-900 dark:text-amber-400 dark:border-amber-800/60"
-                    title={`Pending Pupils (${pendingPupilsCount})`}
-                  >
-                    <Clock className="w-3.5 h-3.5" />
-                    <span className="absolute -top-1 -right-1 h-3.5 w-3.5 flex items-center justify-center bg-red-500 text-white text-[8px] font-bold rounded-full border border-white dark:border-slate-700">
-                      {pendingPupilsCount > 9 ? '9+' : pendingPupilsCount}
-                    </span>
-                  </Link>
-                )}
-
-                {/* Filter button */}
-                <button
-                  onClick={() => setIsFilterPopupOpen(true)}
-                  className="relative flex items-center justify-center h-7 w-7 sm:w-auto px-0 sm:px-3 rounded-full font-semibold text-xs transition-all whitespace-nowrap border bg-white border-brand-200 text-brand-ink-700 hover:bg-brand-surface-50 hover:border-brand-300 flex-shrink-0 active:scale-95 dark:bg-slate-900 dark:border-brand-800/60 dark:text-brand-ink-300 dark:hover:bg-brand-surface-950/40 dark:hover:border-brand-800/60"
-                  title="Filter Pupils"
-                >
-                  <FunnelSimple size={13} className="sm:mr-1" weight="duotone" />
-                  <span className="hidden sm:inline">Filters</span>
-                  {activeFiltersCount > 0 && (
-                    <span className="absolute sm:relative -top-1 -right-1 sm:top-auto sm:right-auto sm:ml-1.5 px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-brand-surface-600 text-white leading-none">
-                      {activeFiltersCount}
-                    </span>
-                  )}
-                </button>
-
-                <div className="h-4 w-px bg-gray-200 mx-0.5 flex-shrink-0 dark:bg-slate-800"></div>
-
-                {/* Export dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className="flex items-center justify-center h-7 w-7 sm:w-auto px-0 sm:px-3 rounded-full font-semibold text-xs transition-all whitespace-nowrap border bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 flex-shrink-0 active:scale-95 dark:bg-slate-900 dark:border-emerald-800/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40 dark:hover:border-emerald-800/60"
-                      title="Export Options"
-                    >
-                      <Download size={13} className="sm:mr-1" strokeWidth={2.5} />
-                      <span className="hidden sm:inline">Export</span>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuLabel className="font-semibold text-xs text-muted-foreground">Export Options</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setIsColumnSelectionModalOpen(true)} className="cursor-pointer py-1.5 focus:bg-brand-alt-surface-50 dark:focus:bg-brand-alt-surface-950/40">
-                      <Printer size={14} className="mr-2 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" weight="duotone" />
-                      <span className="font-medium text-[11px] text-gray-700 dark:text-slate-200">Print List</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleGenerateRegistrationFormPDF} className="cursor-pointer py-1.5 focus:bg-sky-50 dark:focus:bg-sky-950/40">
-                      <UserPlus className="mr-2 h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
-                      <span className="font-medium text-[11px] text-gray-700 dark:text-slate-200">Registration Form</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsExportConfigModalOpen(true)} className="cursor-pointer py-1.5 focus:bg-green-50 dark:focus:bg-green-950/40">
-                      <ChartLine size={14} className="mr-2 text-green-600 dark:text-green-400" weight="duotone" />
-                      <span className="font-medium text-[11px] text-gray-700 dark:text-slate-200">Export to Excel</span>
-                    </DropdownMenuItem>
-                    {allFilteredPupils.some((pupil) => !!getSchoolPayCode(pupil)) && (
-                      <DropdownMenuItem onClick={handleGenerateBatchPaymentSlipsPDF} className="cursor-pointer py-1.5 focus:bg-amber-50 dark:focus:bg-amber-950/40">
-                        <CreditCard size={14} className="mr-2 text-amber-600 dark:text-amber-400" />
-                        <span className="font-medium text-[11px] text-gray-700 dark:text-slate-200">Payment Slips</span>
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                <div className="h-4 w-px bg-gray-200 mx-0.5 flex-shrink-0 dark:bg-slate-800"></div>
-
-                {/* Add button */}
-                <ActionGuard module="pupils" page="create" action="access_page">
-                  <button
-                    onClick={() => router.push('/pupils/new')}
-                    className="flex items-center justify-center h-7 w-7 sm:w-auto px-0 sm:px-3 rounded-full font-semibold text-xs transition-all whitespace-nowrap bg-brand-surface-600 hover:bg-brand-surface-700 text-white flex-shrink-0 shadow-sm active:scale-95"
-                    title="Add New Pupil"
-                  >
-                    <Plus size={13} className="sm:mr-1" strokeWidth={2.5} />
-                    <span className="hidden sm:inline">Add</span>
-                  </button>
-                </ActionGuard>
-              </div>
-
-          </div>
-        </div>
-      </div>
       <div className="mx-auto px-2 sm:px-6 pt-0 sm:pt-0 -mt-3 sm:-mt-5 pb-4 sm:pb-6">
 
         {/* Optimization messages hidden per user request */}
 
         {/* Show message when no class is selected */}
         {!selectedClassId || selectedClassId === '' ? (
-          <div className="bg-white rounded-xl shadow-sm border border-brand-alt-100 p-12 text-center dark:bg-slate-900 dark:border-brand-alt-800/60">
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-brand-alt-surface-100 flex items-center justify-center dark:bg-brand-alt-surface-950/40">
-                <Users className="w-8 h-8 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-brand-alt-ink-700 mb-2 dark:text-brand-alt-ink-300">Select a Class</h3>
-                <p className="text-brand-alt-ink-500 dark:text-brand-alt-ink-400">Please select a class from the dropdown above to view pupils</p>
-              </div>
-            </div>
-          </div>
+          <PupilsSelectClassNotice />
         ) : error ? (
           <div role="alert" className="rounded-xl border border-border bg-card p-6 text-center text-muted-foreground">
             Pupil records could not load. Reconnect or retry the unfinished download above.
@@ -5644,7 +5448,7 @@ export default function PupilsPage() {
   const { effectiveTerm, isRecessMode, periodMessage } = useTermStatus();
 
   return (
-    <Suspense fallback={<CachedPupilsList />}>
+    <Suspense fallback={<PupilsPageLoading />}>
       <PupilsContent />
     </Suspense>
   );
