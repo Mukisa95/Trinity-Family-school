@@ -87,7 +87,10 @@ public final class MainActivity extends FragmentActivity {
         settings.setJavaScriptEnabled(true); settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(false); settings.setAllowContentAccess(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) {
+        // WebKit 1.12.1 exposes this feature but omits it from its lint StringDef.
+        @android.annotation.SuppressLint("WrongConstant")
+        boolean supportsWebAuthentication = WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION);
+        if (supportsWebAuthentication) {
             WebSettingsCompat.setWebAuthenticationSupport(settings, WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_APP);
         }
         web.setWebViewClient(new WebViewClient() {

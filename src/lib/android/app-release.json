@@ -6,13 +6,13 @@
   "websiteOrigin": "https://trinityfamilyschool.vercel.app",
   "firebaseProjectId": "trinity-family-schools",
   "iconUrl": "/trinity-logo-192.png",
-  "versionCode": 26,
-  "versionName": "1.24",
+  "versionCode": 27,
+  "versionName": "1.25",
   "minAndroid": "8.0",
   "filename": "trinity-live.apk",
-  "bytes": 4691229,
-  "sha256": "b33b155330441ae07c2cd1790e71aa77148ef6136bf9f4965743e0bb58f74bcb",
+  "bytes": 4697249,
+  "sha256": "15efdaee88244ce6f12587a9a1fee95565e1641be43f32b156a3980963796bec",
   "signingCertificateSha256": "53:F5:25:7A:02:C4:B4:6C:33:47:E0:49:6F:67:36:55:1D:57:4F:44:91:56:44:D1:3C:02:79:22:BC:04:FC:08",
   "minSdk": 26,
-  "releaseNotes": "Offline calendar and events, scrollable widget event cards and event reminders. Hide offline downloads and preserve sessions during startup restoration."
+  "releaseNotes": "Remove the floating App help button while retaining background diagnostics and error reports. Includes offline calendar, event widgets and reminders, and improved offline navigation and session recovery."
 }

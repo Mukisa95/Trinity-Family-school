@@ -1,9 +1,8 @@
 <resources>
-    <style name="TrinityTheme" parent="android:style/Theme.Material.Light.NoActionBar">
-        <item name="android:isLightTheme">true</item>
+    <style name="TrinityTheme.Base" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLightNavigationBar">true</item>
         <item name="android:windowBackground">#F1F7FF</item>
         <item name="android:colorAccent">#2563EB</item>
     </style>
+    <style name="TrinityTheme" parent="TrinityTheme.Base" />
 </resources>

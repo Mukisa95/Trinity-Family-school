@@ -4,9 +4,9 @@
   "applicationId": "ug.trinityfamilyganda.live",
   "websiteOrigin": "https://trinityfamilyganda.vercel.app",
   "firebaseProjectId": "trinity-family-ganda",
-  "versionCode": 26,
-  "versionName": "1.24",
-  "releaseNotes": "Offline calendar and events, scrollable widget event cards and event reminders. Improve session recovery, hide offline downloads, and add App help with private device-local bug reports.",
+  "versionCode": 27,
+  "versionName": "1.25",
+  "releaseNotes": "Remove the floating App help button while retaining background diagnostics and error reports. Includes offline calendar, event widgets and reminders, and improved offline navigation and session recovery.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {

@@ -7,15 +7,15 @@
     "websiteOrigin": "https://trinityfamilyganda.vercel.app",
     "firebaseProjectId": "trinity-family-ganda",
     "iconUrl": "/trinity-logo-192.png",
-    "versionCode": 26,
-    "versionName": "1.24",
+    "versionCode": 27,
+    "versionName": "1.25",
     "minAndroid": "8.0",
     "filename": "trinity-ganda.apk",
-    "bytes": 4691313,
-    "sha256": "0a6ae587eb667c3a3594956172d2fdfa36700539f9cc81cd8d13819db9c0927f",
+    "bytes": 4697221,
+    "sha256": "e4cc7d086d2f31ef732950d3b0e0bbcd131894ab92e58c247745906c358c5ad9",
     "signingCertificateSha256": "5D:13:68:CC:38:C1:49:45:87:B5:3E:0D:70:5A:2A:28:4B:16:DF:FF:0C:2A:43:8C:4D:F2:C6:C7:58:B0:B3:3F",
     "minSdk": 26,
-    "releaseNotes": "Offline calendar and events, scrollable widget event cards and event reminders. Improve session recovery, hide offline downloads, and add App help with private device-local bug reports."
+    "releaseNotes": "Remove the floating App help button while retaining background diagnostics and error reports. Includes offline calendar, event widgets and reminders, and improved offline navigation and session recovery."
   },
   {
     "schema": 1,
@@ -25,14 +25,14 @@
     "websiteOrigin": "https://trinityfamilyschool.vercel.app",
     "firebaseProjectId": "trinity-family-schools",
     "iconUrl": "/trinity-logo-192.png",
-    "versionCode": 26,
-    "versionName": "1.24",
+    "versionCode": 27,
+    "versionName": "1.25",
     "minAndroid": "8.0",
     "filename": "trinity-live.apk",
-    "bytes": 4691229,
-    "sha256": "b33b155330441ae07c2cd1790e71aa77148ef6136bf9f4965743e0bb58f74bcb",
+    "bytes": 4697249,
+    "sha256": "15efdaee88244ce6f12587a9a1fee95565e1641be43f32b156a3980963796bec",
     "signingCertificateSha256": "53:F5:25:7A:02:C4:B4:6C:33:47:E0:49:6F:67:36:55:1D:57:4F:44:91:56:44:D1:3C:02:79:22:BC:04:FC:08",
     "minSdk": 26,
-    "releaseNotes": "Offline calendar and events, scrollable widget event cards and event reminders. Hide offline downloads and preserve sessions during startup restoration."
+    "releaseNotes": "Remove the floating App help button while retaining background diagnostics and error reports. Includes offline calendar, event widgets and reminders, and improved offline navigation and session recovery."
   }
 ]
