@@ -27,10 +27,6 @@ function paletteColor(style: CSSStyleDeclaration, variable: string, fallback: Co
   return channels.length === 3 && channels.every(Number.isFinite) ? [channels[0], channels[1], channels[2], 1] : fallback;
 }
 
-function tint(base: Color, accent: Color): Color {
-  return over(base, [accent[0], accent[1], accent[2], .22]);
-}
-
 /** Read a tiny cached sample of a CSS wallpaper locally, never page content. */
 function imageColor(url: string) {
   let pending = backgroundImages.get(url);
@@ -118,17 +114,16 @@ export function observeNavigationContrast(surface: HTMLElement) {
     const brightPage = brightness >= threshold;
     surface.dataset.underlay = brightPage ? "light" : "dark";
     const style = getComputedStyle(surface);
-    // Use the same neutral and accent roles as the preset/device palette. The
-    // white glyphs stay constant; only the glass changes with its surroundings.
-    const darkMaterial = tint(paletteColor(style, "--ui-neutral-slate-950", [2, 6, 23, 1]), paletteColor(style, "--brand-900", [30, 58, 138, 1]));
-    const lightMaterial = tint(paletteColor(style, "--ui-neutral-slate-200", [226, 232, 240, 1]), paletteColor(style, "--brand-200", [191, 219, 254, 1]));
-    const material = brightPage ? darkMaterial : lightMaterial;
-    // Preserve transmission instead of darkening the entire capsule to support
-    // white glyphs. Their local edge shadows provide definition on bright pages.
-    // Even pure white content must leave at least 68% of the backdrop visible.
+    // A faint accent wash takes its hue directly from the selected preset or
+    // Material You palette. Deep neutral pigment made bright pages look grey.
+    const material = supportsBlur
+      ? brightPage ? paletteColor(style, "--brand-400", [96, 165, 250, 1]) : paletteColor(style, "--brand-200", [191, 219, 254, 1])
+      : paletteColor(style, "--brand-700", [29, 78, 216, 1]);
+    // Preserve at least 88% backdrop transmission on bright pages. Foreground
+    // contrast comes from theme accent tones, never an opaque dark scrim.
     const opacity = supportsBlur
-      ? brightPage ? Math.min(.32, .24 + brightness * .08) : .22
-      : brightPage ? .95 : .32;
+      ? brightPage ? Math.min(.12, .08 + brightness * .04) : .14
+      : .95;
     surface.style.setProperty("--navigation-material", material.slice(0, 3).map(Math.round).join(" "));
     surface.style.setProperty("--navigation-opacity", opacity.toFixed(2));
     mutations.disconnect();
