@@ -28,7 +28,7 @@ export function AppHelp() {
   };
   if (!native || nativeHelp) return null;
   return <>
-    {!report && <Button type="button" variant="outline" size="sm" className="fixed bottom-3 right-3 z-[100] min-h-11 shadow-sm print:hidden" onClick={() => void open()}>App help</Button>}
+    {!report && <Button type="button" variant="outline" size="sm" className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] right-3 z-[100] min-h-11 shadow-sm sm:bottom-3 print:hidden" onClick={() => void open()}>App help</Button>}
     <Dialog open={Boolean(report)} onOpenChange={value => { if (!value) setReport(''); }}>
       <DialogContent>
         <DialogHeader><DialogTitle>App problem report</DialogTitle><DialogDescription>Copy this report after a sign-out, freeze, or reconnect warning. It contains diagnostic codes and timing, without passwords or school records.</DialogDescription></DialogHeader>
