@@ -3744,7 +3744,7 @@ html, body, * {
   --navigation-material: var(--ui-neutral-slate-950, 2 6 23);
   --navigation-ink: 255 255 255;
   --navigation-edge-opacity: .32;
-  --navigation-opacity: .68;
+  --navigation-opacity: .30;
   --navigation-active: var(--brand-700, 29 78 216);
   --navigation-active-top: var(--brand-surface-500, var(--brand-500, 59 130 246));
   position: relative;
@@ -3755,14 +3755,14 @@ html, body, * {
   border: 1px solid rgb(255 255 255 / var(--navigation-edge-opacity)) !important;
   border-radius: 999px !important;
   background: rgb(var(--navigation-material) / var(--navigation-opacity)) !important;
-  box-shadow: 0 8px 24px rgb(var(--glass-shadow, 15 23 42) / .2), inset 0 1px 1px rgb(255 255 255 / .38), inset 0 -1px 1px rgb(255 255 255 / .1) !important;
+  box-shadow: 0 6px 20px rgb(var(--glass-shadow, 15 23 42) / .12), inset 0 1px 1px rgb(255 255 255 / .38), inset 0 -1px 1px rgb(255 255 255 / .1) !important;
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   overflow: visible !important;
 }
 .dark .glass-navigation-surface {
   --navigation-material: var(--ui-neutral-slate-200, 226 232 240);
-  --navigation-opacity: .24;
+  --navigation-opacity: .22;
   --navigation-edge-opacity: .6;
 }
 .glass-navigation-surface[data-underlay="dark"] {
@@ -3834,7 +3834,7 @@ html, body, * {
   background-image: none !important;
   box-shadow: none !important;
   color: rgb(var(--navigation-ink));
-  text-shadow: 0 1px 3px rgb(0 0 0 / .22);
+  text-shadow: 0 .5px 1px rgb(2 6 23 / .85), 0 1px 3px rgb(2 6 23 / .55);
   text-decoration: none;
   transform: none;
   touch-action: manipulation;
@@ -3856,6 +3856,7 @@ html, body, * {
 }
 .glass-navigation-items svg,
 .glass-navigation-items .glass-navigation-icon svg { width: 20px; height: 20px; stroke-width: 1.8; }
+.glass-navigation-items svg { filter: drop-shadow(0 .5px .6px rgb(2 6 23 / .75)) drop-shadow(0 1px 2px rgb(2 6 23 / .3)); }
 .glass-navigation-items .theme-toggle { flex: 0 0 48px; min-width: 48px; height: 54px; }
 .glass-navigation-items .theme-toggle svg { width: 16px; height: 16px; }
 .glass-navigation-items :is(button, a) > span:last-child:not(:only-child),

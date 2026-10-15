@@ -122,22 +122,13 @@ export function observeNavigationContrast(surface: HTMLElement) {
     // white glyphs stay constant; only the glass changes with its surroundings.
     const darkMaterial = tint(paletteColor(style, "--ui-neutral-slate-950", [2, 6, 23, 1]), paletteColor(style, "--brand-900", [30, 58, 138, 1]));
     const lightMaterial = tint(paletteColor(style, "--ui-neutral-slate-200", [226, 232, 240, 1]), paletteColor(style, "--brand-200", [191, 219, 254, 1]));
-    let material = brightPage ? darkMaterial : lightMaterial;
-    const contrastAt = (opacity: number) => Math.min(...colors.map(color => {
-      const glass = over(color, [material[0], material[1], material[2], opacity]);
-      // Reserve room for the faint central reflection, not just the base tint.
-      return 1.05 / (luminance(over(glass, [255, 255, 255, .025])) + .05);
-    }));
-    let opacity = supportsBlur ? (brightPage ? .48 : .24) : .95;
-    if (!brightPage && supportsBlur) {
-      while (opacity > .08 && contrastAt(opacity) < 4.8) opacity -= .02;
-    }
-    if (contrastAt(opacity) < 4.8) {
-      // Mixed content can include a white card even on an otherwise dark page.
-      material = darkMaterial;
-      opacity = supportsBlur ? .48 : .95;
-      while (opacity < 1 && contrastAt(opacity) < 4.8) opacity = Math.min(1, opacity + .02);
-    }
+    const material = brightPage ? darkMaterial : lightMaterial;
+    // Preserve transmission instead of darkening the entire capsule to support
+    // white glyphs. Their local edge shadows provide definition on bright pages.
+    // Even pure white content must leave at least 68% of the backdrop visible.
+    const opacity = supportsBlur
+      ? brightPage ? Math.min(.32, .24 + brightness * .08) : .22
+      : brightPage ? .95 : .32;
     surface.style.setProperty("--navigation-material", material.slice(0, 3).map(Math.round).join(" "));
     surface.style.setProperty("--navigation-opacity", opacity.toFixed(2));
     mutations.disconnect();
