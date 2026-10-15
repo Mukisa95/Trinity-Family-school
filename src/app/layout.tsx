@@ -1,6 +1,7 @@
 import { PerformanceProvider } from '@/components/providers/performance-provider';
 import { StartupBootstrap } from '@/components/common/premium-splash-loader';
 import { StartupPaintGate } from '@/components/common/startup-paint-gate';
+import { AppDiagnosticsMonitor } from '@/components/common/app-diagnostics-monitor';
 import { AndroidOfflineBoundary } from '@/components/common/android-offline-boundary';
 import { AndroidOfflineProvider } from '@/components/providers/android-offline-provider';
 import type { Metadata } from 'next';
@@ -186,6 +187,7 @@ export default function RootLayout({
         <StartupPaintGate>
         <PerformanceProvider>
         <ThemeProvider>
+        <AppDiagnosticsMonitor />
         <QueryProvider>
           <AuthProvider>
             <PrintProvider>

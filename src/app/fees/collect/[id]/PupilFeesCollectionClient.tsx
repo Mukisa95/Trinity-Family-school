@@ -1,5 +1,8 @@
 'use client';
 
+import { usePageDataTiming } from '@/lib/hooks/use-page-data-timing';
+import { measureWorkspaceRequest } from '@/lib/startup/workspace-timing';
+
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
@@ -637,6 +640,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   // A cached payment snapshot is not authoritative until the server confirms it.
   const isWaitingForTermYear = !selectedTermId || !selectedAcademicYear;
   const isFinancialDataLoading = isPupilFeesLoading || isLoadingAcademicYears || isWaitingForTermYear;
+  usePageDataTiming('fee-collection', !!pupil && !isFinancialDataLoading && !isPaymentDataLoading && !pupilFeesError, pupilId || '');
   const hasTermSelectionError = !isLoadingAcademicYears &&
     (validAcademicYears.length === 0 || (selectedAcademicYear !== null && validTerms.length === 0));
 
@@ -944,7 +948,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           throw new Error('Select at least one fee before recording a payment.');
         }
 
-        const response = await fetch('/api/payments/create', {
+        const response = await measureWorkspaceRequest('payment:create-request', '/api/payments/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ operationId: operation.operationId, allocations }),
@@ -1003,7 +1007,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           ...regularSelections.map(item => `${item.feeSelection.feeId}:${item.feeSelection.selectedAmount}`),
         ].join(':');
         const regularPaymentOperation = getPaymentOperation(regularPaymentIntent);
-        const response = await fetch('/api/payments/create', {
+        const response = await measureWorkspaceRequest('payment:create-request', '/api/payments/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1246,7 +1250,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     if (isFinancialDataLoading || isPaymentDataLoading) {
       throw new Error('Fee amounts and payment history are still being verified. Please wait before recording a payment.');
     }
-    if (!selectedFee || !pupil || !selectedAcademicYear || !user) return;
+    if (!selectedFee || !pupil || !selectedAcademicYear || !user) {
+      throw new Error('The pupil, fee, academic year, and signed-in user must be available before saving.');
+    }
 
     // 🔥 CRITICAL FIX: Remove optimistic updates - wait for real data from database
     // This ensures all old payments are included in calculations
@@ -1313,7 +1319,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         };
 
         // 🔔 Call server-side API to create payment and trigger notifications
-        const response = await fetch('/api/payments/create', {
+        const response = await measureWorkspaceRequest('payment:create-request', '/api/payments/create', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1438,6 +1444,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         title: "Payment Failed",
         description: "Payment confirmation was not received. Retry the same submission to confirm its status.",
       });
+      throw error;
     }
   };
 
@@ -1449,7 +1456,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     if (isFinancialDataLoading || isPaymentDataLoading) {
       throw new Error('Fee amounts and payment history are still being verified. Please wait before recording a payment.');
     }
-    if (!selectedFee || !pupil || !selectedAcademicYear) return;
+    if (!selectedFee || !pupil || !selectedAcademicYear) {
+      throw new Error('The pupil, fee, and academic year must be available before saving.');
+    }
 
     const carryForwardIntent = [
       'carry-forward',
@@ -1462,6 +1471,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     ].join(':');
     const carryForwardOperation = getPaymentOperation(carryForwardIntent);
 
+    let paymentCommitted = false;
+    let failureTitle = 'Payment Failed';
     try {
       const paymentData = {
         operationId: carryForwardOperation.operationId,
@@ -1483,18 +1494,15 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       // Validate payment data
       const validation = validateCarryForwardPayment(paymentData);
       if (!validation.isValid) {
-        toast({
-          variant: "destructive",
-          title: "Invalid Payment",
-          description: validation.error,
-        });
-        return;
+        failureTitle = 'Invalid Payment';
+        throw new Error(validation.error || 'Review the carry-forward payment details.');
       }
 
       // Process the carry forward payment
       const result = await processCarryForwardPayment(paymentData);
 
       if (result.success) {
+        paymentCommitted = true;
         clearPaymentOperation(carryForwardIntent);
         // Close modal and clear selected fee BEFORE any updates
         setIsCarryForwardPaymentModalOpen(false);
@@ -1543,23 +1551,26 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         });
       } else {
         const paymentNeedsReview = result.paymentIds.length > 0;
-        toast({
-          variant: "destructive",
-          title: paymentNeedsReview ? "Payment Needs Review" : "Payment Failed",
-          description: result.message,
-        });
+        failureTitle = paymentNeedsReview ? "Payment Needs Review" : "Payment Failed";
+        throw new Error(result.message || 'Payment confirmation was not received.');
       }
 
     } catch (error) {
       console.error('Carry forward payment submission error:', error);
+      if (paymentCommitted) {
+        toast({ variant: 'destructive', title: 'Payment recorded; display refresh needed',
+          description: 'The payment was saved. Reopen the fee page to check it; do not record it again.' });
+        return;
+      }
       const message = error instanceof Error
         ? error.message
         : 'There was an error processing the payment.';
       toast({
         variant: "destructive",
-        title: "Payment Failed",
-        description: `${message} No payment has been confirmed.`,
+        title: failureTitle,
+        description: `${message} Retry the same submission to confirm its status.`,
       });
+      throw error;
     }
   };
 

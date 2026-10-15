@@ -20,7 +20,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import type { Pupil, Class, Guardian, PupilStatus } from "@/types";
+import type { Pupil, Class, Guardian, PupilStatus, FeesHolidayDraft } from "@/types";
 import { ModernDatePicker } from "@/components/common/modern-date-picker";
 import { useClasses } from "@/lib/hooks/use-classes";
 import { GENDERS, PUPIL_SECTIONS, PUPIL_STATUSES, GUARDIAN_RELATIONSHIPS, BLOOD_TYPES, RELIGIONS, NATIONALITIES } from "@/lib/constants";
@@ -44,6 +44,12 @@ import type { House } from "@/types";
 import { useHouses } from "@/lib/hooks/use-houses";
 import { usePDFViewer } from "@/lib/hooks/use-pdf-viewer";
 import { buildPupilRegistrationPdfHtml } from "@/lib/pdf/pupil-registration-form";
+
+import { MofusRegistrationOptions } from '@/components/staff/mofus-registration-options';
+import { useStaff } from '@/lib/hooks/use-staff';
+import { useAcademicYears } from '@/lib/hooks/use-academic-years';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { initialFeesHolidayDraft, prepareFeesHolidayWrite } from '@/lib/utils/fees-holiday-terms';
 
 const initialGuardianState: Omit<Guardian, 'id'> = {
   relationship: '',
@@ -71,6 +77,16 @@ function NewPupilContent() {
   const { data: classes = [] } = useClasses();
   const { data: schoolSettings } = useSchoolSettings();
   const createPupilMutation = useCreatePupil();
+  const { data: mofusStaff = [], isLoading: mofusStaffLoading, error: mofusStaffError } = useStaff();
+  const { data: mofusYears = [], isLoading: mofusYearsLoading, error: mofusYearsError } = useAcademicYears();
+  const { canEdit } = useAuth();
+  const canRegisterMofus = canEdit('pupils') && canEdit('staff') && canEdit('fees');
+  const [mofusEnabled, setMofusEnabled] = React.useState(searchParams?.get('mofus') === 'true');
+  const [mofusStaffId, setMofusStaffId] = React.useState(searchParams?.get('staffId') || '');
+  const [mofusPrivilege, setMofusPrivilege] = React.useState<FeesHolidayDraft>(() => initialFeesHolidayDraft(mofusYears));
+  React.useEffect(() => {
+    if (mofusYears.length && !mofusPrivilege.schedule?.length) setMofusPrivilege(initialFeesHolidayDraft(mofusYears));
+  }, [mofusYears]);
   const { data: originalPupil, isLoading: isLoadingOriginalPupil } = usePupil(originalPupilId || '');
   const { data: allPupils = [] } = usePupils();
   const { data: houses = [] } = useHouses();
@@ -456,10 +472,11 @@ function NewPupilContent() {
       ? (originalPupil?.familyId || familyId || `fam-${Date.now()}`)
       : undefined;
 
-    const pupilData: Omit<Pupil, 'id' | 'createdAt'> = {
+    const pupilData: Omit<Pupil, 'id' | 'createdAt'> & { mofusPrivilege?: FeesHolidayDraft } = {
       firstName,
       lastName,
       admissionNumber,
+      ...(mofusEnabled ? { assignedStaffId: mofusStaffId, mofusPrivilege } : {}),
       gender,
       dateOfBirth: formatDateForStorage(dateOfBirth),
       nationality: nationality || "Ugandan",
@@ -493,7 +510,19 @@ function NewPupilContent() {
   };
 
   const validateFormData = () => {
-    return formValidation.validateAll().isValid;
+    if (!formValidation.validateAll().isValid) return false;
+    if (mofusEnabled) {
+      try {
+        if (!canRegisterMofus) throw new Error('MOFUS registration requires staff, pupil and fee editing access.');
+        if (mofusStaffLoading || mofusYearsLoading || mofusStaffError || mofusYearsError) throw new Error('Wait for the staff and academic terms to load.');
+        if (!mofusStaff.some(member => member.id === mofusStaffId)) throw new Error('Choose a staff member for the MOFUS pupil.');
+        prepareFeesHolidayWrite(null, { ...mofusPrivilege, pupilId: '', createdAt: new Date().toISOString() }, mofusYears);
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Check MOFUS options', description: error instanceof Error ? error.message : 'Check the privilege schedule.' });
+        return false;
+      }
+    }
+    return true;
   };
 
   const handleSubmit = async () => {
@@ -539,12 +568,12 @@ function NewPupilContent() {
           // Otherwise, use the newly saved pupil as the original
           const originalId = addingSibling && originalPupilId 
             ? originalPupilId 
-            : savedPupil.id;
+            : savedPupil;
           
           // Use the familyId from the saved pupil (which should be the same family)
           const siblingParams = new URLSearchParams();
           siblingParams.set('addingSibling', 'true');
-          siblingParams.set('familyId', savedPupil.familyId || pupilData.familyId);
+          if (pupilData.familyId) siblingParams.set('familyId', pupilData.familyId);
           siblingParams.set('originalPupilId', originalId);
           router.push(`/pupils/new?${siblingParams.toString()}`);
         }
@@ -964,6 +993,8 @@ function NewPupilContent() {
                 </div>
               </CardContent>
             </Card>
+
+            {canRegisterMofus && <MofusRegistrationOptions enabled={mofusEnabled} onEnabledChange={setMofusEnabled} staffId={mofusStaffId} onStaffChange={setMofusStaffId} privilege={mofusPrivilege} onPrivilegeChange={setMofusPrivilege} staff={mofusStaff} years={mofusYears} loading={mofusStaffLoading || mofusYearsLoading} error={!!mofusStaffError || !!mofusYearsError} />}
 
             {/* Guardian Information */}
             <Card className="shadow-lg border-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm">

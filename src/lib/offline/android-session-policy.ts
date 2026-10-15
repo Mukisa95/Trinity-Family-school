@@ -1,8 +1,9 @@
+import { getEventCacheScope } from '@/lib/cache/event-cache';
 import type { SystemUser } from '@/types';
 import { GranularPermissionService as Permissions } from '@/lib/services/granular-permissions.service';
 import { ANDROID_OFFLINE_SESSION_DAYS, type AndroidOfflineSession } from './android-contracts';
 
-export function createAndroidOfflineSession(user: SystemUser, pupilIds: string[], now = new Date()): AndroidOfflineSession {
+export function createAndroidOfflineSession(user: SystemUser, pupilIds: string[], now = new Date(), features = { events: true }): AndroidOfflineSession {
   const parent = user.role === 'Parent';
   const can = (module: string, page: string, action: string) => Permissions.canAccessPage(user, module, page)
     && Permissions.canPerformAction(user, module, page, action);
@@ -26,6 +27,10 @@ export function createAndroidOfflineSession(user: SystemUser, pupilIds: string[]
     grants: {
       dashboard: !parent && Permissions.canAccessPage(user, 'reports', 'dashboard'), pupils,
       timetable: !parent && can('timetable', 'list', 'view_timetable'),
+      ...(features.events ? {
+        events: !parent && (can('events', 'calendar', 'view_calendar') || can('events', 'calendar', 'view_events')),
+        eventCacheScope: !parent ? getEventCacheScope(user.id, user.role, user.familyId) : '',
+      } : {}),
       pupilFields: fields, dashboardCounts: counts,
     },
   };

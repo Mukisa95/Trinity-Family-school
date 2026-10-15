@@ -16,10 +16,11 @@ export const feesHolidayKeys = {
 /**
  * Hook to fetch all fees holidays
  */
-export function useFeesHolidays() {
+export function useFeesHolidays(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: feesHolidayKeys.list(),
     queryFn: () => FeesHolidayService.getAllFeesHolidays(),
+    enabled: options?.enabled !== false,
   });
 }
 

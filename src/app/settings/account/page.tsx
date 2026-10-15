@@ -2,29 +2,26 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/contexts/auth-context";
-import { PageHeader } from "@/components/common/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AndroidNotificationStatus } from '@/components/notifications/android-notification-status';
+import { GlassActionButton, GlassActionDock, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
+import { AccountIdentity, AccountSection, AccountStatus } from "@/components/account/account-profile";
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { User, Lock, Eye, EyeOff, Save, ArrowLeft, KeyRound, Shield, AlertCircle, Fingerprint } from "lucide-react";
-import { Lock as LockIcon, SignOut } from "@phosphor-icons/react";
-import { motion, AnimatePresence } from "framer-motion";
+import { User, Lock, Eye, EyeOff, Save, KeyRound, Shield, AlertCircle, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useNavigation } from '@/lib/contexts/navigation-context';
 import { useUpdateUser } from "@/lib/hooks/use-users";
 import { Loader2 } from "lucide-react";
+
 import { PasskeySettings } from '@/components/settings/passkey-settings';
-import { AndroidNotificationStatus } from '@/components/notifications/android-notification-status';
 import { PASSKEYS_CHANGED_EVENT, PasskeyService } from '@/lib/services/passkey.service';
 
 export default function AccountSettingsPage() {
-  const { user, refreshUser, autoLockEnabled, setAutoLockEnabled, autoLockAction, setAutoLockAction, lockAccount, logout, deviceUnlockForAutoLock, setDeviceUnlockForAutoLock } = useAuth();
+  const { user, refreshUser, autoLockEnabled, setAutoLockEnabled, autoLockAction, setAutoLockAction, deviceUnlockForAutoLock, setDeviceUnlockForAutoLock } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
-  const { goBack } = useNavigation();
   const updateUserMutation = useUpdateUser();
 
   // Form states
@@ -42,12 +39,12 @@ export default function AccountSettingsPage() {
   const [isUpdatingUsername, setIsUpdatingUsername] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [showLockModal, setShowLockModal] = useState(false);
-  const [localDeviceUnlockAvailable, setLocalDeviceUnlockAvailable] = useState(false);
+  const [localDeviceUnlockAvailable, setLocalDeviceUnlockAvailable] = useState<boolean | null>(null);
 
   useEffect(() => {
     const check = async () => {
       if (!user) return setLocalDeviceUnlockAvailable(false);
-      const supported = await PasskeyService.supported().catch(() => false);
+      const supported = await PasskeyService.localSupported().catch(() => false);
       setLocalDeviceUnlockAvailable(supported && PasskeyService.hasLocalUnlock(user.id));
     };
     void check();
@@ -60,7 +57,7 @@ export default function AccountSettingsPage() {
   }, [user]);
 
   useEffect(() => {
-    if (deviceUnlockForAutoLock && (!localDeviceUnlockAvailable || autoLockAction === 'signout')) {
+    if (deviceUnlockForAutoLock && autoLockAction === 'signout') {
       setDeviceUnlockForAutoLock(false);
     }
   }, [autoLockAction, deviceUnlockForAutoLock, localDeviceUnlockAvailable, setDeviceUnlockForAutoLock]);
@@ -256,464 +253,123 @@ export default function AccountSettingsPage() {
     });
   };
 
+  const lockPreferenceLabel = autoLockAction === 'lock-on-close' ? 'Locks on close'
+    : autoLockAction === 'lock-on-leave' ? 'Locks on leave'
+    : autoLockAction === 'signout' ? 'Signs out on close' : 'Not set';
+
   return (
-    <div className="space-y-6 pb-6">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => goBack('/settings')}
-            className="flex items-center gap-2 rounded-full"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
-          <PageHeader
-            title="Account Settings"
-            description="Manage your account credentials and security settings"
-          />
-        </div>
-      </div>
-
-      {/* Main Content Grid */}
-      <AndroidNotificationStatus />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="lg:col-span-2"><PasskeySettings /></div>
-        {/* Account Information Card */}
-        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-brand-surface-50 to-brand-alt-surface-50 border-b dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-brand-surface-100 rounded-lg dark:bg-brand-surface-950/40">
-                <User className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
-              </div>
-              Account Information
-            </CardTitle>
-            <CardDescription>
-              View your basic account information
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6 space-y-4">
-            <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
-                <Label className="text-xs font-medium text-muted-foreground mb-2 block">Display Name</Label>
-                <p className="text-lg font-semibold text-gray-900 dark:text-slate-100">{getUserDisplayName()}</p>
-              </div>
-              
-              <div className="p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
-                <Label className="text-xs font-medium text-muted-foreground mb-2 block">Role</Label>
-                <p className="text-sm font-medium text-gray-900 dark:text-slate-100">{user.role}</p>
-              </div>
-
-              {user.email && (
-                <div className="p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
-                  <Label className="text-xs font-medium text-muted-foreground mb-2 block">Email</Label>
-                  <p className="text-sm text-gray-900 dark:text-slate-100">{user.email}</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Username Settings Card */}
-        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-brand-secondary-surface-50 to-pink-50 border-b dark:from-brand-secondary-surface-950/40 dark:to-pink-950/40">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-brand-secondary-surface-100 rounded-lg dark:bg-brand-secondary-surface-950/40">
-                <User className="h-5 w-5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
-              </div>
-              Username Settings
-            </CardTitle>
-            <CardDescription>
-              Change your username for logging into the system
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6 space-y-4">
-            <div className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="username" className="text-sm font-medium">Username</Label>
-                <Input
-                  id="username"
-                  type="text"
-                  value={formData.username}
-                  onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                  placeholder="Enter your username"
-                  className="h-11"
-                />
-                <p className="text-xs text-muted-foreground">
-                  This is the username you use to log into the system
-                </p>
-              </div>
-
-              <Button 
-                onClick={handleUpdateUsername}
-                disabled={isUpdatingUsername || formData.username === user.username}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-secondary-surface-600 to-pink-600 hover:from-brand-secondary-surface-700 hover:to-pink-700 shadow-lg rounded-full"
-                size="lg"
-              >
-                {isUpdatingUsername ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    Update Username
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Password Settings Card */}
-        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow lg:col-span-2">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b dark:from-green-950/40 dark:to-emerald-950/40">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-green-100 rounded-lg dark:bg-green-950/40">
-                <KeyRound className="h-5 w-5 text-green-600 dark:text-green-400" />
-              </div>
-              Password Settings
-            </CardTitle>
-            <CardDescription>
-              Change your password to keep your account secure
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* Current Password */}
+    <div className="min-h-screen">
+      <GlassPageTopBar title="Account Settings" recordDetails={`@${user.username} · ${user.role}`} backHref="/settings" backLabel="Back to settings"
+        meta={<AccountStatus active={user.isActive} />}
+        actions={<GlassActionDock><GlassActionButton label="Profile" tone="blue" icon={<User className="h-4 w-4" />} onClick={() => router.push('/profile')} aria-label="View my profile" /></GlassActionDock>}
+      />
+      <div className="mx-auto max-w-6xl space-y-4 px-3 pb-28 sm:px-4 sm:pb-6">
+        <AccountIdentity user={user} />
+        <div className="grid items-start gap-4 lg:grid-cols-3">
+          <div className="min-w-0 space-y-4 lg:col-span-2">
+            <PasskeySettings />
+            <AccountSection title="Username settings" icon={<User className="h-4 w-4" />} description="Change the username you use to sign in.">
               <div className="space-y-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="current-password" className="text-sm font-medium">Current Password</Label>
+                  <Label htmlFor="username">Username</Label>
+                  <Input id="username" type="text" value={formData.username} onChange={e => setFormData(prev => ({ ...prev, username: e.target.value }))} placeholder="Enter your username" className="h-11" />
+                </div>
+                <div className="flex justify-end border-t border-border/60 pt-3">
+                  <Button onClick={handleUpdateUsername} disabled={isUpdatingUsername || formData.username === user.username} className="min-h-11 w-full rounded-lg sm:w-auto">
+                    {isUpdatingUsername ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {isUpdatingUsername ? 'Updating...' : 'Update Username'}
+                  </Button>
+                </div>
+              </div>
+            </AccountSection>
+            <AccountSection title="Password settings" icon={<KeyRound className="h-4 w-4" />} description="Change your password to keep your account secure.">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-2 sm:col-span-2">
+                  <Label htmlFor="current-password">Current Password</Label>
                   <div className="relative">
-                    <Input
-                      id="current-password"
-                      type={showCurrentPassword ? "text" : "password"}
-                      value={formData.currentPassword}
-                      onChange={(e) => setFormData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                      placeholder="Enter your current password"
-                      autoComplete="off"
-                      autoFocus={false}
-                      className="h-11 pr-10"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent rounded-full"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    >
-                      {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <Input id="current-password" type={showCurrentPassword ? 'text' : 'password'} value={formData.currentPassword} onChange={e => setFormData(prev => ({ ...prev, currentPassword: e.target.value }))} placeholder="Enter your current password" autoComplete="off" autoFocus={false} className="h-11 pr-12" />
+                    <Button type="button" variant="ghost" className="absolute right-0 top-0 h-11 w-11 rounded-lg px-0" onClick={() => setShowCurrentPassword(!showCurrentPassword)} aria-label={showCurrentPassword ? 'Hide current password' : 'Show current password'} aria-pressed={showCurrentPassword}>
+                      {showCurrentPassword ? <EyeOff /> : <Eye />}
                     </Button>
                   </div>
                 </div>
-              </div>
-
-              {/* New Password */}
-              <div className="space-y-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="new-password" className="text-sm font-medium">New Password</Label>
+                <div className="grid content-start gap-2">
+                  <Label htmlFor="new-password">New Password</Label>
                   <div className="relative">
-                    <Input
-                      id="new-password"
-                      type={showNewPassword ? "text" : "password"}
-                      value={formData.newPassword}
-                      onChange={(e) => setFormData(prev => ({ ...prev, newPassword: e.target.value }))}
-                      placeholder="Enter your new password"
-                      autoComplete="new-password"
-                      className="h-11 pr-10"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent rounded-full"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                    >
-                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Password must be at least 4 characters long (letters, numbers, or any combination)
-                  </p>
-                </div>
-              </div>
-
-              {/* Confirm Password */}
-              <div className="space-y-4 md:col-span-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="confirm-password" className="text-sm font-medium">Confirm New Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="confirm-password"
-                      type={showConfirmPassword ? "text" : "password"}
-                      value={formData.confirmPassword}
-                      onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                      placeholder="Confirm your new password"
-                      autoComplete="new-password"
-                      className="h-11 pr-10"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent rounded-full"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <Input id="new-password" type={showNewPassword ? 'text' : 'password'} value={formData.newPassword} onChange={e => setFormData(prev => ({ ...prev, newPassword: e.target.value }))} placeholder="Enter your new password" autoComplete="new-password" aria-describedby="password-help" className="h-11 pr-12" />
+                    <Button type="button" variant="ghost" className="absolute right-0 top-0 h-11 w-11 rounded-lg px-0" onClick={() => setShowNewPassword(!showNewPassword)} aria-label={showNewPassword ? 'Hide new password' : 'Show new password'} aria-pressed={showNewPassword}>
+                      {showNewPassword ? <EyeOff /> : <Eye />}
                     </Button>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            <Separator className="my-6" />
-
-            <Button 
-              onClick={handleUpdatePassword}
-              disabled={isUpdatingPassword || !formData.currentPassword || !formData.newPassword || !formData.confirmPassword}
-              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg rounded-full"
-              size="lg"
-            >
-              {isUpdatingPassword ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  Update Password
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Auto Lock Settings Card */}
-        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow lg:col-span-2">
-          <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 border-b dark:from-amber-950/40 dark:to-orange-950/40">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="p-2 bg-amber-100 rounded-lg dark:bg-amber-950/40">
-                <LockIcon size={20} weight="duotone" className="text-amber-600 dark:text-amber-400" />
-              </div>
-              Auto Lock Settings
-            </CardTitle>
-            <CardDescription>
-              Automatically lock or sign out when you interact with the browser window
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors dark:bg-slate-900 dark:hover:bg-slate-900">
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-brand-surface-100 rounded-lg dark:bg-brand-surface-950/40">
-                    <LockIcon size={20} className="text-brand-ink-600 dark:text-brand-ink-400" weight="duotone" />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-gray-900 dark:text-slate-100">Auto Lock</Label>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Enable automatic locking when closing or leaving the browser
-                    </p>
+                <div className="grid content-start gap-2">
+                  <Label htmlFor="confirm-password">Confirm New Password</Label>
+                  <div className="relative">
+                    <Input id="confirm-password" type={showConfirmPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={e => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))} placeholder="Confirm your new password" autoComplete="new-password" className="h-11 pr-12" />
+                    <Button type="button" variant="ghost" className="absolute right-0 top-0 h-11 w-11 rounded-lg px-0" onClick={() => setShowConfirmPassword(!showConfirmPassword)} aria-label={showConfirmPassword ? 'Hide confirmation password' : 'Show confirmation password'} aria-pressed={showConfirmPassword}>
+                      {showConfirmPassword ? <EyeOff /> : <Eye />}
+                    </Button>
                   </div>
                 </div>
-                <button
-                  onClick={() => setAutoLockEnabled(!autoLockEnabled)}
-                  className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 rounded-full ${
-                    autoLockEnabled ? 'bg-brand-surface-600' : 'bg-gray-300 dark:bg-slate-700'
-                  }`}
-                  type="button"
-                >
-                  <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-lg  dark:bg-slate-900 ${
-                      autoLockEnabled ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
+                <p id="password-help" className="text-xs text-muted-foreground sm:col-span-2">Password must be at least 4 characters long (letters, numbers, or any combination).</p>
+              </div>
+              <div className="mt-4 flex justify-end border-t border-border/60 pt-3">
+                <Button onClick={handleUpdatePassword} disabled={isUpdatingPassword || !formData.currentPassword || !formData.newPassword || !formData.confirmPassword} className="min-h-11 w-full rounded-lg sm:w-auto">
+                  {isUpdatingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {isUpdatingPassword ? 'Updating...' : 'Update Password'}
+                </Button>
+              </div>
+            </AccountSection>
+          </div>
+          <aside className="min-w-0 space-y-4">
+            <AccountSection title="Auto lock settings" icon={<Lock className="h-4 w-4" />}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0"><Label htmlFor="account-auto-lock" className="text-sm font-medium">Auto Lock</Label><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Automatically lock or sign out when closing or leaving the browser.</p></div>
+                <button id="account-auto-lock" role="switch" aria-checked={autoLockEnabled} aria-label="Auto Lock" onClick={() => setAutoLockEnabled(!autoLockEnabled)} type="button" className="flex h-11 w-12 shrink-0 items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <span className={`inline-flex h-6 w-11 items-center rounded-full p-0.5 transition-colors motion-reduce:transition-none ${autoLockEnabled ? 'bg-primary' : 'bg-input'}`}><span className={`h-5 w-5 rounded-full bg-background shadow-sm transition-transform motion-reduce:transition-none ${autoLockEnabled ? 'translate-x-5' : 'translate-x-0'}`} /></span>
                 </button>
               </div>
-
-              {autoLockEnabled && (
-                <>
-                  <Separator />
-                  <div className="p-4 rounded-lg bg-gradient-to-br from-brand-surface-50 to-brand-alt-surface-50 border border-brand-100 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40 dark:border-brand-800/60">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <Label className="text-sm font-semibold text-gray-900 block mb-1 dark:text-slate-100">Current Preference</Label>
-                        <p className="text-sm text-muted-foreground">
-                          {autoLockAction === 'lock-on-close' 
-                            ? '🔒 Locks on close' 
-                            : autoLockAction === 'lock-on-leave'
-                            ? '🔒 Locks on leave'
-                            : autoLockAction === 'signout' 
-                            ? '🚪 Signs out on close' 
-                            : '⚙️ Not set'}
-                        </p>
-                      </div>
-                      <Button
-                        onClick={() => setShowLockModal(true)}
-                        variant="outline"
-                        className="flex items-center gap-2 border-2 hover:bg-white rounded-full dark:hover:bg-slate-900"
-                      >
-                        <Shield className="h-4 w-4" />
-                        {autoLockAction ? 'Change Preference' : 'Set Preference'}
-                      </Button>
-                    </div>
-                  </div>
-                  {autoLockAction !== 'signout' && (
-                    <div className="flex items-start justify-between gap-4 rounded-lg border border-brand-alt-100 bg-brand-alt-surface-50 p-4 dark:border-brand-alt-800 dark:bg-brand-alt-surface-950">
-                      <div className="flex items-start gap-3">
-                        <Fingerprint className="mt-0.5 h-5 w-5 shrink-0 text-brand-alt-ink-700 dark:text-brand-alt-ink-300" />
-                        <div>
-                          <Label className="text-sm font-semibold text-gray-900 dark:text-slate-100">Require device unlock</Label>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            {localDeviceUnlockAvailable
-                              ? 'Use fingerprint, face unlock, or the device PIN. The privacy lock also opens offline.'
-                              : 'Enable biometric / device unlock above on this device first.'}
-                          </p>
-                        </div>
-                      </div>
-                      <button type="button" role="switch" aria-checked={deviceUnlockForAutoLock}
-                        disabled={!localDeviceUnlockAvailable}
-                        onClick={() => setDeviceUnlockForAutoLock(!deviceUnlockForAutoLock)}
-                        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-40 ${deviceUnlockForAutoLock ? 'bg-brand-alt-surface-600' : 'bg-gray-300 dark:bg-slate-700'}`}>
-                        <span className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${deviceUnlockForAutoLock ? 'translate-x-6' : 'translate-x-1'}`} />
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Security Tips Card */}
-        <Card className="border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 shadow-lg lg:col-span-2 dark:border-amber-800/60 dark:from-amber-950/40 dark:to-yellow-950/40">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-amber-100 rounded-lg flex-shrink-0 dark:bg-amber-950/40">
-                <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-amber-900 mb-3 text-lg dark:text-amber-200">Security Tips</h4>
-                <ul className="space-y-2 text-sm text-amber-800 dark:text-amber-200">
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-600 mt-1 dark:text-amber-400">•</span>
-                    <span>Use a strong, unique password</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-600 mt-1 dark:text-amber-400">•</span>
-                    <span>Don't share your login credentials with others</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-600 mt-1 dark:text-amber-400">•</span>
-                    <span>Log out when using shared computers</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-600 mt-1 dark:text-amber-400">•</span>
-                    <span>Contact an administrator if you suspect unauthorized access</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              {autoLockEnabled && <div className="mt-4 space-y-3 border-t border-border/60 pt-3">
+                <div><p className="text-xs font-medium text-muted-foreground">Current preference</p><p className="mt-1 text-sm">{lockPreferenceLabel}</p></div>
+                <Button onClick={() => setShowLockModal(true)} variant="outline" className="min-h-11 w-full rounded-lg"><Shield className="h-4 w-4" />{autoLockAction ? 'Change Preference' : 'Set Preference'}</Button>
+              </div>}
+              {autoLockEnabled && autoLockAction !== 'signout' && <div className="mt-4 flex items-start justify-between gap-3 border-t border-border/60 pt-3">
+                <div className="min-w-0"><Label htmlFor="account-device-unlock" className="text-sm font-medium">Require device unlock</Label><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{localDeviceUnlockAvailable ? 'Use fingerprint, face unlock, or the device PIN. The privacy lock also opens offline.' : 'Enable biometric / device unlock in the device unlock settings first.'}</p></div>
+                <button id="account-device-unlock" type="button" role="switch" aria-checked={deviceUnlockForAutoLock} aria-label="Require device unlock" disabled={!localDeviceUnlockAvailable} onClick={() => setDeviceUnlockForAutoLock(!deviceUnlockForAutoLock)} className="flex h-11 w-12 shrink-0 items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40">
+                  <span className={`inline-flex h-6 w-11 items-center rounded-full p-0.5 transition-colors motion-reduce:transition-none ${deviceUnlockForAutoLock ? 'bg-primary' : 'bg-input'}`}><span className={`h-5 w-5 rounded-full bg-background shadow-sm transition-transform motion-reduce:transition-none ${deviceUnlockForAutoLock ? 'translate-x-5' : 'translate-x-0'}`} /></span>
+                </button>
+              </div>}
+            </AccountSection>
+            <AccountSection title="Security tips" icon={<AlertCircle className="h-4 w-4" />}>
+              <ul className="list-disc space-y-2 pl-4 text-sm leading-relaxed text-muted-foreground">
+                <li>Use a strong, unique password.</li>
+                <li>Don't share your login credentials with others.</li>
+                <li>Log out when using shared computers.</li>
+                <li>Contact an administrator if you suspect unauthorized access.</li>
+              </ul>
+            </AccountSection>
+          </aside>
+        </div>
+        <AndroidNotificationStatus />
       </div>
-
-      {/* Lock Preference Modal */}
-      <AnimatePresence>
-        {showLockModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setShowLockModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 max-w-md w-full dark:bg-slate-900 dark:border-slate-700"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="text-center mb-6">
-                <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-gradient-to-br from-brand-surface-100 to-brand-alt-surface-100 mb-4 dark:from-brand-surface-950/40 dark:to-brand-alt-surface-950/40">
-                  <LockIcon size={28} className="text-brand-ink-600 dark:text-brand-ink-400" weight="duotone" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2 dark:text-slate-100">
-                  Set Auto Lock Preference
-                </h3>
-                <p className="text-sm text-gray-600 mb-3 dark:text-slate-300">
-                  Choose what happens when you interact with the browser window
-                </p>
-                {autoLockAction && (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-surface-50 rounded-full dark:bg-brand-surface-950/40">
-                    <span className="text-xs font-medium text-brand-ink-700 dark:text-brand-ink-300">
-                      Current: {
-                        autoLockAction === 'lock-on-close' ? 'Lock on Close' :
-                        autoLockAction === 'lock-on-leave' ? 'Lock on Leave' :
-                        'Sign Out'
-                      }
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-3">
-                <Button
-                  onClick={handleLockOnCloseAndSavePreference}
-                  className={`w-full flex items-center justify-center h-12 text-base font-medium transition-all rounded-full ${
-                    autoLockAction === 'lock-on-close'
-                      ? 'bg-brand-surface-700 text-white ring-2 ring-brand-400 shadow-lg'
-                      : 'bg-brand-surface-600 text-white hover:bg-brand-surface-700 shadow-md hover:shadow-lg'
-                  }`}
-                >
-                  <LockIcon size={18} weight="duotone" className="mr-2" />
-                  Lock on Close
-                  {autoLockAction === 'lock-on-close' && <span className="ml-2 text-lg">✓</span>}
-                </Button>
-
-                <Button
-                  onClick={handleLockOnLeaveAndSavePreference}
-                  className={`w-full flex items-center justify-center h-12 text-base font-medium transition-all rounded-full ${
-                    autoLockAction === 'lock-on-leave'
-                      ? 'bg-brand-surface-700 text-white ring-2 ring-brand-400 shadow-lg'
-                      : 'bg-brand-surface-600 text-white hover:bg-brand-surface-700 shadow-md hover:shadow-lg'
-                  }`}
-                >
-                  <LockIcon size={18} weight="duotone" className="mr-2" />
-                  Lock on Leave
-                  {autoLockAction === 'lock-on-leave' && <span className="ml-2 text-lg">✓</span>}
-                </Button>
-
-                <Button
-                  onClick={handleSignOutAndSavePreference}
-                  variant="destructive"
-                  className={`w-full flex items-center justify-center h-12 text-base font-medium transition-all rounded-full ${
-                    autoLockAction === 'signout'
-                      ? 'bg-red-700 text-white ring-2 ring-red-400 shadow-lg'
-                      : 'bg-red-600 text-white hover:bg-red-700 shadow-md hover:shadow-lg'
-                  }`}
-                >
-                  <SignOut size={18} weight="duotone" className="mr-2" />
-                  Sign Out on Close
-                  {autoLockAction === 'signout' && <span className="ml-2 text-lg">✓</span>}
-                </Button>
-
-                <Button
-                  onClick={() => setShowLockModal(false)}
-                  variant="ghost"
-                  className="w-full h-11 mt-2 rounded-full"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Dialog open={showLockModal} onOpenChange={setShowLockModal}>
+        <DialogContent className="max-w-md border-border/70 bg-card dark:bg-card">
+          <DialogTitle className="pr-6 text-lg">Set Auto Lock Preference</DialogTitle>
+          <DialogDescription>Choose what happens when you close or leave the browser window.</DialogDescription>
+          <div className="space-y-2">
+            {[
+              { value: 'lock-on-close', label: 'Lock on Close', description: 'Lock when you close the browser window.', onClick: handleLockOnCloseAndSavePreference },
+              { value: 'lock-on-leave', label: 'Lock on Leave', description: 'Lock when you switch tabs or leave the window.', onClick: handleLockOnLeaveAndSavePreference },
+              { value: 'signout', label: 'Sign Out on Close', description: 'Sign out when you close the browser window.', onClick: handleSignOutAndSavePreference }
+            ].map(option => <button key={option.value} type="button" onClick={option.onClick} aria-pressed={autoLockAction === option.value} className={`flex min-h-11 w-full items-center gap-3 rounded-lg border p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${autoLockAction === option.value ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'}`}>
+              <Lock className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+              <span className="min-w-0 flex-1"><span className="block text-sm font-medium">{option.label}</span><span className="mt-1 block text-xs text-muted-foreground">{option.description}</span></span>
+              {autoLockAction === option.value && <Check className="h-4 w-4 shrink-0 text-primary" aria-label="Current preference" />}
+            </button>)}
+          </div>
+          <DialogClose asChild><Button variant="outline" className="min-h-11 rounded-lg">Cancel</Button></DialogClose>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

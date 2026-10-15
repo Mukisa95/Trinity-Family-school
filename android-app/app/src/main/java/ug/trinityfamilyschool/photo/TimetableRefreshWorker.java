@@ -8,7 +8,7 @@ import androidx.work.*;
 public final class TimetableRefreshWorker extends Worker {
     public TimetableRefreshWorker(@NonNull Context context, @NonNull WorkerParameters parameters) { super(context, parameters); }
     @NonNull @Override public Result doWork() {
-        TimetableSurfaces.refresh(getApplicationContext(), new OfflineStore(getApplicationContext()));
+        TimetableUpdates.refresh(getApplicationContext(), new OfflineStore(getApplicationContext()));
         return Result.success();
     }
 }

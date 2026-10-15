@@ -1,5 +1,5 @@
-import { GlassPageRouteSkeleton } from "@/components/common/glass-page-loading";
+import { PupilsPageLoading } from '@/components/pupils/pupils-page-loading';
 
 export default function Loading() {
-  return <GlassPageRouteSkeleton variant="list" />;
+  return <PupilsPageLoading />;
 }

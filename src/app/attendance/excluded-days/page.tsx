@@ -1,4 +1,6 @@
 "use client";
+
+import { CatalogueDataNotice } from '@/components/common/catalogue-data-notice';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
 
 import * as React from "react";
@@ -73,7 +75,8 @@ const MONTHS_OF_YEAR = [
 
 export default function ManageExcludedDaysPage() {
   const { toast } = useToast();
-  const { data: excludedDays = [], isLoading: excludedDaysLoading } = useExcludedDays();
+  const excludedDaysQuery = useExcludedDays();
+  const { data: excludedDays = [], isLoading: excludedDaysLoading } = excludedDaysQuery;
   const { data: academicYears = [], isLoading: academicYearsLoading } = useAcademicYears();
   const createExcludedDayMutation = useCreateExcludedDay();
   const updateExcludedDayMutation = useUpdateExcludedDay();
@@ -362,6 +365,10 @@ export default function ManageExcludedDaysPage() {
     return "Unknown";
   };
 
+  if (excludedDaysQuery.error && excludedDaysQuery.data === undefined) {
+    return <CatalogueDataNotice label="school-day calendar" saved={excludedDaysQuery.isSavedData} refreshing={excludedDaysQuery.isFetching} error={excludedDaysQuery.error} hasData={excludedDaysQuery.data !== undefined} retry={excludedDaysQuery.refetch} />;
+  }
+
   if (excludedDaysLoading || academicYearsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -372,6 +379,7 @@ export default function ManageExcludedDaysPage() {
 
   return (
     <>
+      <CatalogueDataNotice label="school-day calendar" saved={excludedDaysQuery.isSavedData} refreshing={excludedDaysQuery.isFetching} error={excludedDaysQuery.error} hasData={excludedDaysQuery.data !== undefined} retry={excludedDaysQuery.refetch} />
       <PageHeader
         title="Manage Excluded Days"
         description="Define days that are not considered school days for attendance purposes."

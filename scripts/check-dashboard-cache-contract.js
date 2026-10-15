@@ -126,8 +126,8 @@ assert(
 assert(
   pupilsService.includes("if (typeof window !== 'undefined')") &&
     pupilsService.includes('return this.waitForSharedPupils()') &&
-    preloader.includes('readPersistentCollection<any[]>(persistentCacheKey)') &&
-    preloader.includes('readPupilCache(revisionCacheScope)'),
+    preloader.includes('readPersistentCollectionWithMetadata<any[]>(persistentCacheKey)') &&
+    preloader.includes('readPupilCache(revisionScope)'),
   'Browser pupil consumers must share a cache-first preloader owner and restore both supported cache formats.',
 );
 assert(

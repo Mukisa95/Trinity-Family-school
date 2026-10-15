@@ -129,7 +129,8 @@ export class UsersService {
     } catch (error: any) {
       if (isFirestoreOfflineError(error)) {
         console.warn(`[UsersService] Firestore offline, cannot fetch user ${userId}`);
-        return null;
+        // Failed reads are not proof that an account was deleted.
+        throw error;
       }
       console.error('Error fetching user by ID:', error);
       throw error;

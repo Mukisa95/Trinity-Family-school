@@ -20,7 +20,8 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { ClassesService } from './classes.service';
-import type { Pupil, SubjectCommentType, SubjectStatus, SystemUser } from '@/types';
+import type { Pupil, SubjectCommentType, SubjectStatus, SystemUser, FeesHolidayDraft } from '@/types';
+import { FeesHolidayService } from './fees-holiday.service';
 import { HousesService } from './houses.service';
 import {
   getDocWithTimeout,
@@ -320,9 +321,13 @@ export class PupilsService {
 
   static async createPupil(
     pupilData: Omit<Pupil, 'id' | 'createdAt'>,
-    options: { autoAssignHouse?: boolean } = {}
+    options: { autoAssignHouse?: boolean; mofusPrivilege?: FeesHolidayDraft } = {}
   ): Promise<string> {
     try {
+      if (options.mofusPrivilege && !pupilData.assignedStaffId) throw new Error('Select the staff member for this MOFUS pupil.');
+      const mofusHoliday = options.mofusPrivilege ? await FeesHolidayService.prepareNewHoliday({
+        ...options.mofusPrivilege, pupilId: '', reason: 'staff privilege',
+      }) : null;
       // Auto-assign house in round-robin order based on About School ordering (alphabetical by name)
       if (options.autoAssignHouse !== false && (!('houseId' in pupilData) || !pupilData.houseId)) {
         try {
@@ -364,6 +369,7 @@ export class PupilsService {
       await runTransaction(db, async transaction => {
         const revision = await reservePupilsRevisionInTransaction(transaction);
         transaction.set(docRef, cleanedData);
+        if (mofusHoliday) transaction.set(doc(collection(db, 'feesHolidays')), { ...mofusHoliday, pupilId: docRef.id });
         transaction.set(doc(db, CACHE_CHANGES_COLLECTION, String(revision).padStart(16, '0')), {
           revision,
           pupilId: docRef.id,

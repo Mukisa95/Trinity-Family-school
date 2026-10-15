@@ -1,4 +1,5 @@
 import type { Subject, SubjectAssignment } from '@/types';
+import { getSubjectTeacherIds } from '@/lib/utils/teaching-assignments';
 
 export type AssignedSubject = Subject & {
   teacherIds: string[];
@@ -24,11 +25,7 @@ export function selectSubjectsByAssignments(
   return assignments.flatMap(assignment => {
     const subject = subjectsById.get(assignment.subjectId);
     if (!subject) return [];
-    const teacherIds = Array.isArray(assignment.teacherIds) && assignment.teacherIds.length > 0
-      ? assignment.teacherIds
-      : assignment.teacherId
-        ? [assignment.teacherId]
-        : [];
+    const teacherIds = getSubjectTeacherIds(assignment);
 
     return [{
       ...subject,

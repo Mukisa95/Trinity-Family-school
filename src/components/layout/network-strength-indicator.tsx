@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { canDownloadWorkspaceRecords } from '@/lib/startup/workspace-connectivity';
+import { useState, useEffect, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 type ConnectionStrength = 'excellent' | 'good' | 'fair' | 'poor' | 'offline';
 
@@ -15,28 +17,44 @@ interface NetworkInfo {
  * Network Strength Indicator Component
  * Shows a phone-like signal bar indicating network connection quality
  */
-export function NetworkStrengthIndicator() {
+export function NetworkStrengthIndicator({
+    sessionVerificationDelayed = false,
+    sessionMessage,
+}: {
+    sessionVerificationDelayed?: boolean;
+    sessionMessage?: string | null;
+}) {
     const [network, setNetwork] = useState<NetworkInfo>({
         strength: 'good',
         latency: 0,
-        online: typeof navigator !== 'undefined' ? navigator.onLine : true
+        online: true
     });
     const [showTooltip, setShowTooltip] = useState(false);
+    const [showDetails, setShowDetails] = useState(false);
+    const detailsTitleId = useId();
 
     useEffect(() => {
+        let disposed = false;
+        let generation = 0;
+        let pending: AbortController | undefined;
         const measureLatency = async () => {
-            if (!navigator.onLine) {
+            const current = ++generation;
+            pending?.abort();
+            if (!canDownloadWorkspaceRecords()) {
                 setNetwork(prev => ({ ...prev, online: false, strength: 'offline' }));
                 return;
             }
 
             try {
+                pending = new AbortController();
                 const start = performance.now();
                 // Ping a small endpoint to measure latency
                 await fetch('https://www.gstatic.com/generate_204', {
+                    signal: pending.signal,
                     mode: 'no-cors',
                     cache: 'no-store'
                 });
+                if (disposed || current !== generation || !canDownloadWorkspaceRecords()) return;
                 const latency = performance.now() - start;
 
                 // Determine strength based on latency
@@ -53,11 +71,12 @@ export function NetworkStrengthIndicator() {
 
                 setNetwork({ strength, latency: Math.round(latency), online: true });
             } catch (error) {
+                if (disposed || current !== generation) return;
                 // If fetch fails, we're likely offline or have very poor connection
                 setNetwork(prev => ({
                     ...prev,
-                    strength: navigator.onLine ? 'poor' : 'offline',
-                    online: navigator.onLine
+                    strength: canDownloadWorkspaceRecords() ? 'poor' : 'offline',
+                    online: canDownloadWorkspaceRecords()
                 }));
             }
         };
@@ -70,21 +89,24 @@ export function NetworkStrengthIndicator() {
 
         // Listen for online/offline events
         const handleOnline = () => {
-            setNetwork(prev => ({ ...prev, online: true }));
             measureLatency();
         };
 
         const handleOffline = () => {
+            generation++; pending?.abort();
             setNetwork({ strength: 'offline', latency: 0, online: false });
         };
 
         window.addEventListener('online', handleOnline);
         window.addEventListener('offline', handleOffline);
+        window.addEventListener('trinity-android-connectivity', measureLatency);
 
         return () => {
+            disposed = true; generation++; pending?.abort();
             clearInterval(interval);
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
+            window.removeEventListener('trinity-android-connectivity', measureLatency);
         };
     }, []);
 
@@ -125,11 +147,16 @@ export function NetworkStrengthIndicator() {
     const color = getColor();
 
     return (
+        <Popover open={showDetails} onOpenChange={(open) => {
+            setShowDetails(open);
+            if (open) setShowTooltip(false);
+        }}>
         <div
             className="relative"
-            onMouseEnter={() => setShowTooltip(true)}
+            onMouseEnter={() => { if (!showDetails) setShowTooltip(true); }}
             onMouseLeave={() => setShowTooltip(false)}
         >
+            <PopoverTrigger asChild>
             <button
                 className="relative p-1.5 hover:bg-brand-surface-50/80 rounded-full transition-all duration-200 transform hover:scale-110 active:scale-95 dark:hover:bg-brand-surface-950/80"
                 style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}
@@ -143,6 +170,7 @@ export function NetworkStrengthIndicator() {
                     viewBox="0 0 24 24"
                     fill="none"
                     className="transition-all duration-300"
+                    aria-hidden="true"
                 >
                     {/* Bar 1 - shortest */}
                     <motion.rect
@@ -227,10 +255,11 @@ export function NetworkStrengthIndicator() {
                     />
                 )}
             </button>
+            </PopoverTrigger>
 
             {/* Tooltip */}
             <AnimatePresence>
-                {showTooltip && (
+                {showTooltip && !showDetails && (
                     <motion.div
                         initial={{ opacity: 0, y: 5, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -261,5 +290,32 @@ export function NetworkStrengthIndicator() {
                 )}
             </AnimatePresence>
         </div>
+        <PopoverContent
+            align="end"
+            sideOffset={8}
+            className="w-80 max-w-[calc(100vw-1rem)] max-h-[70dvh] overflow-y-auto print:hidden"
+            aria-labelledby={detailsTitleId}
+        >
+            <h2 id={detailsTitleId} className="text-sm font-semibold">Connection details</h2>
+            <div className="mt-2 flex items-center gap-2 text-sm">
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
+                <span>{network.online ? `${getLabel()} connection` : 'No internet connection'}</span>
+            </div>
+            {network.online && network.latency > 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">Latency: {network.latency}ms</p>
+            )}
+            {sessionVerificationDelayed && (
+                <section className="mt-3 space-y-2 rounded-md border border-border bg-muted/40 p-3">
+                    <h3 className="text-sm font-semibold">Live session check delayed</h3>
+                    <p className="text-sm">
+                        {sessionMessage || 'The live session check is waiting for a stable connection. Your current session remains available.'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        This check does not read Firestore and will retry after the connection recovers.
+                    </p>
+                </section>
+            )}
+        </PopoverContent>
+        </Popover>
     );
 }

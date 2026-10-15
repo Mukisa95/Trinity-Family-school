@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FeesService } from '../services/fees.service';
 import type { FeeStructure, FeeAdjustmentEntry } from '@/types';
+import { recoverFailedConnectionRead, retryConnectionRead } from '@/lib/query/connection-recovery';
 
 export const FEES_QUERY_KEYS = {
   all: ['fees'] as const,
@@ -17,7 +18,7 @@ export function useFeeStructures() {
   const queryClient = useQueryClient();
   
   // ⚡ Use preloaded data from GlobalDataPreloader
-  return useQuery({
+  return useQuery<FeeStructure[]>({
     queryKey: FEES_QUERY_KEYS.structures(),
     // initialData below provides the preloaded snapshot. A query run caused by
     // an explicit invalidation must read the authoritative collection instead
@@ -25,11 +26,12 @@ export function useFeeStructures() {
     queryFn: FeesService.getAllFeeStructures,
     staleTime: Infinity,
     gcTime: Infinity, // Keep in cache forever
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
+    refetchOnMount: recoverFailedConnectionRead,
+    refetchOnWindowFocus: recoverFailedConnectionRead,
     // A failed read may recover when connectivity returns; a successful
     // catalogue remains fresh and never incurs a reconnect read.
-    refetchOnReconnect: query => query.state.status === 'error',
+    refetchOnReconnect: recoverFailedConnectionRead,
+    retry: retryConnectionRead,
     placeholderData: (previousData) => previousData,
     initialData: () => {
       const cached = queryClient.getQueryData(FEES_QUERY_KEYS.structures());
@@ -83,6 +85,7 @@ export function useCreateFeeStructure() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ["fees","create"],
     mutationFn: (feeData: Omit<FeeStructure, 'id' | 'createdAt' | 'status' | 'disableHistory'>) =>
       FeesService.createFeeStructure(feeData),
     onSuccess: () => {
@@ -95,6 +98,7 @@ export function useUpdateFeeStructure() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ["fees","update"],
     mutationFn: ({ id, data }: { id: string; data: Partial<Omit<FeeStructure, 'id' | 'createdAt'>> }) =>
       FeesService.updateFeeStructure(id, data),
     onSuccess: (_, { id }) => {
@@ -108,6 +112,7 @@ export function useDeleteFeeStructure() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ["fees","delete"],
     mutationFn: (id: string) => FeesService.deleteFeeStructure(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FEES_QUERY_KEYS.structures() });
@@ -119,6 +124,7 @@ export function useCreateFeeAdjustment() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ["fees","adjust"],
     mutationFn: (adjustmentData: Omit<FeeAdjustmentEntry, 'id' | 'createdAt'>) =>
       FeesService.createFeeAdjustment(adjustmentData),
     onSuccess: () => {

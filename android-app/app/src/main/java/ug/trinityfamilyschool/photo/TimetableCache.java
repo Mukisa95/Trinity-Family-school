@@ -19,9 +19,9 @@ final class TimetableCache {
     }
     static JSONObject project(JSONObject value) throws Exception {
         if (value == null || value.optJSONObject("snapshot") == null
-            || !value.getJSONObject("session").getJSONObject("grants").optBoolean("timetable")) return null;
+            || !(value.getJSONObject("session").getJSONObject("grants").optBoolean("timetable") || value.getJSONObject("session").getJSONObject("grants").optBoolean("events"))) return null;
         JSONObject original = value.getJSONObject("snapshot"), data = original.getJSONObject("datasets"), slim = new JSONObject();
-        for (String name : new String[]{"timetables", "classes", "academicYears", "subjects", "teachers"})
+        for (String name : new String[]{"timetables", "classes", "academicYears", "subjects", "teachers", "events"})
             if (data.has(name)) slim.put(name, data.getJSONObject(name));
         JSONObject snapshot = new JSONObject().put("schema", original.getInt("schema"))
             .put("accountId", original.getString("accountId")).put("role", original.getString("role"))

@@ -68,7 +68,11 @@ async function colours(locator) {
     const rgb = v => v.match(/[\d.]+/g).map(Number);
     const blend = (front, back) => front.slice(0, 3).map((v, i) => v * (front[3] ?? 1) + back[i] * (1 - (front[3] ?? 1)));
     let stack = [], parent = el;
-    while (parent) { stack.unshift(rgb(getComputedStyle(parent).backgroundColor)); parent = parent.parentElement; }
+    while (parent) {
+      const surface=parent.classList.contains('glass-summary-bar')?getComputedStyle(parent,'::before'):null;
+      if(surface && surface.content!=='none')stack.unshift(rgb(surface.backgroundColor));
+      stack.unshift(rgb(getComputedStyle(parent).backgroundColor));parent=parent.parentElement;
+    }
     const background = stack.reduce((back, front) => blend(front, back), [255, 255, 255]);
     return { text: el.textContent, color: blend(rgb(getComputedStyle(el).color), background), background };
   });

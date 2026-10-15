@@ -9,6 +9,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import type { OperationalAuditContext } from '@/lib/operational-audit/context';
 
 const COLLECTION_NAME = 'operationalAuditLogs';
 const MAX_READ_DOCUMENTS = 2000;
@@ -51,6 +52,7 @@ export type OperationalAuditSummaryInput = {
   endedAt: string;
   appVersion: string;
   device: string;
+  context?: OperationalAuditContext;
   actor?: OperationalAuditActor;
   events: OperationalAuditEvent[];
 };
@@ -109,13 +111,14 @@ export class OperationalAuditService {
   static async writeSummary(input: OperationalAuditSummaryInput): Promise<void> {
     if (input.events.length === 0) return;
     await addDoc(collection(db, COLLECTION_NAME), {
-      v: 1,
+      v: 2,
       ts: Timestamp.now(),
       sid: input.sessionId.slice(0, 80),
       from: input.startedAt,
       to: input.endedAt,
       av: input.appVersion.slice(0, 80),
       device: input.device.slice(0, 30),
+      ...(input.context ? { context: input.context } : {}),
       uid: input.actor?.id?.slice(0, 80) || '',
       un: input.actor?.username?.slice(0, 80) || '',
       ur: input.actor?.role?.slice(0, 40) || '',
@@ -176,6 +179,7 @@ export class OperationalAuditService {
         endedAt: String(data.to || ''),
         appVersion: String(data.av || 'unknown'),
         device: String(data.device || 'unknown'),
+        context: data.context as OperationalAuditContext | undefined,
         actor: {
           id: String(data.uid || ''),
           username: String(data.un || ''),

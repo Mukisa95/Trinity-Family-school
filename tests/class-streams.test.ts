@@ -9,6 +9,8 @@ import {
   getActiveClassStreams,
   getClassStreamPupilStats,
   getPupilClassDisplay,
+  getExamPupilDisplaySnapshot,
+  snapshotExamPupilStreamIdentity,
 } from '../src/lib/utils/class-streams';
 
 const schoolClass: Class = {
@@ -45,6 +47,23 @@ const pupil = {
   guardians: [],
   createdAt: '2026-01-01',
 } satisfies Pupil;
+
+test('current class labels resolve a stream definition by ID instead of stale copied names', () => {
+  const display = getPupilClassDisplay({ ...pupil, streamId: 'east', streamName: 'West', streamCode: 'W', streamClassId: schoolClass.id }, schoolClass);
+  assert.equal(display.name, 'Primary One East');
+  assert.equal(display.code, 'P.1 E');
+});
+
+test('a historical stream with missing labels cannot borrow another current stream name', () => {
+  const snapshot: ExamRecordPupilInfo = { pupilId: pupil.id, name: 'Ada A', admissionNumber: pupil.admissionNumber, classNameAtExam: 'Primary One', classCodeAtExam: 'P.1', streamIdAtExam: 'east' };
+  const current = { ...pupil, streamId: 'west', streamName: 'West', streamCode: 'W', streamClassId: schoolClass.id, streamAcademicYearId: 'year-2026' };
+  const result = enrichExamPupilStreamIdentity(snapshot, current, schoolClass, 'year-2026');
+  assert.equal(result.streamIdAtExam, 'east');
+  assert.equal(result.streamNameAtExam, 'East');
+  assert.equal(result.streamCodeAtExam, 'E');
+  const immutable = enrichExamPupilStreamIdentity({ ...snapshot, streamNameAtExam: 'Original East', streamCodeAtExam: 'OE' }, current, schoolClass, 'year-2026');
+  assert.equal(immutable.streamNameAtExam, 'Original East');
+});
 
 test('pupil class display is unchanged before stream assignment', () => {
   assert.deepEqual(getPupilClassDisplay(pupil, schoolClass), {
@@ -184,4 +203,42 @@ test('exam stream choices are recovered from pupil snapshots without duplicating
     { id: 'east', name: 'East', code: 'E' },
     { id: 'west', name: 'West', code: 'W' },
   ]);
+});
+
+test('corrected exam stream labels keep recorded IDs, pupils and source snapshots intact', () => {
+  const snapshots: ExamRecordPupilInfo[] = [
+    { pupilId: '1', name: 'Ada', admissionNumber: 'A', classNameAtExam: 'Primary One West', classCodeAtExam: 'P.1 W', streamIdAtExam: 'east', streamNameAtExam: 'West', streamCodeAtExam: 'W' },
+    { pupilId: '2', name: 'Ben', admissionNumber: 'B', classNameAtExam: 'Primary One East', classCodeAtExam: 'P.1 E', streamIdAtExam: 'west', streamNameAtExam: 'East', streamCodeAtExam: 'E' },
+  ];
+  const declared = [{ id: 'east', name: 'West', code: 'W' }, { id: 'west', name: 'East', code: 'E' }];
+  const before = structuredClone({ snapshots, declared });
+  const choices = deriveExamStreams(declared, snapshots, schoolClass);
+  assert.deepEqual(choices, [{ id: 'east', name: 'East', code: 'E' }, { id: 'west', name: 'West', code: 'W' }]);
+  const display = snapshots.map(snapshot => getExamPupilDisplaySnapshot(snapshot, schoolClass));
+  assert.equal(display[0].classNameAtExam, 'Primary One East');
+  assert.equal(display[0].classCodeAtExam, 'P.1 E');
+  assert.equal(display[0].streamNameAtExam, 'West', 'Raw historical label stays available in presentation copies');
+  assert.deepEqual(filterExamPupilsByStream(display, 'east').map(item => item.pupilId), ['1']);
+  assert.deepEqual(filterExamPupilsByStream(display, 'west').map(item => item.pupilId), ['2']);
+  assert.deepEqual({ snapshots, declared }, before);
+});
+
+test('correcting labels never broadens a selected exam scope with current streams', () => {
+  const declared = [{ id: 'west', name: 'Old name', code: 'OLD' }];
+  assert.deepEqual(deriveExamStreams(declared, [], schoolClass), [{ id: 'west', name: 'West', code: 'W' }]);
+});
+
+test('unavailable or retired definitions preserve saved exam labels', () => {
+  const snapshot: ExamRecordPupilInfo = { pupilId: '1', name: 'Ada', admissionNumber: 'A', classNameAtExam: 'Old Class North', streamIdAtExam: 'north', streamNameAtExam: 'North', streamCodeAtExam: 'N' };
+  assert.strictEqual(getExamPupilDisplaySnapshot(snapshot, schoolClass), snapshot);
+  assert.strictEqual(getExamPupilDisplaySnapshot(snapshot, null), snapshot);
+  assert.deepEqual(deriveExamStreams([{ id: 'north', name: 'North', code: 'N' }], [snapshot], schoolClass), [{ id: 'north', name: 'North', code: 'N' }]);
+});
+
+test('new exams capture the class definition by ID rather than stale pupil labels', () => {
+  const current = { ...pupil, streamId: 'east', streamName: 'Wrong West', streamCode: 'W', streamClassId: schoolClass.id };
+  assert.deepEqual(snapshotExamPupilStreamIdentity(current, schoolClass), { streamIdAtExam: 'east', streamNameAtExam: 'East', streamCodeAtExam: 'E' });
+  assert.deepEqual(snapshotExamPupilStreamIdentity({ ...current, streamClassId: 'other' }, schoolClass), {});
+  assert.deepEqual(snapshotExamPupilStreamIdentity({ ...current, classId: 'other' }, schoolClass), {});
+  assert.deepEqual(snapshotExamPupilStreamIdentity({ ...current, streamId: 'deleted' }, schoolClass), {});
 });

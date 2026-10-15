@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { format } from 'date-fns';
 import { DatePicker } from '@/components/common/date-picker';
 import {
@@ -86,10 +86,11 @@ interface EventFormProps {
   event: Event | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (eventData: CreateEventData | UpdateEventData | CreateEventData[]) => void;
+  onSave: (eventData: CreateEventData | UpdateEventData | CreateEventData[]) => void | Promise<void>;
+  onReviewSchedule?: (event: Partial<Event>) => Promise<void>;
 }
 
-export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
+export function EventForm({ event, isOpen, onClose, onSave, onReviewSchedule }: EventFormProps) {
   const { user } = useAuth();
   const { data: activeAcademicYear } = useActiveAcademicYear();
   const { data: classes = [] } = useClasses();
@@ -143,18 +144,31 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
   const [newTag, setNewTag] = useState('');
   const [newAudience, setNewAudience] = useState('');
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [dateMode, setDateMode] = useState<'separate' | 'range'>('separate');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const usesSeparateDates = !!formData.isAllDay && !isExamMode && dateMode === 'separate';
+  const saveFormData = async (data: CreateEventData | UpdateEventData | CreateEventData[]) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true; setIsSubmitting(true); setErrors(current => ({ ...current, submit: '' }));
+    try { await onSave(data); }
+    catch (error) {
+      const message = error instanceof Error ? error.message : 'The event could not be saved. Your changes are still here.';
+      setErrors(current => ({ ...current, submit: message })); formValidation.setSubmissionError(message);
+    } finally { submittingRef.current = false; setIsSubmitting(false); }
+  };
   const validationFields = useMemo(() => [
     createFieldValidation('title', formData.title, 'Event title', true, { message: 'Enter the event title.' }),
-    createFieldValidation('dates', selectedDates, 'Event dates', formData.isAllDay === true, {
-      active: formData.isAllDay === true,
+    createFieldValidation('dates', selectedDates, 'Event dates', usesSeparateDates, {
+      active: usesSeparateDates,
       message: 'Choose at least one event date.',
     }),
-    createFieldValidation('startDate', formData.startDate, 'Start date', !formData.isAllDay, {
-      active: !formData.isAllDay,
+    createFieldValidation('startDate', formData.startDate, 'Start date', !usesSeparateDates, {
+      active: !usesSeparateDates,
       message: 'Choose the event start date.',
     }),
-    createFieldValidation('endDate', formData.endDate, 'End date', !formData.isAllDay, {
-      active: !formData.isAllDay,
+    createFieldValidation('endDate', formData.endDate, 'End date', !usesSeparateDates, {
+      active: !usesSeparateDates,
       message: 'Choose the event end date.',
       validate: (value) => value && formData.startDate && String(value) < formData.startDate ? 'Choose an end date on or after the start date.' : undefined,
     }),
@@ -184,7 +198,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
       focusTargetId: 'maxMarks',
       validate: () => examData.maxMarks > 0 && examData.passingMarks >= 0 && examData.passingMarks <= examData.maxMarks ? undefined : 'Enter a passing mark between zero and the maximum marks.',
     }),
-  ], [examData.examNature, examData.maxMarks, examData.passingMarks, examData.perClassSelectedSubjects, examData.selectedClassIds, formData.endDate, formData.endTime, formData.isAllDay, formData.startDate, formData.startTime, formData.targetAudience, formData.title, isExamMode, selectedDates]);
+  ], [examData.examNature, examData.maxMarks, examData.passingMarks, examData.perClassSelectedSubjects, examData.selectedClassIds, formData.endDate, formData.endTime, formData.isAllDay, formData.startDate, formData.startTime, formData.targetAudience, formData.title, isExamMode, selectedDates, usesSeparateDates]);
   const formValidation = useFormValidation(validationFields);
   const fieldError = (fieldId: string) => formValidation.getFieldError(fieldId)?.message || errors[fieldId];
 
@@ -200,7 +214,8 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
         reminders: event.reminders || [],
       });
       // Pre-populate selectedDates for all-day events (e.g. when editing or opening from calendar click)
-      if (event.isAllDay && event.startDate) {
+      setDateMode(event.isAllDay && event.endDate > event.startDate ? 'range' : 'separate');
+      if (event.isAllDay && event.startDate && (!event.endDate || event.startDate === event.endDate)) {
         try {
           const [y, m, d] = event.startDate.split('-').map(Number);
           setSelectedDates([new Date(y, m - 1, d)]);
@@ -211,6 +226,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
         setSelectedDates([]);
       }
     } else {
+      setDateMode('separate');
       setFormData({
         title: '',
         description: '',
@@ -370,8 +386,10 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
       return;
     }
 
-    if (isExamMode && !event) {
+    if (submittingRef.current || createExamMutation.isPending) return;
+    if (isExamMode && !event?.id) {
       // Create exam from event
+      submittingRef.current = true; setIsSubmitting(true);
       try {
         const examPayload = {
           title: formData.title || '',
@@ -393,6 +411,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
         };
 
         console.log('Creating exam with payload:', examPayload);
+        await onReviewSchedule?.({ ...formData, isExamEvent: true, classIds: examData.selectedClassIds });
         await createExamMutation.mutateAsync(examPayload);
         onClose();
         return;
@@ -404,15 +423,15 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
         });
         formValidation.setSubmissionError(error instanceof Error ? error.message : 'Failed to create exam. Please try again.');
         return;
-      }
+      } finally { submittingRef.current = false; setIsSubmitting(false); }
     }
 
     // Multiple Dates Logic
-    if (formData.isAllDay && selectedDates.length > 0 && !isExamMode) {
+    if (usesSeparateDates && selectedDates.length > 0) {
       const baseEventData = {
         ...formData,
-        createdBy: event ? formData.createdBy : user?.id || '',
-        updatedBy: event ? user?.id : undefined,
+        createdBy: event?.id ? formData.createdBy : user?.id || '',
+        updatedBy: event?.id ? user?.id : undefined,
         isRecurringInstance: false,
       };
 
@@ -432,7 +451,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
           // Auto-compute status from final date
           status: getComputedEventStatus(withDate),
         } as CreateEventData | UpdateEventData;
-        onSave(eventData);
+        await saveFormData(eventData);
       } else {
         const eventsToCreate = selectedDates.map(date => {
           const dateString = toLocalDateString(date);
@@ -442,7 +461,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
             status: getComputedEventStatus(withDate),
           } as CreateEventData;
         });
-        onSave(eventsToCreate);
+        await saveFormData(eventsToCreate);
       }
       return;
     }
@@ -452,8 +471,8 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
       ...formData,
       // Auto-compute status from dates — works for new and existing events
       status: getComputedEventStatus(formData),
-      createdBy: event ? formData.createdBy : user?.id || '',
-      updatedBy: event ? user?.id : undefined,
+      createdBy: event?.id ? formData.createdBy : user?.id || '',
+      updatedBy: event?.id ? user?.id : undefined,
       isRecurringInstance: false,
     } as CreateEventData | UpdateEventData;
 
@@ -464,7 +483,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
       }
     });
 
-    onSave(eventData);
+    await saveFormData(eventData);
   };
 
   const handleTypeChange = (type: EventType) => {
@@ -704,14 +723,14 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
   };
 
   return (
-    <ModernDialog open={isOpen} onOpenChange={onClose}>
-      <ModernDialogContent className="max-w-5xl max-h-[95vh]" open={isOpen} onOpenChange={onClose}>
+    <ModernDialog open={isOpen} onOpenChange={open => { if (!open && !isSubmitting) onClose(); }}>
+      <ModernDialogContent className="max-w-5xl max-h-[95vh]" open={isOpen} onOpenChange={open => { if (!open && !isSubmitting) onClose(); }}>
         <ModernDialogHeader className="pb-4 border-b">
           <div className="flex items-center justify-between">
             <ModernDialogTitle className="text-xl font-semibold">
-              {event ? 'Edit Event' : isExamMode ? '🎓 Schedule New Exam' : '📅 Create New Event'}
+              {event?.id ? 'Edit Event' : isExamMode ? '🎓 Schedule New Exam' : '📅 Create New Event'}
             </ModernDialogTitle>
-            {!event && (
+            {!event?.id && (
               <div className="flex items-center gap-2 bg-slate-100 rounded-full p-1 dark:bg-slate-900">
                 <div className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${!isExamMode
                   ? 'bg-white text-brand-ink-600 shadow-sm dark:bg-slate-900 dark:text-brand-ink-400'
@@ -749,7 +768,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
           </div>
         </ModernDialogHeader>
 
-        <ScrollArea className="h-[75vh] pr-4">
+        <fieldset disabled={isSubmitting} className="contents"><ScrollArea className="h-[75vh] pr-4">
           <div className="space-y-5 py-4">
             <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
             {/* Mode Alert */}
@@ -897,7 +916,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                 </div>
                 <h3 className="text-lg font-semibold tracking-tight">Date & Time</h3>
                 <div className="ml-auto flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:bg-slate-100/80 transition-colors dark:bg-slate-900 dark:border-slate-700 dark:hover:bg-slate-900/80"
-                  onClick={() => updateFormData('isAllDay', !formData.isAllDay)}>
+                  >
                   <Checkbox
                     id="allDay"
                     checked={formData.isAllDay}
@@ -911,7 +930,15 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {formData.isAllDay && !isExamMode ? (
+                {formData.isAllDay && !isExamMode && <div role="group" aria-label="All-day date mode" className="flex flex-wrap gap-2 lg:col-span-2">
+                  <Button type="button" variant={dateMode === 'separate' ? 'secondary' : 'outline'} aria-pressed={dateMode === 'separate'} onClick={() => setDateMode('separate')}>Separate dates</Button>
+                  <Button type="button" variant={dateMode === 'range' ? 'secondary' : 'outline'} aria-pressed={dateMode === 'range'} onClick={() => {
+                    setDateMode('range');
+                    const ordered = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
+                    if (ordered.length) setFormData(current => ({ ...current, startDate: format(ordered[0], 'yyyy-MM-dd'), endDate: format(ordered[ordered.length - 1], 'yyyy-MM-dd') }));
+                  }}>Continuous date range</Button>
+                </div>}
+                {usesSeparateDates ? (
                   <div className="lg:col-span-2 space-y-4">
                     <Label className="text-sm font-medium text-slate-700 dark:text-slate-200">Select Event Dates <span className="text-red-500 dark:text-red-400">*</span></Label>
                     <div id="dates" tabIndex={-1} aria-invalid={Boolean(fieldError('dates'))} aria-describedby={fieldError('dates') ? 'dates-error' : undefined} className="bg-gradient-to-br from-slate-50 to-white ring-1 ring-slate-200/60 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row gap-8 aria-invalid:ring-red-600 aria-invalid:bg-red-50/70 dark:from-slate-900 dark:to-slate-900 dark:ring-slate-700/60">
@@ -935,7 +962,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                             </div>
                           ) : (
                             <div className="flex flex-col gap-2">
-                              {selectedDates.sort((a, b) => a.getTime() - b.getTime()).map((date, idx) => (
+                              {[...selectedDates].sort((a, b) => a.getTime() - b.getTime()).map((date, idx) => (
                                 <div key={idx} className="flex items-center justify-between bg-brand-surface-50/50 hover:bg-brand-surface-50 border border-brand-100 px-3 py-2 rounded-lg transition-colors group dark:bg-brand-surface-950/50 dark:hover:bg-brand-surface-950/40 dark:border-brand-800/60">
                                   <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                                     {date.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
@@ -969,6 +996,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                         Start Date <span className="text-red-500 dark:text-red-400">*</span>
                       </Label>
                       <DatePicker
+                        allowFuture
                         date={formData.startDate ? new Date(formData.startDate) : undefined}
                         setDate={(d) => updateFormData('startDate', d ? format(d, 'yyyy-MM-dd') : '')}
                         triggerProps={formValidation.getFieldProps('startDate')}
@@ -987,6 +1015,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                         End Date <span className="text-red-500 dark:text-red-400">*</span>
                       </Label>
                       <DatePicker
+                        allowFuture
                         date={formData.endDate ? new Date(formData.endDate) : undefined}
                         setDate={(d) => updateFormData('endDate', d ? format(d, 'yyyy-MM-dd') : '')}
                         triggerProps={formValidation.getFieldProps('endDate')}
@@ -1364,7 +1393,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
               </>
             )}
           </div>
-        </ScrollArea>
+        </ScrollArea></fieldset>
 
         {/* Error Display */}
         {errors.submit && (
@@ -1397,7 +1426,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
             )}
           </div>
           <div className="flex gap-3 w-full sm:w-auto">
-            <Button variant="outline" onClick={onClose} className="border-slate-300 hover:bg-slate-100 flex-1 sm:flex-none h-11 px-6 rounded-xl font-medium dark:border-slate-700 dark:hover:bg-slate-900">
+            <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="border-slate-300 hover:bg-slate-100 flex-1 sm:flex-none h-11 px-6 rounded-xl font-medium dark:border-slate-700 dark:hover:bg-slate-900">
               Cancel
             </Button>
             <Button
@@ -1405,14 +1434,14 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                 console.log('Button clicked!');
                 handleSubmit();
               }}
-              disabled={createExamMutation.isPending}
+              disabled={createExamMutation.isPending || isSubmitting}
               className={`flex-1 sm:flex-none h-11 px-8 rounded-xl font-medium shadow-md shadow-brand-500/20 hover:shadow-lg hover:shadow-brand-500/30 transition-all active:scale-[0.98] ${isExamMode
                 ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
                 : 'bg-gradient-to-r from-brand-surface-600 to-brand-alt-surface-600 hover:from-brand-surface-700 hover:to-brand-alt-surface-700'
                 } text-white`}
             >
               <Save className="h-4 w-4 mr-2" />
-              {createExamMutation.isPending ? 'Creating...' : (event ? 'Update Event' : isExamMode ? 'Schedule Exam' : 'Create Event')}
+              {isSubmitting ? 'Saving...' : createExamMutation.isPending ? 'Creating...' : (event?.id ? 'Update Event' : isExamMode ? 'Schedule Exam' : 'Create Event')}
             </Button>
           </div>
         </ModernDialogFooter>

@@ -3,6 +3,7 @@ import type {
   OperationalAuditRecord,
   OperationalAuditSeverity,
 } from '@/lib/services/operational-audit.service';
+import type { OperationalAuditContext } from './context';
 
 const UUID_OR_TOKEN = /^(?:[a-f\d]{8}-[a-f\d-]{20,}|[A-Za-z\d_-]{20,}|\d{6,})$/i;
 
@@ -99,6 +100,46 @@ export function operationalEventKey(event: OperationalAuditEvent): string {
   return [event.kind, event.name, event.source, event.route, event.severity, event.code || '', event.status || ''].join('|');
 }
 
+/** Retain failures and unfinished navigation ahead of repetitive thumbnail/click timings. */
+export function operationalEventPriority(event: Pick<OperationalAuditEvent, 'name' | 'severity' | 'source'>): number {
+  if (event.severity === 'error') return 7;
+  if (event.name.startsWith('workspace:navigation:')) return 6;
+  if (event.name.startsWith('workspace:page:')) return 5;
+  if (/^workspace:(startup:|identity|pupils-cache)/.test(event.name)) return 4;
+  if (event.severity === 'warning' && event.source !== 'workspace-timing') return 3;
+  if (event.source === 'workspace-timing') return 2;
+  return 1;
+}
+
+export function bufferOperationalEvent(buffer: Map<string, OperationalAuditEvent>, incoming: OperationalAuditEvent, maxKeys = 40): void {
+  const key = operationalEventKey(incoming);
+  const combine = (event: OperationalAuditEvent) => {
+    const grouped: OperationalAuditEvent = { ...event, kind: 'activity', name: 'additional_signals', source: 'collector',
+      route: '/multiple', code: undefined, status: undefined,
+      message: 'Signals were combined to keep the audit bounded; individual names and routes are unavailable.' };
+    const combinedKey = operationalEventKey(grouped);
+    buffer.set(combinedKey, mergeOperationalEvent(buffer.get(combinedKey), grouped));
+  };
+  const named = () => [...buffer].filter(([, event]) => event.name !== 'additional_signals');
+  const lowest = () => named().sort((a, b) => operationalEventPriority(a[1]) - operationalEventPriority(b[1])
+    || a[1].lastAt.localeCompare(b[1].lastAt))[0];
+  if (buffer.has(key)) buffer.set(key, mergeOperationalEvent(buffer.get(key), incoming));
+  else if (named().length < maxKeys - 3) buffer.set(key, incoming);
+  else {
+    const disposable = lowest();
+    const priority = operationalEventPriority(incoming);
+    if (disposable && (priority > operationalEventPriority(disposable[1])
+      || priority >= 5 && priority === operationalEventPriority(disposable[1]))) {
+      buffer.delete(disposable[0]); combine(disposable[1]); buffer.set(key, incoming);
+    } else combine(incoming);
+  }
+  // Three separate overflow buckets preserve info/warning/error occurrence counts.
+  while (buffer.size > maxKeys || named().length > maxKeys - 3) {
+    const disposable = lowest(); if (!disposable) break;
+    buffer.delete(disposable[0]); combine(disposable[1]);
+  }
+}
+
 export function mergeOperationalEvent(
   existing: OperationalAuditEvent | undefined,
   incoming: OperationalAuditEvent,
@@ -128,6 +169,7 @@ export type FlatOperationalEvent = OperationalAuditEvent & {
   appVersion: string;
   device: string;
   sessionId: string;
+  context?: OperationalAuditContext;
 };
 
 export function flattenOperationalRecords(records: OperationalAuditRecord[]): FlatOperationalEvent[] {
@@ -140,6 +182,7 @@ export function flattenOperationalRecords(records: OperationalAuditRecord[]): Fl
     appVersion: record.appVersion,
     device: record.device,
     sessionId: record.sessionId,
+    context: record.context,
   })));
 }
 
@@ -167,6 +210,10 @@ function eventDetailLabel(event: OperationalAuditEvent) {
 
 function severityRank(severity: OperationalAuditSeverity) {
   return severity === 'error' ? 3 : severity === 'warning' ? 2 : 1;
+}
+
+function contextLabel(event: FlatOperationalEvent) {
+  return event.context ? `${event.context.runtime}; ${event.context.browser}; ${event.context.os}; ${event.context.startup}` : `${event.device}; runtime/startup unknown (older collector)`;
 }
 
 export function buildOperationalAuditMarkdown(
@@ -206,6 +253,14 @@ export function buildOperationalAuditMarkdown(
   });
   const activeRoutes = [...routeTotals.values()].sort((a, b) => b.count - a.count).slice(0, 30);
   const appVersions = [...new Set(events.map(event => event.appVersion || 'unknown'))].sort();
+  const allMeasurements = events.filter(event => event.source === 'workspace-timing' || event.name.startsWith('interaction-') || event.name === 'click-handler-to-paint-opportunity');
+  const measurements = [...allMeasurements]
+    .sort((a, b) => operationalEventPriority(b) - operationalEventPriority(a) || b.firstAt.localeCompare(a.firstAt)).slice(0, 200);
+  const environments = new Map<string, number>();
+  records.forEach(record => {
+    const label = record.context ? `${record.appVersion}; ${record.context.runtime}; ${record.context.browser}; ${record.context.os}; ${record.context.startup}` : `${record.appVersion}; ${record.device}; runtime/startup unknown`;
+    environments.set(label, (environments.get(label) || 0) + 1);
+  });
   const generated = new Date().toISOString();
 
   const lines = [
@@ -224,13 +279,23 @@ export function buildOperationalAuditMarkdown(
     `- Application versions: ${appVersions.map(markdownCell).join(', ') || 'none'}`,
     `- Transport observations excluded: ${excludedTransportEvents.reduce((total, event) => total + Math.max(1, event.count), 0)}`,
     `- Read limit reached: ${limitReached ? 'Yes — later records may be absent' : 'No'}`,
+    `- Stage measurements shown: ${measurements.length} of ${allMeasurements.length}${allMeasurements.length > measurements.length ? ' — navigation and page readiness prioritised; other rows omitted' : ''}`,
+    '- Collector limit: 40 signal groups per batch; additional_signals preserves severity counts but loses individual signal names and routes.',
+    ...[...environments].map(([label, count]) => `- Environment: ${markdownCell(label)} — ${count} summary document(s)`),
     '',
     '## Incidents and observations',
     '',
-    '| Time | Version | Severity | Kind | Signal | Route | User | Count | Detail |',
-    '|---|---|---|---|---|---|---|---:|---|',
-    ...incidents.map(event => `| ${markdownCell(event.recordedAt.toISOString())} | ${markdownCell(event.appVersion)} | ${markdownCell(event.severity)} | ${markdownCell(event.kind)} | ${markdownCell(event.name)} | ${markdownCell(event.route)} | ${markdownCell(`${event.actorName} (${event.actorRole})`)} | ${event.count} | ${markdownCell(eventDetailLabel(event))} |`),
-    ...(incidents.length ? [] : ['| — | — | — | — | No incidents recorded | — | — | 0 | — |']),
+    '| Observed first | Observed last | Batch saved | Environment | Version | Severity | Kind | Signal | Route | User | Count | Detail |',
+    '|---|---|---|---|---|---|---|---|---|---|---:|---|',
+    ...incidents.map(event => `| ${markdownCell(event.firstAt || 'unknown')} | ${markdownCell(event.lastAt || 'unknown')} | ${markdownCell(event.recordedAt.toISOString())} | ${markdownCell(contextLabel(event))} | ${markdownCell(event.appVersion)} | ${markdownCell(event.severity)} | ${markdownCell(event.kind)} | ${markdownCell(event.name)} | ${markdownCell(event.route)} | ${markdownCell(`${event.actorName} (${event.actorRole})`)} | ${event.count} | ${markdownCell(eventDetailLabel(event))} |`),
+    ...(incidents.length ? [] : ['| — | — | — | — | — | — | — | No incidents recorded | — | — | 0 | — |']),
+    '',
+    '## Startup, data readiness, offline preparation and clicks',
+    '',
+    '| Signal | Route | Version | Environment | Observed first / last | Batch saved | Count | Average / maximum |',
+    '|---|---|---|---|---|---|---:|---|',
+    ...measurements.map(event => `| ${markdownCell(event.name)} | ${markdownCell(event.route)} | ${markdownCell(event.appVersion)} | ${markdownCell(contextLabel(event))} | ${markdownCell(`${event.firstAt} / ${event.lastAt}`)} | ${markdownCell(event.recordedAt.toISOString())} | ${event.count} | ${markdownCell(durationLabel(event))} |`),
+    ...(measurements.length ? [] : ['| No stage measurements recorded (older collector or unsupported API) | — | — | — | — | — | 0 | — |']),
     '',
     '## Slowest observed operations',
     '',
@@ -250,10 +315,10 @@ export function buildOperationalAuditMarkdown(
     '',
     '## Coordination observations',
     '',
-    '| Time | Version | Signal | Route | User | Count | Detail |',
-    '|---|---|---|---|---|---:|---|',
-    ...coordination.map(event => `| ${markdownCell(event.recordedAt.toISOString())} | ${markdownCell(event.appVersion)} | ${markdownCell(event.name)} | ${markdownCell(event.route)} | ${markdownCell(`${event.actorName} (${event.actorRole})`)} | ${event.count} | ${markdownCell(eventDetailLabel(event))} |`),
-    ...(coordination.length ? [] : ['| — | — | No coordination observations recorded | — | — | 0 | — |']),
+    '| Observed first / last | Batch saved | Environment | Version | Signal | Route | User | Count | Detail |',
+    '|---|---|---|---|---|---|---|---:|---|',
+    ...coordination.map(event => `| ${markdownCell(`${event.firstAt} / ${event.lastAt}`)} | ${markdownCell(event.recordedAt.toISOString())} | ${markdownCell(contextLabel(event))} | ${markdownCell(event.appVersion)} | ${markdownCell(event.name)} | ${markdownCell(event.route)} | ${markdownCell(`${event.actorName} (${event.actorRole})`)} | ${event.count} | ${markdownCell(eventDetailLabel(event))} |`),
+    ...(coordination.length ? [] : ['| — | — | — | — | No coordination observations recorded | — | — | 0 | — |']),
     '',
     '## Routes generating the most audit signals',
     '',
@@ -270,6 +335,14 @@ export function buildOperationalAuditMarkdown(
     '- Duration values are browser-side elapsed times. They include network and client processing and are not Firestore billed-read counts.',
     '- Persistent Firestore transports, token refreshes, and connectivity probes are excluded from resource-latency rankings.',
     '- Time spent on pages is reported separately and must not be interpreted as page-load latency.',
+    '- Observed first/last are the boundaries of aggregated observations. Batch saved is the later summary write time; identical batch timestamps do not imply simultaneous incidents. Older collector timestamps can reflect callback observation time.',
+    '- Stage measurements separate identity restoration, workspace visibility, page data readiness, a first visible paint opportunity, and Android snapshot export/serialization/post/save acknowledgement. The save acknowledgement includes bridge and native storage time; app-shell preparation includes downloads.',
+    '- First-data-visible is measured after a frame and task while the document is visible and the startup/welcome overlay is closed. It is a paint opportunity, not a screenshot, a guarantee of financial freshness or a complete rendering trace.',
+    '- First-data-visible retains total elapsed time, including background pauses. Foreground-to-visible excludes document-hidden time; background-wait reports that excluded time separately. Foreground time can still include a visible startup overlay. Observation boundaries span the actual visit, even when an active duration excludes pauses.',
+    '- Pupil-cache-access signals are broad eligibility/publication reasons, not loading durations. Missing/expired receipts, changed scope and missing/incomplete snapshots explain why saved viewing was unavailable; no receipt, account ID or pupil content is exported.',
+    '- Android cache-read, record-projection and photo-preparation break down snapshot export. Photo hashing, decode, encode and thumbnail-cache read/write identify its expensive steps. Async elapsed time includes cooperative navigation/background pauses and must not be called continuous CPU blocking.',
+    '- Event Timing captures slower click/key interactions when supported; input delay is separated from total interaction-to-paint. The unsupported-browser fallback measures handler-to-paint opportunity and cannot measure input queue delay.',
+    '- First-setup identifies the welcome marker at session start; repeat-startup means preferences were previously completed. Neither proves a cold download or complete offline preparation. Native context refers to the web workspace; standalone native offline screens are outside this collector.',
     '',
   ];
   return lines.join('\n');

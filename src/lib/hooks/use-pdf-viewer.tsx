@@ -45,7 +45,6 @@ export function usePDFViewer(): UsePDFViewerReturn {
         },
         async ({ signal, updateProgress }) => {
           updateProgress(8, 'Loading PDF renderer…');
-          if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
           const { pdf } = await import('@react-pdf/renderer');
           if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
           const asPdf = pdf(pdfDocument);

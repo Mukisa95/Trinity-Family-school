@@ -7,9 +7,11 @@ import {
   where,
   Timestamp,
   getDocsFromCache,
+  runTransaction,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import type { Class } from '@/types';
+import type { Class, Staff } from '@/types';
+import { applyStaffClassAssignmentChanges, type StaffClassAssignmentChanges } from '@/lib/utils/teaching-assignments';
 import {
   getDocWithTimeout,
   getDocsFromServerWithTimeout,
@@ -200,6 +202,27 @@ export class ClassesService {
       console.error('Error updating class:', error);
       throw error;
     }
+  }
+
+  static async updateStaffAssignments(
+    classId: string,
+    staff: Pick<Staff, 'id' | 'firstName' | 'lastName'>,
+    changes: StaffClassAssignmentChanges,
+  ): Promise<Class> {
+    // Read once during the mutation and merge only this staff member's changes.
+    // This preserves other subjects and detects edits made in another session.
+    return runTransaction(db, async transaction => {
+      const classRef = doc(db, COLLECTION_NAME, classId);
+      const snapshot = await transaction.get(classRef);
+      if (!snapshot.exists()) throw new Error('This class no longer exists.');
+      const current = { ...snapshot.data(), id: classId } as Class;
+      const patch = applyStaffClassAssignmentChanges(current, staff, changes);
+      if (Object.keys(patch).length) {
+        transaction.update(classRef, this.cleanUndefinedValues(patch));
+        bumpClassesRevisionInBatch(transaction);
+      }
+      return { ...current, ...patch };
+    });
   }
 
   // Utility function to recursively clean undefined values from objects

@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "incremental": false },
+  "include": [
+    "src/lib/android/download.ts",
+    "src/app/download/page.tsx",
+    "src/app/api/android/download/route.ts",
+    "src/app/api/android/release/route.ts",
+    "src/lib/server/native-push.ts",
+    "src/lib/server/android-credentials.ts",
+    "src/app/.well-known/assetlinks.json/route.ts",
+    "src/lib/services/passkey.service.ts",
+    "src/components/settings/passkey-settings.tsx"
+  ],
+  "exclude": ["node_modules", "output"]
+}

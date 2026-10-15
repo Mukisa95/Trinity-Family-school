@@ -40,7 +40,7 @@ public class TimetableWidgetDeviceTest {
         assertTrue((card.flags & android.app.Notification.FLAG_ONGOING_EVENT)!=0);
         assertNotNull(card.contentView); assertNotNull(card.bigContentView);
         assertEquals("Two timetables reuse the collapsed layout if Android forces expansion",card.contentView.getLayoutId(),card.bigContentView.getLayoutId());
-        assertEquals("School timetables",card.extras.getString(android.app.Notification.EXTRA_TITLE));
+        assertEquals("Timetables & events",card.extras.getString(android.app.Notification.EXTRA_TITLE));
         android.util.Log.i("TrinityTimetableQA", "two_table_system_expansion=" + (android.app.Notification.Builder.recoverBuilder(context, card).createBigContentView() != null));
         java.util.concurrent.atomic.AtomicReference<Throwable> failure=new java.util.concurrent.atomic.AtomicReference<>();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
@@ -112,7 +112,8 @@ public class TimetableWidgetDeviceTest {
                     view.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));view.layout(0,0,width,view.getMeasuredHeight());
                     View previous=view.findViewById(R.id.previous_period); assertTrue(previous.getWidth()>=24*context.getResources().getDisplayMetrics().density-1);
                     assertEquals("Previous period",previous.getContentDescription().toString());
-                    assertEquals(AppAppearance.palette(context).dark ? 0xffe2e8f0 : 0xff1f2937,((TextView)view.findViewById(R.id.current_lesson)).getCurrentTextColor());
+                    boolean dark=AppAppearance.palette(context).dark; DeviceColors colors=AppAppearance.deviceColorsEnabled(context)?DeviceColors.read(context):null;
+                    assertEquals(colors==null ? (dark ? 0xffe2e8f0 : 0xff1f2937) : colors.role("foreground",dark),((TextView)view.findViewById(R.id.current_lesson)).getCurrentTextColor());
                     assertTrue(view.getMeasuredHeight()>0);
                 }
             } catch(Throwable error){failure.set(error);}

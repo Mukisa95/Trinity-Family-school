@@ -101,7 +101,7 @@ final class OfflineStore {
         if (!active(session) || snapshot.optInt("schema") != 1 || !session.optString("accountId").equals(snapshot.optString("accountId"))
             || !session.optString("role").equals(snapshot.optString("role")) || timestamp(snapshot.optString("capturedAt")) == 0) throw new IllegalArgumentException("Connect and verify your account to continue.");
         JSONObject data = snapshot.getJSONObject("datasets");
-        Set<String> allowed = new HashSet<>(Arrays.asList("pupils", "classes", "academicYears", "dashboard", "timetables", "subjects", "teachers", "parent"));
+        Set<String> allowed = new HashSet<>(Arrays.asList("pupils", "classes", "academicYears", "dashboard", "timetables", "subjects", "teachers", "events", "parent"));
         Iterator<String> names = data.keys();
         while (names.hasNext()) {
             String name = names.next();
@@ -131,8 +131,9 @@ final class OfflineStore {
         } else {
             if (data.has("parent")) throw new IllegalArgumentException("Invalid parent data.");
             if ((data.has("subjects") || data.has("teachers")) && !grants.optBoolean("timetable")) throw new IllegalArgumentException("Timetable references are not authorized.");
-            if ((data.has("classes") || data.has("academicYears")) && !grants.optBoolean("dashboard") && !grants.optBoolean("pupils") && !grants.optBoolean("timetable")) throw new IllegalArgumentException("Reference data is not authorized.");
-            for (String name : new String[]{"dashboard", "pupils", "timetables"}) if (data.has(name) && !grants.optBoolean("timetables".equals(name) ? "timetable" : name)) throw new IllegalArgumentException("This section is not authorized.");
+            if ((data.has("classes") || data.has("academicYears")) && !grants.optBoolean("dashboard") && !grants.optBoolean("pupils") && !grants.optBoolean("timetable") && !grants.optBoolean("events")) throw new IllegalArgumentException("Reference data is not authorized.");
+            for (String name : new String[]{"dashboard", "pupils", "timetables", "events"}) if (data.has(name) && !grants.optBoolean("timetables".equals(name) ? "timetable" : name)) throw new IllegalArgumentException("This section is not authorized.");
+            if(data.has("events") && data.getJSONObject("events").optJSONArray("data")==null) throw new IllegalArgumentException("Invalid event dataset.");
             if (data.has("pupils")) {
                 Set<String> allowedFields = strings(grants.getJSONArray("pupilFields"));
                 JSONArray pupils = data.getJSONObject("pupils").getJSONArray("data");
@@ -180,5 +181,14 @@ final class OfflineStore {
         if (value == null || !active(value.optJSONObject("session")) || value.optJSONObject("snapshot") == null) return null;
         validate(value.getJSONObject("snapshot"), value.getJSONObject("session"));
         return value;
+    }
+    static JSONObject accessStatus(JSONObject saved) throws Exception {
+        JSONObject session = saved == null ? null : saved.optJSONObject("session");
+        boolean active = active(session);
+        boolean available = active && saved.optJSONObject("snapshot") != null;
+        JSONObject result = new JSONObject().put("available", available)
+            .put("state", saved == null ? "not_prepared" : !active ? "expired" : available ? "ready" : "data_preparing");
+        if (active) result.put("session", session);
+        return result;
     }
 }

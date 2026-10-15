@@ -18,7 +18,7 @@ test('individual mixed-fee submissions use one operation for regular, uniform an
   assert.match(atomicSection, /uniformTracking/);
   assert.match(atomicSection, /clearPaymentOperation\(operationIntent\)/);
   assert.match(atomicSection, /fee-payment:\$\{operation\.operationId\}:\$\{paymentId\}/);
-  assert.equal((atomicSection.match(/fetch\('\/api\/payments\/create'/g) || []).length, 1);
+  assert.equal((atomicSection.match(/(?:fetch\(|measureWorkspaceRequest\('payment:create-request',\s*)'\/api\/payments\/create'/g) || []).length, 1);
   assert.doesNotMatch(atomicSection, /processCarryForwardPayment\(/);
   assert.doesNotMatch(atomicSection, /createUniformPaymentRecord\(/);
 });

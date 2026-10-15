@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useAndroidOfflineStatus } from './use-android-offline-status';
+import { useEffect, useMemo } from 'react';
 import {
   collection,
   doc,
@@ -287,6 +288,11 @@ const convertToFirestoreData = (
 };
 
 const eventsBaseCacheKey = (scope: string) => ['events', 'base', scope] as const;
+const eventsRevisionCacheKey = (scope: string) => ['events', 'revision', scope] as const;
+
+function getCachedEventRevision(queryClient: ReturnType<typeof useQueryClient>, scope: string): number | undefined {
+  return queryClient.getQueryData<number>(eventsRevisionCacheKey(scope)) ?? readEventCache(scope)?.revision;
+}
 
 function getCachedEvents(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -306,12 +312,16 @@ function writeCachedEvents(
   events: Event[],
 ) {
   if (!scope) return;
+  queryClient.setQueryDefaults(eventsRevisionCacheKey(scope), { staleTime: Infinity, gcTime: Infinity });
   queryClient.setQueryData(eventsBaseCacheKey(scope), events);
-  writeEventCache(scope, revision, events);
+  queryClient.setQueryData(eventsRevisionCacheKey(scope), revision);
+  // Disk persistence cannot turn an already-read collection into a cold cache.
+  try { writeEventCache(scope, revision, events); } catch { /* Keep the scoped in-memory snapshot. */ }
 }
 
 // Get all events with proper error handling
 export function useEvents(filters?: EventFilters) {
+  const androidOffline = useAndroidOfflineStatus();
   const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuth();
   const revisionsQuery = useDashboardDataRevisions();
@@ -320,13 +330,11 @@ export function useEvents(filters?: EventFilters) {
     : '';
   const currentRevision = revisionsQuery.data?.events ?? 0;
   const revisionsReady = revisionsQuery.data !== undefined;
-  const persisted = readEventCache(scope);
-
-  // 🚀 CRITICAL: Read from GlobalDataPreloader's pre-populated cache immediately
+  // Read the scoped saved calendar immediately, before any reconciliation.
   const cachedData = getCachedEvents(queryClient, scope);
   const cachePolicy = getRevisionCachePolicy({
     hasCachedData: cachedData !== undefined,
-    cachedRevision: persisted?.revision,
+    cachedRevision: getCachedEventRevision(queryClient, scope),
     currentRevision,
     revisionsReady,
   });
@@ -337,9 +345,12 @@ export function useEvents(filters?: EventFilters) {
     queryKey: eventsBaseCacheKey(scope),
     // A warm calendar paints without a read. A genuinely cold calendar may
     // fetch before revisions arrive so settings-listener trouble cannot freeze
-    // the page; a later non-zero revision will reconcile through a new key.
-    enabled: !!scope && cachePolicy.shouldFetch,
+    // the page; the fixed owner reconciles later revision changes explicitly.
+    enabled: !!scope && cachePolicy.shouldFetch && !androidOffline,
     queryFn: async () => {
+      // Capture the counter at the actual read, not at a prior render. A newer
+      // counter arriving mid-request must remain eligible for reconciliation.
+      const readRevision = queryClient.getQueryData<Record<string, number>>(['dashboardDataRevisions'])?.events;
       const currentCache = getCachedEvents(queryClient, scope);
       if (!cachePolicy.shouldFetch && currentCache !== undefined) {
         queryClient.setQueryData(eventsBaseCacheKey(scope), currentCache);
@@ -360,7 +371,7 @@ export function useEvents(filters?: EventFilters) {
         const q = user?.role === 'Parent'
           ? query(eventsCollection, where('isPublic', '==', true))
           : query(eventsCollection, orderBy('startDate', 'desc'));
-        const snapshot = revisionsReady
+        const snapshot = readRevision !== undefined
           ? await getDocsFromServer(q)
           : await getDocs(q);
         const events = snapshot.docs
@@ -368,10 +379,14 @@ export function useEvents(filters?: EventFilters) {
           .filter(event => user?.role !== 'Parent' || event.isPublic)
           .sort((a, b) => b.startDate.localeCompare(a.startDate));
 
+        if (readRevision !== undefined && (getCachedEventRevision(queryClient, scope) ?? -1) > readRevision) {
+          return getCachedEvents(queryClient, scope) ?? events;
+        }
+
         writeCachedEvents(
           queryClient,
           scope,
-          revisionsReady ? currentRevision : -1,
+          readRevision ?? -1,
           events,
         );
 
@@ -379,17 +394,13 @@ export function useEvents(filters?: EventFilters) {
         return events;
       } catch (error) {
         console.error('Error fetching events:', error);
-        // A failed reconciliation must not blank a calendar that already has a
-        // usable snapshot. The unchanged cached revision causes a retry on the
-        // next mount or reconnect.
-        if (currentCache !== undefined) {
-          return currentCache;
-        }
-        throw error;
+        // React Query retains the existing data on a refresh failure. Keep the
+        // error too, so a stale copy is not presented as a successful update.
+        throw Object.assign(error instanceof Error ? error : new Error('Events could not refresh.'), { eventsRevision: readRevision ?? -1 });
       }
     },
     staleTime: cachePolicy.shouldFetch ? 0 : Infinity,
-    gcTime: 60 * 60 * 1000, // 1 hour cache
+    gcTime: Infinity,
     refetchOnMount: cachePolicy.shouldFetch,
     refetchOnWindowFocus: false,
     refetchOnReconnect: cachePolicy.shouldFetch,
@@ -397,9 +408,20 @@ export function useEvents(filters?: EventFilters) {
     // 🚀 Use pre-populated cache as initialData for zero-delay rendering
     initialData: cachedData,
     initialDataUpdatedAt: cachedData !== undefined ? Date.now() : undefined,
-    placeholderData: (previousData) => previousData ?? cachedData,
+    placeholderData: () => cachedData,
     retry: 1,
   });
+
+  useEffect(() => {
+    if (!scope || androidOffline || eventsQuery.isFetching || !cachePolicy.revisionChanged) return;
+    const latest = queryClient.getQueryData<Record<string, number>>(['dashboardDataRevisions'])?.events;
+    if (latest === undefined || (getCachedEventRevision(queryClient, scope) ?? -1) >= latest) return;
+    if ((eventsQuery.error as { eventsRevision?: number } | null)?.eventsRevision === latest) return;
+    // A fixed query key can stay enabled while its revision advances. Recheck
+    // after completion so a change during a request is not missed. Concurrent
+    // calendars join the same request instead of cancelling/restarting it.
+    void eventsQuery.refetch({ cancelRefetch: false });
+  }, [scope, androidOffline, currentRevision, eventsQuery.isFetching, eventsQuery.error, cachePolicy.revisionChanged, queryClient]);
 
   const filteredData = useMemo(
     () => eventsQuery.data === undefined
@@ -749,6 +771,7 @@ export function useExamEvents() {
 
 // Get all exams and convert them to events (for testing)
 export function useExamsAsEvents(options?: { enabled?: boolean }) {
+  const androidOffline = useAndroidOfflineStatus();
   const { user, isAuthenticated } = useAuth();
   const examsQuery = useExams();
   const { data: academicYears = [], isLoading: yearsLoading } = useAcademicYears();
@@ -784,6 +807,7 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
     ],
     enabled:
       (options?.enabled ?? true) &&
+      !androidOffline &&
       !!scope &&
       !eventsQuery.isLoading &&
       !yearsLoading &&

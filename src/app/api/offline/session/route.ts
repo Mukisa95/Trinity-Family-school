@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
         if (child.exists && (!child.data()?.parentAccountId || child.data()?.parentAccountId === user.id)) ids.add(child.id);
       }
     }
-    return NextResponse.json(createAndroidOfflineSession(user, [...ids]), { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json(createAndroidOfflineSession(user, [...ids], new Date(), { events: request.headers.get('X-Trinity-Offline-Features') === 'events' }), { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     const message = error instanceof Error ? error.message : '';
     const code = (error as { code?: string })?.code || '';

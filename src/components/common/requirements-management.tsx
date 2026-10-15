@@ -1,5 +1,7 @@
 "use client";
 
+import { CatalogueDataNotice } from '@/components/common/catalogue-data-notice';
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,7 +42,8 @@ export function RequirementsManagement() {
   const [filterGroup, setFilterGroup] = useState<string>('');
 
   // Hooks
-  const { data: requirements = [], isLoading } = useRequirements();
+  const catalogue = useRequirements();
+  const { data: requirements = [], isLoading, isFetching, error, refetch, isSavedData } = catalogue;
   const { data: classes = [] } = useClasses();
   const createRequirementMutation = useCreateRequirement();
   const updateRequirementMutation = useUpdateRequirement();
@@ -190,6 +193,7 @@ export function RequirementsManagement() {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
+      <CatalogueDataNotice label="requirements" saved={isSavedData} refreshing={isFetching} error={error} hasData={catalogue.data !== undefined} retry={refetch} />
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -324,10 +328,12 @@ export function RequirementsManagement() {
       {/* Requirements Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Requirements ({filteredRequirements.length})</CardTitle>
+          <CardTitle>{catalogue.data === undefined ? 'Requirements' : `Requirements (${filteredRequirements.length})`}</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {error && catalogue.data === undefined ? (
+            <p role="alert" className="p-6 text-sm text-muted-foreground">Requirements are unavailable. Use Retry above to try again.</p>
+          ) : isLoading ? (
             <div className="space-y-4">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="space-y-2">
@@ -485,4 +491,4 @@ export function RequirementsManagement() {
       />
     </div>
   );
-} 
+}

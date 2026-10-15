@@ -37,6 +37,26 @@ export function getTimetableStreamMode(
   return layout?.defaultMode || 'consolidated';
 }
 
+export function getOrderedTimetableStreams(
+  schoolClass: Class,
+  profile: Pick<TimetableProfile, 'streamLayouts'> | null | undefined,
+  academicYearId: string,
+): ClassStream[] {
+  const activeStreams = getActiveClassStreams(schoolClass, academicYearId);
+  const byId = new Map(activeStreams.map(stream => [stream.id, stream]));
+  const ordered: ClassStream[] = [];
+  for (const id of profile?.streamLayouts?.[schoolClass.id]?.streamOrder || []) {
+    const stream = byId.get(id);
+    if (stream) {
+      ordered.push(stream);
+      byId.delete(id);
+    }
+  }
+  // Newly enabled streams append in their configured order; disabled/deleted
+  // IDs and duplicate saved IDs never produce phantom or repeated rows.
+  return [...ordered, ...byId.values()];
+}
+
 export function classUsesStreamRowsForDay(
   schoolClass: Class,
   profile: Pick<TimetableProfile, 'streamLayouts'> | null | undefined,
@@ -57,7 +77,7 @@ export function buildTimetableClassRowsForDay(
   periods: GeneratedPeriod[],
 ): TimetableClassRow[] {
   return classes.flatMap(classItem => {
-    const streams = getActiveClassStreams(classItem, academicYearId);
+    const streams = getOrderedTimetableStreams(classItem, profile, academicYearId);
     if (!classUsesStreamRowsForDay(classItem, profile, academicYearId, dayId, periods)) {
       return [{ classItem, streamIndex: 0, streamCount: 1 }];
     }

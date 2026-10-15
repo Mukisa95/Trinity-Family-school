@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { registerWorkspaceRecovery, reportWorkspaceTask } from '@/lib/startup/workspace-setup';
+import { withWorkspaceIdentity } from '@/lib/startup/workspace-auth';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { ExamsService } from '@/lib/services/exams.service';
 import { useDashboardDataRevisions } from './use-school-settings';
@@ -31,6 +33,14 @@ export function useExamCacheBootstrap() {
   const scope = isAuthenticated ? getExamCacheScope(user?.id, user?.role) : '';
   const revision = revisionsQuery.data?.exams ?? 0;
   const revisionsReady = revisionsQuery.data !== undefined;
+
+  useEffect(() => {
+    if (!scope) return;
+    return registerWorkspaceRecovery(queryClient, scope, 'exams', () => {
+      retryCount.current = 0;
+      setRetryEpoch(epoch => epoch + 1);
+    });
+  }, [queryClient, scope]);
 
   useEffect(() => {
     if (!scope) {
@@ -63,7 +73,11 @@ export function useExamCacheBootstrap() {
 
     const needsColdFetch = persisted === null && inMemory === undefined;
     const needsRevisionRefresh = revisionsReady && persisted?.revision !== revision;
-    if (!needsColdFetch && !needsRevisionRefresh) return;
+    if (!needsColdFetch && !needsRevisionRefresh) {
+      reportWorkspaceTask(queryClient, scope, 'exams', 'ready');
+      return;
+    }
+    reportWorkspaceTask(queryClient, scope, 'exams', 'loading');
 
     let disposed = false;
     let serverSucceeded = false;
@@ -86,7 +100,7 @@ export function useExamCacheBootstrap() {
       });
     }
 
-    void ExamsService.refreshSharedExams(() => ExamsService.getAllForCache()).then(exams => {
+    void withWorkspaceIdentity(user?.id, () => ExamsService.refreshSharedExams(() => ExamsService.getAllForCache())).then(exams => {
       if (disposed) return;
       serverSucceeded = true;
       retryCount.current = 0;
@@ -95,8 +109,10 @@ export function useExamCacheBootstrap() {
       queryClient.setQueryData(queryKey, normalised);
       writeExamCache(scope, targetRevision, normalised);
       performance.mark?.('trinity:exams-server-synced');
+      reportWorkspaceTask(queryClient, scope, 'exams', 'ready');
     }).catch(error => {
       console.error('Exam cache reconciliation failed:', error);
+      if (!disposed) reportWorkspaceTask(queryClient, scope, 'exams', 'error');
       if (!disposed && retryCount.current < 2) {
         retryCount.current += 1;
         retryTimer = setTimeout(() => setRetryEpoch(epoch => epoch + 1), 3000);

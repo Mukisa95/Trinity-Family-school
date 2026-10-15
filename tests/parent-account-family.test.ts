@@ -101,7 +101,7 @@ test('family membership changes reconcile account scope, markers, claims, and no
   const transitionSource = readFileSync('src/lib/server/parent-family-membership.ts', 'utf8');
   const preloaderSource = readFileSync('src/components/providers/global-data-preloader.tsx', 'utf8');
   const siblingsSource = readFileSync('src/components/pupils/link-siblings-modal.tsx', 'utf8');
-  const pupilsPageSource = readFileSync('src/app/pupils/page.tsx', 'utf8');
+  const pupilsPageSource = readFileSync('src/app/pupils/pupils-management.tsx', 'utf8');
 
   assert.match(transitionSource, /parentAccountId: canonical\?\.id \|\| null/);
   assert.match(transitionSource, /parentAccountActive: canonical\?\.data\(\)\.isActive === true/);

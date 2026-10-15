@@ -14,10 +14,13 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DetailItem } from '@/components/common/detail-item';
 import { useClassDetail } from '@/lib/hooks/use-class-detail';
 import { useExamsByClass } from '@/lib/hooks/use-exams';
+import { ClassExamsCard } from '@/components/class/class-exams-card';
+import { ClassSubjectsCard } from '@/components/class/class-subjects-card';
 import { useActiveAcademicYear, useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { useTerms } from '@/lib/hooks/use-terms';
 import { useStaff } from '@/lib/hooks/use-staff';
@@ -53,8 +56,6 @@ import {
   Baby,
   Check,
   FileText,
-  List,
-  Grid3X3,
   GitBranch,
   LockKeyhole,
   Plus,
@@ -73,6 +74,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
+import { SubjectTeacherSelector as SearchableSubjectTeacherSelector } from '@/components/class/subject-teacher-selector';
+import { getSubjectTeacherIds, getSubjectTeacherRoleLabel } from '@/lib/utils/teaching-assignments';
 import { cn } from "@/lib/utils";
 import { PupilRequirementsModal } from "@/components/class/pupil-requirements-modal";
 import { ClassRequirementsOverviewModal } from "@/components/class/class-requirements-overview-modal";
@@ -279,93 +282,6 @@ function SearchableTeacherSelector({
   );
 }
 
-// Searchable Subject-Teacher Selector Component
-function SearchableSubjectTeacherSelector({
-  subjectId,
-  assignedTeacherIds = [],
-  onTeacherToggle,
-  teachers,
-  buttonClassName,
-}: {
-  subjectId: string;
-  assignedTeacherIds: string[];
-  onTeacherToggle: (subjectId: string, teacherId: string, isChecked: boolean) => void;
-  teachers: any[];
-  buttonClassName?: string;
-}) {
-  const [open, setOpen] = React.useState(false);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen} modal={true}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className={cn("h-7 w-7 p-0 rounded-lg border border-brand-secondary-200 bg-white hover:border-brand-secondary-300 hover:bg-brand-secondary-surface-50 transition-all duration-200 flex-shrink-0 dark:border-brand-secondary-800/60 dark:bg-slate-900 dark:hover:border-brand-secondary-800/60 dark:hover:bg-brand-secondary-surface-950/40", buttonClassName)}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setOpen(!open);
-          }}
-        >
-          <User className="h-3.5 w-3.5 text-brand-secondary-ink-600 dark:text-brand-secondary-ink-400" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-[260px] p-0 !z-[100000]"
-        align="end"
-        side="bottom"
-        sideOffset={4}
-        onOpenAutoFocus={(e) => e.preventDefault()}
-        onInteractOutside={(e) => {
-          const target = e.target as HTMLElement;
-          if (target.closest('[role="dialog"]')) {
-            e.preventDefault();
-          }
-        }}
-      >
-        <Command className="rounded-xl">
-          <CommandInput placeholder="Search teacher..." className="h-8 text-xs" />
-          <CommandList className="max-h-48">
-            <CommandEmpty className="py-2 text-xs text-center text-gray-500 dark:text-slate-400">No teachers found.</CommandEmpty>
-            <CommandGroup>
-              {teachers.length === 0 && (
-                <CommandItem value="no-teachers" disabled className="text-xs text-gray-500 dark:text-slate-400">
-                  No teaching staff available
-                </CommandItem>
-              )}
-              {teachers.map((teacher: any) => {
-                const isChecked = assignedTeacherIds.includes(teacher.id);
-                const name = `${teacher.firstName} ${teacher.lastName}`;
-                return (
-                  <CommandItem
-                    key={teacher.id}
-                    value={name}
-                    onSelect={() => {
-                      onTeacherToggle(subjectId, teacher.id, !isChecked);
-                    }}
-                    className="flex items-center gap-2 py-1.5 px-2 text-xs"
-                  >
-                    <Checkbox
-                      checked={isChecked}
-                      className="h-3.5 w-3.5 rounded-sm"
-                      onClick={(e) => e.stopPropagation()}
-                      onCheckedChange={(checked) => {
-                        onTeacherToggle(subjectId, teacher.id, checked === true);
-                      }}
-                    />
-                    <span className="font-medium text-gray-700 dark:text-slate-200">{name}</span>
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 // Calculate age from date of birth
 function calculateAge(dateOfBirth: string): number {
@@ -495,7 +411,7 @@ function PupilListRow({
 
   return (
     <tr className="hover:bg-muted/30 transition-colors group">
-      <td className="px-3 py-3">
+      <td className="px-3 py-2.5">
         <div className="flex items-center space-x-3">
           <div className="relative">
             <Avatar className={`w-7 h-7 flex-shrink-0 shadow-md hover:shadow-lg transition-all duration-300 ${isLoadingPhoto ? 'animate-pulse' : ''
@@ -553,23 +469,24 @@ function PupilListRow({
           </div>
         </div>
       </td>
-      <td className="px-3 py-3">
-        <Badge variant="outline" className="text-xs px-2.5 py-1 rounded-lg border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-          {pupil.section || 'N/A'}
-        </Badge>
+      <td className="px-3 py-2.5 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+          <span>{pupil.section || 'N/A'}</span><span aria-hidden="true">·</span>
+          <span>{pupil.gender || 'N/A'}</span><span aria-hidden="true">·</span>
+          <span className="whitespace-nowrap">{age !== null ? `${age}y` : 'N/A'}</span>
+        </div>
       </td>
-      <td className="px-3 py-3 text-xs font-medium">{pupil.gender}</td>
-      <td className="px-3 py-3 text-xs font-medium">{age ? `${age}y` : 'N/A'}</td>
-      <td className="px-3 py-3">
+      <td className="px-3 py-2.5">
         {onOpenRequirements && (
           <Button
             onClick={() => onOpenRequirements(pupil.id)}
             size="sm"
             variant="outline"
-            className="text-xs h-7 px-2"
+            className="h-8 w-8 p-0"
+            aria-label={`Open requirements for ${formatPupilDisplayName(pupil)}`}
+            title={`Requirements for ${formatPupilDisplayName(pupil)}`}
           >
-            <FileText className="w-3 h-3 mr-1" />
-            Open
+            <FileText className="h-3.5 w-3.5" aria-hidden="true" />
           </Button>
         )}
       </td>
@@ -606,16 +523,28 @@ function PupilRosterTable({
   );
 
   return (
-    <table className="w-full text-sm">
+    <table className="w-full table-fixed text-sm">
       <thead className="sticky top-0 z-10 border-b-2 border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/30 backdrop-blur-sm">
         <tr>
-          <th className="w-1/2 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider">{header('name', 'Pupil Details')}</th>
-          <th className="w-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider">{header('section', 'Section')}</th>
-          <th className="w-16 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider">{header('gender', 'Gender')}</th>
-          <th className="w-12 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider">{header('age', 'Age')}</th>
-          <th className="w-24 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-            <span className="flex items-center gap-1 px-2 py-1"><FileText className="h-3 w-3" /> Requirements</span>
+          <th scope="col" aria-sort={sortBy === 'name' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'} className="w-[52%] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider">{header('name', 'Name')}</th>
+          <th scope="col" aria-sort={sortBy !== 'name' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" className="flex items-center gap-1 rounded-lg px-2 py-1 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Sort pupil details">
+                  Details <ChevronDown className="h-3 w-3" aria-hidden="true" />
+                  {sortBy !== 'name' && <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {(['section', 'gender', 'age'] as const).map(field => (
+                  <DropdownMenuItem key={field} onSelect={() => onSort(field)}>
+                    Sort by {field}{sortBy === field ? (sortOrder === 'asc' ? ' ↑' : ' ↓') : ''}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </th>
+          <th scope="col" className="w-14 px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider">Req</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-border/30">
@@ -639,27 +568,13 @@ function ClassDetailContent() {
   const classId = searchParams?.get('id') || null;
   const [showSubjects, setShowSubjects] = React.useState(false);
   const [showFilters, setShowFilters] = React.useState(false);
-  const [viewMode, setViewMode] = React.useState<'tiles' | 'list'>('list');
   const [sortBy, setSortBy] = React.useState<'name' | 'section' | 'gender' | 'age'>('name');
   const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('asc');
-
-  // Responsive view mode - automatically switch based on screen size
-  React.useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 1024) { // Large screens
-        setViewMode('list');
-      } else { // Small screens
-        setViewMode('tiles');
-      }
-    };
-    handleResize(); // Set initial view mode
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const [hiddenStreams, setHiddenStreams] = React.useState<Set<string>>(new Set());
+  const [classTopbarHeight, setClassTopbarHeight] = React.useState(96);
 
   // State for exam loading
   const [shouldLoadExams, setShouldLoadExams] = React.useState(false);
-  const [showExamsDropdown, setShowExamsDropdown] = React.useState(false);
 
   // State for subjects loading
   const [shouldLoadSubjects, setShouldLoadSubjects] = React.useState(false);
@@ -707,6 +622,20 @@ function ClassDetailContent() {
 
   // 🚀 OPTIMIZED: Fetch data using cache-first strategy
   const { data: classDetail, isLoading: classLoading } = useClassDetail(classId || '');
+
+  React.useEffect(() => {
+    setHiddenStreams(new Set());
+  }, [classId]);
+
+  React.useEffect(() => {
+    const topbar = document.querySelector<HTMLElement>('.class-detail-topbar');
+    if (!topbar) return;
+    const measure = () => setClassTopbarHeight(Math.ceil(topbar.getBoundingClientRect().height));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(topbar);
+    return () => observer.disconnect();
+  }, [classDetail?.id]);
 
   // 🚀 REAL-TIME: Use the main usePupils hook which has the Firestore listener
   // This ensures we get real-time updates when pupils are added/removed/changed
@@ -765,7 +694,9 @@ function ClassDetailContent() {
       ['TEACHER', 'HEAD TEACHER', 'DEPUTY HEAD TEACHER', 'DIRECTOR OF STUDIES',
         'HEAD OF DEPARTMENT', 'SENIOR TEACHER', 'TEACHING ASSISTANT'].includes(role)
     );
-    return hasTeachingDepartment || hasTeachingRoles;
+    return hasTeachingDepartment || hasTeachingRoles || classDetail?.classTeacherId === s.id ||
+      classDetail?.coClassTeacherId === s.id ||
+      !!classDetail?.subjectAssignments?.some(assignment => getSubjectTeacherIds(assignment).includes(s.id));
   });
 
   // Edit dialog state
@@ -817,7 +748,7 @@ function ClassDetailContent() {
   // Track if photos are still loading
   const photosLoading = isLoadingPhotos || isFetchingPhotos;
 
-  const { data: classExams = [], isLoading: examsLoading } = useExamsByClass(classId || '', { enabled: shouldLoadExams });
+  const { data: classExams = [], isLoading: examsLoading, error: examsError, refetch: refetchExams } = useExamsByClass(classId || '', { enabled: shouldLoadExams });
   const { data: classSubjects = [], isLoading: subjectsLoading } = useSubjectsByClass(classId || '', { enabled: shouldLoadSubjects });
   // Reuse activeAcademicYear and allAcademicYears from above (lines 590-591)
   const academicYears = allAcademicYears;
@@ -836,45 +767,15 @@ function ClassDetailContent() {
     }
   }, [activeAcademicYear]);
 
-  // Filter exams based on selected filters
-  const filteredExams = React.useMemo(() => {
-    if (!shouldLoadExams) return [];
-
-    return classExams.filter(exam => {
-      const matchesYear = !examFilters.academicYearId || exam.academicYearId === examFilters.academicYearId;
-      const matchesTerm = !examFilters.termId || exam.termId === examFilters.termId;
-      return matchesYear && matchesTerm;
-    });
-  }, [classExams, examFilters, shouldLoadExams]);
-
-  // Enhance subjects with teacher names
-  const subjectsWithTeacherNames = React.useMemo(() => {
-    if (!shouldLoadSubjects || !classSubjects.length) return [];
-
-    return classSubjects.map(subject => {
-      // Support both old format (teacherId) and new format (teacherIds)
-      const teacherIds = Array.isArray(subject.teacherIds)
-        ? subject.teacherIds
-        : (subject.teacherId ? [subject.teacherId] : []);
-
-      const teachers = teacherIds
-        .map(teacherId => allStaff.find(staff => staff.id === teacherId))
-        .filter(Boolean)
-        .map(teacher => `${teacher!.firstName} ${teacher!.lastName}`);
-
-      return {
-        ...subject,
-        teacherNames: teachers,
-        teacherName: teachers.length > 0 ? teachers.join(', ') : 'Not Assigned',
-        teacherIds: teacherIds
-      };
-    });
-  }, [classSubjects, allStaff, shouldLoadSubjects]);
+  const subjectsForCard = React.useMemo(() => shouldLoadSubjects
+    ? classSubjects.map(subject => ({ ...subject, teacherIds: getSubjectTeacherIds(subject) }))
+    : [], [classSubjects, shouldLoadSubjects]);
 
   const handleExamFilterChange = (field: 'academicYearId' | 'termId', value: string) => {
     setExamFilters(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
+      ...(field === 'academicYearId' ? { termId: 'all' } : {}),
     }));
   };
 
@@ -897,13 +798,7 @@ function ClassDetailContent() {
     const initialSelectedSubjects: string[] = [];
     classDetail.subjectAssignments?.forEach(sa => {
       initialSelectedSubjects.push(sa.subjectId);
-      if (Array.isArray(sa.teacherIds)) {
-        initialAssignments[sa.subjectId] = sa.teacherIds;
-      } else if ('teacherId' in sa && sa.teacherId) {
-        initialAssignments[sa.subjectId] = [sa.teacherId];
-      } else {
-        initialAssignments[sa.subjectId] = [];
-      }
+      initialAssignments[sa.subjectId] = getSubjectTeacherIds(sa);
     });
     setSelectedSubjectIds(initialSelectedSubjects);
     setSubjectTeacherAssignments(initialAssignments);
@@ -1138,6 +1033,15 @@ function ClassDetailContent() {
     return groups.filter(group => group.pupils.length > 0);
   }, [activeAcademicYear?.id, classDetail, filteredPupils]);
 
+  const visibleStreamGroups = pupilStreamGroups.filter(group => !hiddenStreams.has(group.id));
+  const visiblePupilCount = visibleStreamGroups.reduce((sum, group) => sum + group.pupils.length, 0);
+  const toggleVisibleStream = (streamId: string) => setHiddenStreams(current => {
+    const next = new Set(current);
+    if (next.has(streamId)) next.delete(streamId);
+    else next.add(streamId);
+    return next;
+  });
+
   // Count pending pupils in this class
   const pendingPupilsCount = React.useMemo(() => {
     if (!pupilsInClassWithPhotos.length || !classId) return 0;
@@ -1234,7 +1138,7 @@ function ClassDetailContent() {
         subtitle="Class overview, teacher, leaders, and pupil roster"
         backHref="/classes"
         backLabel="Back to classes"
-        className="mb-1.5"
+        className="class-detail-topbar mb-1.5"
         meta={
           <div className="flex items-center gap-1.5">
             <span className="whitespace-nowrap rounded-full border border-brand-alt-100/80 bg-brand-alt-surface-50 px-2 py-0.5 text-[10px] font-bold text-brand-alt-ink-700 dark:border-brand-alt-800/80 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300">
@@ -1302,22 +1206,6 @@ function ClassDetailContent() {
                 href={`/classes/pending?classId=${classDetail.id}`}
               />
             )}
-            {(classDetail.streams?.length || 0) > 0 && (
-              <GlassActionButton
-                label="Streams"
-                icon={<GitBranch className="h-4 w-4" />}
-                tone="slate"
-                href={`/classes/${classDetail.id}/streams`}
-                aria-label="Open Stream Setup"
-              />
-            )}
-            <GlassActionButton
-              label={viewMode === 'tiles' ? "List" : "Tiles"}
-              icon={viewMode === 'tiles' ? <List className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
-              tone="slate"
-              onClick={() => setViewMode(viewMode === 'tiles' ? 'list' : 'tiles')}
-              aria-label={viewMode === 'tiles' ? "Switch to List View" : "Switch to Tiles View"}
-            />
             <GlassActionButton
               label="Filters"
               tone="blue"
@@ -1326,13 +1214,17 @@ function ClassDetailContent() {
               onClick={() => setShowFilters(!showFilters)}
               aria-label="Toggle Filters"
             />
-            <GlassActionButton
-              label="Edit"
-              tone="slate"
-              icon={<Edit className="h-4 w-4" />}
-              onClick={handleOpenEditDialog}
-              aria-label="Edit Class"
-            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <GlassActionButton label="Edit" tone="slate" icon={<Edit className="h-4 w-4" />} aria-label="Edit Class" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={handleOpenEditDialog}><Edit className="mr-2 h-4 w-4" />Details</DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={`/classes/${classDetail.id}/streams`}><GitBranch className="mr-2 h-4 w-4" />Streams</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </GlassActionDock>
         }
       />
@@ -1341,7 +1233,7 @@ function ClassDetailContent() {
         left={
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
-              Class Leaders & Teacher
+              {captain || assistantCaptain ? 'Class Leaders & Teacher' : 'Class Teacher'}
             </span>
           </div>
         }
@@ -1351,26 +1243,14 @@ function ClassDetailContent() {
               <span className="text-brand-alt-ink-700/85 dark:text-brand-alt-ink-300 font-medium">Class Teacher:</span>
               <span className="font-bold text-brand-alt-ink-600 dark:text-brand-alt-ink-400">{teacherName}</span>
             </div>
-            <div className="flex items-center gap-1 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-100/50 dark:border-amber-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+            {captain && <div className="flex items-center gap-1 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-100/50 dark:border-amber-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="text-amber-700/85 dark:text-amber-300 font-medium">Class Captain:</span>
-              {captain ? (
-                <Link href={`/pupil-detail?id=${captain.id}`} className="font-bold text-amber-600 dark:text-amber-400 hover:underline">
-                  {formatPupilDisplayName(captain)}
-                </Link>
-              ) : (
-                <span className="font-bold text-amber-600 dark:text-amber-400">Not Assigned</span>
-              )}
-            </div>
-            <div className="flex items-center gap-1 bg-orange-50/80 dark:bg-orange-950/20 border border-orange-100/50 dark:border-orange-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <Link href={`/pupil-detail?id=${captain.id}`} className="font-bold text-amber-600 dark:text-amber-400 hover:underline">{formatPupilDisplayName(captain)}</Link>
+            </div>}
+            {assistantCaptain && <div className="flex items-center gap-1 bg-orange-50/80 dark:bg-orange-950/20 border border-orange-100/50 dark:border-orange-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="text-orange-700/85 dark:text-orange-300 font-medium">Assistant Class Captain:</span>
-              {assistantCaptain ? (
-                <Link href={`/pupil-detail?id=${assistantCaptain.id}`} className="font-bold text-orange-600 dark:text-orange-400 hover:underline">
-                  {formatPupilDisplayName(assistantCaptain)}
-                </Link>
-              ) : (
-                <span className="font-bold text-orange-600 dark:text-orange-400">Not Assigned</span>
-              )}
-            </div>
+              <Link href={`/pupil-detail?id=${assistantCaptain.id}`} className="font-bold text-orange-600 dark:text-orange-400 hover:underline">{formatPupilDisplayName(assistantCaptain)}</Link>
+            </div>}
           </>
         }
       />
@@ -1478,148 +1358,48 @@ function ClassDetailContent() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:h-[calc(100vh-12rem)]">
-        {/* Left Column: Basic Class Info / Exams / Subjects */}
+      <div className={cn(
+        "grid grid-cols-1 items-start gap-6",
+        (shouldLoadExams || shouldLoadSubjects) && "lg:grid-cols-[minmax(20rem,1fr)_minmax(0,2fr)] xl:grid-cols-[minmax(22rem,1fr)_minmax(0,2fr)] 2xl:grid-cols-[minmax(24rem,1fr)_minmax(0,2fr)]"
+      )}>
         {(shouldLoadExams || shouldLoadSubjects) && (
-          <div className="lg:col-span-1 space-y-3 lg:space-y-6 lg:overflow-y-auto lg:pr-2 animate-in slide-in-from-left duration-300">
-            <Card className="shadow-xl border-2 border-primary/10 bg-gradient-to-br from-card via-card to-muted/5 rounded-2xl overflow-hidden backdrop-blur-sm">
-              <CardContent className="space-y-4 text-xs lg:text-sm p-4 sm:p-6">
-                {/* Exams List */}
-                {shouldLoadExams && (
-                  <div>
-                    <div className="text-xs font-semibold text-muted-foreground mb-3 flex items-center gap-1.5 uppercase tracking-wider">
-                      <Calendar className="h-3.5 w-3.5 text-link" />
-                      Class Exams
-                    </div>
-                    {examsLoading ? (
-                      <div className="text-center py-4">
-                        <Loader2 className="h-4 w-4 animate-spin text-link mx-auto" />
-                        <div className="text-xs text-muted-foreground mt-2">Loading exams...</div>
-                      </div>
-                    ) : (
-                      <>
-                        {/* Academic Year and Term filters - always visible when exams loaded */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="space-y-1 flex-1">
-                            <Label className="text-xs font-medium text-muted-foreground">Academic Year</Label>
-                            <Select
-                              value={examFilters.academicYearId}
-                              onValueChange={(value) => handleExamFilterChange('academicYearId', value)}
-                              disabled={academicYears.length === 0}
-                            >
-                              <SelectTrigger className="h-8 text-xs rounded-xl border-2 border-primary/20 focus:border-primary/50 shadow-sm bg-gradient-to-br from-background to-muted/10">
-                                <SelectValue placeholder="Select Year" />
-                              </SelectTrigger>
-                              <SelectContent position="popper" className="max-h-[200px] overflow-y-auto rounded-xl border-2">
-                                <SelectItem value="all">All Academic Years</SelectItem>
-                                {academicYears.map(year => (
-                                  <SelectItem key={year.id} value={year.id}>
-                                    {year.name}{year.isActive ? ' (Active)' : ''}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-1 flex-1">
-                            <Label className="text-xs font-medium text-muted-foreground">Term</Label>
-                            <Select
-                              value={examFilters.termId}
-                              onValueChange={(value) => handleExamFilterChange('termId', value)}
-                              disabled={terms.length === 0}
-                            >
-                              <SelectTrigger className="h-8 text-xs rounded-xl border-2 border-primary/20 focus:border-primary/50 shadow-sm bg-gradient-to-br from-background to-muted/10">
-                                <SelectValue placeholder="Select Term" />
-                              </SelectTrigger>
-                              <SelectContent position="popper" className="max-h-[200px] overflow-y-auto rounded-xl border-2">
-                                <SelectItem value="all">All Terms</SelectItem>
-                                {terms
-                                  .filter(term => !examFilters.academicYearId || examFilters.academicYearId === 'all' || term.academicYearId === examFilters.academicYearId)
-                                  .map(term => (
-                                    <SelectItem key={term.id} value={term.id}>
-                                      {term.name}{term.isCurrent ? ' (Current)' : ''}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        {filteredExams.length > 0 ? (
-                          <div className="space-y-2 max-h-60 lg:max-h-80 overflow-y-auto pr-1">
-                            {filteredExams.map((exam) => (
-                              <Link
-                                key={exam.id}
-                                href={`/exams/${exam.id}`}
-                                className="block p-3 border-2 border-primary/10 rounded-xl hover:border-primary/30 hover:shadow-md transition-all duration-200 bg-gradient-to-br from-card to-muted/5 group/exam"
-                              >
-                                <div className="font-semibold text-foreground text-xs group-hover/exam:text-link transition-colors">{exam.name}</div>
-                                <div className="text-[10px] text-muted-foreground mt-1">
-                                  {exam.startDate ? new Date(exam.startDate).toLocaleDateString() : 'No date set'}
-                                </div>
-                              </Link>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-xs text-muted-foreground text-center py-4 bg-muted/20 rounded-xl border border-dashed">
-                            No exams found for the selected filters.
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Divider if both shown */}
-                {shouldLoadExams && shouldLoadSubjects && (
-                  <div className="border-t border-border/50 my-2" />
-                )}
-
-                {/* Subjects List */}
-                {shouldLoadSubjects && (
-                  <div>
-                    <div className="text-xs font-semibold text-muted-foreground mb-3 flex items-center gap-1.5 uppercase tracking-wider">
-                      <BookOpen className="h-3.5 w-3.5 text-link" />
-                      Subjects & Teachers
-                    </div>
-                    {subjectsLoading ? (
-                      <div className="text-center py-4">
-                        <Loader2 className="h-4 w-4 animate-spin text-link mx-auto" />
-                        <div className="text-xs text-muted-foreground mt-2">Loading subjects...</div>
-                      </div>
-                    ) : subjectsWithTeacherNames.length > 0 ? (
-                      <div className="space-y-2 max-h-60 lg:max-h-80 overflow-y-auto pr-1">
-                        {subjectsWithTeacherNames.map((subject) => (
-                          <div
-                            key={subject.id}
-                            className="p-3 border-2 border-primary/10 rounded-xl bg-gradient-to-br from-card to-muted/5 text-xs"
-                          >
-                            <div className="font-semibold text-foreground">{subject.name}</div>
-                            <div className="text-muted-foreground text-[10px] mt-1">
-                              <span className="font-medium">Teacher:</span> {subject.teacherName}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-xs text-muted-foreground text-center py-4 bg-muted/20 rounded-xl border border-dashed">
-                        No subjects assigned to this class
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          <div className="min-w-0 space-y-4">
+            {shouldLoadExams && (
+              <ClassExamsCard classId={classId || ''} exams={classExams} academicYears={academicYears} terms={terms}
+                filters={examFilters} onFilterChange={handleExamFilterChange} isLoading={examsLoading}
+                error={examsError} onRetry={() => { void refetchExams(); }} />
+            )}
+            {shouldLoadSubjects && <ClassSubjectsCard key={classDetail.id} subjects={subjectsForCard} teachers={teachingStaff}
+              isLoading={subjectsLoading} onSave={async assignments => {
+                const subjectAssignments = (classDetail.subjectAssignments ?? []).map(assignment => {
+                  if (!Object.prototype.hasOwnProperty.call(assignments, assignment.subjectId)) return assignment;
+                  // Remove legacy single-teacher IDs so clearing an assignment stays cleared.
+                  const { teacherId: _legacyTeacherId, ...rest } = assignment;
+                  return { ...rest, teacherIds: assignments[assignment.subjectId] };
+                });
+                await updateClassMutation.mutateAsync({ id: classDetail.id, data: { subjectAssignments } });
+                toast({ title: 'Subject teachers saved' });
+              }} />}
           </div>
         )}
 
-        {/* Right Column: Pupils List */}
-        <div className={cn(
-          "space-y-3 lg:space-y-6 lg:overflow-y-auto",
-          (shouldLoadExams || shouldLoadSubjects) ? "lg:col-span-3" : "lg:col-span-4"
-        )}>
+        {/* Pupils stay beside the exam column on large screens. */}
+        <div role="region" aria-label="Class pupils"
+          style={{ '--class-detail-sticky-top': `${classTopbarHeight + 12}px` } as React.CSSProperties}
+          className="min-w-0 space-y-3 lg:sticky lg:top-[var(--class-detail-sticky-top)] lg:max-h-[calc(100dvh-var(--class-detail-sticky-top)-1rem)] lg:space-y-6 lg:overflow-y-auto">
           <Card className="shadow-xl border-2 border-primary/10 bg-gradient-to-br from-card via-card to-muted/5 rounded-2xl overflow-hidden backdrop-blur-sm">
             <CardContent className="p-0">
+              {pupilStreamGroups.some(group => group.name) && (
+                <div role="group" aria-label="Visible pupil streams" className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b bg-card/95 px-3 py-2 backdrop-blur">
+                  {pupilStreamGroups.map(group => (
+                    <Button key={group.id} type="button" size="sm" variant={hiddenStreams.has(group.id) ? 'outline' : 'secondary'}
+                      aria-pressed={!hiddenStreams.has(group.id)} onClick={() => toggleVisibleStream(group.id)}
+                      className="min-h-9 gap-1.5 rounded-full text-xs">
+                      {group.name || 'All pupils'} <span className="tabular-nums">{group.pupils.length}</span>
+                    </Button>
+                  ))}
+                </div>
+              )}
               {pupilsInClass.length === 0 && allPupilsLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -1640,13 +1420,17 @@ function ClassDetailContent() {
                     </Button>
                   )}
                 </div>
+              ) : visibleStreamGroups.length === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">
+                  <p>All pupil streams are hidden.</p>
+                  <Button type="button" variant="outline" className="mt-3" onClick={() => setHiddenStreams(new Set())}>Show all streams</Button>
+                </div>
               ) : (
                 <>
-                  {/* Desktop List View - Show on large screens when viewMode is list */}
-                  {viewMode === 'list' && (
+                  {/* Desktop roster */}
                     <div className="hidden lg:block">
-                      <div className="max-h-[calc(100vh-13.5rem)] space-y-4 overflow-y-auto p-3">
-                        {pupilStreamGroups.map(group => (
+                      <div className="space-y-4 p-3">
+                        {visibleStreamGroups.map(group => (
                           <section key={group.id} className={`overflow-hidden rounded-xl border ${group.isUnassigned ? 'border-amber-300 bg-amber-50/30 dark:border-amber-800/60 dark:bg-amber-950/30' : 'border-cyan-200 bg-white dark:border-cyan-800/60 dark:bg-slate-900'}`}>
                             {group.name ? (
                               <div className={`flex items-center justify-between border-b px-4 py-2 ${group.isUnassigned ? 'border-amber-200 bg-amber-100/70 text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/70 dark:text-amber-100' : 'border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-800/60 dark:bg-cyan-950/40 dark:text-cyan-100'}`}>
@@ -1665,7 +1449,7 @@ function ClassDetailContent() {
                         <div className="flex items-center justify-between text-xs text-foreground font-medium">
                           <div className="flex items-center space-x-4">
                             <span className="font-medium">
-                              {filteredPupils.length} of {pupilsInClass.length} pupils
+                              {visiblePupilCount} of {pupilsInClass.length} pupils
                             </span>
                             {filteredPupils.length !== pupilsInClass.length && (
                               <span className="flex items-center space-x-1">
@@ -1687,12 +1471,10 @@ function ClassDetailContent() {
                         </div>
                       </div>
                     </div>
-                  )}
 
-                  {/* Tiles View - Show on small screens OR when viewMode is tiles on large screens */}
-                  {(viewMode === 'tiles' || window.innerWidth < 1024) && (
-                    <div className="space-y-5 p-4 lg:p-6">
-                      {pupilStreamGroups.map(group => (
+                  {/* Mobile pupil cards */}
+                    <div className="space-y-5 p-4 lg:hidden">
+                      {visibleStreamGroups.map(group => (
                         <section key={group.id} className="space-y-3">
                           {group.name ? (
                             <div className={`flex items-center justify-between rounded-xl border px-3 py-2 ${group.isUnassigned ? 'border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-100' : 'border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-800/60 dark:bg-cyan-950/40 dark:text-cyan-100'}`}>
@@ -1706,7 +1488,6 @@ function ClassDetailContent() {
                         </section>
                       ))}
                     </div>
-                  )}
                 </>
               )}
             </CardContent>
@@ -2024,9 +1805,9 @@ function ClassDetailContent() {
                           if (!subject) return null;
                           const assignedTeachers = (subjectTeacherAssignments[subjectId] || []);
                           const teacherNames = assignedTeachers
-                            .map(teacherId => {
+                            .map((teacherId, index) => {
                               const teacher = teachingStaff.find(t => t.id === teacherId);
-                              return teacher ? `${teacher.firstName} ${teacher.lastName}` : null;
+                              return `${getSubjectTeacherRoleLabel(index)}: ${teacher ? `${teacher.firstName} ${teacher.lastName}` : teacherId}`;
                             })
                             .filter(Boolean)
                             .join(', ');
@@ -2042,6 +1823,7 @@ function ClassDetailContent() {
                                 subjectId={subjectId}
                                 assignedTeacherIds={assignedTeachers}
                                 onTeacherToggle={handleSubjectTeacherChange}
+                                onTeacherOrderChange={(id, ids) => setSubjectTeacherAssignments(prev => ({ ...prev, [id]: ids }))}
                                 teachers={teachingStaff}
                               />
                             </div>

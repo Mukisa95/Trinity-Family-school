@@ -11,4 +11,4 @@ const shortcutDirectory = path.join(root, 'android-app/app/build/generated/schoo
 fs.mkdirSync(shortcutDirectory, { recursive: true });
 const shortcutTemplate = fs.readFileSync(path.join(root, 'android-app/app/src/main/shortcuts.xml'), 'utf8');
 fs.writeFileSync(path.join(shortcutDirectory, 'shortcuts.xml'), shortcutTemplate.replaceAll('@@APPLICATION_ID@@', config.applicationId));
-console.log(`Prepared ${config.appName} using the existing PWA icons and its own settings shortcuts.`);
+console.log(`Prepared ${config.appName} using the existing PWA icons and its own launcher shortcuts.`);

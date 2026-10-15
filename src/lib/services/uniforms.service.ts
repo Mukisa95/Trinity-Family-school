@@ -4,9 +4,7 @@ import {
   getDocsFromServer,
   getDocsFromCache,
   getDoc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
+  writeBatch,
   query, 
   orderBy,
   where,
@@ -16,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { UniformItem, CreateUniformData, UpdateUniformData, UniformGender, UniformSection } from '@/types';
+import { bumpCatalogueRevisionInBatch } from './dashboard-cache-revisions.service';
 
 const COLLECTION_NAME = 'uniforms';
 
@@ -35,13 +34,13 @@ async function getUniformQuerySnapshot(uniformQuery: Query<DocumentData>) {
 }
 
 export class UniformsService {
-  static async getAllUniforms(): Promise<UniformItem[]> {
+  static async getAllUniforms(serverOnly = false): Promise<UniformItem[]> {
     try {
       const q = query(
         collection(db, COLLECTION_NAME), 
         orderBy('name', 'asc')
       );
-      const querySnapshot = await getUniformQuerySnapshot(q);
+      const querySnapshot = serverOnly === true ? await getDocsFromServer(q) : await getUniformQuerySnapshot(q);
       
       const uniforms = querySnapshot.docs.map(doc => ({
         id: doc.id,
@@ -177,7 +176,11 @@ export class UniformsService {
       // Clean undefined values before sending to Firebase
       const cleanedData = this.cleanUndefinedValues(newUniform);
       
-      const docRef = await addDoc(collection(db, COLLECTION_NAME), cleanedData);
+      const docRef = doc(collection(db, COLLECTION_NAME));
+      const batch = writeBatch(db);
+      batch.set(docRef, cleanedData);
+      bumpCatalogueRevisionInBatch(batch, 'uniforms');
+      await batch.commit();
       return docRef.id;
     } catch (error) {
       console.error('Error creating uniform:', error);
@@ -196,7 +199,10 @@ export class UniformsService {
       // Clean undefined values before sending to Firebase
       const cleanedData = this.cleanUndefinedValues(updateData);
       
-      await updateDoc(docRef, cleanedData);
+      const batch = writeBatch(db);
+      batch.update(docRef, cleanedData);
+      bumpCatalogueRevisionInBatch(batch, 'uniforms');
+      await batch.commit();
     } catch (error) {
       console.error('Error updating uniform:', error);
       throw error;
@@ -206,7 +212,10 @@ export class UniformsService {
   static async deleteUniform(id: string): Promise<void> {
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
-      await deleteDoc(docRef);
+      const batch = writeBatch(db);
+      batch.delete(docRef);
+      bumpCatalogueRevisionInBatch(batch, 'uniforms');
+      await batch.commit();
     } catch (error) {
       console.error('Error deleting uniform:', error);
       throw error;
@@ -216,10 +225,13 @@ export class UniformsService {
   static async toggleUniformStatus(id: string, isActive: boolean): Promise<void> {
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
-      await updateDoc(docRef, {
+      const batch = writeBatch(db);
+      batch.update(docRef, {
         isActive,
         updatedAt: Timestamp.now()
       });
+      bumpCatalogueRevisionInBatch(batch, 'uniforms');
+      await batch.commit();
     } catch (error) {
       console.error('Error toggling uniform status:', error);
       throw error;

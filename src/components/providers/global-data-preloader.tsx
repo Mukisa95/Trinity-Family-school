@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from 'react';
+import { registerWorkspaceRecovery, reportWorkspaceTask, workspaceSetupScope, type SetupTaskState } from '@/lib/startup/workspace-setup';
+import { withWorkspaceIdentity } from '@/lib/startup/workspace-auth';
+import { clearSavedWorkspaceAccess, getSavedWorkspaceAccessStatus, hasSavedWorkspaceAccess, workspaceCacheAccessScope } from '@/lib/startup/workspace-cache-access';
+import { measureWorkspaceStep } from '@/lib/startup/workspace-timing';
 import { useQueryClient } from '@tanstack/react-query';
 import { collection, query as firestoreQuery, onSnapshot, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -8,7 +12,7 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { liteWrite, LITE_KEYS } from '@/lib/cache/lite-cache';
 import {
   persistentCollectionCacheKey,
-  readPersistentCollection,
+  readPersistentCollectionWithMetadata,
   writePersistentCollection,
 } from '@/lib/cache/persistent-collection-cache';
 import { getPupilCacheScope, readPupilCache } from '@/lib/cache/pupil-cache';
@@ -24,7 +28,8 @@ import { PupilsService } from '@/lib/services/pupils.service';
 import { clearPupilSessionQueries, isParentPupilSnapshotOwnedByAccount } from '@/lib/cache/pupil-session-cache';
 import { FeesService } from '@/lib/services/fees.service';
 import { FEES_QUERY_KEYS } from '@/lib/hooks/use-fees';
-import { UniformsService } from '@/lib/services/uniforms.service';
+import { restoreCatalogue } from '@/lib/cache/school-catalogue-cache';
+import { ensureSchoolCatalogue, subscribeSchoolCatalogue } from '@/lib/cache/school-catalogue-queries';
 
 /**
  * 🚀 ROLE-AWARE DATA PRELOADER (OPTIMIZED FOR QUOTA)
@@ -52,6 +57,7 @@ export function GlobalDataPreloader() {
   useExamCacheBootstrap();
   const userId = user?.id;
   const userRole = user?.role;
+  const savedWorkspaceScope = user ? workspaceCacheAccessScope(user) : '';
   const lastPupilIdentity = useRef<string | null>(null);
 
   useEffect(() => {
@@ -65,10 +71,16 @@ export function GlobalDataPreloader() {
 
     // Preserve this same account's offline hydration on a cold PWA launch,
     // but never carry an earlier signed-in identity into a different account.
-    const pupilIdentity = `${userRole}:${userId}`;
+    const pupilIdentity = savedWorkspaceScope;
     if (lastPupilIdentity.current && lastPupilIdentity.current !== pupilIdentity) {
       clearPupilSessionQueries(queryClient);
       PupilsService.clearSharedPupils();
+    }
+    if (lastPupilIdentity.current !== pupilIdentity) {
+      const existing = queryClient.getQueryData<any[]>(['pupils', 'list']);
+      const hydration = queryClient.getQueryData<string>(['pupils', 'hydration']);
+      queryClient.setQueryData(['pupils', 'hydration'],
+        existing?.length || (existing && ['saved', 'live'].includes(hydration || '')) ? 'saved' : 'loading');
     }
     lastPupilIdentity.current = pupilIdentity;
     if (userRole === 'Parent') {
@@ -96,6 +108,49 @@ export function GlobalDataPreloader() {
     let pupilCacheWriteTimer: ReturnType<typeof setTimeout> | undefined;
     let pupilCacheIdleHandle: number | undefined;
     let disposed = false;
+    let pupilLoadFailed = false;
+    let pupilsUnsubscribe: (() => void) | undefined;
+    let pupilGeneration = 0;
+    let pupilDataFromServer = false;
+    let normalizedPupilsRestored = false;
+    let pupilLocalAccessRevoked = false;
+    let pupilLiveReadersReady = false;
+    const authorizationScope = savedWorkspaceScope;
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
+    const persistentCacheKey = persistentCollectionCacheKey(
+      projectId, 'pupils', userRole === 'Parent' ? `parent:${userId}:account-scope` : `user:${userId}`,
+    );
+    let syncParentPupilRecords: ((ids: string[]) => void) | undefined;
+    const setupScope = workspaceSetupScope(userId, userRole);
+    const report = (task: string, state: SetupTaskState) => {
+      if (!disposed) {
+        reportWorkspaceTask(queryClient, setupScope, task, state);
+        if (task === 'pupils' && state === 'error' && queryClient.getQueryData(['pupils', 'hydration']) === 'loading') {
+          queryClient.setQueryData(['pupils', 'hydration'], 'error');
+        } else if (task === 'pupils' && state === 'loading' && queryClient.getQueryData(['pupils', 'hydration']) === 'error') {
+          queryClient.setQueryData(['pupils', 'hydration'], 'loading');
+        }
+      }
+    };
+    ['pupils', 'fees', ...(userRole === 'Parent' ? ['payments'] : ['requirements', 'uniforms', 'excludedDays'])].forEach(task => report(task, 'loading'));
+
+    // Small saved catalogues restore independently of live identity/network.
+    const restoreCatalogues = () => {
+      if (userRole !== 'Parent') {
+        for (const name of ['requirements', 'uniforms', 'excludedDays'] as const) {
+          void restoreCatalogue(queryClient, name, user!);
+        }
+      }
+    };
+    restoreCatalogues();
+    window.addEventListener('trinity-workspace-cache-access', restoreCatalogues);
+    unsubscribers.push(() => window.removeEventListener('trinity-workspace-cache-access', restoreCatalogues));
+    const watchedCatalogues = new Set<string>();
+    const watchCatalogue = (name: 'requirements' | 'uniforms' | 'excludedDays') => {
+      if (watchedCatalogues.has(name)) return;
+      watchedCatalogues.add(name);
+      unsubscribers.push(subscribeSchoolCatalogue(queryClient, name, user!));
+    };
 
     // ═══════════════════════════════════════════════════════════
     // REAL-TIME LISTENERS (onSnapshot) — Data that needs live sync
@@ -220,9 +275,90 @@ export function GlobalDataPreloader() {
     // Firestore emits the listener's local IndexedDB snapshot first and then
     // reconciles it with the server. Cached data must never wait behind a count
     // request or a duplicate getDocs() call.
+    // Local viewing and live synchronization have separate gates. The receipt
+    // is account/permission scoped and exists only after prior signed validation.
+    // Legacy devices without one wait once for Firebase, then acquire it through
+    // AuthContext. Reading IndexedDB itself never waits for authentication.
+    const restoreSavedPupils = () => {
+      const startedAt = performance.now();
+      const reported = new Set<string>();
+      const diagnose = (reason: string) => {
+        if (!disposed && !reported.has(reason)) {
+          reported.add(reason); measureWorkspaceStep(`pupils-cache-access:${reason}`, performance.now());
+        }
+      };
+      diagnose(getSavedWorkspaceAccessStatus(user!));
+      const candidates: { pupils: any[]; source: string; complete?: boolean }[] = [];
+      const publishSaved = (pupils: any[] | null | undefined, source: string, complete = false) => {
+        diagnose(getSavedWorkspaceAccessStatus(user!));
+        if (
+          disposed || pupilLocalAccessRevoked || pupilDataFromServer || normalizedPupilsRestored
+          || !Array.isArray(pupils) || (pupils.length === 0 && !complete)
+          || (auth.currentUser && (auth.currentUser.uid !== userId || auth.currentUser.isAnonymous))
+          || !hasSavedWorkspaceAccess(user!)
+          || (userRole === 'Parent' && !isParentPupilSnapshotOwnedByAccount(userId, pupils))
+        ) return;
+        const existing = queryClient.getQueryData<any[]>(['pupils', 'list']);
+        if (existing?.length) return;
+        normalizedPupilsRestored = true;
+        diagnose(auth.currentUser?.uid === userId ? 'published-with-identity' : 'published-before-identity');
+        queryClient.setQueryData(['pupils', 'list'], pupils);
+        queryClient.setQueryData(['pupils', 'hydration'], 'saved');
+        PupilsService.hydrateSharedPupils(pupils);
+        // Parent payments can use these IDs as soon as signed restoration has
+        // finished, without waiting for a pupil server round trip.
+        if (pupilLiveReadersReady) syncParentPupilRecords?.(pupils.map(pupil => pupil.id));
+        if (userRole === 'Parent') queryClient.setQueryData(['parentPupilScope', userId], 'ready');
+        report('pupils', 'ready');
+        performance.mark?.('trinity:pupils-fast-cache-ready');
+        measureWorkspaceStep('pupils-cache-published', 0);
+        console.log(`FAST CACHE: Restored ${pupils.length} pupils from ${source} in ${Math.round(performance.now() - startedAt)}ms`);
+      };
+      const retrySavedPublication = () => {
+        candidates.forEach(candidate => publishSaved(candidate.pupils, candidate.source, candidate.complete));
+        if (normalizedPupilsRestored || pupilDataFromServer || disposed) candidates.length = 0;
+      };
+      window.addEventListener('trinity-workspace-cache-access', retrySavedPublication);
+      unsubscribers.push(() => window.removeEventListener('trinity-workspace-cache-access', retrySavedPublication));
+      const primaryRead = readPersistentCollectionWithMetadata<any[]>(persistentCacheKey);
+      void primaryRead.then(snapshot => {
+        measureWorkspaceStep('pupils-cache-read', startedAt);
+        if (!snapshot) { diagnose('missing-snapshot'); return; }
+        if (snapshot.authorizationScope && snapshot.authorizationScope !== authorizationScope) { diagnose('snapshot-scope-changed'); return; }
+        if (Array.isArray(snapshot.data) && snapshot.data.length === 0 && !snapshot.complete) diagnose('incomplete-empty-snapshot');
+        candidates.push({ pupils: snapshot.data, source: 'saved snapshot', complete: snapshot.complete });
+        retrySavedPublication();
+      }).catch(() => undefined);
+      const revisionScope = getPupilCacheScope(userId, userRole);
+      if (revisionScope) void primaryRead.then(async primary => {
+        // Never use a legacy copy to bypass a newer snapshot's permission scope.
+        // Avoid reading/cloning/sorting a second large list when the normalized
+        // snapshot already exists.
+        if (primary || disposed || pupilDataFromServer) return;
+        const snapshot = await readPupilCache(revisionScope);
+        if (!snapshot) return;
+        measureWorkspaceStep('pupils-cache-read', startedAt);
+        candidates.push({ pupils: snapshot.data, source: 'revision cache' });
+        retrySavedPublication();
+      }).catch(() => undefined);
+    };
+    restoreSavedPupils();
+
     const setupPupilsListener = async (
       onParentPupilIds?: (pupilIds: string[]) => void,
     ) => {
+      await withWorkspaceIdentity(userId, async () => undefined);
+      if (disposed) return;
+      pupilLiveReadersReady = true;
+      const persistedPupils = queryClient.getQueryData<any[]>(['pupils', 'list']);
+      if (persistedPupils?.length && userRole === 'Parent'
+        && isParentPupilSnapshotOwnedByAccount(userId, persistedPupils)) {
+        onParentPupilIds?.(persistedPupils.map(pupil => pupil.id));
+      }
+      pupilsUnsubscribe?.();
+      const listenerGeneration = ++pupilGeneration;
+      const listenerDisposed = () => disposed || listenerGeneration !== pupilGeneration;
+      report('pupils', 'loading');
       const normalizePupilDoc = (doc: any) => {
         const data = doc.data();
         return {
@@ -245,23 +381,13 @@ export function GlobalDataPreloader() {
             where('parentAccountActive', '==', true),
           )
         : firestoreQuery(collection(db, 'pupils'));
-      const projectId =
-        process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
-      const cacheScope = userRole === 'Parent'
-        ? `parent:${userId}:account-scope`
-        : `user:${userId}`;
-      const persistentCacheKey = persistentCollectionCacheKey(
-        projectId,
-        'pupils',
-        cacheScope,
-      );
 
       if (userRole === 'Parent') {
         console.log(`🎯 PARENT MODE: Loading pupils owned by account ${userId}`);
       }
 
       const schedulePersistentPupilCacheWrite = () => {
-        if (disposed) return;
+        if (listenerDisposed()) return;
         if (pupilCacheWriteTimer) clearTimeout(pupilCacheWriteTimer);
         if (
           pupilCacheIdleHandle !== undefined &&
@@ -274,10 +400,11 @@ export function GlobalDataPreloader() {
         pupilCacheWriteTimer = setTimeout(() => {
           const persist = () => {
             pupilCacheIdleHandle = undefined;
-            if (disposed) return;
+            if (listenerDisposed()) return;
             const pupils = queryClient.getQueryData<any[]>(['pupils', 'list']);
             if (!pupils) return;
-            void writePersistentCollection(persistentCacheKey, pupils);
+            // Optional durable caching must not block already available data.
+            void writePersistentCollection(persistentCacheKey, pupils, authorizationScope, serverSnapshotSeen).catch(error => console.warn('Pupil cache write failed:', error));
           };
 
           if (typeof window.requestIdleCallback === 'function') {
@@ -292,21 +419,26 @@ export function GlobalDataPreloader() {
       let serverSnapshotSeen = false;
       let emptyScopeRecoveryStarted = false;
       const scopeStatus = (status: 'loading' | 'repairing' | 'ready' | 'error') => {
-        if (userRole === 'Parent' && !disposed) {
+        if (userRole === 'Parent' && !listenerDisposed()) {
           queryClient.setQueryData(['parentPupilScope', userId], status);
         }
       };
       const publishPupils = (pupils: any[], source: 'cache' | 'server') => {
-        if (disposed) return;
+        if (listenerDisposed()) return;
+        if (source === 'server') pupilDataFromServer = true;
+        pupilLoadFailed = false;
         queryClient.setQueryData(['pupils', 'list'], pupils);
+        queryClient.setQueryData(['pupils', 'hydration'], source === 'server' ? 'live' : 'saved');
         PupilsService.hydrateSharedPupils(pupils);
         onParentPupilIds?.(pupils.map(pupil => pupil.id));
         scopeStatus('ready');
+        report('pupils', 'ready');
         schedulePersistentPupilCacheWrite();
         performance.mark?.(`trinity:pupils-${source}-ready`);
       };
       const recoverEmptyParentScope = async () => {
-        if (emptyScopeRecoveryStarted || disposed) return;
+        if (emptyScopeRecoveryStarted || listenerDisposed()) return;
+        pupilDataFromServer = true;
         emptyScopeRecoveryStarted = true;
         // An authoritative empty result supersedes stale local family data.
         clearPupilSessionQueries(queryClient);
@@ -323,80 +455,28 @@ export function GlobalDataPreloader() {
           });
           if (!response.ok) throw new Error(`Account-link recovery failed (${response.status}).`);
           const result = await response.json() as { linked?: number };
-          if (disposed) return;
+          if (listenerDisposed()) return;
           if ((result.linked || 0) > 0) return; // The existing listener receives the repaired pupils.
           publishPupils([], 'server');
         } catch (error) {
-          if (disposed) return;
+          if (listenerDisposed()) return;
           console.error('❌ PRELOADER: Parent account-link recovery failed:', error);
           scopeStatus('error');
+          pupilLoadFailed = true;
+          report('pupils', 'error');
         }
       };
-
-      // Restore the complete normalized list from one asynchronous IndexedDB
-      // value while the Firestore listener starts below. Neither source blocks
-      // the other, and a server result always wins if it arrives first.
-      const fastCacheStartedAt = performance.now();
-      void readPersistentCollection<any[]>(persistentCacheKey).then(persistedPupils => {
-        const existingPupils = queryClient.getQueryData<any[]>(['pupils', 'list']);
-        if (
-          disposed ||
-          serverSnapshotSeen ||
-          existingPupils?.length ||
-          !persistedPupils ||
-          !Array.isArray(persistedPupils) ||
-          persistedPupils.length === 0 ||
-          (userRole === 'Parent' && !isParentPupilSnapshotOwnedByAccount(userId, persistedPupils))
-        ) {
-          return;
-        }
-
-        queryClient.setQueryData(['pupils', 'list'], persistedPupils);
-        PupilsService.hydrateSharedPupils(persistedPupils);
-        onParentPupilIds?.(persistedPupils.map(pupil => pupil.id));
-        scopeStatus('ready');
-        performance.mark?.('trinity:pupils-fast-cache-ready');
-        console.log(
-          `FAST CACHE: Restored ${persistedPupils.length} pupils in ${Math.round(performance.now() - fastCacheStartedAt)}ms`,
-        );
-      });
-
-      // The short-lived revision-cache rollout used a different, scoped key.
-      // Read it too so devices that already hold that complete snapshot recover
-      // immediately rather than waiting for a network response to seed the
-      // restored listener cache again.
-      const revisionCacheScope = getPupilCacheScope(userId, userRole);
-      if (revisionCacheScope) {
-        void readPupilCache(revisionCacheScope).then(snapshot => {
-          const persistedPupils = snapshot?.data;
-          const existingPupils = queryClient.getQueryData<any[]>(['pupils', 'list']);
-          if (
-            disposed ||
-            serverSnapshotSeen ||
-            existingPupils?.length ||
-            !persistedPupils ||
-            persistedPupils.length === 0 ||
-            (userRole === 'Parent' && !isParentPupilSnapshotOwnedByAccount(userId, persistedPupils))
-          ) {
-            return;
-          }
-
-          queryClient.setQueryData(['pupils', 'list'], persistedPupils);
-          PupilsService.hydrateSharedPupils(persistedPupils);
-          onParentPupilIds?.(persistedPupils.map(pupil => pupil.id));
-          performance.mark?.('trinity:pupils-revision-cache-ready');
-          console.log(
-            `FAST CACHE: Restored ${persistedPupils.length} pupils from the shared revision cache in ${Math.round(performance.now() - fastCacheStartedAt)}ms`,
-          );
-        });
-      }
 
       const unsubscribe = onSnapshot(
         baseQuery,
         { includeMetadataChanges: true },
         (snapshot) => {
-          if (disposed) return;
+          if (listenerDisposed()) return;
           const source = snapshot.metadata.fromCache ? 'cache' : 'server';
+          // Firestore's first local result can be partial. Keep the complete
+          // normalized saved list until the server has reconciled membership.
+          if (snapshot.metadata.fromCache && normalizedPupilsRestored && !serverSnapshotSeen) return;
+          if (!snapshot.metadata.fromCache) pupilDataFromServer = true;
 
           if (!initialSnapshotPublished) {
             initialSnapshotPublished = true;
@@ -458,6 +538,7 @@ export function GlobalDataPreloader() {
           const currentPupils = queryClient.getQueryData<any[]>(['pupils', 'list']);
           if (currentPupils) PupilsService.hydrateSharedPupils(currentPupils);
           scopeStatus('ready');
+          if (!pupilLoadFailed) report('pupils', 'ready');
           schedulePersistentPupilCacheWrite();
 
           if (!snapshot.metadata.fromCache) {
@@ -466,18 +547,22 @@ export function GlobalDataPreloader() {
           console.log(`PRELOADER: Applied ${changes.length} live pupil change(s) from ${source}`);
         },
         (error) => {
-          if (disposed) return;
+          if (listenerDisposed()) return;
           console.error('❌ PRELOADER: Pupils listener error:', error.message);
-          if (userRole === 'Parent') {
+          if (['permission-denied', 'unauthenticated'].includes(error.code)) {
+            pupilLocalAccessRevoked = true;
+            clearSavedWorkspaceAccess();
             clearPupilSessionQueries(queryClient);
+            queryClient.setQueryData(['pupils', 'hydration'], 'denied');
             PupilsService.clearSharedPupils();
             onParentPupilIds?.([]);
           }
           scopeStatus('error');
+          pupilLoadFailed = true;
+          report('pupils', 'error');
         }
       );
-      unsubscribers.push(unsubscribe);
-      unsubscribers.push(() => PupilsService.clearSharedPupils());
+      pupilsUnsubscribe = unsubscribe;
     };
 
 
@@ -488,7 +573,10 @@ export function GlobalDataPreloader() {
 
     // 6. 💰 FEE STRUCTURES - One-time read (rarely changes)
     const fetchFees = async () => {
+      report('fees', 'loading');
       try {
+        await withWorkspaceIdentity(userId, async () => undefined);
+        if (disposed) return;
         // Share React Query's in-flight request with every consumer, including
         // the fees collection page. A cold navigation cannot start a second
         // collection read while the preloader is still running.
@@ -497,39 +585,60 @@ export function GlobalDataPreloader() {
           queryFn: FeesService.getAllFeeStructures,
           staleTime: Infinity,
         });
+        report('fees', 'ready');
       } catch (error: any) {
+        report('fees', 'error');
         console.error('❌ PRELOADER: Fees fetch error:', error.message);
       }
     };
 
     // 7. 📋 REQUIREMENTS - One-time read (rarely changes)
     const fetchRequirements = async () => {
+      report('requirements', 'loading');
       try {
-        const cached = queryClient.getQueryData(['requirements']);
-        if (cached && (cached as any[]).length > 0) return;
-        const snapshot = await getDocs(firestoreQuery(collection(db, 'requirements')));
-        const requirements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        await withWorkspaceIdentity(userId, async () => undefined);
+        if (disposed) return;
+        watchCatalogue('requirements');
+        const requirements = await ensureSchoolCatalogue(queryClient, 'requirements', user!, () => !disposed);
+        if (disposed) return;
+        report('requirements', 'ready');
         if (requirements.length > 0) {
-          queryClient.setQueryData(['requirements'], requirements);
           console.log(`⚡ PRELOADER: Loaded ${requirements.length} requirements`);
         }
       } catch (error: any) {
+        report('requirements', 'error');
         console.error('❌ PRELOADER: Requirements fetch error:', error.message);
       }
     };
 
     // 8. 👔 UNIFORMS - One-time read (rarely changes)
     const fetchUniforms = async () => {
+      report('uniforms', 'loading');
       try {
-        await queryClient.ensureQueryData({
-          queryKey: ['uniforms'],
-          queryFn: UniformsService.getAllUniforms,
-          staleTime: Infinity,
-        });
+        await withWorkspaceIdentity(userId, async () => undefined);
+        if (disposed) return;
+        watchCatalogue('uniforms');
+        await ensureSchoolCatalogue(queryClient, 'uniforms', user!, () => !disposed);
+        report('uniforms', 'ready');
       } catch (error: any) {
+        report('uniforms', 'error');
         console.error('❌ PRELOADER: Uniforms fetch error:', error.message);
       }
     };
+
+    const fetchExcludedDays = async () => {
+      report('excludedDays', 'loading');
+      try {
+        await withWorkspaceIdentity(userId, async () => undefined);
+        if (disposed) return;
+        watchCatalogue('excludedDays');
+        await ensureSchoolCatalogue(queryClient, 'excludedDays', user!, () => !disposed);
+        report('excludedDays', 'ready');
+      } catch { report('excludedDays', 'error'); }
+    };
+
+    // The shared catalogue owners recover failures and reconcile revision
+    // changes on reconnect; healthy unchanged lists are never invalidated here.
 
     // 10. 👤 USERS - One-time read (rarely changes)
     /*
@@ -637,14 +746,22 @@ export function GlobalDataPreloader() {
     const setupParentRecordsListeners = () => {
       if (!userId || userRole !== 'Parent') return;
       const childUnsubscribers = new Map<string, Array<() => void>>();
+      const paymentsReady = new Set<string>();
+      const paymentsFailed = new Set<string>();
+      let currentPupilIds = new Set<string>();
+      const reportPayments = () => report('payments', [...currentPupilIds].some(id => paymentsFailed.has(id)) ? 'error'
+        : [...currentPupilIds].every(id => paymentsReady.has(id)) ? 'ready' : 'loading');
 
       const syncParentPupilRecords = (parentPupilIds: string[]) => {
           const pupilIds = new Set(parentPupilIds);
+          currentPupilIds = pupilIds;
 
           childUnsubscribers.forEach((listeners, pupilId) => {
             if (!pupilIds.has(pupilId)) {
               listeners.forEach(unsubscribe => unsubscribe());
               childUnsubscribers.delete(pupilId);
+              paymentsReady.delete(pupilId);
+              paymentsFailed.delete(pupilId);
             }
           });
 
@@ -658,15 +775,23 @@ export function GlobalDataPreloader() {
 
             const paymentsUnsubscribe = onSnapshot(
               paymentsQuery,
+              { includeMetadataChanges: true },
               (snapshot) => {
                 const payments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (disposed) return;
                 queryClient.setQueryData(['payments', 'pupil', pupilId], payments);
+                if (!snapshot.metadata.fromCache || payments.length > 0) {
+                  paymentsReady.add(pupilId);
+                  paymentsFailed.delete(pupilId);
+                  reportPayments();
+                }
                 console.log(`⚡ PRELOADER: Loaded ${payments.length} payment records for pupil ${pupilId}`);
               },
-              (error) => console.error('❌ PRELOADER: Payments error:', error.message)
+              (error) => { if (disposed) return; paymentsFailed.add(pupilId); reportPayments(); console.error('❌ PRELOADER: Payments error:', error.message); }
             );
             childUnsubscribers.set(pupilId, [paymentsUnsubscribe]);
           });
+          reportPayments();
       };
 
       unsubscribers.push(() => {
@@ -674,6 +799,17 @@ export function GlobalDataPreloader() {
         childUnsubscribers.clear();
       });
 
+      unsubscribers.push(registerWorkspaceRecovery(queryClient, setupScope, 'payments', async () => {
+        await withWorkspaceIdentity(userId, async () => undefined);
+        if (disposed) return;
+        paymentsFailed.forEach(id => {
+          childUnsubscribers.get(id)?.forEach(unsubscribe => unsubscribe());
+          childUnsubscribers.delete(id);
+          paymentsReady.delete(id);
+        });
+        paymentsFailed.clear();
+        syncParentPupilRecords([...currentPupilIds]);
+      }));
       return syncParentPupilRecords;
     };
 
@@ -681,33 +817,53 @@ export function GlobalDataPreloader() {
     // START LOADING — Role-based
     // ═══════════════════════════════════════════════════════════
 
-    // Fire all data setup calls in PARALLEL — do not await any single one
-    // before starting the others. The parent listener is async only so setup
-    // failures can be reported consistently; the listener itself starts at once.
+    if (userRole === 'Parent') syncParentPupilRecords = setupParentRecordsListeners();
+    unsubscribers.push(registerWorkspaceRecovery(queryClient, setupScope, 'pupils', () =>
+      setupPupilsListener(syncParentPupilRecords).catch(error => {
+        report('pupils', 'error'); console.error('Pupil recovery failed:', error);
+      })));
+    unsubscribers.push(registerWorkspaceRecovery(queryClient, setupScope, 'fees', fetchFees));
+    if (userRole !== 'Parent') {
+      unsubscribers.push(registerWorkspaceRecovery(queryClient, setupScope, 'requirements', fetchRequirements));
+      unsubscribers.push(registerWorkspaceRecovery(queryClient, setupScope, 'uniforms', fetchUniforms));
+      unsubscribers.push(registerWorkspaceRecovery(queryClient, setupScope, 'excludedDays', fetchExcludedDays));
+    }
+
+    // Saved pupils are already restoring above. Only protected live readers
+    // wait for Firebase; its Promise does not block rendering or local viewing.
     (async () => {
       try {
+        await withWorkspaceIdentity(userId, async () => undefined);
+        if (disposed) return;
         // Dashboard-critical data starts first. Secondary module data begins
         // just afterward so it remains warm for navigation without competing
         // with the first visible dashboard request burst.
         if (userRole === 'Parent') {
           console.log('🎯 PARENT MODE: Loading minimal essential data + pupil-specific records...');
           // Fire all in parallel — pupils load concurrently with classes and fees
-          const syncParentPupilRecords = setupParentRecordsListeners();
-          setupPupilsListener(syncParentPupilRecords).catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
+          setupPupilsListener(syncParentPupilRecords).catch(e => { report('pupils', 'error'); console.error('❌ PRELOADER: Pupils load error:', e); });
           fetchFees();
           console.log('✅ PARENT PRELOADER: Essential data + payment listener active');
         } else {
           console.log('👥 ADMIN/STAFF MODE: Loading dashboard data first...');
-          setupPupilsListener().catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
+          setupPupilsListener().catch(e => { report('pupils', 'error'); console.error('❌ PRELOADER: Pupils load error:', e); });
           deferredTimer = setTimeout(() => {
-            void fetchFees();
-            void fetchRequirements();
-            void fetchUniforms();
+            // Two background owners at most. A page's own query still starts
+            // immediately and shares the same in-flight request with its owner.
+            const pathname = window.location.pathname;
+            const warmups = pathname.includes('uniform') ? [fetchUniforms, fetchFees, fetchRequirements, fetchExcludedDays]
+              : pathname.includes('requirement') ? [fetchRequirements, fetchFees, fetchUniforms, fetchExcludedDays]
+                : [fetchFees, fetchExcludedDays, fetchRequirements, fetchUniforms];
+            const run = async () => {
+              while (!disposed && warmups.length) await warmups.shift()!();
+            };
+            void run(); void run();
           }, 1200);
 
           console.log('✅ GLOBAL PRELOADER: Dashboard listeners active; remaining data queued');
         }
       } catch (error) {
+        ['pupils', 'fees', ...(userRole === 'Parent' ? ['payments'] : ['requirements', 'uniforms', 'excludedDays'])].forEach(task => report(task, 'error'));
         console.error('❌ GLOBAL PRELOADER: Setup failed:', error);
       }
     })();
@@ -716,6 +872,8 @@ export function GlobalDataPreloader() {
     return () => {
       console.log('🔌 GLOBAL PRELOADER: Cleaning up all listeners');
       disposed = true;
+      pupilsUnsubscribe?.();
+      PupilsService.clearSharedPupils();
       if (deferredTimer) clearTimeout(deferredTimer);
       if (pupilCacheWriteTimer) clearTimeout(pupilCacheWriteTimer);
       if (
@@ -729,7 +887,7 @@ export function GlobalDataPreloader() {
   // Re-run when auth state changes so listeners are always tied to the current
   // user. The cleanup (unsubscribers.forEach) tears down old listeners before
   // new ones are created, preventing duplicate subscriptions.
-  }, [queryClient, isAuthenticated, userId, userRole]);
+  }, [queryClient, isAuthenticated, userId, userRole, savedWorkspaceScope]);
 
 
   return null; // This component doesn't render anything

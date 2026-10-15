@@ -33,7 +33,7 @@ function writeRevision(
 
 /** Add a timetable revision bump to the same batch as its source mutation. */
 export function bumpTimetableRevisionInBatch(
-  batch: WriteBatch,
+  batch: WriteBatch | Transaction,
   yearId: string,
   termId: string,
 ) {
@@ -44,7 +44,7 @@ export function bumpTimetableRevisionInBatch(
 }
 
 /** Add a class-definition revision bump to the same batch as its mutation. */
-export function bumpClassesRevisionInBatch(batch: WriteBatch) {
+export function bumpClassesRevisionInBatch(batch: WriteBatch | Transaction) {
   writeRevision(batch, 'reference', { classes: increment(1) });
 }
 
@@ -71,6 +71,11 @@ export function bumpHousesRevisionInBatch(batch: WriteBatch) {
 /** Add an access-level revision bump to the same batch as its mutation. */
 export function bumpAccessLevelsRevisionInBatch(batch: WriteBatch) {
   writeRevision(batch, 'reference', { accessLevels: increment(1) });
+}
+
+/** Catalogue content and its invalidation token always commit atomically. */
+export function bumpCatalogueRevisionInBatch(batch: WriteBatch, name: 'requirements' | 'uniforms' | 'excludedDays') {
+  writeRevision(batch, 'reference', { [name]: increment(1) });
 }
 
 /**

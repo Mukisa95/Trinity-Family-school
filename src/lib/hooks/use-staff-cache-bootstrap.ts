@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { registerWorkspaceRecovery, reportWorkspaceTask } from '@/lib/startup/workspace-setup';
+import { withWorkspaceIdentity } from '@/lib/startup/workspace-auth';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { StaffService } from '@/lib/services/staff.service';
 import { useDashboardDataRevisions } from './use-school-settings';
@@ -31,6 +33,14 @@ export function useStaffCacheBootstrap() {
   const scope = isAuthenticated ? getStaffCacheScope(user?.id, user?.role) : '';
   const revision = revisionsQuery.data?.staff ?? 0;
   const revisionsReady = revisionsQuery.data !== undefined;
+
+  useEffect(() => {
+    if (!scope) return;
+    return registerWorkspaceRecovery(queryClient, scope, 'staff', () => {
+      retryCount.current = 0;
+      setRetryEpoch(epoch => epoch + 1);
+    });
+  }, [queryClient, scope]);
 
   useEffect(() => {
     if (!scope) {
@@ -63,7 +73,11 @@ export function useStaffCacheBootstrap() {
 
     const needsColdFetch = persisted === null && inMemory === undefined;
     const needsRevisionRefresh = revisionsReady && persisted?.revision !== revision;
-    if (!needsColdFetch && !needsRevisionRefresh) return;
+    if (!needsColdFetch && !needsRevisionRefresh) {
+      reportWorkspaceTask(queryClient, scope, 'staff', 'ready');
+      return;
+    }
+    reportWorkspaceTask(queryClient, scope, 'staff', 'loading');
 
     let disposed = false;
     let serverSucceeded = false;
@@ -86,7 +100,7 @@ export function useStaffCacheBootstrap() {
       });
     }
 
-    void StaffService.refreshSharedStaff(() => StaffService.getAllForCache()).then(staff => {
+    void withWorkspaceIdentity(user?.id, () => StaffService.refreshSharedStaff(() => StaffService.getAllForCache())).then(staff => {
       if (disposed) return;
       serverSucceeded = true;
       retryCount.current = 0;
@@ -95,8 +109,10 @@ export function useStaffCacheBootstrap() {
       queryClient.setQueryData(queryKey, normalised);
       writeStaffCache(scope, targetRevision, normalised);
       performance.mark?.('trinity:staff-server-synced');
+      reportWorkspaceTask(queryClient, scope, 'staff', 'ready');
     }).catch(error => {
       console.error('Staff cache reconciliation failed:', error);
+      if (!disposed) reportWorkspaceTask(queryClient, scope, 'staff', 'error');
       if (!disposed && retryCount.current < 2) {
         retryCount.current += 1;
         retryTimer = setTimeout(() => setRetryEpoch(epoch => epoch + 1), 3000);

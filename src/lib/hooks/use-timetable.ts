@@ -573,6 +573,43 @@ export function useClearTimetableOptionalSubjects() {
     });
 }
 
+export function useSetTimetableClassStreamOrder() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ yearId, termId, timetableId, classId, streamIds }: {
+            yearId: string; termId: string; timetableId: string; classId: string; streamIds: string[];
+        }) => TimetableService.setClassStreamOrder(yearId, termId, timetableId, classId, streamIds),
+        onSuccess: (streamOrder, variables) => {
+            const applyOrder = (profile: TimetableProfile): TimetableProfile => ({
+                ...profile,
+                streamLayouts: {
+                    ...profile.streamLayouts,
+                    [variables.classId]: {
+                        ...(profile.streamLayouts?.[variables.classId] || { defaultMode: 'consolidated' }),
+                        streamOrder,
+                    },
+                },
+            });
+            queryClient.setQueriesData<TimetableProfile[]>(
+                { queryKey: timetableKeys.allProfiles(variables.yearId, variables.termId) },
+                profiles => profiles?.map(profile => profile.id === variables.timetableId ? applyOrder(profile) : profile),
+            );
+            queryClient.setQueriesData<TimetableProfile | null>(
+                { queryKey: timetableKeys.profile(variables.yearId, variables.termId, variables.timetableId) },
+                profile => profile ? applyOrder(profile) : profile,
+            );
+            // The atomic revision publishes the new profile to other clients.
+            // No entry caches are changed: ordering never changes a lesson.
+            queryClient.invalidateQueries({
+                queryKey: timetableKeys.allProfiles(variables.yearId, variables.termId), refetchType: 'none',
+            });
+            queryClient.invalidateQueries({
+                queryKey: timetableKeys.profile(variables.yearId, variables.termId, variables.timetableId), refetchType: 'none',
+            });
+        },
+    });
+}
+
 export function useSetTimetableClassStreamMode() {
     const queryClient = useQueryClient();
 

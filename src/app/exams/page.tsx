@@ -1,5 +1,6 @@
 "use client";
 
+import { getExamTeacherIds, getSubjectTeacherId } from '@/lib/utils/teaching-assignments';
 import * as React from "react";
 import ReactDOM from "react-dom";
 import { PlusCircle, Plus, MoreHorizontal, Edit, Trash2, BookOpen, CornerDownRight, Indent, FilePenLine, Eye, Calendar, Search, X, Filter, ChevronDown, ChevronUp, User, School, Type, CalendarIcon, InfoIcon, RefreshCw, GraduationCap, Users, Target, Clock, PlayCircle, CheckCircle, Camera, CalendarClock, Sparkles, Info, Loader2, Printer, Layers } from "lucide-react"; // Added more icons
@@ -66,7 +67,7 @@ import { ExamsService } from "@/lib/services/exams.service";
 import { ExamLeaseService } from "@/lib/services/exam-lease.service";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { getAssessmentModeForClass, isNurseryClass } from "@/lib/exam-assessment";
-import { getActiveClassStreams, getPupilClassDisplay } from "@/lib/utils/class-streams";
+import { getActiveClassStreams, getPupilClassDisplay, snapshotExamPupilStreamIdentity } from "@/lib/utils/class-streams";
 
 import { DEFAULT_GRADING_SCALE, EXAM_NATURES, OTHER_EXAM_TYPE_ID } from "@/lib/constants"; // Ensure OTHER_EXAM_TYPE_ID is exported
 import { format, parseISO, isValid, startOfDay, getYear as getYearFromDateFns, isWithinInterval } from "date-fns";
@@ -1281,18 +1282,21 @@ export default function ExamsPage() {
                 subjectId: sa.subjectId,
                 subjectName: subjectDetail?.name || 'N/A',
                 subjectCode: subjectDetail?.code || 'N/A',
-                teacherIds: sa.teacherIds || []
+                teacherId: getSubjectTeacherId(sa)
               };
             }) || [];
 
-            const pupilsInClassSnapshot = pupilsInClass.map(p => ({
-              pupilId: p.id,
-              name: formatPupilDisplayName(p),
-              admissionNumber: p.admissionNumber,
-              streamId: p.streamId,
-              streamName: p.streamName,
-              streamCode: p.streamCode,
-            }));
+            const pupilsInClassSnapshot = pupilsInClass.map(p => {
+              const streamSnapshot = snapshotExamPupilStreamIdentity(p, targetClass);
+              return {
+                pupilId: p.id,
+                name: formatPupilDisplayName(p),
+                admissionNumber: p.admissionNumber,
+                streamId: streamSnapshot.streamIdAtExam,
+                streamName: streamSnapshot.streamNameAtExam,
+                streamCode: streamSnapshot.streamCodeAtExam,
+              };
+            });
 
             classSnapshotData = {
               classId: targetClass.id,
@@ -1315,9 +1319,7 @@ export default function ExamsPage() {
               admissionNumber: p.admissionNumber,
               classNameAtExam: classDisplay.name || 'N/A',
               classCodeAtExam: classDisplay.code || undefined,
-              streamIdAtExam: p.streamId,
-              streamNameAtExam: p.streamName,
-              streamCodeAtExam: p.streamCode,
+              ...snapshotExamPupilStreamIdentity(p, targetClass),
               section: p.section,
               status: p.status,
               gender: p.gender,
@@ -1335,7 +1337,7 @@ export default function ExamsPage() {
               if (!subj) return null;
 
               // Handle both new array format and legacy string format for teacher ID
-              const defaultTeacherId = (sa as any).teacherIds?.[0] || (sa as any).teacherId || null;
+              const defaultTeacherId = getSubjectTeacherId(sa);
               // Apply any teacher override set via the Snapshot Preview modal
               const teacherId = snapshotTeacherOverrides[examData.classId]?.[subj.id] ?? defaultTeacherId;
 
@@ -1354,7 +1356,7 @@ export default function ExamsPage() {
                 const subj = subjects.find(s => s.id === subId);
                 if (!subj) return null;
                 const assignment = targetClass?.subjectAssignments?.find(sa => sa.subjectId === subId);
-                const defaultTeacherId = assignment ? (assignment.teacherIds?.[0] || (assignment as any).teacherId || null) : null;
+                const defaultTeacherId = getSubjectTeacherId(assignment);
                 // Apply any teacher override set via the Snapshot Preview modal
                 const teacherId = snapshotTeacherOverrides[examData.classId]?.[subId] ?? defaultTeacherId;
                 return {
@@ -4478,7 +4480,7 @@ export default function ExamsPage() {
                           {subjectList.map(sub => {
                             if (!sub) return null;
                             const assignment = currentClass?.subjectAssignments?.find(sa => sa.subjectId === sub.id);
-                            const defaultTeacherId = assignment?.teacherIds?.[0] || (assignment as any)?.teacherId || null;
+                            const defaultTeacherId = getSubjectTeacherId(assignment);
                             const override = snapshotTeacherOverrides[snapshotPreviewClassId!]?.[sub.id];
                             const effectiveTeacherId = override ?? defaultTeacherId;
                             const effectiveTeacher = allStaff.find(s => s.id === effectiveTeacherId);
@@ -4520,7 +4522,7 @@ export default function ExamsPage() {
                                         </SelectTrigger>
                                         <SelectContent position="popper" className="max-h-[200px] overflow-y-auto">
                                           <SelectItem value="__none__">&mdash; No teacher assigned &mdash;</SelectItem>
-                                          {allStaff.map(staff => (
+                                          {allStaff.filter(staff => getExamTeacherIds(currentClass?.subjectAssignments, effectiveTeacherId).includes(staff.id)).map(staff => (
                                             <SelectItem key={staff.id} value={staff.id}>
                                               {(staff as any).name || `${(staff as any).firstName || ''} ${(staff as any).lastName || ''}`.trim() || staff.id}
                                               {staff.id === defaultTeacherId ? ' (default)' : ''}

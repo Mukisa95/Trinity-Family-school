@@ -1,53 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSchoolCatalogue } from './use-school-catalogue';
+import { readUniformsCatalogue } from '@/lib/cache/school-catalogue-queries';
+import { filterSchoolCatalogue } from '@/lib/selectors/school-catalogue-selectors';
 import { UniformsService } from '../services/uniforms.service';
 import type { UniformItem, CreateUniformData, UpdateUniformData, UniformGender, UniformSection } from '@/types';
 
 const UNIFORMS_QUERY_KEY = 'uniforms';
 
 export function useUniforms() {
-  const queryClient = useQueryClient();
-  
-  // ⚡ Use preloaded data from GlobalDataPreloader
-  return useQuery({
-    queryKey: [UNIFORMS_QUERY_KEY],
-    // initialData below provides the preloaded snapshot. Invalidation must
-    // fetch current data rather than return the existing snapshot.
-    queryFn: UniformsService.getAllUniforms,
-    staleTime: Infinity,
-    gcTime: Infinity, // Keep in cache forever
-    // Keep the last list visible, but check the server whenever a screen opens.
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: 'always',
-    placeholderData: (previousData) => previousData,
-    initialData: () => {
-      const cached = queryClient.getQueryData([UNIFORMS_QUERY_KEY]);
-      return cached as Awaited<ReturnType<typeof UniformsService.getAllUniforms>> | undefined;
-    },
-  });
+  return useSchoolCatalogue<UniformItem>('uniforms', readUniformsCatalogue);
 }
 
 export function useActiveUniforms() {
-  return useQuery({
-    queryKey: [UNIFORMS_QUERY_KEY, 'active'],
-    queryFn: UniformsService.getActiveUniforms,
-    refetchOnMount: 'always',
-    refetchOnReconnect: 'always',
-  });
+  const query = useUniforms();
+  return { ...query, data: query.data?.filter(item => item.isActive) };
 }
 
 export function useUniformsByFilter(filters: {
-  gender?: UniformGender;
-  classId?: string;
-  section?: UniformSection;
-}, enabled: boolean = true) {
-  return useQuery({
-    queryKey: [UNIFORMS_QUERY_KEY, 'filtered', filters],
-    queryFn: () => UniformsService.getUniformsByFilter(filters),
-    enabled: enabled,
-    refetchOnMount: 'always',
-    refetchOnReconnect: 'always',
-  });
+  gender?: UniformGender; classId?: string; section?: UniformSection;
+}, enabled = true) {
+  const query = useSchoolCatalogue<UniformItem>('uniforms', readUniformsCatalogue, enabled);
+  return { ...query, data: query.data === undefined ? undefined : filterSchoolCatalogue(query.data, filters) };
 }
 
 export function useUniform(id: string) {
@@ -62,6 +35,7 @@ export function useCreateUniform() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ["uniforms","create"],
     mutationFn: (uniformData: CreateUniformData) =>
       UniformsService.createUniform(uniformData),
     onSuccess: () => {
@@ -74,6 +48,7 @@ export function useUpdateUniform() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ["uniforms","update"],
     mutationFn: ({ id, data }: { id: string; data: UpdateUniformData }) =>
       UniformsService.updateUniform(id, data),
     onSuccess: () => {
@@ -86,6 +61,7 @@ export function useDeleteUniform() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ["uniforms","delete"],
     mutationFn: (id: string) => UniformsService.deleteUniform(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [UNIFORMS_QUERY_KEY] });
@@ -97,6 +73,7 @@ export function useToggleUniformStatus() {
   const queryClient = useQueryClient();
   
   return useMutation({
+    mutationKey: ["uniforms","toggle-status"],
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       UniformsService.toggleUniformStatus(id, isActive),
     onSuccess: () => {

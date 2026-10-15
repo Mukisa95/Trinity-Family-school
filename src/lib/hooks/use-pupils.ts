@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient, type QueryClient, type QueryKey } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+import { measurePupilsPaint } from '@/lib/startup/workspace-timing';
 import {
   PupilsService,
   type PupilPerformancePatch,
@@ -19,7 +20,7 @@ import {
   selectPupilsWithFilters,
   selectPupilsWithoutPhotos,
 } from '@/lib/selectors/pupil-selectors';
-import type { Pupil } from '@/types';
+import type { Pupil, FeesHolidayDraft } from '@/types';
 
 // Query keys
 export const pupilsKeys = {
@@ -260,7 +261,22 @@ export function usePupils() {
     // A previous parent's list must never remain visible when auth replaces
     // this shared query with a fresh account-scoped listener.
   });
-  return { ...query, isLoading: query.data === undefined };
+  const hydration = useQuery({
+    queryKey: ['pupils', 'hydration'],
+    queryFn: async () => 'loading',
+    enabled: false,
+    staleTime: Infinity,
+    initialData: queryClient.getQueryData<string>(['pupils', 'hydration']),
+  });
+  // Scrubbing an old account uses [] to notify mounted observers. Until the
+  // new owner's snapshot arrives, that array must not look like a real zero.
+  const failed = hydration.data === 'denied' || hydration.data === 'error';
+  const data = hydration.data === 'loading' || failed ? undefined : query.data;
+  const error = useMemo(() => failed ? new Error(hydration.data === 'denied' ? 'Pupil access is unavailable.' : 'Pupil records could not load. Please retry.') : query.error, [failed, hydration.data, query.error]);
+  useEffect(() => {
+    if (data !== undefined && hydration.data !== 'denied') return measurePupilsPaint();
+  }, [data, hydration.data]);
+  return { ...query, data, error, isLoading: data === undefined && !error, isSavedData: hydration.data === 'saved' };
 }
 
 export type ParentPupilScopeStatus = 'loading' | 'repairing' | 'ready' | 'error';
@@ -300,7 +316,7 @@ export function useActivePupilsOptimized(options?: { enabled?: boolean }) {
 export function usePupil(id: string) {
   const pupilsQuery = usePupils();
   const data = useMemo(() => selectPupilById(pupilsQuery.data, id), [id, pupilsQuery.data]);
-  return { ...pupilsQuery, data, isLoading: !!id && pupilsQuery.isLoading };
+  return { ...pupilsQuery, data, isLoading: !!id && (pupilsQuery.isLoading || (!data && pupilsQuery.isSavedData)) };
 }
 
 export function usePupilsByClass(classId: string) {
@@ -335,9 +351,12 @@ export function useCreatePupil() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (pupilData: Omit<Pupil, 'id' | 'createdAt'>) =>
-      PupilsService.createPupil(pupilData),
-    onSuccess: (id, pupilData) => {
+    mutationKey: ["pupils","create"],
+    mutationFn: (input: Omit<Pupil, 'id' | 'createdAt'> & { mofusPrivilege?: FeesHolidayDraft }) => {
+      const { mofusPrivilege, ...pupilData } = input;
+      return PupilsService.createPupil(mofusPrivilege ? pupilData : input, { mofusPrivilege });
+    },
+    onSuccess: (id, { mofusPrivilege, ...pupilData }) => {
       const now = new Date().toISOString();
       patchPupilQueryCaches(queryClient, {
         ...pupilData,
@@ -345,6 +364,7 @@ export function useCreatePupil() {
         createdAt: now,
         updatedAt: now,
       } as Pupil);
+      if (mofusPrivilege) queryClient.invalidateQueries({ queryKey: ['feesHolidays'] });
     },
   });
 }
@@ -353,6 +373,7 @@ export function useUpdatePupil() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ["pupils","update"],
     mutationFn: ({ id, data }: { id: string; data: Partial<Omit<Pupil, 'id' | 'createdAt'>> }) =>
       PupilsService.updatePupil(id, data),
     onMutate: async ({ id, data }) => {
@@ -433,6 +454,7 @@ export function useUpdatePupilPerformanceBatch() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ["pupils","update-performance"],
     mutationFn: (patches: PupilPerformancePatch[]) =>
       PupilsService.updatePupilPerformanceBatch(patches),
     onSuccess: result => {
@@ -448,6 +470,7 @@ export function useDeletePupil() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ["pupils","delete"],
     mutationFn: (id: string) => PupilsService.deletePupil(id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: pupilsKeys.all });

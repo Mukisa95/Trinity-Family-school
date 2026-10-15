@@ -70,6 +70,7 @@ import {
 import {
   deriveExamStreams,
   enrichExamPupilStreamIdentity,
+  getExamPupilDisplaySnapshot,
   filterExamPupilsByStream,
   joinClassAndStream,
 } from '@/lib/utils/class-streams';
@@ -599,12 +600,12 @@ export default function RecordResultsView() {
     return snaps.map(snap => {
       // Find the actual pupil to get their dateOfBirth if not in snapshot
       const actualPupil = allPupils.find(p => p.id === snap.pupilId);
-      return enrichExamPupilStreamIdentity({
+      return getExamPupilDisplaySnapshot(enrichExamPupilStreamIdentity({
         ...snap,
         name: formatPupilName(actualPupil, { fallback: snap.name }),
         dateOfBirth: snap.dateOfBirth || actualPupil?.dateOfBirth, // Use snapshot first, fallback to actual pupil
         ageAtExam: snap.ageAtExam // Keep the ageAtExam from snapshot
-      }, actualPupil, examClass, examDetails?.academicYearId || examResultData?.academicYearId);
+      }, actualPupil, examClass, examDetails?.academicYearId || examResultData?.academicYearId), examClass);
     });
   }, [allPupils, examClass, examDetails?.academicYearId, examResultData]);
 
@@ -614,8 +615,9 @@ export default function RecordResultsView() {
         ? examDetails.streamScope.streams
         : classSnap?.streamScope?.streams,
       allPupilSnaps,
+      examClass,
     ),
-    [allPupilSnaps, classSnap?.streamScope?.streams, examDetails?.streamScope?.streams],
+    [allPupilSnaps, classSnap?.streamScope?.streams, examDetails?.streamScope?.streams, examClass],
   );
   const selectedStreamId = useMemo(() => {
     if (routeStreamId === 'all') return 'all';
@@ -1037,9 +1039,13 @@ export default function RecordResultsView() {
         throw new Error('The editing lock could not be transferred to this device. Please reload and try again.');
       }
 
+      // Saving releases the previous lock. Recheck ownership before every
+      // normal save instead of reusing a token awaiting its listener update.
+      const saveLease = options?.overrideLock ? undefined : await resultLease.ensureLease();
+
       await updateExamResultMutation.mutateAsync({
         id: examResultData.id,
-        lease: options?.overrideLock ? undefined : resultLease.token,
+        lease: saveLease,
         overrideLease,
         data: { 
           examId: examResultData.examId, // Include examId for proper cache invalidation
@@ -1064,12 +1070,12 @@ export default function RecordResultsView() {
     } catch (error) {
       console.error('Error saving results:', error);
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-      toast({ variant: "destructive", title: "Error", description: `Failed to save results: ${errorMessage}` });
+      toast({ variant: "destructive", title: "Results were not saved", description: `${errorMessage} Your entries have been kept on this page.` });
       return false;
     } finally {
       setIsSubmitting(false);
     }
-  }, [isSubmitting, examResultData, examDetails, classSnap, pupilSnaps, subjectSnaps, examSubjects, results, commentaryResults, missedSubjects, calculateGrade, updateExamResultMutation, toast, gradingScaleItems, selectedMajorSubjects, isNurseryExam, resultLease.canOverride, resultLease.canSave, resultLease.override, resultLease.token]);
+  }, [isSubmitting, examResultData, examDetails, classSnap, pupilSnaps, subjectSnaps, examSubjects, results, commentaryResults, missedSubjects, calculateGrade, updateExamResultMutation, toast, gradingScaleItems, selectedMajorSubjects, isNurseryExam, resultLease.canOverride, resultLease.canSave, resultLease.override, resultLease.ensureLease]);
 
   const canSaveDraft = isNurseryExam || examSubjects.length <= 4 || selectedMajorSubjects.length === 4;
 
@@ -1262,9 +1268,10 @@ export default function RecordResultsView() {
       console.log('💾 Exam Result ID:', examResultData.id);
       console.log('💾 Exam ID:', examResultData.examId);
       
+      const saveLease = await resultLease.ensureLease();
       await updateExamResultMutation.mutateAsync({
         id: examResultData.id,
-        lease: resultLease.token,
+        lease: saveLease,
         data: { 
             examId: examResultData.examId, // Include examId for proper cache invalidation
             academicYearId: examDetails?.academicYearId,
@@ -1317,7 +1324,7 @@ export default function RecordResultsView() {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
       toast({ variant: "destructive", title: "Error", description: `Failed to update grading scale: ${errorMessage}` });
     }
-  }, [gradingScaleItems, examResultData, updateExamResultMutation, toast, subjectSnaps, resultLease.canSave, resultLease.holder, resultLease.token]);
+  }, [gradingScaleItems, examResultData, updateExamResultMutation, toast, subjectSnaps, resultLease.canSave, resultLease.holder, resultLease.ensureLease]);
 
   const getHeaderContent = useCallback(() => {
     const examNameStr = examDetails?.name || 'Exam';

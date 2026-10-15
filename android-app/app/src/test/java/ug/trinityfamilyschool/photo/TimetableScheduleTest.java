@@ -5,6 +5,80 @@ import java.time.*;
 import static org.junit.Assert.*;
 
 public class TimetableScheduleTest {
+    @Test public void trackedSubjectKeepsDoubleLessonUntilItsExactEnd() throws Exception {
+        TimetableSchedule.Frame row = TrackedSubjects.next(data(), "p4", "english", time("2026-10-07T09:00:00"));
+        assertTrue(row.active); assertEquals(50, row.progress);
+        assertEquals(time("2026-10-07T10:00:00").toInstant().toEpochMilli(), row.countdownEnd);
+        assertEquals(row.countdownEnd, row.boundary);
+        assertTrue(row.time.contains("08:00 – 10:00"));
+        row = TrackedSubjects.next(data(), "p4", "english", time("2026-10-07T10:00:00"));
+        assertFalse(row.active); assertTrue(row.time.contains("14 Oct"));
+    }
+    @Test public void trackedSubjectsFindTheNextWeekAndRespectTermEnd() throws Exception {
+        TimetableSchedule.Frame row = TrackedSubjects.next(data(), "p4", "english", time("2026-10-10T12:00:00"));
+        assertEquals(time("2026-10-14T08:00:00").toInstant().toEpochMilli(), row.countdownEnd);
+        assertEquals(time("2026-10-11T00:00:00").toInstant().toEpochMilli(), row.boundary);
+        row = TrackedSubjects.next(data(), "p4", "english", time("2026-11-30T12:00:00"));
+        assertEquals(0, row.countdownEnd); assertFalse(row.hasPeriod);
+        assertEquals("No upcoming lesson in saved timetables", row.time);
+    }
+    @Test public void trackedSubjectsCanStartInAnUpcomingTerm() throws Exception {
+        TimetableSchedule.Frame row = TrackedSubjects.next(data(), "p4", "english", time("2026-08-01T12:00:00"));
+        assertEquals(time("2026-09-02T08:00:00").toInstant().toEpochMilli(), row.countdownEnd);
+    }
+    @Test public void trackedSubjectsAreIndependentAcrossClassesAndOptionalSubjects() throws Exception {
+        JSONObject data = data(); JSONObject table = data.getJSONObject("timetables").getJSONArray("data").getJSONObject(0);
+        table.getJSONArray("entries").getJSONObject(0).put("optionalSubjectId", "science").put("optionalTeacherId", "optional");
+        data.getJSONObject("teachers").getJSONArray("data").put(new JSONObject().put("id", "optional").put("name", "Optional Teacher"));
+        java.util.Set<String> choices = new java.util.HashSet<>(java.util.Arrays.asList(TrackedSubjects.key("p4", "science"), TrackedSubjects.key("p5", "math")));
+        TimetableSchedule.Frame feed = TrackedSubjects.feed(data, choices, time("2026-10-07T07:00:00"));
+        assertEquals(2, feed.profiles.size());
+        for (TimetableSchedule.Frame row : feed.profiles) assertEquals(time("2026-10-07T08:00:00").toInstant().toEpochMilli(), row.countdownEnd);
+        assertEquals(0, TrackedSubjects.next(data, "p5", "science", time("2026-10-07T07:00:00")).countdownEnd);
+        assertTrue(TrackedSubjects.choices(data).containsKey(TrackedSubjects.key("p4", "science")));
+        assertEquals("Optional Teacher", TrackedSubjects.next(data, "p4", "science", time("2026-10-07T08:30:00")).teacher);
+    }
+    @Test public void trackedSubjectChoosesValidStreamLayoutAndDescribesStream() throws Exception {
+        JSONObject data = data(); JSONObject table = data.getJSONObject("timetables").getJSONArray("data").getJSONObject(0);
+        table.getJSONObject("profile").put("streamLayouts", new JSONObject().put("p4", new JSONObject().put("defaultMode", "separate")));
+        JSONObject north = new JSONObject(table.getJSONArray("entries").getJSONObject(0).toString()).put("streamId", "north");
+        table.getJSONArray("entries").put(north);
+        data.getJSONObject("classes").getJSONArray("data").getJSONObject(0).put("streams", new JSONArray().put(new JSONObject().put("id", "north").put("name", "North")));
+        TimetableSchedule.Frame row = TrackedSubjects.next(data, "p4", "english", time("2026-10-07T08:30:00"));
+        assertTrue(row.active); assertTrue(row.agenda.contains("North"));
+        table.getJSONArray("entries").remove(table.getJSONArray("entries").length() - 1);
+        assertEquals(0, TrackedSubjects.next(data, "p4", "english", time("2026-10-07T08:30:00")).countdownEnd);
+    }
+    @Test public void trackedSubjectsDoNotInventLessonsFromIncompleteOrUndatedTables() throws Exception {
+        JSONObject data = data(); JSONObject table = data.getJSONObject("timetables").getJSONArray("data").getJSONObject(0);
+        table.put("complete", false);
+        assertTrue(TrackedSubjects.choices(data).isEmpty());
+        assertEquals(0, TrackedSubjects.next(data, "p4", "english", time("2026-10-07T07:00:00")).countdownEnd);
+        table.put("complete", true); data.put("academicYears", new JSONObject());
+        assertEquals(0, TrackedSubjects.next(data, "p4", "english", time("2026-10-07T07:00:00")).countdownEnd);
+    }
+    @Test public void trackedSubjectsIgnoreActivitiesAndCoveredContinuationEntries() throws Exception {
+        JSONObject data = data(); JSONObject table = data.getJSONObject("timetables").getJSONArray("data").getJSONObject(0);
+        table.getJSONArray("entries").put(new JSONObject().put("classId", "p4").put("periodId", "period-1").put("subjectId", "math"));
+        assertEquals(0, TrackedSubjects.next(data, "p4", "math", time("2026-10-07T07:00:00")).countdownEnd);
+        table.getJSONArray("entries").getJSONObject(0).put("entryType", "activity");
+        assertEquals(0, TrackedSubjects.next(data, "p4", "english", time("2026-10-07T07:00:00")).countdownEnd);
+    }
+    @Test public void trackedSubjectsRetainAllSelectionsWithoutAClassLimit() throws Exception {
+        JSONObject data = data(); java.util.Set<String> selected = new java.util.HashSet<>();
+        JSONObject table = data.getJSONObject("timetables").getJSONArray("data").getJSONObject(0);
+        for (int i = 0; i < 30; i++) {
+            String id = "class-" + i; selected.add(TrackedSubjects.key(id, "english"));
+            table.getJSONObject("profile").getJSONArray("classIds").put(id);
+            data.getJSONObject("classes").getJSONArray("data").put(new JSONObject().put("id", id).put("name", "Class " + i));
+            table.getJSONArray("entries").put(new JSONObject().put("classId", id).put("periodId", "period-0").put("subjectId", "english"));
+        }
+        TimetableSchedule.Frame feed = TrackedSubjects.feed(data, selected, time("2026-10-07T07:00:00"));
+        assertEquals(30, feed.profiles.size());
+        for (TimetableSchedule.Frame row : feed.profiles) assertTrue(row.hasPeriod);
+        selected.add("invalid");
+        assertEquals(30, TrackedSubjects.feed(data, selected, time("2026-10-07T07:00:00")).profiles.size());
+    }
     private JSONObject data() throws Exception {
         JSONObject profile = new JSONObject().put("id", "main").put("academicYearId", "year").put("termId", "term").put("classIds", new JSONArray().put("p4").put("p5"));
         JSONArray periods = new JSONArray();

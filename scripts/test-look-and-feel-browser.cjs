@@ -37,7 +37,7 @@ async function run(){
   await page.goto(url);await idle();assert.equal(await page.getByRole('button',{name:'Follow device',exact:true}).getAttribute('aria-pressed'),'true');assert.ok(await page.evaluate(()=>document.documentElement.classList.contains('dark')));
   await page.waitForFunction(()=>window.nativeAppearanceRequests.some(r=>r.action==='appearance'&&r.preference==='system'&&r.dark===true));
   const paper=await reading(page.getByTestId('paper-button'));
-  for(const preset of ['Trinity Classic','Soft Indigo']){
+  for(const preset of ['Trinity Classic','Soft Indigo','Pixel Terracotta']){
    await page.getByRole('button',{name:new RegExp('^'+preset)}).click();await idle();
    for(const mode of ['Dark','Light']){
     await click(mode);const primary=await reading(page.getByRole('button',{name:'Primary button',exact:true})),link=await reading(page.getByRole('button',{name:'Example link',exact:true}).first());
@@ -60,7 +60,7 @@ async function run(){
   if(process.argv.includes('--contrast-only')){
    assert.deepEqual(errors,[]);
    fs.writeFileSync(path.join(output,'accent-verification.json'),JSON.stringify({reports,allAccentFamiliesChange:true,paperPaletteUnchanged:true,browserErrors:errors},null,2));
-   console.log('THEME_ACCENT_BROWSER_OK: both presets in light/dark, all four accent families change, readable links/buttons/hover colours and unchanged paper colours.');
+   console.log('THEME_ACCENT_BROWSER_OK: all presets in light/dark, all four accent families change, readable links/buttons/hover colours and unchanged paper colours.');
    return;
   }
   // Begin the persistence/background checks on a fresh page after the full-page snapshots.
@@ -74,6 +74,13 @@ async function run(){
   // Restore the page being clicked; background tabs throttle animation frames.
   await page.bringToFront();
   await click('Plain');await other.waitForFunction(()=>document.documentElement.dataset.appBackground==='plain');
+  await page.getByRole('button',{name:/^Pixel Terracotta/}).click();await idle();
+  await other.waitForFunction(()=>document.documentElement.dataset.appTheme==='pixel-terracotta');
+  assert.equal(await other.evaluate(()=>Boolean(window.TrinityOffline)),false,'Named theme works without Android');
+  await other.reload();await other.waitForFunction(()=>window.appearance?.ready);
+  assert.equal(await other.evaluate(()=>document.documentElement.dataset.appTheme),'pixel-terracotta','Named palette survives desktop reload');
+  assert.equal(await other.evaluate(()=>document.documentElement.dataset.deviceColors),undefined);
+  assert.equal(await other.locator('main').evaluate(el=>getComputedStyle(el).color),'rgb(255, 219, 202)');
   await page.evaluate(()=>localStorage.setItem('trinity-look-and-feel',JSON.stringify({preset:'invented',background:'bad',dimming:900})));
   await page.reload();await idle();assert.equal(await page.getByLabel('Night illustration brightness').inputValue(),'30');assert.equal(await page.getByRole('button',{name:/^Trinity Classic/}).getAttribute('aria-pressed'),'true');
   await page.evaluate(()=>localStorage.setItem('trinity-look-and-feel','{broken'));await page.reload();await idle();assert.equal(await page.getByLabel('Night illustration brightness').inputValue(),'63');
@@ -87,7 +94,7 @@ async function run(){
   await page.emulateMedia({reducedMotion:'reduce'});await page.getByRole('button',{name:/^Soft Indigo/}).click();await idle();assert.equal(await page.evaluate(()=>document.documentElement.dataset.appTheme),'soft-indigo');
   await page.evaluate(()=>{Storage.prototype.setItem=function(){throw new DOMException('Storage blocked','SecurityError')}});await click('Plain');await page.getByRole('status').getByText(/could not save/).waitFor();
   assert.deepEqual(errors,[]);fs.writeFileSync(path.join(output,'verification.json'),JSON.stringify({reports,deviceDefault:true,persistence:true,crossTab:true,invalidStorage:true,printPalette:true,keyboardAndMobile:true,browserErrors:errors},null,2));
-  console.log('LOOK_AND_FEEL_BROWSER_OK: both presets/light-dark contrast, dark hovers, settings persistence and cross-tab sync, device defaults, native appearance bridge, corrupt storage recovery, background brightness, original print palette, mobile/keyboard/reduced-motion and storage-failure handling.');
+  console.log('LOOK_AND_FEEL_BROWSER_OK: all presets/light-dark contrast, dark hovers, settings persistence and cross-tab sync, device defaults, native appearance bridge, corrupt storage recovery, background brightness, original print palette, mobile/keyboard/reduced-motion and storage-failure handling.');
  }catch(error){console.error(error);throw error;}
  finally{await browser.close();await new Promise(r=>server.close(r));}
 }

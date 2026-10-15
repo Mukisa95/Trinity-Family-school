@@ -19,6 +19,8 @@ export type AndroidOfflineSession = {
     dashboard: boolean;
     pupils: boolean;
     timetable: boolean;
+    events?: boolean;
+    eventCacheScope?: string;
     pupilFields: string[];
     dashboardCounts: string[];
   };
@@ -56,6 +58,7 @@ export type AndroidOfflineSnapshot = {
     academicYears?: AndroidOfflineDataset<Record<string, unknown>[]>;
     dashboard?: AndroidOfflineDataset<Record<string, number | string>>;
     timetables?: AndroidOfflineDataset<AndroidOfflineTimetable[]>;
+    events?: AndroidOfflineDataset<import("@/types").Event[]>;
     subjects?: AndroidOfflineDataset<Record<string, unknown>[]>;
     teachers?: AndroidOfflineDataset<Record<string, unknown>[]>;
     parent?: AndroidOfflineDataset<AndroidParentBundle>;
@@ -87,6 +90,7 @@ export function isAndroidOfflineSnapshot(value: unknown, session: AndroidOffline
   }
   if (item.datasets.parent || (item.datasets.pupils && !session.grants.pupils)
     || (item.datasets.dashboard && !session.grants.dashboard)
+    || (item.datasets.events && (!session.grants.events || !Array.isArray(item.datasets.events.data)))
     || (item.datasets.timetables && !session.grants.timetable)) return false;
   if ((item.datasets.subjects || item.datasets.teachers) && !session.grants.timetable) return false;
   if (item.datasets.dashboard && Object.keys(item.datasets.dashboard.data).some(key => !session.grants.dashboardCounts.includes(key))) return false;

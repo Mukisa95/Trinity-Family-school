@@ -10,7 +10,7 @@ const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'output/pupil-theme-qa');
 
 function actualRowClasses() {
-  const file = path.join(root, 'src/app/pupils/page.tsx');
+  const file = path.join(root, 'src/app/pupils/pupils-management.tsx');
   const source = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const expressions = {};
   function visit(node) {

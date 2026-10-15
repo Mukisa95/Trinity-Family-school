@@ -40,17 +40,21 @@ export function StaffPupilAssignmentModal({
   const [selectedPupilIds, setSelectedPupilIds] = React.useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = React.useState<"assign" | "view" | "edit">("assign");
   const [isSaving, setIsSaving] = React.useState(false);
+  const initializedStaff = React.useRef<string | null>(null);
 
   // Load existing assignments when modal opens
   React.useEffect(() => {
-    if (open && staff && pupils.length > 0) {
+    if (!open) { initializedStaff.current = null; return; }
+    if (staff && !isLoading && initializedStaff.current !== staff.id) {
       // Find pupils already assigned to this staff member
       const assignedPupilIds = pupils
         .filter((p: Pupil) => p.assignedStaffId === staff.id)
         .map((p: Pupil) => p.id);
       setSelectedPupilIds(new Set(assignedPupilIds));
+      initializedStaff.current = staff.id;
+      setSearchTerm('');
     }
-  }, [open, staff, pupils]);
+  }, [open, staff, pupils, isLoading]);
 
   // Filter pupils based on search
   const filteredPupils = React.useMemo(() => {
@@ -93,11 +97,12 @@ export function StaffPupilAssignmentModal({
   };
 
   const handleSelectAll = () => {
-    if (selectedPupilIds.size === filteredPupils.length) {
-      setSelectedPupilIds(new Set());
-    } else {
-      setSelectedPupilIds(new Set(filteredPupils.map((p: Pupil) => p.id)));
-    }
+    setSelectedPupilIds(current => {
+      const next = new Set(current);
+      const allVisibleSelected = filteredPupils.every(pupil => current.has(pupil.id));
+      filteredPupils.forEach(pupil => allVisibleSelected ? next.delete(pupil.id) : next.add(pupil.id));
+      return next;
+    });
   };
 
   const handleSelectFamily = (familyId: string) => {
@@ -130,7 +135,7 @@ export function StaffPupilAssignmentModal({
       );
 
       // Pupils to assign (new selections)
-      const toAssign = filteredPupils.filter((p: Pupil) =>
+      const toAssign = pupils.filter((p: Pupil) =>
         selectedPupilIds.has(p.id) && p.assignedStaffId !== staff.id
       );
 
@@ -144,23 +149,15 @@ export function StaffPupilAssignmentModal({
         updatePupilMutation.mutateAsync({
           id: pupil.id,
           data: {
-            ...pupil,
             assignedStaffId: staff.id,
           },
         })
       );
 
       // Update pupils to unassign
-      const unassignPromises = toUnassign.map((pupil: Pupil) => {
-        const { assignedStaffId, ...rest } = pupil;
-        return updatePupilMutation.mutateAsync({
-          id: pupil.id,
-          data: {
-            ...rest,
-            assignedStaffId: undefined,
-          },
-        });
-      });
+      const unassignPromises = toUnassign.map((pupil: Pupil) => updatePupilMutation.mutateAsync({
+        id: pupil.id, data: { assignedStaffId: '' },
+      }));
 
       await Promise.all([...assignPromises, ...unassignPromises]);
 
@@ -185,7 +182,7 @@ export function StaffPupilAssignmentModal({
   if (!staff) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={value => { if (!isSaving) onOpenChange(value); }}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -232,7 +229,7 @@ export function StaffPupilAssignmentModal({
                   onClick={handleSelectAll}
                   className="whitespace-nowrap"
                 >
-                  {selectedPupilIds.size === filteredPupils.length ? "Deselect All" : "Select All"}
+                  {filteredPupils.every(pupil => selectedPupilIds.has(pupil.id)) ? "Deselect All" : "Select All"}
                 </Button>
               </div>
 
@@ -273,6 +270,7 @@ export function StaffPupilAssignmentModal({
                         <div className="flex items-center gap-3">
                           <Checkbox
                             checked={selectedPupilIds.has(pupil.id)}
+                            aria-label={`Assign ${formatPupilDisplayName(pupil)}`}
                             onCheckedChange={() => handleTogglePupil(pupil.id)}
                             onClick={(e) => e.stopPropagation()}
                           />
@@ -481,17 +479,18 @@ export function StaffPupilAssignmentModal({
         </Tabs>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between pt-4 border-t mt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t mt-4">
           <div className="text-sm text-gray-600 dark:text-slate-300">
             {selectedPupilIds.size} pupil{selectedPupilIds.size !== 1 ? "s" : ""} selected
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" className="min-h-11" disabled={isSaving} onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button
               onClick={handleSaveAssignments}
-              disabled={isSaving || selectedPupilIds.size === 0}
+              className="min-h-11"
+              disabled={isSaving || isLoading}
             >
               {isSaving ? (
                 <>

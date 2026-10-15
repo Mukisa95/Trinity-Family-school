@@ -24,6 +24,7 @@ function loadService(file: string, serviceName: string, serverData: Record<strin
     module, exports: module.exports, console: { error() {}, warn() {} },
     require(name: string) {
       if (name === '../firebase') return { db: {} };
+      if (name === './dashboard-cache-revisions.service') return { bumpCatalogueRevisionInBatch: () => {} };
       if (name === '@/lib/fees/fee-reminder-change-client') return { notifyFeeReminderChange: async () => {} };
       if (name === 'firebase/firestore') return {
         collection: (_db: unknown, collection: string) => collection,

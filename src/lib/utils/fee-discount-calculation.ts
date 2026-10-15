@@ -6,6 +6,7 @@ import type {
   PupilAssignedFee,
 } from '@/types';
 import { isAssignmentValidForContext } from '@/lib/utils/fee-assignment-pipeline';
+import { resolveFeesHoliday } from '@/lib/utils/fees-holiday-terms';
 
 export interface AppliedFeeDiscount {
   assignment: PupilAssignedFee;
@@ -75,6 +76,7 @@ export function calculateFeeAmountAfterDiscounts({
   feesHolidays = [],
 }: CalculateFeeDiscountInput): FeeDiscountCalculation {
   const applicableHoliday = feesHolidays
+    .map(holiday => resolveFeesHoliday(holiday, academicYearId, termId, allAcademicYears))
     .filter((holiday) => holiday.isActive)
     .find((holiday) => {
       const categories = getHolidayCategories(holiday);

@@ -20,7 +20,7 @@ export function AutoLockSettings() {
 
   const checkDeviceUnlock = useCallback(async () => {
     if (!user) return setDeviceUnlockAvailable(false);
-    const supported = await PasskeyService.supported().catch(() => false);
+    const supported = await PasskeyService.localSupported().catch(() => false);
     setDeviceUnlockAvailable(supported && PasskeyService.hasLocalUnlock(user.id));
   }, [user]);
 

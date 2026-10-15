@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ClassesService } from '../services/classes.service';
 import { useDigitalSignatureHelpers } from './use-digital-signature';
 import { useAuth } from '../contexts/auth-context';
-import type { Class } from '@/types';
-import { getClassCacheScope, readClassCache } from '@/lib/cache/class-cache';
+import type { Class, Staff } from '@/types';
+import { getClassCacheScope, normaliseClasses, readClassCache, writeClassCache } from '@/lib/cache/class-cache';
+import type { StaffClassAssignmentChanges } from '@/lib/utils/teaching-assignments';
 
 // All ordinary consumers subscribe to this one identity-scoped list. The
 // GlobalDataPreloader is the only owner allowed to reconcile it with Firestore.
@@ -15,6 +16,16 @@ export const classesKeys = {
   details: () => [...classesKeys.all, 'detail'] as const,
   detail: (scope: string, id: string) => [...classesKeys.details(), scope, id] as const,
 };
+
+function patchClassSnapshot(queryClient: ReturnType<typeof useQueryClient>, scope: string, id: string, data: Partial<Class>) {
+  if (!scope) return;
+  const queryKey = classesKeys.list(scope);
+  const current = queryClient.getQueryData<Class[]>(queryKey) ?? readClassCache(scope)?.data ?? [];
+  const next = normaliseClasses(current.map(classItem => classItem.id === id ? { ...classItem, ...data, id } : classItem));
+  queryClient.setQueryData(queryKey, next);
+  ClassesService.hydrateSharedClasses(next);
+  writeClassCache(scope, -1, next);
+}
 
 export function useClasses() {
   const queryClient = useQueryClient();
@@ -39,7 +50,8 @@ export function useClasses() {
     refetchInterval: false,
     initialData,
     initialDataUpdatedAt: initialData !== undefined ? Date.now() : undefined,
-    placeholderData: previousData => previousData,
+    // Scope changes represent another signed-in identity. Never carry the
+    // previous account's list into the new account while it is loading.
   });
 
   return {
@@ -107,7 +119,8 @@ export function useCreateClass() {
 export function useUpdateClass() {
   const queryClient = useQueryClient();
   const { signAction } = useDigitalSignatureHelpers();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getClassCacheScope(user?.id, user?.role) : '';
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Omit<Class, 'id' | 'createdAt'>> }) => {
@@ -125,7 +138,43 @@ export function useUpdateClass() {
 
       return id;
     },
-    onSuccess: () => {
+    onSuccess: (_, { id, data }) => {
+      patchClassSnapshot(queryClient, scope, id, data);
+      queryClient.invalidateQueries({ queryKey: classesKeys.all, refetchType: 'none' });
+    },
+  });
+}
+
+export function useUpdateStaffClassAssignments() {
+  const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuth();
+  const { signAction } = useDigitalSignatureHelpers();
+  const scope = isAuthenticated ? getClassCacheScope(user?.id, user?.role) : '';
+
+  return useMutation({
+    mutationFn: async ({ classId, staff, changes }: {
+      classId: string;
+      staff: Pick<Staff, 'id' | 'firstName' | 'lastName'>;
+      changes: StaffClassAssignmentChanges;
+    }) => {
+      const updated = await ClassesService.updateStaffAssignments(classId, staff, changes);
+      let auditSaved = true;
+      if (user) {
+        try {
+          await signAction('class_creation', classId, 'modified', {
+            staffId: staff.id,
+            teacherChanged: !!changes.classTeacher,
+            subjectsChanged: changes.subjects.length > 0,
+          });
+        } catch (error) {
+          auditSaved = false;
+          console.error('Teaching assignments saved, but the history signature failed:', error);
+        }
+      }
+      return { updated, auditSaved };
+    },
+    onSuccess: ({ updated }) => {
+      patchClassSnapshot(queryClient, scope, updated.id, updated);
       queryClient.invalidateQueries({ queryKey: classesKeys.all, refetchType: 'none' });
     },
   });

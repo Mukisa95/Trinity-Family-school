@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { UnsavedPaymentDialog, usePaymentDraftGuard } from '@/components/common/unsaved-payment-dialog';
+import React, { useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CurrencyCircleDollar, Calculator, Target } from '@phosphor-icons/react';
@@ -48,6 +49,7 @@ export function CarryForwardPaymentModal({
   const [paymentType, setPaymentType] = useState<'general' | 'item-specific'>('general');
   const [selectedItem, setSelectedItem] = useState<CarryForwardItem | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const submitting = useRef(false);
 
   const balance = fee.balance;
   const hasMultipleItems = fee.feeBreakdown && fee.feeBreakdown.length > 1;
@@ -106,11 +108,13 @@ export function CarryForwardPaymentModal({
     formValidation.handleFieldChange('carryPaymentItem');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (submitting.current) return;
     
     if (!formValidation.validateAll().isValid) return;
 
+    submitting.current = true;
     setIsProcessing(true);
 
     try {
@@ -127,11 +131,12 @@ export function CarryForwardPaymentModal({
       console.error('Payment submission error:', error);
       formValidation.setSubmissionError(error instanceof Error ? error.message : 'The payment could not be recorded. Please try again.');
     } finally {
+      submitting.current = false;
       setIsProcessing(false);
     }
   };
 
-  const handleClose = () => {
+  const discardDraft = () => {
     if (!isProcessing) {
       setAmount('');
       setPaymentType('general');
@@ -140,6 +145,20 @@ export function CarryForwardPaymentModal({
       onClose();
     }
   };
+
+  const draftGuard = usePaymentDraftGuard({
+    isOpen, dirty: amount.trim() !== '' || paymentType !== 'general' || selectedItem !== null,
+    busy: isProcessing, onDiscard: discardDraft,
+  });
+  const changes = [
+    { label: 'Fee', value: fee.name },
+    { label: 'Payment amount', value: amount ? `UGX ${amount}` : 'Not entered' },
+    { label: 'Distribution', value: paymentType === 'general' ? 'General distribution' : 'Item specific' },
+    ...(paymentType === 'item-specific' ? [{
+      label: 'Selected item',
+      value: selectedItem ? `${selectedItem.name} (${selectedItem.term} - ${selectedItem.year})` : 'Not selected',
+    }] : []),
+  ];
 
   const getDistributionPreview = () => {
     if (paymentType !== 'general' || !amount || !fee.feeBreakdown) return null;
@@ -166,8 +185,9 @@ export function CarryForwardPaymentModal({
   ].filter(item => item.value > 0);
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) draftGuard.requestClose(); }}>
+      <DialogContent onClick={(event) => { if (event.target === event.currentTarget) draftGuard.requestClose(); }} className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <span className="font-bold text-sm text-brand-alt-ink-600 dark:text-brand-alt-ink-400">Shs.</span>
@@ -202,6 +222,7 @@ export function CarryForwardPaymentModal({
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
+                  disabled={isProcessing}
                   onClick={() => handlePaymentTypeChange('general')}
                   className={`p-2.5 border rounded-full text-center transition-all flex items-center justify-center gap-2 ${
                     paymentType === 'general' 
@@ -215,6 +236,7 @@ export function CarryForwardPaymentModal({
                 
                 <button
                   type="button"
+                  disabled={isProcessing}
                   onClick={() => handlePaymentTypeChange('item-specific')}
                   className={`p-2.5 border rounded-full text-center transition-all flex items-center justify-center gap-2 ${
                     paymentType === 'item-specific' 
@@ -240,6 +262,7 @@ export function CarryForwardPaymentModal({
                   <button
                     key={index}
                     type="button"
+                    disabled={isProcessing}
                     onClick={() => handleItemSelect(item)}
                     className={`w-full p-3 border rounded-lg text-left transition-all ${
                       selectedItem === item 
@@ -279,6 +302,10 @@ export function CarryForwardPaymentModal({
                 onChange={(e) => handleAmountChange(e.target.value)}
                 placeholder="Enter amount"
                 {...formValidation.getFieldProps('carryPaymentAmount')}
+                onBlur={(event) => {
+                  if (event.relatedTarget instanceof HTMLElement && event.relatedTarget.closest('button')) return;
+                  formValidation.validateField('carryPaymentAmount');
+                }}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-alt-500 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-red-200 ${
                   formValidation.getFieldError('carryPaymentAmount') ? 'border-red-600' : 'border-gray-300 dark:border-slate-700'
                 }`}
@@ -351,7 +378,7 @@ export function CarryForwardPaymentModal({
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleClose}
+                onClick={draftGuard.requestClose}
                 disabled={isProcessing}
                 className="rounded-full"
               >
@@ -376,5 +403,9 @@ export function CarryForwardPaymentModal({
         </div>
       </DialogContent>
     </Dialog>
+    <UnsavedPaymentDialog open={draftGuard.showWarning} changes={changes}
+      onContinue={draftGuard.continueEditing} onDiscard={draftGuard.discard}
+      onSave={() => void handleSubmit()} />
+    </>
   );
 }

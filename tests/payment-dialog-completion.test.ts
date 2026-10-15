@@ -49,11 +49,12 @@ function fixture(uniform = false) {
   const dependencies = {
     selectedFee: fee, pupil: { id: 'test-pupil', firstName: 'Test', lastName: 'Pupil' },
     selectedAcademicYear: { id: 'year-1', name: '2026' }, selectedTermId: 'term-1', user,
-    pupilFees: [fee], isRevertingPayment: false,
+    pupilFees: [fee], isRevertingPayment: false, isFinancialDataLoading: false, isPaymentDataLoading: false,
+    formatPupilDisplayName: () => 'Test Pupil',
     pendingPaymentReversal: { payment: { id: 'payment-1', amount: 500, pupilId: 'test-pupil', feeStructureId: 'fee-1' } },
     getPaymentOperation: () => ({ operationId: 'stable-operation', paymentDate: '2026-09-13T12:00:00.000Z' }),
     clearPaymentOperation: (key: string) => state.cleared.push(key),
-    fetch: async () => { state.requests++; return commit.promise; },
+    measureWorkspaceRequest: async () => { state.requests++; return commit.promise; },
     PaymentsService: { revertPayment: async () => { state.requests++; await commit.promise; } },
     require: (name: string) => {
       assert.equal(name, '@/lib/services/uniform-fees-integration.service');
@@ -68,7 +69,7 @@ function fixture(uniform = false) {
     setIsRevertingPayment: (value: boolean) => { state.reversing = value; },
     addPupilPayments: (payments: Array<Record<string, unknown>>) => { state.payments.push(...payments); },
     setLastPaymentTimestamp: () => {},
-    queryClient: { invalidateQueries: async () => {} },
+    queryClient: { invalidateQueries: async () => { state.refreshes++; } },
     invalidateFinanceSummaryQueries: () => {},
     refetch: async () => { state.refreshes++; },
     toast: (message: Record<string, string>) => { state.toasts.push(message); },
@@ -120,10 +121,11 @@ for (const outcome of ['rejected', 'missing-id']) {
   test(`payment ${outcome} keeps retry identity and does not announce success`, async () => {
     const f = fixture();
     const run = loadHandler('handlePaymentSubmit', f.dependencies)({ amount: 500 });
+    const rejection = assert.rejects(run);
     await flush();
     if (outcome === 'rejected') f.commit.reject(new Error('response interrupted'));
     else f.confirm({});
-    await run;
+    await rejection;
     assert.equal(f.state.open, true);
     assert.equal(f.state.cleared.length, 0);
     assert.equal(f.state.payments.length, 0);
@@ -196,7 +198,7 @@ test('reversal audit failure reports the already committed outcome without retry
 
 test('reversal display failure still attempts its signature without reopening confirmation', async () => {
   const f = fixture();
-  f.dependencies.refetch = () => { throw new Error('refresh failed'); };
+  f.dependencies.queryClient.invalidateQueries = () => { throw new Error('refresh failed'); };
   const run = loadHandler('confirmRevertPayment', f.dependencies)();
   f.confirm();
   await flush();
@@ -205,4 +207,46 @@ test('reversal display failure still attempts its signature without reopening co
   assert.ok(f.state.toasts.some(t => t.title === 'Payment reversed; display refresh needed'));
   f.audit.resolve();
   await run;
+});
+
+for (const outcome of ['invalid', 'unconfirmed', 'interrupted', 'partial']) {
+  test(`carry-forward ${outcome} rejects without clearing its retry operation or closing the form`, async () => {
+    const f = fixture();
+    const dependencies = {
+      ...f.dependencies,
+      validateCarryForwardPayment: () => ({ isValid: outcome !== 'invalid', error: 'Invalid allocation' }),
+      processCarryForwardPayment: async () => {
+        f.state.requests++;
+        if (outcome === 'interrupted') throw new Error('Response interrupted');
+        return { success: false, paymentIds: outcome === 'partial' ? ['confirmed-part'] : [], message: 'Not fully confirmed' };
+      },
+      setIsCarryForwardPaymentModalOpen: (open: boolean) => { f.state.open = open; },
+    };
+    await assert.rejects(loadHandler('handleCarryForwardPaymentSubmit', dependencies)({ amount: 500 }));
+    assert.equal(f.state.open, true);
+    assert.equal(f.state.cleared.length, 0);
+    assert.equal(f.state.payments.length, 0);
+    assert.equal(f.state.toasts.length, 1);
+    assert.equal(f.state.toasts[0].title,
+      outcome === 'partial' ? 'Payment Needs Review' : outcome === 'invalid' ? 'Invalid Payment' : 'Payment Failed');
+  });
+}
+
+test('carry-forward display failure after confirmation does not invite a second payment', async () => {
+  const f = fixture();
+  const dependencies = {
+    ...f.dependencies,
+    validateCarryForwardPayment: () => ({ isValid: true }),
+    processCarryForwardPayment: async () => ({
+      success: true, paymentIds: ['payment-1'],
+      distributions: [{ allocatedAmount: 500, item: { name: 'Tuition', term: 'Term 1', year: '2026' } }],
+      message: 'Recorded',
+    }),
+    setIsCarryForwardPaymentModalOpen: (open: boolean) => { f.state.open = open; },
+    addPupilPayments: () => { throw new Error('Display update failed'); },
+  };
+  await loadHandler('handleCarryForwardPaymentSubmit', dependencies)({ amount: 500 });
+  assert.equal(f.state.open, false);
+  assert.equal(f.state.cleared.length, 1);
+  assert.match(f.state.toasts[0].description, /do not record it again/);
 });

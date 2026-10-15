@@ -8,6 +8,7 @@ import { canOpenAndroidOfflineRoute, isAndroidOffline } from '@/lib/offline/andr
 import type { AndroidOfflineSession } from '@/lib/offline/android-contracts';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
+import { recordAppDiagnostic } from '@/lib/utils/app-diagnostics';
 
 function subscribe(listener: () => void) {
   window.addEventListener('online', listener); window.addEventListener('offline', listener);
@@ -21,6 +22,12 @@ export function AndroidOfflineBoundary({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const path = usePathname() || '/';
   const [access, setAccess] = useState<{ accountId: string; session: AndroidOfflineSession | null } | null>(null);
+  const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    const update = () => setRevision(value => value + 1);
+    window.addEventListener('trinity-android-session-updated', update);
+    return () => window.removeEventListener('trinity-android-session-updated', update);
+  }, []);
   useEffect(() => {
     if (!hasAndroidOfflineBridge() || !user) return;
     let disposed = false;
@@ -30,9 +37,9 @@ export function AndroidOfflineBoundary({ children }: { children: ReactNode }) {
       const session = reply.session?.accountId === user.id && reply.session.role === user.role ? reply.session : null;
       setAccess({ accountId: user.id, session });
       if (session) expiry = setTimeout(() => setAccess({ accountId: user.id, session: null }), Math.max(0, Date.parse(session.expiresAt) - Date.now()));
-    }).catch(() => { if (!disposed) setAccess({ accountId: user.id, session: null }); });
+    }).catch(() => { recordAppDiagnostic('offline_status_failed'); if (!disposed) setAccess({ accountId: user.id, session: null }); });
     return () => { disposed = true; if (expiry) clearTimeout(expiry); };
-  }, [offline, user?.id, user?.role]);
+  }, [offline, user?.id, user?.role, revision]);
 
   useEffect(() => {
     if (!offline || !hasAndroidOfflineBridge()) return;
@@ -50,8 +57,15 @@ export function AndroidOfflineBoundary({ children }: { children: ReactNode }) {
     return () => { document.removeEventListener('click', prevent, true); document.removeEventListener('submit', prevent, true); };
   }, [offline]);
 
+  useEffect(() => {
+    if (!offline || !user || !access || access.accountId !== user.id) return;
+    recordAppDiagnostic(!access.session ? 'offline_access_missing'
+      : Date.parse(access.session.expiresAt) <= Date.now() ? 'offline_access_expired'
+      : !canOpenAndroidOfflineRoute(path, access.session) ? 'offline_section_requires_connection' : 'offline_section_ready');
+  }, [offline, access, path, user?.id]);
+
   if (!offline || !user || path === '/login') return <>{children}</>;
-  if (!access || access.accountId !== user.id) return null;
+  if (!access || access.accountId !== user.id) return <p role="status" className="py-8 text-center text-muted-foreground">Checking saved access…</p>;
   if (!access.session || Date.parse(access.session.expiresAt) <= Date.now() || !canOpenAndroidOfflineRoute(path, access.session)) {
     return <div className="py-8 text-center space-y-3">
       <p className="text-muted-foreground">{access.session ? 'This section is available when connected.' : 'Connect to renew your secure session.'}</p>

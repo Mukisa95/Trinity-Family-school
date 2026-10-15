@@ -1,3 +1,5 @@
+import { measureWorkspaceStep } from '@/lib/startup/workspace-timing';
+
 type Reply = { id: string; success: boolean; error?: string; palette?: unknown; lowRam?: boolean; session?: import('./android-contracts').AndroidOfflineSession };
 type Bridge = { postMessage: (message: string) => void; onmessage?: (event: { data: string }) => void };
 declare global { interface Window { TrinityOffline?: Bridge } }
@@ -6,7 +8,7 @@ let attached: Bridge | undefined;
 
 export function hasAndroidOfflineBridge() { return typeof window !== 'undefined' && Boolean(window.TrinityOffline); }
 
-export async function androidOfflineRequest(action: string, data: Record<string, unknown> = {}): Promise<Reply> {
+export async function androidOfflineRequest(action: string, data: Record<string, unknown> = {}, timeoutMs = 30_000): Promise<Reply> {
   const bridge = typeof window !== 'undefined' ? window.TrinityOffline : undefined;
   if (!bridge) throw new Error('Android offline access is unavailable.');
   if (attached !== bridge) {
@@ -24,9 +26,16 @@ export async function androidOfflineRequest(action: string, data: Record<string,
   }
   const id = crypto.randomUUID();
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => { pending.delete(id); reject(new Error('Android offline preparation timed out.')); }, 30_000);
+    const timer = setTimeout(() => { pending.delete(id); reject(new Error('Android offline preparation timed out.')); }, timeoutMs);
     pending.set(id, { resolve, reject, timer });
-    try { bridge.postMessage(JSON.stringify({ id, action, ...data })); }
+    try {
+      const startedAt = performance.now();
+      const message = JSON.stringify({ id, action, ...data });
+      if (action === 'save') measureWorkspaceStep('android:snapshot-serialize', startedAt);
+      const postingAt = performance.now();
+      bridge.postMessage(message);
+      if (action === 'save') measureWorkspaceStep('android:snapshot-post', postingAt);
+    }
     catch (error) { clearTimeout(timer); pending.delete(id); reject(error); }
   });
 }

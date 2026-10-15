@@ -1,7 +1,8 @@
 "use client";
 import { clearAndroidOfflineAccess } from '@/lib/offline/android-bridge';
+import { measureWorkspaceOperation, measureWorkspaceStep } from '@/lib/startup/workspace-timing';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { SystemUser, UserRole, ModulePermission, Permission } from '@/types';
 import { UsersService } from '@/lib/services/users.service';
@@ -17,6 +18,10 @@ import { removeParentOfflineAccount } from '@/lib/parent-offline/repository';
 import { deletePersistentCollection, persistentCollectionCacheKey } from '@/lib/cache/persistent-collection-cache';
 import { PupilsService } from '@/lib/services/pupils.service';
 import { clearPupilSessionQueries } from '@/lib/cache/pupil-session-cache';
+import { clearSavedWorkspaceAccess, rememberVerifiedWorkspaceAccess } from '@/lib/startup/workspace-cache-access';
+
+import { isDefinitiveSessionError, sessionErrorCode } from '@/lib/auth/session-error-policy';
+import { recordAppDiagnostic } from '@/lib/utils/app-diagnostics';
 
 const AUTH_CACHE_KEY = 'trinity_user';
 // How often a long-lived tab asks Firebase Authentication for a fresh signed
@@ -31,20 +36,6 @@ const AUTH_CACHE_MAX_AGE_MS = SESSION_VALIDATION_INTERVAL_MS * 2;
 // Firebase user but be unable to refresh token claims right away.  Do not
 // turn that transient condition into a logout; the fallback below still
 // requires the Firebase identity to match the previously verified profile.
-const TRANSIENT_FIREBASE_AUTH_ERRORS = new Set([
-  'auth/network-request-failed',
-  'auth/quota-exceeded',
-  'auth/too-many-requests',
-  'auth/internal-error',
-  'auth/timeout',
-]);
-
-function isTransientFirebaseAuthError(error: unknown) {
-  if (!error || typeof error !== 'object') return false;
-  const code = (error as { code?: unknown }).code;
-  return typeof code === 'string' && TRANSIENT_FIREBASE_AUTH_ERRORS.has(code);
-}
-
 type SessionStatus = 'checking' | 'fresh' | 'stale' | 'degraded';
 
 type StoredAuthCache = {
@@ -64,6 +55,7 @@ interface AuthContextType {
   sessionMessage: string | null;
   isSessionVerificationDelayed: boolean;
   isAuthenticated: boolean;
+  isSignedIdentityReady: boolean;
   canAccessModule: (module: string) => boolean;
   canEdit: (module: string) => boolean;
   canDelete: (module: string) => boolean;
@@ -95,6 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>('checking');
   const [sessionMessage, setSessionMessage] = useState<string | null>(null);
   const [lastSessionValidationAt, setLastSessionValidationAt] = useState<number>(0);
+  const validationInFlight = useRef(false);
+  const [signedWorkspaceId, setSignedWorkspaceId] = useState<string | null>(null);
 
   const saveUserCache = (userData: SystemUser) => {
     if (typeof window === 'undefined') return;
@@ -105,10 +99,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, ...safeUser } = userData as SystemUser & { passwordHash?: string };
     const payload: StoredAuthCache = { user: safeUser as SystemUser, cachedAt: Date.now() };
-    localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(payload));
+    try { localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(payload)); }
+    catch { recordAppDiagnostic('auth_cache_write_failed'); }
   };
 
   const clearUserCache = () => {
+    setSignedWorkspaceId(null);
+    clearSavedWorkspaceAccess();
     void clearAndroidOfflineAccess().catch(() => undefined);
     if (typeof window === 'undefined') return;
     localStorage.removeItem(AUTH_CACHE_KEY);
@@ -185,6 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let firebaseInitialized = false;
     let restoredCachedUser: SystemUser | null = null;
     let finishedInitialAuthCheck = false;
+    let authGeneration = 0;
 
     const finishInitialAuthCheck = () => {
       if (finishedInitialAuthCheck) return;
@@ -194,6 +192,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const initializeAuth = async () => {
+      const restorationStarted = performance.now();
+      let restorationRecorded = false;
       try {
         // First, try to restore user from localStorage immediately
         const storedAutoLock = localStorage.getItem('trinity_auto_lock');
@@ -272,7 +272,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setUser(storedCache.user);
               restoredCachedUser = storedCache.user;
               setHasStoredUser(true);
-              setSessionStatus('fresh');  // Trust the cache until DB says otherwise
+              setSessionStatus('checking');
               setSessionMessage(null);
               setIsLoading(false);
               performance.mark?.('trinity:auth-cache-ready');
@@ -294,6 +294,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Firebase's listener waits for its own initialization. Adding an extra
         // timer here only delays cold starts and does not make auth safer.
         unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+          if (!restorationRecorded) {
+            restorationRecorded = true;
+            recordAppDiagnostic(firebaseUser && !firebaseUser.isAnonymous ? 'auth_identity_restored' : 'auth_restore_no_identity');
+            measureWorkspaceStep(firebaseUser && !firebaseUser.isAnonymous ? 'identity:restored-signed' : 'identity:restored-without-session', restorationStarted);
+          }
+          const currentGeneration = ++authGeneration;
           logger.debug('Firebase signed-token state changed', {
             userId: firebaseUser?.uid || 'No user',
             anonymous: firebaseUser?.isAnonymous || false,
@@ -303,12 +309,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (firebaseUser && !firebaseUser.isAnonymous) {
             firebaseInitialized = true;
             try {
-              const tokenResult = await firebaseUser.getIdTokenResult();
+              const tokenResult = await measureWorkspaceOperation('identity:token-verification', () => firebaseUser.getIdTokenResult());
+              if (currentGeneration !== authGeneration || auth.currentUser?.uid !== firebaseUser.uid) return;
               if (
                 tokenResult.claims.appUser !== true ||
                 tokenResult.claims.isActive !== true
               ) {
-                throw new Error('Firebase identity is not an active application user.');
+                throw Object.assign(new Error('Firebase identity is not an active application user.'), { code: 'app/invalid-claims' });
               }
 
               // Bind the signed Firebase uid to the profile returned by the
@@ -316,7 +323,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               const latestCache = readUserCache();
               const cachedUser = latestCache?.user || restoredCachedUser;
               if (!cachedUser || cachedUser.id !== firebaseUser.uid || !validateStoredUser(cachedUser)) {
-                throw new Error('The signed identity does not match the cached application profile.');
+                throw Object.assign(new Error('The signed identity does not match the cached application profile.'), { code: 'app/profile-mismatch' });
               }
 
               const systemUserData: SystemUser = {
@@ -334,11 +341,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               restoredCachedUser = systemUserData;
               setHasStoredUser(true);
               saveUserCache(systemUserData);
+              rememberVerifiedWorkspaceAccess(systemUserData);
+              setSignedWorkspaceId(systemUserData.id);
               setLastSessionValidationAt(Date.now());
               setSessionStatus('fresh');
               setSessionMessage(null);
               performance.mark?.('trinity:firebase-auth-ready');
             } catch (error) {
+              if (currentGeneration !== authGeneration || auth.currentUser?.uid !== firebaseUser.uid) return;
               const latestCache = readUserCache();
               const cachedUser = latestCache?.user || restoredCachedUser;
 
@@ -348,12 +358,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               // localStorage-only bypass: no Firebase identity, a different
               // uid, or a non-transient verification failure still signs out.
               if (
-                isTransientFirebaseAuthError(error) &&
+                !isDefinitiveSessionError(error) &&
                 cachedUser &&
                 cachedUser.id === firebaseUser.uid &&
                 validateStoredUser(cachedUser)
               ) {
                 logger.warn('Keeping previously verified session during temporary Firebase Auth verification failure', error);
+                recordAppDiagnostic('auth_verification_delayed');
                 setUser(cachedUser);
                 restoredCachedUser = cachedUser;
                 setHasStoredUser(true);
@@ -368,6 +379,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               }
 
               logger.error('AuthContext: Error processing Firebase identity', error);
+              recordAppDiagnostic(`auth_cleared/${sessionErrorCode(error)}`);
               clearPrivateParentOfflineData(cachedUser?.id);
               setUser(null);
               restoredCachedUser = null;
@@ -380,6 +392,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             firebaseInitialized = true;
             logger.debug('No signed Firebase application user - clearing the private user session');
+            recordAppDiagnostic('auth_identity_missing');
             clearPrivateParentOfflineData(restoredCachedUser?.id || readUserCache()?.user.id);
             setUser(null);
             restoredCachedUser = null;
@@ -399,6 +412,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeAuth();
 
     return () => {
+      authGeneration++;
       if (unsubscribe) {
         unsubscribe();
       }
@@ -420,6 +434,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLocked(true);
         localStorage.setItem('trinity_account_locked', JSON.stringify(true));
       } else if (autoLockAction === 'signout') {
+        recordAppDiagnostic('auth_auto_signout_on_exit');
         // Clear user data
         clearPrivateParentOfflineData(user.id);
         setUser(null);
@@ -500,6 +515,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    recordAppDiagnostic('auth_explicit_logout');
     const departingUserId = user?.id || auth.currentUser?.uid;
     if (departingUserId && typeof window !== 'undefined') {
       try {
@@ -563,7 +579,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const revalidateSignedSession = async (forceRefresh: boolean): Promise<boolean> => {
     if (!user) return false;
 
-    const validation = await validateCurrentAppSession(user.id, forceRefresh);
+    if (validationInFlight.current) return true;
+    validationInFlight.current = true;
+    let checkedIdentity = auth.currentUser;
+    let validation;
+    try {
+      await auth.authStateReady();
+      checkedIdentity = auth.currentUser;
+      // A session switched while restoration was pending belongs to its new owner.
+      if (checkedIdentity && checkedIdentity.uid !== user.id) return false;
+      validation = await validateCurrentAppSession(user.id, forceRefresh);
+    }
+    catch {
+      recordAppDiagnostic('auth_restore_delayed');
+      return true;
+    }
+    finally { validationInFlight.current = false; }
+    if (auth.currentUser !== checkedIdentity) return false;
     setLastSessionValidationAt(Date.now());
 
     if (validation.status === 'valid') {
@@ -578,6 +610,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (validation.status === 'unavailable') {
+      recordAppDiagnostic('auth_revalidation_delayed');
+      recordAppDiagnostic(`auth_validation_reason/${validation.reason}`);
       // A network interruption must not turn a privacy lock into a lockout.
       // Live Firestore operations remain governed by the signed token/rules.
       setSessionStatus('degraded');
@@ -586,6 +620,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     logger.info('Signed session is no longer valid', { userId: user.id });
+    recordAppDiagnostic('auth_revalidation_invalid');
+    recordAppDiagnostic(`auth_validation_reason/${validation.reason}`);
     clearPrivateParentOfflineData(user.id);
     setUser(null);
     setHasStoredUser(false);
@@ -739,6 +775,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined' || !user) return;
 
     const validateIfDue = () => {
+      // The initial token listener owns startup verification. Focus/visibility
+      // checks begin after it resolves, so they cannot race Firebase restoration.
+      if (sessionStatus === 'checking') return;
       const age = Date.now() - lastSessionValidationAt;
       if (age < SESSION_VALIDATION_INTERVAL_MS) return;
       void revalidateSignedSession(true);
@@ -762,7 +801,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.clearInterval(validationTimer);
     };
-  }, [user, lastSessionValidationAt]);
+  }, [user, lastSessionValidationAt, sessionStatus]);
 
   const canAccessModule = (module: string): boolean => {
     if (!user) return false;
@@ -770,12 +809,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const canEdit = (module: string): boolean => {
-    if (!user) return false;
+    if (!user || isLocked || signedWorkspaceId !== user.id) return false;
     return UsersService.canUserEdit(user, module);
   };
 
   const canDelete = (module: string): boolean => {
-    if (!user) return false;
+    if (!user || isLocked || signedWorkspaceId !== user.id) return false;
     return UsersService.canUserDelete(user, module);
   };
 
@@ -791,6 +830,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const canPerformAction = (module: string, page: string, action: string): boolean => {
     if (!user) return false;
+    const localViewing = action === 'access_page' || /^(view|print|export|download)(_|$)/.test(action);
+    if (!localViewing && (isLocked || signedWorkspaceId !== user.id)) return false;
     return GranularPermissionService.canPerformAction(user, module, page, action);
   };
 
@@ -806,6 +847,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     sessionMessage,
     isSessionVerificationDelayed: sessionStatus === 'degraded',
     isAuthenticated: !!user,
+    isSignedIdentityReady: !!user && signedWorkspaceId === user.id && !isLocked,
     canAccessModule,
     canEdit,
     canDelete,

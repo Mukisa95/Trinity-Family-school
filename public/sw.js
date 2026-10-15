@@ -21,8 +21,8 @@
 
 // ⚠️ IMPORTANT: Increment this version number with EVERY deployment
 // This ensures users get the latest version of your app
-const SW_VERSION = 'build-20261010111340533';
-const BUILD_TIMESTAMP = '2026-10-10T11:13:40.533Z'; // Update this on each build
+const SW_VERSION = 'build-20261010122708255';
+const BUILD_TIMESTAMP = '2026-10-10T12:27:08.255Z'; // Update this on each build
 
 const CACHE_NAME = `trinity-schools-${SW_VERSION}`;
 const STATIC_CACHE = `static-${SW_VERSION}`;
@@ -35,7 +35,7 @@ const PARENT_APP_SHELL_CACHE = `parent-app-shell-${SW_VERSION}`;
 const PARENT_APP_ROUTES = new Set(['/parent', '/parent/settings']);
 const ANDROID_APP_SHELL_CACHE = `android-app-shell-${SW_VERSION}`;
 const ANDROID_SHELL_IMAGES = new Set(['/images/D.B%20background.png', '/trinity-logo-192.png']);
-const ANDROID_APP_ROUTES = new Set(['/', '/pupils', '/pupil-detail', '/timetable', '/login']);
+const ANDROID_APP_ROUTES = new Set(['/', '/pupils', '/pupil-detail', '/timetable', '/events', '/login', '/parent', '/parent/settings']);
 
 async function androidShellMatch(request) {
   const names = (await caches.keys()).filter(name => name.startsWith('android-app-shell-')).sort().reverse();
@@ -43,6 +43,53 @@ async function androidShellMatch(request) {
     const response = await (await caches.open(name)).match(request);
     if (response) return response;
   }
+}
+// Only explicitly prepared public client-page interfaces enter this cache.
+// Omit credentials and the router-state header so the saved tree is a complete
+// route shell, usable from any sibling page. Private records stay in their owners.
+function androidRouteRequest(path, build) {
+  return new Request(new URL(`/__trinity_saved_route/${encodeURIComponent(build)}/${encodeURIComponent(path)}`, self.location.origin));
+}
+function androidRouteBuildFromBytes(bytes) {
+  // Flight has both newline-delimited records and length-prefixed binary/text
+  // records. Long metadata strings have no trailing newline; skip their UTF-8
+  // byte length before looking for the root record (React/Next 15 protocol).
+  const decoder = new TextDecoder();
+  let cursor = 0;
+  while (cursor < bytes.length) {
+    const colon = bytes.indexOf(58, cursor);
+    if (colon < 0) break;
+    const id = decoder.decode(bytes.subarray(cursor, colon));
+    // Resource hints can omit the numeric ID (for example :HL[...]).
+    if (!/^[0-9a-f]*$/.test(id)) break;
+    cursor = colon + 1;
+    if ('TAOoUSsLlGgMmV'.includes(String.fromCharCode(bytes[cursor]))) {
+      const comma = bytes.indexOf(44, ++cursor);
+      if (comma < 0) break;
+      const length = decoder.decode(bytes.subarray(cursor, comma));
+      if (!/^[0-9a-f]+$/.test(length)) break;
+      cursor = comma + 1 + parseInt(length, 16);
+      if (!Number.isSafeInteger(cursor) || cursor > bytes.length) break;
+    } else {
+      const end = bytes.indexOf(10, cursor);
+      if (end < 0) break;
+      if (id === '0' && bytes[cursor] === 123) {
+        const build = JSON.parse(decoder.decode(bytes.subarray(cursor, end))).b;
+        if (typeof build === 'string' && build && build.length <= 200) return build;
+        break;
+      }
+      cursor = end + 1;
+    }
+  }
+  throw new Error('The page interface version is unavailable.');
+}
+async function saveAndroidRoute(cache, url) {
+  const response = await fetch(new Request(new URL(url.pathname, self.location.origin), {
+    credentials: 'omit', headers: { RSC: '1' }, cache: 'no-store',
+  }));
+  if (!response.ok || response.redirected || !response.headers.get('Content-Type')?.includes('text/x-component')) throw new Error('Page navigation is still preparing.');
+  const build = androidRouteBuildFromBytes(new Uint8Array(await response.clone().arrayBuffer()));
+  await cache.put(androidRouteRequest(url.pathname, build), response);
 }
 const PARENT_OFFLINE_LAUNCH_ROUTE = '/';
 
@@ -139,7 +186,7 @@ self.addEventListener('activate', (event) => {
         // PWA midway through that navigation, then restore an empty document
         // when the user returns to it. The app will naturally receive fresh
         // assets on its next normal navigation or launch.
-        return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+        return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async clients => {
           clients.forEach(client => {
             client.postMessage({
               type: 'SW_UPDATED',
@@ -148,13 +195,9 @@ self.addEventListener('activate', (event) => {
             });
           });
           console.log(`✅ Notified ${clients.length} client(s) about SW update to ${SW_VERSION}`);
+          await new Promise(resolve => setTimeout(resolve, 5_000));
+          await cacheOfflineDocumentAssets(await caches.open(STATIC_CACHE));
         });
-      })
-      .then(async () => {
-        // Retain first-use document availability for ordinary browser/PWA users,
-        // after taking control and letting their initial page requests finish.
-        await new Promise(resolve => setTimeout(resolve, 5_000));
-        await cacheOfflineDocumentAssets(await caches.open(STATIC_CACHE));
       })
   );
 });
@@ -193,7 +236,7 @@ function startHeartbeat() {
  * was received" errors when two handlers both tried to respond on the
  * same MessageChannel port.
  */
-// Public document chunks are optional: never delay or invalidate saved pages.
+// Warm public document chunks without executing them or caching private APIs.
 async function cacheOfflineDocumentAssets(cache) {
   try {
     const response = await fetch('/_next/static/offline-document-assets.json', { cache: 'no-store' });
@@ -213,7 +256,7 @@ async function cacheOfflineDocumentAssets(cache) {
         } catch { /* Retry when the shell prepares again. */ }
       }
     }));
-  } catch { /* Keep existing pages available on a weak connection. */ }
+  } catch { /* Weak connections must not invalidate saved pages. */ }
 }
 
 self.addEventListener('message', (event) => {
@@ -280,6 +323,7 @@ self.addEventListener('message', (event) => {
         }
         const html = await response.clone().text();
         await Promise.all(parentStaticAssetUrlsFromHtml(html, url.toString()).map(saveAsset));
+        if (event.data.navigation === true && url.pathname !== '/login') await saveAndroidRoute(cache, url);
         // Publish the page only AFTER all of its referenced assets are ready.
         await cache.put(request, response);
       }));
@@ -679,7 +723,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.origin === self.location.origin && ANDROID_APP_ROUTES.has(url.pathname) && event.request.mode === 'navigate') {
+  if (url.origin === self.location.origin && ANDROID_APP_ROUTES.has(url.pathname) && !PARENT_APP_ROUTES.has(url.pathname) && event.request.mode === 'navigate') {
     event.respondWith((async () => {
       const request = parentAppRouteRequest(url);
       // Existing parent installations also fall back to the root shell.
@@ -705,7 +749,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.open(PARENT_APP_SHELL_CACHE).then(async cache => {
         const canonicalRequest = parentAppRouteRequest(url);
-        const cached = await cache.match(canonicalRequest);
+        const cached = await androidShellMatch(canonicalRequest) || await cache.match(canonicalRequest);
         if (cached) return cached;
         const response = await fetch(event.request, { cache: 'no-store' });
           if (response.ok) {

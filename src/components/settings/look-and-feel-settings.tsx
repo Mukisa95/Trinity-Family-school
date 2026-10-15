@@ -22,7 +22,7 @@ const choice = "min-h-12 rounded-xl border p-3 text-left transition-colors durat
 const selected = "border-brand-500 bg-brand-surface-50 text-brand-ink-800 dark:bg-brand-surface-950/50";
 const unselected = "border-border bg-card text-card-foreground hover:bg-accent";
 
-export function LookAndFeelSettings() {
+export function LookAndFeelSettings({ sticky = true }: { sticky?: boolean }) {
   const { ready, changing, preference, lookAndFeel, storageAvailable, deviceColorsSupported, changeTheme, changeLookAndFeel } = useAppearance();
   const { preference: effects, reducedEffects, changePreference } = usePerformanceMode();
   const disabled = !ready || changing;
@@ -34,7 +34,7 @@ export function LookAndFeelSettings() {
   };
 
   return <div className="mx-auto w-full max-w-5xl space-y-6 pb-8">
-    <GlassPageTopBar title="Look and Feel" recordDetails="Saved on this device" leading={<Palette className="h-6 w-6 text-link" aria-hidden="true" />} sticky={false} />
+    <GlassPageTopBar title="Look and Feel" recordDetails="Saved on this device" leading={<Palette className="h-6 w-6 text-link" aria-hidden="true" />} sticky={sticky} />
     <div className="space-y-6 px-4 sm:px-6">
       <Card><CardContent className="space-y-4 p-5 sm:p-6">
         <h2 className="text-lg font-semibold">Visual effects</h2>
@@ -61,7 +61,7 @@ export function LookAndFeelSettings() {
 
       <Card><CardContent className="space-y-4 p-5 sm:p-6">
         <h2 className="text-lg font-semibold">Theme</h2>
-        <p className="text-sm text-muted-foreground">Both themes include matching light and dark colours.</p>
+        <p className="text-sm text-muted-foreground">Every theme includes matching light and dark colours.</p>
         {ready && hasAndroidOfflineBridge() && <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-background p-4">
           <div className="space-y-1"><label htmlFor="device-colors" className="cursor-pointer text-sm font-semibold">Use device colours</label>
             <p id="device-colors-description" className="text-xs text-muted-foreground">{deviceColorsSupported ? "Match your wallpaper colours across the app, widgets and timetable notification." : "Available in the updated Android app on Android 12 or later."}</p></div>

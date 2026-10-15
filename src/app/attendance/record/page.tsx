@@ -1,4 +1,6 @@
 "use client";
+
+import { CatalogueDataNotice } from '@/components/common/catalogue-data-notice';
 import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
 import { ClassSelector } from "@/components/common/class-selector";
@@ -255,7 +257,8 @@ export default function RecordAttendancePage() {
   );
   // This is the academically correct year (cross-year, date-aware, no isActive bias)
   const activeAcademicYear = _effectiveTerm.academicYear ?? undefined;
-  const { data: excludedDays = [], isLoading: excludedDaysLoading } = useExcludedDays();
+  const excludedDaysQuery = useExcludedDays();
+  const { data: excludedDays = [], isLoading: excludedDaysLoading } = excludedDaysQuery;
 
   // Date setup - get today's date
   const today = React.useMemo(() => new Date(), []);
@@ -870,6 +873,10 @@ export default function RecordAttendancePage() {
     return stats;
   }, [pupilsInClass, attendanceData]);
 
+  if (excludedDaysQuery.error && excludedDaysQuery.data === undefined) {
+    return <CatalogueDataNotice label="school-day calendar" saved={excludedDaysQuery.isSavedData} refreshing={excludedDaysQuery.isFetching} error={excludedDaysQuery.error} hasData={excludedDaysQuery.data !== undefined} retry={excludedDaysQuery.refetch} />;
+  }
+
   if (classesLoading || pupilsLoading || academicYearLoading || excludedDaysLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -880,6 +887,7 @@ export default function RecordAttendancePage() {
 
   return (
     <div className="min-h-screen">
+      <CatalogueDataNotice label="school-day calendar" saved={excludedDaysQuery.isSavedData} refreshing={excludedDaysQuery.isFetching} error={excludedDaysQuery.error} hasData={excludedDaysQuery.data !== undefined} retry={excludedDaysQuery.refetch} />
       {/* Show recess status banner if in recess mode */}
       <RecessStatusBanner />
 

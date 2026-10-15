@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   auditQueryFamily,
+  bufferOperationalEvent,
   buildOperationalAuditMarkdown,
   isOperationalAuditTransportEvent,
   isOperationalAuditTransportResource,
@@ -27,6 +28,32 @@ function event(overrides: Partial<OperationalAuditEvent> = {}): OperationalAudit
     ...overrides,
   };
 }
+
+test('full collector preserves navigation failures and severity totals after thumbnail traffic', () => {
+  const buffer = new Map<string, OperationalAuditEvent>();
+  for (let i = 0; i < 100; i++) bufferOperationalEvent(buffer, event({ name: `workspace:android:photo-${i}`, source: 'workspace-timing', severity: i % 2 ? 'info' : 'warning' }));
+  bufferOperationalEvent(buffer, event({ name: 'workspace:navigation:timeout', source: 'workspace-timing' }));
+  bufferOperationalEvent(buffer, event({ name: 'chunk-load-failed', kind: 'error', severity: 'error' }));
+  const events = [...buffer.values()];
+  assert.ok(events.some(item => item.name === 'workspace:navigation:timeout'));
+  assert.ok(events.some(item => item.name === 'chunk-load-failed'));
+  assert.equal(events.filter(item => item.severity === 'warning').reduce((sum, item) => sum + item.count, 0), 51);
+  assert.equal(events.filter(item => item.severity === 'info').reduce((sum, item) => sum + item.count, 0), 50);
+  assert.equal(events.filter(item => item.severity === 'error').reduce((sum, item) => sum + item.count, 0), 1);
+  assert.ok(buffer.size <= 40);
+});
+
+test('click-heavy exports keep page and navigation timings and disclose the table cap', () => {
+  const events = Array.from({ length: 210 }, (_, i) => event({ name: 'interaction-to-paint', source: 'browser', severity: 'info', firstAt: new Date(1000 + i).toISOString() }));
+  events.push(event({ name: 'workspace:navigation:timeout', source: 'workspace-timing', severity: 'info' }));
+  events.push(event({ name: 'workspace:page:pupils:data-ready', source: 'workspace-timing', severity: 'info' }));
+  const record: OperationalAuditRecord = { id: 'test', ts: new Date(), sessionId: 'test', startedAt: '', endedAt: '', appVersion: 'test', device: 'phone', events };
+  const markdown = buildOperationalAuditMarkdown([record], '2026-10-12', false);
+  const stages = markdown.split('## Startup, data readiness, offline preparation and clicks')[1].split('## Slowest')[0];
+  assert.match(stages, /workspace:navigation:timeout/);
+  assert.match(stages, /workspace:page:pupils:data-ready/);
+  assert.match(markdown, /Stage measurements shown: 200 of 212/);
+});
 
 test('route and error sanitizers remove query values and identifier-like data', () => {
   assert.equal(

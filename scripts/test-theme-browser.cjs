@@ -87,9 +87,10 @@ async function run() {
     console.log('Circular reveal verified.');
     assert.equal(await toggle.getAttribute('aria-checked'),'true');
     const activeText=await page.locator('[data-sidebar="menu-button"][data-active="true"]').evaluate(el=>getComputedStyle(el).color);
-    assert.equal(activeText,'rgb(147, 197, 253)','Active navigation uses readable ink, independently of button fills');
+    const activeRole=await page.evaluate(()=>{const el=document.createElement('span');el.style.color='hsl(var(--sidebar-accent-foreground))';document.body.append(el);const value=getComputedStyle(el).color;el.remove();return value;});
+    assert.equal(activeText,activeRole,'Active navigation follows the semantic theme foreground');
     const night=await page.locator('.dashboard-bg-wrapper').evaluate(el=>({image:getComputedStyle(el,'::after').backgroundImage,opacity:getComputedStyle(el,'::after').opacity}));assert.ok(night.image.includes('Night%20Background.png'));assert.equal(night.opacity,'1');
-    await page.locator('.dashboard-bg-wrapper').evaluate(el=>el.style.setProperty('--scroll-blur','6px'));await page.waitForFunction(()=>getComputedStyle(document.querySelector('.dashboard-bg-wrapper'),'::before').backdropFilter==='blur(6px)');await page.locator('.dashboard-bg-wrapper').evaluate(el=>el.style.setProperty('--scroll-blur','0px'));await page.waitForFunction(()=>getComputedStyle(document.querySelector('.dashboard-bg-wrapper'),'::before').backdropFilter==='blur(0px)');
+    assert.equal(await page.locator('.dashboard-bg-wrapper').evaluate(el=>getComputedStyle(el,'::before').backdropFilter),'none','Background dimming must not use backdrop blur');
     assert.equal(await page.evaluate(()=>localStorage.getItem('trinity-appearance')),'dark');
     const paper=await page.locator('[data-theme-surface="paper"]').evaluate(el=>getComputedStyle(el).backgroundColor);assert.equal(paper,'rgb(255, 255, 255)');
     const header=await page.locator('th').first().evaluate(el=>getComputedStyle(el).backgroundImage);assert.ok(!header.includes('255, 255, 255'),header);

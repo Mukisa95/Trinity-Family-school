@@ -1,23 +1,27 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { auth } from '@/lib/firebase';
 import { androidOfflineRequest, hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
 import { exportAndroidCachedSnapshot } from '@/lib/offline/android-cache-export';
-import { isAndroidOfflineSnapshot, type AndroidOfflineSession, type AndroidOfflineSnapshot } from '@/lib/offline/android-contracts';
+import { androidSnapshotRevision, isAndroidSavedCacheKey } from '@/lib/offline/android-sync-policy';
+import { isAndroidOfflineSnapshot, type AndroidOfflineSession } from '@/lib/offline/android-contracts';
 import { subscribeToParentOfflineChanges } from '@/lib/parent-offline/repository';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { useTimetableEntries, useTimetablePeriods, useTimetableProfiles } from '@/lib/hooks/use-timetable';
+import { useEvents, useExamsAsEvents } from '@/lib/hooks/use-events-fixed';
 import { useClasses } from '@/lib/hooks/use-classes';
 import { useSubjects } from '@/lib/hooks/use-subjects';
 import { useStaff } from '@/lib/hooks/use-staff';
 import { prepareAndroidAppShell, isAndroidOffline, installAndroidOfflineNavigation } from '@/lib/offline/android-app-shell';
 import { toast } from '@/hooks/use-toast';
-import { affectsAndroidSnapshot } from '@/lib/offline/android-snapshot-changes';
-import { createSnapshotFingerprint } from '@/lib/offline/android-snapshot-fingerprint';
-import { yieldToInterface } from '@/lib/performance/background-task';
 import { getDashboardTimetableTerm } from '@/lib/offline/timetable-feed';
+import { recordAppDiagnostic } from '@/lib/utils/app-diagnostics';
+import { measureWorkspaceOperation } from '@/lib/startup/workspace-timing';
+import { isNavigationPending, subscribeNavigationWork } from '@/lib/navigation/navigation-work';
+import { createAndroidSnapshotScheduler } from '@/lib/offline/android-snapshot-scheduler';
 
 function PrepareTimetable({ yearId, termId, id }: { yearId: string; termId: string; id: string }) {
   useTimetablePeriods(yearId, termId, id);
@@ -35,8 +39,11 @@ function PrepareCurrentTimetables() {
   return year && term ? <PrepareTerm yearId={year.id} termId={term.id} /> : null;
 }
 
+function PrepareEvents() { useEvents(); useExamsAsEvents(); useAcademicYears(); return null; }
+
 /** Inert in the normal browser/PWA; Android reuses existing caches and query owners. */
 export function AndroidOfflineProvider() {
+  const router = useRouter();
   const { user, isLoading, isLocked } = useAuth();
   const [session, setSession] = useState<AndroidOfflineSession | null>(null);
   const generation = useRef(0);
@@ -48,15 +55,23 @@ export function AndroidOfflineProvider() {
     let refreshing = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
+    let lastConnectionAt = 0;
     const connect = async () => {
       if (refreshing || disposed || isAndroidOffline() || !user || isLocked || auth.currentUser?.uid !== user.id) return;
+      if (Date.now() - lastConnectionAt < 15 * 60 * 1000) return;
       refreshing = true;
       try {
         const token = await auth.currentUser.getIdToken();
         if (disposed || current !== generation.current || auth.currentUser?.uid !== user.id) return;
         const reply = await androidOfflineRequest('connect', { token });
-        if (!disposed && current === generation.current && reply.session?.accountId === user.id) { setSession(reply.session); attempts = 0; }
+        if (!disposed && current === generation.current && reply.session?.accountId === user.id) {
+          setSession(reply.session); attempts = 0;
+          lastConnectionAt = Date.now();
+          recordAppDiagnostic('offline_access_ready');
+          window.dispatchEvent(new Event('trinity-android-session-updated'));
+        }
       } catch (error) {
+        recordAppDiagnostic('offline_connect_failed');
         console.warn('Android offline access could not be prepared:', error instanceof Error ? error.message : 'Unavailable');
         if (!disposed) { if (retry) clearTimeout(retry); retry = setTimeout(() => void connect(), Math.min(60_000, 5_000 * 2 ** attempts++)); }
       }
@@ -70,61 +85,64 @@ export function AndroidOfflineProvider() {
       void connect();
     }
     const unsubscribeAuth = auth.onIdTokenChanged(() => void connect());
+    const onVisible = () => { if (document.visibilityState === 'visible') void connect(); };
+    document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('online', connect);
     window.addEventListener('trinity-android-connectivity', connect);
-    return () => { disposed = true; if (retry) clearTimeout(retry); unsubscribeAuth(); window.removeEventListener('online', connect); window.removeEventListener('trinity-android-connectivity', connect); };
+    return () => { disposed = true; if (retry) clearTimeout(retry); unsubscribeAuth(); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('online', connect); window.removeEventListener('trinity-android-connectivity', connect); };
   }, [user?.id, user?.role, user?.granularPermissions, user?.modulePermissions, isLoading, isLocked]);
 
   useEffect(() => {
     if (!session || !user || session.accountId !== user.id || isLocked) return;
     let disposed = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let running = false;
-    let dirty = false;
     let previous = '';
-    const fingerprintSnapshot = createSnapshotFingerprint();
-    let previousSnapshot: AndroidOfflineSnapshot | undefined;
-    let pupilsDirty = true;
-    let firstDirtyAt = 0;
+    let sourceGeneration = 0;
+    const preparation = new AbortController();
     const synchronize = async () => {
       if (disposed) return;
-      if (running) { dirty = true; return; }
-      running = true;
-      firstDirtyAt = 0;
-      try {
-        await yieldToInterface();
-        if (disposed) return;
-        const pupilsChanged = pupilsDirty;
-        pupilsDirty = false;
-        const snapshot = await exportAndroidCachedSnapshot(session, previousSnapshot ? { previous: previousSnapshot, pupilsUnchanged: !pupilsChanged } : undefined);
-        if (disposed || !snapshot || !isAndroidOfflineSnapshot(snapshot, session)) return;
-        // copiedAt is not a data change; avoid repeated full snapshot bridge writes.
-        const fingerprint = fingerprintSnapshot(snapshot);
-        if (fingerprint === previous) return;
-        await androidOfflineRequest('save', { snapshot });
-        previous = fingerprint;
-        previousSnapshot = snapshot;
-      } catch (error) { pupilsDirty = true; console.warn('Android saved-data refresh failed:', error instanceof Error ? error.message : 'Unavailable'); }
-      finally { running = false; if (dirty && !disposed) { dirty = false; schedule(); } }
+      const startedAt = performance.now();
+      const capturedGeneration = sourceGeneration;
+      const exportAt = performance.now();
+      const snapshot = await measureWorkspaceOperation('android:snapshot-export', () => exportAndroidCachedSnapshot(session, preparation.signal));
+      if (performance.now() - exportAt >= 2000) recordAppDiagnostic('offline_snapshot_export_slow', performance.now() - exportAt);
+      if (disposed || !snapshot || !isAndroidOfflineSnapshot(snapshot, session)) return;
+      if (isNavigationPending() || document.visibilityState === 'hidden') { scheduler.request(); return; }
+      // copiedAt is not a data change; avoid repeated full snapshot bridge writes.
+      const revisionAt = performance.now();
+      const fingerprint = await measureWorkspaceOperation('android:snapshot-revision', () => androidSnapshotRevision(snapshot));
+      if (performance.now() - revisionAt >= 2000) recordAppDiagnostic('offline_snapshot_revision_slow', performance.now() - revisionAt);
+      if (fingerprint === previous) return;
+      const bridgeAt = performance.now();
+      await measureWorkspaceOperation('android:snapshot-save', () => androidOfflineRequest('save', { snapshot }));
+      if (performance.now() - bridgeAt >= 2000) recordAppDiagnostic('offline_snapshot_bridge_slow', performance.now() - bridgeAt);
+      // A disk write during export/save must survive even if timestamps match.
+      previous = capturedGeneration === sourceGeneration ? fingerprint : '';
+      recordAppDiagnostic('offline_snapshot_saved', performance.now() - startedAt);
+      window.dispatchEvent(new Event('trinity-android-session-updated'));
     };
-    const schedule = () => {
-      if (disposed) return;
-      if (running) { dirty = true; return; }
-      if (!firstDirtyAt) firstDirtyAt = Date.now();
-      if (timer) clearTimeout(timer);
-      // Coalesce actual writes, with a bound so a continuous stream cannot starve saving.
-      timer = setTimeout(() => void synchronize(), Math.max(0, Math.min(1_500, 5_000 - (Date.now() - firstDirtyAt))));
+    const scheduler = createAndroidSnapshotScheduler(synchronize,
+      () => !isNavigationPending() && document.visibilityState === 'visible',
+      error => {
+        if (disposed || preparation.signal.aborted) return;
+        recordAppDiagnostic('offline_snapshot_failed');
+        console.warn('Android saved-data refresh failed:', error instanceof Error ? error.message : 'Unavailable');
+      });
+    const schedule = () => scheduler.request();
+    const unsubscribeNavigation = subscribeNavigationWork(pending => {
+      if (!pending) scheduler.resume();
+    });
+    const onVisible = () => { if (document.visibilityState === 'visible') scheduler.resume(); };
+    document.addEventListener('visibilitychange', onVisible);
+    // A repository write may change a projected photo or occur in the same
+    // millisecond as the prior write. Do not deduplicate confirmed disk writes.
+    const persistedChange = () => { sourceGeneration++; previous = ''; schedule(); };
+    const onCacheWritten = (event: Event) => {
+      if (isAndroidSavedCacheKey((event as CustomEvent<{ key?: string }>).detail?.key, session)) persistedChange();
     };
-    const cacheWritten = (event: Event) => {
-      const key = (event as CustomEvent<{ key?: unknown }>).detail?.key;
-      const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
-      if (key === `${projectId}::pupils::user:${session.accountId}`) pupilsDirty = true;
-      if (affectsAndroidSnapshot(session, key, projectId)) schedule();
-    };
-    const unsubscribeParent = subscribeToParentOfflineChanges(session.accountId, schedule);
-    window.addEventListener('trinity-native-cache-written', cacheWritten);
+    const unsubscribeParent = subscribeToParentOfflineChanges(session.accountId, persistedChange);
+    window.addEventListener('trinity-native-cache-written', onCacheWritten);
     schedule();
-    return () => { disposed = true; if (timer) clearTimeout(timer); unsubscribeParent(); window.removeEventListener('trinity-native-cache-written', cacheWritten); };
+    return () => { disposed = true; preparation.abort(); scheduler.dispose(); unsubscribeNavigation(); unsubscribeParent(); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('trinity-native-cache-written', onCacheWritten); };
   }, [session, user?.id, isLocked]);
 
   useEffect(() => {
@@ -132,22 +150,27 @@ export function AndroidOfflineProvider() {
     // while the existing session privacy screen is locked.
     if (!session) return;
     let disposed = false;
+    let preparing = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
     const prepare = async () => {
-      if (disposed || isAndroidOffline()) return;
-      try { await prepareAndroidAppShell(session); }
-      catch { if (!disposed) retry = setTimeout(() => void prepare(), 15_000); }
+      if (disposed || preparing || isAndroidOffline()) return;
+      preparing = true;
+      if (retry) { clearTimeout(retry); retry = undefined; }
+      try { await measureWorkspaceOperation('android:app-shell-preparation', () => prepareAndroidAppShell(session)); }
+      catch { recordAppDiagnostic('offline_shell_failed'); if (!disposed) retry = setTimeout(() => void prepare(), 15_000); }
+      finally { preparing = false; }
     };
     void prepare();
     window.addEventListener('online', prepare);
+    window.addEventListener('trinity-android-connectivity', prepare);
     window.addEventListener('trinity-service-worker-updated', prepare);
-    return () => { disposed = true; if (retry) clearTimeout(retry); window.removeEventListener('online', prepare); window.removeEventListener('trinity-service-worker-updated', prepare); };
-  }, [session, isLocked]);
+    return () => { disposed = true; if (retry) clearTimeout(retry); window.removeEventListener('online', prepare); window.removeEventListener('trinity-android-connectivity', prepare); window.removeEventListener('trinity-service-worker-updated', prepare); };
+  }, [session?.accountId, session?.role, session?.grants.dashboard, session?.grants.pupils, session?.grants.timetable, session?.grants.events]);
 
   useEffect(() => {
     if (!hasAndroidOfflineBridge() || !user) return;
-    return installAndroidOfflineNavigation(user.role, () => toast({ title: 'Connection needed', description: 'Connect to open this section or make changes.' }));
-  }, [user?.id, user?.role]);
+    return installAndroidOfflineNavigation(user.role, () => toast({ title: 'Connection needed', description: 'This page has not finished downloading, or needs a connection to make changes.' }), { navigate: href => router.push(href) });
+  }, [user?.id, user?.role, router]);
 
-  return session?.grants.timetable && !isLocked ? <PrepareCurrentTimetables /> : null;
+  return !isLocked ? <>{session?.grants.timetable && <PrepareCurrentTimetables />}{session?.grants.events && <PrepareEvents />}</> : null;
 }

@@ -73,9 +73,8 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
             >
               {/* Avatar / Initial */}
               <div className="relative flex-shrink-0">
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-brand-surface-500 via-brand-secondary-surface-500 to-pink-500 blur-[2px] opacity-75 animate-pulse" />
-                <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-brand-surface-500 via-brand-alt-surface-600 to-brand-secondary-surface-600 flex items-center justify-center border border-white shadow-sm dark:border-slate-700">
-                  <span className="text-xs font-bold text-white uppercase">
+                <div className="relative w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center border border-border shadow-none">
+                  <span className="text-xs font-bold uppercase">
                     {user?.firstName?.[0] || user?.username?.[0] || '?'}
                   </span>
                 </div>
@@ -119,9 +118,9 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
           side={isCollapsed ? "right" : "top"}
           align={isCollapsed ? "end" : "center"}
           sideOffset={isCollapsed ? 12 : 8}
-          className="w-48 bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200/70 p-1 z-50 dark:bg-slate-900/95 dark:border-slate-700/70"
+          className="w-48 bg-popover text-popover-foreground rounded-xl shadow-sm border border-border p-1 z-50"
         >
-          <div className="px-3 py-2 border-b border-brand-50 bg-gradient-to-r from-brand-surface-50/50 to-brand-alt-surface-50/50 rounded-t-lg dark:border-brand-800/60 dark:from-brand-surface-950/50 dark:to-brand-alt-surface-950/50">
+          <div className="px-3 py-2 border-b border-border bg-popover rounded-t-lg ">
             <p className="text-[10px] font-medium text-gray-600 dark:text-slate-300">Signed in as</p>
             <p className="text-xs font-bold text-brand-ink-700 truncate dark:text-brand-ink-300">{user?.username || 'User'}</p>
           </div>

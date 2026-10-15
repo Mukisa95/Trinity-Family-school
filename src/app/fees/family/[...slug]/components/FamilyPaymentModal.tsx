@@ -1,11 +1,15 @@
 'use client';
 
+import { UnsavedPaymentDialog, usePaymentDraftGuard } from '@/components/common/unsaved-payment-dialog';
+
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
-import React, { useState, useEffect } from 'react';
-import { X, Users, CurrencyDollar, Check } from '@phosphor-icons/react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Users, CurrencyDollar, Check } from '@phosphor-icons/react';
 import { toast } from '@/hooks/use-toast';
 import { formatMoneyInput, parseFormattedMoney } from '@/lib/utils';
 import { findDiscountAwarePaymentViolation } from '@/lib/utils/fee-discount-calculation';
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Types
 import type { Pupil } from '@/types';
@@ -70,6 +74,8 @@ export function FamilyPaymentModal({
   const [paidBy, setPaidBy] = useState<string>('Family Payment');
   const [distributionMode, setDistributionMode] = useState<'equal' | 'proportional' | 'smart' | 'manual'>('smart');
   const [isRecording, setIsRecording] = useState(false);
+  const submitting = useRef(false);
+  const [submissionError, setSubmissionError] = useState('');
 
   const getFeeKey = (fee: Pick<SelectedPupilFee, 'feeStructureId' | 'termId' | 'academicYearId' | 'isCarryForward'>) =>
     `${fee.isCarryForward ? 'cf' : 'current'}:${fee.feeStructureId}:${fee.academicYearId || ''}:${fee.termId || ''}`;
@@ -186,6 +192,7 @@ export function FamilyPaymentModal({
   useEffect(() => {
     if (isOpen) {
       setSelectedFees([]);
+      setSubmissionError('');
       setTotalAmount('');
       setPaymentMethod('Cash');
       setPaidBy('Family Payment');
@@ -285,6 +292,8 @@ export function FamilyPaymentModal({
   };
 
   const handleSubmit = async () => {
+    if (submitting.current) return;
+    setSubmissionError('');
     if (selectedFees.length === 0) {
       toast({
         title: "No fees selected",
@@ -355,6 +364,7 @@ export function FamilyPaymentModal({
       }
     }
 
+    submitting.current = true;
     setIsRecording(true);
     try {
       await onPaymentSubmit({
@@ -365,6 +375,9 @@ export function FamilyPaymentModal({
       });
     } catch (error) {
       console.error('Payment submission error:', error);
+      setSubmissionError(error instanceof Error ? error.message : 'The payment could not be recorded. Your entries are still here.');
+    } finally {
+      submitting.current = false;
       setIsRecording(false);
     }
   };
@@ -372,27 +385,38 @@ export function FamilyPaymentModal({
   const totalSelectedAmount = selectedFees.reduce((sum, fee) => sum + fee.selectedAmount, 0);
   const totalMaxAmount = selectedFees.reduce((sum, fee) => sum + fee.maxAmount, 0);
 
-  if (!isOpen) return null;
+  const draftGuard = usePaymentDraftGuard({
+    isOpen,
+    dirty: selectedFees.length > 0 || totalAmount.trim() !== '' || paymentMethod !== 'Cash'
+      || paidBy !== 'Family Payment' || distributionMode !== 'smart',
+    busy: isRecording,
+    onDiscard: onClose,
+  });
+  const changes = [
+    { label: 'Total amount', value: distributionMode === 'manual'
+      ? `UGX ${totalSelectedAmount.toLocaleString()} (manual)` : (totalAmount ? `UGX ${totalAmount}` : 'Not entered') },
+    { label: 'Payment method', value: paymentMethod },
+    { label: 'Paid by', value: paidBy || 'Not entered' },
+    { label: 'Distribution', value: { smart: 'Smart distribution', equal: 'Equal distribution', proportional: 'Proportional to balance', manual: 'Manual allocation' }[distributionMode] },
+    ...selectedFees.map((fee) => ({
+      label: `${fee.pupilName} — ${fee.feeName}`,
+      value: `UGX ${fee.selectedAmount.toLocaleString()}${fee.isComplete ? ' (pay in full)' : ''}`,
+    })),
+  ];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden dark:bg-slate-900">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Family Payment</h2>
-          </div>
-          <button
-            onClick={onClose}
-            disabled={isRecording}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:hover:bg-slate-900"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) draftGuard.requestClose(); }}>
+      <DialogContent onClick={(event) => { if (event.target === event.currentTarget) draftGuard.requestClose(); }} className="max-w-4xl max-h-[90vh] overflow-hidden p-0 gap-0">
+        <DialogHeader className="p-4 pr-14 border-b">
+          <DialogTitle className="flex items-center gap-2 text-lg">
+            <Users className="w-5 h-5 text-green-600 dark:text-green-400" aria-hidden="true" />
+            Family Payment
+          </DialogTitle>
+        </DialogHeader>
 
         <div className="p-4 overflow-y-auto max-h-[calc(90vh-140px)]">
+          {submissionError && <p role="alert" className="mb-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">{submissionError}</p>}
           {/* Payment Details */}
           <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
@@ -608,7 +632,7 @@ export function FamilyPaymentModal({
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 p-4 border-t bg-gray-50 dark:bg-slate-900">
           <button
-            onClick={onClose}
+            onClick={draftGuard.requestClose}
             disabled={isRecording}
             className="px-3 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-sm disabled:bg-gray-100 disabled:cursor-not-allowed dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-900 dark:disabled:bg-slate-900"
           >
@@ -632,7 +656,11 @@ export function FamilyPaymentModal({
             )}
           </button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
+    <UnsavedPaymentDialog open={draftGuard.showWarning} changes={changes}
+      onContinue={draftGuard.continueEditing} onDiscard={draftGuard.discard}
+      onSave={() => void handleSubmit()} />
+    </>
   );
 }

@@ -1,0 +1,17 @@
+{
+  "schoolId": "trinity-family-ganda",
+  "appName": "Trinity Ganda",
+  "applicationId": "ug.trinityfamilyganda.live",
+  "websiteOrigin": "https://trinityfamilyganda.vercel.app",
+  "firebaseProjectId": "trinity-family-ganda",
+  "versionCode": 28,
+  "versionName": "1.26",
+  "releaseNotes": "Remove the widget heading, track selected subjects across multiple classes with current and next lesson cards, and add Search, Timetable, Events, Pupil and Exams app-icon shortcuts. Includes existing offline calendar, event reminders, diagnostics and session recovery.",
+  "icon": "public/trinity-logo-512.png",
+  "smallIcon": "public/trinity-logo-192.png",
+  "firebaseAndroid": {
+    "appId": "1:386680805645:android:a0fc711d49a00d16a5b844",
+    "apiKey": "AIzaSyACTelZdiedSnf7hFcgQKx4yHYmbGrEbDw",
+    "messagingSenderId": "386680805645"
+  }
+}

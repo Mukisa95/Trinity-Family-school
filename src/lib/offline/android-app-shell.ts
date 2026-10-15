@@ -1,3 +1,4 @@
+import { androidRouteBuildId, readAndroidRoute, cancelledAndroidRoute } from './android-route-cache';
 import { hasAndroidOfflineBridge } from './android-bridge';
 import type { AndroidOfflineSession } from './android-contracts';
 import { prepareParentAppShell } from '@/lib/parent-offline/app-shell';
@@ -11,23 +12,23 @@ export function isAndroidOffline() {
 export function isAndroidOfflineRoute(path: string, role?: string) {
   return role === 'Parent'
     ? ['/parent', '/parent/settings'].includes(path)
-    : ['/', '/pupils', '/pupil-detail', '/timetable'].includes(path);
+    : ['/', '/pupils', '/pupil-detail', '/timetable', '/events'].includes(path);
 }
 
 export function canOpenAndroidOfflineRoute(path: string, session: AndroidOfflineSession) {
   if (!isAndroidOfflineRoute(path, session.role)) return false;
   if (session.role === 'Parent') return true;
-  return path === '/' ? session.grants.dashboard : path === '/timetable' ? session.grants.timetable : session.grants.pupils;
+  return path === '/events' ? !!session.grants.events : path === '/' ? session.grants.dashboard : path === '/timetable' ? session.grants.timetable : session.grants.pupils;
 }
 
 /** Save original Next pages; never copy data or credentials into HTML caches. */
 export async function prepareAndroidAppShell(session: AndroidOfflineSession) {
   if (!hasAndroidOfflineBridge() || !('serviceWorker' in navigator) || isAndroidOffline()) return;
-  if (session.role === 'Parent') { await prepareParentAppShell(); return; }
+  if (session.role === 'Parent') await prepareParentAppShell();
   const worker = (await navigator.serviceWorker.ready).active;
   if (!worker) throw new Error('The interface is still preparing.');
-  const routes = ['/login', ...(session.grants.dashboard ? ['/'] : []),
-    ...(session.grants.pupils ? ['/pupils', '/pupil-detail'] : []), ...(session.grants.timetable ? ['/timetable'] : [])];
+  const routes = session.role === 'Parent' ? ['/login', '/', '/parent', '/parent/settings'] : ['/login', ...(session.grants.dashboard ? ['/'] : []),
+    ...(session.grants.pupils ? ['/pupils', '/pupil-detail'] : []), ...(session.grants.timetable ? ['/timetable'] : []), ...(session.grants.events ? ['/events'] : [])];
   const assetUrls = performance.getEntriesByType('resource').map(entry => entry.name).filter(value => {
     const url = new URL(value, location.origin);
     return url.origin === location.origin && url.pathname.startsWith('/_next/static/');
@@ -41,22 +42,36 @@ export async function prepareAndroidAppShell(session: AndroidOfflineSession) {
       if (event.data?.type === 'ANDROID_APP_SHELL_CACHED') resolve();
       else reject(new Error(event.data?.message || 'The interface could not be prepared.'));
     };
-    worker.postMessage({ type: 'CACHE_ANDROID_APP_SHELL', routes, assetUrls, cacheDocuments: true }, [channel.port2]);
+    worker.postMessage({ type: 'CACHE_ANDROID_APP_SHELL', routes, assetUrls, navigation: true, cacheDocuments: true }, [channel.port2]);
   });
 }
 
-/** Offline navigation loads the original HTML instead of requesting a new RSC payload. */
-export function installAndroidOfflineNavigation(role: string, unavailable: () => void) {
+/** Saved Next route trees keep the existing app/layout/session mounted offline. */
+export function installAndroidOfflineNavigation(role: string, unavailable: () => void, options: {
+  navigate?: (href: string) => void;
+  buildId?: () => string;
+} = {}) {
   const originalFetch = window.fetch;
+  const buildId = options.buildId || androidRouteBuildId;
+  let disposed = false;
+  const blocked = () => { unavailable(); window.dispatchEvent(new Event('trinity-android-navigation-blocked')); };
   const onClick = (event: MouseEvent) => {
-    if (!isAndroidOffline() || !(event.target instanceof Element)) return;
+    if (!isAndroidOffline() || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || !(event.target instanceof Element)) return;
     const anchor = event.target.closest<HTMLAnchorElement>('a[href]');
-    if (!anchor || anchor.hasAttribute('download')) return;
+    if (!anchor || anchor.hasAttribute('download') || (anchor.target && anchor.target !== '_self')) return;
     const url = new URL(anchor.href, location.href);
-    if (url.origin !== location.origin || (url.pathname === location.pathname && url.search === location.search)) return;
-    event.preventDefault(); event.stopImmediatePropagation();
-    if (isAndroidOfflineRoute(url.pathname, role)) location.assign(url.href);
-    else unavailable();
+    if (url.origin !== location.origin) return;
+    if (!isAndroidOfflineRoute(url.pathname, role)) { event.preventDefault(); event.stopImmediatePropagation(); blocked(); return; }
+    // Next Links and plain anchors both use the same client router after the
+    // saved interface is confirmed. A missing download leaves this page usable.
+    if (options.navigate) {
+      event.preventDefault(); event.stopImmediatePropagation();
+      void readAndroidRoute(url.pathname, buildId()).then(saved => {
+        if (disposed) return;
+        if (!isAndroidOffline() || saved) options.navigate?.(url.pathname + url.search + url.hash);
+        else blocked();
+      }).catch(() => { if (!disposed) blocked(); });
+    }
   };
   window.fetch = async (input, init) => {
     if (isAndroidOffline()) {
@@ -64,20 +79,20 @@ export function installAndroidOfflineNavigation(role: string, unavailable: () =>
       const url = new URL(request?.url || String(input), location.href);
       const headers = new Headers(init?.headers || request?.headers);
       if (url.origin === location.origin && headers.get('RSC') === '1') {
-        // Hover/prefetch must never navigate or interrupt the current screen.
-        if (headers.get('Next-Router-Prefetch') === '1') throw new Error('Prefetch unavailable offline.');
         if (isAndroidOfflineRoute(url.pathname, role)) {
-          url.searchParams.delete('_rsc'); location.assign(url.href);
-          return new Promise<Response>(() => {});
+          const saved = await readAndroidRoute(url.pathname, buildId());
+          if (saved) return saved;
         }
-        unavailable(); throw new Error('This section requires a connection.');
+        // Hover/prefetch never opens another page or shows a reconnect prompt.
+        if (headers.get('Next-Router-Prefetch') !== '1') blocked();
+        return cancelledAndroidRoute(buildId());
       }
       if (url.origin === location.origin && (init?.method || request?.method || 'GET').toUpperCase() !== 'GET') {
-        unavailable(); throw new Error('Connect to make changes.');
+        blocked(); throw new Error('Connect to make changes.');
       }
     }
     return originalFetch.call(window, input, init);
   };
   document.addEventListener('click', onClick, true);
-  return () => { window.fetch = originalFetch; document.removeEventListener('click', onClick, true); };
+  return () => { disposed = true; window.fetch = originalFetch; document.removeEventListener('click', onClick, true); };
 }

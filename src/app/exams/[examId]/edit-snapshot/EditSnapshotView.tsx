@@ -39,6 +39,7 @@ import { useClasses } from '@/lib/hooks/use-classes';
 import { useSubjects } from '@/lib/hooks/use-subjects';
 import type { Exam, ExamResult, ExamRecordPupilInfo, ExamRecordSubjectInfo, ExamClassInfoSnapshot } from '@/types';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { getExamTeacherIds, getSubjectTeacherId } from '@/lib/utils/teaching-assignments';
 import { format, parseISO } from 'date-fns';
 import { PageHeader } from '@/components/common/page-header';
 
@@ -148,7 +149,7 @@ export default function EditSnapshotView() {
     setEditedSubjectSnapshots(prev => 
       prev.map(subject => {
         if (subject.subjectId === subjectId) {
-          const teacher = teacherId ? teachingStaff.find(t => t.id === teacherId) : null;
+          const teacher = teacherId ? staff.find(t => t.id === teacherId) : null;
           return {
             ...subject,
             teacherId: teacherId || null,
@@ -233,7 +234,7 @@ export default function EditSnapshotView() {
       code: subject.code,
       maxMarks: exam?.maxMarks || 100,
       passingMarks: exam?.passingMarks || 0,
-      teacherId: null
+      teacherId: getSubjectTeacherId(examClass?.subjectAssignments?.find(assignment => assignment.subjectId === subject.id))
     };
 
     setEditedSubjectSnapshots(prev => [...prev, newSubjectSnapshot]);
@@ -528,7 +529,7 @@ export default function EditSnapshotView() {
                 Subjects in Snapshot
               </CardTitle>
               <CardDescription>
-                Manage subjects and teacher assignments for this exam snapshot ({editedSubjectSnapshots.length} subjects)
+                Manage subjects and primary subject teachers for this exam snapshot ({editedSubjectSnapshots.length} subjects)
               </CardDescription>
             </div>
             <Button
@@ -559,7 +560,7 @@ export default function EditSnapshotView() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No Teacher</SelectItem>
-                    {teachingStaff.map((teacher) => (
+                    {staff.filter(teacher => getExamTeacherIds(examClass?.subjectAssignments, subject.teacherId).includes(teacher.id)).map((teacher) => (
                       <SelectItem key={teacher.id} value={teacher.id}>
                         {teacher.firstName} {teacher.lastName}
                         {teacher.employeeId && ` (${teacher.employeeId})`}

@@ -18,6 +18,10 @@ export class GranularPermissionService {
    */
   static canAccessPage(user: SystemUser | null, moduleId: string, pageId: string): boolean {
     if (!user) return false;
+    // My Profile reads only the signed-in account from AuthContext. It is
+    // available without a school-module grant, including older staff accounts.
+    // Account actions and other account pages still use their existing grants.
+    if (moduleId === 'account' && pageId === 'profile') return true;
     if (moduleId === 'pupils' && pageId === 'historical_seeding') return user.role === 'Admin';
     if (user.role === 'Admin') return true;
     if (user.role === 'Parent') return false; // Parents use a different system

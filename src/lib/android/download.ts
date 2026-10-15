@@ -1,4 +1,30 @@
-import release from './app-release.json';
+import releaseRegistry from './app-releases.json';
+
+export interface AndroidRelease {
+  schema: number;
+  schoolId: string;
+  appName: string;
+  applicationId: string;
+  websiteOrigin: string;
+  firebaseProjectId: string;
+  iconUrl: string;
+  versionCode: number;
+  versionName: string;
+  minAndroid: string;
+  minSdk?: number;
+  filename: string;
+  bytes: number;
+  sha256: string;
+  releaseNotes?: string;
+  signingCertificateSha256?: string;
+}
+
+const releases: readonly AndroidRelease[] = releaseRegistry;
+
+/** A school's database selects its own native identity, including push registration. */
+export function androidReleaseForProject(projectId: string | undefined) {
+  return releases.find(release => release.firebaseProjectId === projectId) ?? null;
+}
 
 /** Next.js can use an internal server URL behind a deployment proxy. */
 export function androidRequestOrigin(headers: Pick<Headers, 'get'>, fallbackOrigin = '', development = false) {
@@ -12,6 +38,8 @@ export function androidRequestOrigin(headers: Pick<Headers, 'get'>, fallbackOrig
 /** Distribution belongs to the configured school website and Firebase project. */
 export function androidReleaseForSite(origin: string, projectId: string, development = false) {
   try {
+    const release = androidReleaseForProject(projectId);
+    if (!release) return null;
     const url = new URL(origin);
     const local = development && ['localhost', '127.0.0.1'].includes(url.hostname);
     if (projectId !== release.firebaseProjectId || (!local && url.origin !== release.websiteOrigin)) return null;

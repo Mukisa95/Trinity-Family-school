@@ -7,7 +7,11 @@ import { pushNotificationIconService } from '@/lib/services/push-notification-ic
 import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60; // 60 seconds timeout
+// Keep image processing in a separate Vercel function group. Vercel groups
+// routes with matching duration settings and unions their traced dependencies;
+// sharing the 60-second API group also ships Sharp/libvips with payment,
+// reminder and push handlers. This image-only budget isolates those binaries.
+export const maxDuration = 120;
 
 interface IconConfig {
   size: number;

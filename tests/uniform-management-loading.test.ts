@@ -68,6 +68,7 @@ function loadComponent(file: string, hookOverrides: Record<string, unknown> = {}
       if (name === 'next/navigation') return { useSearchParams: () => new URLSearchParams('id=pupil') };
       if (name === '@tanstack/react-query') return { useQueryClient: () => ({ invalidateQueries() {} }) };
       if (name === '@/hooks/use-toast') return { useToast: () => ({ toast() {} }) };
+      if (name === '@/lib/utils/name-formatter') return { formatPupilDisplayName: (pupil: any) => [pupil.firstName, pupil.lastName].join(' ') };
       if (name === '@/lib/utils') return { formatCurrency: (value: number) => `UGX ${value}`, parseFormattedMoney: Number };
       if (name === '@/lib/utils/logger') return { logger: { error() {} } };
       if (name.includes('/hooks/')) return new Proxy({}, { get: (_, key: string) => hooks[key] || (() => mutation) });
@@ -134,7 +135,7 @@ test('tracking does not present an empty cached list as no assignments while fet
 
 test('management shows loading rather than zero items while the catalogue is being fetched', () => {
   const component = loadComponent(managementFile, {
-    useUniforms: () => ({ data: [], isLoading: false, isFetching: true, error: null, refetch() {} }),
+    useUniforms: () => ({ data: undefined, isLoading: true, isFetching: true, error: null, refetch() {} }),
   });
   const content = text(component.render({ showFilters: false, addTrigger: 0 }));
   assert.match(content, /Loading uniforms/);

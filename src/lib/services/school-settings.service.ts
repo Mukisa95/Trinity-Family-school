@@ -69,13 +69,10 @@ export class SchoolSettingsService {
 
   /** Strict server read used only by the single settings-cache owner. */
   static async getSchoolSettingsFromServer(): Promise<SchoolSettings | null> {
-    try {
-      const snapshot = await getDocFromServer(schoolSettingsDocumentRef());
-      return snapshot.exists() ? withoutDataRevisions(toSettings(snapshot)) : null;
-    } catch (error) {
-      if (isFirestoreOfflineError(error)) return null;
-      throw error;
-    }
+    // Connection failures must remain retryable, not masquerade as an absent
+    // profile and falsely complete first-time setup.
+    const snapshot = await getDocFromServer(schoolSettingsDocumentRef());
+    return snapshot.exists() ? withoutDataRevisions(toSettings(snapshot)) : null;
   }
 
   private static async saveProfile(

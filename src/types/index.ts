@@ -238,6 +238,25 @@ export interface PupilAssignedFee {
 export type FeesHolidayDiscountType = 'full' | 'half' | 'quarter' | 'percentage';
 export type FeesHolidayCategory = 'required' | 'non-required';
 
+export interface FeesHolidayPhase {
+  academicYearId: string;
+  termId: string;
+  startDate?: string; // Calendar anchor for consumers holding only the selected year.
+  discountType: FeesHolidayDiscountType | 'off';
+  discountValue?: number;
+}
+
+export interface FeesHolidayTermSnapshot {
+  academicYearId: string;
+  termId: string;
+  categories: FeesHolidayCategory[];
+  discountType: FeesHolidayDiscountType;
+  discountValue?: number;
+  isActive: boolean;
+}
+
+export type FeesHolidayDraft = Pick<FeesHoliday, 'categories' | 'discountType' | 'discountValue' | 'isActive' | 'schedule'>;
+
 export interface FeesHoliday {
   id: string;
   pupilId: string;
@@ -252,6 +271,8 @@ export interface FeesHoliday {
   updatedBy?: string; // User who last updated the holiday
   disabledAt?: string; // When the holiday was disabled
   disabledBy?: string; // User who disabled the holiday
+  schedule?: FeesHolidayPhase[]; // Each benefit lasts until the next phase starts.
+  termHistory?: FeesHolidayTermSnapshot[]; // Ended terms are preserved on every edit.
 }
 
 export interface Pupil {
@@ -349,7 +370,7 @@ export type Staff = {
   city?: string;
   country?: string;
   joinDate?: string;
-  status?: 'active' | 'inactive' | 'onLeave';
+  status?: 'active' | 'inactive' | 'onLeave' | 'suspended';
   contractType?: 'permanent' | 'contract' | 'temporary';
   qualifications?: string[];
   specializations?: string[];
@@ -377,7 +398,8 @@ export type ClassLevel = 'Nursery' | 'Lower Primary' | 'Upper Primary' | 'Second
 
 export type SubjectAssignment = {
   subjectId: string;
-  teacherIds: string[]; // Changed from teacherId to support multiple teachers
+  /** Ordered: subject teacher first, followed by assistant subject teachers. */
+  teacherIds: string[];
   teacherId?: string; // Legacy support for older DB records
 };
 
@@ -408,6 +430,8 @@ export type Class = {
   order: number;
   classTeacherId: string;
   classTeacherName?: string;
+  coClassTeacherId?: string;
+  coClassTeacherName?: string;
   classCaptainId?: string;
   assistantClassCaptainId?: string;
   subjectAssignments: SubjectAssignment[];
@@ -442,6 +466,9 @@ export interface SchoolSettings {
     subjects?: number;
     houses?: number;
     accessLevels?: number;
+    requirements?: number;
+    uniforms?: number;
+    excludedDays?: number;
     pupils?: number;
     attendance?: number;
     /** Full exam-definition collection revision. */
@@ -2396,6 +2423,8 @@ export interface TimetableProfile {
    */
   streamLayouts?: Record<string, {
     defaultMode: 'consolidated' | 'separate';
+    /** Display order only. Lessons remain linked by their existing streamId. */
+    streamOrder?: string[];
     dayModes?: Record<string, 'consolidated' | 'separate'>;
     periodModes?: Record<string, 'consolidated' | 'separate'>;
   }>;

@@ -8,6 +8,12 @@ const nextConfig = {
   turbopack: {
     root: path.join(__dirname),
   },
+  experimental: {
+    // Our custom webpack function disables the default build worker unless
+    // explicitly enabled. Separate compiler lifetimes reduce build RAM usage.
+    webpackBuildWorker: true,
+    webpackMemoryOptimizations: true,
+  },
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/lib/contexts/auth-context';
 import type { ExamLease } from '@/types';
-import { ExamLeaseService, type ExamLeaseOverride, type ExamLeaseToken } from '@/lib/services/exam-lease.service';
+import { ExamLeaseService, type ExamLeaseAttempt, type ExamLeaseOverride, type ExamLeaseToken } from '@/lib/services/exam-lease.service';
+import { isAndroidOffline } from '@/lib/offline/android-app-shell';
 
 const RENEW_EVERY_MS = 2 * 60_000;
 
@@ -13,51 +14,69 @@ function newLeaseId() {
 
 export function useExamResultLease(examId: string) {
   const { user, isAuthenticated } = useAuth();
-  const leaseIdRef = useRef(newLeaseId());
+  const acquireRef = useRef<{ acquire: () => Promise<ExamLeaseToken>; leaseId: string } | null>(null);
   const [lease, setLease] = useState<ExamLease | null>(null);
   const [holder, setHolder] = useState<ExamLease | null>(null);
   const [status, setStatus] = useState<'loading' | 'held' | 'blocked' | 'offline' | 'error'>('loading');
   const canAttempt = isAuthenticated && !!user && (user.role === 'Admin' || user.role === 'Staff') && !!examId;
+  const userId = user?.id;
+  const userName = user?.firstName || user?.username || 'Authorised editor';
+  // A disposed acquisition must never release a newer effect's lock.
+  const leaseId = useMemo(newLeaseId, [examId, userId, userName]);
 
   useEffect(() => {
-    if (!canAttempt || !user) {
+    if (!canAttempt || !userId) {
       setLease(null);
       setHolder(null);
       setStatus('blocked');
       return;
     }
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      setStatus('offline');
-      return;
-    }
-
     let disposed = false;
-    const token: ExamLeaseToken = { lockedByUid: user.id, leaseId: leaseIdRef.current };
-    const acquire = async () => {
+    const token: ExamLeaseToken = { lockedByUid: userId, leaseId };
+    let inFlight: Promise<ExamLeaseToken> | undefined;
+    const attempt = async (): Promise<ExamLeaseToken> => {
+      if (disposed) throw new Error('The exam editor is no longer active.');
+      if (!navigator.onLine || isAndroidOffline()) { setStatus('offline'); throw new Error('Reconnect before saving.'); }
+      let outcome: ExamLeaseAttempt;
       try {
-        const outcome = await ExamLeaseService.acquire(examId, { id: user.id, name: user.firstName || user.username }, token.leaseId);
-        if (disposed) return;
-        if (outcome.acquired) {
-          setLease(outcome.lease);
-          setHolder(null);
-          setStatus('held');
-        } else {
-          setLease(null);
-          setHolder(outcome.holder);
-          setStatus('blocked');
-        }
-      } catch {
+        outcome = await ExamLeaseService.acquire(examId, { id: userId, name: userName }, token.leaseId);
+      } catch (error) {
         if (!disposed) setStatus('error');
+        throw error;
       }
+      if (disposed) {
+        // React may replay the effect with the same token. Its replacement
+        // still owns that token, so only release an abandoned acquisition.
+        if (outcome.acquired && acquireRef.current?.leaseId !== token.leaseId) {
+          void ExamLeaseService.release(examId, token).catch(() => undefined);
+        }
+        throw new Error('The exam editor is no longer active.');
+      }
+      if (outcome.acquired) {
+        setLease(outcome.lease);
+        setHolder(null);
+        setStatus('held');
+        return token;
+      }
+      setLease(null);
+      setHolder(outcome.holder);
+      setStatus('blocked');
+      throw new Error(`This result is being edited by ${outcome.holder?.lockedByName || 'another editor'}. Review the editing lock before saving.`);
     };
-    void acquire();
+    const acquire = () => {
+      if (!inFlight) inFlight = attempt().finally(() => { inFlight = undefined; });
+      return inFlight;
+    };
+    const owner = { acquire, leaseId };
+    acquireRef.current = owner;
+    void acquire().catch(() => undefined);
 
     const unsubscribe = onSnapshot(ExamLeaseService.ref(examId), snapshot => {
       if (disposed) return;
       if (!snapshot.exists()) {
         setLease(null);
         setStatus('loading');
-        void acquire();
+        void acquire().catch(() => undefined);
         return;
       }
       const observed = ExamLeaseService.normalize(examId, snapshot.data());
@@ -75,21 +94,31 @@ export function useExamResultLease(examId: string) {
     });
 
     const renew = () => {
-      if (document.visibilityState === 'hidden' || !navigator.onLine) return;
-      void acquire();
+      if (document.visibilityState === 'hidden' || !navigator.onLine || isAndroidOffline()) return;
+      void acquire().catch(() => undefined);
     };
     const interval = window.setInterval(renew, RENEW_EVERY_MS);
     const onVisibility = () => { if (document.visibilityState === 'visible') renew(); };
     document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('online', renew);
+    window.addEventListener('trinity-android-connectivity', renew);
 
     return () => {
       disposed = true;
+      if (acquireRef.current === owner) acquireRef.current = null;
       unsubscribe();
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('online', renew);
+      window.removeEventListener('trinity-android-connectivity', renew);
       void ExamLeaseService.release(examId, token).catch(() => undefined);
     };
-  }, [canAttempt, examId, user]);
+  }, [canAttempt, examId, leaseId, userId, userName]);
+
+  const ensureLease = useCallback(async () => {
+    if (!acquireRef.current) throw new Error('Editing permission is unavailable. Your entries are still on this page.');
+    return acquireRef.current.acquire();
+  }, []);
 
   // A listener does not fire simply because time has elapsed, so schedule an
   // expiry transition locally and make the editor read-only before any save.
@@ -106,10 +135,10 @@ export function useExamResultLease(examId: string) {
   }, [lease]);
 
   const token = useMemo<ExamLeaseToken | undefined>(() =>
-    status === 'held' && lease && user
-      ? { lockedByUid: user.id, leaseId: lease.leaseId }
+    status === 'held' && lease && lease.examId === examId && lease.lockedByUid === userId
+      ? { lockedByUid: lease.lockedByUid, leaseId: lease.leaseId }
       : undefined,
-  [lease, status, user]);
+  [examId, lease, status, userId]);
 
   // A positive lease held by somebody else is the only evidence that should
   // stop an authorised editor. Loading, offline, and listener/transaction
@@ -122,10 +151,10 @@ export function useExamResultLease(examId: string) {
       ? {
           lockedByUid: user.id,
           lockedByName: user.firstName || user.username || 'Authorised editor',
-          leaseId: leaseIdRef.current,
+          leaseId,
         }
       : undefined,
-  [canAttempt, user]);
+  [canAttempt, leaseId, user]);
 
   return {
     canEdit: !!token,
@@ -133,6 +162,7 @@ export function useExamResultLease(examId: string) {
     status,
     holder,
     token,
+    ensureLease,
     canOverride: canAttempt && hasConfirmedOtherEditor,
     override,
   };

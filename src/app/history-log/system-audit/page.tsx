@@ -322,8 +322,11 @@ export default function SystemAuditPage() {
                   </p>
                 </div>
                 <div className="text-xs text-muted-foreground lg:text-right">
-                  {displayTimestamp(event.recordedAt)}
+                  <div>Observed {event.firstAt ? displayTimestamp(new Date(event.firstAt)) : 'unknown'}</div>
+                  {event.lastAt !== event.firstAt && <div>Last observed {displayTimestamp(new Date(event.lastAt))}</div>}
+                  <div>Batch saved {displayTimestamp(event.recordedAt)}</div>
                   <div className="mt-1 break-all">Version {event.appVersion}</div>
+                  <div>{event.context ? `${event.context.runtime} · ${event.context.browser} · ${event.context.os} · ${event.context.startup}` : 'Runtime/startup unknown (older collector)'}</div>
                 </div>
               </CardContent>
             </Card>

@@ -3,6 +3,26 @@ import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
 import { GET } from '../src/app/api/android/release/route';
 import release from '../src/lib/android/app-release.json';
+import releases from '../src/lib/android/app-releases.json';
+
+test('each school discovers only its own update and canonical APK endpoint', async () => {
+  const previous = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  try {
+    for (const selected of releases) {
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = selected.firebaseProjectId;
+      const response = GET(new NextRequest(`${selected.websiteOrigin}/api/android/release`));
+      assert.equal(response.status, 200);
+      const data = await response.json();
+      assert.equal(data.applicationId, selected.applicationId);
+      assert.equal(data.firebaseProjectId, selected.firebaseProjectId);
+      assert.equal(data.downloadUrl, `${selected.websiteOrigin}/api/android/download`);
+      assert.equal(data.sha256, selected.sha256);
+      for (const other of releases.filter(item => item !== selected)) {
+        assert.equal(GET(new NextRequest(`${other.websiteOrigin}/api/android/release`)).status, 404);
+      }
+    }
+  } finally { if (previous === undefined) delete process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID; else process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = previous; }
+});
 
 test('update discovery identifies the exact signed school release without caching', async () => {
   const response = GET(new NextRequest(`${release.websiteOrigin}/api/android/release`));

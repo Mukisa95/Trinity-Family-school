@@ -36,49 +36,36 @@ import { cn } from '@/lib/utils';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import { useTouchSwipe } from '@/lib/hooks/use-touch-swipe';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { NavigationProvider, useNavigation } from '@/lib/contexts/navigation-context';
-import { LoadingOverlay } from '@/components/ui/loading-indicator';
+import { measureWorkspaceStep } from '@/lib/startup/workspace-timing';
+import { NavigationProvider } from '@/lib/contexts/navigation-context';
+import { NavigationContent } from './navigation-content';
 import { ParentLayout } from '@/components/parent/parent-layout';
 import EnhancedHeader from './enhanced-header';
 import AuthGuard from '@/components/common/AuthGuard';
 import { SidebarUserFooter } from './sidebar-user-footer';
 import { SchoolSettingsLoader } from './school-settings-loader';
+import { AnimatePresence, motion } from 'framer-motion';
 import { BrandedAuthScreen } from '@/components/common/premium-splash-loader';
 import { StartupHandoff } from '@/components/common/startup-handoff';
+import { WorkspaceWelcomeScreen } from '@/components/common/workspace-welcome-screen';
+import { useFirstWorkspaceSetup } from '@/lib/hooks/use-first-workspace-setup';
+import { WorkspacePreparationStatus } from '@/components/common/workspace-preparation-status';
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { usePrint } from '@/lib/contexts/print-context';
 import { useQueryClient } from '@tanstack/react-query';
 import { AutoNotificationPermission } from '@/components/notifications/auto-notification-permission';
 import { SchoolPayInboxPrompt } from '@/components/schoolpay/schoolpay-inbox-prompt';
-import { usePerformanceMode } from '@/components/providers/performance-provider';
 import { logger } from '@/lib/utils/logger';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { getRoutePagePermission, MODULE_ACTIONS } from '@/types/permissions';
 
 const Sidebar연구 = Sidebar;
 
-// Wrapper component that uses navigation context
-function NavigationWrapper({ children }: { children: ReactNode }) {
-  const { isNavigating, destination } = useNavigation();
-
-  return (
-    <>
-      <LoadingOverlay
-        isLoading={isNavigating}
-        message="Loading page..."
-        destination={destination || undefined}
-      />
-      {children}
-    </>
-  );
-}
-
-
 function MobileMenuButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="md:hidden p-2 rounded-xl bg-gradient-to-r from-brand-surface-500 to-brand-secondary-surface-600 hover:from-brand-surface-600 hover:to-brand-secondary-surface-700 text-white shadow-lg hover:shadow-xl"
+      className="md:hidden p-2 rounded-xl bg-card text-card-foreground border border-border hover:bg-accent shadow-none"
     >
       <Menu size={20} />
     </button>
@@ -135,35 +122,96 @@ function SessionStaleBanner({
   );
 }
 
-function SessionVerificationBanner({ message }: { message?: string | null }) {
-  return (
-    <div
-      role="status"
-      className="mx-3 my-3 rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-950 shadow-sm sm:mx-4 dark:border-orange-800/60 dark:bg-orange-950/40 dark:text-orange-100"
-    >
-      <p className="text-sm font-semibold">Live session check delayed</p>
-      <p className="mt-1 text-sm">
-        {message || 'Firebase Authentication could not refresh the signed session yet. The current signed session remains available.'}
-      </p>
-      <p className="mt-1 text-xs text-orange-900 dark:text-orange-200">
-        This check does not read Firestore and will retry after the connection recovers.
-      </p>
-    </div>
-  );
-}
+const SidebarHeaderWrapper = ({ isLoadingSettings, currentSettings }: { isLoadingSettings: boolean; currentSettings: any }) => {
+  const { state } = useSidebar();
+  const isCollapsed = state === 'collapsed';
+  const [showName, setShowName] = useState(false);
 
-const SidebarHeaderWrapper = ({ isLoadingSettings, currentSettings }: any) => {
-  const { state, isMobile } = useSidebar();
-  const isCollapsed = state === 'collapsed' && !isMobile;
-  return <SidebarHeader className={cn('p-3 flex flex-row items-center border-b border-gray-100 min-h-[56px] dark:border-slate-700', isCollapsed ? 'justify-center' : 'gap-2.5')}>
-    {!isLoadingSettings && currentSettings.generalInfo.logo && <Link href="/" className="shrink-0" aria-label="School dashboard">
-      <div className="relative w-10 h-10"><Image src={currentSettings.generalInfo.logo} alt={`${currentSettings.generalInfo.name || 'School'} Logo`} fill sizes="40px" className="rounded-lg object-contain" /></div>
-    </Link>}
-    <div className={cn('min-w-0 flex-1', isCollapsed && 'hidden')}>
-      {isLoadingSettings ? <div className="h-8 w-24 bg-gray-100 animate-pulse rounded dark:bg-slate-900" />
-        : <h2 className="text-sm font-bold text-gray-900 leading-tight break-words dark:text-slate-100">{currentSettings.generalInfo.name || 'School Name'}</h2>}
-    </div>
-  </SidebarHeader>;
+  useEffect(() => {
+    if (isCollapsed) {
+      setShowName(false);
+      return;
+    }
+    // Logo zooms in at the center first, then slides to the side to reveal the name after 500ms
+    const timer = setTimeout(() => {
+      setShowName(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [isCollapsed]);
+
+  return (
+    <SidebarHeader
+      className={cn(
+        "p-3 flex flex-row items-center border-b border-gray-100 transition-all duration-300 ease-in-out min-h-[56px] relative dark:border-slate-700",
+        (isCollapsed || !showName) ? "justify-center" : "justify-start gap-2.5"
+      )}
+    >
+      {/* Logo — centered when collapsed or during initial load zoom */}
+      {!isLoadingSettings && currentSettings.generalInfo.logo && (
+        <motion.div
+          layout
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{
+            scale: { type: "spring", stiffness: 200, damping: 18, delay: 0.1 },
+            opacity: { duration: 0.2, delay: 0.1 },
+            layout: { type: "spring", stiffness: 120, damping: 18 }
+          }}
+          className="flex-shrink-0"
+        >
+          <Link href="/">
+            <div className="relative w-10 h-10 bg-transparent">
+              <Image
+                src={currentSettings.generalInfo.logo}
+                alt={`${currentSettings.generalInfo.name || 'School'} Logo`}
+                fill
+                sizes="40px"
+                className="rounded-lg object-contain bg-transparent"
+                data-ai-hint="school logo"
+              />
+            </div>
+          </Link>
+        </motion.div>
+      )}
+
+      {/* School name + motto — hidden when collapsed or before reveal */}
+      <AnimatePresence initial={false}>
+        {!isCollapsed && showName && (
+          <motion.div
+            initial={{ opacity: 0, width: 0 }}
+            animate={{ opacity: 1, width: 'auto' }}
+            exit={{ opacity: 0, width: 0 }}
+            transition={{ 
+              opacity: { duration: 0.2 },
+              width: { type: "spring", stiffness: 100, damping: 15 } 
+            }}
+            className="flex flex-col items-start min-w-0 flex-1 overflow-hidden"
+          >
+            <div className="w-[180px]">
+              <AnimatePresence mode="wait">
+                {isLoadingSettings ? (
+                  <div className="h-8 w-24 bg-gray-100 animate-pulse rounded dark:bg-slate-900" />
+                ) : (
+                  <motion.div
+                    key="text-content"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex flex-col items-start min-w-0 w-full"
+                  >
+                    <h2 className="text-sm font-bold text-gray-900 leading-tight w-full break-words dark:text-slate-100">
+                      {currentSettings.generalInfo.name || "School Name"}
+                    </h2>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </SidebarHeader>
+  );
 };
 
 const MemoizedAppLayout = memo(function MemoizedAppLayout({
@@ -178,7 +226,6 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   logout,
   refreshUser,
   isSessionStale,
-  isSessionVerificationDelayed,
   sessionMessage,
   router
 }: any) {
@@ -343,43 +390,8 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
     setIsMobileSidebarOpen(false);
   };
 
-  // ── Background blur effect ──
-  // On dashboard (/): clear at top, blurs up to 8px as user scrolls 200px
-  // On all other pages: fixed 6px blur so background stays blurred
-  const { reducedEffects } = usePerformanceMode();
+
   const mainRef = useRef<HTMLElement>(null);
-  const isDashboard = pathname === '/';
-
-  useEffect(() => {
-    const mainEl = mainRef.current;
-    if (!mainEl) return;
-    const bgWrapper = mainEl.closest<HTMLElement>('.dashboard-bg-wrapper');
-    if (!bgWrapper) return;
-
-    if (reducedEffects) {
-      bgWrapper.style.setProperty('--scroll-blur', '0px');
-      return;
-    }
-    if (!isDashboard) {
-      // Non-dashboard pages: immediately blurred
-      bgWrapper.style.setProperty('--scroll-blur', '6px');
-      return () => {
-        bgWrapper.style.setProperty('--scroll-blur', '0px');
-      };
-    }
-
-    // Dashboard: 0px blur at top, grows as user scrolls
-    bgWrapper.style.setProperty('--scroll-blur', '0px');
-    const onScroll = () => {
-      const blur = Math.min(8, (mainEl.scrollTop / 200) * 8);
-      bgWrapper.style.setProperty('--scroll-blur', `${blur}px`);
-    };
-    mainEl.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      mainEl.removeEventListener('scroll', onScroll);
-      bgWrapper.style.setProperty('--scroll-blur', '0px');
-    };
-  }, [isDashboard, reducedEffects]);
 
   // Do not briefly mount the heavy login landing page for a signed-in user.
   // The redirect runs after this render, so keep the same boot surface visible
@@ -421,13 +433,14 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
           loadSchoolSettings={false}
         />
         <main className="flex-1 overflow-y-auto h-[calc(100vh-4rem)]">
+          <NavigationContent>
           {isSessionStale && (
             <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
           )}
-          {isSessionVerificationDelayed && <SessionVerificationBanner message={sessionMessage} />}
           <AuthGuard>
             <ParentLayout />
           </AuthGuard>
+          </NavigationContent>
         </main>
       </div>
     );
@@ -439,7 +452,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   // Mobile layout with custom sidebar
   if (isMobile) {
     return (
-      <NavigationWrapper>
+      <>
         <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-secondary-surface-50 dark:from-brand-surface-950/40 dark:via-slate-900 dark:to-brand-secondary-surface-950/40">
           <EnhancedHeader
             onMenuClick={handleMobileMenuClick}
@@ -449,16 +462,17 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
           {/* Swipe hint removed as per user request */}
 
           <main
-            className="px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-0 sm:pb-4"
+            className="px-3 pb-[calc(4.75rem+env(safe-area-inset-bottom))] pt-0 sm:pb-4"
             {...sidebarSwipe}
           >
+            <NavigationContent>
             {isSessionStale && (
               <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
             )}
-            {isSessionVerificationDelayed && <SessionVerificationBanner message={sessionMessage} />}
             <AuthGuard>
               {isAdminOnlyRoute ? <DevControlGate>{children}</DevControlGate> : children}
             </AuthGuard>
+            </NavigationContent>
           </main>
 
           <MobileSidebar
@@ -470,13 +484,13 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
           <AutoNotificationPermission />
           <SchoolPayInboxPrompt />
         </div>
-      </NavigationWrapper>
+      </>
     );
   }
 
   // Desktop layout with existing sidebar
   return (
-    <NavigationWrapper>
+    <>
       <AutoNotificationPermission />
       <SchoolPayInboxPrompt />
       {/* Dashboard background wrapper — background image covers the full viewport */}
@@ -503,18 +517,19 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
               className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 px-4 sm:px-6 pb-4 sm:pb-6 pt-0 md:pt-[52px]"
               {...sidebarSwipe}
             >
+                <NavigationContent>
                 {isSessionStale && (
                   <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
                 )}
-                {isSessionVerificationDelayed && <SessionVerificationBanner message={sessionMessage} />}
                 <AuthGuard>
                 {isAdminOnlyRoute ? <DevControlGate>{children}</DevControlGate> : children}
               </AuthGuard>
+                </NavigationContent>
             </main>
           </SidebarInset>
         </SidebarProvider>
       </div>
-    </NavigationWrapper>
+    </>
   );
 });
 
@@ -528,10 +543,66 @@ export function AppLayout({ children }: { children: ReactNode }) {
     isAuthenticated,
     refreshUser,
     isSessionStale,
-    isSessionVerificationDelayed,
     sessionMessage,
+    isSignedIdentityReady,
+    autoLockEnabled, autoLockAction, deviceUnlockForAutoLock,
+    setAutoLockEnabled, setAutoLockAction, setDeviceUnlockForAutoLock,
   } = useAuth();
   const { data: schoolSettings, isLoading: isLoadingSettings, error: settingsError } = useSchoolSettings();
+  const isPublicRoute = Boolean(pathname && ['/login', '/download', '/about-trinity', '/admin/setup', '/test-firebase'].some((route) => pathname === route || pathname.startsWith(`${route}/`)));
+  const isNonLoginPublicRoute = isPublicRoute && pathname !== '/login';
+  const setup = useFirstWorkspaceSetup({ enabled: !isPublicRoute && !authLoading && isAuthenticated,
+    userId: user?.id, role: user?.role, accessReady: isSignedIdentityReady, awaitPersonalization: true });
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (setup.required) workspaceRef.current?.setAttribute('inert', '');
+    else workspaceRef.current?.removeAttribute('inert');
+  }, [setup.required]);
+  const [startupPhase, setStartupPhase] = useState<'visible' | 'fading' | 'complete'>(() => (
+    isNonLoginPublicRoute ? 'complete' : 'visible'
+  ));
+  const [minimumFrontendDisplayElapsed, setMinimumFrontendDisplayElapsed] = useState(false);
+
+  // Ensure a restored session is visible long enough to show useful progress.
+  // This is deliberately a frontend-only timer: it must never wait for
+  // Firestore, React Query, cache hydration, or GlobalDataPreloader work.
+  useEffect(() => {
+    const timer = window.setTimeout(() => setMinimumFrontendDisplayElapsed(true), 1000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  // The workspace is already mounted beneath this overlay before the fade
+  // begins. This gives a real cross-fade without an intermediate white frame.
+  useEffect(() => {
+    if (setup.required) {
+      setStartupPhase('complete');
+      return;
+    }
+    if (startupPhase !== 'visible') return;
+
+    if (isPublicRoute && !isAuthenticated && !authLoading) {
+      setStartupPhase('complete');
+      return;
+    }
+
+    if (authLoading || !isAuthenticated || !minimumFrontendDisplayElapsed || pathname === '/login') return;
+
+    const frame = window.requestAnimationFrame(() => setStartupPhase('fading'));
+    return () => window.cancelAnimationFrame(frame);
+  }, [authLoading, isAuthenticated, isPublicRoute, minimumFrontendDisplayElapsed, pathname, setup.required, startupPhase]);
+
+  useEffect(() => {
+    if (startupPhase !== 'fading') return;
+    const timer = window.setTimeout(() => setStartupPhase('complete'), 300);
+    return () => window.clearTimeout(timer);
+  }, [startupPhase]);
+
+  const visibleRecorded = useRef(false);
+  useEffect(() => {
+    if (setup.required || startupPhase !== 'complete' || !isAuthenticated || isPublicRoute) return;
+    if (!visibleRecorded.current) { visibleRecorded.current = true; measureWorkspaceStep('startup:workspace-visible', 0); }
+    window.dispatchEvent(new Event('trinity-workspace-visible'));
+  }, [setup.required, startupPhase, isAuthenticated, isPublicRoute]);
 
   // The service worker focuses an existing app window and forwards the
   // notification destination here. Using the App Router keeps the current
@@ -549,7 +620,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <NavigationProvider>
-      <StartupHandoff pathname={pathname} authLoading={authLoading} isAuthenticated={isAuthenticated} />
+        <StartupHandoff pathname={pathname} authLoading={authLoading} isAuthenticated={isAuthenticated} />
+      <div ref={workspaceRef} data-workspace-visible={!setup.required && startupPhase === 'complete' ? 'true' : 'false'} aria-hidden={setup.required || undefined}>
       <MemoizedAppLayout
         pathname={pathname}
         user={user}
@@ -561,12 +633,28 @@ export function AppLayout({ children }: { children: ReactNode }) {
         logout={logout}
         refreshUser={refreshUser}
         isSessionStale={isSessionStale}
-        isSessionVerificationDelayed={isSessionVerificationDelayed}
         sessionMessage={sessionMessage}
         router={router}
       >
+        {!isPublicRoute && !setup.required && user && <WorkspacePreparationStatus scope={setup.scope} role={user.role} />}
         {children}
       </MemoizedAppLayout>
+      </div>
+      {setup.required && user && <WorkspaceWelcomeScreen key={setup.scope} setup={setup} userId={user.id}
+        privacy={{ enabled: autoLockEnabled, action: autoLockAction || 'lock-on-close', deviceUnlock: deviceUnlockForAutoLock }}
+        applyPrivacy={choices => {
+          // The setters update React state before persisting. Restricted
+          // storage must not strand a ready workspace or skip the next setter.
+          try { setAutoLockAction(choices.action); } catch { /* Session preference still applies. */ }
+          try { setDeviceUnlockForAutoLock(choices.deviceUnlock); } catch { /* Session preference still applies. */ }
+          try { setAutoLockEnabled(choices.enabled); } catch { /* Session preference still applies. */ }
+        }} />}
+      {!setup.required && startupPhase !== 'complete' && (
+        <BrandedAuthScreen
+          message={startupPhase === 'fading' ? 'Your workspace is ready.' : 'Checking your secure sign-in…'}
+          isExiting={startupPhase === 'fading'}
+        />
+      )}
     </NavigationProvider>
   );
 }

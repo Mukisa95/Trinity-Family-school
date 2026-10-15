@@ -12,7 +12,7 @@ async function buildBoundary() {
   await require('esbuild').build({ jsx:'automatic', absWorkingDir:root, stdin:{contents:`import React from 'react'; import {createRoot} from 'react-dom/client'; import {AndroidOfflineBoundary} from './src/components/common/android-offline-boundary'; const node=document.createElement('div'); document.body.append(node); const root=createRoot(node); window.renderBoundary=()=>root.render(<AndroidOfflineBoundary><div id="original-content"><input aria-label="Search pupils" defaultValue="retained search"/><button onClick={()=>window.edits++}>Edit pupil</button></div></AndroidOfflineBoundary>); window.renderBoundary();`,resolveDir:root,loader:'tsx'}, bundle:true,platform:'browser', alias:{'@':path.join(root,'src')},outfile:path.join(output,'boundary.js'),plugins:[{name:'fixture-auth',setup(build){build.onResolve({filter:/^@\/lib\/contexts\/auth-context$/},args=>({path:args.path,namespace:'fixture'}));build.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:"export function useAuth(){return {user:window.fixtureUser}}",loader:'js'}));}}]});
 }
 const html = route => `<!DOCTYPE html><html><head><link rel="stylesheet" href="/_next/static/style-fixture.css"></head><body><header>Original school header</header><nav><a href="/">Dashboard</a><a href="/timetable">Timetables</a><a href="/pupil-detail?id=child-1">Pupil details</a><a href="/finance">Finance</a></nav><main data-route="${route}">Original ${route} interface</main><script src="/_next/static/runtime-fixture.js"></script></body></html>`;
-const session = { schema: 1, accountId: 'fixture', role: 'Admin', expiresAt: new Date(Date.now()+86400000).toISOString(), grants: { dashboard: true, pupils: true, timetable: true } };
+const session = { schema: 1, accountId: 'fixture', role: 'Admin', expiresAt: new Date(Date.now()+86400000).toISOString(), grants: { dashboard: true, pupils: true, timetable: true, events: true } };
 (async () => {
  await buildBoundary();
  let requests = [], failPages = false;
@@ -27,6 +27,7 @@ const session = { schema: 1, accountId: 'fixture', role: 'Admin', expiresAt: new
    if (pathname === '/_next/static/runtime-fixture.js') { res.setHeader('Content-Type', 'application/javascript'); res.end('window.originalRuntime=true;'); return; }
    if (pathname === '/trinity-logo-192.png' || pathname === '/images/D.B%20background.png') { res.setHeader('Content-Type', 'image/png'); res.end(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==','base64')); return; }
    if (failPages) { res.writeHead(503); res.end(); return; }
+   if (req.headers.rsc === '1') { res.setHeader('Content-Type','text/x-component'); res.end('0:{"b":"fixture-build","f":[],"S":false}\n'); return; }
    res.setHeader('Content-Type', 'text/html'); res.end(html(pathname));
  });
  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -67,20 +68,21 @@ const session = { schema: 1, accountId: 'fixture', role: 'Admin', expiresAt: new
    assert.equal(await page.evaluate(() => window.documentCodeExecuted), true, 'Documents can load for the first time after going offline');
    assert.equal(await page.evaluate(() => import('/_next/static/document-worker.mjs').then(module => module.ready)), true, 'Deferred worker modules also load offline');
    await page.close(); page = await context.newPage();
-   for (const route of ['/timetable', '/pupils', '/pupil-detail?id=child-1']) {
+   for (const route of ['/events', '/timetable', '/pupils', '/pupil-detail?id=child-1']) {
      await page.goto(url+route); assert.equal(await page.locator('main').getAttribute('data-route'), route.split('?')[0]);
      assert.equal(await page.evaluate(() => originalRuntime), true);
    }
    assert.equal(await page.evaluate(() => new URL(location.href).searchParams.get('id')), 'child-1');
    // Install actual navigation guard from source, with network still blocked.
    await page.addScriptTag({ content: fs.readFileSync(path.join(output,'shell.js'),'utf8') });
-   await page.evaluate(() => { window.blocked=0; window.removeGuard=Shell.installAndroidOfflineNavigation('Admin',()=>window.blocked++); });
+   await page.evaluate(() => { window.documentMarker='same-document';window.blocked=0; window.removeGuard=Shell.installAndroidOfflineNavigation('Admin',()=>window.blocked++,{buildId:()=> 'fixture-build',navigate:href=>{history.pushState(null,'',href);document.querySelector('main').dataset.route=new URL(href,location.href).pathname}}); });
    await page.getByRole('link',{ name:'Finance', exact:true }).click(); assert.equal(await page.evaluate(()=>window.blocked),1); assert.equal(new URL(page.url()).pathname,'/pupil-detail');
    await page.getByRole('link',{name:'Timetables',exact:true}).click(); await page.waitForURL('**/timetable'); assert.equal(await page.locator('main').getAttribute('data-route'),'/timetable');
-   await page.addScriptTag({content:fs.readFileSync(path.join(output,'shell.js'),'utf8')});
-   await page.evaluate(()=>{window.blocked=0;window.removeGuard=Shell.installAndroidOfflineNavigation('Admin',()=>window.blocked++);});
+   assert.equal(await page.evaluate(()=>window.documentMarker),'same-document');
+   await page.evaluate(()=>{window.blocked=0;});
    const rsc = await page.evaluate(async()=>{try {await fetch('/finance?_rsc=fixture',{headers:{RSC:'1'}})} catch {} return window.blocked;}); assert.equal(rsc,1);
-   await page.evaluate(()=>{void fetch('/pupil-detail?id=child-2&_rsc=fixture',{headers:{RSC:'1'}})}); await page.waitForURL('**/pupil-detail?id=child-2');
+   const savedRoute=await page.evaluate(async()=> (await fetch('/pupil-detail?id=child-2&_rsc=fixture',{headers:{RSC:'1'}})).text());assert.ok(savedRoute.includes('fixture-build'));assert.equal(new URL(page.url()).pathname,'/timetable');
+   await page.getByRole('link',{name:'Pupil details',exact:true}).click();await page.waitForURL('**/pupil-detail?id=child-1');
    // Reconnect changes availability without replacing the document.
    const documentId = await page.evaluate(()=>window.documentMarker='original-document');
    await context.setOffline(false); assert.equal(await page.evaluate(()=>window.documentMarker),documentId);

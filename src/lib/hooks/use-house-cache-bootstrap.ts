@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { registerWorkspaceRecovery, reportWorkspaceTask } from '@/lib/startup/workspace-setup';
+import { withWorkspaceIdentity } from '@/lib/startup/workspace-auth';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { HousesService } from '@/lib/services/houses.service';
 import { useDashboardDataRevisions } from './use-school-settings';
@@ -29,6 +31,14 @@ export function useHouseCacheBootstrap() {
   const revisionsReady = revisionsQuery.data !== undefined;
 
   useEffect(() => {
+    if (!scope) return;
+    return registerWorkspaceRecovery(queryClient, scope, 'houses', () => {
+      retryCount.current = 0;
+      setRetryEpoch(epoch => epoch + 1);
+    });
+  }, [queryClient, scope]);
+
+  useEffect(() => {
     if (!scope) {
       if (previousScope.current) {
         queryClient.removeQueries({ queryKey: houseKeys.lists() });
@@ -53,7 +63,11 @@ export function useHouseCacheBootstrap() {
 
     const needsColdFetch = persisted === null && inMemory === undefined;
     const needsRevisionRefresh = revisionsReady && persisted?.revision !== revision;
-    if (!needsColdFetch && !needsRevisionRefresh) return;
+    if (!needsColdFetch && !needsRevisionRefresh) {
+      reportWorkspaceTask(queryClient, scope, 'houses', 'ready');
+      return;
+    }
+    reportWorkspaceTask(queryClient, scope, 'houses', 'loading');
 
     let disposed = false;
     let serverSucceeded = false;
@@ -76,7 +90,7 @@ export function useHouseCacheBootstrap() {
       });
     }
 
-    void HousesService.refreshSharedHouses(() => HousesService.getAllForCache())
+    void withWorkspaceIdentity(user?.id, () => HousesService.refreshSharedHouses(() => HousesService.getAllForCache()))
       .then(houses => {
         if (disposed) return;
         serverSucceeded = true;
@@ -86,9 +100,11 @@ export function useHouseCacheBootstrap() {
         queryClient.setQueryData(queryKey, normalised);
         writeHouseCache(scope, targetRevision, normalised);
         performance.mark?.('trinity:houses-server-synced');
+        reportWorkspaceTask(queryClient, scope, 'houses', 'ready');
       })
       .catch(error => {
         console.error('House cache reconciliation failed:', error);
+        if (!disposed) reportWorkspaceTask(queryClient, scope, 'houses', 'error');
         if (!disposed && retryCount.current < 2) {
           retryCount.current += 1;
           retryTimer = setTimeout(() => setRetryEpoch(epoch => epoch + 1), 3000);

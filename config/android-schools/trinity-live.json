@@ -4,9 +4,9 @@
   "applicationId": "ug.trinityfamilyschool.live",
   "websiteOrigin": "https://trinityfamilyschool.vercel.app",
   "firebaseProjectId": "trinity-family-schools",
-  "versionCode": 23,
-  "versionName": "1.21",
-  "releaseNotes": "Optional Material You device colours for the app, timetable widgets, persistent notification and native settings. Works with Light, Dark and Follow device, preserves school and lesson colours, and keeps printed reports unchanged.",
+  "versionCode": 28,
+  "versionName": "1.26",
+  "releaseNotes": "Remove the widget heading, track selected subjects across multiple classes with current and next lesson cards, and add Search, Timetable, Events, Pupil and Exams app-icon shortcuts. Includes existing offline calendar, event reminders, diagnostics and session recovery.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {

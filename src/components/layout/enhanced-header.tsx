@@ -1,6 +1,5 @@
 "use client";
 
-import { useVisibleClock } from '@/lib/hooks/use-visible-clock';
 import { HeaderThemeToggle } from '@/components/ui/theme-toggle';
 
 import {
@@ -51,15 +50,6 @@ declare module 'framer-motion' {
   }
 }
 
-function HeaderDateTime({ mobile }: { mobile: boolean }) {
-  const time = useVisibleClock(60_000);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  return <span suppressHydrationWarning>{mounted ? time.toLocaleDateString('en-US', {
-    ...(mobile ? {} : { weekday: 'short' as const }), month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-  }) : '—'}</span>;
-}
-
 interface HeaderProps {
   onMenuClick: () => void;
   showMenuButton: boolean;
@@ -100,7 +90,7 @@ function SearchResultStatusControl({
   }
 
   return (
-    <div className="flex w-6 flex-none flex-col items-center gap-1 pt-0.5">
+    <div className="flex flex-none items-center gap-1">
       <span
         className={`flex items-center justify-center rounded-full p-0.5 ${statusBg}`}
         title={pupil.status || 'Unknown'}
@@ -114,7 +104,7 @@ function SearchResultStatusControl({
           aria-expanded={expanded}
           aria-controls={controlsId}
           aria-label={`${expanded ? 'Hide' : 'Show'} ${siblingCount} sibling${siblingCount === 1 ? '' : 's'} of ${formatPupilDisplayName(pupil)}`}
-          title={`${expanded ? 'Hide' : 'Show'} siblings`}
+          title={`${expanded ? 'Hide' : 'Show'} ${siblingCount} sibling${siblingCount === 1 ? '' : 's'}`}
           onPointerUp={(event) => event.stopPropagation()}
           onClick={(event) => {
             event.stopPropagation();
@@ -122,12 +112,7 @@ function SearchResultStatusControl({
           }}
           className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition-colors hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
         >
-          <CaretDown
-            aria-hidden="true"
-            size={11}
-            weight="bold"
-            className={`transition-transform duration-200 motion-reduce:transition-none ${expanded ? '' : '-rotate-90'}`}
-          />
+          <span aria-hidden="true" className="text-[10px] font-bold tabular-nums">{siblingCount}</span>
         </button>
       )}
     </div>
@@ -158,7 +143,7 @@ function SearchFamilyBranch({
       aria-label={`Siblings of ${formatPupilDisplayName(anchorPupil)}`}
       onPointerUp={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
-      className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50/90 via-teal-50/50 to-white px-3 py-2 dark:border-emerald-800/60 dark:from-emerald-950/90 dark:via-teal-950/50 dark:to-slate-900"
+      className="border-b border-emerald-100 px-3 py-2 dark:border-emerald-800/60 "
     >
       <div className="mb-1.5 flex items-center justify-between gap-2 pl-5">
         <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
@@ -197,12 +182,12 @@ function SearchFamilyBranch({
                     className="flex min-w-0 flex-1 items-center gap-2 rounded px-0.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
                   >
                     <UserCircle aria-hidden="true" size={16} weight="duotone" className="flex-none text-emerald-600 dark:text-emerald-400" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs font-semibold text-gray-800 dark:text-slate-100">
+                    <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                      <span title={formatPupilDisplayName(sibling)} className="min-w-0 flex-1 truncate text-xs font-semibold text-gray-800 dark:text-slate-100">
                         {formatPupilDisplayName(sibling)}
                       </span>
-                      <span className="block truncate text-[10px] text-gray-500 dark:text-slate-400">
-                        {classDisplay} • {sibling.admissionNumber || 'No admission number'}
+                      <span className="flex-none whitespace-nowrap text-[10px] text-gray-500 dark:text-slate-400">
+                        {classDisplay}
                       </span>
                     </span>
                     <span className={`flex-none rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${sibling.status === 'Active'
@@ -287,7 +272,7 @@ const floatAnimation = {
 // Button hover — quick, subtle scale only
 const buttonHover = {
   scale: 1.06,
-  transition: { type: "spring", stiffness: 300, damping: 22 }
+  transition: { type: "spring" as const, stiffness: 300, damping: 22 }
 };
 
 const buttonTap = {
@@ -338,13 +323,14 @@ const getTimeBasedGreeting = () => {
 const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true }: HeaderProps) => {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isSessionVerificationDelayed, sessionMessage } = useAuth();
 
   // Safely get sidebar context - handle case where SidebarProvider might not be available
   const sidebarContext = useContext(SidebarContext);
   const hasSidebarProvider = sidebarContext !== null;
   const sidebarIsMobile = sidebarContext ? sidebarContext.isMobile : false;
 
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Pupil[]>([]);
   const [showResults, setShowResults] = useState(false);
@@ -362,6 +348,9 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   const mobileSearchButtonRef = useRef<HTMLButtonElement>(null);
   const mobileSearchResultsRef = useRef<HTMLDivElement>(null);
   const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+  const desktopSearchInputRef = useRef<HTMLInputElement>(null);
+  const shortcutSearchPending = useRef(false);
   const prevSearchTermRef = useRef('');
 
   // State for the top bar message
@@ -438,12 +427,14 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   // Search bar animation sequence
   useEffect(() => {
     if (!settings || searchAnimationComplete) return;
+    let cancelled = false;
 
     const sequence = async () => {
       // Phase 1: Show logo (1 second)
       setSearchAnimationPhase('logo');
       setSearchBarWidth('w-32');
       await new Promise(resolve => setTimeout(resolve, 1000));
+      if (cancelled) return;
 
       // Phase 2: Slide to school name (1.5 seconds) - expand to fit name
       if (settings.generalInfo?.name) {
@@ -454,6 +445,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
         const estimatedWidth = Math.max(256, schoolNameWords.length * 8 + 80);
         setSearchBarWidth('w-64'); // Use w-64 as base, will expand if needed
         await new Promise(resolve => setTimeout(resolve, 1500));
+        if (cancelled) return;
       }
 
       // Phase 3: Show "Search" (final state)
@@ -463,12 +455,16 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
     };
 
     sequence();
+    return () => { cancelled = true; };
   }, [settings, searchAnimationComplete]);
 
   // Add real-time clock update and window resize handler
   useEffect(() => {
     setMounted(true);
 
+    const timer = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 1000);
 
     // Handle window resize for responsive quote display
     const handleResize = () => {
@@ -481,11 +477,33 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
     window.addEventListener('resize', handleResize);
 
     return () => {
+      clearInterval(timer);
       window.removeEventListener('resize', handleResize);
     };
   }, []);
 
   const [showFilters, setShowFilters] = useState(false);
+  useEffect(() => {
+    if (!mounted || !windowWidth || !user || user.role === 'Parent' || pathname !== '/') return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('openSearch') !== '1') return;
+    shortcutSearchPending.current = true;
+    setSearchAnimationComplete(true);
+    setSearchAnimationPhase('search');
+    setIsSearchHovered(true);
+    setSearchBarWidth('w-64');
+    if (windowWidth < 768) setShowMobileSearch(true);
+    url.searchParams.delete('openSearch');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+  }, [mounted, pathname, user, windowWidth]);
+
+  useEffect(() => {
+    if (!shortcutSearchPending.current) return;
+    const input = windowWidth < 768 ? mobileSearchInputRef.current : desktopSearchInputRef.current;
+    if (!input) return;
+    input.focus();
+    shortcutSearchPending.current = false;
+  }, [showMobileSearch, searchAnimationComplete, windowWidth]);
   const [filters, setFilters] = useState({
     classId: '',
     section: '',
@@ -581,6 +599,32 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
       clearTimeout(phaseTimer);
     };
   }, [phase, motto]);
+
+  // Format date and time with responsive formatting
+  const formattedDateTime = useMemo(() => {
+    if (!mounted) {
+      const serverTime = new Date();
+      return serverTime.toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+    }
+    const isMobile = windowWidth < 768;
+    const options: Intl.DateTimeFormatOptions = isMobile
+      ? {
+        hour: '2-digit',
+        minute: '2-digit',
+        month: 'short',
+        day: 'numeric'
+      }
+      : {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      };
+    return currentDateTime.toLocaleDateString('en-US', options);
+  }, [currentDateTime, windowWidth, mounted]);
 
   // Truncate message based on available space
   const getTruncatedMessage = (message: string, maxLength: number = 50) => {
@@ -727,9 +771,9 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
 
   return (
     <>
-      <header className="glass-chrome-surface border-b sticky md:absolute top-0 left-0 right-0 z-40 transition-all duration-300">
+      <header className="app-topbar bg-card text-card-foreground border-b border-border sticky md:absolute top-0 left-0 right-0 z-40 transition-all duration-300 shadow-none">
         <div className="px-2 sm:px-4 lg:px-6">
-          <div className="flex items-center justify-between h-11 sm:h-13">
+          <div className="flex items-center justify-between h-11 sm:h-[52px]">
             {/* Left side: Mobile Sidebar Trigger, Menu Button */}
             <div className="flex items-center gap-1.5 sm:gap-2 mr-1.5 sm:mr-3 lg:mr-4 flex-shrink-0">
               {/* Mobile Sidebar Trigger */}
@@ -739,7 +783,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   whileTap={buttonTap}
                   transition={springConfig}
                 >
-                  <SidebarTrigger className="md:hidden h-8 w-8 sm:h-[36px] sm:w-[36px] rounded-full bg-gradient-to-r from-brand-surface-500 via-brand-alt-surface-600 to-brand-secondary-surface-600 hover:from-brand-surface-600 hover:via-brand-alt-surface-700 hover:to-brand-secondary-surface-700 text-white shadow-sm flex-shrink-0 flex items-center justify-center border-0 relative overflow-hidden" />
+                  <SidebarTrigger className="md:hidden h-8 w-8 sm:h-[36px] sm:w-[36px] rounded-full bg-card text-card-foreground shadow-none flex-shrink-0 flex items-center justify-center border border-border relative overflow-hidden" />
                 </motion.div>
               )}
 
@@ -760,8 +804,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   whileHover={buttonHover}
                   whileTap={buttonTap}
                   transition={springConfig}
-                  className="h-8 w-8 sm:h-[36px] sm:w-[36px] rounded-full flex items-center justify-center bg-white hover:bg-brand-surface-50/80 text-gray-600 hover:text-brand-ink-600 border border-gray-200/60 shadow-sm flex-shrink-0 transition-all dark:bg-slate-900 dark:hover:bg-brand-surface-950/80 dark:text-slate-300 dark:hover:text-brand-ink-400 dark:border-slate-700/60"
-                  style={{ boxShadow: "0 1px 4px rgba(59, 130, 246, 0.05)" }}
+                  className="app-topbar-menu h-8 w-8 sm:h-[36px] sm:w-[36px] rounded-full flex items-center justify-center bg-white hover:bg-brand-surface-50/80 text-gray-600 hover:text-brand-ink-600 border border-gray-200/60 shadow-sm flex-shrink-0 transition-all dark:bg-slate-900 dark:hover:bg-brand-surface-950/80 dark:text-slate-300 dark:hover:text-brand-ink-400 dark:border-slate-700/60"
                 >
                   <List size={17} weight="duotone" />
                 </motion.button>
@@ -783,13 +826,11 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   <motion.div
                     whileHover={{
                       scale: 1.015,
-                      boxShadow: "0 4px 10px rgba(59, 130, 246, 0.15), 0 0 0 1px rgba(59, 130, 246, 0.18)"
                     }}
                     whileTap={{ scale: 0.98 }}
                     transition={{ duration: 0.18, ease: "easeOut" }}
-                    className="w-full max-w-[680px] h-[30px] sm:h-[36px] px-2 sm:px-4 flex items-center justify-center gap-1 sm:gap-2 font-semibold rounded-full bg-gradient-to-r from-brand-surface-50 via-white to-brand-surface-50 cursor-pointer border border-brand-200/60 shadow-sm relative overflow-hidden header-shimmer dark:from-brand-surface-950/40 dark:via-slate-900 dark:to-brand-surface-950/40 dark:border-brand-800/60"
+                    className="w-full max-w-[680px] h-[30px] sm:h-[36px] px-2 sm:px-4 flex items-center justify-center gap-1 sm:gap-2 font-semibold rounded-full app-topbar-tile bg-card text-card-foreground cursor-pointer border border-border shadow-none relative overflow-hidden"
                     style={{
-                      boxShadow: "0 2px 6px rgba(59, 130, 246, 0.05)",
                       willChange: "transform",
                     }}
                     onClick={handleMessageClick}
@@ -809,7 +850,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                         className="flex-1 min-w-0 flex items-center justify-center overflow-hidden"
                       >
                         <span
-                          className="w-full text-center bg-gradient-to-r from-brand-ink-600 to-brand-alt-ink-700 bg-clip-text text-transparent font-bold tracking-wide whitespace-nowrap overflow-hidden text-ellipsis block dark:from-brand-ink-400 dark:to-brand-alt-ink-400"
+                          className="w-full text-center text-foreground font-bold tracking-wide whitespace-nowrap overflow-hidden text-ellipsis block "
                           style={{ fontSize: "10px" }}
                         >
                           {currentMessage}
@@ -841,6 +882,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                       <MagnifyingGlass size={15} className="text-brand-ink-500 dark:text-brand-ink-400" weight="duotone" />
                     </div>
                     <input
+                      ref={mobileSearchInputRef}
+                      aria-label="Search pupils"
                       type="text"
                       placeholder="Search pupils..."
                       value={searchTerm}
@@ -917,8 +960,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                   }}
                                   className="cursor-pointer select-none border-b px-3 py-2.5 hover:bg-brand-surface-50 active:bg-brand-surface-100 dark:hover:bg-brand-surface-950/40 dark:active:bg-brand-surface-950/40"
                                 >
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex min-w-0 flex-1 items-start gap-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex min-w-0 flex-1 items-center gap-2">
                                       <SearchResultStatusControl
                                         pupil={pupil}
                                         siblingCount={siblings.length}
@@ -927,11 +970,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                         onToggle={() => setExpandedSearchPupilId(current => current === pupil.id ? null : pupil.id)}
                                       />
                                       <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-medium text-gray-900 dark:text-slate-100">
+                                        <p title={formatPupilDisplayName(pupil)} className="truncate text-sm font-medium text-gray-900 dark:text-slate-100">
                                           {formatPupilDisplayName(pupil)}
-                                        </p>
-                                        <p className="truncate text-[10px] text-gray-500 dark:text-slate-400">
-                                          {pupil.admissionNumber}
                                         </p>
                                       </div>
                                     </div>
@@ -1008,16 +1048,15 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                 whileHover={{
                   scale: 1.015,
                   y: -0.5,
-                  boxShadow: "0 4px 10px rgba(59, 130, 246, 0.1), 0 0 0 1px rgba(59, 130, 246, 0.15)"
                 }}
                 whileTap={{ scale: 0.985 }}
                 transition={springConfig}
-                className="hidden lg:flex items-center gap-2 h-[34px] px-3 sm:px-3.5 bg-gradient-to-r from-brand-surface-50/80 via-brand-alt-surface-50/80 to-emerald-50/80 backdrop-blur-sm rounded-full border border-brand-200/50 shadow-sm relative overflow-hidden cursor-pointer header-shimmer dark:from-brand-surface-950/80 dark:via-brand-alt-surface-950/80 dark:to-emerald-950/80 dark:border-brand-800/50"
+                className="hidden lg:flex items-center gap-2 h-[34px] px-3 sm:px-3.5 app-topbar-tile bg-card text-card-foreground rounded-full border border-border shadow-none relative overflow-hidden cursor-pointer"
                 style={{ willChange: "transform" }}
               >
                 <Calendar size={13} className="text-brand-ink-600 flex-shrink-0 relative z-10 dark:text-brand-ink-400" weight="duotone" />
                 <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 relative z-10 whitespace-nowrap">
-                  <HeaderDateTime mobile={windowWidth < 768} />
+                  {formattedDateTime}
                 </span>
 
                 {currentAcademicYear && currentTerm && (
@@ -1060,6 +1099,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   </div>
                   <div className="relative flex items-center">
                     <input
+                      ref={desktopSearchInputRef}
+                      aria-label="Search pupils"
                       type="text"
                       placeholder=""
                       value={searchTerm}
@@ -1075,8 +1116,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                           ? 'w-auto min-w-[160px] max-w-[240px]'
                           : searchBarWidth
                         }`}
-                      style={{ boxShadow: "0 1px 4px rgba(59, 130, 246, 0.05)" }}
-                    />
+                        />
 
                     {/* Animated placeholder content */}
                     {!searchTerm && (
@@ -1085,9 +1125,9 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                           {searchAnimationPhase === 'logo' && settings?.generalInfo?.logo && !searchAnimationComplete && (
                             <motion.div
                               key="logo"
-                              initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
-                              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                              exit={{ opacity: 0, y: -15, filter: 'blur(4px)' }}
+                              initial={{ opacity: 0, y: 15 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -15 }}
                               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                               className="flex items-center justify-center"
                             >
@@ -1105,9 +1145,9 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                           {searchAnimationPhase === 'name' && settings?.generalInfo?.name && !searchAnimationComplete && (
                             <motion.div
                               key="name"
-                              initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
-                              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                              exit={{ opacity: 0, y: -15, filter: 'blur(4px)' }}
+                              initial={{ opacity: 0, y: 15 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -15 }}
                               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                               className="text-xs text-gray-400 font-medium whitespace-nowrap pl-4 pr-12 dark:text-slate-400"
                             >
@@ -1117,9 +1157,9 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                           {(searchAnimationPhase === 'search' || searchAnimationComplete) && (
                             <motion.div
                               key="search"
-                              initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
-                              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                              exit={{ opacity: 0, y: -15, filter: 'blur(4px)' }}
+                              initial={{ opacity: 0, y: 15 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -15 }}
                               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                               className="text-xs text-gray-400 font-medium tracking-wide pl-4 pr-12 dark:text-slate-400"
                             >
@@ -1199,7 +1239,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute top-full right-0 mt-2 w-80 bg-white/95 backdrop-blur-sm rounded-xl shadow-xl border border-brand-100/50 overflow-hidden z-50 dark:bg-slate-900/95 dark:border-brand-800/50"
+                        className="absolute top-full right-0 mt-2 w-80 bg-popover text-popover-foreground rounded-xl shadow-sm border border-border overflow-hidden z-50"
                       >
                         {/* Filters Section (Compact) */}
                         {showFilters && (
@@ -1299,8 +1339,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                     onClick={() => handlePupilSelect(pupil.id)}
                                     className="cursor-pointer border-b px-3 py-2 transition-all duration-200 hover:bg-brand-surface-50/80 dark:hover:bg-brand-surface-950/80"
                                   >
-                                    <div className="flex items-start justify-between">
-                                      <div className="mr-2 flex min-w-0 flex-1 items-start gap-2">
+                                    <div className="flex items-center justify-between">
+                                      <div className="mr-2 flex min-w-0 flex-1 items-center gap-2">
                                         <SearchResultStatusControl
                                           pupil={pupil}
                                           siblingCount={siblings.length}
@@ -1308,21 +1348,15 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                           controlsId={familyControlsId}
                                           onToggle={() => setExpandedSearchPupilId(current => current === pupil.id ? null : pupil.id)}
                                         />
-                                        <div className="min-w-0 flex-1">
-                                          <p className="break-words text-sm font-medium text-gray-900 dark:text-slate-100">
+                                        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                                          <p title={formatPupilDisplayName(pupil)} className="min-w-0 flex-1 truncate text-sm font-medium text-gray-900 dark:text-slate-100">
                                             {formatPupilDisplayName(pupil)}
                                           </p>
-                                          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                                            <span className="text-xs text-gray-500 dark:text-slate-400">
-                                              {pupil.admissionNumber}
+                                          {pupil.status === 'Graduated' && pupil.graduationYear && (
+                                            <span className="flex-none rounded-full border border-gray-100 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+                                              {pupil.graduationYear}
                                             </span>
-
-                                            {pupil.status === 'Graduated' && pupil.graduationYear && (
-                                              <span className="rounded-full border border-gray-100 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-                                                {pupil.graduationYear}
-                                              </span>
-                                            )}
-                                          </div>
+                                          )}
                                         </div>
                                       </div>
                                       <div className="flex flex-shrink-0 items-center gap-2">
@@ -1424,7 +1458,10 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
 
               {/* Network Strength Indicator */}
               <HeaderThemeToggle />
-              <NetworkStrengthIndicator />
+              <NetworkStrengthIndicator
+                sessionVerificationDelayed={isSessionVerificationDelayed}
+                sessionMessage={sessionMessage}
+              />
 
               {/* SchoolPay Live Feed Icon + Badge */}
               {canSeeSchoolPayFeed && (

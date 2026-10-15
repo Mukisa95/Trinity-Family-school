@@ -21,6 +21,8 @@ type PersistentCollectionSnapshot<T> = {
   version: number;
   writtenAt: number;
   data: T;
+  authorizationScope?: string;
+  complete?: boolean;
 };
 
 let databasePromise: Promise<IDBDatabase> | null = null;
@@ -87,7 +89,7 @@ export function persistentCollectionCacheKey(
   return `${projectId.trim()}::${collectionName.trim()}::${scope.trim()}`;
 }
 
-export async function readPersistentCollectionWithMetadata<T>(key: string): Promise<{ data: T; writtenAt: number } | null> {
+export async function readPersistentCollectionWithMetadata<T>(key: string): Promise<{ data: T; writtenAt: number; authorizationScope?: string; complete?: boolean } | null> {
   if (!canUseIndexedDb()) return null;
 
   try {
@@ -105,7 +107,7 @@ export async function readPersistentCollectionWithMetadata<T>(key: string): Prom
     await completeTransaction(transaction);
 
     if (!snapshot || snapshot.version !== SNAPSHOT_VERSION) return null;
-    return { data: snapshot.data, writtenAt: snapshot.writtenAt };
+    return { data: snapshot.data, writtenAt: snapshot.writtenAt, authorizationScope: snapshot.authorizationScope, complete: snapshot.complete };
   } catch {
     // Firestore remains the fallback and source of truth.
     return null;
@@ -117,7 +119,7 @@ export async function readPersistentCollection<T>(key: string): Promise<T | null
   return snapshot?.data ?? null;
 }
 
-export async function writePersistentCollection<T>(key: string, data: T): Promise<void> {
+export async function writePersistentCollection<T>(key: string, data: T, authorizationScope?: string, complete?: boolean, notifyNative = true): Promise<void> {
   if (!canUseIndexedDb()) return;
 
   try {
@@ -128,11 +130,13 @@ export async function writePersistentCollection<T>(key: string, data: T): Promis
         version: SNAPSHOT_VERSION,
         writtenAt: Date.now(),
         data,
+        authorizationScope,
+        complete,
       } satisfies PersistentCollectionSnapshot<T>,
       key,
     );
     await completeTransaction(transaction);
-    if ('TrinityOffline' in window) window.dispatchEvent(new CustomEvent('trinity-native-cache-written', { detail: { key } }));
+    if (notifyNative && 'TrinityOffline' in window) window.dispatchEvent(new CustomEvent('trinity-native-cache-written', { detail: { key } }));
   } catch {
     // Cache writes are an optimization. A failed write must never disrupt live data.
   }

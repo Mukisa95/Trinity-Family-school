@@ -1,5 +1,8 @@
 "use client";
+
+import { usePageDataTiming } from '@/lib/hooks/use-page-data-timing';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
+import { SavedPupilDataNotice } from '@/components/pupils/saved-pupil-data-notice';
 
 import * as React from "react";
 import Link from "next/link";
@@ -53,9 +56,7 @@ import { usePupilExamHistory, useExamResultByExamId, useExams } from "@/lib/hook
 import { useAcademicYears, useActiveAcademicYear } from "@/lib/hooks/use-academic-years";
 import { useSchoolSettings } from "@/lib/hooks/use-school-settings";
 import { createStaffNameMap } from "@/lib/utils/staff-names";
-import { generateModernBatchReportPDF, generateTransBatchReportPDF } from '@/components/exam/ModernBatchReportPDF';
-import { generateFullReport2PDF } from '@/components/exam/FullReport2PDF';
-import { generatePrimaryMiniReportPDF } from '@/components/exam/PrimaryMiniReportPDF';
+import { generateModernBatchReportPDF, generateTransBatchReportPDF, generateFullReport2PDF, generatePrimaryMiniReportPDF } from '@/components/exam/load-report-pdf';
 import { IndividualReportPrintDialog } from '@/components/exam/IndividualReportPrintDialog';
 import { FullReport2PaletteSelector } from '@/components/exam/FullReport2PaletteSelector';
 import { getNextTermDates } from '@/lib/utils/academic-year-utils';
@@ -260,6 +261,7 @@ function PupilDetailContent() {
 
   // Firebase hooks - these will use cached data immediately if available
   const { data: pupil, isLoading: pupilLoading, error } = usePupil(pupilId || '');
+  usePageDataTiming('pupil-detail', !!pupil, pupilId || '');
   const { data: siblings = [], isLoading: siblingsLoading } = usePupilsByFamily(pupil?.familyId || '');
   const { data: classes = [] } = useClasses();
   const { data: allStaff = [] } = useStaff();
@@ -3816,14 +3818,14 @@ function PupilDetailContent() {
   // Don't show error while loading or if we have cached data
   if (!pupil && !isLoading && !pupilLoading) {
     return (
-      <div className="p-4 sm:p-6 text-center">
+      <div className="min-h-screen">
         <GlassPageTopBar
           title="Pupil Profile"
           backHref="/pupils"
           backLabel="Back to pupils"
         />
-        <div className="mt-8 text-muted-foreground">
-          <p>The pupil you are looking for does not exist.</p>
+        <div className="p-4 sm:p-6 mt-8 text-center text-muted-foreground">
+          <p>{error ? 'Pupil records could not load. Please reconnect or retry the unfinished download above.' : 'The pupil you are looking for does not exist.'}</p>
         </div>
       </div>
     );
@@ -3836,6 +3838,7 @@ function PupilDetailContent() {
 
   return (
     <>
+      <SavedPupilDataNotice />
       <GlassPageTopBar
         title={`${formatPupilDisplayName(pupil)}'s Profile`}
         recordDetails={

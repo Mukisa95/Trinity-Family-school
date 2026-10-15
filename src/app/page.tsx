@@ -1,5 +1,7 @@
 "use client";
 
+import { usePageDataTiming } from '@/lib/hooks/use-page-data-timing';
+
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -75,6 +77,9 @@ import { RecessStatusBanner } from '@/components/common/recess-status-banner';
 import { TermScheduleCard } from '@/components/dashboard/TermScheduleCard';
 import { MonthCalendarCard } from '@/components/dashboard/MonthCalendarCard';
 import { DashboardLiveTracker } from '@/components/dashboard/DashboardLiveTracker';
+import { DashboardWelcomeHeader } from '@/components/dashboard/dashboard-welcome-header';
+import { SavedPupilDataNotice } from '@/components/pupils/saved-pupil-data-notice';
+import { CatalogueDataNotice } from '@/components/common/catalogue-data-notice';
 import { ClassAttendanceSummaryDialog } from '@/components/dashboard/class-attendance-summary-dialog';
 import { PhotoViewerDialog } from '@/components/common/photo-viewer-dialog';
 
@@ -197,7 +202,7 @@ const StatCard = ({
         borderLeftColor: color.accent,
         background: color.gradient,
         willChange: 'transform',
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
+        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
         transform: 'translateZ(0)',
       }}
       onClick={handleClick}
@@ -657,11 +662,11 @@ const ExpandableStaffCard = ({
           borderLeftColor: color.accent,
           background: color.gradient,
           willChange: 'transform',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
+          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
           transform: 'translateZ(0)',
         }}
       >
-        <div className="dashboard-stat-surface absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl dark:bg-slate-900/80" />
+        <div className="dashboard-stat-surface absolute inset-0 bg-white/80 rounded-xl dark:bg-slate-900/80" />
         {/* 3D Depth Effect - Top highlight */}
         <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl dark:from-slate-900/40" />
         {/* 3D Depth Effect - Bottom shadow */}
@@ -1054,11 +1059,11 @@ const ExpandableAttendanceCard = ({
           borderLeftColor: currentColor.accent,
           background: currentColor.gradient,
           willChange: 'transform',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
+          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
           transform: 'translateZ(0)',
         }}
       >
-        <div className="dashboard-stat-surface absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl dark:bg-slate-900/80" />
+        <div className="dashboard-stat-surface absolute inset-0 bg-white/80 rounded-xl dark:bg-slate-900/80" />
         {/* 3D Depth Effect - Top highlight */}
         <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl dark:from-slate-900/40" />
         {/* 3D Depth Effect - Bottom shadow */}
@@ -1615,7 +1620,8 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
   const attendanceLoading = !attendanceData;
 
   // Get excluded days and academic year data
-  const { data: excludedDays = [] } = useExcludedDays();
+  const excludedDaysQuery = useExcludedDays();
+  const { data: excludedDays = [] } = excludedDaysQuery;
   const { data: allAcademicYears = [] } = useAcademicYears();
   // Use the globally correct year (two-pass cross-year scan, no isActive bias)
   const activeAcademicYear = useMemo(
@@ -1628,8 +1634,8 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
 
   // Check if today is a school day
   const isToday = useMemo(() => {
-    return isSchoolDay(currentDate, activeAcademicYear || null, excludedDays);
-  }, [currentDate, activeAcademicYear, excludedDays]);
+    return excludedDaysQuery.data !== undefined && isSchoolDay(currentDate, activeAcademicYear || null, excludedDays);
+  }, [currentDate, activeAcademicYear, excludedDays, excludedDaysQuery.data]);
 
   // Function to get the next school day
   const getNextSchoolDay = useMemo(() => {
@@ -1820,12 +1826,21 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
     return '#EF4444'; // Red
   };
 
+  if (excludedDaysQuery.data === undefined) {
+    return <Card className="theme-dashboard-surface dashboard-themed-card p-4">
+      <CardTitle>Present Today</CardTitle>
+      <p role="status" className="mt-3 text-sm text-muted-foreground">{excludedDaysQuery.error ? 'School-day calendar could not load.' : 'Loading the school-day calendar…'}</p>
+      {excludedDaysQuery.error && <Button variant="outline" className="mt-3" onClick={() => void excludedDaysQuery.refetch()}>Retry calendar</Button>}
+    </Card>;
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.1 }}
     >
+      <CatalogueDataNotice label="school-day calendar" saved={excludedDaysQuery.isSavedData} refreshing={excludedDaysQuery.isFetching} error={excludedDaysQuery.error} hasData={true} retry={excludedDaysQuery.refetch} />
       <Card className="theme-dashboard-surface dashboard-themed-card h-full rounded-xl transition-all duration-300 relative group overflow-visible" style={{
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
         transform: 'translateZ(0)',
@@ -2294,58 +2309,6 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
 
 
 
-// Enhanced Header Component
-const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
-  const { user } = useAuth();
-  const [timeGreeting, setTimeGreeting] = useState('Welcome back');
-
-  useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) setTimeGreeting('Good morning');
-    else if (hour < 17) setTimeGreeting('Good afternoon');
-    else setTimeGreeting('Good evening');
-  }, []);
-
-  const displayName = useMemo(() => {
-    if (user?.firstName) return user.firstName;
-    if (!user?.username) return 'Friend';
-
-    const username = user.username.trim();
-    if (username.includes(' ')) return username.split(' ')[0];
-    if (username.includes('_') || username.includes('.')) return username.split(/[_.]/)[0];
-    return username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
-  }, [user?.firstName, user?.username]);
-
-  return (
-    <div className="container mx-auto px-3 sm:px-6 lg:px-8 pt-2 pb-3 sm:pt-3 sm:pb-4">
-      <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-        {schoolSettings?.generalInfo?.logo && (
-          <img
-            src={schoolSettings.generalInfo.logo}
-            alt="School Logo"
-            className="h-10 w-10 flex-shrink-0 rounded-lg object-contain sm:h-12 sm:w-12"
-          />
-        )}
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-brand-alt-ink-700 sm:text-base dark:text-brand-alt-ink-300">
-            {timeGreeting}, {displayName}
-          </p>
-          <h1 className="truncate text-base font-bold tracking-tight text-gray-900 sm:text-lg md:text-xl dark:text-slate-100">
-            {schoolSettings?.generalInfo?.name || 'TRINITY FAMILY NURSERY AND PRIMARY SCHOOL'}
-          </h1>
-          <p className="truncate text-[11px] font-medium uppercase tracking-wide text-gray-500 sm:text-xs dark:text-slate-400">
-            {schoolSettings?.generalInfo?.motto || 'GUIDING GROWTH, INSPIRING GREATNESS'}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-
-
-
 export default function DashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -2391,6 +2354,8 @@ export default function DashboardPage() {
     hasError,
     refetchAll
   } = useDashboardData();
+  usePageDataTiming('dashboard:pupils', !pupilsLoading && (canViewTotalPupils || canViewGenderBreakdown || canViewClassEnrollment), user?.id);
+  usePageDataTiming('dashboard:staff', !staffLoading && canViewTotalStaff, user?.id);
   const attendanceNoticeDate = searchParams.get('attendanceDate') || '';
   const attendanceNoticeClassId = searchParams.get('attendanceClassId') || '';
   const validAttendanceNoticeDate = /^\d{4}-\d{2}-\d{2}$/.test(attendanceNoticeDate);
@@ -2456,7 +2421,8 @@ export default function DashboardPage() {
         <meta name="description" content="Trinity School Online Dashboard - Comprehensive overview of school activities and statistics." />
       </Head>
 
-      <EnhancedHeader schoolSettings={schoolSettings} />
+      <DashboardWelcomeHeader schoolSettings={schoolSettings} />
+      <SavedPupilDataNotice />
 
       <motion.div
         variants={groupVariants}
