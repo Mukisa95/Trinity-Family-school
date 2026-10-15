@@ -15,7 +15,7 @@ export function GlassPageTopBarSkeleton({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "glass-page-topbar-enter -mx-3 mb-4 overflow-hidden rounded-b-[18px] border-b border-white/45 bg-white/90 shadow-sm backdrop-blur-md sm:-mx-6 dark:border-slate-700/45 dark:bg-slate-900/90",
+        "glass-chrome-surface glass-page-topbar-enter -mx-3 mb-4 overflow-hidden rounded-b-[18px] border-b sm:-mx-6",
         className
       )}
       aria-hidden="true"

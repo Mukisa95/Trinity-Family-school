@@ -139,11 +139,11 @@ export function GlassPageTopBar({
 
   const backClassName = "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-brand-300/65 bg-white/[0.72] text-brand-ink-600 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-brand-200/45 backdrop-blur-[20px] transition-all duration-200 after:absolute after:-inset-1 after:content-[''] hover:scale-[1.03] hover:bg-white/90 hover:text-brand-ink-700 active:scale-95 dark:border-brand-800/65 dark:bg-slate-900/[0.72] dark:text-brand-ink-400 dark:ring-brand-800/45 dark:hover:bg-slate-900/90 dark:hover:text-brand-ink-300";
   const backControl = backHref ? (backMode === "href" ? (
-    <Link href={backHref} aria-label={backLabel} title={backLabel} className={backClassName}>
+    <Link href={backHref} aria-label={backLabel} title={backLabel} className={cn("glass-chrome-surface", backClassName)}>
       <ArrowLeft className="h-4 w-4" />
     </Link>
   ) : (
-    <SmartBackButton fallbackHref={backHref} label={backLabel} className={backClassName}>
+    <SmartBackButton fallbackHref={backHref} label={backLabel} className={cn("glass-chrome-surface", backClassName)}>
       <ArrowLeft className="h-4 w-4" />
     </SmartBackButton>
   )) : leading ? (
@@ -170,7 +170,7 @@ export function GlassPageTopBar({
         )}
       </div>
       {titleControls && !mobileTitleControlsBesideBack && (
-        <div className="pointer-events-auto flex w-fit max-w-full shrink-0 items-center gap-1.5 rounded-full border border-brand-alt-300/65 bg-white/[0.72] p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-brand-alt-200/45 backdrop-blur-[20px] [&>select]:!border-white/45 [&>select]:!bg-transparent [&>select]:!shadow-none dark:border-brand-alt-800/65 dark:bg-slate-900/[0.72] dark:ring-brand-alt-800/45 dark:[&>select]:!border-slate-600/45 dark:shadow-[0_4px_20px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <div className="glass-chrome-surface pointer-events-auto flex w-fit max-w-full shrink-0 items-center gap-1.5 rounded-full border p-0.5 ring-1 ring-brand-alt-200/45 [&>select]:!border-white/45 [&>select]:!bg-transparent [&>select]:!shadow-none dark:ring-brand-alt-800/45 dark:[&>select]:!border-slate-600/45">
           {titleControls}
         </div>
       )}
@@ -182,7 +182,7 @@ export function GlassPageTopBar({
       <div
         ref={topBarRef}
         className={cn(
-          "glass-page-topbar-enter -mx-3 mb-4 overflow-visible rounded-b-[18px] border-b border-white/45 bg-white/[0.72] shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[20px] sm:-mx-6 dark:border-slate-700/45 dark:bg-slate-900/[0.72]",
+          "glass-chrome-surface glass-page-topbar-enter -mx-3 mb-4 overflow-visible rounded-b-[18px] border-b sm:-mx-6",
           sticky && "sm:sticky sm:top-0 sm:z-30",
           className
         )}

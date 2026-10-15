@@ -3738,46 +3738,52 @@ html, body, * {
   scrollbar-width: none !important; /* Firefox */
 }
 
-/* Real backdrop glass: theme-tinted transmission, curved highlights and an inner edge. */
-.glass-navigation-floating { bottom: calc(1rem + env(safe-area-inset-bottom)); }
-.glass-navigation-surface {
+/* Shared material for navigation, main/page/class headers and summary bars. */
+@media screen {
+.glass-chrome-surface {
   --navigation-material: var(--brand-400, 96 165 250);
   --navigation-ink: var(--brand-800, 30 64 175);
+  --navigation-opacity: .10;
+  --navigation-edge-opacity: .28;
+  background: rgb(var(--navigation-material) / var(--navigation-opacity)) !important;
+  border-color: rgb(var(--navigation-ink) / var(--navigation-edge-opacity)) !important;
+  box-shadow: 0 4px 16px rgb(var(--brand-900, 30 58 138) / .07), inset 0 1px 1px rgb(255 255 255 / .3), inset 0 -1px 1px rgb(255 255 255 / .08) !important;
+  /* Frost only the backdrop; foreground content and portalled menus stay sharp. */
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+}
+.dark .glass-chrome-surface {
+  --navigation-material: var(--brand-200, 191 219 254);
+  --navigation-ink: var(--brand-200, 191 219 254);
+  --navigation-opacity: .14;
+  --navigation-edge-opacity: .3;
+}
+}
+.glass-navigation-floating { left: 6px; right: 6px; bottom: calc(1rem + env(safe-area-inset-bottom)); }
+.glass-navigation-surface {
   --navigation-label-shadow: none;
   --navigation-icon-shadow: none;
-  --navigation-edge-opacity: .48;
-  --navigation-opacity: .10;
   --navigation-active: var(--brand-700, 29 78 216);
   --navigation-active-top: var(--brand-surface-500, var(--brand-500, 59 130 246));
   position: relative;
   isolation: isolate;
-  width: min(22.5rem, calc(var(--glass-navigation-items, 6) * 48px + 12px));
+  width: min(26rem, calc(var(--glass-navigation-items, 6) * 44px + 10px));
   max-width: 100%;
   padding: 0 !important;
-  border: 1px solid rgb(255 255 255 / var(--navigation-edge-opacity)) !important;
+  border: 1px solid rgb(var(--navigation-ink) / var(--navigation-edge-opacity)) !important;
   border-radius: 999px !important;
-  background: rgb(var(--navigation-material) / var(--navigation-opacity)) !important;
-  box-shadow: 0 4px 16px rgb(var(--brand-900, 30 58 138) / .07), inset 0 1px 1px rgb(255 255 255 / .3), inset 0 -1px 1px rgb(255 255 255 / .08) !important;
-  /* Frost only what is behind the capsule; foreground controls stay sharp. */
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
   overflow: visible !important;
 }
 .dark .glass-navigation-surface {
-  --navigation-ink: var(--brand-200, 191 219 254);
   --navigation-label-shadow: 0 1px 2px rgb(0 0 0 / .25);
   --navigation-icon-shadow: drop-shadow(0 1px 1px rgb(0 0 0 / .2));
   --navigation-material: var(--brand-200, 191 219 254);
-  --navigation-opacity: .14;
-  --navigation-edge-opacity: .4;
 }
 .glass-navigation-surface[data-underlay="dark"] {
   --navigation-material: var(--brand-200, 191 219 254);
-  --navigation-edge-opacity: .4;
 }
 .glass-navigation-surface[data-underlay="light"] {
   --navigation-material: var(--brand-400, 96 165 250);
-  --navigation-edge-opacity: .48;
 }
 .glass-navigation-surface::before {
   content: "";
@@ -3804,9 +3810,9 @@ html, body, * {
   display: flex;
   align-items: center;
   justify-content: space-evenly;
-  min-height: 54px;
+  min-height: 48px;
   gap: 0;
-  padding: 0 6px;
+  padding: 0 4px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
 }
@@ -3824,15 +3830,15 @@ html, body, * {
 .glass-navigation-items :is(button, a[href]):not([role="switch"]):not(:has(button)) {
   position: relative;
   display: flex;
-  flex: 1 0 48px;
+  flex: 1 0 44px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
   width: auto;
-  min-width: 48px;
-  max-width: 58px;
-  height: 54px;
+  min-width: 44px;
+  max-width: 52px;
+  height: 48px;
   padding: 3px 2px;
   border: 0 !important;
   border-radius: 999px !important;
@@ -3847,7 +3853,7 @@ html, body, * {
   -webkit-tap-highlight-color: transparent;
   transition: color 120ms ease;
 }
-.glass-navigation-items a:has(> button) { flex: 1 0 48px; }
+.glass-navigation-items a:has(> button) { flex: 1 0 44px; }
 .glass-navigation-items a:has(> button) > button { width: 100%; max-width: none; }
 .glass-navigation-items :is(button, a):not([role="switch"]) > :first-child:not(.glass-navigation-label):not(.glass-navigation-badge):not(:only-child),
 .glass-navigation-items .glass-navigation-icon {
@@ -3855,15 +3861,15 @@ html, body, * {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   margin-bottom: 0;
   transition: transform 160ms var(--theme-ease-out), opacity 120ms ease;
 }
 .glass-navigation-items svg,
-.glass-navigation-items .glass-navigation-icon svg { width: 20px; height: 20px; stroke-width: 1.8; }
+.glass-navigation-items .glass-navigation-icon svg { width: 18px; height: 18px; stroke-width: 1.8; }
 .glass-navigation-items svg { filter: var(--navigation-icon-shadow); }
-.glass-navigation-items .theme-toggle { flex: 0 0 48px; min-width: 48px; height: 54px; }
+.glass-navigation-items .theme-toggle { flex: 0 0 44px; min-width: 44px; width: 44px; height: 48px; }
 .glass-navigation-items .theme-toggle svg { width: 16px; height: 16px; }
 .glass-navigation-items :is(button, a) > span:last-child:not(:only-child),
 .glass-navigation-items .glass-navigation-label {
@@ -3871,7 +3877,7 @@ html, body, * {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 500;
   line-height: 1.15;
   transition: opacity 120ms ease;
@@ -3922,13 +3928,13 @@ html, body, * {
 }
 @media (min-width: 640px) {
   .glass-navigation-compact-desktop { width: auto; }
-  .glass-navigation-compact-desktop .glass-navigation-items { min-height: 48px; padding: 0 4px; gap: 0; flex-wrap: wrap; overflow: visible; }
-  .glass-navigation-compact-desktop .glass-navigation-items :is(button, a[href]):not(:has(button)) { height: 48px; width: 48px; flex: 0 0 48px; }
+  .glass-navigation-compact-desktop .glass-navigation-items { min-height: 44px; padding: 0 4px; gap: 0; flex-wrap: wrap; overflow: visible; }
+  .glass-navigation-compact-desktop .glass-navigation-items :is(button, a[href]):not(:has(button)) { height: 44px; width: 44px; flex: 0 0 44px; }
   .glass-navigation-compact-desktop .glass-navigation-items svg { width: 18px; height: 18px; }
 }
 @media (max-width: 360px) { .glass-navigation-items { padding-inline: 0; } }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass-navigation-surface, .dark .glass-navigation-surface {
+  .glass-chrome-surface, .dark .glass-chrome-surface {
     --navigation-material: var(--brand-700, 29 78 216);
     --navigation-opacity: .95;
     --navigation-ink: 255 255 255;

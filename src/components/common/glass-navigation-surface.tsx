@@ -30,7 +30,7 @@ export function GlassNavigationSurface({ children, className, compactOnDesktop =
     if (!surface) return null;
     const bounds = control.getBoundingClientRect();
     const parent = surface.getBoundingClientRect();
-    const size = Math.min(44, bounds.width - 4, bounds.height - 8);
+    const size = Math.min(40, bounds.width - 4, bounds.height - 8);
     const x = bounds.left - parent.left + (bounds.width - size) / 2;
     return size > 0 && x >= 0 && x + size <= parent.width ? { x, size } : null;
   }
@@ -101,7 +101,7 @@ export function GlassNavigationSurface({ children, className, compactOnDesktop =
   return (
     <div
       ref={surfaceRef} role="group" aria-label={label}
-      className={cn("glass-navigation-surface", compactOnDesktop && "glass-navigation-compact-desktop", className)}
+      className={cn("glass-chrome-surface glass-navigation-surface", compactOnDesktop && "glass-navigation-compact-desktop", className)}
       data-feedback-active={feedback ? "true" : undefined}
       onKeyDownCapture={event => {
         keyboardInteraction.current = true;
