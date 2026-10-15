@@ -1,1 +1,7 @@
-<resources><string name="timetable_shortcut">Timetable</string><string name="lesson_reminders_shortcut">Lesson reminders</string></resources>
+<resources>
+    <string name="search_shortcut">Search</string>
+    <string name="timetable_shortcut">Timetable</string>
+    <string name="events_shortcut">Events</string>
+    <string name="pupils_shortcut">Pupil</string>
+    <string name="exams_shortcut">Exams</string>
+</resources>

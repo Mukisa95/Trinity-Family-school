@@ -96,7 +96,7 @@ public class LessonReminderDeviceTest {
         BroadcastReceiver receiver=new BroadcastReceiver(){@Override public void onReceive(Context sender,Intent intent){try{LessonReminders.receive(context,store,intent.setAction(LessonReminders.SNOOZED));}catch(Throwable error){failure.set(error);}finally{delivered.countDown();}}};
         try {
             store.clear();store.connect(session("reminder-qa"));store.save(snapshot("reminder-qa","QA English"));LessonReminders.save(context,store,"reminder-qa",settings());
-            if(Build.VERSION.SDK_INT>=33)context.registerReceiver(receiver,new IntentFilter(action),Context.RECEIVER_NOT_EXPORTED);else context.registerReceiver(receiver,new IntentFilter(action));
+            androidx.core.content.ContextCompat.registerReceiver(context,receiver,new IntentFilter(action),androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);
             long when=System.currentTimeMillis()+2000;Intent payload=event(store).setAction(action).setPackage(context.getPackageName()).putExtra("snoozeAt",when);
             pending=PendingIntent.getBroadcast(context,7299,payload,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             LessonReminders.schedule(context,when,pending,LessonReminders.exactAllowed(context));

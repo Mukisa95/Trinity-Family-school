@@ -34,6 +34,12 @@ final class TimetableInteractions {
         }
         ZonedDateTime now = ZonedDateTime.now(ZoneId.of(session.optString("timeZone", "Africa/Kampala")));
         TimetableSchedule.Frame feed = TimetableSurfaces.feed(context, envelope, scope, now);
+        if ("TRACKED".equals(intent.getStringExtra("operation")) && session.getJSONObject("grants").optBoolean("timetable")) {
+            for (TimetableSchedule.Frame tracked : feed.profiles) if (!tracked.trackedSubject.isEmpty() && tracked.trackedSubject.equals(intent.getStringExtra("trackedSubject"))) {
+                context.startActivity(new Intent(context, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("onlineRoute", PhotoPolicy.ORIGIN + "/timetable")); return;
+            }
+            return;
+        }
         TimetableSchedule.Frame row = null;
         for (TimetableSchedule.Frame candidate : feed.profiles) if (candidate.profileId.equals(intent.getStringExtra("profileId"))) row = candidate;
         if ("EVENT".equals(intent.getStringExtra("operation")) && session.getJSONObject("grants").optBoolean("events")) {

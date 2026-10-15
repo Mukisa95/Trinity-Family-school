@@ -88,7 +88,8 @@ final class OfflineController {
                 String deepLink = activity.getIntent().getStringExtra("offlineRoute");
                 String onlineLink = activity.getIntent().getStringExtra("onlineRoute");
                 String pushLink = NativePush.tapRoute(activity, activity.getIntent());
-                web.loadUrl(pushLink != null ? pushLink : OfflinePolicy.launchRoute(deepLink, onlineLink, role));
+                String shortcut = AppShortcuts.route(activity.getIntent().getStringExtra(AppShortcuts.EXTRA));
+                web.loadUrl(shortcut != null ? shortcut : pushLink != null ? pushLink : OfflinePolicy.launchRoute(deepLink, onlineLink, role));
             });
         });
     }

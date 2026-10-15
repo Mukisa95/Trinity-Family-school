@@ -60,7 +60,7 @@ public class TimetableAppearanceDeviceTest {
                             host.setAppWidget(987690,info);
                             View widget=TimetableSurfaces.widgetView(context,987690,new JSONObject(),feed,true,layout).apply(context,host);
                             assertEquals(expected(context,"surface",dark,dark?0xff111c2d:0xffffffff),((GradientDrawable)widget.getBackground()).getColor().getDefaultColor());
-                            assertEquals(expected(context,"primary",dark,dark?0xffa5b4fc:0xff4f46e5),((TextView)widget.findViewById(R.id.widget_title)).getCurrentTextColor());
+                            assertEquals(View.GONE,widget.findViewById(R.id.widget_header).getVisibility());
                         }
                         android.app.Notification card=TimetableSurfaces.card(context,new JSONObject(),feed,987690);
                         View small=card.contentView.apply(context,new FrameLayout(context));

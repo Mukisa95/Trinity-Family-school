@@ -17,6 +17,9 @@ public final class TimetableSettingsActivity extends Activity {
     private int widgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
     private LinearLayout content; private Switch progress, notificationCard, events, eventReminders;
     private boolean eventsAllowed;
+    private boolean timetableAllowed;
+    private Switch tracking;
+    private final Map<String, CheckBox> subjects = new LinkedHashMap<>();
     private final List<String> tableIds = new ArrayList<>();
     private final Map<String, CheckBox> visibility = new LinkedHashMap<>(); private Set<String> hidden;
     private TextView message, timing; private Button apply;
@@ -43,8 +46,11 @@ public final class TimetableSettingsActivity extends Activity {
                 JSONObject envelope = store.timetableAvailable();
                 if (envelope == null || !TimetableSurfaces.authorized(envelope)) throw new IllegalStateException("Open " + SchoolApp.NAME + " and sign in online to load your timetable.");
                 eventsAllowed=envelope.getJSONObject("session").getJSONObject("grants").optBoolean("events");
+                timetableAllowed=envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable");
                 datasets = envelope.getJSONObject("snapshot").getJSONObject("datasets");
-                accountId = envelope.getJSONObject("session").getString("accountId"); hidden = TimetableSurfaces.hidden(this, widgetId);
+                accountId = envelope.getJSONObject("session").getString("accountId");
+                if (!TimetableSurfaces.prefs(this).getString("account", accountId).equals(accountId)) TimetableSurfaces.clear(this);
+                hidden = TimetableSurfaces.hidden(this, widgetId);
                 runOnUiThread(() -> { if (!isDestroyed()) form(); });
             } catch (Exception error) { runOnUiThread(() -> {
                 if (isDestroyed()) return; message.setText(error.getMessage());
@@ -61,11 +67,13 @@ public final class TimetableSettingsActivity extends Activity {
             if (tables != null) for (int i = 0; i < tables.length(); i++) { JSONObject row = tables.getJSONObject(i); if (!row.optBoolean("complete")) continue; tableIds.add(row.getJSONObject("profile").getString("id")); names.add(row.getJSONObject("profile").optString("name", "Timetable")); }
             if (tableIds.isEmpty() && !eventsAllowed) { message.setText("Connect and open the timetable page to load the class schedules."); Button open = button("Open timetable"); open.setOnClickListener(view -> { startActivity(new Intent(this, MainActivity.class).putExtra("onlineRoute", PhotoPolicy.ORIGIN + "/timetable")); finish(); }); return; }
             message.setVisibility(View.GONE);
+            if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID && timetableAllowed) subjectControls();
             label("Timetables to show");
             for (int i = 0; i < tableIds.size(); i++) {
                 CheckBox check = new CheckBox(this); check.setText(names.get(i)); check.setMinHeight(dp(48)); check.setChecked(!hidden.contains(tableIds.get(i))); content.addView(check); visibility.put(tableIds.get(i), check);
             }
             Button showAll = button("Show all timetables"); showAll.setOnClickListener(view -> { for (CheckBox check : visibility.values()) check.setChecked(true); });
+            updateTableControls();
             label("Display choices do not change lesson reminder subscriptions.");
             timing = label(""); updateTiming();
             button("Allow accurate timetable timing").setOnClickListener(view -> {
@@ -97,6 +105,9 @@ public final class TimetableSettingsActivity extends Activity {
     }
     private void apply() {
         try {
+            if (tracking != null && tracking.isChecked() && subjects.values().stream().noneMatch(CheckBox::isChecked)) {
+                message.setVisibility(View.VISIBLE); message.setText("Choose at least one subject to track."); return;
+            }
             if (((notificationCard != null && notificationCard.isChecked()) || (eventReminders != null && eventReminders.isChecked())) && android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 73); return;
             }
@@ -104,6 +115,11 @@ public final class TimetableSettingsActivity extends Activity {
             Set<String> chosenHidden = new HashSet<>(hidden);
             for (Map.Entry<String, CheckBox> choice : visibility.entrySet()) { if (choice.getValue().isChecked()) chosenHidden.remove(choice.getKey()); else chosenHidden.add(choice.getKey()); }
             selected.put("accountId", accountId).put("hiddenTables", new JSONArray(chosenHidden));
+            if (tracking != null) {
+                JSONArray chosen = new JSONArray();
+                for (Map.Entry<String, CheckBox> choice : subjects.entrySet()) if (choice.getValue().isChecked()) chosen.put(choice.getKey());
+                selected.put("tracking", tracking.isChecked()).put("trackedSubjects", chosen);
+            }
             if(events!=null) selected.put("events",events.isChecked());
             if(eventReminders!=null) selected.put("eventReminders",eventReminders.isChecked());
             if (progress != null) selected.put("progress", progress.isChecked());
@@ -119,6 +135,29 @@ public final class TimetableSettingsActivity extends Activity {
                 } catch (Exception error) { runOnUiThread(() -> { if (!isDestroyed()) { apply.setEnabled(true); message.setVisibility(View.VISIBLE); message.setText(error.getMessage()); } }); }
             });
         } catch (Exception error) { message.setText("Could not update timetable appearance."); }
+    }
+    private void subjectControls() throws JSONException {
+        tracking = new Switch(this); tracking.setText("Track selected subjects"); tracking.setMinHeight(dp(48));
+        tracking.setChecked(TimetableSurfaces.tracking(this, widgetId)); content.addView(tracking);
+        LinearLayout choices = new LinearLayout(this); choices.setOrientation(LinearLayout.VERTICAL); content.addView(choices);
+        TextView help = new TextView(this); help.setText("Choose any number of subjects across classes. Each card shows the current or next lesson, including its stream. This replaces full timetable cards for this widget; event choices still apply."); help.setPadding(0, dp(8), 0, dp(8)); choices.addView(help);
+        Set<String> saved = TimetableSurfaces.trackedSubjects(this, widgetId);
+        Map<String, String> available = TrackedSubjects.choices(datasets);
+        for (String id : new TreeSet<>(saved)) if (!available.containsKey(id)) {
+            try { JSONArray pair = new JSONArray(id); available.put(id, TimetableSchedule.name(datasets, "classes", pair.getString(0)) + " · " + TimetableSchedule.name(datasets, "subjects", pair.getString(1)) + " (not in saved timetables)"); }
+            catch (JSONException ignored) { }
+        }
+        for (Map.Entry<String, String> entry : available.entrySet()) {
+            CheckBox check = new CheckBox(this); check.setText(entry.getValue()); check.setMinHeight(dp(48)); check.setChecked(saved.contains(entry.getKey()));
+            choices.addView(check); subjects.put(entry.getKey(), check);
+        }
+        if (available.isEmpty()) { TextView empty = new TextView(this); empty.setText("Connect and open Timetable to load subject choices."); choices.addView(empty); }
+        choices.setVisibility(tracking.isChecked() ? View.VISIBLE : View.GONE);
+        tracking.setOnCheckedChangeListener((button, checked) -> { choices.setVisibility(checked ? View.VISIBLE : View.GONE); updateTableControls(); });
+    }
+    private void updateTableControls() {
+        boolean full = tracking == null || !tracking.isChecked();
+        for (CheckBox check : visibility.values()) { check.setEnabled(full); check.setAlpha(full ? 1f : 0.5f); }
     }
     private void done() { setResult(RESULT_OK, new Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)); finish(); }
     @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {

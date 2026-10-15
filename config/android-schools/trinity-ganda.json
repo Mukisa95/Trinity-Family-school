@@ -4,9 +4,9 @@
   "applicationId": "ug.trinityfamilyganda.live",
   "websiteOrigin": "https://trinityfamilyganda.vercel.app",
   "firebaseProjectId": "trinity-family-ganda",
-  "versionCode": 27,
-  "versionName": "1.25",
-  "releaseNotes": "Remove the floating App help button while retaining background diagnostics and error reports. Includes offline calendar, event widgets and reminders, and improved offline navigation and session recovery.",
+  "versionCode": 28,
+  "versionName": "1.26",
+  "releaseNotes": "Remove the widget heading, track selected subjects across multiple classes with current and next lesson cards, and add Search, Timetable, Events, Pupil and Exams app-icon shortcuts. Includes existing offline calendar, event reminders, diagnostics and session recovery.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {

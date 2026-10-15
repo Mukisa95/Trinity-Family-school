@@ -272,7 +272,7 @@ const floatAnimation = {
 // Button hover — quick, subtle scale only
 const buttonHover = {
   scale: 1.06,
-  transition: { type: "spring", stiffness: 300, damping: 22 }
+  transition: { type: "spring" as const, stiffness: 300, damping: 22 }
 };
 
 const buttonTap = {
@@ -348,6 +348,9 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   const mobileSearchButtonRef = useRef<HTMLButtonElement>(null);
   const mobileSearchResultsRef = useRef<HTMLDivElement>(null);
   const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+  const desktopSearchInputRef = useRef<HTMLInputElement>(null);
+  const shortcutSearchPending = useRef(false);
   const prevSearchTermRef = useRef('');
 
   // State for the top bar message
@@ -424,12 +427,14 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   // Search bar animation sequence
   useEffect(() => {
     if (!settings || searchAnimationComplete) return;
+    let cancelled = false;
 
     const sequence = async () => {
       // Phase 1: Show logo (1 second)
       setSearchAnimationPhase('logo');
       setSearchBarWidth('w-32');
       await new Promise(resolve => setTimeout(resolve, 1000));
+      if (cancelled) return;
 
       // Phase 2: Slide to school name (1.5 seconds) - expand to fit name
       if (settings.generalInfo?.name) {
@@ -440,6 +445,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
         const estimatedWidth = Math.max(256, schoolNameWords.length * 8 + 80);
         setSearchBarWidth('w-64'); // Use w-64 as base, will expand if needed
         await new Promise(resolve => setTimeout(resolve, 1500));
+        if (cancelled) return;
       }
 
       // Phase 3: Show "Search" (final state)
@@ -449,6 +455,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
     };
 
     sequence();
+    return () => { cancelled = true; };
   }, [settings, searchAnimationComplete]);
 
   // Add real-time clock update and window resize handler
@@ -476,6 +483,27 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   }, []);
 
   const [showFilters, setShowFilters] = useState(false);
+  useEffect(() => {
+    if (!mounted || !windowWidth || !user || user.role === 'Parent' || pathname !== '/') return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('openSearch') !== '1') return;
+    shortcutSearchPending.current = true;
+    setSearchAnimationComplete(true);
+    setSearchAnimationPhase('search');
+    setIsSearchHovered(true);
+    setSearchBarWidth('w-64');
+    if (windowWidth < 768) setShowMobileSearch(true);
+    url.searchParams.delete('openSearch');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+  }, [mounted, pathname, user, windowWidth]);
+
+  useEffect(() => {
+    if (!shortcutSearchPending.current) return;
+    const input = windowWidth < 768 ? mobileSearchInputRef.current : desktopSearchInputRef.current;
+    if (!input) return;
+    input.focus();
+    shortcutSearchPending.current = false;
+  }, [showMobileSearch, searchAnimationComplete, windowWidth]);
   const [filters, setFilters] = useState({
     classId: '',
     section: '',
@@ -854,6 +882,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                       <MagnifyingGlass size={15} className="text-brand-ink-500 dark:text-brand-ink-400" weight="duotone" />
                     </div>
                     <input
+                      ref={mobileSearchInputRef}
+                      aria-label="Search pupils"
                       type="text"
                       placeholder="Search pupils..."
                       value={searchTerm}
@@ -1069,6 +1099,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   </div>
                   <div className="relative flex items-center">
                     <input
+                      ref={desktopSearchInputRef}
+                      aria-label="Search pupils"
                       type="text"
                       placeholder=""
                       value={searchTerm}
