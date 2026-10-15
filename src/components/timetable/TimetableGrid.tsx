@@ -2,7 +2,8 @@
 
 import { getSubjectTeacherIds, getSubjectTeacherRoleLabel } from '@/lib/utils/teaching-assignments';
 import * as React from "react";
-import { useTimetablePeriods, useTimetableEntries, useSaveTimetableEntries, useDeleteTimetableEntry, useTimetableProfiles, useSaveTimetablePeriods, useSetTimetableClassStreamMode } from "@/lib/hooks/use-timetable";
+import { useTimetablePeriods, useTimetableEntries, useSaveTimetableEntries, useDeleteTimetableEntry, useTimetableProfiles, useSaveTimetablePeriods, useSetTimetableClassStreamMode, useSetTimetableClassStreamOrder } from "@/lib/hooks/use-timetable";
+import { StreamOrderEditor } from './StreamOrderEditor';
 import { useClasses } from "@/lib/hooks/use-classes";
 import { useSubjects } from "@/lib/hooks/use-subjects";
 import { useStaff } from "@/lib/hooks/use-staff";
@@ -16,7 +17,7 @@ import { parse, format, addMinutes, differenceInMinutes, isSameDay } from "date-
 import { useToast } from "@/hooks/use-toast";
 import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff, ClassStream, TimetableProfile } from "@/types";
 import { getActiveClassStreams } from "@/lib/utils/class-streams";
-import { classUsesStreamRowsForDay, findTimetableEntryForRow, getTimetableClassColumnWidth, getTimetableStreamMode, type TimetableStreamMode } from "@/lib/utils/timetable-streams";
+import { classUsesStreamRowsForDay, findTimetableEntryForRow, getTimetableClassColumnWidth, getTimetableStreamMode, getOrderedTimetableStreams, type TimetableStreamMode } from "@/lib/utils/timetable-streams";
 import { useTimetableDensity } from "@/lib/hooks/use-timetable-density";
 import { getTimetablePeriodWidth } from "@/lib/utils/timetable-density";
 
@@ -168,6 +169,11 @@ export function TimetableGrid({
     const deleteMutation = useDeleteTimetableEntry();
     const savePeriodsMutation = useSaveTimetablePeriods();
     const streamModeMutation = useSetTimetableClassStreamMode();
+    const streamOrderMutation = useSetTimetableClassStreamOrder();
+    const handleSaveStreamOrder = async (classId: string, streamIds: string[]) => {
+        await streamOrderMutation.mutateAsync({ yearId, termId, timetableId: profileId, classId, streamIds });
+        toast({ title: 'Stream order saved', description: 'The rows have been arranged. Each stream keeps its lessons.' });
+    };
 
     const currentDayOfWeek = new Date().getDay() || 7;
     const [internalSelectedDay, setInternalSelectedDay] = React.useState<number>(initialDay ?? currentDayOfWeek);
@@ -740,7 +746,7 @@ export function TimetableGrid({
                     </thead>
                     <tbody>
                         {classesToRender.map((cls, clsIdx) => {
-                            const activeStreams = getActiveClassStreams(cls, yearId);
+                            const activeStreams = getOrderedTimetableStreams(cls, profile, yearId);
                             const usesStreamRows = classUsesStreamRowsForDay(
                                 cls,
                                 profile,
@@ -771,7 +777,8 @@ export function TimetableGrid({
                                             : handleAssignActivity(cls.id, periodId, name, teacherId, linkedIds, span)}
                                         onClear={(streamId, periodId) => handleClearCell(cls.id, periodId, streamId)}
                                         onSetMode={(mode, scope, periodId, sourceEntryId) => handleSetStreamMode(cls, mode, scope, periodId, sourceEntryId)}
-                                        streamModePending={streamModeMutation.isPending}
+                                        streamModePending={streamModeMutation.isPending || streamOrderMutation.isPending}
+                                        onSaveOrder={streamIds => handleSaveStreamOrder(cls.id, streamIds)}
                                         classColumnWidth={classColumnWidth}
                                     />
                                 );
@@ -788,9 +795,11 @@ export function TimetableGrid({
                                             {activeStreams.length > 1 && (
                                                 <StreamLayoutControl
                                                     classItem={cls}
+                                                    streams={activeStreams}
                                                     selectedDay={selectedDay}
                                                     isEditing={isEditing}
-                                                    streamModePending={streamModeMutation.isPending}
+                                                    streamModePending={streamModeMutation.isPending || streamOrderMutation.isPending}
+                                                    onSaveOrder={streamIds => handleSaveStreamOrder(cls.id, streamIds)}
                                                     onSetMode={(mode, scope) => handleSetStreamMode(cls, mode, scope)}
                                                 />
                                             )}
@@ -1039,16 +1048,20 @@ export function TimetableGrid({
 
 function StreamLayoutControl({
     classItem,
+    streams,
     selectedDay,
     isEditing,
     streamModePending,
     onSetMode,
+    onSaveOrder,
 }: {
     classItem: Class;
+    streams: ClassStream[];
     selectedDay: number;
     isEditing: boolean;
     streamModePending: boolean;
     onSetMode: (mode: TimetableStreamMode, scope: 'timetable' | 'day') => void;
+    onSaveOrder: (streamIds: string[]) => Promise<void>;
 }) {
     if (!isEditing) return null;
     return (
@@ -1068,7 +1081,7 @@ function StreamLayoutControl({
                 <p className="mt-0.5 text-[10px] leading-4 text-gray-500 dark:text-slate-400">Change every lesson for this class or only {DAYS[selectedDay - 1]}.</p>
                 {streamModePending && (
                     <div role="status" className="mt-2 flex items-center gap-1.5 rounded-md bg-brand-alt-surface-50 px-2 py-1.5 text-[10px] font-semibold text-brand-alt-ink-700 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300">
-                        <Loader2 className="h-3 w-3 animate-spin" /> Updating stream lessons…
+                        <Loader2 className="h-3 w-3 animate-spin" /> Saving stream layout…
                     </div>
                 )}
                 <div className="mt-3 grid grid-cols-2 gap-2">
@@ -1085,6 +1098,7 @@ function StreamLayoutControl({
                         <span className="font-bold">All separate</span><span className="font-normal text-gray-500 dark:text-slate-400">Whole timetable</span>
                     </Button>
                 </div>
+                <StreamOrderEditor streams={streams} disabled={streamModePending} onSave={onSaveOrder} />
             </PopoverContent>
         </Popover>
     );
@@ -1108,6 +1122,7 @@ function StreamedClassRows({
     onAssignActivity,
     onClear,
     onSetMode,
+    onSaveOrder,
     streamModePending,
     classColumnWidth,
 }: {
@@ -1128,6 +1143,7 @@ function StreamedClassRows({
     onAssignActivity: (stream: ClassStream | undefined, periodId: string, name: string, teacherId: string, linkedIds: string[], span: number) => void;
     onClear: (streamId: string | undefined, periodId: string) => void;
     onSetMode: (mode: TimetableStreamMode, scope: 'timetable' | 'day' | 'period', periodId?: string, sourceEntryId?: string) => void;
+    onSaveOrder: (streamIds: string[]) => Promise<void>;
     streamModePending: boolean;
     classColumnWidth: number;
 }) {
@@ -1154,10 +1170,12 @@ function StreamedClassRows({
                                         <div className="absolute bottom-1 right-1">
                                             <StreamLayoutControl
                                                 classItem={classItem}
+                                                streams={streams}
                                                 selectedDay={selectedDay}
                                                 isEditing={isEditing}
                                                 streamModePending={streamModePending}
                                                 onSetMode={onSetMode}
+                                                onSaveOrder={onSaveOrder}
                                             />
                                         </div>
                                     </div>

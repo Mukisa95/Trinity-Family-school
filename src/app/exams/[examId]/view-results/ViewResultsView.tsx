@@ -144,6 +144,7 @@ import {
 import {
   deriveExamStreams,
   enrichExamPupilStreamIdentity,
+  getExamPupilDisplaySnapshot,
   filterExamPupilsByStream,
   joinClassAndStream,
 } from '@/lib/utils/class-streams';
@@ -1020,13 +1021,13 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
     const snaps = examResultData?.pupilSnapshots || [];
     return snaps.map(snap => {
       const actualPupil = allPupils.find(p => p.id === snap.pupilId);
-      return enrichExamPupilStreamIdentity({
+      return getExamPupilDisplaySnapshot(enrichExamPupilStreamIdentity({
         ...snap,
         name: formatPupilName(actualPupil, { fallback: snap.name }),
         dateOfBirth: snap.dateOfBirth || actualPupil?.dateOfBirth,
         ageAtExam: snap.ageAtExam,
         schoolPayCode: getSchoolPayCode(actualPupil)
-      }, actualPupil, examClass, examDetails?.academicYearId || examResultData?.academicYearId);
+      }, actualPupil, examClass, examDetails?.academicYearId || examResultData?.academicYearId), examClass);
     });
   }, [allPupils, examClass, examDetails?.academicYearId, examResultData]);
 
@@ -1036,8 +1037,9 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         ? examDetails.streamScope.streams
         : classSnap?.streamScope?.streams,
       allPupilSnaps,
+      examClass,
     ),
-    [allPupilSnaps, classSnap?.streamScope?.streams, examDetails?.streamScope?.streams],
+    [allPupilSnaps, classSnap?.streamScope?.streams, examDetails?.streamScope?.streams, examClass],
   );
   const selectedStreamId = useMemo(() => {
     if (routeStreamId === 'all') return 'all';

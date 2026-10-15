@@ -170,6 +170,36 @@ export function getExamPupilStreamId(pupil: ExamRecordPupilInfo): string | undef
   return pupil.streamIdAtExam;
 }
 
+/** Capture canonical labels for a new exam, ahead of stale pupil copies. */
+export function snapshotExamPupilStreamIdentity(
+  pupil: PupilStreamIdentity,
+  schoolClass?: DisplayClass | null,
+): Pick<ExamRecordPupilInfo, 'streamIdAtExam' | 'streamNameAtExam' | 'streamCodeAtExam'> {
+  if (!schoolClass || pupil.classId !== schoolClass.id
+    || (pupil.streamClassId && pupil.streamClassId !== schoolClass.id)) return {};
+  const stream = schoolClass.streams?.find(candidate => candidate.id === pupil.streamId);
+  if (!stream) return {};
+  return { streamIdAtExam: stream.id, streamNameAtExam: stream.name, streamCodeAtExam: stream.code };
+}
+
+/**
+ * Presentation copy only: apply corrected names to the recorded stream ID.
+ * Never consult today's pupil assignment or mutate the saved exam snapshot.
+ * Retired streams without a current definition keep their recorded labels.
+ */
+export function getExamPupilDisplaySnapshot<T extends ExamRecordPupilInfo>(
+  snapshot: T,
+  schoolClass?: DisplayClass | null,
+): T {
+  const definition = schoolClass?.streams?.find(stream => stream.id === snapshot.streamIdAtExam);
+  if (!definition || !schoolClass) return snapshot;
+  return {
+    ...snapshot,
+    classNameAtExam: joinClassAndStream(schoolClass.name, definition.name),
+    classCodeAtExam: joinClassAndStream(schoolClass.code, definition.code),
+  };
+}
+
 type CurrentExamPupilIdentity = PupilStreamIdentity & Pick<Pupil, 'id' | 'streamAcademicYearId'>;
 
 function appendStreamOnce(baseValue: string, streamValue?: string): string {
@@ -240,6 +270,7 @@ export function enrichExamPupilStreamIdentity<T extends ExamRecordPupilInfo>(
 export function deriveExamStreams(
   declaredStreams: ExamStreamSnapshot[] | null | undefined,
   pupils: ExamRecordPupilInfo[],
+  schoolClass?: DisplayClass | null,
 ): ExamStreamSnapshot[] {
   const streams = new Map<string, ExamStreamSnapshot>();
   (declaredStreams || []).forEach(stream => {
@@ -255,7 +286,12 @@ export function deriveExamStreams(
       code: current?.code || pupil.streamCodeAtExam || pupil.streamNameAtExam || id,
     });
   });
-  return [...streams.values()];
+  // Scope and membership come exclusively from the exam. Only labels resolve
+  // against the corrected class definitions; do not add today's other streams.
+  return [...streams.values()].map(stream => {
+    const definition = schoolClass?.streams?.find(candidate => candidate.id === stream.id);
+    return definition ? { ...stream, name: definition.name, code: definition.code } : stream;
+  });
 }
 
 export function filterExamPupilsByStream<T extends ExamRecordPupilInfo>(

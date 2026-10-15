@@ -2423,6 +2423,8 @@ export interface TimetableProfile {
    */
   streamLayouts?: Record<string, {
     defaultMode: 'consolidated' | 'separate';
+    /** Display order only. Lessons remain linked by their existing streamId. */
+    streamOrder?: string[];
     dayModes?: Record<string, 'consolidated' | 'separate'>;
     periodModes?: Record<string, 'consolidated' | 'separate'>;
   }>;

@@ -11,6 +11,7 @@ import {
   getTimetableRenderedPeriodSpan,
   getTimetableStreamInitial,
   getTimetableStreamMode,
+  getOrderedTimetableStreams,
 } from '../src/lib/utils/timetable-streams';
 import { filterTimetablePrintData } from '../src/lib/utils/timetable-print';
 
@@ -61,6 +62,29 @@ test('a fully consolidated day keeps one class row and hides stream labels', () 
   const fridayRows = buildTimetableClassRowsForDay([schoolClass], profile, '2026', 5, periods);
   assert.equal(fridayRows.length, 1);
   assert.equal(fridayRows[0].stream, undefined);
+});
+
+test('saved display order moves whole stream rows and leaves lesson assignments intact', () => {
+  const arranged = structuredClone(profile);
+  arranged.streamLayouts!.p1.streamOrder = ['west', 'east'];
+  const entries: TimetableEntry[] = [
+    { id: 'east-math', classId: 'p1', periodId: 'mon-1', streamId: 'east', subjectId: 'math', teacherId: 'teacher-math', createdAt: '' },
+    { id: 'west-eng', classId: 'p1', periodId: 'mon-1', streamId: 'west', subjectId: 'eng', teacherId: 'teacher-eng', createdAt: '' },
+  ];
+  const before = structuredClone(entries);
+  const rows = buildTimetableClassRowsForDay([schoolClass], arranged, '2026', 1, periods);
+  assert.deepEqual(rows.map(row => row.stream?.id), ['west', 'east']);
+  assert.deepEqual(rows.map(row => findTimetableEntryForRow(entries, row.classItem.id, 'mon-1', 'separate', row.stream?.id)?.id), ['west-eng', 'east-math']);
+  assert.deepEqual(entries, before);
+  assert.deepEqual(schoolClass.streamConfigurations[0].activeStreamIds, ['east', 'west']);
+  assert.equal(getTimetableStreamMode(arranged, 'p1', 5, 'fri-1'), 'consolidated');
+});
+
+test('display order tolerates inactive IDs, duplicates and newly enabled streams', () => {
+  const arranged = { streamLayouts: { p1: { defaultMode: 'separate' as const, streamOrder: ['removed', 'west', 'west'] } } };
+  assert.deepEqual(getOrderedTimetableStreams(schoolClass, arranged, '2026').map(stream => stream.id), ['west', 'east']);
+  assert.deepEqual(getOrderedTimetableStreams(schoolClass, arranged, 'missing'), []);
+  assert.deepEqual(getOrderedTimetableStreams(schoolClass, undefined, '2026').map(stream => stream.id), ['east', 'west']);
 });
 
 test('entry lookup keeps consolidated and stream lessons distinct', () => {

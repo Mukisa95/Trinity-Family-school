@@ -67,7 +67,7 @@ import { ExamsService } from "@/lib/services/exams.service";
 import { ExamLeaseService } from "@/lib/services/exam-lease.service";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { getAssessmentModeForClass, isNurseryClass } from "@/lib/exam-assessment";
-import { getActiveClassStreams, getPupilClassDisplay } from "@/lib/utils/class-streams";
+import { getActiveClassStreams, getPupilClassDisplay, snapshotExamPupilStreamIdentity } from "@/lib/utils/class-streams";
 
 import { DEFAULT_GRADING_SCALE, EXAM_NATURES, OTHER_EXAM_TYPE_ID } from "@/lib/constants"; // Ensure OTHER_EXAM_TYPE_ID is exported
 import { format, parseISO, isValid, startOfDay, getYear as getYearFromDateFns, isWithinInterval } from "date-fns";
@@ -1286,14 +1286,17 @@ export default function ExamsPage() {
               };
             }) || [];
 
-            const pupilsInClassSnapshot = pupilsInClass.map(p => ({
-              pupilId: p.id,
-              name: formatPupilDisplayName(p),
-              admissionNumber: p.admissionNumber,
-              streamId: p.streamId,
-              streamName: p.streamName,
-              streamCode: p.streamCode,
-            }));
+            const pupilsInClassSnapshot = pupilsInClass.map(p => {
+              const streamSnapshot = snapshotExamPupilStreamIdentity(p, targetClass);
+              return {
+                pupilId: p.id,
+                name: formatPupilDisplayName(p),
+                admissionNumber: p.admissionNumber,
+                streamId: streamSnapshot.streamIdAtExam,
+                streamName: streamSnapshot.streamNameAtExam,
+                streamCode: streamSnapshot.streamCodeAtExam,
+              };
+            });
 
             classSnapshotData = {
               classId: targetClass.id,
@@ -1316,9 +1319,7 @@ export default function ExamsPage() {
               admissionNumber: p.admissionNumber,
               classNameAtExam: classDisplay.name || 'N/A',
               classCodeAtExam: classDisplay.code || undefined,
-              streamIdAtExam: p.streamId,
-              streamNameAtExam: p.streamName,
-              streamCodeAtExam: p.streamCode,
+              ...snapshotExamPupilStreamIdentity(p, targetClass),
               section: p.section,
               status: p.status,
               gender: p.gender,

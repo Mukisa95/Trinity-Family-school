@@ -33,7 +33,7 @@ function writeRevision(
 
 /** Add a timetable revision bump to the same batch as its source mutation. */
 export function bumpTimetableRevisionInBatch(
-  batch: WriteBatch,
+  batch: WriteBatch | Transaction,
   yearId: string,
   termId: string,
 ) {

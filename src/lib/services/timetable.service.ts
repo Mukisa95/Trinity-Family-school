@@ -11,9 +11,12 @@ import {
     Timestamp,
     writeBatch,
     deleteField,
+    FieldPath,
+    runTransaction,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import type { TimetableProfile, GeneratedPeriod, TimetableEntry, ClassStream } from '@/types';
+import type { TimetableProfile, GeneratedPeriod, TimetableEntry, ClassStream, Class } from '@/types';
+import { getActiveClassStreams } from '@/lib/utils/class-streams';
 import { bumpTimetableRevisionInBatch } from './dashboard-cache-revisions.service';
 
 // Path constructor for academic term scoped timetables
@@ -548,6 +551,45 @@ export class TimetableService {
             console.error('Error clearing optional timetable subjects:', error);
             throw error;
         }
+    }
+
+    /** Save presentation metadata only; no lesson entries are read or written. */
+    static async setClassStreamOrder(
+        yearId: string,
+        termId: string,
+        timetableId: string,
+        classId: string,
+        streamIds: string[],
+    ): Promise<string[]> {
+        const order = [...streamIds];
+        return runTransaction(db, async transaction => {
+            const profileRef = doc(db, getTimetablesCollectionPath(yearId, termId), timetableId);
+            const classRef = doc(db, 'classes', classId);
+            const [profileSnapshot, classSnapshot] = await Promise.all([
+                transaction.get(profileRef), transaction.get(classRef),
+            ]);
+            if (!profileSnapshot.exists()) throw new Error('Timetable not found.');
+            if (!classSnapshot.exists()) throw new Error('Class not found.');
+            const profile = profileSnapshot.data() as TimetableProfile;
+            if (!profile.classIds.includes(classId)) throw new Error('This class is not in this timetable.');
+            const activeStreams = getActiveClassStreams({ ...classSnapshot.data(), id: classId } as Class, yearId);
+            const activeIds = new Set(activeStreams.map(stream => stream.id));
+            if (activeStreams.length < 2 || order.length !== activeIds.size
+                || new Set(order).size !== order.length || order.some(id => !activeIds.has(id))) {
+                throw new Error('The active streams have changed. Reopen Arrange streams and try again.');
+            }
+            // Read the latest layout inside the transaction so day/lesson mode
+            // overrides and other classes are preserved during concurrent edits.
+            transaction.update(profileRef,
+                new FieldPath('streamLayouts', classId), {
+                    ...(profile.streamLayouts?.[classId] || { defaultMode: 'consolidated' }),
+                    streamOrder: order,
+                },
+                'updatedAt', Timestamp.now(),
+            );
+            bumpTimetableRevisionInBatch(transaction, yearId, termId);
+            return order;
+        });
     }
 
     /**

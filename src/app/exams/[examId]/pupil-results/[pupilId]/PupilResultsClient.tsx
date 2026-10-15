@@ -2,6 +2,8 @@
 
 import { formatPupilName } from '@/lib/utils/name-formatter';
 import { usePupils } from '@/lib/hooks/use-pupils';
+import { useClasses } from '@/lib/hooks/use-classes';
+import { getExamPupilDisplaySnapshot } from '@/lib/utils/class-streams';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { DatePicker } from '@/components/common/date-picker';
@@ -245,10 +247,18 @@ export default function PupilResultsClient() {
   } = useExamResultByExamId(examId);
 
   const { data: allPupils = [] } = usePupils();
+  const { data: allClasses = [] } = useClasses();
 
   // Extract data from exam results
   const classSnap: ExamClassInfoSnapshot | undefined = useMemo(() => examResultData?.classSnapshot, [examResultData]);
-  const pupilSnaps: ExamRecordPupilInfo[] = useMemo(() => (examResultData?.pupilSnapshots || []).map(snap => ({ ...snap, name: formatPupilName(allPupils.find(pupil => pupil.id === snap.pupilId), { fallback: snap.name }) })), [examResultData, allPupils]);
+  const examClass = useMemo(
+    () => allClasses.find(schoolClass => schoolClass.id === (classSnap?.classId || examDetails?.classId || classId)),
+    [allClasses, classId, classSnap?.classId, examDetails?.classId],
+  );
+  const pupilSnaps: ExamRecordPupilInfo[] = useMemo(() => (examResultData?.pupilSnapshots || []).map(snap => getExamPupilDisplaySnapshot({
+    ...snap,
+    name: formatPupilName(allPupils.find(pupil => pupil.id === snap.pupilId), { fallback: snap.name }),
+  }, examClass)), [examResultData, allPupils, examClass]);
   const subjectSnaps: ExamRecordSubjectInfo[] = useMemo(() => examResultData?.subjectSnapshots || [], [examResultData]);
   const actualResults: Record<string, Record<string, PupilSubjectResult>> = useMemo(() => examResultData?.results || {}, [examResultData]);
 
@@ -1454,7 +1464,7 @@ export default function PupilResultsClient() {
               <h2 className="break-words text-base font-bold leading-snug text-gray-900 sm:text-lg dark:text-slate-100">{pupilDetails.name}</h2>
               <dl className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 sm:text-sm dark:text-slate-300">
                 <div className="flex min-w-0 gap-1"><dt>Admission:</dt><dd className="break-all font-medium text-gray-900 dark:text-slate-100">{pupilDetails.admissionNumber}</dd></div>
-                <div className="flex gap-1"><dt>Class:</dt><dd className="font-medium text-gray-900 dark:text-slate-100">{classSnap?.name}</dd></div>
+                <div className="flex gap-1"><dt>Class:</dt><dd className="font-medium text-gray-900 dark:text-slate-100">{pupilDetails.classNameAtExam || classSnap?.name}</dd></div>
                 <div className="flex items-center gap-1"><dt>Position:</dt><dd className="font-semibold text-brand-alt-ink-700 dark:text-brand-alt-ink-300">{position}</dd></div>
               </dl>
             </div>
