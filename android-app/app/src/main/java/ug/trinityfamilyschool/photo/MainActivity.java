@@ -77,19 +77,11 @@ public final class MainActivity extends FragmentActivity {
         web = new WebView(this);
         android.widget.FrameLayout browserFrame = new android.widget.FrameLayout(this);
         browserFrame.addView(web, new android.widget.FrameLayout.LayoutParams(-1, -1));
-        android.widget.Button help = new android.widget.Button(this);
-        help.setText("App help"); help.setContentDescription("Open app problem report"); help.setTextSize(12);
-        android.widget.FrameLayout.LayoutParams helpPosition = new android.widget.FrameLayout.LayoutParams(-2, -2, android.view.Gravity.BOTTOM | android.view.Gravity.END);
-        helpPosition.setMargins(8, 8, 8, 8); browserFrame.addView(help, helpPosition);
         frame.addView(browserFrame, new android.widget.LinearLayout.LayoutParams(-1, 0, 1));
         setContentView(frame);
         deviceUnlock = new DeviceUnlock(this, web);
         diagnostics = new AppDiagnostics(this);
         offline = new OfflineController(this, web, deviceUnlock, diagnostics);
-        help.setOnClickListener(view -> {
-            if (offline != null) offline.showDiagnostics();
-            else diagnostics.show(diagnostics.report(null, json("state", "renderer_stopped")), true);
-        });
         SystemBars.install(this, frame);
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true); settings.setDomStorageEnabled(true);

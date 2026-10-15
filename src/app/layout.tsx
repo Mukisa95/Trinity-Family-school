@@ -1,4 +1,4 @@
-import { AppHelp } from '@/components/common/app-help';
+import { AppDiagnosticsMonitor } from '@/components/common/app-diagnostics-monitor';
 import { AndroidOfflineBoundary } from '@/components/common/android-offline-boundary';
 import { AndroidOfflineProvider } from '@/components/providers/android-offline-provider';
 import type { Metadata } from 'next';
@@ -181,7 +181,7 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         <ThemeProvider>
-        <AppHelp />
+        <AppDiagnosticsMonitor />
         <QueryProvider>
           <AuthProvider>
             <PrintProvider>
