@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/contexts/auth-context';
 import type { Pupil } from '@/types';
 import { cn } from '@/lib/utils';
+import { GlassNavigationSurface } from '@/components/common/glass-navigation-surface';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,7 @@ import {
   X
 } from 'lucide-react';
 
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
 interface ParentBottomNavigationProps {
   currentView: 'dashboard' | 'home' | 'notifications';
@@ -45,6 +46,7 @@ export function ParentBottomNavigation({
   const { user, logout } = useAuth();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPupilSelectorOpen, setIsPupilSelectorOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   // Determine if parent has single or multiple children
   const hasSingleChild = familyMembers.length === 1;
@@ -117,46 +119,34 @@ export function ParentBottomNavigation({
 
   return (
     <>
-      {/* Floating Rounded Navigation Bar - Compact with Color */}
-      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50">
-        <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg rounded-full shadow-2xl border-2 border-brand-200 dark:border-brand-800 px-1.5 py-1.5">
-          {/* Navigation Tabs - Compact Rounded Pill Design */}
-          <div className="flex items-center gap-0.5">
-            <ThemeToggle />
+      <nav aria-label="Parent navigation" className="glass-navigation-floating fixed inset-x-3 z-50 flex justify-center print:hidden">
+        <GlassNavigationSurface label="Parent destinations">
+            <ThemeToggle compact />
             {navigationItems.map((item) => {
               const isActive = item.id === currentView;
-              const isSettings = item.id === 'settings';
               
               return (
                 <Button
                   key={item.id}
                   variant="ghost"
-                  className={cn(
-                    "h-10 px-4 flex flex-col items-center justify-center gap-0.5 rounded-full transition-all duration-300",
-                    isActive 
-                      ? "bg-gradient-to-r from-brand-surface-500 to-brand-secondary-surface-600 text-white shadow-lg scale-105"
-                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:scale-105"
-                  )}
+                  className="glass-navigation-control"
+                  aria-label={item.label}
+                  aria-current={isActive ? 'page' : undefined}
+                  aria-expanded={item.id === 'settings' ? isSettingsOpen : item.id === 'dashboard' && hasMultipleChildren ? isPupilSelectorOpen : undefined}
+                  title={item.description}
                   onClick={() => handleViewChange(item.id as 'dashboard' | 'home' | 'settings')}
                 >
-                  <div className="relative">
-                    <item.icon className={cn(
-                      "h-4 w-4 transition-all duration-200",
-                      isActive ? "text-white" : isSettings ? "text-gray-600 dark:text-gray-400" : "text-gray-600 dark:text-gray-400"
-                    )} />
-                  </div>
-                  <span className={cn(
-                    "text-[9px] font-semibold transition-all duration-200 leading-none mt-0.5",
-                    isActive ? "text-white" : "text-gray-600 dark:text-gray-400"
-                  )}>
+                  <span aria-hidden="true" className="glass-navigation-icon">
+                    <item.icon />
+                  </span>
+                  <span className="glass-navigation-label">
                     {item.label}
                   </span>
                 </Button>
               );
             })}
-          </div>
-        </div>
-      </div>
+        </GlassNavigationSurface>
+      </nav>
 
       {/* Settings Dropdown */}
       <AnimatePresence>
@@ -164,11 +154,11 @@ export function ParentBottomNavigation({
           <>
             <div className="fixed inset-0 z-40" onClick={() => setIsSettingsOpen(false)} />
             <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              transition={{ type: 'spring', duration: 0.3 }}
-              className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-56 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden"
+              initial={{ opacity: 0, transform: reduceMotion ? 'translateX(-50%)' : 'translateX(-50%) translateY(8px) scale(0.97)' }}
+              animate={{ opacity: 1, transform: 'translateX(-50%) translateY(0) scale(1)' }}
+              exit={{ opacity: 0, transform: reduceMotion ? 'translateX(-50%)' : 'translateX(-50%) translateY(8px) scale(0.97)' }}
+              transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+              className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-50 w-56 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden"
             >
               <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Account</p>
@@ -204,7 +194,7 @@ export function ParentBottomNavigation({
       {/* Beautiful Children Selector Bubble - Only show when multiple children and dashboard button is clicked */}
       <AnimatePresence>
         {hasMultipleChildren && isPupilSelectorOpen && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center pb-20">
+          <div className="fixed inset-0 z-50 flex items-end justify-center pb-[calc(7rem+env(safe-area-inset-bottom))]">
             {/* Backdrop */}
             <div 
               className="absolute inset-0 bg-black/20 backdrop-blur-sm"
@@ -213,10 +203,10 @@ export function ParentBottomNavigation({
             
             {/* Children Selector Bubble */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.8, y: 50 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: 50 }}
-              transition={{ type: "spring", duration: 0.5 }}
+              initial={{ opacity: 0, transform: reduceMotion ? 'none' : 'translateY(8px) scale(0.97)' }}
+              animate={{ opacity: 1, transform: 'translateY(0) scale(1)' }}
+              exit={{ opacity: 0, transform: reduceMotion ? 'none' : 'translateY(8px) scale(0.97)' }}
+              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
               className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 max-w-sm w-full mx-4"
             >
               {/* Header */}
