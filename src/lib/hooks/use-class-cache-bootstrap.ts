@@ -16,10 +16,14 @@ import {
 } from '@/lib/cache/class-cache';
 import type { Class } from '@/types';
 
+const CLASS_FOCUS_REFRESH_COOLDOWN_MS = 60_000;
+const CLASS_VISIBLE_REFRESH_INTERVAL_MS = 5 * 60_000;
+
 /**
  * The sole network owner for ordinary class data. It restores the persisted
- * list immediately, then reads Firestore only when the existing settings
- * listener reports that the class revision has changed.
+ * list immediately, then reconciles revisions and checks once per session.
+ * Database-console edits do not publish revisions, so returning to the app,
+ * reconnecting, and a bounded visible-tab check also reconcile the snapshot.
  */
 export function useClassCacheBootstrap() {
   const queryClient = useQueryClient();
@@ -28,6 +32,7 @@ export function useClassCacheBootstrap() {
   const previousScope = useRef<string | null>(null);
   const retryTarget = useRef('');
   const retryCount = useRef(0);
+  const freshness = useRef({ scope: '', confirmed: false, lastAttemptAt: 0 });
   const [retryEpoch, setRetryEpoch] = useState(0);
 
   const scope = isAuthenticated ? getClassCacheScope(user?.id, user?.role) : '';
@@ -37,13 +42,44 @@ export function useClassCacheBootstrap() {
   useEffect(() => {
     if (!scope) return;
     return registerWorkspaceRecovery(queryClient, scope, 'classes', () => {
+      freshness.current.confirmed = false;
       retryCount.current = 0;
       setRetryEpoch(epoch => epoch + 1);
     });
   }, [queryClient, scope]);
 
   useEffect(() => {
+    if (!scope) return;
+    const refresh = (reconnected = false) => {
+      if (document.visibilityState === 'hidden' || navigator.onLine === false) return;
+      const current = freshness.current;
+      if (current.scope !== scope) return;
+      // Focus and visibility often fire together. Reconnect may bypass the
+      // focus cooldown, but still coalesces with a read already just started.
+      const cooldown = reconnected ? 1_000 : CLASS_FOCUS_REFRESH_COOLDOWN_MS;
+      if (Date.now() - current.lastAttemptAt < cooldown) return;
+      current.lastAttemptAt = Date.now();
+      current.confirmed = false;
+      retryCount.current = 0;
+      setRetryEpoch(epoch => epoch + 1);
+    };
+    const onReturn = () => refresh();
+    const onReconnect = () => refresh(true);
+    window.addEventListener('focus', onReturn);
+    window.addEventListener('online', onReconnect);
+    document.addEventListener('visibilitychange', onReturn);
+    const timer = setInterval(onReturn, CLASS_VISIBLE_REFRESH_INTERVAL_MS);
+    return () => {
+      window.removeEventListener('focus', onReturn);
+      window.removeEventListener('online', onReconnect);
+      document.removeEventListener('visibilitychange', onReturn);
+      clearInterval(timer);
+    };
+  }, [scope]);
+
+  useEffect(() => {
     if (!scope) {
+      freshness.current = { scope: '', confirmed: false, lastAttemptAt: 0 };
       if (previousScope.current) {
         queryClient.removeQueries({ queryKey: classesKeys.lists() });
         previousScope.current = null;
@@ -57,6 +93,9 @@ export function useClassCacheBootstrap() {
       ClassesService.clearSharedClasses();
     }
     previousScope.current = scope;
+    if (freshness.current.scope !== scope) {
+      freshness.current = { scope, confirmed: false, lastAttemptAt: 0 };
+    }
 
     const persisted = readClassCache(scope);
     const queryKey = classesKeys.list(scope);
@@ -77,14 +116,16 @@ export function useClassCacheBootstrap() {
     const needsColdFetch = persisted === null && inMemory === undefined;
     const needsRevisionRefresh =
       revisionsReady && persisted?.revision !== revision;
+    const needsSessionRefresh = !freshness.current.confirmed;
 
     // A cold device must never wait indefinitely for the settings listener.
     // Revision readiness only controls reconciliation of an existing snapshot.
-    if (!needsColdFetch && !needsRevisionRefresh) {
+    if (!needsColdFetch && !needsRevisionRefresh && !needsSessionRefresh) {
       reportWorkspaceTask(queryClient, scope, 'classes', 'ready');
       return;
     }
     reportWorkspaceTask(queryClient, scope, 'classes', 'loading');
+    freshness.current.lastAttemptAt = Date.now();
 
     let disposed = false;
     let serverSucceeded = false;
@@ -114,6 +155,7 @@ export function useClassCacheBootstrap() {
     void withWorkspaceIdentity(user?.id, () => ClassesService.refreshSharedClasses(() => ClassesService.getAllForCache())).then(classes => {
       if (disposed) return;
       serverSucceeded = true;
+      freshness.current.confirmed = true;
       retryCount.current = 0;
       const normalised = normaliseClasses(classes);
       ClassesService.hydrateSharedClasses(normalised);

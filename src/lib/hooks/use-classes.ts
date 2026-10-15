@@ -50,7 +50,8 @@ export function useClasses() {
     refetchInterval: false,
     initialData,
     initialDataUpdatedAt: initialData !== undefined ? Date.now() : undefined,
-    placeholderData: previousData => previousData,
+    // Scope changes represent another signed-in identity. Never carry the
+    // previous account's list into the new account while it is loading.
   });
 
   return {
