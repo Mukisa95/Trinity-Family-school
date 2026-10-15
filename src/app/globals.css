@@ -3738,6 +3738,187 @@ html, body, * {
   scrollbar-width: none !important; /* Firefox */
 }
 
+/* Floating capsule navigation. Existing glass and motion tokens follow the theme. */
+.glass-navigation-floating {
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+.glass-navigation-surface {
+  --navigation-ink: var(--ui-neutral-slate-700, 51 65 85);
+  --navigation-active: var(--brand-700, 29 78 216);
+  --navigation-active-top: var(--brand-500, 59 130 246);
+  --navigation-opacity: 0.68;
+  position: relative;
+  isolation: isolate;
+  width: min(26rem, calc(var(--glass-navigation-items) * 3.5rem + 1.5rem));
+  max-width: 100%;
+  padding: 0 !important;
+  border: 1px solid rgb(var(--glass-edge) / 0.7) !important;
+  border-radius: 999px !important;
+  background: linear-gradient(135deg, rgb(var(--glass-surface) / 0.78), rgb(var(--glass-surface) / var(--navigation-opacity))) !important;
+  box-shadow: 0 12px 32px rgb(var(--glass-shadow) / 0.14), inset 0 1px 0 rgb(255 255 255 / 0.8) !important;
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  overflow: visible !important;
+}
+
+.dark .glass-navigation-surface {
+  --navigation-ink: var(--ui-neutral-slate-200, 226 232 240);
+  --navigation-opacity: 0.86;
+  border-color: rgb(var(--glass-edge) / 0.48) !important;
+  box-shadow: 0 12px 32px rgb(var(--glass-shadow) / 0.32), inset 0 1px 0 rgb(255 255 255 / 0.12) !important;
+}
+
+.glass-navigation-items {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: 0;
+  min-height: 76px;
+  padding: 0 6px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* Support older page toolbars without changing their permission/menu wrappers. */
+.glass-navigation-items > div:has(button) {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+.glass-navigation-items :is(button, a[href]):not([role="switch"]):not(:has(button)) {
+  position: relative;
+  display: flex;
+  flex: 1 0 48px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: auto;
+  min-width: 48px;
+  max-width: 72px;
+  height: 76px;
+  padding: 6px 2px;
+  border: 0 !important;
+  border-radius: 24px !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: rgb(var(--navigation-ink));
+  text-decoration: none;
+  transform: none;
+  transition: color 160ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.glass-navigation-items a:has(> button) { flex: 1 0 48px; }
+.glass-navigation-items a:has(> button) > button { width: 100%; max-width: none; }
+
+.glass-navigation-items :is(button, a[href]):not([role="switch"]):not(:has(button)) > :first-child:not(.glass-navigation-label):not(.glass-navigation-badge):not(:only-child),
+.glass-navigation-items .glass-navigation-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin-bottom: 0;
+}
+
+.glass-navigation-items svg,
+.glass-navigation-items .glass-navigation-icon svg { width: 23px; height: 23px; stroke-width: 1.8; }
+.glass-navigation-items .theme-toggle svg { width: 16px; height: 16px; }
+.glass-navigation-items .theme-toggle { flex: 0 0 48px; }
+.glass-navigation-items :is(button, a) > span:last-child:not(:only-child),
+.glass-navigation-items .glass-navigation-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.glass-navigation-items .glass-navigation-icon {
+  transition: transform 200ms var(--theme-ease-out);
+}
+.glass-navigation-surface[data-input-method="keyboard"] .glass-navigation-icon { transition: none; }
+
+.glass-navigation-indicator {
+  position: absolute;
+  top: -8px;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+  border: 1px solid rgb(255 255 255 / 0.55);
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgb(var(--navigation-active-top)), rgb(var(--navigation-active)));
+  box-shadow: 0 8px 22px rgb(var(--navigation-active) / 0.32), inset 0 1px 0 rgb(255 255 255 / 0.36);
+}
+
+.glass-navigation-items :is([aria-current="page"], [aria-pressed="true"]) {
+  color: rgb(var(--navigation-active)) !important;
+}
+.glass-navigation-items :is([aria-current="page"], [aria-pressed="true"]) .glass-navigation-icon {
+  color: white;
+  transform: translateY(-15px) scale(1.12);
+}
+.glass-navigation-items :is([aria-current="page"], [aria-pressed="true"]) .glass-navigation-label {
+  color: rgb(var(--navigation-ink));
+}
+.glass-navigation-items :is(button, a):focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: -4px;
+}
+.glass-navigation-items :is(button, a):not([role="switch"]):active {
+  background: rgb(var(--navigation-active) / 0.1) !important;
+}
+.glass-navigation-items button:disabled { opacity: 0.45; cursor: not-allowed; }
+.glass-navigation-items .glass-navigation-badge { top: 8px; right: 2px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .glass-navigation-items :is(button, a):not([role="switch"]):hover {
+    color: rgb(var(--navigation-active));
+  }
+}
+
+@media (min-width: 640px) {
+  .glass-navigation-compact-desktop { width: auto; padding: 4px 8px !important; }
+  .glass-navigation-compact-desktop .glass-navigation-items { min-height: 48px; padding: 0; gap: 4px; flex-wrap: wrap; overflow: visible; }
+  .glass-navigation-compact-desktop .glass-navigation-items :is(button, a[href]):not(:has(button)) { height: 48px; width: 48px; flex: 0 0 48px; gap: 2px; }
+  .glass-navigation-compact-desktop .glass-navigation-items svg { width: 18px; height: 18px; }
+  .glass-navigation-compact-desktop .glass-navigation-items .glass-navigation-label,
+  .glass-navigation-compact-desktop .glass-navigation-items :is(button, a) > span:last-child:not(:only-child) { font-size: 9px; }
+  .glass-navigation-compact-desktop .glass-navigation-indicator { display: none; }
+  .glass-navigation-compact-desktop .glass-navigation-items [aria-current="page"] .glass-navigation-icon { color: rgb(var(--navigation-active)); transform: none; }
+}
+
+@media (max-width: 360px) {
+  .glass-navigation-items { padding-inline: 0; }
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-navigation-surface { --navigation-opacity: 0.98; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-navigation-items .glass-navigation-icon { transition: none; }
+}
+
+@media print {
+  .glass-navigation-floating { display: none !important; }
+}
+
 /* Shared page entry motion for the GlassPageTopBar and route skeleton. */
 .glass-page-topbar-enter {
   animation: glass-page-topbar-slide-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;

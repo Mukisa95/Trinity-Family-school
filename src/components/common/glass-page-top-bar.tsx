@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Children,
   Fragment,
@@ -8,6 +9,7 @@ import {
   isValidElement,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
+  type MouseEventHandler,
   type ReactNode,
   useEffect,
   useRef,
@@ -19,6 +21,7 @@ import { ArrowLeft, Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SmartBackButton } from "@/components/common/SmartBackButton";
+import { GlassNavigationSurface } from "@/components/common/glass-navigation-surface";
 
 type GlassActionTone =
   | "blue"
@@ -411,24 +414,16 @@ function getVisibleMobileActionChildren(children: ReactNode): ReactNode[] {
 
 export function GlassActionDock({ children, className, accessory }: GlassActionDockProps) {
   const isSmallScreen = useSmallScreen();
-  const actionCount = Math.max(1, getVisibleMobileActionChildren(children).length);
-  const compactWidth = actionCount > 1 ? Math.min(360, actionCount * 58 + 8) : undefined;
 
   const dock = (
-    <div
-      className={cn(
-        "glass-action-island flex max-w-full flex-nowrap items-center justify-center gap-0 overflow-x-auto rounded-full border border-brand-alt-300/65 bg-white/[0.72] p-1 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-brand-alt-200/55 backdrop-blur-[20px] sm:w-auto sm:flex-wrap sm:justify-start sm:gap-1 sm:border-brand-alt-300/60 sm:bg-white/[0.72] sm:px-2 sm:py-1 sm:shadow-[0_4px_20px_rgba(0,0,0,0.06)] sm:ring-1 sm:ring-brand-alt-200/45 dark:border-brand-alt-800/65 dark:bg-slate-900/[0.72] dark:ring-brand-alt-800/55 dark:sm:border-brand-alt-800/60 dark:sm:bg-slate-900/[0.72] dark:sm:ring-brand-alt-800/45",
-        className
-      )}
-      style={isSmallScreen ? { width: compactWidth } : undefined}
-    >
-      {children}
-    </div>
+    <GlassNavigationSurface compactOnDesktop className={cn("glass-action-island", className)}>
+      {isSmallScreen ? getVisibleMobileActionChildren(children) : children}
+    </GlassNavigationSurface>
   );
 
   if (isSmallScreen) {
     return createPortal(
-      <div className="pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-30 flex justify-center sm:hidden">
+      <div className="glass-navigation-floating pointer-events-none fixed inset-x-3 z-30 flex justify-center sm:hidden print:hidden">
         <div className={cn("pointer-events-auto max-w-full", accessory && "flex min-w-0 items-center gap-2")}>
           <div className="min-w-0">{dock}</div>
           {accessory}
@@ -455,6 +450,8 @@ interface GlassActionButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
   href?: string;
   tone?: GlassActionTone;
   badge?: ReactNode;
+  /** Only use for a persistent view selection, not a menu or one-off action. */
+  active?: boolean;
   className?: string;
 }
 
@@ -464,20 +461,24 @@ export const GlassActionButton = forwardRef<HTMLButtonElement, GlassActionButton
   href,
   tone = "blue",
   badge,
+  active,
   className,
   disabled,
   type = "button",
   ...buttonProps
 }, ref) {
+  const pathname = usePathname();
+  const isCurrentPage = Boolean(href && !href.includes("?") && href === pathname);
+  const isActive = active ?? isCurrentPage;
   const content = (
     <>
       {badge && (
-        <span className="absolute -right-1 -top-1 z-10 flex h-4 min-w-4 items-center justify-center rounded-full border border-white bg-brand-secondary-alt-surface-600 px-1 text-[9px] font-bold text-white dark:border-slate-700">
+        <span className="glass-navigation-badge absolute -right-1 -top-1 z-10 flex h-4 min-w-4 items-center justify-center rounded-full border border-white bg-brand-secondary-alt-surface-600 px-1 text-[9px] font-bold text-white dark:border-slate-700">
           {badge}
         </span>
       )}
-      {icon && <span className="mb-0.5 flex h-5 w-5 items-center justify-center sm:h-4 sm:w-4">{icon}</span>}
-      <span className="max-w-[52px] truncate text-[9px] font-semibold leading-none sm:max-w-none sm:text-[8px]">{label}</span>
+      {icon && <span aria-hidden="true" className="glass-navigation-icon mb-0.5 flex h-5 w-5 items-center justify-center sm:h-4 sm:w-4">{icon}</span>}
+      <span className="glass-navigation-label max-w-[52px] truncate text-[9px] font-semibold leading-none sm:max-w-none sm:text-[8px]">{label}</span>
     </>
   );
 
@@ -490,14 +491,14 @@ export const GlassActionButton = forwardRef<HTMLButtonElement, GlassActionButton
 
   if (href && !disabled) {
     return (
-      <Link href={href} className={classes} title={buttonProps.title || label} aria-label={buttonProps['aria-label'] || label}>
+      <Link href={href} className={cn("glass-navigation-control", classes)} title={buttonProps.title || label} aria-label={buttonProps['aria-label'] || label} aria-current={isActive ? "page" : undefined} onClick={buttonProps.onClick as MouseEventHandler<HTMLAnchorElement> | undefined}>
         {content}
       </Link>
     );
   }
 
   return (
-    <button ref={ref} className={classes} disabled={disabled} type={type} {...buttonProps}>
+    <button ref={ref} className={cn("glass-navigation-control", classes)} disabled={disabled} type={type} aria-label={label} title={label} aria-pressed={active === undefined ? undefined : active} {...buttonProps}>
       {content}
     </button>
   );

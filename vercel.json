@@ -32,5 +32,13 @@
         }
       ]
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "*": false,
+      "main": true,
+      "codex/application-performance": true
+    }
+  },
+  "ignoreCommand": "node -e \"process.exit(process.env.VERCEL_FORCE_BUILD === '1' || process.env.VERCEL_ENV !== 'preview' || process.env.VERCEL_GIT_COMMIT_REF === 'codex/application-performance' ? 1 : 0)\""
 }

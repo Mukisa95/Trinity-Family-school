@@ -142,7 +142,7 @@ export function ParentLayout({ children }: ParentLayoutProps) {
       
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
-        <div className="flex-1 overflow-y-auto pb-28 lg:pb-0">
+        <div className="flex-1 overflow-y-auto pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-0">
           {renderContent()}
         </div>
         
