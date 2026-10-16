@@ -55,6 +55,10 @@ public final class MainActivity extends FragmentActivity {
     private DeviceUnlock deviceUnlock;
     private AppDiagnostics diagnostics;
     private boolean loadErrorShown;
+    private String pendingShortcut;
+    private boolean shortcutRouterReady, searchKeyboardArmed, searchEditorReady;
+    private int keyboardAttempts;
+    private final Runnable shortcutKeyboard = this::showShortcutKeyboard;
     private File exchange;
     private ValueCallback<Uri[]> fileCallback;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -75,6 +79,7 @@ public final class MainActivity extends FragmentActivity {
         android.widget.LinearLayout frame = new android.widget.LinearLayout(this);
         frame.setOrientation(android.widget.LinearLayout.VERTICAL);
         web = new WebView(this);
+        searchKeyboardArmed = "search".equals(getIntent().getStringExtra(AppShortcuts.EXTRA));
         android.widget.FrameLayout browserFrame = new android.widget.FrameLayout(this);
         browserFrame.addView(web, new android.widget.FrameLayout.LayoutParams(-1, -1));
         frame.addView(browserFrame, new android.widget.LinearLayout.LayoutParams(-1, 0, 1));
@@ -95,6 +100,9 @@ public final class MainActivity extends FragmentActivity {
         }
         web.setWebViewClient(new WebViewClient() {
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
+                shortcutRouterReady = false;
+                searchEditorReady = false;
+                view.removeCallbacks(shortcutKeyboard);
                 if (deviceUnlock != null) deviceUnlock.navigation();
                 loadErrorShown = false;
                 diagnostics.record("web_navigation_started", 0);
@@ -342,10 +350,51 @@ public final class MainActivity extends FragmentActivity {
     @Override public void onBackPressed() { if (web != null && web.canGoBack()) web.goBack(); else super.onBackPressed(); }
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent); setIntent(intent);
-        String route=AppShortcuts.route(intent.getStringExtra(AppShortcuts.EXTRA));
-        if(route==null) route=NativePush.tapRoute(this,intent);
-        if(route!=null&&web!=null)web.loadUrl(route);
+        String shortcut = intent.getStringExtra(AppShortcuts.EXTRA);
+        if (AppShortcuts.route(shortcut) != null) {
+            pendingShortcut = shortcut;
+            searchKeyboardArmed = "search".equals(shortcut); searchEditorReady = false; keyboardAttempts = 0;
+            if (web != null) web.removeCallbacks(shortcutKeyboard);
+            deliverShortcut();
+        } else {
+            String route = NativePush.tapRoute(this, intent);
+            if (route != null && web != null) web.loadUrl(route);
+        }
         if (updater != null && AppUpdater.ACTION_INSTALL.equals(intent.getAction())) updater.resume();
+    }
+    void shortcutRouterReady() {
+        if (!shortcutSurface()) return;
+        shortcutRouterReady = true; deliverShortcut();
+    }
+    private boolean shortcutSurface() { return web != null && (PhotoPolicy.trusted(web.getUrl()) || OfflinePolicy.local(web.getUrl())); }
+    private void deliverShortcut() {
+        if (!shortcutRouterReady || pendingShortcut == null || !shortcutSurface()) return;
+        String id = pendingShortcut; pendingShortcut = null;
+        if (!"search".equals(id)) ((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(web.getWindowToken(), 0);
+        web.evaluateJavascript("window.dispatchEvent(new CustomEvent('trinity-android-shortcut',{detail:" + JSONObject.quote(id) + "}));", null);
+    }
+    void shortcutSearchEditorReady() {
+        if (!searchKeyboardArmed || !shortcutSurface()) return;
+        searchEditorReady = true; web.post(shortcutKeyboard);
+    }
+    private void showShortcutKeyboard() {
+        if (isDestroyed() || !shortcutSurface() || !searchKeyboardArmed || !searchEditorReady || !hasWindowFocus()) return;
+        web.evaluateJavascript("document.activeElement?.getAttribute('data-trinity-search') === 'true'", focused -> {
+            if (isDestroyed() || !shortcutSurface() || !searchKeyboardArmed || !searchEditorReady || !hasWindowFocus()) return;
+            if (!"true".equals(focused)) { searchKeyboardArmed = false; searchEditorReady = false; return; }
+            web.requestFocus();
+            android.view.inputmethod.InputMethodManager keyboard = (android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
+            if (keyboard.showSoftInput(web, 0)) { searchKeyboardArmed = false; searchEditorReady = false; }
+            else {
+                androidx.core.view.WindowInsetsControllerCompat insets = androidx.core.view.ViewCompat.getWindowInsetsController(web);
+                if (insets != null) insets.show(androidx.core.view.WindowInsetsCompat.Type.ime());
+                if (++keyboardAttempts < 3) web.postDelayed(shortcutKeyboard, keyboardAttempts * 100L);
+            }
+        });
+    }
+    @Override public void onWindowFocusChanged(boolean focused) {
+        super.onWindowFocusChanged(focused);
+        if (focused && web != null && searchEditorReady) web.post(shortcutKeyboard);
     }
     @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(request, permissions, results);

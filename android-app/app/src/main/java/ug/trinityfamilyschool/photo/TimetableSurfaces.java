@@ -22,6 +22,8 @@ final class TimetableSurfaces {
     static boolean showEvents(Context context,int id) { return prefs(context).getBoolean(prefix(id)+"events",prefs(context).getBoolean("events",false)); }
     static Set<String> trackedSubjects(Context context, int id) { return new HashSet<>(prefs(context).getStringSet(prefix(id) + "trackedSubjects", Collections.emptySet())); }
     static boolean tracking(Context context, int id) { return id != AppWidgetManager.INVALID_APPWIDGET_ID && prefs(context).getBoolean(prefix(id) + "tracking", false); }
+    static boolean trackingWithTables(Context context, int id) { return prefs(context).getBoolean(prefix(id) + "trackingWithTables", true); }
+    static List<String> rowOrder(Context context, int id) { return WidgetFeedOrder.read(prefs(context).getString(prefix(id) + "rowOrder", "[]")); }
     static Set<String> hidden(Context context, int id) {
         Set<String> global = prefs(context).getStringSet("hiddenTables", Collections.emptySet());
         return new HashSet<>(prefs(context).getStringSet(prefix(id) + "hiddenTables", global));
@@ -37,6 +39,10 @@ final class TimetableSurfaces {
         String account = envelope.getJSONObject("session").getString("accountId");
         if (!prefs(context).getString("account", account).equals(account)) { clear(context); edit = prefs(context).edit(); }
         edit.putString("account", account);
+        if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+            if (value.has("trackingWithTables")) edit.putBoolean(prefix(widgetId) + "trackingWithTables", value.optBoolean("trackingWithTables"));
+            if (value.has("rowOrder")) edit.putString(prefix(widgetId) + "rowOrder", new JSONArray(WidgetFeedOrder.read(value.getJSONArray("rowOrder").toString())).toString());
+        }
         if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID && value.has("tracking")) {
             if (!envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable")) throw new IllegalStateException("Timetable access is required to track subjects.");
             Set<String> selected = new HashSet<>(); JSONArray choices = value.optJSONArray("trackedSubjects");
@@ -121,8 +127,14 @@ final class TimetableSurfaces {
         JSONObject session=envelope.getJSONObject("session");
         JSONObject datasets = envelope.getJSONObject("snapshot").getJSONObject("datasets");
         boolean track = tracking(context, scope) && session.getJSONObject("grants").optBoolean("timetable") && prefs(context).getString("account", session.optString("accountId")).equals(session.optString("accountId"));
-        TimetableSchedule.Frame frame = track ? TrackedSubjects.feed(datasets, trackedSubjects(context, scope), now) : TimetableSchedule.feed(datasets, now, TimetableInteractions.offsets(context, scope, now));
-        if (!track) TimetableVisibility.apply(frame, hidden(context, scope), now);
+        TimetableSchedule.Frame frame = TimetableSchedule.feed(datasets, now, TimetableInteractions.offsets(context, scope, now));
+        TimetableVisibility.apply(frame, hidden(context, scope), now);
+        if (track) {
+            TimetableSchedule.Frame subjects = TrackedSubjects.feed(datasets, trackedSubjects(context, scope), now, true);
+            if (trackingWithTables(context, scope)) {
+                frame.profiles.addAll(subjects.profiles); frame.active |= subjects.active; frame.boundary = Math.min(frame.boundary, subjects.boundary);
+            } else frame = subjects;
+        }
         if (!session.getJSONObject("grants").optBoolean("timetable")) frame.profiles.clear();
         if (session.getJSONObject("grants").optBoolean("events")) {
             List<SchoolEventSchedule.Event> events=SchoolEventSchedule.events(envelope.getJSONObject("snapshot").getJSONObject("datasets"),now.getZone());
@@ -138,6 +150,7 @@ final class TimetableSurfaces {
         frame.title=frame.profiles.size()+" schedules"; frame.time="Timetables & events";
         frame.accountId = envelope.getJSONObject("session").optString("accountId");
         for (TimetableSchedule.Frame row : frame.profiles) row.accountId = frame.accountId;
+        if (scope != AppWidgetManager.INVALID_APPWIDGET_ID) WidgetFeedOrder.apply(frame, rowOrder(context, scope));
         return frame;
     }
     private static Intent interaction(Context context, int scope, TimetableSchedule.Frame row, String operation, String pillId) {
@@ -180,7 +193,7 @@ final class TimetableSurfaces {
         AppAppearance.text(view, R.id.mini_summary, palette, "#4F46E5", "#A5B4FC");
         AppAppearance.navigation(view, palette);
         AppAppearance.progress(view, R.id.mini_progress, palette, "#10B981", "#34D399");
-        view.setTextViewText(R.id.mini_label, row.tableName + " · " + (row.shortLabel.isEmpty() ? row.title : row.shortLabel) + " · " + row.time);
+        view.setTextViewText(R.id.mini_label, row.tableName + " · " + (row.shortLabel.isEmpty() ? row.title : row.shortLabel) + " · " + WidgetLessonText.periodRange(row.time, ZonedDateTime.now(ZoneId.of(row.timeZone)), android.text.format.DateFormat.getTimeFormat(context)));
         StringBuilder subjects = new StringBuilder();
         for (TimetableSchedule.Pill pill : row.pills) { if (subjects.length() > 0) subjects.append("  ·  "); subjects.append(pill.classCode).append(" ").append(pill.subjectCode); }
         view.setTextViewText(R.id.mini_summary, subjects.length() == 0 ? row.title : subjects.toString());
@@ -262,7 +275,7 @@ final class TimetableSurfaces {
         row.setBoolean(R.id.period_countdown, "setStarted", false);
         row.setContentDescription(R.id.current_lesson, frame.tableName + " · " + frame.title);
         row.setTextViewText(R.id.class_label, frame.tableName); row.setTextViewText(R.id.current_lesson, frame.shortLabel.isEmpty() ? frame.title : frame.shortLabel);
-        row.setTextViewText(R.id.lesson_time, frame.time); row.setTextViewText(R.id.lesson_agenda, frame.agenda);
+        row.setTextViewText(R.id.lesson_time, WidgetLessonText.periodRange(frame.time, ZonedDateTime.now(ZoneId.of(frame.timeZone)), android.text.format.DateFormat.getTimeFormat(context))); row.setTextViewText(R.id.lesson_agenda, frame.agenda);
         row.setTextViewText(R.id.period_badge, frame.hasPeriod ? frame.countdownEnd > 0 ? "Upcoming" : "Ended" : "");
         AppAppearance.badge(row,R.id.period_badge,palette,frame.countdownEnd > 0 ? 1 : 0);
         if (!frame.hasPeriod) row.setViewVisibility(R.id.period_badge, View.GONE);
@@ -342,16 +355,19 @@ final class TimetableSurfaces {
     static RemoteViews trackedSubjectView(Context context, TimetableSchedule.Frame frame, boolean progress) {
         RemoteViews row = new RemoteViews(context.getPackageName(), R.layout.tracked_subject_row);
         AppearancePalette palette = AppAppearance.palette(context);
-        for (int id : new int[]{R.id.tracked_class, R.id.tracked_subject, R.id.tracked_time, R.id.tracked_detail}) AppAppearance.text(row, id, palette, "#1F2937", "#E2E8F0");
-        row.setTextViewText(R.id.tracked_class, frame.className);
-        row.setTextViewText(R.id.tracked_subject, frame.title);
-        row.setTextViewText(R.id.tracked_time, frame.time);
-        row.setTextViewText(R.id.tracked_detail, frame.agenda);
-        row.setViewVisibility(R.id.tracked_detail, frame.agenda.isEmpty() ? View.GONE : View.VISIBLE);
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of(frame.timeZone));
+        for (int id : new int[]{R.id.tracked_subject, R.id.tracked_time, R.id.tracked_state}) AppAppearance.text(row, id, palette, "#1F2937", "#E2E8F0");
+        row.setTextViewText(R.id.tracked_subject, frame.classCode + " · " + frame.subjectCode);
+        AppAppearance.badge(row, R.id.tracked_subject, palette, frame.active ? 2 : frame.hasPeriod ? 1 : 0);
+        String state = WidgetLessonText.state(frame, now);
+        String time = frame.hasPeriod ? WidgetLessonText.range(frame.start, frame.end, frame.timeZone, android.text.format.DateFormat.getTimeFormat(context)) : frame.time;
+        row.setTextViewText(R.id.tracked_state, state);
+        row.setViewVisibility(R.id.tracked_state, state.isEmpty() ? View.GONE : View.VISIBLE);
+        row.setTextViewText(R.id.tracked_time, time);
         AppAppearance.progress(row, R.id.tracked_progress, palette, "#4F46E5", "#818CF8");
         row.setProgressBar(R.id.tracked_progress, 100, frame.progress, false);
         row.setViewVisibility(R.id.tracked_progress, progress && frame.active ? View.VISIBLE : View.GONE);
-        row.setContentDescription(R.id.tracked_row, frame.className + " · " + frame.title + " · " + frame.time + " · " + frame.agenda);
+        row.setContentDescription(R.id.tracked_row, frame.className + " · " + frame.title + " · " + state + " · " + time);
         row.setOnClickFillInIntent(R.id.tracked_row, new Intent().putExtra("operation", "TRACKED").putExtra("accountId", frame.accountId).putExtra("trackedSubject", frame.trackedSubject));
         return row;
     }

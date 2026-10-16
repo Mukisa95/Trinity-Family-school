@@ -16,6 +16,18 @@ final class TrackedSubjects {
         JSONArray rows = saved == null ? null : saved.optJSONArray("data");
         return rows == null ? new JSONArray() : rows;
     }
+    static String code(JSONObject data, String dataset, String id) {
+        JSONObject item = TimetableSchedule.find(data, dataset, id);
+        String code = item.optString("code").trim();
+        if (!code.isEmpty()) return code;
+        String name = item.optString("name", "").trim();
+        if (name.isEmpty()) return "?";
+        String[] words = name.split("\\s+");
+        if (words.length == 1) return name.substring(0, Math.min(3, name.length())).toUpperCase(Locale.getDefault());
+        StringBuilder initials = new StringBuilder();
+        for (String word : words) if (initials.length() < 4 && !word.isEmpty()) initials.append(word.charAt(0));
+        return initials.toString().toUpperCase(Locale.getDefault());
+    }
     static Map<String, String> choices(JSONObject data) throws JSONException {
         Map<String, String> result = new LinkedHashMap<>();
         JSONArray tables = rows(data, "timetables");
@@ -61,12 +73,15 @@ final class TrackedSubjects {
         return null;
     }
     static TimetableSchedule.Frame feed(JSONObject data, Set<String> selected, ZonedDateTime now) throws Exception {
+        return feed(data, selected, now, false);
+    }
+    static TimetableSchedule.Frame feed(JSONObject data, Set<String> selected, ZonedDateTime now, boolean todayOnly) throws Exception {
         TimetableSchedule.Frame feed = new TimetableSchedule.Frame();
         feed.boundary = now.toLocalDate().plusDays(1).atStartOfDay(now.getZone()).toInstant().toEpochMilli();
         for (String key : new TreeSet<>(selected)) {
             JSONArray pair;
             try { pair = new JSONArray(key); if (pair.length() != 2) continue; } catch (JSONException ignored) { continue; }
-            TimetableSchedule.Frame row = next(data, pair.getString(0), pair.getString(1), now);
+            TimetableSchedule.Frame row = next(data, pair.getString(0), pair.getString(1), now, todayOnly);
             row.trackedSubject = key;
             feed.profiles.add(row); feed.boundary = Math.min(feed.boundary, row.boundary);
             feed.active |= row.active;
@@ -75,14 +90,18 @@ final class TrackedSubjects {
         return feed;
     }
     static TimetableSchedule.Frame next(JSONObject data, String classId, String subjectId, ZonedDateTime now) throws Exception {
+        return next(data, classId, subjectId, now, false);
+    }
+    static TimetableSchedule.Frame next(JSONObject data, String classId, String subjectId, ZonedDateTime now, boolean todayOnly) throws Exception {
         TimetableSchedule.Frame row = new TimetableSchedule.Frame();
+        row.classCode = code(data, "classes", classId); row.subjectCode = code(data, "subjects", subjectId);
         row.title = TimetableSchedule.name(data, "subjects", subjectId);
         row.className = TimetableSchedule.name(data, "classes", classId);
         row.tableName = row.className; row.timeZone = now.getZone().getId();
-        row.time = "No upcoming lesson in saved timetables";
+        row.time = todayOnly ? "No lesson today" : "No upcoming lesson in saved timetables";
         row.boundary = now.toLocalDate().plusDays(1).atStartOfDay(now.getZone()).toInstant().toEpochMilli();
         long millis = now.toInstant().toEpochMilli(), best = Long.MAX_VALUE;
-        boolean complete = false, dated = false;
+        boolean complete = false, dated = false, finishedToday = false;
         JSONArray tables = rows(data, "timetables");
         for (int t = 0; t < tables.length(); t++) {
             JSONObject table = tables.getJSONObject(t), profile = table.getJSONObject("profile");
@@ -96,6 +115,7 @@ final class TrackedSubjects {
             for (int day = 1; day <= 7; day++) {
                 LocalDate from = now.toLocalDate().isBefore(startOfTerm) ? startOfTerm : now.toLocalDate();
                 LocalDate date = from.with(TemporalAdjusters.nextOrSame(DayOfWeek.of(day)));
+                if (todayOnly && !date.equals(now.toLocalDate())) continue;
                 List<JSONObject> periods = new ArrayList<>();
                 for (int p = 0; p < raw.length(); p++) if (raw.getJSONObject(p).optInt("dayOfWeek") == day) periods.add(raw.getJSONObject(p));
                 periods.sort(Comparator.comparing(p -> p.optString("startTime")));
@@ -116,12 +136,16 @@ final class TrackedSubjects {
                             ZonedDateTime begin = date.atTime(LocalTime.parse(period.getString("startTime"))).atZone(now.getZone());
                             ZonedDateTime finish = date.atTime(LocalTime.parse(periods.get(last).getString("endTime"))).atZone(now.getZone());
                             if (!finish.isAfter(begin)) continue;
-                            if (finish.toInstant().toEpochMilli() <= millis) { begin = begin.plusWeeks(1); finish = finish.plusWeeks(1); }
+                            if (finish.toInstant().toEpochMilli() <= millis) {
+                                finishedToday |= finish.toLocalDate().equals(now.toLocalDate()) && Boolean.TRUE.equals(TimetableUpdates.withinTerm(data, profile, date));
+                                if (todayOnly) continue;
+                                begin = begin.plusWeeks(1); finish = finish.plusWeeks(1);
+                            }
                             if (!Boolean.TRUE.equals(TimetableUpdates.withinTerm(data, profile, begin.toLocalDate()))) continue;
                             long start = begin.toInstant().toEpochMilli(), end = finish.toInstant().toEpochMilli();
                             if (start >= best) continue;
                             best = start; row.profileId = profile.optString("id"); row.periodId = period.optString("id");
-                            row.active = start <= millis; row.hasPeriod = true; row.end = end;
+                            row.active = start <= millis; row.hasPeriod = true; row.start = start; row.end = end;
                             row.countdownEnd = row.active ? end : start;
                             row.boundary = Math.min(now.toLocalDate().plusDays(1).atStartOfDay(now.getZone()).toInstant().toEpochMilli(), row.countdownEnd);
                             row.progress = TimetableSchedule.progress(start, end, millis);
@@ -138,6 +162,7 @@ final class TrackedSubjects {
                 }
             }
         }
+        if (best == Long.MAX_VALUE && todayOnly && finishedToday) row.time = "Done today";
         if (best == Long.MAX_VALUE && !complete) row.time = "Connect to load this class timetable";
         else if (best == Long.MAX_VALUE && !dated) row.time = "Connect to load term dates";
         return row;

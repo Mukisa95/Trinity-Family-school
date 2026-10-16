@@ -127,6 +127,16 @@ final class OfflineController {
             if (!PhotoPolicy.validId(id)) return;
         } catch (Exception ignored) { return; }
         String action = input.optString("action");
+        if ("shortcutRouterReady".equals(action) || "shortcutSearchEditorReady".equals(action)) {
+            activity.runOnUiThread(() -> {
+                if (activity instanceof MainActivity) {
+                    if ("shortcutRouterReady".equals(action)) ((MainActivity)activity).shortcutRouterReady();
+                    else ((MainActivity)activity).shortcutSearchEditorReady();
+                }
+                reply(reply, id, true, null, null);
+            });
+            return;
+        }
         if ("recordDiagnostic".equals(action)) {
             diagnostics.record(input.optString("code"), input.optLong("durationMs", 0));
             return;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { AndroidOfflineSession, AndroidOfflineSnapshot, AndroidOfflineTimetable } from '@/lib/offline/android-contracts';
 import { activeTimetableFeed } from '@/lib/offline/timetable-feed';
@@ -40,14 +40,20 @@ function StaffDetails({ pupil }: { pupil: Row }) {
     <section className="card"><h2>Additional records</h2><Missing>Connect to view exam history, fee collection, uniforms and requirements.</Missing></section></>;
 }
 
-function Pupils({ snapshot, selectedId, select }: { snapshot: AndroidOfflineSnapshot; selectedId: string; select: (id: string) => void }) {
+function Pupils({ snapshot, selectedId, select, focusRequest = 0 }: { snapshot: AndroidOfflineSnapshot; selectedId: string; select: (id: string) => void; focusRequest?: number }) {
   const [search, setSearch] = useState('');
   const [limit, setLimit] = useState(40);
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!focusRequest || !input.current) return;
+    input.current.focus();
+    if (document.activeElement === input.current) void androidOfflineRequest('shortcutSearchEditorReady', {}, 5000).catch(() => {});
+  }, [focusRequest]);
   const all: Row[] | undefined = snapshot.datasets.parent?.data.family.pupils || snapshot.datasets.pupils?.data;
   const selected = all?.find(item => item.id === selectedId);
   if (selected) return <><button onClick={() => select('')}>Back to {snapshot.role === 'Parent' ? 'my children' : 'pupils'}</button><div className="row" style={{ margin: '20px 0' }}><Avatar pupil={selected} /><div><h1>{formatPupilName(selected)}</h1><span className="muted">{selected.className || selected.classCode || ''} {selected.streamName || ''}</span></div></div>{snapshot.role === 'Parent' ? <ParentDetails snapshot={snapshot} pupil={selected} /> : <StaffDetails pupil={selected} />}</>;
   const filtered = all?.filter(item => `${formatPupilName(item)} ${item.admissionNumber || ''} ${item.className || ''}`.toLowerCase().includes(search.toLowerCase()));
-  return <><h1>{snapshot.role === 'Parent' ? 'My children' : 'Pupils'}</h1><p className="muted">Updated {date(snapshot.datasets.parent?.preparedAt || snapshot.datasets.pupils?.preparedAt)}.</p><label htmlFor="search">Search by name, admission number or class</label><input id="search" value={search} onChange={event => { setSearch(event.target.value); setLimit(40); }} /><section className="card" style={{ marginTop: 16 }}>{!all ? <Missing /> : !filtered?.length ? <Missing>{search ? 'No pupils match your search.' : 'No pupils found.'}</Missing> : <div className="stack">{filtered.slice(0, limit).map(item => <button className="pupil" key={item.id} onClick={() => select(item.id)}><Avatar pupil={item} /><span><strong>{formatPupilName(item)}</strong><br /><small>{item.admissionNumber} · {item.className || item.classCode || 'Class unavailable'}</small></span></button>)}{filtered.length > limit && <button onClick={() => setLimit(limit + 40)}>Show more pupils</button>}</div>}</section></>;
+  return <>{focusRequest ? <h2>Search pupils</h2> : <h1>{snapshot.role === 'Parent' ? 'My children' : 'Pupils'}</h1>}<p className="muted">Updated {date(snapshot.datasets.parent?.preparedAt || snapshot.datasets.pupils?.preparedAt)}.</p><label htmlFor="search">Search by name, admission number or class</label><input id="search" ref={input} data-trinity-search="true" value={search} onChange={event => { setSearch(event.target.value); setLimit(40); }} /><section className="card" style={{ marginTop: 16 }}>{!all ? <Missing /> : !filtered?.length ? <Missing>{search ? 'No pupils match your search.' : 'No pupils found.'}</Missing> : <div className="stack">{filtered.slice(0, limit).map(item => <button className="pupil" key={item.id} onClick={() => select(item.id)}><Avatar pupil={item} /><span><strong>{formatPupilName(item)}</strong><br /><small>{item.admissionNumber} · {item.className || item.classCode || 'Class unavailable'}</small></span></button>)}{filtered.length > limit && <button onClick={() => setLimit(limit + 40)}>Show more pupils</button>}</div>}</section></>;
 }
 
 function TimetableFeed({ snapshot, timeZone = 'Africa/Kampala' }: { snapshot: AndroidOfflineSnapshot; timeZone?: string }) {
@@ -115,15 +121,31 @@ function App() {
   const initial = route.get('page') || 'dashboard';
   const [page, setPage] = useState(initial);
   const [pupilId, setPupilId] = useState(route.get('pupilId') || '');
-  const navigate = (next: string) => { setPage(next); setPupilId(''); history.pushState({ page: next, pupilId: '' }, '', `?page=${next}`); window.scrollTo(0, 0); };
+  const [shortcut, setShortcut] = useState('');
+  const [searchRequest, setSearchRequest] = useState(0);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const navigate = useCallback((next: string) => { setSearchVisible(false); setPage(next); setPupilId(''); history.pushState({ page: next, pupilId: '' }, '', `?page=${next}`); window.scrollTo(0, 0); }, []);
   useEffect(() => {
     const handle = (event: PopStateEvent) => { const params = new URLSearchParams(location.search); setPage(params.get('page') || 'dashboard'); setPupilId(params.get('pupilId') || ''); };
     window.addEventListener('popstate', handle);
+    const launch = (event: Event) => { const id = (event as CustomEvent).detail; if (typeof id === 'string' && ['search', 'timetable', 'events', 'pupils', 'exams'].includes(id)) setShortcut(id); };
+    window.addEventListener('trinity-android-shortcut', launch);
+    void androidOfflineRequest('shortcutRouterReady', {}, 5000).catch(() => {});
     void androidOfflineRequest('status').then(reply => setAvailable(Boolean((reply as SavedReply).available))).catch(() => setAvailable(false));
     const lock = () => { setSnapshot(undefined); setSession(undefined); };
     window.addEventListener('trinity-offline-locked', lock);
-    return () => { window.removeEventListener('popstate', handle); window.removeEventListener('trinity-offline-locked', lock); };
+    return () => { window.removeEventListener('popstate', handle); window.removeEventListener('trinity-offline-locked', lock); window.removeEventListener('trinity-android-shortcut', launch); };
   }, []);
+  useEffect(() => {
+    if (!shortcut || !session) return;
+    setShortcut('');
+    const allowed = shortcut === 'pupils' ? session.grants.pupils || session.role === 'Parent'
+      : shortcut === 'search' ? session.role !== 'Parent' && session.grants.dashboard && session.grants.pupils
+      : shortcut === 'timetable' ? session.grants.timetable : shortcut === 'events' && session.grants.events;
+    if (!allowed) { setError(shortcut === 'exams' ? 'Connect to open this section.' : 'This shortcut is unavailable for your account.'); return; }
+    setError(''); navigate(shortcut === 'search' ? 'dashboard' : shortcut);
+    if (shortcut === 'search') { setSearchVisible(true); setSearchRequest(value => value + 1); }
+  }, [shortcut, session, navigate]);
   const unlock = async () => {
     setBusy(true); setError('');
     try {
@@ -135,9 +157,9 @@ function App() {
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'Could not open school information.'); }
     finally { setBusy(false); }
   };
-  const selectPupil = (id: string) => { setPupilId(id); history.pushState({ page: 'pupils', pupilId: id }, '', `?page=pupils${id ? `&pupilId=${encodeURIComponent(id)}` : ''}`); window.scrollTo(0, 0); };
+  const selectPupil = (id: string) => { setPage('pupils'); setPupilId(id); history.pushState({ page: 'pupils', pupilId: id }, '', `?page=pupils${id ? `&pupilId=${encodeURIComponent(id)}` : ''}`); window.scrollTo(0, 0); };
   return <><header><span className="brand">{__ANDROID_APP_NAME__}</span><button onClick={() => void androidOfflineRequest('openOnline').catch(failure => setError(failure.message))}>Refresh</button></header><main className="shell">
-    {snapshot && session ? <><div className="row" style={{ marginBottom: 16 }}><span className="pill">{session.role}</span><button onClick={() => void androidOfflineRequest('lock').then(() => { setSnapshot(undefined); setSession(undefined); })}>Lock</button></div>{page === 'pupils' ? <Pupils snapshot={snapshot} selectedId={pupilId} select={selectPupil} /> : page === 'events' ? <Events snapshot={snapshot} /> : page === 'timetable' ? <Timetable snapshot={snapshot} /> : <Dashboard snapshot={snapshot} session={session} navigate={navigate} />}</> : <section className="card" style={{ marginTop: 24 }}><h1>{__ANDROID_APP_NAME__}</h1><p className="muted">Unlock to continue.</p>{available === undefined ? <p className="loading">Loading...</p> : available ? <button className="primary" disabled={busy} onClick={() => void unlock()}>{busy ? 'Opening…' : 'Unlock'}</button> : <Missing>Connect and sign in to load your school information.</Missing>}</section>}
+    {snapshot && session ? <><div className="row" style={{ marginBottom: 16 }}><span className="pill">{session.role}</span><button onClick={() => void androidOfflineRequest('lock').then(() => { setSnapshot(undefined); setSession(undefined); })}>Lock</button></div>{page === 'pupils' ? <Pupils snapshot={snapshot} selectedId={pupilId} select={selectPupil} /> : page === 'events' ? <Events snapshot={snapshot} /> : page === 'timetable' ? <Timetable snapshot={snapshot} /> : <><Dashboard snapshot={snapshot} session={session} navigate={navigate} />{searchVisible && session.role !== 'Parent' && session.grants.pupils && <section className="card"><Pupils snapshot={snapshot} selectedId="" select={selectPupil} focusRequest={searchRequest} /></section>}</>}</> : <section className="card" style={{ marginTop: 24 }}><h1>{__ANDROID_APP_NAME__}</h1><p className="muted">Unlock to continue.</p>{available === undefined ? <p className="loading">Loading...</p> : available ? <button className="primary" disabled={busy} onClick={() => void unlock()}>{busy ? 'Opening…' : 'Unlock'}</button> : <Missing>Connect and sign in to load your school information.</Missing>}</section>}
     {error && <p className="error" role="alert">{error}</p>}
   </main>{snapshot && session && <nav aria-label="Application"><button aria-current={page === 'dashboard' ? 'page' : undefined} onClick={() => navigate('dashboard')}>Dashboard</button>{(session.grants.pupils || session.role === 'Parent') && <button aria-current={page === 'pupils' ? 'page' : undefined} onClick={() => navigate('pupils')}>{session.role === 'Parent' ? 'My children' : 'Pupils'}</button>}{session.grants.events && <button aria-current={page === 'events' ? 'page' : undefined} onClick={() => navigate('events')}>Events & Calendar</button>}{session.grants.timetable && <button aria-current={page === 'timetable' ? 'page' : undefined} onClick={() => navigate('timetable')}>Timetable</button>}</nav>}</>;
 }

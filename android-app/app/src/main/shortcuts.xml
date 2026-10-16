@@ -1,17 +1,17 @@
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
     <shortcut android:shortcutId="search" android:enabled="true" android:icon="@drawable/shortcut_search" android:shortcutShortLabel="@string/search_shortcut">
-        <intent android:action="android.intent.action.VIEW" android:targetPackage="@@APPLICATION_ID@@" android:targetClass="ug.trinityfamilyschool.photo.MainActivity"><extra android:name="trinityShortcut" android:value="search" /></intent>
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="@@APPLICATION_ID@@" android:targetClass="ug.trinityfamilyschool.photo.AppShortcutActivity"><extra android:name="trinityShortcut" android:value="search" /></intent>
     </shortcut>
     <shortcut android:shortcutId="timetable" android:enabled="true" android:icon="@drawable/shortcut_timetable" android:shortcutShortLabel="@string/timetable_shortcut">
-        <intent android:action="android.intent.action.VIEW" android:targetPackage="@@APPLICATION_ID@@" android:targetClass="ug.trinityfamilyschool.photo.MainActivity"><extra android:name="trinityShortcut" android:value="timetable" /></intent>
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="@@APPLICATION_ID@@" android:targetClass="ug.trinityfamilyschool.photo.AppShortcutActivity"><extra android:name="trinityShortcut" android:value="timetable" /></intent>
     </shortcut>
     <shortcut android:shortcutId="events" android:enabled="true" android:icon="@drawable/shortcut_events" android:shortcutShortLabel="@string/events_shortcut">
-        <intent android:action="android.intent.action.VIEW" android:targetPackage="@@APPLICATION_ID@@" android:targetClass="ug.trinityfamilyschool.photo.MainActivity"><extra android:name="trinityShortcut" android:value="events" /></intent>
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="@@APPLICATION_ID@@" android:targetClass="ug.trinityfamilyschool.photo.AppShortcutActivity"><extra android:name="trinityShortcut" android:value="events" /></intent>
     </shortcut>
     <shortcut android:shortcutId="pupils" android:enabled="true" android:icon="@drawable/shortcut_pupils" android:shortcutShortLabel="@string/pupils_shortcut">
-        <intent android:action="android.intent.action.VIEW" android:targetPackage="@@APPLICATION_ID@@" android:targetClass="ug.trinityfamilyschool.photo.MainActivity"><extra android:name="trinityShortcut" android:value="pupils" /></intent>
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="@@APPLICATION_ID@@" android:targetClass="ug.trinityfamilyschool.photo.AppShortcutActivity"><extra android:name="trinityShortcut" android:value="pupils" /></intent>
     </shortcut>
     <shortcut android:shortcutId="exams" android:enabled="true" android:icon="@drawable/shortcut_exams" android:shortcutShortLabel="@string/exams_shortcut">
-        <intent android:action="android.intent.action.VIEW" android:targetPackage="@@APPLICATION_ID@@" android:targetClass="ug.trinityfamilyschool.photo.MainActivity"><extra android:name="trinityShortcut" android:value="exams" /></intent>
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="@@APPLICATION_ID@@" android:targetClass="ug.trinityfamilyschool.photo.AppShortcutActivity"><extra android:name="trinityShortcut" android:value="exams" /></intent>
     </shortcut>
 </shortcuts>

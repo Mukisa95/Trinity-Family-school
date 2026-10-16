@@ -7,46 +7,76 @@ Long-press a widget and open its launcher's widget configuration. Enable **Track
 selected subjects**, then select class/subject pairs. There is no selection count
 limit. Each widget saves its own choices; full timetable cards remain the default.
 Tracked feeds load cards on demand rather than parceling every selected subject
-into every responsive widget size. Subject tracking replaces full timetable cards
-for that widget. Existing event
-display choices and automatic tomorrow/ongoing event cards still apply. Notification
-card settings and lesson reminder subscriptions retain their existing behavior.
+into every responsive widget size. **Show timetable cards alongside tracked
+lessons** lets each widget combine the two, or show tracked lessons alone.
+**Card order** provides labeled Up/Down controls for arranging individual
+tracked, timetable and event cards. Order survives refreshed snapshots and clock
+ticks; hidden cards keep their positions for when they are shown again. Newly
+available cards follow the saved choices. Notification settings and reminder
+subscriptions remain independent.
 
-`TrackedSubjects` computes the current or next occurrence entirely from authorized
-saved timetables. It respects class stream layouts, optional subjects and teachers,
-double lessons, weekends, term dates and the school time zone. Cards stay on an
-ongoing lesson until its end, then advance. Missing saved data produces an explicit
-refresh message. Widgets retain the existing independent boundary alarms, access
-expiry, reboot and periodic recovery paths; future tracked lessons do not need
-minute redraws. Turning tracking off retains the saved subject choices.
+Tracked cards display class and subject codes, such as `P4 · ENG`, a Now/Next
+state and a time range. They omit dates and teachers. Times use Android's system
+12/24-hour formatter, while retaining the school's time zone. Normal timetable
+card ranges use that formatter too. Only today's lessons appear: an ongoing
+lesson remains until its exact end, then advances to the next one today. After
+the last lesson the card says **Done today**; a day without that subject says
+**No lesson today**. Midnight recomputes the next day's state. Missing saved data
+continues to show an explicit refresh message. Saved choices, boundary alarms,
+access expiry, reboot and periodic recovery remain in place.
 
 The five app-icon shortcuts are Search, Timetable, Events, Pupil and Exams. Each
-school build targets its own Android package and website. Only recognized shortcut
-identifiers are mapped to routes. Cold launches and new intents use the same map.
-Search opens `/?openSearch=1`; the actual dashboard header opens and focuses the
-pupil search, then consumes only that flag. Other query parameters and the fragment
-are preserved. Parent accounts retain their existing search/access restrictions.
-Exams retains its existing connection requirements.
+school build targets its own package and website. A disposable
+`AppShortcutActivity` has an empty task affinity, isolating the static shortcut's
+Android-supplied clearing flags. It launches `MainActivity` with
+NEW_TASK/CLEAR_TOP/SINGLE_TOP to reuse an existing activity. A ready handshake
+queues warm shortcuts until the web listener exists, then sends only a recognized
+identifier. The existing Next router changes pages without reloading the WebView.
+Cold launches still load their initial destination normally. The packaged recovery
+reader also changes its own React state without reloading or unlocking again;
+shortcuts arriving while locked wait for the normal unlock and grant checks.
+
+Search opens the dashboard search and preserves an existing search term. The
+header consumes only `openSearch=1`, preserving unrelated URL parameters and the
+fragment. It signals native Android after the real input receives focus, including
+when mobile animations defer mounting. Android waits for window focus and the
+active search editor before requesting the keyboard. The reader uses the same
+editor signal. Account/parent restrictions remain; Exams requires a connection,
+even if Next previously cached that page during the open session.
+
+See Android's [static shortcut task guidance](https://developer.android.com/develop/ui/compose/system/shortcuts/managing-shortcuts)
+and [keyboard focus guidance](https://developer.android.com/develop/ui/views/touch-and-input/keyboard-input/visibility).
 
 Android and launcher limits determine how many shortcuts appear in a particular
 menu; defining five cannot override the phone's limit. See the official
 [shortcut management documentation](https://developer.android.com/develop/ui/compose/system/shortcuts/managing-shortcuts).
 
-Validation uses `TimetableScheduleTest`, `AppShortcutsTest`, Android build/lint,
-and `scripts/test-android-shortcut-search.cjs` (real header, synthetic school data).
-Browser coverage includes mobile/tablet/desktop, landscape, light/dark, reduced
-motion, larger text, search results, flag consumption and parent/normal entry.
-Real launcher, widget scrolling and sleep recovery still require a connected phone.
+Current local validation covers clock formatting, today's lesson/end/midnight
+states, mixed card ordering and saved-code fallback in JVM tests. Synthetic browser
+fixtures exercise the real header, Next router, service worker and packaged reader:
+warm and cold search, focused-editor bridge messages, safe route identifiers,
+normal/parent boundaries, online/offline navigation, preserved document/header
+state, unsupported sections and storage failures. Cases cover 375/768/844-landscape/
+1280 widths in light/dark, reduced motion and larger text.
+`TrackedWidgetDeviceTest` adds isolated synthetic Android feed and RemoteViews
+coverage for mixed versus tracked-only modes, per-widget choices/order, grants,
+phone-clock formatting and compact text scaling. Instrumentation is compiled,
+not executed without a connected phone. Actual launcher task reuse, keyboard
+visibility and native widget appearance/scrolling still need device validation.
 
-Local verification: both school debug APKs and instrumentation APKs built; all 78
-JVM tests passed for each school. The final shared-source Android lint check passed
-under Ganda with zero errors (103 warnings). Compiled APK inspection confirmed
-subject tracking, all five shortcut targets, and each school's own route origins.
-All eight responsive browser cases and normal/parent entry checks passed. Compared
-with the unchanged header baseline, focused TypeScript diagnostics fell from 11
-to six existing errors, with no new diagnostics. No phone was connected.
+Both school debug APKs and instrumentation APKs built successfully. Each school
+passed all 84 JVM tests and Android lint with zero errors (108 warnings). Compiled
+APK inspection confirmed school-specific targets and the isolated shortcut task,
+plus the new packaged reader handler. All browser checks above passed. Focused web
+comparisons found no new issues: six existing TypeScript diagnostics and nine
+existing ESLint errors remain unchanged.
 
-The authorized release advances Trinity Live and Ganda to Android 1.26 (code 28),
+These refinements are pending locally. Website/APK release metadata and published
+APKs remain unchanged until the user authorizes the next release.
+
+## Previous release: Android 1.26
+
+The previous release advanced Trinity Live and Ganda to Android 1.26 (code 28),
 with the shared website header change. Each school retains its existing permanent
 signing certificate, app identity, website and Firebase project. Native widget and
 launcher changes require installing the matching updated APK.

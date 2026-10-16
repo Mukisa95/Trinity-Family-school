@@ -25,7 +25,7 @@ import {
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/auth-context';
-import React, { useState, useMemo, useEffect, useRef, useContext } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useContext, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import quotes from '@/data/quotes.json';
@@ -40,6 +40,7 @@ import { getEffectiveTermForDataDisplay } from '@/lib/utils/term-status-utils';
 import { useSchoolPayBadge } from '@/lib/hooks/use-schoolpay-badge';
 import { Zap } from 'lucide-react';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
+import { androidOfflineRequest, hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
 import type { Class, Pupil } from '@/types';
 
 
@@ -351,6 +352,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
   const desktopSearchInputRef = useRef<HTMLInputElement>(null);
   const shortcutSearchPending = useRef(false);
+  const [shortcutSearchRequest, setShortcutSearchRequest] = useState(0);
   const prevSearchTermRef = useRef('');
 
   // State for the top bar message
@@ -485,25 +487,44 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   const [showFilters, setShowFilters] = useState(false);
   useEffect(() => {
     if (!mounted || !windowWidth || !user || user.role === 'Parent' || pathname !== '/') return;
+    const open = () => {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('openSearch') === '1') {
+        url.searchParams.delete('openSearch');
+        window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+      }
+      shortcutSearchPending.current = true;
+      setShortcutSearchRequest(request => request + 1);
+      setSearchAnimationComplete(true);
+      setSearchAnimationPhase('search');
+      setIsSearchHovered(true);
+      setSearchBarWidth('w-64');
+      if (windowWidth < 768) setShowMobileSearch(true);
+    };
+    window.addEventListener('trinity-open-dashboard-search', open);
     const url = new URL(window.location.href);
-    if (url.searchParams.get('openSearch') !== '1') return;
-    shortcutSearchPending.current = true;
-    setSearchAnimationComplete(true);
-    setSearchAnimationPhase('search');
-    setIsSearchHovered(true);
-    setSearchBarWidth('w-64');
-    if (windowWidth < 768) setShowMobileSearch(true);
-    url.searchParams.delete('openSearch');
-    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+    if (url.searchParams.get('openSearch') === '1') {
+      open();
+    }
+    return () => window.removeEventListener('trinity-open-dashboard-search', open);
   }, [mounted, pathname, user, windowWidth]);
+
+  const finishShortcutSearchFocus = useCallback((input: HTMLInputElement) => {
+    if (!shortcutSearchPending.current || document.activeElement !== input) return;
+    shortcutSearchPending.current = false;
+    if (hasAndroidOfflineBridge()) void androidOfflineRequest('shortcutSearchEditorReady', {}, 5000).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!shortcutSearchPending.current) return;
     const input = windowWidth < 768 ? mobileSearchInputRef.current : desktopSearchInputRef.current;
     if (!input) return;
-    input.focus();
-    shortcutSearchPending.current = false;
-  }, [showMobileSearch, searchAnimationComplete, windowWidth]);
+    const frame = requestAnimationFrame(() => {
+      input.focus();
+      finishShortcutSearchFocus(input);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [showMobileSearch, searchAnimationComplete, shortcutSearchRequest, windowWidth, finishShortcutSearchFocus]);
   const [filters, setFilters] = useState({
     classId: '',
     section: '',
@@ -883,6 +904,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                     </div>
                     <input
                       ref={mobileSearchInputRef}
+                      data-trinity-search="true"
+                      onFocus={event => finishShortcutSearchFocus(event.currentTarget)}
                       aria-label="Search pupils"
                       type="text"
                       placeholder="Search pupils..."
@@ -1100,6 +1123,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   <div className="relative flex items-center">
                     <input
                       ref={desktopSearchInputRef}
+                      data-trinity-search="true"
+                      onFocus={event => finishShortcutSearchFocus(event.currentTarget)}
                       aria-label="Search pupils"
                       type="text"
                       placeholder=""

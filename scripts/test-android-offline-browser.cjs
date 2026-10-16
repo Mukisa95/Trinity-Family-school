@@ -155,6 +155,29 @@ async function run() {
         assert.equal(await page.evaluate(() => window.fixtureActions.includes('selectTimetable')), true);
         await page.screenshot({ path: path.join(output, 'staff-timetable.png'), fullPage: true });
       }
+      await page.evaluate(() => { window.readerMarker='kept';window.unlockCount=window.fixtureActions.filter(action=>action==='unlock').length; });
+      if (!parent) {
+        for (let attempt=0;attempt<2;attempt++) {
+          const before=await page.evaluate(()=>window.fixtureActions.filter(action=>action==='shortcutSearchEditorReady').length);
+          await page.evaluate(()=>window.dispatchEvent(new CustomEvent('trinity-android-shortcut',{detail:'search'})));
+          await page.getByRole('heading',{name:'School dashboard',exact:true}).waitFor();
+          await page.waitForFunction(before=>document.activeElement?.getAttribute('data-trinity-search')==='true'&&window.fixtureActions.filter(action=>action==='shortcutSearchEditorReady').length>before,before);
+          await page.locator('#search').fill('Pupil');await page.locator('#search').evaluate(input=>input.blur());
+        }
+        await page.getByRole('button',{name:/Pupil Example/}).click();await page.getByRole('heading',{name:'Pupil Example'}).waitFor();
+        await page.evaluate(()=>window.dispatchEvent(new CustomEvent('trinity-android-shortcut',{detail:'timetable'})));
+        await page.getByRole('heading',{name:'Timetable',exact:true}).waitFor();
+        await page.evaluate(()=>window.dispatchEvent(new CustomEvent('trinity-android-shortcut',{detail:'pupils'})));
+        await page.getByRole('heading',{name:'Pupils',exact:true}).waitFor();
+        await page.evaluate(()=>window.dispatchEvent(new CustomEvent('trinity-android-shortcut',{detail:'exams'})));
+        await page.getByRole('alert').filter({hasText:'Connect to open this section.'}).waitFor();
+      } else {
+        await page.evaluate(()=>window.dispatchEvent(new CustomEvent('trinity-android-shortcut',{detail:'search'})));
+        await page.getByRole('alert').filter({hasText:'unavailable for your account'}).waitFor();
+        assert.equal(await page.locator('[data-trinity-search]').count(),0);
+      }
+      assert.equal(await page.evaluate(()=>window.readerMarker),'kept');
+      assert.equal(await page.evaluate(()=>window.fixtureActions.filter(action=>action==='unlock').length===window.unlockCount),true);
       await page.getByRole('button', { name: 'Lock' }).click();
       await page.getByRole('button', { name: 'Unlock', exact: true }).waitFor();
       assert.equal(await page.getByRole('heading', { name: 'Pupil Example' }).count(), 0);

@@ -5,6 +5,27 @@ import java.time.*;
 import static org.junit.Assert.*;
 
 public class TimetableScheduleTest {
+    @Test public void todaysTrackingStopsAtDayEndAndDoesNotDisplayNextWeeksLesson() throws Exception {
+        JSONObject data = data();
+        TimetableSchedule.Frame current = TrackedSubjects.next(data, "p4", "english", time("2026-10-07T09:00:00"), true);
+        assertTrue(current.active);
+        assertEquals(time("2026-10-07T08:00:00").toInstant().toEpochMilli(), current.start);
+        TimetableSchedule.Frame done = TrackedSubjects.next(data, "p4", "english", time("2026-10-07T10:00:00"), true);
+        assertFalse(done.hasPeriod); assertEquals("Done today", done.time);
+        assertEquals(time("2026-10-08T00:00:00").toInstant().toEpochMilli(), done.boundary);
+        TimetableSchedule.Frame none = TrackedSubjects.next(data, "p4", "english", time("2026-10-08T09:00:00"), true);
+        assertFalse(none.hasPeriod); assertEquals("No lesson today", none.time);
+        assertTrue(TrackedSubjects.next(data, "p4", "english", time("2026-10-08T09:00:00"), false).hasPeriod);
+    }
+    @Test public void trackedCardsUseSavedCodesAndReadableFallbackCodes() throws Exception {
+        JSONObject data = data();
+        data.getJSONObject("classes").getJSONArray("data").getJSONObject(0).put("code", "P4");
+        data.getJSONObject("subjects").getJSONArray("data").getJSONObject(0).put("code", "ENG");
+        TimetableSchedule.Frame row = TrackedSubjects.next(data, "p4", "english", time("2026-10-07T07:00:00"), true);
+        assertEquals("P4", row.classCode); assertEquals("ENG", row.subjectCode);
+        assertEquals("MAT", TrackedSubjects.code(data, "subjects", "math"));
+        assertEquals("?", TrackedSubjects.code(data, "subjects", "missing"));
+    }
     @Test public void trackedSubjectKeepsDoubleLessonUntilItsExactEnd() throws Exception {
         TimetableSchedule.Frame row = TrackedSubjects.next(data(), "p4", "english", time("2026-10-07T09:00:00"));
         assertTrue(row.active); assertEquals(50, row.progress);

@@ -18,7 +18,11 @@ public final class TimetableSettingsActivity extends Activity {
     private LinearLayout content; private Switch progress, notificationCard, events, eventReminders;
     private boolean eventsAllowed;
     private boolean timetableAllowed;
-    private Switch tracking;
+    private Switch tracking, withTables;
+    private Button showAllTables;
+    private LinearLayout orderPanel;
+    private List<String> order = new ArrayList<>();
+    private String timeZone = "Africa/Kampala";
     private final Map<String, CheckBox> subjects = new LinkedHashMap<>();
     private final List<String> tableIds = new ArrayList<>();
     private final Map<String, CheckBox> visibility = new LinkedHashMap<>(); private Set<String> hidden;
@@ -49,8 +53,9 @@ public final class TimetableSettingsActivity extends Activity {
                 timetableAllowed=envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable");
                 datasets = envelope.getJSONObject("snapshot").getJSONObject("datasets");
                 accountId = envelope.getJSONObject("session").getString("accountId");
+                timeZone = envelope.getJSONObject("session").optString("timeZone", "Africa/Kampala");
                 if (!TimetableSurfaces.prefs(this).getString("account", accountId).equals(accountId)) TimetableSurfaces.clear(this);
-                hidden = TimetableSurfaces.hidden(this, widgetId);
+                hidden = TimetableSurfaces.hidden(this, widgetId); order = TimetableSurfaces.rowOrder(this, widgetId);
                 runOnUiThread(() -> { if (!isDestroyed()) form(); });
             } catch (Exception error) { runOnUiThread(() -> {
                 if (isDestroyed()) return; message.setText(error.getMessage());
@@ -71,8 +76,9 @@ public final class TimetableSettingsActivity extends Activity {
             label("Timetables to show");
             for (int i = 0; i < tableIds.size(); i++) {
                 CheckBox check = new CheckBox(this); check.setText(names.get(i)); check.setMinHeight(dp(48)); check.setChecked(!hidden.contains(tableIds.get(i))); content.addView(check); visibility.put(tableIds.get(i), check);
+                check.setOnCheckedChangeListener((button, checked) -> rebuildOrder());
             }
-            Button showAll = button("Show all timetables"); showAll.setOnClickListener(view -> { for (CheckBox check : visibility.values()) check.setChecked(true); });
+            showAllTables = button("Show all timetables"); showAllTables.setOnClickListener(view -> { for (CheckBox check : visibility.values()) check.setChecked(true); });
             updateTableControls();
             label("Display choices do not change lesson reminder subscriptions.");
             timing = label(""); updateTiming();
@@ -87,6 +93,7 @@ public final class TimetableSettingsActivity extends Activity {
             if (eventsAllowed) {
                 events=new Switch(this); events.setText("Show all upcoming events"); events.setMinHeight(dp(48));
                 events.setChecked(TimetableSurfaces.showEvents(this,widgetId)); content.addView(events);
+                events.setOnCheckedChangeListener((button, checked) -> rebuildOrder());
                 label("Even when off, events appear from the day before they start until they end. Scroll through events and timetables.");
                 if(widgetId==AppWidgetManager.INVALID_APPWIDGET_ID) {
                     eventReminders=new Switch(this); eventReminders.setText("Event reminders: one day before and at the start"); eventReminders.setMinHeight(dp(48));
@@ -98,6 +105,10 @@ public final class TimetableSettingsActivity extends Activity {
             boolean defaultProgress = widgetId == AppWidgetManager.INVALID_APPWIDGET_ID || (info != null && TimetableProgressWidget.class.getName().equals(info.provider.getClassName()));
             progress.setChecked(TimetableSurfaces.prefs(this).getBoolean(TimetableSurfaces.prefix(widgetId) + "progress", defaultProgress)); content.addView(progress);
             if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) label("Resize on your home screen. Scroll to see every timetable and class.");
+            if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                label("Card order"); label("Move cards up or down to arrange this widget. New cards follow your saved choices.");
+                orderPanel = new LinearLayout(this); orderPanel.setOrientation(LinearLayout.VERTICAL); content.addView(orderPanel); rebuildOrder();
+            }
             apply = button(widgetId == AppWidgetManager.INVALID_APPWIDGET_ID ? "Update timetable card" : "Add / update widget"); apply.setOnClickListener(view -> apply());
             Button cancel = button("Cancel"); cancel.setOnClickListener(view -> finish());
 
@@ -119,7 +130,9 @@ public final class TimetableSettingsActivity extends Activity {
                 JSONArray chosen = new JSONArray();
                 for (Map.Entry<String, CheckBox> choice : subjects.entrySet()) if (choice.getValue().isChecked()) chosen.put(choice.getKey());
                 selected.put("tracking", tracking.isChecked()).put("trackedSubjects", chosen);
+                selected.put("trackingWithTables", withTables.isChecked());
             }
+            if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) selected.put("rowOrder", new JSONArray(order));
             if(events!=null) selected.put("events",events.isChecked());
             if(eventReminders!=null) selected.put("eventReminders",eventReminders.isChecked());
             if (progress != null) selected.put("progress", progress.isChecked());
@@ -140,7 +153,9 @@ public final class TimetableSettingsActivity extends Activity {
         tracking = new Switch(this); tracking.setText("Track selected subjects"); tracking.setMinHeight(dp(48));
         tracking.setChecked(TimetableSurfaces.tracking(this, widgetId)); content.addView(tracking);
         LinearLayout choices = new LinearLayout(this); choices.setOrientation(LinearLayout.VERTICAL); content.addView(choices);
-        TextView help = new TextView(this); help.setText("Choose any number of subjects across classes. Each card shows the current or next lesson, including its stream. This replaces full timetable cards for this widget; event choices still apply."); help.setPadding(0, dp(8), 0, dp(8)); choices.addView(help);
+        TextView help = new TextView(this); help.setText("Choose subjects across classes for today. Compact cards use class and subject codes, without dates or teachers. Times follow your phone's 12/24-hour setting."); help.setPadding(0, dp(8), 0, dp(8)); choices.addView(help);
+        withTables = new Switch(this); withTables.setText("Show timetable cards alongside tracked lessons"); withTables.setMinHeight(dp(48)); withTables.setChecked(TimetableSurfaces.trackingWithTables(this, widgetId)); choices.addView(withTables);
+        withTables.setOnCheckedChangeListener((button, checked) -> { updateTableControls(); rebuildOrder(); });
         Set<String> saved = TimetableSurfaces.trackedSubjects(this, widgetId);
         Map<String, String> available = TrackedSubjects.choices(datasets);
         for (String id : new TreeSet<>(saved)) if (!available.containsKey(id)) {
@@ -148,16 +163,57 @@ public final class TimetableSettingsActivity extends Activity {
             catch (JSONException ignored) { }
         }
         for (Map.Entry<String, String> entry : available.entrySet()) {
-            CheckBox check = new CheckBox(this); check.setText(entry.getValue()); check.setMinHeight(dp(48)); check.setChecked(saved.contains(entry.getKey()));
+            CheckBox check = new CheckBox(this); JSONArray pair = new JSONArray(entry.getKey());
+            check.setText(TrackedSubjects.code(datasets, "classes", pair.getString(0)) + " · " + TrackedSubjects.code(datasets, "subjects", pair.getString(1)));
+            check.setContentDescription(entry.getValue()); check.setMinHeight(dp(48)); check.setChecked(saved.contains(entry.getKey()));
             choices.addView(check); subjects.put(entry.getKey(), check);
+            check.setOnCheckedChangeListener((button, checked) -> rebuildOrder());
         }
         if (available.isEmpty()) { TextView empty = new TextView(this); empty.setText("Connect and open Timetable to load subject choices."); choices.addView(empty); }
         choices.setVisibility(tracking.isChecked() ? View.VISIBLE : View.GONE);
-        tracking.setOnCheckedChangeListener((button, checked) -> { choices.setVisibility(checked ? View.VISIBLE : View.GONE); updateTableControls(); });
+        tracking.setOnCheckedChangeListener((button, checked) -> { choices.setVisibility(checked ? View.VISIBLE : View.GONE); updateTableControls(); rebuildOrder(); });
     }
     private void updateTableControls() {
-        boolean full = tracking == null || !tracking.isChecked();
+        boolean full = tracking == null || !tracking.isChecked() || withTables.isChecked();
         for (CheckBox check : visibility.values()) { check.setEnabled(full); check.setAlpha(full ? 1f : 0.5f); }
+        if (showAllTables != null) showAllTables.setEnabled(full);
+    }
+    private void rebuildOrder() {
+        if (orderPanel == null) return;
+        try {
+            Map<String, String> cards = new LinkedHashMap<>(), laterEvents = new LinkedHashMap<>();
+            java.time.ZonedDateTime now = java.time.ZonedDateTime.now(java.time.ZoneId.of(timeZone));
+            if (eventsAllowed) for (SchoolEventSchedule.Event event : SchoolEventSchedule.events(datasets, now.getZone())) {
+                if (!SchoolEventSchedule.visible(event, now.toInstant().toEpochMilli(), events != null && events.isChecked())) continue;
+                (now.toInstant().toEpochMilli() >= event.spotlight ? cards : laterEvents).put("event:" + event.id, "Event · " + event.title);
+            }
+            if (timetableAllowed && (tracking == null || !tracking.isChecked() || withTables.isChecked())) for (Map.Entry<String, CheckBox> choice : visibility.entrySet()) {
+                if (choice.getValue().isChecked()) cards.put("timetable:" + choice.getKey(), "Timetable · " + choice.getValue().getText());
+            }
+            if (tracking != null && tracking.isChecked()) {
+                Set<String> selected = new HashSet<>(); for (Map.Entry<String, CheckBox> choice : subjects.entrySet()) if (choice.getValue().isChecked()) selected.add(choice.getKey());
+                for (TimetableSchedule.Frame row : TrackedSubjects.feed(datasets, selected, now, true).profiles) cards.put(WidgetFeedOrder.key(row), "Lesson · " + row.classCode + " · " + row.subjectCode);
+            }
+            cards.putAll(laterEvents);
+            List<String> visible = WidgetFeedOrder.visible(order, cards.keySet()); orderPanel.removeAllViews();
+            if (visible.isEmpty()) { TextView empty = new TextView(this); empty.setText("Choose the cards to show above."); orderPanel.addView(empty); }
+            for (int i = 0; i < visible.size(); i++) {
+                final int index = i; String key = visible.get(i);
+                LinearLayout line = new LinearLayout(this); line.setGravity(Gravity.CENTER_VERTICAL);
+                TextView title = new TextView(this); title.setText(cards.get(key)); title.setTextSize(14); line.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+                for (int direction : new int[]{-1, 1}) {
+                    Button move = new Button(this); move.setText(direction < 0 ? "Up" : "Down"); move.setMinHeight(dp(48)); move.setMinWidth(dp(48));
+                    move.setContentDescription("Move " + cards.get(key) + (direction < 0 ? " up" : " down"));
+                    move.setEnabled(index + direction >= 0 && index + direction < visible.size());
+                    move.setOnClickListener(view -> {
+                        Collections.swap(visible, index, index + direction); order = WidgetFeedOrder.remember(order, visible); rebuildOrder();
+                        ViewGroup moved = (ViewGroup)orderPanel.getChildAt(index + direction); if (moved != null) moved.getChildAt(direction < 0 ? 1 : 2).requestFocus();
+                    });
+                    line.addView(move, new LinearLayout.LayoutParams(-2, -2));
+                }
+                orderPanel.addView(line);
+            }
+        } catch (Exception error) { message.setVisibility(View.VISIBLE); message.setText("Unable to arrange saved cards. Reopen widget settings."); }
     }
     private void done() { setResult(RESULT_OK, new Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)); finish(); }
     @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {

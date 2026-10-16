@@ -18,9 +18,9 @@ final class TimetableSchedule {
         String className = "All timetables", tableName = "", title = "Timetable unavailable", time = "", teacher = "", next = "Open " + SchoolApp.NAME, agenda = "";
         final List<Frame> profiles = new ArrayList<>();
         final List<Pill> pills = new ArrayList<>();
-        String eventId = "", trackedSubject = "", profileId = "", periodId = "", shortLabel = "", accountId = "", timeZone = "Africa/Kampala";
+        String eventId = "", trackedSubject = "", classCode = "", subjectCode = "", profileId = "", periodId = "", shortLabel = "", accountId = "", timeZone = "Africa/Kampala";
         int viewIndex, baseIndex, periodCount;
-        long countdownEnd;
+        long start, countdownEnd;
         boolean hasPeriod, hasPrevious, hasNext, live = true;
         int progress, remainingMinutes; long end, boundary; boolean active;
     }

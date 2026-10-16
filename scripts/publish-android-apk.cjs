@@ -25,7 +25,10 @@ const shortcutIds = [...shortcuts.matchAll(/android:shortcutId[^\r\n]*?="([^"]+)
 const shortcutClasses = [...shortcuts.matchAll(/android:targetClass[^\r\n]*?="([^"]+)"/g)].map(match => match[1]);
 const shortcutActions = [...shortcuts.matchAll(/android:value[^\r\n]*?="([^"]+)"/g)].map(match => match[1]);
 const expectedShortcuts = ['search', 'timetable', 'events', 'pupils', 'exams'];
-if (shortcutTargets.length !== 5 || shortcutTargets.some(target => target !== school.applicationId) || shortcutClasses.length !== 5 || shortcutClasses.some(target => target !== 'ug.trinityfamilyschool.photo.MainActivity') || JSON.stringify(shortcutIds) !== JSON.stringify(expectedShortcuts) || JSON.stringify(shortcutActions) !== JSON.stringify(expectedShortcuts)) throw new Error('APK launcher shortcuts do not match this school and its five destinations.');
+if (shortcutTargets.length !== 5 || shortcutTargets.some(target => target !== school.applicationId) || shortcutClasses.length !== 5 || shortcutClasses.some(target => target !== 'ug.trinityfamilyschool.photo.AppShortcutActivity') || JSON.stringify(shortcutIds) !== JSON.stringify(expectedShortcuts) || JSON.stringify(shortcutActions) !== JSON.stringify(expectedShortcuts)) throw new Error('APK launcher shortcuts do not match this school and its five destinations.');
+const manifestTree = execFileSync(path.join(tools, executable('aapt2')), ['dump', 'xmltree', source, '--file', 'AndroidManifest.xml'], { encoding: 'utf8' });
+const shortcutActivity = manifestTree.split(/\r?\n\s+E: /).find(node => node.startsWith('activity ') && node.includes('"ug.trinityfamilyschool.photo.AppShortcutActivity"')) || '';
+if (!/android:taskAffinity[^\r\n]*=""/.test(shortcutActivity) || !/android:excludeFromRecents[^\r\n]*=true/.test(shortcutActivity) || !/android:noHistory[^\r\n]*=true/.test(shortcutActivity)) throw new Error('APK shortcut task isolation is missing; opening a shortcut could clear the running app.');
 const bytes = fs.readFileSync(source);
 if (bytes.length < 1000 || bytes.readUInt32LE(0) !== 0x04034b50) throw new Error('Not an APK ZIP file.');
 const filename = `${school.key}.apk`;
