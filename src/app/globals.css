@@ -3458,10 +3458,12 @@ html, body, * {
 
 /* A single welcome per account/session, followed by the school identity. */
 .dashboard-welcome-greeting,
+.dashboard-welcome-briefing,
 .dashboard-welcome-identity {
   transition: opacity 180ms var(--theme-ease-out), transform 220ms var(--theme-ease-out);
 }
 .dashboard-welcome-greeting { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+.dashboard-welcome-briefing { opacity: 0; visibility: hidden; transform: translateY(6px); pointer-events: none; }
 .dashboard-welcome-identity { opacity: 1; transform: translateX(0); }
 .dashboard-welcome-logo,
 .dashboard-welcome-text { transition: transform 220ms var(--theme-ease-out); }
@@ -3470,15 +3472,17 @@ html, body, * {
 .dashboard-welcome-header[data-greeting="true"] .dashboard-welcome-identity { opacity: 0; transform: translateX(8px); }
 .dashboard-welcome-header[data-greeting="true"] .dashboard-welcome-logo { transform: translateX(16px) scale(.95); }
 .dashboard-welcome-header[data-greeting="true"] .dashboard-welcome-text { transform: translateX(-8px); }
+.dashboard-welcome-header[data-phase="briefing"] .dashboard-welcome-briefing { opacity: 1; visibility: visible; transform: translateY(0); }
+.dashboard-welcome-header[data-phase="briefing"] .dashboard-welcome-identity { opacity: 0; transform: translateX(8px); }
 @media (prefers-reduced-motion: reduce) {
-  .dashboard-welcome-greeting, .dashboard-welcome-identity,
+  .dashboard-welcome-greeting, .dashboard-welcome-briefing, .dashboard-welcome-identity,
   .dashboard-welcome-logo, .dashboard-welcome-text {
     transition: none !important;
     transform: none !important;
   }
 }
 @media print {
-  .dashboard-welcome-greeting { display: none !important; }
+  .dashboard-welcome-greeting, .dashboard-welcome-briefing, .dashboard-welcome-weekly { display: none !important; }
   .dashboard-welcome-identity, .dashboard-welcome-logo, .dashboard-welcome-text {
     opacity: 1 !important;
     transform: none !important;

@@ -7,7 +7,7 @@ import {
   query, 
   where,
   orderBy,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { auth, db } from '../firebase';
 import type { SystemUser, UserRole, ModulePermission, ModulePermissions } from '@/types';
 import { getDocsWithTimeout, isFirestoreOfflineError } from '@/lib/utils/firestore-helpers';
@@ -49,6 +49,7 @@ export class UsersService {
     targetId: string;
     username: string;
     password: string;
+    circumference?: SystemUser['circumference'];
   }): Promise<SystemUser> {
     const payload = await authorizedJson('/api/users/linked', {
       method: 'POST',
@@ -463,7 +464,8 @@ export class UsersService {
     email: string,
     modulePermissions: ModulePermission[],
     password: string,
-    granularPermissions?: ModulePermissions[]
+    granularPermissions?: ModulePermissions[],
+    circumference?: SystemUser['circumference']
   ): Promise<string> {
     try {
       // Check if username already exists
@@ -482,6 +484,7 @@ export class UsersService {
         lastName,
         modulePermissions,
         granularPermissions,
+        circumference,
         password
       };
       

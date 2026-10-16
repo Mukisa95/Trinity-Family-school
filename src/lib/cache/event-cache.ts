@@ -1,3 +1,4 @@
+import { circumferenceCacheSuffix } from '@/lib/access/circumference-session';
 import type { Event, UserRole } from '@/types';
 import { liteRead, liteReadMetadata, liteWrite, LITE_TTL } from './lite-cache';
 
@@ -18,7 +19,7 @@ export function getEventCacheScope(
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
   return [projectId, userId, role, familyId || 'school']
     .map(encodeURIComponent)
-    .join(':');
+    .join(':') + circumferenceCacheSuffix(userId);
 }
 
 export function getEventCacheKey(scope: string): string {

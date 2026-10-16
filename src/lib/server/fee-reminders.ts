@@ -1,3 +1,5 @@
+import { circumferenceOf, permitsPupil } from '@/lib/access/circumference';
+import { CircumferenceError, requireScopedPupil } from './circumference';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import 'server-only';
 
@@ -38,16 +40,18 @@ export function validateFeeReminderRecipients(value: unknown): string[] | null {
   return ids;
 }
 
-export async function listFeeReminderRecipients(): Promise<FeeReminderRecipient[]> {
+export async function listFeeReminderRecipients(pupilId?: string): Promise<FeeReminderRecipient[]> {
   const snapshot = await getFirestore(getFirebaseAdminApp()).collection('system_users').where('isActive', '==', true).get();
+  const pupil = pupilId ? (await getFirestore(getFirebaseAdminApp()).collection('pupils').doc(pupilId).get()).data() : null;
   return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as SystemUser).filter(canReceiveFeeReminders)
+    .filter(user => !pupilId || !!pupil && permitsPupil(circumferenceOf(user), pupil as any))
     .map(user => ({ id: user.id, name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username, role: user.role }))
     .sort((left, right) => left.name.localeCompare(right.name));
 }
 
-async function selectedRecipientNames(ids: string[] | null): Promise<string[]> {
+async function selectedRecipientNames(ids: string[] | null, pupilId?: string): Promise<string[]> {
   if (ids === null) return [];
-  const eligible = await listFeeReminderRecipients();
+  const eligible = await listFeeReminderRecipients(pupilId);
   if (ids.some(id => !eligible.some(user => user.id === id))) {
     throw new FeeReminderError('Recipients must be active users with Fees access. Refresh the recipient list.');
   }
@@ -71,7 +75,8 @@ export async function reconcileFeeReminders(pupilId: string, now = new Date(), n
 
 export async function sendCustomFeeNotePush(delivery: CustomFeeDelivery): Promise<void> {
   if (!(await readFeeNotesGate()).isEnabled(delivery.pupilId)) return;
-  const subscriptions = await getServerPushSubscriptionsForUsers(delivery.recipientIds);
+  const permitted = new Set((await listFeeReminderRecipients(delivery.pupilId)).map(user => user.id));
+  const subscriptions = await getServerPushSubscriptionsForUsers(delivery.recipientIds.filter(id => permitted.has(id)));
   for (const canCollect of [true, false]) {
     const targets = subscriptions.filter(subscription => delivery.collectRecipientIds.includes(subscription.userId) === canCollect);
     if (!targets.length) continue;
@@ -85,7 +90,8 @@ export async function sendCustomFeeNotePush(delivery: CustomFeeDelivery): Promis
 
 export async function sendFeeReminderResolutionPush({ id, title, body, recipientIds, collectRecipientIds, version, pupilId, allowWhileDisabled }: FeeReminderResolutionDelivery & {allowWhileDisabled?: boolean}): Promise<void> {
   if (!allowWhileDisabled && !(await readFeeNotesGate()).isEnabled(pupilId)) return;
-  const subscriptions = await getServerPushSubscriptionsForUsers(recipientIds);
+  const eligible = new Set((await listFeeReminderRecipients(pupilId)).map(recipient => recipient.id));
+  const subscriptions = await getServerPushSubscriptionsForUsers(recipientIds.filter(userId => eligible.has(userId)));
   for (const canCollect of [true, false]) {
     const targets = subscriptions.filter(subscription => collectRecipientIds.includes(subscription.userId) === canCollect);
     if (!targets.length) continue;
@@ -101,9 +107,12 @@ export async function sendFeeReminderResolutionPush({ id, title, body, recipient
 export async function updateFeeReminderRecipients(id: string, value: unknown, actor: SystemUser): Promise<FeeReminder> {
   recordId(id, 'reminder');
   const recipientIds = validateFeeReminderRecipients(value);
-  const recipientNames = await selectedRecipientNames(recipientIds);
   const db = getFirestore(getFirebaseAdminApp());
   const ref = db.collection(FEE_REMINDER_COLLECTION).doc(id);
+  const source = await ref.get();
+  if (!source.exists) throw new FeeReminderError('The reminder was not found.', 404);
+  await requireScopedPupil({user: actor} as any, source.data()!.pupilId);
+  const recipientNames = await selectedRecipientNames(recipientIds, source.data()!.pupilId);
   return db.runTransaction(async transaction => {
     const snapshot = await transaction.get(ref);
     if (!snapshot.exists) throw new FeeReminderError('The reminder was not found.', 404);
@@ -198,7 +207,7 @@ export async function createFeeReminder(input: CreateFeeReminderInput | CreateCu
   const ref = db.collection(FEE_REMINDER_COLLECTION).doc(input.requestId);
   const fingerprint = createHash('sha256').update(JSON.stringify(input)).digest('hex');
   const recipientIds = validateFeeReminderRecipients(input.recipientIds);
-  const recipientNames = await selectedRecipientNames(recipientIds);
+  const recipientNames = await selectedRecipientNames(recipientIds, input.pupilId);
   return db.runTransaction(async transaction => {
     const existing = await transaction.get(ref);
     const target = await transaction.get(db.collection(FEE_REMINDER_TARGETS).doc(input.pupilId));
@@ -323,7 +332,7 @@ export async function createFeeReminder(input: CreateFeeReminderInput | CreateCu
 async function createCustomFeeNote(input: CreateCustomFeeNoteInput, actor: SystemUser): Promise<FeeReminder> {
   const db = getFirestore(getFirebaseAdminApp()), ref = db.collection(FEE_REMINDER_COLLECTION).doc(input.requestId);
   const fingerprint = createHash('sha256').update(JSON.stringify(input)).digest('hex');
-  const recipientIds = validateFeeReminderRecipients(input.recipientIds), recipientNames = await selectedRecipientNames(recipientIds);
+  const recipientIds = validateFeeReminderRecipients(input.recipientIds), recipientNames = await selectedRecipientNames(recipientIds, input.pupilId);
   const note = await db.runTransaction(async tx => {
     const existing = await tx.get(ref);
     const target = await tx.get(db.collection(FEE_REMINDER_TARGETS).doc(input.pupilId));
@@ -387,6 +396,9 @@ export async function cancelFeeReminder(id: string, actor: SystemUser, reason = 
   const db = getFirestore(getFirebaseAdminApp());
   const ref = db.collection(FEE_REMINDER_COLLECTION).doc(id);
   const queueRef = db.collection(SCHEDULED_DISPATCH_QUEUE).doc(feeReminderQueueId(id));
+  const source = await ref.get();
+  if (!source.exists) throw new FeeReminderError('The reminder was not found.', 404);
+  await requireScopedPupil({user: actor} as any, source.data()!.pupilId);
   await db.runTransaction(async transaction => {
     const snapshot = await transaction.get(ref);
     if (!snapshot.exists) throw new FeeReminderError('The reminder was not found.', 404);
@@ -454,7 +466,9 @@ export async function dispatchFeeReminder(id: string, now = new Date(), expected
     db.collection('payments').where('pupilId', '==', note.pupilId).get(),
     db.collection('system_users').where('isActive', '==', true).get(),
   ]);
+  const pupil = (await db.collection('pupils').doc(note.pupilId).get()).data();
   const recipients = users.docs.map(doc => ({ ...doc.data(), id: doc.id }) as SystemUser).filter(canReceiveFeeReminders)
+    .filter(user => !!pupil && permitsPupil(circumferenceOf(user), pupil as any))
     .filter(user => note.recipientIds == null || note.recipientIds.includes(user.id));
   const payments = ledger.docs.map(doc => isoValues({ ...doc.data(), id: doc.id }) as PaymentRecord);
   if (getFeeReminderSettlement(note, payments, now).status === 'paid') {

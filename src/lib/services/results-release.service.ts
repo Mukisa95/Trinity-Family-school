@@ -6,7 +6,7 @@ import {
   query, 
   where,
   writeBatch
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { ResultReleaseInfo } from '@/types';
 import { ExamsService } from './exams.service';

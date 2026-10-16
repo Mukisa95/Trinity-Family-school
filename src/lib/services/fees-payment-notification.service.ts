@@ -15,7 +15,7 @@
  */
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs } from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { PaymentRecord, User, Pupil, FeeStructure } from '@/types';
 import { AccessLevelsService } from './access-levels.service';

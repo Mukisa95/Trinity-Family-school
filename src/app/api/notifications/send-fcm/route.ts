@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where } from '@/lib/access/scoped-firestore';
 import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 // FCM Admin SDK would be imported here in production

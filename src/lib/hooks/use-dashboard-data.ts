@@ -7,6 +7,7 @@ import { usePupils } from './use-pupils';
 import { useStaff } from './use-staff';
 import { useClasses } from './use-classes';
 import { useAttendanceSummary } from './use-attendance-summary';
+import { filterActiveStaff } from '@/lib/utils/staff-status';
 
 export const dashboardKeys = {
   all: ['dashboard'] as const,
@@ -33,11 +34,12 @@ export function useDashboardData({ enabled = true }: UseDashboardDataOptions = {
   const refetchPupils = () => Promise.resolve();
 
   const {
-    data: staff = [],
+    data: allStaff = [],
     isLoading: staffLoading,
     error: staffError,
     refetch: refetchStaff,
   } = useStaff();
+  const staff = useMemo(() => filterActiveStaff(allStaff), [allStaff]);
   const {
     data: classes = [],
     isLoading: classesLoading,

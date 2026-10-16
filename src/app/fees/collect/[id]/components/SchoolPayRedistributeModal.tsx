@@ -1,8 +1,9 @@
-'use client';
+"use client";
+import { authorizedFetch } from '@/lib/access/authorized-fetch';
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useMemo, useEffect } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs } from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import type { PaymentRecord, FeeStructure, AcademicYear, Pupil } from '@/types';
 import type { GroupedSchoolPayTx } from './SchoolPayPaymentBanner';
@@ -260,7 +261,7 @@ export function SchoolPayRedistributeModal({
             const slot = allTermSlots.find(s => s.termId === termId);
             const feeName = feeStructures.find(f => f.id === feeId)?.name || feeId;
             const isCrossTermPush = termId !== selectedTermId;
-            const response = await fetch('/api/payments/create', {
+            const response = await authorizedFetch('/api/payments/create', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -325,7 +326,7 @@ export function SchoolPayRedistributeModal({
           if (!targetPupil) continue;
           for (const { termId, feeId, amount } of entries) {
             const feeName = feeStructures.find(f => f.id === feeId)?.name || feeId;
-            const response = await fetch('/api/payments/create', {
+            const response = await authorizedFetch('/api/payments/create', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -374,7 +375,7 @@ export function SchoolPayRedistributeModal({
 
       // Excess/advance always goes to current (main) pupil
       if (currentExcess > 0) {
-        await fetch('/api/payments/create', {
+        await authorizedFetch('/api/payments/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -18,7 +18,7 @@ import {
   Timestamp,
   documentId,
   onSnapshot
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import { notificationService } from '@/lib/services/notification-service';
 import type {

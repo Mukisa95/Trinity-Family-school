@@ -1,3 +1,4 @@
+import { authorizedFetch } from '@/lib/access/authorized-fetch';
 import { PaymentsService } from '@/lib/services/payments.service';
 import type { PaymentRecord } from '@/types';
 
@@ -222,7 +223,7 @@ export async function processCarryForwardPayment(
     // allocations and history records commit, or none do. Retrying the same ID
     // returns the original payment IDs instead of adding another allocation.
     if (typeof window !== 'undefined') {
-      const response = await fetch('/api/payments/create', {
+      const response = await authorizedFetch('/api/payments/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ operationId, allocations }),

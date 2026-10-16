@@ -1,6 +1,6 @@
 'use client';
 
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from '@/lib/access/scoped-firestore';
 import { onIdTokenChanged } from 'firebase/auth';
 import { useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';

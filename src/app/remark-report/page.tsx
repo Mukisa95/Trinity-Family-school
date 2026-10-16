@@ -1,4 +1,5 @@
 "use client";
+import { authorizedFetch } from '@/lib/access/authorized-fetch';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -225,7 +226,7 @@ export default function RemarkReportPage() {
     if (pupilIds.length === 0) return {} as Record<string, Pupil>;
 
     try {
-      const response = await fetch('/api/pupils/batch', {
+      const response = await authorizedFetch('/api/pupils/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pupilIds: [...new Set(pupilIds)] }),

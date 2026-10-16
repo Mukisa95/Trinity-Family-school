@@ -1,6 +1,6 @@
 import {auth, db} from '@/lib/firebase';
 import {onAuthStateChanged} from 'firebase/auth';
-import {doc, getDocFromCache} from 'firebase/firestore';
+import {doc, getDocFromCache} from '@/lib/access/scoped-firestore';
 
 export type FeeReminderClientChange = {
   pupilIds?: string[]; feeIds?: string[]; reversal?: boolean;

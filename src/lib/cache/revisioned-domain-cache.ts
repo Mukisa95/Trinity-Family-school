@@ -1,3 +1,4 @@
+import { circumferenceCacheSuffix } from '@/lib/access/circumference-session';
 import { firebaseProjectId } from '@/lib/firebase';
 import {
   persistentCollectionCacheKey,
@@ -15,7 +16,7 @@ export type RevisionedDomainSnapshot<T> = {
 
 export function getDomainCacheScope(userId?: string, role?: string): string {
   if (!userId || !role) return '';
-  return [userId, role].map(encodeURIComponent).join(':');
+  return [userId, role].map(encodeURIComponent).join(':') + circumferenceCacheSuffix(userId);
 }
 
 export function getRevisionedDomainCacheKey(cacheName: string, scope: string): string {

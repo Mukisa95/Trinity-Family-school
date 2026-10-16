@@ -1,4 +1,5 @@
 "use client";
+import { authorizedFetch } from '@/lib/access/authorized-fetch';
 
 import { formatPupilName } from '@/lib/utils/name-formatter';
 import { usePupils } from '@/lib/hooks/use-pupils';
@@ -487,7 +488,7 @@ export default function PupilResultsClient() {
       pupilPhoto = pupilPhotoFromSnapshot;
     } else {
       try {
-        const pupilResponse = await fetch(`/api/pupils/${pupilId}`);
+        const pupilResponse = await authorizedFetch(`/api/pupils/${pupilId}`);
         if (pupilResponse.ok) {
           const pupilData = await pupilResponse.json();
           pupilPhoto = pupilData.photo || pupilData.photoUrl || null;

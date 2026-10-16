@@ -1,3 +1,4 @@
+import { circumferenceOf, permitsPupil } from '@/lib/access/circumference';
 import { NextRequest, NextResponse } from 'next/server';
 import { Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { z } from 'zod';
@@ -8,6 +9,8 @@ import {
   sanitizeSystemUser,
 } from '@/lib/server/app-auth';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+import { assignableCircumference } from '@/lib/server/circumference-accounts';
+import { CircumferenceError, requireScopedPupil } from '@/lib/server/circumference';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,6 +21,7 @@ const targetSchema = z.object({
 });
 
 const createSchema = targetSchema.extend({
+  circumference: z.unknown().optional(),
   username: z.string().trim().min(1).max(160),
   password: z.string().min(1).max(512),
 });
@@ -52,6 +56,7 @@ export async function GET(request: NextRequest) {
 
     const { collection, linkField } = targetDetails(parsed.data.target);
     const db = getFirestore(getFirebaseAdminApp());
+    if (parsed.data.target === 'pupil') await requireScopedPupil(actor, parsed.data.targetId);
     const targetSnapshot = await db.collection(collection).doc(parsed.data.targetId).get();
     if (!targetSnapshot.exists) return json({ error: 'The linked pupil or staff member was not found.' }, 404);
 
@@ -89,8 +94,10 @@ export async function GET(request: NextRequest) {
     if (accountDocuments.length > 1) return json({ error: 'More than one account is linked to this family.' }, 409);
 
     const account = accountDocuments[0];
+    if (account?.data()?.role === 'Staff') assignableCircumference(actor, account.data()?.circumference);
     return json({ user: account ? sanitizeSystemUser(account.id, account.data()) : null });
   } catch (error) {
+    if (error instanceof CircumferenceError) return json({ error: error.message }, error.status);
     const message = error instanceof Error ? error.message : '';
     const status = message.includes('AUTH') || message.includes('INACTIVE') ? 401 : 500;
     return json({ error: status === 401 ? 'Authentication is required.' : 'Could not load the linked account.' }, status);
@@ -108,6 +115,7 @@ export async function POST(request: NextRequest) {
     const { target, targetId, username, password } = parsed.data;
     const { collection, linkField } = targetDetails(target);
     const db = getFirestore(getFirebaseAdminApp());
+    if (target === 'pupil') await requireScopedPupil(actor, targetId);
     const targetRef = db.collection(collection).doc(targetId);
     const userRef = db.collection('system_users').doc();
     const now = Timestamp.now();
@@ -130,6 +138,7 @@ export async function POST(request: NextRequest) {
           ? await transaction.get(db.collection('pupils').where('familyId', '==', parentFamilyId))
           : null;
         familyPupilDocuments = familyPupils?.docs.length ? familyPupils.docs : [targetSnapshot];
+        if (familyPupilDocuments.some(document => !permitsPupil(circumferenceOf(actor.user), document.data() as any))) throw new CircumferenceError('This family includes pupils outside your Circumference.');
         const familyPupilIds = familyPupilDocuments.map(document => document.id);
         const pupilIdChunks = Array.from(
           { length: Math.ceil(familyPupilIds.length / 30) },
@@ -174,6 +183,7 @@ export async function POST(request: NextRequest) {
             ...(targetData.email ? { email: String(targetData.email) } : {}),
             modulePermissions: [],
             granularPermissions: [],
+            circumference: assignableCircumference(actor, parsed.data.circumference),
           };
 
       // Every read must happen before the transaction writes. A pupil that
@@ -241,6 +251,7 @@ export async function POST(request: NextRequest) {
       user: sanitizeSystemUser(userRef.id, { ...user, createdAt: now, updatedAt: now }),
     }, 201);
   } catch (error) {
+    if (error instanceof CircumferenceError) return json({ error: error.message }, error.status);
     const message = error instanceof Error ? error.message : '';
     if (message === 'TARGET_NOT_FOUND') {
       return json({ error: 'The linked pupil or staff member was not found.' }, 404);

@@ -11,7 +11,7 @@ import {
   Timestamp,
   type Query,
   type DocumentData,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { UniformItem, CreateUniformData, UpdateUniformData, UniformGender, UniformSection } from '@/types';
 import { bumpCatalogueRevisionInBatch } from './dashboard-cache-revisions.service';

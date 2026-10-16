@@ -7,7 +7,7 @@ import {
   query,
   where,
   serverTimestamp
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import { pushNotificationService } from './push-notifications.service';
 import { userGroupService } from './user-groups';

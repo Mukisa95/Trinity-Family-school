@@ -11,7 +11,7 @@ import {
   Timestamp,
   writeBatch,
   type DocumentReference,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { Exam, ExamResult, CreateExamData, UpdateExamData } from '@/types';
 import { normaliseExams } from '@/lib/cache/exam-cache';

@@ -22,7 +22,7 @@ import {
   initialExcludedDays,
   sampleSchoolSettings 
 } from '../sample-data';
-import { getDocs, query, collection, where } from 'firebase/firestore';
+import { getDocs, query, collection, where } from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 
 const ACADEMIC_YEARS_COLLECTION = 'academicYears';

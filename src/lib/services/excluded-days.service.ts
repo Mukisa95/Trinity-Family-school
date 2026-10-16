@@ -7,7 +7,7 @@ import {
   query, 
   orderBy, 
   Timestamp
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { ExcludedDay } from '@/types';
 import { bumpCatalogueRevisionInBatch } from './dashboard-cache-revisions.service';

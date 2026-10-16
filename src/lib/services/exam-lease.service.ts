@@ -1,4 +1,4 @@
-import { doc, runTransaction, Timestamp, type Transaction } from 'firebase/firestore';
+import { doc, runTransaction, Timestamp, type Transaction } from '@/lib/access/scoped-firestore';
 import { auth, db } from '@/lib/firebase';
 import type { ExamLease } from '@/types';
 

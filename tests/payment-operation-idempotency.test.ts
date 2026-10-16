@@ -72,7 +72,8 @@ function loadPaymentsService() {
     exports: module.exports,
     require(name: string) {
       if (name === '@/lib/fees/fee-reminder-change-client') return {notifyFeeReminderChange: async () => {}};
-      if (name === 'firebase/firestore') return firestore;
+      if (name === '@/lib/access/circumference-session') return {getCircumferenceUser: () => null, circumferenceCacheSuffix: () => ''};
+      if ((name === 'firebase/firestore' || name === '@/lib/access/scoped-firestore')) return firestore;
       if (name === '../firebase') return { db };
       if (name === './history-log.service') {
         return { HistoryLogService: { addToTransaction(transaction: { set: Function }, input: { recordId: string }) {
@@ -125,6 +126,16 @@ test('payment operation retries return the original records and never write dupl
   assert.deepEqual(replay.paymentIds, first.paymentIds);
   assert.equal(subject.writes.length, firstWriteCount);
   assert.equal([...subject.documents.keys()].filter(key => key.startsWith('payments/')).length, 1);
+});
+test('server authorization runs inside the transaction before both a new receipt and an idempotent replay', async () => {
+  const subject = loadPaymentsService();
+  const denied = {authorize: async () => {throw new Error('Outside Circumference');}};
+  await assert.rejects(subject.PaymentsService.createPaymentOperation('scoped-operation-001', [allocation()], denied as any), /Outside Circumference/);
+  assert.equal(subject.writes.length, 0);
+  await subject.PaymentsService.createPaymentOperation('scoped-operation-001', [allocation()]);
+  const count = subject.writes.length;
+  await assert.rejects(subject.PaymentsService.createPaymentOperation('scoped-operation-001', [allocation()], denied as any), /Outside Circumference/);
+  assert.equal(subject.writes.length, count);
 });
 
 test('one grouped payment command commits every allocation and its history together', async () => {

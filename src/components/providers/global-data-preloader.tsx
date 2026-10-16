@@ -1,4 +1,7 @@
 "use client";
+import { authorizedFetch } from '@/lib/access/authorized-fetch';
+import { circumferenceCacheSuffix } from '@/lib/access/circumference-session';
+import { circumferenceKey, hasCircumference } from '@/lib/access/circumference';
 
 import { useEffect, useRef } from 'react';
 import { registerWorkspaceRecovery, reportWorkspaceTask, workspaceSetupScope, type SetupTaskState } from '@/lib/startup/workspace-setup';
@@ -6,7 +9,7 @@ import { withWorkspaceIdentity } from '@/lib/startup/workspace-auth';
 import { clearSavedWorkspaceAccess, getSavedWorkspaceAccessStatus, hasSavedWorkspaceAccess, workspaceCacheAccessScope } from '@/lib/startup/workspace-cache-access';
 import { measureWorkspaceStep } from '@/lib/startup/workspace-timing';
 import { useQueryClient } from '@tanstack/react-query';
-import { collection, query as firestoreQuery, onSnapshot, where, getDocs } from 'firebase/firestore';
+import { collection, query as firestoreQuery, onSnapshot, where, getDocs } from '@/lib/access/scoped-firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { liteWrite, LITE_KEYS } from '@/lib/cache/lite-cache';
@@ -118,7 +121,7 @@ export function GlobalDataPreloader() {
     const authorizationScope = savedWorkspaceScope;
     const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
     const persistentCacheKey = persistentCollectionCacheKey(
-      projectId, 'pupils', userRole === 'Parent' ? `parent:${userId}:account-scope` : `user:${userId}`,
+      projectId, 'pupils', userRole === 'Parent' ? `parent:${userId}:account-scope` : `user:${userId}${circumferenceCacheSuffix(userId)}`,
     );
     let syncParentPupilRecords: ((ids: string[]) => void) | undefined;
     const setupScope = workspaceSetupScope(userId, userRole);
@@ -448,7 +451,7 @@ export function GlobalDataPreloader() {
         try {
           const token = await auth.currentUser?.getIdToken();
           if (!token || auth.currentUser?.uid !== userId) throw new Error('The parent session changed.');
-          const response = await fetch('/api/pupils/parent-scope-repair', {
+          const response = await authorizedFetch('/api/pupils/parent-scope-repair', {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
             cache: 'no-store',

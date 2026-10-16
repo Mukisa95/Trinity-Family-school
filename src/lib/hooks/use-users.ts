@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { collection, query as firestoreQuery, onSnapshot } from 'firebase/firestore';
+import { collection, query as firestoreQuery, onSnapshot } from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import { acquireSharedFirestoreSubscription } from '../firebase/firestore-subscription-registry';
 import { UsersService } from '@/lib/services/users.service';
@@ -358,6 +358,7 @@ export function useCreateStaffAccount() {
       email,
       modulePermissions,
       granularPermissions,
+      circumference,
       password
     }: {
       staffId: string;
@@ -367,6 +368,7 @@ export function useCreateStaffAccount() {
       email: string;
       modulePermissions: ModulePermission[];
       granularPermissions?: ModulePermissions[];
+      circumference?: SystemUser['circumference'];
       password: string;
     }) => {
       const userId = await UsersService.createStaffAccount(
@@ -377,7 +379,8 @@ export function useCreateStaffAccount() {
         email,
         modulePermissions,
         password,
-        granularPermissions
+        granularPermissions,
+        circumference
       );
 
       // Create digital signature for staff account creation

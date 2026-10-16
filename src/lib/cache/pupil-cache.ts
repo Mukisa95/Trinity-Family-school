@@ -1,3 +1,4 @@
+import { circumferenceCacheSuffix } from '@/lib/access/circumference-session';
 import type { Pupil } from '@/types';
 import {
   persistentCollectionCacheKey,
@@ -16,7 +17,7 @@ export type PupilCacheSnapshot = {
 export function getPupilCacheScope(userId?: string, role?: string): string {
   if (!userId || !role || role === 'Parent') return '';
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
-  return [projectId, userId, role].map(encodeURIComponent).join(':');
+  return [projectId, userId, role].map(encodeURIComponent).join(':') + circumferenceCacheSuffix(userId);
 }
 
 function getPupilCacheKey(scope: string): string {

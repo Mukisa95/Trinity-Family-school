@@ -1,3 +1,4 @@
+import { circumferenceCacheSuffix } from '@/lib/access/circumference-session';
 import type { AttendanceStatus } from '@/types';
 import { liteRead, liteReadMetadata, liteWrite, LITE_TTL } from './lite-cache';
 
@@ -25,7 +26,7 @@ export type AttendanceDailySummary = {
 export function getAttendanceCacheScope(userId?: string, role?: string): string {
   if (!userId || (role !== 'Admin' && role !== 'Staff')) return '';
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
-  return [projectId, userId, role].map(encodeURIComponent).join(':');
+  return [projectId, userId, role].map(encodeURIComponent).join(':') + circumferenceCacheSuffix(userId);
 }
 
 function key(scope: string, date: string) {

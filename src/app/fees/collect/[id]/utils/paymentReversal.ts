@@ -1,3 +1,4 @@
+import { authorizedFetch } from '@/lib/access/authorized-fetch';
 import type { PaymentRecord } from '@/types';
 import { PaymentsService } from '@/lib/services/payments.service';
 
@@ -98,7 +99,7 @@ export async function reversePayment(
     let reversalId: string;
     if (typeof window !== 'undefined') {
       // Client-side: use API route
-      const response = await fetch('/api/payments/create', {
+      const response = await authorizedFetch('/api/payments/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import type { PaymentRecord, FeeStructure, AcademicYear, Pupil } from '@/types';
 import type { GroupedSchoolPayTx } from './SchoolPayPaymentBanner';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 
 interface SchoolPayPaymentsModalProps {

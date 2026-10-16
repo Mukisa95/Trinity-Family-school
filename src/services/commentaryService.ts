@@ -10,7 +10,7 @@ import {
   orderBy,
   Timestamp,
   writeBatch
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import { CommentTemplate } from '@/types';
 

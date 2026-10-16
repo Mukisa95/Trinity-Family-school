@@ -1,4 +1,4 @@
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 
 export interface PLESubject {

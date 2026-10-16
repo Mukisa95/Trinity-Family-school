@@ -14,8 +14,10 @@ export async function updatePupilWithCacheRevision(
   db: Firestore,
   pupilRef: DocumentReference,
   data: UpdateData<Record<string, unknown>>,
+  authorize?: (transaction: FirebaseFirestore.Transaction) => Promise<void>,
 ): Promise<number> {
   return db.runTransaction(async transaction => {
+    await authorize?.(transaction);
     const settingsRef = db.collection('settings').doc('school-settings');
     const operationalRef = db.collection('settings').doc('data-revisions-operational');
     const [operational, legacySettings] = await Promise.all([

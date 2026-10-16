@@ -1,3 +1,5 @@
+import { CircumferenceError, requireScopedPupil, canReadScopedModule } from '@/lib/server/circumference';
+import { circumferenceOf, permitsPupil } from '@/lib/access/circumference';
 import {processFeeReminderChangeSafely} from '@/lib/server/fee-reminders';
 import { after, NextRequest, NextResponse } from 'next/server';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -18,6 +20,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const actor = await requireAppUser(request);
+    if (actor.user.role !== 'Parent' && !canReadScopedModule(actor, 'pupils')) throw new CircumferenceError();
     const { id: pupilId } = await params;
     console.log('🔍 API: Fetching pupil with ID:', pupilId);
 
@@ -28,26 +32,14 @@ export async function GET(
       );
     }
 
-    const db = getFirestore(getFirebaseAdminApp());
-    const snap = await db.collection('pupils').doc(pupilId).get();
+    const pupil = await requireScopedPupil(actor, pupilId);
+    return NextResponse.json(pupil, { headers: { 'Cache-Control': 'private, no-store' } });
 
-    if (!snap.exists) {
-      console.error('🔍 API: Pupil not found for ID:', pupilId);
-      return NextResponse.json(
-        { error: 'Pupil not found' },
-        { status: 404 }
-      );
-    }
-
-    const pupil = { id: snap.id, ...snap.data() };
-    console.log('🔍 API: Pupil data keys:', Object.keys(pupil));
-
-    return NextResponse.json(pupil);
   } catch (error) {
     console.error('🔍 API: Error fetching pupil:', error);
     return NextResponse.json(
       { error: 'Failed to fetch pupil data' },
-      { status: 500 }
+      { status: error instanceof CircumferenceError ? error.status : String(error).includes('AUTH') || String(error).includes('INACTIVE') ? 401 : 500 }
     );
   }
 }
@@ -57,6 +49,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const actor = await requireAppUser(request);
     const { id: pupilId } = await params;
     const body = await request.json() as Record<string, any>;
 
@@ -67,9 +60,10 @@ export async function PATCH(
       );
     }
 
+    if (actor.user.role !== 'Admin' && actor.user.role !== 'Staff') throw new CircumferenceError();
+    await requireScopedPupil(actor, pupilId, body);
     const db = getFirestore(getFirebaseAdminApp());
     if (Object.prototype.hasOwnProperty.call(body, 'familyId')) {
-      const actor = await requireAppUser(request);
       if (actor.user.role !== 'Admin' && actor.user.role !== 'Staff') {
         return NextResponse.json({ error: 'Permission denied.' }, { status: 403 });
       }
@@ -89,7 +83,11 @@ export async function PATCH(
     delete body.parentAccountId;
     delete body.parentAccountActive;
     if (Object.keys(body).length > 0) {
-      await updatePupilWithCacheRevision(db, db.collection('pupils').doc(pupilId), body);
+      await updatePupilWithCacheRevision(db, db.collection('pupils').doc(pupilId), body, async transaction => {
+        const [profile, pupil] = await Promise.all([transaction.get(db.collection('system_users').doc(actor.user.id)), transaction.get(db.collection('pupils').doc(pupilId))]);
+        const current = profile.exists ? profile.data() as any : actor.user;
+        if (current.isActive === false || !pupil.exists || !permitsPupil(circumferenceOf(current), pupil.data() as any) || !permitsPupil(circumferenceOf(current), {...pupil.data(), ...body} as any)) throw new CircumferenceError();
+      });
     }
 
     if (['assignedFees', 'classId', 'section'].some(key => Object.prototype.hasOwnProperty.call(body, key))) await processFeeReminderChangeSafely({pupilIds: [pupilId]});
@@ -98,7 +96,7 @@ export async function PATCH(
     console.error('Error updating pupil:', error);
     return NextResponse.json(
       { error: 'Failed to update pupil' },
-      { status: 500 }
+      { status: error instanceof CircumferenceError ? error.status : String(error).includes('AUTH') || String(error).includes('INACTIVE') ? 401 : 500 }
     );
   }
 }

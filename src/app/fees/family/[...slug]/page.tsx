@@ -1,4 +1,5 @@
-'use client';
+"use client";
+import { authorizedFetch } from '@/lib/access/authorized-fetch';
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -374,7 +375,7 @@ export default function FamilyFeesCollection() {
           },
         };
       });
-      const response = await fetch('/api/payments/create', {
+      const response = await authorizedFetch('/api/payments/create', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ operationId: operation.operationId, allocations }),
       });

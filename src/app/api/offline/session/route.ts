@@ -1,3 +1,5 @@
+import { scopedPupils } from '@/lib/server/circumference';
+import { hasCircumference } from '@/lib/access/circumference';
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
@@ -10,7 +12,8 @@ export const dynamic = 'force-dynamic';
 /** Read-only: the native app calls this over HTTPS with the current signed ID token. */
 export async function GET(request: NextRequest) {
   try {
-    const { user } = await requireAppUser(request);
+    const actor = await requireAppUser(request);
+    const { user } = actor;
     const ids = new Set<string>();
     if (user.role === 'Parent') {
       const pupils = getFirestore(getFirebaseAdminApp()).collection('pupils');
@@ -28,6 +31,7 @@ export async function GET(request: NextRequest) {
         if (child.exists && (!child.data()?.parentAccountId || child.data()?.parentAccountId === user.id)) ids.add(child.id);
       }
     }
+    if (hasCircumference(user)) (await scopedPupils(actor)).forEach(pupil => ids.add(pupil.id));
     return NextResponse.json(createAndroidOfflineSession(user, [...ids], new Date(), { events: request.headers.get('X-Trinity-Offline-Features') === 'events' }), { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     const message = error instanceof Error ? error.message : '';

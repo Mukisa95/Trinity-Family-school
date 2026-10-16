@@ -14,7 +14,7 @@ import {
   where,
   Timestamp,
   writeBatch
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import { PupilsService } from './pupils.service';
 import { PupilSnapshotsService } from './pupil-snapshots.service';

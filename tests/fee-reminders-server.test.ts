@@ -1,3 +1,4 @@
+import * as circumference from '../src/lib/access/circumference';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs';
@@ -28,7 +29,7 @@ function setup() {
 test('a promise and its scheduled job are saved atomically without changing payments', async () => {
   const f = setup();
   const note = await f.server.createFeeReminder(f.input, actor);
-  assert.equal(note.balanceAtCreation, 40_000); assert.equal(note.pupilName, 'Joan Kagwa');
+  assert.equal(note.balanceAtCreation, 40_000); assert.equal(note.pupilName, 'Kagwa Joan');
   assert.equal(f.documents.get('scheduledDispatchQueue/fee-reminder-test-request').channel, 'fee_reminder');
   assert.equal(f.documents.get('feeReminders/test-request').reminderStatus, 'scheduled');
   assert.equal([...f.documents.keys()].some(path => path.startsWith('payments/')), false);
@@ -111,7 +112,7 @@ test('manual cancellation immediately notifies the selected people with the pupi
   const result = await f.server.cancelFeeReminder(note.id, actor, 'The promise was recorded twice');
   assert.equal(result.updateStatus, 'sent'); assert.deepEqual(f.pushes.map(push => push.userId), ['other']);
   const push = f.pushes[0].payload;
-  assert.equal(push.data.type, 'FEE_REMINDER_RESOLVED'); assert.match(push.title, /Joan Kagwa.*cancelled/);
+  assert.equal(push.data.type, 'FEE_REMINDER_RESOLVED'); assert.match(push.title, /Kagwa Joan.*cancelled/);
   assert.match(push.body, /20,000 shillings.*Tuition/); assert.match(push.body, /cancelled by Fee Collector/);
   assert.match(push.body, /promise was recorded twice/); assert.match(push.body, /Do not contact the parent based on this cancelled reminder/);
   assert.match(push.body, /Cancellation does not confirm payment/);
@@ -375,6 +376,8 @@ test('the APIs allow collectors without unrelated notification-send permissions 
   const module = { exports: {} as any };
   vm.runInNewContext(output, { module, exports: module.exports, console,
     require: (name: string) => {
+      if (name === '@/lib/access/circumference') return circumference;
+      if (name === '@/lib/server/circumference') return {CircumferenceError: class extends Error {status = 403;}, requireScopedPupil: async (_actor: any, id: string) => f.documents.get(`pupils/${id}`)};
       if (name === 'next/server') return { NextResponse: { json: (body: any, options?: any) => ({ body, status: options?.status || 200 }) } };
       if (name === 'firebase-admin/firestore') return { getFirestore: () => f.db };
       if (name === '@/lib/firebase-admin') return { getFirebaseAdminApp: () => ({}) };
@@ -406,6 +409,8 @@ test('the recipient update API checks collector authority, ownership, request co
   const module = {exports: {} as any}; let currentActor = actor;
   vm.runInNewContext(output, {module, exports: module.exports, console,
     require: (name: string) => {
+      if (name === '@/lib/access/circumference') return circumference;
+      if (name === '@/lib/server/circumference') return {CircumferenceError: class extends Error {status = 403;}, requireScopedPupil: async (_actor: any, id: string) => f.documents.get(`pupils/${id}`)};
       if (name === 'next/server') return {NextResponse: {json: (body: any, options?: any) => ({body, status: options?.status || 200})}};
       if (name === '@/lib/server/app-auth') return {requireAppUser: async () => ({user: currentActor})};
       if (name === '@/lib/fees/fee-reminders') return model;
@@ -437,4 +442,15 @@ test('the existing scheduler dispatches due notes, marks exhaustion, and keeps r
   assert.match(rules, /collection != 'feeReminders'/);
   const paymentRoute = fs.readFileSync('src/app/api/payments/create/route.ts', 'utf8');
   assert.doesNotMatch(paymentRoute, /feeReminders|dispatchFeeReminder|createFeeReminder/);
+});
+
+test('a reminder resolution excludes recipients whose current pupil circumference was narrowed', async () => {
+  const f = setup();
+  f.seed('system_users/cashier', actor);
+  f.seed('system_users/restricted', {...actor, id: 'restricted', circumference: {classIds: ['nursery'], sections: null, genders: null}});
+  f.seed('subscriptions/cashier', {});
+  f.seed('subscriptions/restricted', {});
+  await f.server.sendFeeReminderResolutionPush({id: 'resolved', pupilId: 'joan', title: 'Resolved', body: 'Private pupil note',
+    recipientIds: ['cashier','restricted'], collectRecipientIds: ['cashier'], version: 2});
+  assert.deepEqual(f.pushes.map(push => push.userId), ['cashier']);
 });

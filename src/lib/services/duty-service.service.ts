@@ -15,7 +15,7 @@ import {
   limit,
   startAfter,
   QueryDocumentSnapshot
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import type {
   PrefectoralPost,
   PostAssignment,

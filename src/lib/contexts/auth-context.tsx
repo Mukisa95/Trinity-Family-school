@@ -1,4 +1,8 @@
 "use client";
+import { setCircumferenceUser, getCircumferenceUser } from '@/lib/access/circumference-session';
+import { circumferenceKey } from '@/lib/access/circumference';
+import { ClassesService } from '@/lib/services/classes.service';
+import { ExamsService } from '@/lib/services/exams.service';
 import { clearAndroidOfflineAccess } from '@/lib/offline/android-bridge';
 import { measureWorkspaceOperation, measureWorkspaceStep } from '@/lib/startup/workspace-timing';
 
@@ -9,7 +13,7 @@ import { UsersService } from '@/lib/services/users.service';
 import { SecureAuthError, SecureAuthService } from '@/lib/services/secure-auth.service';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { onIdTokenChanged, signOut as firebaseSignOut } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from '@/lib/access/scoped-firestore';
 import { auth, db } from '@/lib/firebase';
 import { logger } from '@/lib/utils/logger';
 import { validateCurrentAppSession } from '@/lib/auth/firebase-session';
@@ -77,7 +81,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
-  const [user, setUser] = useState<SystemUser | null>(null);
+  const [user, setUserState] = useState<SystemUser | null>(null);
+  const setUser = React.useCallback((input: React.SetStateAction<SystemUser | null>) => {
+    const next = typeof input === 'function' ? input(getCircumferenceUser()) : input;
+    if (setCircumferenceUser(next)) {
+      queryClient.clear();
+      PupilsService.clearSharedPupils();
+      ClassesService.clearSharedClasses();
+      ExamsService.clearSharedExams();
+    }
+    setUserState(next);
+  }, [queryClient]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasStoredUser, setHasStoredUser] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
@@ -269,7 +283,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 ageMinutes: Math.round(storedCache.ageMs / 60000),
                 legacyCache: storedCache.isLegacy,
               });
-              setUser(storedCache.user);
+              // Publish private data only after the signed session and current profile are verified.
               restoredCachedUser = storedCache.user;
               setHasStoredUser(true);
               setSessionStatus('checking');
@@ -326,12 +340,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 throw Object.assign(new Error('The signed identity does not match the cached application profile.'), { code: 'app/profile-mismatch' });
               }
 
-              const systemUserData: SystemUser = {
+              let systemUserData: SystemUser = {
                 ...cachedUser,
                 role: (tokenResult.claims.role || cachedUser.role) as UserRole,
                 isActive: true,
               };
 
+              if (systemUserData.role === 'Staff') {
+                const response = await fetch('/api/auth/session', { headers: { Authorization: `Bearer ${await firebaseUser.getIdToken()}` }, cache: 'no-store' });
+                if (!response.ok) throw new Error('The current account scope could not be verified.');
+                systemUserData = (await response.json()).user;
+              }
               logger.debug('Setting user from verified Firebase identity', { username: systemUserData.username });
               if (restoredCachedUser?.id && restoredCachedUser.id !== systemUserData.id) {
                 clearPrivatePupilSession(restoredCachedUser.id);
@@ -721,8 +740,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // when school staff attach or detach pupils. It does not listen to all parent
   // accounts and is separate from the fee-payment notification pipeline.
   useEffect(() => {
-    if (user?.role !== 'Parent' || !user.id) return;
-    return onSnapshot(doc(db, 'system_users', user.id), snapshot => {
+    if (!user?.id || !['Staff', 'Parent'].includes(user.role)) return;
+    return onSnapshot(doc(db, 'system_users', user.id), { includeMetadataChanges: true }, snapshot => {
+      if (user.role === 'Staff' && snapshot.metadata.fromCache) return;
       if (!snapshot.exists()) return;
       const data = snapshot.data() as Partial<SystemUser>;
       if (data.isActive === false) {
@@ -731,7 +751,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setHasStoredUser(false);
         setSessionStatus('stale');
-        setSessionMessage('This parent account was replaced by the family account. Contact the school for access.');
+        setSessionMessage('This account is disabled. Contact the school for access.');
         void firebaseSignOut(auth).catch(() => undefined);
         return;
       }
@@ -745,9 +765,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           pupilId: typeof data.pupilId === 'string' && data.pupilId.trim() ? data.pupilId : undefined,
         } as SystemUser;
         if (
-          next.familyId === current.familyId
+          next.role === current.role
+          && next.familyId === current.familyId
           && next.pupilId === current.pupilId
           && next.isActive === current.isActive
+          && circumferenceKey(next) === circumferenceKey(current)
+          && JSON.stringify(next.granularPermissions) === JSON.stringify(current.granularPermissions)
+          && JSON.stringify(next.modulePermissions) === JSON.stringify(current.modulePermissions)
         ) return current;
         saveUserCache(next);
         void auth.currentUser?.getIdToken(true).catch(error => {

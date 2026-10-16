@@ -12,7 +12,7 @@ import {
   orderBy,
   Timestamp,
   writeBatch
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 
 // PLE Record interface

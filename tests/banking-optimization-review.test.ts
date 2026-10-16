@@ -3,6 +3,7 @@ import test from 'node:test';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
+import * as nameFormatter from '../src/lib/utils/name-formatter';
 
 function loadBanking() {
   const documents = new Map<string, any>([['bankAccounts/a', { pupilId: 'p', balance: 100 }]]);
@@ -55,7 +56,8 @@ function loadBanking() {
   }).outputText;
   const module = { exports: {} as any };
   vm.runInNewContext(output, { module, exports: module.exports, console, require(name: string) {
-    if (name === 'firebase/firestore') return firestore;
+    if ((name === 'firebase/firestore' || name === '@/lib/access/scoped-firestore')) return firestore;
+    if (name === '@/lib/utils/name-formatter') return nameFormatter;
     if (name === '../firebase') return { db: {} };
     if (name === './history-log.service') return { HistoryLogService: { addToTransaction(tx: any, input: any) {
       tx.set({ path: `history/${input.recordId}` }, input);

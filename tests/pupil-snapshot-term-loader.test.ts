@@ -23,7 +23,8 @@ test('term snapshot loader returns all active snapshots from one Firestore query
     require(name: string) {
       if (name === '@/lib/firebase') return { db: {} };
       if (name === '@/lib/utils/name-formatter') return pupilNames;
-      if (name === 'firebase/firestore') {
+      if (name === '@/lib/access/circumference-session') return {getCircumferenceUser: () => null, circumferenceCacheSuffix: () => ''};
+      if ((name === 'firebase/firestore' || name === '@/lib/access/scoped-firestore')) {
         return {
           collection: () => ({}), doc: () => ({}), addDoc: async () => ({ id: 'new' }),
           updateDoc: async () => {}, deleteDoc: async () => {}, getDoc: async () => ({ exists: () => false }),

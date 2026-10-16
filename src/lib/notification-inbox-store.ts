@@ -15,7 +15,7 @@ import {
   updateDoc,
   where,
   type Unsubscribe,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import {
   readPersistedInbox,

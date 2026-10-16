@@ -1,6 +1,7 @@
+import { getCircumferenceUser, circumferenceCacheSuffix } from '@/lib/access/circumference-session';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { db } from '@/lib/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, getDoc, query, where, orderBy } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, getDoc, query, where, orderBy } from '@/lib/access/scoped-firestore';
 import type { PupilTermSnapshot, Pupil, AcademicYear, Term } from '@/types';
 import { getTermStatus, isTermEnded } from '@/lib/utils/academic-year-utils';
 
@@ -9,7 +10,7 @@ export class PupilSnapshotsService {
   private static termSnapshotsInFlight = new Map<string, Promise<PupilTermSnapshot[]>>();
 
   private static termSnapshotsCacheKey(academicYearId: string, termId: string) {
-    return `${academicYearId}:${termId}`;
+    return `${academicYearId}:${termId}:${getCircumferenceUser()?.id || 'server'}${circumferenceCacheSuffix(getCircumferenceUser()?.id)}`;
   }
 
   private static clearTermSnapshotsCache(academicYearId?: string, termId?: string) {

@@ -61,7 +61,7 @@ function loadSignatureService() {
     module,
     exports: module.exports,
     require(name: string) {
-      if (name === 'firebase/firestore') return firestore;
+      if ((name === 'firebase/firestore' || name === '@/lib/access/scoped-firestore')) return firestore;
       if (name === '../firebase') return { db };
       if (name === '../contexts/auth-context') return { useAuth: () => ({ user: null }) };
       throw new Error(`Unexpected import: ${name}`);

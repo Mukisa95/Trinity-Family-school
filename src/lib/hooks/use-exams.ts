@@ -10,7 +10,7 @@ import {
   where,
   writeBatch,
   type DocumentReference,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { ExamsService } from '../services/exams.service';
 import { useDigitalSignatureHelpers } from './use-digital-signature';
 import { useAuth } from '../contexts/auth-context';

@@ -1,32 +1,14 @@
+import { authorizedFetch } from '@/lib/access/authorized-fetch';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PaymentsService } from '../services/payments.service';
 import type { PaymentRecord } from '@/types';
-import { samplePaymentRecords } from '../sample-data';
 import { invalidateFinanceSummaryQueries } from './use-finance-summary';
 
 // Payment Records Hooks
 export function usePaymentsByPupil(pupilId: string) {
   return useQuery({
     queryKey: ['payments', 'pupil', pupilId],
-    queryFn: async () => {
-      try {
-        const livePayments = await PaymentsService.getPaymentsByPupil(pupilId);
-        console.log('✅ Live payments by pupil:', livePayments);
-        if (livePayments && livePayments.length > 0) {
-          return livePayments;
-        } else {
-          console.warn(`Live Firebase query returned no payments for pupil ${pupilId}. Using sample data for testing.`);
-          const sampleData = samplePaymentRecords.filter(payment => payment.pupilId === pupilId);
-          console.log('📋 Sample payments by pupil (fallback):', sampleData);
-          return sampleData;
-        }
-      } catch (error) {
-        console.warn('Error fetching live payments by pupil. Using sample payment data due to Firebase error:', error);
-        const sampleData = samplePaymentRecords.filter(payment => payment.pupilId === pupilId);
-        console.log('📋 Sample payments by pupil (error fallback):', sampleData);
-        return sampleData;
-      }
-    },
+    queryFn: () => PaymentsService.getPaymentsByPupil(pupilId),
     enabled: !!pupilId,
   });
 }
@@ -34,35 +16,7 @@ export function usePaymentsByPupil(pupilId: string) {
 export function usePaymentsByFee(feeStructureId: string, pupilId: string, academicYearId: string, termId: string) {
   return useQuery({
     queryKey: ['payments', 'fee', feeStructureId, pupilId, academicYearId, termId],
-    queryFn: async () => {
-      try {
-        const livePayments = await PaymentsService.getPaymentsByFee(feeStructureId, pupilId, academicYearId, termId);
-        console.log('✅ Live payments by fee:', livePayments);
-        if (livePayments && livePayments.length > 0) {
-          return livePayments;
-        } else {
-          console.warn(`Live Firebase query returned no payments for fee ${feeStructureId}, pupil ${pupilId}. Using sample data for testing.`);
-          const sampleData = samplePaymentRecords.filter(payment =>
-            payment.feeStructureId === feeStructureId &&
-            payment.pupilId === pupilId &&
-            payment.academicYearId === academicYearId &&
-            payment.termId === termId
-          );
-          console.log('📋 Sample payments by fee (fallback):', sampleData);
-          return sampleData;
-        }
-      } catch (error) {
-        console.warn('Error fetching live payments by fee. Using sample payment data due to Firebase error:', error);
-        const sampleData = samplePaymentRecords.filter(payment =>
-          payment.feeStructureId === feeStructureId &&
-          payment.pupilId === pupilId &&
-          payment.academicYearId === academicYearId &&
-          payment.termId === termId
-        );
-        console.log('📋 Sample payments by fee (error fallback):', sampleData);
-        return sampleData;
-      }
-    },
+    queryFn: () => PaymentsService.getPaymentsByFee(feeStructureId, pupilId, academicYearId, termId),
     enabled: !!feeStructureId && !!pupilId && !!academicYearId && !!termId,
   });
 }
@@ -74,7 +28,7 @@ export function useCreatePayment() {
     mutationKey: ["payments","create"],
     mutationFn: async (paymentData: Omit<PaymentRecord, 'id' | 'createdAt'>) => {
       // 🔔 Use API route for client-side (enables notifications)
-      const response = await fetch('/api/payments/create', {
+      const response = await authorizedFetch('/api/payments/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

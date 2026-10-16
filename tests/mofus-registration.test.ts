@@ -37,7 +37,7 @@ function fixture(failHolidayWrite = false) {
     const module = { exports: {} as any };
     const source = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
     vm.runInNewContext(source, { module, exports: module.exports, Date, console: { error() {}, warn() {} }, require: (name: string) => {
-      if (name === 'firebase/firestore') return sdk;
+      if ((name === 'firebase/firestore' || name === '@/lib/access/scoped-firestore')) return sdk;
       if (name === '../firebase') return { db: {} };
       if (dependencies[name]) return dependencies[name];
       return {}; // Other service methods are outside this registration fixture.

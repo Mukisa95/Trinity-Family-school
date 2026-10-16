@@ -10,7 +10,7 @@ import {
   orderBy,
   where,
   Timestamp 
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { DynamicDiscount } from '@/types';
 

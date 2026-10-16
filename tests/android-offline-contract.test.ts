@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { SystemUser } from '../src/types';
 import { createAndroidOfflineSession } from '../src/lib/offline/android-session-policy';
-import { isAndroidOfflineSnapshot, projectOfflinePupil } from '../src/lib/offline/android-contracts';
+import { androidSessionMatchesUser, isAndroidOfflineSnapshot, projectOfflinePupil } from '../src/lib/offline/android-contracts';
 import { readFileSync } from 'node:fs';
 
 const staff: SystemUser = {
@@ -47,4 +47,20 @@ test('offline sessions expire and ordinary browsers do not trigger Android prepa
   const parent = readFileSync('src/lib/parent-offline/repository.ts', 'utf8');
   assert.match(parent, /readParentOfflineBundle/);
   assert.match(parent, /hasChild\(record\) && isParentOfflineFeesSnapshot/);
+});
+
+test('native saved sessions cannot survive a narrower circumference or a different account', () => {
+  const restricted = {...staff, circumference: {classIds: ['p4'], sections: ['Boarding' as const], genders: ['Female' as const]}};
+  const broad = createAndroidOfflineSession(staff, []);
+  const narrow = createAndroidOfflineSession(restricted, ['girl']);
+  assert.equal(androidSessionMatchesUser(broad, restricted), false);
+  assert.equal(androidSessionMatchesUser(narrow, restricted), true);
+  assert.equal(androidSessionMatchesUser(narrow, {...restricted, id: 'other'}), false);
+  assert.equal(androidSessionMatchesUser(narrow, {...restricted, circumference: {...restricted.circumference, classIds: ['p5']}}), false);
+  const snapshot: any = {schema: 1, accountId: staff.id, role: 'Staff', capturedAt: new Date().toISOString(), datasets: {
+    pupils: {data: [{id: 'boy', firstName: 'Hidden'}]},
+  }};
+  assert.equal(isAndroidOfflineSnapshot(snapshot, narrow), false);
+  snapshot.datasets.pupils.data = [{id: 'girl', firstName: 'Visible'}];
+  assert.equal(isAndroidOfflineSnapshot(snapshot, narrow), true);
 });

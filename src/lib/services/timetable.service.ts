@@ -13,7 +13,7 @@ import {
     deleteField,
     FieldPath,
     runTransaction,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { TimetableProfile, GeneratedPeriod, TimetableEntry, ClassStream, Class } from '@/types';
 import { getActiveClassStreams } from '@/lib/utils/class-streams';

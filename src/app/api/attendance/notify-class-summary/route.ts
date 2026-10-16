@@ -1,3 +1,5 @@
+import { CircumferenceError, requireScopedClass } from '@/lib/server/circumference';
+import { circumferenceOf, permitsClass } from '@/lib/access/circumference';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
@@ -36,6 +38,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'A valid date and classId are required' }, { status: 400 });
     }
 
+    requireScopedClass(actor, classId);
+    const axes = circumferenceOf(actor.user);
+    if (axes.sections !== null || axes.genders !== null) return NextResponse.json({success: true, skipped: true, reason: 'A partial pupil scope cannot mark the entire class completed.'});
     const adminDb = getFirestore(getFirebaseAdminApp());
     const summaryDoc = await adminDb.collection('attendanceDailySummaries').doc(date).get();
     const summaryRecords = Array.isArray(summaryDoc.data()?.records)
@@ -70,7 +75,7 @@ export async function POST(request: NextRequest) {
     const recipientIds = resolveAutomatedNotificationRecipientIds(
       automationSettings,
       'attendanceRecorded',
-      activeUsers.docs.map(userDoc => userDoc.id),
+      activeUsers.docs.filter(userDoc => {const user = userDoc.data() as any, scope = circumferenceOf(user); return user.role !== 'Parent' && permitsClass(scope, classId) && scope.sections === null && scope.genders === null;}).map(userDoc => userDoc.id),
     );
 
     const fingerprint = attendanceSummaryFingerprint(summary);
@@ -113,6 +118,7 @@ export async function POST(request: NextRequest) {
         requireInteraction: false,
       }, { deactivateExpired: false });
     } catch (error) {
+    if (error instanceof CircumferenceError) return NextResponse.json({error: error.message}, {status: error.status});
       console.warn('Attendance Web Push unavailable; inbox delivery remains active:', error);
     }
 
@@ -131,6 +137,7 @@ export async function POST(request: NextRequest) {
       pushFailed: push.failed,
     });
   } catch (error) {
+    if (error instanceof CircumferenceError) return NextResponse.json({error: error.message}, {status: error.status});
     const message = error instanceof Error ? error.message : 'Unknown error';
     const status = ['AUTH_REQUIRED', 'APP_AUTH_REQUIRED'].includes(message) ? 401
       : message === 'ACCOUNT_INACTIVE' ? 403 : 500;

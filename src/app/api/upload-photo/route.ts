@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import path from 'path';
-import { collection, doc, writeBatch } from 'firebase/firestore';
+import { collection, doc, writeBatch } from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 import { bumpPhotosRevisionInBatch } from '@/lib/services/dashboard-cache-revisions.service';

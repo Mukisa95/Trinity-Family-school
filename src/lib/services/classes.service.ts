@@ -8,7 +8,7 @@ import {
   Timestamp,
   getDocsFromCache,
   runTransaction,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { Class, Staff } from '@/types';
 import { applyStaffClassAssignmentChanges, type StaffClassAssignmentChanges } from '@/lib/utils/teaching-assignments';

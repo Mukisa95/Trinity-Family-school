@@ -1,3 +1,4 @@
+import { circumferenceCacheSuffix } from '@/lib/access/circumference-session';
 import type { Class } from '@/types';
 import { liteRead, liteWrite } from './lite-cache';
 
@@ -15,7 +16,7 @@ export type ClassCacheSnapshot = {
 export function getClassCacheScope(userId?: string, role?: string): string {
   if (!userId || !role) return '';
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
-  return [projectId, userId, role].map(encodeURIComponent).join(':');
+  return [projectId, userId, role].map(encodeURIComponent).join(':') + circumferenceCacheSuffix(userId);
 }
 
 export function getClassCacheKey(scope: string): string {

@@ -10,7 +10,7 @@ import {
     updateDoc,
     deleteDoc,
     Timestamp
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import type { PromotionBatch, PromotionBatchType } from '@/types';
 

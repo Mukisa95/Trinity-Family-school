@@ -9,7 +9,7 @@ import {
   where,
   Timestamp,
   getDocsFromCache,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import { getDocsFromServerWithTimeout } from '../utils/firestore-helpers';
 import type { AcademicYear } from '@/types';

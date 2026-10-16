@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useSchoolPayInbox } from '@/lib/hooks/use-schoolpay-inbox';

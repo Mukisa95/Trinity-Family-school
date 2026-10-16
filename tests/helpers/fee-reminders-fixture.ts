@@ -1,3 +1,5 @@
+import * as circumference from '../../src/lib/access/circumference';
+import * as nameFormatter from '../../src/lib/utils/name-formatter';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
@@ -86,6 +88,13 @@ export function feeReminderFixture() {
     require: (name: string) => {
       if (name === 'server-only') return {};
       if (name === 'crypto') return crypto;
+      if (name === '@/lib/access/circumference') return circumference;
+      if (name === '@/lib/utils/name-formatter') return nameFormatter;
+      if (name === './circumference') return {CircumferenceError: class extends Error {status = 403;}, requireScopedPupil: async (actor: any, pupilId: string) => {
+        const pupil = (await db.collection('pupils').doc(pupilId).get()).data();
+        if (!pupil || !circumference.permitsPupil(circumference.circumferenceOf(actor.user), pupil as any)) throw new Error('Outside Circumference');
+        return pupil;
+      }};
       if (name === 'firebase-admin/firestore') return { getFirestore: () => db, Timestamp: { fromDate: stamp },
         FieldValue: { serverTimestamp: () => stamp(new Date()), delete: () => ({ op: 'delete' }) } };
       if (name === '@/lib/firebase-admin') return { getFirebaseAdminApp: () => ({}) };

@@ -1,4 +1,4 @@
-import { increment, type Transaction, type WriteBatch } from 'firebase/firestore';
+import { increment, type Transaction, type WriteBatch } from '@/lib/access/scoped-firestore';
 import {
   dashboardRevisionDocumentRef,
   schoolSettingsDocumentRef,

@@ -13,7 +13,7 @@ import type { PupilFee, PreviousTermBalance } from '../types';
 import type { UniformFeeData } from '@/lib/services/uniform-fees-integration.service';
 
 // Firebase for live listener
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
 

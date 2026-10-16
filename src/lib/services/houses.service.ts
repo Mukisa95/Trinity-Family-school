@@ -5,7 +5,7 @@ import {
   getDocsFromCache,
   Timestamp,
   writeBatch,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { House } from '@/types';
 import { normaliseHouses } from '@/lib/cache/house-cache';

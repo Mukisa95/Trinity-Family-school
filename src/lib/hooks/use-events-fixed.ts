@@ -14,7 +14,7 @@ import {
   orderBy,
   serverTimestamp,
   writeBatch,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
 import type {

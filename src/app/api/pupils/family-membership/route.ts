@@ -1,3 +1,4 @@
+import { CircumferenceError } from '@/lib/server/circumference';
 import { after, NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAppUser } from '@/lib/server/app-auth';
@@ -41,6 +42,7 @@ export async function POST(request: NextRequest) {
       parentAccountId: result.accountId,
     });
   } catch (error) {
+    if (error instanceof CircumferenceError) return NextResponse.json({error: error.message}, {status: error.status});
     const message = error instanceof Error ? error.message : '';
     if (message.includes('AUTH') || message.includes('INACTIVE')) {
       return NextResponse.json({ error: 'Authentication is required.' }, { status: 401 });

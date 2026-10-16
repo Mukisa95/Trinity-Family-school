@@ -1,4 +1,5 @@
-'use client';
+"use client";
+import { authorizedFetch } from '@/lib/access/authorized-fetch';
 
 import { usePageDataTiming } from '@/lib/hooks/use-page-data-timing';
 import { measureWorkspaceRequest } from '@/lib/startup/workspace-timing';
@@ -952,7 +953,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ operationId: operation.operationId, allocations }),
-        });
+        }, authorizedFetch);
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Failed to create fee payments');
         if (!Array.isArray(result.paymentIds) || result.paymentIds.length !== allocations.length) {
@@ -1033,7 +1034,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               },
             })),
           }),
-        });
+        }, authorizedFetch);
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to create grouped fee payments');
@@ -1325,7 +1326,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(paymentData),
-        });
+        }, authorizedFetch);
 
         if (!response.ok) {
           const errorData = await response.json();
@@ -1672,7 +1673,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     if (!pupil) return;
 
     try {
-      const response = await fetch(`/api/pupils/${pupil.id}`, {
+      const response = await authorizedFetch(`/api/pupils/${pupil.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -3059,7 +3060,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             const updated = payCode
               ? [...existing, { idType: 'SchoolPay Payment Code', idValue: payCode }]
               : existing;
-            const response = await fetch(`/api/pupils/${pupil.id}`, {
+            const response = await authorizedFetch(`/api/pupils/${pupil.id}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ additionalIdentifiers: updated, payCode: payCode || '' }),

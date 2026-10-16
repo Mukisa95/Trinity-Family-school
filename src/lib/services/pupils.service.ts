@@ -1,3 +1,5 @@
+import { authorizedFetch } from '@/lib/access/authorized-fetch';
+import { registerCircumferencePupils } from '@/lib/access/circumference-session';
 import {notifyFeeReminderChange} from '@/lib/fees/fee-reminder-change-client';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import {
@@ -17,7 +19,7 @@ import {
   getDocsFromCache,
   runTransaction,
   deleteField,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { auth, db } from '../firebase';
 import { ClassesService } from './classes.service';
 import type { Pupil, SubjectCommentType, SubjectStatus, SystemUser, FeesHolidayDraft } from '@/types';
@@ -132,6 +134,7 @@ export class PupilsService {
 
   static hydrateSharedPupils(pupils: Pupil[]): void {
     this.sharedPupils = pupils;
+    registerCircumferencePupils(pupils);
     this.resolveSharedReady?.(pupils);
     this.resolveSharedReady = null;
     this.rejectSharedReady = null;
@@ -524,7 +527,7 @@ export class PupilsService {
       throw new Error('Please sign in again to update family membership.');
     }
     const token = await firebaseUser.getIdToken();
-    const response = await fetch('/api/pupils/family-membership', {
+    const response = await authorizedFetch('/api/pupils/family-membership', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

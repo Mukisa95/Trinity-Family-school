@@ -8,7 +8,7 @@ import {
   updateDoc,
   doc,
   deleteDoc
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 
 export interface SMSProvider {

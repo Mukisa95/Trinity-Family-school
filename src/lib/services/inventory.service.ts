@@ -12,7 +12,7 @@ import {
     limit,
     runTransaction,
     writeBatch,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import type {
     InventoryItem,
     CreateInventoryItemData,

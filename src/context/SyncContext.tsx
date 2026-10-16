@@ -3,7 +3,7 @@
 import { canDownloadWorkspaceRecords } from '@/lib/startup/workspace-connectivity';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { SyncStatus } from '@/types';
-import { enableNetwork, waitForPendingWrites } from 'firebase/firestore';
+import { enableNetwork, waitForPendingWrites } from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 
 interface SyncContextType extends SyncStatus {

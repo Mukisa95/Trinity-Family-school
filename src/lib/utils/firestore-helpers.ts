@@ -1,4 +1,4 @@
-import { doc, getDoc, getDocs, collection, query, QueryConstraint, DocumentReference, CollectionReference, getDocFromCache, getDocFromServer, getDocsFromCache, getDocsFromServer } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, query, QueryConstraint, DocumentReference, CollectionReference, getDocFromCache, getDocFromServer, getDocsFromCache, getDocsFromServer } from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 
 /**

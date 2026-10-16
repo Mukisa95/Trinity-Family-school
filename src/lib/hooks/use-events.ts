@@ -16,7 +16,7 @@ import {
   onSnapshot,
   Timestamp,
   serverTimestamp
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useDigitalSignatureHelpers } from './use-digital-signature';

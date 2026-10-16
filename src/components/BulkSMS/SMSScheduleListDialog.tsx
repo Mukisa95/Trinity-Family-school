@@ -30,7 +30,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { collection, query, getDocs } from 'firebase/firestore';
+import { collection, query, getDocs } from '@/lib/access/scoped-firestore';
 import { auth, db } from '@/lib/firebase';
 
 // ─── Types ───────────────────────────────────────────────────────────────────

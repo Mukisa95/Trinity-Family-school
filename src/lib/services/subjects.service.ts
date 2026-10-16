@@ -7,7 +7,7 @@ import {
   query,
   Timestamp,
   writeBatch,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { Subject } from '@/types';
 import { getDocsFromServerWithTimeout } from '../utils/firestore-helpers';

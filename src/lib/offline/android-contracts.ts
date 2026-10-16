@@ -1,4 +1,5 @@
-import type { GeneratedPeriod, TimetableEntry, TimetableProfile } from '@/types';
+import { circumferenceKey, permitsClass, type Circumference } from '@/lib/access/circumference';
+import type { GeneratedPeriod, TimetableEntry, TimetableProfile, SystemUser } from '@/types';
 import type { ParentOfflineAttendanceSnapshot, ParentOfflineBankingSnapshot, ParentOfflineFamilySnapshot, ParentOfflineFeesSnapshot, ParentOfflineResultsSnapshot } from '@/lib/parent-offline/contracts';
 import { isParentOfflineFamilySnapshot, isParentOfflineFeesSnapshot, isParentOfflineAttendanceSnapshot, isParentOfflineBankingSnapshot, isParentOfflineResultsSnapshot } from '@/lib/parent-offline/contracts';
 
@@ -15,6 +16,7 @@ export type AndroidOfflineSession = {
   issuedAt: string;
   expiresAt: string;
   pupilIds: string[];
+  circumference?: Circumference;
   grants: {
     dashboard: boolean;
     pupils: boolean;
@@ -25,6 +27,12 @@ export type AndroidOfflineSession = {
     dashboardCounts: string[];
   };
 };
+
+/** Reject saved native sessions prepared for a different account or pupil scope. */
+export function androidSessionMatchesUser(session: AndroidOfflineSession | undefined | null, user: Pick<SystemUser, 'id' | 'role' | 'circumference'>): boolean {
+  return !!session && session.accountId === user.id && session.role === user.role
+    && circumferenceKey({role: session.role as SystemUser['role'], circumference: session.circumference}) === circumferenceKey(user);
+}
 
 export type AndroidOfflineDataset<T> = {
   preparedAt: string;
@@ -95,6 +103,8 @@ export function isAndroidOfflineSnapshot(value: unknown, session: AndroidOffline
   if ((item.datasets.subjects || item.datasets.teachers) && !session.grants.timetable) return false;
   if (item.datasets.dashboard && Object.keys(item.datasets.dashboard.data).some(key => !session.grants.dashboardCounts.includes(key))) return false;
   if (item.datasets.pupils && (!Array.isArray(item.datasets.pupils.data) || item.datasets.pupils.data.some(pupil =>
-    typeof pupil.id !== 'string' || Object.keys(pupil).some(field => !session.grants.pupilFields.includes(field))))) return false;
+    typeof pupil.id !== 'string' || session.circumference && !session.pupilIds.includes(pupil.id) || Object.keys(pupil).some(field => !session.grants.pupilFields.includes(field))))) return false;
+  if (session.circumference && item.datasets.classes?.data.some(item => !permitsClass(session.circumference!, item.id as string))) return false;
+  if (session.circumference && item.datasets.timetables?.data.some(table => table.entries.some(entry => !permitsClass(session.circumference!, entry.classId)))) return false;
   return true;
 }

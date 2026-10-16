@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 import ts from 'typescript';
+import { recoverFailedConnectionRead } from '../src/lib/query/connection-recovery';
 
 const read = (path: string) => fs.readFileSync(path, 'utf8');
 
@@ -23,7 +24,10 @@ test('shared fee catalogue is server-confirmed without a second normal read', ()
   const preloader = read('src/components/providers/global-data-preloader.tsx');
   assert.match(service, /getDocsFromServer\(q\)/);
   assert.match(hook, /'server-confirmed-v1'/);
-  assert.match(hook, /refetchOnReconnect: query => query\.state\.status === 'error'/);
+  assert.match(hook, /refetchOnReconnect: recoverFailedConnectionRead/);
+  assert.equal(recoverFailedConnectionRead({ state: { status: 'success', error: null } }), false);
+  assert.equal(recoverFailedConnectionRead({ state: { status: 'error', error: { code: 'unavailable' } } }), 'always');
+  assert.equal(recoverFailedConnectionRead({ state: { status: 'error', error: { code: 'permission-denied' } } }), false);
   assert.match(preloader, /ensureQueryData\(\{[\s\S]*?queryKey: FEES_QUERY_KEYS\.structures\(\),[\s\S]*?queryFn: FeesService\.getAllFeeStructures/);
 });
 
@@ -37,7 +41,7 @@ test('an offline fee read fails instead of accepting an empty local catalogue', 
   vm.runInNewContext(compiled, {
     module, exports: module.exports, console: { error() {} },
     require: (name: string) => {
-      if (name === 'firebase/firestore') return {
+      if ((name === 'firebase/firestore' || name === '@/lib/access/scoped-firestore')) return {
         collection: () => ({}), query: (reference: unknown) => reference, orderBy: () => ({}),
         getDocs: async () => { cacheReads += 1; return { docs: [] }; },
         getDocsFromServer: async () => { throw new Error('backend unavailable'); },

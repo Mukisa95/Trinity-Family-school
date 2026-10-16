@@ -10,7 +10,7 @@ import {
   where, 
   orderBy,
   Timestamp 
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { FeeStructure, CreateFeeStructureData, UpdateFeeStructureData } from '@/types';
 import { HistoryLogService } from './history-log.service';

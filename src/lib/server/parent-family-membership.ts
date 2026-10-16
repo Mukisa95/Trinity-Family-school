@@ -1,3 +1,5 @@
+import { circumferenceOf, permitsPupil } from '@/lib/access/circumference';
+import { CircumferenceError } from './circumference';
 import { formatPupilName } from '@/lib/utils/name-formatter';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
@@ -74,6 +76,9 @@ export async function transitionParentFamilyMembership(
       pupilIds.map(id => transaction.get(db.collection('pupils').doc(id))),
     );
     if (targetDocuments.some(document => !document.exists)) throw new Error('PUPIL_NOT_FOUND');
+    const actorProfile = actor.role === 'Staff' ? await transaction.get(db.collection('system_users').doc(actor.id)) : null;
+    const actorScope = circumferenceOf(actorProfile ? actorProfile.data() as any : actor as any);
+    if (actorProfile && (!actorProfile.exists || actorProfile.data()?.isActive === false) || targetDocuments.some(document => !permitsPupil(actorScope, document.data() as any))) throw new CircumferenceError();
 
     const oldFamilyIds = unique(targetDocuments.map(document => text(document.data()?.familyId)));
     const affectedFamilyIds = unique([
@@ -90,6 +95,7 @@ export async function transitionParentFamilyMembership(
     familySnapshots.forEach(snapshot => snapshot.docs.forEach(document => (
       pupilDocuments.set(document.id, document)
     )));
+    if ([...pupilDocuments.values()].some(document => !permitsPupil(actorScope, document.data() as any))) throw new CircumferenceError('This family includes pupils outside your Circumference.');
     if (pupilDocuments.size > 180) throw new Error('FAMILY_TOO_LARGE');
 
     const relevantPupilIds = [...pupilDocuments.keys()];

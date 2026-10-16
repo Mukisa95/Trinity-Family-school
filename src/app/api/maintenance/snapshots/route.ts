@@ -1,3 +1,4 @@
+import { requireAppUser } from '@/lib/server/app-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { PupilSnapshotsService } from '@/lib/services/pupil-snapshots.service';
 import { PupilsService } from '@/lib/services/pupils.service';
@@ -14,6 +15,8 @@ import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-
  */
 export async function POST(request: NextRequest) {
   try {
+    const actor = await requireAppUser(request);
+    if (actor.user.role !== 'Admin') return NextResponse.json({error: 'Administrator access is required for school-wide maintenance.'}, {status: 403});
     await ensureServerFirestoreAuth();
     console.log(`📅 Daily snapshot maintenance triggered at ${new Date().toISOString()}`);
     

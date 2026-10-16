@@ -22,7 +22,7 @@ import {
   where,
   getDocs,
   limit
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import { userGroupService } from './user-groups';
 import { pushNotificationService } from './push-notifications.service';

@@ -6,6 +6,7 @@ import { useStaff } from './use-staff';
 import { useClasses } from './use-classes';
 import { useSubjects } from './use-subjects';
 import type { Pupil, Staff, Class, Subject } from '@/types';
+import { filterActiveStaff } from '@/lib/utils/staff-status';
 
 /**
  * 🚀 OPTIMIZED PROGRESSIVE DASHBOARD HOOK
@@ -32,10 +33,11 @@ export function useProgressiveDashboard({
   } = usePupils();
 
   const {
-    data: staff = [],
+    data: allStaff = [],
     isLoading: staffLoading,
     error: staffError
   } = useStaff();
+  const staff = useMemo(() => filterActiveStaff(allStaff), [allStaff]);
 
   const {
     data: classes = [],

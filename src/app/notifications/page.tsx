@@ -70,7 +70,7 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { useAndroidNotifications } from '@/lib/hooks/use-android-notifications';
 import { AndroidNotificationStatus } from '@/components/notifications/android-notification-status';
 import { supportsWebPush } from '@/lib/push-subscription-client';
-import { deleteDoc, doc, updateDoc, collection, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { deleteDoc, doc, updateDoc, collection, serverTimestamp, query, where, getDocs } from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import { useUsers } from '@/lib/hooks/use-users';
 import { useStaff } from '@/lib/hooks/use-staff';

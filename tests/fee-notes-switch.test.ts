@@ -38,6 +38,8 @@ test('disabled GET, creation and change endpoints stop before account lookup or 
     'firebase-admin/firestore': {getFirestore: () => {throw Error('Firestore must not be consulted');}},
     '@/lib/firebase-admin': {getFirebaseAdminApp: () => {throw Error('Firestore app must not be consulted');}},
     '@/lib/server/fee-notes-gate': {readFeeNotesGate: async () => ({anyEnabled: false, isEnabled: () => false})},
+    '@/lib/access/circumference': {hasCircumference: () => false},
+    '@/lib/server/circumference': {CircumferenceError: Error, requireScopedPupil: async () => {throw Error('Scope lookup must not run');}, scopedPupils: async () => {throw Error('Scope lookup must not run');}},
     '@/lib/server/app-auth': {requireAppUser: async () => {throw Error('Account lookup must not run');}},
     '@/lib/fees/fee-reminders': {},
     '@/lib/server/fee-reminders': {FeeReminderError: Error, validateFeeReminderInput: (input: any) => input},
@@ -180,9 +182,12 @@ test('a simultaneous switch action cannot overwrite an in-progress action for th
 });
 
 test('the switch endpoint requires fees management permission and validates its pupil and boolean setting', async () => {
-  let allowed = false, mutations = 0;
+  let allowed = false, withinScope = true, mutations = 0;
+  class ScopeError extends Error {status = 403;}
   const route = load('src/app/api/fees/reminders/switch/route.ts', {
     'next/server': {NextResponse: {json: (body: any, options: any) => ({body, status: options?.status || 200})}},
+    '@/lib/access/circumference': {hasCircumference: () => false},
+    '@/lib/server/circumference': {CircumferenceError: ScopeError, requireScopedPupil: async () => {if (!withinScope) throw new ScopeError('Outside Circumference'); return {id: 'joan'};}},
     '@/lib/server/app-auth': {requireAppUser: async () => ({user: {id: 'staff'}})},
     '@/lib/fees/fee-reminders': {canManageFeeReminders: () => allowed},
     '@/lib/server/fee-notes-switch': {setPupilFeeNotesSwitch: async () => {mutations++; return {enabled: true};}},
@@ -194,6 +199,9 @@ test('the switch endpoint requires fees management permission and validates its 
   assert.equal((await route.POST(request({pupilId: 'joan', enabled: 'yes'}))).status, 400);
   assert.equal(mutations, 0);
   assert.equal((await route.POST(request({pupilId: 'joan', enabled: true}))).status, 200);
+  assert.equal(mutations, 1);
+  withinScope = false;
+  assert.equal((await route.POST(request({pupilId: 'hidden', enabled: true}))).status, 403);
   assert.equal(mutations, 1);
 });
 
@@ -212,6 +220,8 @@ for (const unavailable of [false, true]) test(`scheduler ${unavailable ? 'switch
     '@/lib/server/fee-notes-gate': {readFeeNotesGate: async () => {
       if (unavailable) throw Error('Switch unavailable'); return {anyEnabled: true, isEnabled: () => false};
     }},
+    '@/lib/access/circumference': {hasCircumference: () => false},
+    '@/lib/server/circumference': {CircumferenceError: Error, requireScopedPupil: async () => {throw Error('Scope lookup must not run');}, scopedPupils: async () => {throw Error('Scope lookup must not run');}},
     '@/lib/server/app-auth': {}, '@/lib/services/granular-permissions.service': {},
     '@/lib/server/notification-automation': {}, '@/lib/notifications/automation-settings': {},
     '@/lib/scheduler/schedule-times': {}, '@/lib/scheduler/academic-term-status': {},

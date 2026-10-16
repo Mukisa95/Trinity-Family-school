@@ -34,7 +34,8 @@ function ledgerFixture() {
   }).outputText;
   vm.runInNewContext(output, { module, exports: module.exports, console: { error() {} }, require(name: string) {
     if (name === '@/lib/fees/fee-reminder-change-client') return {notifyFeeReminderChange: async () => {}};
-      if (name === 'firebase/firestore') return firestore;
+      if (name === '@/lib/access/circumference-session') return {getCircumferenceUser: () => null, circumferenceCacheSuffix: () => ''};
+      if ((name === 'firebase/firestore' || name === '@/lib/access/scoped-firestore')) return firestore;
     if (name === '../firebase') return { db: {} };
     if (name === './history-log.service') return {};
     throw new Error(name);

@@ -34,6 +34,7 @@ beforeEach(async () => {
       role: 'Admin',
       isActive: true,
     });
+    await setDoc(doc(db, 'system_users', 'active-staff'), {role: 'Staff', isActive: true});
     await setDoc(doc(db, 'system_users', 'inactive-staff'), {
       username: 'INACTIVE',
       role: 'Staff',

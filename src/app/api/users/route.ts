@@ -1,3 +1,4 @@
+import { circumferenceOf, permitsPupil } from '@/lib/access/circumference';
 import { NextRequest, NextResponse } from 'next/server';
 import { Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { z } from 'zod';
@@ -8,6 +9,8 @@ import {
   sanitizeSystemUser,
 } from '@/lib/server/app-auth';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+import { assignableCircumference } from '@/lib/server/circumference-accounts';
+import { CircumferenceError } from '@/lib/server/circumference';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -39,6 +42,8 @@ export async function POST(request: NextRequest) {
     const parsed = createSchema.safeParse(await request.json());
     if (!parsed.success) return json({ error: 'Invalid user details.' }, 400);
     const { password, ...profileInput } = parsed.data;
+    if (actor.user.role !== 'Admin' && profileInput.role === 'Admin') throw new CircumferenceError('Only an administrator can create an administrator.');
+    if (profileInput.role === 'Staff') profileInput.circumference = assignableCircumference(actor, profileInput.circumference, profileInput.role);
 
     const db = getFirestore(getFirebaseAdminApp());
     const userRef = db.collection('system_users').doc();
@@ -73,6 +78,7 @@ export async function POST(request: NextRequest) {
         const familyPupilDocuments = familyPupils?.docs.length
           ? familyPupils.docs
           : [pupilSnapshot];
+        if (familyPupilDocuments.some(document => !permitsPupil(circumferenceOf(actor.user), document.data() as any))) throw new CircumferenceError('This family includes pupils outside your Circumference.');
         const familyPupilIds = familyPupilDocuments.map(document => document.id);
         const pupilIdChunks = Array.from(
           { length: Math.ceil(familyPupilIds.length / 30) },
@@ -139,6 +145,7 @@ export async function POST(request: NextRequest) {
       user: sanitizeSystemUser(userRef.id, { ...cleanProfile, createdAt: now, updatedAt: now }),
     }, 201);
   } catch (error) {
+    if (error instanceof CircumferenceError) return json({ error: error.message }, error.status);
     const message = error instanceof Error ? error.message : '';
     if (message === 'USERNAME_EXISTS') return json({ error: 'That username already exists.' }, 409);
     if (message === 'PUPIL_REQUIRED') return json({ error: 'A pupil is required for a parent account.' }, 400);

@@ -8,7 +8,7 @@ import {
   orderBy,
   where,
   writeBatch,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { Staff } from '@/types';
 import { getDocsFromServerWithTimeout } from '../utils/firestore-helpers';

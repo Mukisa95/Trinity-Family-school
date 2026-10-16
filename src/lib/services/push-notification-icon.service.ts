@@ -8,7 +8,7 @@
  * without checking dynamically on every notification send (for performance).
  */
 
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import type { SchoolSettings } from '@/types';
 

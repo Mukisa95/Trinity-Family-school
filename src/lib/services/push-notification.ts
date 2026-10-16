@@ -10,7 +10,7 @@ import {
   query, 
   where,
   serverTimestamp 
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import type { PushSubscription as PushSubscriptionType, NotificationDelivery } from '@/types';
 

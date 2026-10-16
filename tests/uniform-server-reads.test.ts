@@ -26,7 +26,7 @@ function loadService(file: string, serviceName: string, serverData: Record<strin
       if (name === '../firebase') return { db: {} };
       if (name === './dashboard-cache-revisions.service') return { bumpCatalogueRevisionInBatch: () => {} };
       if (name === '@/lib/fees/fee-reminder-change-client') return { notifyFeeReminderChange: async () => {} };
-      if (name === 'firebase/firestore') return {
+      if ((name === 'firebase/firestore' || name === '@/lib/access/scoped-firestore')) return {
         collection: (_db: unknown, collection: string) => collection,
         query: (...constraints: unknown[]) => constraints,
         orderBy: (...args: unknown[]) => args,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { onSnapshot } from 'firebase/firestore';
+import { onSnapshot } from '@/lib/access/scoped-firestore';
 import { useAuth } from '@/lib/contexts/auth-context';
 import type { ExamLease } from '@/types';
 import { ExamLeaseService, type ExamLeaseAttempt, type ExamLeaseOverride, type ExamLeaseToken } from '@/lib/services/exam-lease.service';

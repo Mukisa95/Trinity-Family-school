@@ -1,3 +1,5 @@
+import { getCircumferenceUser } from '@/lib/access/circumference-session';
+import { getAttendanceCacheScope } from '@/lib/cache/attendance-summary-cache';
 import type { AttendanceRecord } from '@/types';
 import { publishDailyAttendanceSummary } from './attendance-summary.service';
 
@@ -50,6 +52,8 @@ async function flushKey(entryKey: string): Promise<boolean> {
     const entries = read();
     const entry = entries[entryKey];
     if (!entry?.scope) return true;
+    const actor = getCircumferenceUser();
+    if (!actor || entry.scope !== getAttendanceCacheScope(actor.id, actor.role)) return false;
     const timer = timers.get(entryKey);
     if (timer) clearTimeout(timer);
     timers.delete(entryKey);

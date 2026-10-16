@@ -10,6 +10,7 @@ import {
 import type { NextRequest } from 'next/server';
 import type { SystemUser } from '@/types';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+import { circumferenceClaims } from './circumference-accounts';
 
 const SYSTEM_USERS_COLLECTION = 'system_users';
 const AUTH_CREDENTIALS_COLLECTION = 'authCredentials';
@@ -245,6 +246,7 @@ export async function issueAppUserCustomToken(id: string, data: UserRecord) {
     appUser: true,
     role: data.role || 'Staff',
     isActive: true,
+    ...circumferenceClaims(data),
     ...(data.familyId ? { familyId: data.familyId } : {}),
     ...(data.staffId ? { staffId: data.staffId } : {}),
     ...(data.pupilId ? { pupilId: data.pupilId } : {}),
@@ -332,7 +334,7 @@ export function canManageUsers(
     String(permission.module).toLowerCase() === 'users'
   )?.permission;
   if (legacy === 'full_access') return true;
-  if (action === 'read') return Boolean(legacy);
+  if (action === 'read' && legacy) return true;
   if (action !== 'delete' && legacy === 'edit') return true;
 
   const modulePermissions = actor.user.granularPermissions?.find(module => module.moduleId === 'users');

@@ -1,3 +1,4 @@
+import { authorizedFetch } from '@/lib/access/authorized-fetch';
 import { UniformTrackingService } from './uniform-tracking.service';
 import { UniformsService } from './uniforms.service';
 import type { UniformTracking, UniformItem } from '@/types';
@@ -350,7 +351,7 @@ export class UniformFeesIntegrationService {
       // Keep the existing payment route and its authentication behavior.
       let paymentId: string;
       if (typeof window !== 'undefined') {
-        const response = await fetch('/api/payments/create', {
+        const response = await authorizedFetch('/api/payments/create', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

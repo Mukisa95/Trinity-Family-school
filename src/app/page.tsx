@@ -77,7 +77,7 @@ import { RecessStatusBanner } from '@/components/common/recess-status-banner';
 import { TermScheduleCard } from '@/components/dashboard/TermScheduleCard';
 import { MonthCalendarCard } from '@/components/dashboard/MonthCalendarCard';
 import { DashboardLiveTracker } from '@/components/dashboard/DashboardLiveTracker';
-import { DashboardWelcomeHeader } from '@/components/dashboard/dashboard-welcome-header';
+import { DashboardWelcomeWithEvents } from '@/components/dashboard/dashboard-welcome-with-events';
 import { SavedPupilDataNotice } from '@/components/pupils/saved-pupil-data-notice';
 import { CatalogueDataNotice } from '@/components/common/catalogue-data-notice';
 import { ClassAttendanceSummaryDialog } from '@/components/dashboard/class-attendance-summary-dialog';
@@ -2421,7 +2421,7 @@ export default function DashboardPage() {
         <meta name="description" content="Trinity School Online Dashboard - Comprehensive overview of school activities and statistics." />
       </Head>
 
-      <DashboardWelcomeHeader schoolSettings={schoolSettings} />
+      <DashboardWelcomeWithEvents schoolSettings={schoolSettings} enabled={canViewCalendarSchedule} />
       <SavedPupilDataNotice />
 
       <motion.div
@@ -2519,7 +2519,7 @@ export default function DashboardPage() {
               value={stats.totalStaff}
               icon={Briefcase}
               color={cardColors.staff}
-              subtitle="Total staff"
+              subtitle="Active staff"
               segments={staff && staff.length > 0 ? [
                 { percentage: (staff.filter(s => s.gender === 'Male').length / staff.length) * 100, color: 'text-brand-ink-500 dark:text-brand-ink-400' },
                 { percentage: (staff.filter(s => s.gender === 'Female').length / staff.length) * 100, color: 'text-pink-500 dark:text-pink-400' }

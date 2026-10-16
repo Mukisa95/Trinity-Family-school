@@ -1,3 +1,4 @@
+import { CircumferenceError, requireScopedPupil } from '@/lib/server/circumference';
 import {NextRequest, NextResponse} from 'next/server';
 import {requireAppUser} from '@/lib/server/app-auth';
 import {canManageFeeReminders} from '@/lib/fees/fee-reminders';
@@ -10,8 +11,10 @@ export async function POST(request: NextRequest) {
     if (!canManageFeeReminders(actor.user)) return NextResponse.json({error: 'Permission to manage fee payments is required.'}, {status: 403});
     const body = await request.json();
     if (!body || typeof body.enabled !== 'boolean' || typeof body.pupilId !== 'string' || !/^[A-Za-z0-9_-]{1,160}$/.test(body.pupilId)) return NextResponse.json({error: 'Choose a valid pupil and switch setting.'}, {status: 400});
+    await requireScopedPupil(actor, body.pupilId);
     return NextResponse.json(await setPupilFeeNotesSwitch(body.pupilId, body.enabled, actor.user));
   } catch (error) {
+    if (error instanceof CircumferenceError) return NextResponse.json({error: error.message}, {status: error.status});
     const message = error instanceof Error ? error.message : '';
     const status = ['AUTH_REQUIRED', 'APP_AUTH_REQUIRED'].includes(message) ? 401 : message === 'ACCOUNT_INACTIVE' ? 403 : message === 'PUPIL_NOT_FOUND' ? 404 : message === 'SWITCH_BUSY' ? 409 : error instanceof SyntaxError ? 400 : 503;
     if (status === 503) console.error('Fee Notes switch could not finish:', error);

@@ -1,3 +1,4 @@
+import { authorizedFetch } from '@/lib/access/authorized-fetch';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import type { AcademicYear } from '@/types';
@@ -89,7 +90,7 @@ export function usePaymentProcessing({
         }
       };
 
-      const response = await fetch('/api/payments/create', {
+      const response = await authorizedFetch('/api/payments/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

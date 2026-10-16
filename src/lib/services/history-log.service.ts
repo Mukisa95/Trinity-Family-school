@@ -13,7 +13,7 @@ import {
   type Transaction,
   type WriteBatch,
   where,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import { logger } from '@/lib/utils/logger';
 import { currentHistoryRoute, normaliseHistoryRoute } from '../utils/history-log-navigation';

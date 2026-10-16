@@ -1,4 +1,4 @@
-import { doc } from 'firebase/firestore';
+import { doc } from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 
 export const SETTINGS_COLLECTION = 'settings';

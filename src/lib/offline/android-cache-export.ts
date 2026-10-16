@@ -1,3 +1,5 @@
+import { filterActiveStaff } from '@/lib/utils/staff-status';
+import { circumferenceCacheSuffix } from '@/lib/access/circumference-session';
 import type { AndroidOfflineDataset, AndroidOfflineSession, AndroidOfflineSnapshot, AndroidOfflineTimetable } from './android-contracts';
 import { projectOfflinePupil } from './android-contracts';
 import { readEventCache, readLegacyExamEventCache, getEventCacheKey, getLegacyExamEventCacheKey, getEventCacheScope } from '@/lib/cache/event-cache';
@@ -39,8 +41,8 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
   }
   const scope = getClassCacheScope(session.accountId, session.role);
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
-  const previous = reuse?.pupilsUnchanged && reuse.previous.accountId === session.accountId && reuse.previous.role === session.role ? reuse.previous : undefined;
-  const pupils = previous ? null : await measureWorkspaceOperation('android:cache-read', () => readPersistentCollectionWithMetadata<Pupil[]>(persistentCollectionCacheKey(projectId, 'pupils', `user:${session.accountId}`)));
+  const previous = reuse?.pupilsUnchanged && !session.circumference && reuse.previous.accountId === session.accountId && reuse.previous.role === session.role ? reuse.previous : undefined;
+  const pupils = previous ? null : await measureWorkspaceOperation('android:cache-read', () => readPersistentCollectionWithMetadata<Pupil[]>(persistentCollectionCacheKey(projectId, 'pupils', `user:${session.accountId}${circumferenceCacheSuffix(session.accountId)}`)));
   const classes = readClassCache(scope);
   const years = readAcademicYearCache(getAcademicYearCacheScope(session.accountId, session.role));
   const staff = readStaffCache(getStaffCacheScope(session.accountId, session.role));
@@ -51,7 +53,7 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
   if (session.grants.pupils && previous?.datasets.pupils) result.datasets.pupils = previous.datasets.pupils;
   if (session.grants.pupils && pupils && Array.isArray(pupils.data)) result.datasets.pupils = {
     data: await projectOfflinePhotos(session.accountId,
-      await measureWorkspaceOperation('android:record-projection', () => projectAndroidRecords(pupils.data, pupil => projectOfflinePupil(pupil as unknown as Record<string, unknown>, session), signal)), signal),
+      await measureWorkspaceOperation('android:record-projection', () => projectAndroidRecords(pupils.data.filter(pupil => !session.circumference || session.pupilIds.includes(pupil.id)), pupil => projectOfflinePupil(pupil as unknown as Record<string, unknown>, session), signal)), signal),
     preparedAt: new Date(pupils.writtenAt).toISOString(),
   };
   if (session.grants.pupils || session.grants.timetable || session.grants.dashboard || session.grants.events) {
@@ -60,9 +62,9 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
   }
   if (session.grants.dashboard) {
     const counts: Record<string, number> = {};
-    if (session.grants.dashboardCounts.includes('pupils') && pupils && Array.isArray(pupils.data)) counts.pupils = pupils.data.filter(item => item.status === 'Active').length;
+    if (session.grants.dashboardCounts.includes('pupils') && pupils && Array.isArray(pupils.data)) counts.pupils = pupils.data.filter(item => item.status === 'Active' && (!session.circumference || session.pupilIds.includes(item.id))).length;
     if (session.grants.dashboardCounts.includes('pupils') && typeof previous?.datasets.dashboard?.data.pupils === 'number') counts.pupils = previous.datasets.dashboard.data.pupils;
-    if (session.grants.dashboardCounts.includes('staff') && staff) counts.staff = staff.data.length;
+    if (session.grants.dashboardCounts.includes('staff') && staff) counts.staff = filterActiveStaff(staff.data).length;
     if (Object.keys(counts).length) result.datasets.dashboard = {
       data: counts, preparedAt: new Date(Math.max(
         pupils?.writtenAt || 0, liteReadMetadata(`staff:${getStaffCacheScope(session.accountId, session.role)}`)?.writtenAt || 0,
@@ -84,7 +86,7 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
     if (subjects) result.datasets.subjects = saved(subjects.data.map(item => fields(item, ['id', 'name', 'code'])), subjects.revision, `subjects:${scope}`);
     if (staff) result.datasets.teachers = saved(staff.data.map(item => fields(item, ['id', 'firstName', 'lastName', 'otherNames'])), staff.revision, `staff:${scope}`);
     // This matches the identity/role/family scope used by the timetable hooks.
-    const timetableScope = [projectId, session.accountId, session.role, 'school'].map(encodeURIComponent).join(':');
+    const timetableScope = [projectId, session.accountId, session.role, 'school'].map(encodeURIComponent).join(':') + circumferenceCacheSuffix(session.accountId);
     const prefix = `timetable:${encodeURIComponent(timetableScope)}:`;
     const tables: AndroidOfflineTimetable[] = [];
     let preparedAt = 0;

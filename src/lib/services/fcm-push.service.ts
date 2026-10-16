@@ -1,6 +1,6 @@
 import admin from 'firebase-admin';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp } from '@/lib/access/scoped-firestore';
 
 /**
  * FCM (Firebase Cloud Messaging) Service for Native Push

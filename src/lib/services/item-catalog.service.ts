@@ -11,7 +11,7 @@ import {
   Timestamp,
   Transaction,
   writeBatch,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { buildCatalogKey, normalizeCatalogName } from '@/lib/utils/item-catalog';
 import { omitUndefinedFields } from '@/lib/utils/omit-undefined-fields';
 import { normalizePurchaseUnitConfiguration } from '@/lib/utils/purchase-unit-conversion';

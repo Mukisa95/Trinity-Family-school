@@ -1,8 +1,9 @@
-'use client';
+"use client";
+import { circumferenceKey } from '@/lib/access/circumference';
 
 import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { collection, onSnapshot, query, where, type DocumentData } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, type DocumentData } from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
@@ -41,7 +42,7 @@ export function useSchoolPayInbox() {
   const { user, isAuthenticated } = useAuth();
   const canView = !!user && user.role !== 'Parent' &&
     GranularPermissionService.canAccessPage(user, 'fees', 'schoolpay_feed');
-  const scope = isAuthenticated && canView ? `${user?.id || 'staff'}:${user?.role || ''}` : '';
+  const scope = isAuthenticated && canView ? `${user?.id || 'staff'}:${user?.role || ''}:${circumferenceKey(user)}` : '';
   const queryKey = useMemo(() => schoolPayInboxKeys.unresolved(scope), [scope]);
 
   useEffect(() => {

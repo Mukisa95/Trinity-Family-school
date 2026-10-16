@@ -1,9 +1,12 @@
+import { authorizedFetch } from '@/lib/access/authorized-fetch';
+import { getCircumferenceUser } from '@/lib/access/circumference-session';
+import { hasCircumference } from '@/lib/access/circumference';
 import {
   doc,
   getDoc,
   runTransaction,
   serverTimestamp,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import type { AttendanceRecord, AttendanceStatus } from '@/types';
 import { db } from '@/lib/firebase';
 import {
@@ -95,7 +98,15 @@ export async function publishDailyAttendanceSummary(
       !!record && record.classId === classId && !!record.recordId
     );
 
-  const committed = await runTransaction(db, async transaction => {
+  const committed = hasCircumference(getCircumferenceUser()) ? await (async () => {
+    const response = await authorizedFetch('/api/access/attendance-summary', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({date, classId, records: replacement, replaceClass}),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Could not publish attendance.');
+    return result;
+  })() : await runTransaction(db, async transaction => {
     const ref = summaryRef(date);
     const [snapshot, settingsSnapshot] = await Promise.all([
       transaction.get(ref),

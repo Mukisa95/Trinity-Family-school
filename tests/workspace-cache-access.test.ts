@@ -8,6 +8,7 @@ import { androidSnapshotRevision, isAndroidSavedDataQuery } from '../src/lib/off
 import { createAndroidOfflineSession } from '../src/lib/offline/android-session-policy';
 import { QueryClient, QueryObserver } from '@tanstack/react-query';
 import { clearPupilSessionQueries } from '../src/lib/cache/pupil-session-cache';
+import { measureWorkspaceRequest } from '../src/lib/startup/workspace-timing';
 
 const user = { id: 'first', username: 'Example', role: 'Admin' as const, isActive: true, createdAt: '2026-01-01' };
 const now = 100000;
@@ -33,6 +34,31 @@ test('expired, malformed and future-dated receipts never grant local viewing', (
 test('permission object ordering does not invalidate the same saved scope', () => {
   assert.equal(workspaceCacheAccessScope({ ...user, granularPermissions: [{ moduleId: 'pupils', pages: [] }] }),
     workspaceCacheAccessScope({ ...user, granularPermissions: [{ pages: [], moduleId: 'pupils' }] }));
+});
+
+test('saved viewing receipts cannot survive a change in pupil Circumference', () => {
+  const staff = { ...user, role: 'Staff' as const };
+  const restricted = { ...staff, circumference: { classIds: ['p4'], sections: ['Boarding' as const], genders: ['Female' as const] } };
+  const broadReceipt = { ...receipt, scope: workspaceCacheAccessScope(staff) };
+  const narrowReceipt = { ...receipt, scope: workspaceCacheAccessScope(restricted) };
+  assert.equal(isWorkspaceCacheAccessValid(broadReceipt, restricted, now), false);
+  assert.equal(isWorkspaceCacheAccessValid(narrowReceipt, staff, now), false);
+  assert.equal(isWorkspaceCacheAccessValid(narrowReceipt, restricted, now), true);
+  assert.equal(workspaceCacheAccessScope(staff), workspaceCacheAccessScope({ ...staff,
+    circumference: { classIds: null, sections: null, genders: null } }), 'Unrestricted legacy viewing keeps its existing receipt identity');
+});
+
+test('request timing preserves an explicitly authenticated request transport', async () => {
+  let received: RequestInit | undefined;
+  const transport: typeof fetch = async (_input, init) => {
+    received = init;
+    return new Response('confirmed', { status: 200 });
+  };
+  const response = await measureWorkspaceRequest('payment:create-request', '/api/payments/create', {
+    method: 'POST', headers: { Authorization: 'Bearer synthetic-test-token' },
+  }, transport);
+  assert.equal(await response.text(), 'confirmed');
+  assert.equal(new Headers(received?.headers).get('Authorization'), 'Bearer synthetic-test-token');
 });
 
 test('a profile alone grants nothing; logout and account switch invalidate the receipt', () => {

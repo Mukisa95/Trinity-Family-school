@@ -1,3 +1,4 @@
+import { hasCircumference } from '@/lib/access/circumference';
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestore } from 'firebase-admin/firestore';
 import { requireAppUser } from '@/lib/server/app-auth';
@@ -10,6 +11,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const actor = await requireAppUser(request);
+    if (hasCircumference(actor.user)) return NextResponse.json({error: 'School-wide SchoolPay recovery and diagnostics require access to all pupils.'}, {status: 403});
     if (!GranularPermissionService.canAccessPage(actor.user, 'fees', 'schoolpay_feed')) {
       return NextResponse.json(
         { success: false, error: 'You do not have permission to view SchoolPay diagnostics.' },

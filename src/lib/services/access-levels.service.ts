@@ -7,7 +7,7 @@ import {
   query,
   where,
   writeBatch,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import {
   type AccessLevel,
   type CreateAccessLevelData,

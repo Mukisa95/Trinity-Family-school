@@ -15,7 +15,7 @@ import {
   where,
   runTransaction,
   Timestamp 
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { UniformTracking, CreateUniformTrackingData, UpdateUniformTrackingData } from '@/types';
 

@@ -1,3 +1,4 @@
+import { CircumferenceError, requireScopedPupil } from '@/lib/server/circumference';
 import { NextRequest, NextResponse } from 'next/server';
 import {readFeeNotesGate} from '@/lib/server/fee-notes-gate';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -11,7 +12,7 @@ export const revalidate = false;
 
 function errorResponse(error: unknown) {
   const message = error instanceof Error ? error.message : '';
-  const status = error instanceof FeeReminderError ? error.status
+  const status = error instanceof FeeReminderError || error instanceof CircumferenceError ? error.status
     : ['AUTH_REQUIRED', 'APP_AUTH_REQUIRED'].includes(message) ? 401
       : message === 'ACCOUNT_INACTIVE' ? 403 : error instanceof SyntaxError ? 400 : 500;
   if (status === 500) console.error('Fee reminder request failed:', error);
@@ -26,9 +27,10 @@ export async function GET(request: NextRequest) {
     if (!(await readFeeNotesGate()).isEnabled(pupilId)) return NextResponse.json({enabled: false, notes: [], recipients: []});
     const actor = await requireAppUser(request);
     if (!canReadFeeReminders(actor.user)) return NextResponse.json({ error: 'Fees collection access is required.' }, { status: 403 });
+    await requireScopedPupil(actor, pupilId);
     if (request.nextUrl.searchParams.get('includeRecipients') === 'true') {
       if (!canManageFeeReminders(actor.user)) return NextResponse.json({ error: 'Permission to manage fee payments is required.' }, { status: 403 });
-      return NextResponse.json({ recipients: await listFeeReminderRecipients() });
+      return NextResponse.json({ recipients: await listFeeReminderRecipients(pupilId) });
     }
     // Also repair older notes or a delayed payment trigger when opening Notes.
     try { await reconcileFeeReminders(pupilId); }
@@ -47,6 +49,7 @@ export async function POST(request: NextRequest) {
     if (!(await readFeeNotesGate()).isEnabled(input.pupilId)) return NextResponse.json({error: 'Turn on Notes for this pupil first.'}, {status: 403});
     const actor = await requireAppUser(request);
     if (!canManageFeeReminders(actor.user)) return NextResponse.json({ error: 'Permission to record fee payments is required to create reminders.' }, { status: 403 });
+    await requireScopedPupil(actor, input.pupilId);
     const note = await createFeeReminder(input, actor.user);
     return NextResponse.json({ note }, { status: 201 });
   } catch (error) { return errorResponse(error); }

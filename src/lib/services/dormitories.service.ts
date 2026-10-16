@@ -1,6 +1,9 @@
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, updateDoc, where } from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { Dormitory } from '@/types';
+import { hasCircumference } from '@/lib/access/circumference';
+import { getCircumferenceUser } from '@/lib/access/circumference-session';
+import { authorizedFetch } from '@/lib/access/authorized-fetch';
 
 const COLLECTION = 'dormitories';
 
@@ -42,6 +45,7 @@ export class DormitoriesService {
 
   // Assignment helpers
   static async assignPupils(id: string, pupilIds: string[]): Promise<void> {
+    if (hasCircumference(getCircumferenceUser())) return this.scopedAssignment(id, pupilIds, 'assign');
     const dorm = await this.getById(id);
     if (!dorm) throw new Error('Dormitory not found');
     const set = new Set([...(dorm.assignedPupilIds ?? []), ...pupilIds]);
@@ -49,11 +53,16 @@ export class DormitoriesService {
   }
 
   static async unassignPupils(id: string, pupilIds: string[]): Promise<void> {
+    if (hasCircumference(getCircumferenceUser())) return this.scopedAssignment(id, pupilIds, 'unassign');
     const dorm = await this.getById(id);
     if (!dorm) throw new Error('Dormitory not found');
     const set = new Set(dorm.assignedPupilIds ?? []);
     pupilIds.forEach(pid => set.delete(pid));
     await this.update(id, { assignedPupilIds: Array.from(set) });
+  }
+  private static async scopedAssignment(id: string, pupilIds: string[], action: 'assign' | 'unassign'): Promise<void> {
+    const response = await authorizedFetch('/api/access/dormitories', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id, pupilIds, action})});
+    if (!response.ok) throw new Error((await response.json()).error || 'Could not update assignment.');
   }
 }
 

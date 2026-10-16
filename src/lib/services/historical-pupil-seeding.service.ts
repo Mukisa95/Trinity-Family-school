@@ -1,4 +1,4 @@
-import { addDoc, collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { addDoc, collection, getDocs, orderBy, query } from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import type {
   Pupil,

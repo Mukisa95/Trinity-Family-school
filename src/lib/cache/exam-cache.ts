@@ -1,3 +1,4 @@
+import { circumferenceCacheSuffix } from '@/lib/access/circumference-session';
 import type { Exam } from '@/types';
 import { liteRead, liteWrite } from './lite-cache';
 
@@ -18,7 +19,7 @@ export type ExamCacheSnapshot = {
 export function getExamCacheScope(userId?: string, role?: string): string {
   if (!userId || !role || role === 'Parent') return '';
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
-  return [projectId, userId, role].map(encodeURIComponent).join(':');
+  return [projectId, userId, role].map(encodeURIComponent).join(':') + circumferenceCacheSuffix(userId);
 }
 
 export function getExamCacheKey(scope: string): string {

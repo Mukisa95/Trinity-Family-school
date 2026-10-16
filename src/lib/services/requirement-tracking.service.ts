@@ -9,7 +9,7 @@ import {
   query, 
   where,
   Timestamp 
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { RequirementTracking, CreateRequirementTrackingData, UpdateRequirementTrackingData, EnhancedRequirementTracking, Pupil, AcademicYear } from '@/types';
 import { PupilSnapshotsService } from './pupil-snapshots.service';

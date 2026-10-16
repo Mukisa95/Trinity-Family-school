@@ -9,7 +9,7 @@ import {
   orderBy,
   where,
   Timestamp 
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { RequirementItem, CreateRequirementData, UpdateRequirementData, RequirementGender, RequirementSection } from '@/types';
 import { HistoryLogService } from './history-log.service';

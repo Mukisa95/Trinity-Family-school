@@ -13,3 +13,7 @@ export const STAFF_STATUS_LABELS: Record<StaffStatus, string> = {
 export function getStaffStatus(staff: Pick<Staff, 'status'>): StaffStatus {
   return staff.status || 'active';
 }
+
+export function filterActiveStaff<T extends Pick<Staff, 'status'>>(staff: readonly T[]): T[] {
+  return staff.filter(member => getStaffStatus(member) === 'active');
+}

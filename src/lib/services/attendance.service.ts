@@ -1,3 +1,5 @@
+import { hasCircumference } from '@/lib/access/circumference';
+import { getCircumferenceUser } from '@/lib/access/circumference-session';
 import {
   collection,
   doc,
@@ -14,7 +16,7 @@ import {
   setDoc,
   writeBatch,
   limit
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { AttendanceRecord, EnhancedAttendanceRecord } from '@/types';
 import { PupilSnapshotsService } from './pupil-snapshots.service';
@@ -232,7 +234,7 @@ export class AttendanceService {
     if (!updates || updates.length === 0) return;
 
     // 🚀 writeBatch = single network round-trip regardless of how many records
-    const BATCH_LIMIT = 500; // Firestore hard limit per batch
+    const BATCH_LIMIT = hasCircumference(getCircumferenceUser()) ? 10 : 500; // Leave room for scoped rule lookups.
     for (let i = 0; i < updates.length; i += BATCH_LIMIT) {
       const chunk = updates.slice(i, i + BATCH_LIMIT);
       const batch = writeBatch(db);
@@ -289,9 +291,10 @@ export class AttendanceService {
       }
 
       // Deterministic IDs make this a no-read upsert.
-      const batch = writeBatch(db);
+      let batch = writeBatch(db);
       const results: string[] = [];
-
+      const batchLimit = hasCircumference(getCircumferenceUser()) ? 10 : 500;
+      let pending = 0;
       for (const record of records) {
         const id = getAttendanceRecordId(record.date, record.classId, record.pupilId);
         const docRef = doc(db, COLLECTION_NAME, id);
@@ -302,9 +305,10 @@ export class AttendanceService {
           updatedAt: Timestamp.now(),
         }, { merge: true });
         results.push(id);
+        if (++pending === batchLimit) { await batch.commit(); batch = writeBatch(db); pending = 0; }
       }
 
-      await batch.commit();
+      if (pending) await batch.commit();
       return results;
     } catch (error) {
       console.error('Error bulk upserting attendance records:', error);

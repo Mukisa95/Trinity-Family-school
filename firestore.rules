@@ -15,7 +15,39 @@ service cloud.firestore {
     // They do not perform rule-level document lookups or inspect browser cache.
     function isStaffOrAdmin() {
       return isActiveApplicationUser()
-        && (request.auth.token.role == 'Admin' || request.auth.token.role == 'Staff');
+        && (request.auth.token.role == 'Admin' || (request.auth.token.role == 'Staff' && get(/databases/$(database)/documents/system_users/$(request.auth.uid)).data.isActive == true));
+    }
+    function staffCircumference() {
+      return get(/databases/$(database)/documents/system_users/$(request.auth.uid)).data
+        .get('circumference', {'classIds': null, 'sections': null, 'genders': null});
+    }
+    function isUnrestrictedStaffOrAdmin() {
+      return isStaffOrAdmin() && (request.auth.token.role == 'Admin'
+        || (staffCircumference().get('classIds', null) == null
+          && staffCircumference().get('sections', null) == null
+          && staffCircumference().get('genders', null) == null));
+    }
+    function scopedClass(classId) {
+      return isStaffOrAdmin() && (request.auth.token.role == 'Admin'
+        || staffCircumference().get('classIds', null) == null
+        || classId in staffCircumference().classIds);
+    }
+    function scopedPupil(data) {
+      return scopedClass(data.get('classId', ''))
+        && (request.auth.token.role == 'Admin'
+          || ((staffCircumference().get('sections', null) == null || data.get('section', '') in staffCircumference().sections)
+            && (staffCircumference().get('genders', null) == null || data.get('gender', '') in staffCircumference().genders)));
+    }
+    function scopedPupilId(pupilId) {
+      return pupilId is string && pupilId != ''
+        && scopedPupil(get(/databases/$(database)/documents/pupils/$(pupilId)).data);
+    }
+    function scopedPupilRecord(data) {
+      return isUnrestrictedStaffOrAdmin() || scopedPupilId(data.get('pupilId', ''));
+    }
+    function classWideScope(classId) {
+      return scopedClass(classId) && (request.auth.token.role == 'Admin'
+        || (staffCircumference().get('sections', null) == null && staffCircumference().get('genders', null) == null));
     }
 
     function isTrustedServerApp() {
@@ -46,12 +78,12 @@ service cloud.firestore {
       allow read: if settingsDoc == 'school-settings'
         || settingsDoc == 'school-settings-meta'
         || isActiveApplicationUser();
-      allow write: if isStaffOrAdmin();
+      allow write: if isTrustedServerApp() || isStaffOrAdmin();
     }
 
     match /photos/{photoId} {
       allow read: if true;
-      allow write: if isStaffOrAdmin();
+      allow write: if isUnrestrictedStaffOrAdmin();
     }
 
     // Password verifiers are server-only. Admin SDK operations bypass Firestore
@@ -73,11 +105,13 @@ service cloud.firestore {
     // standalone pupils without a rule-level document lookup.
     match /pupils/{pupilId} {
       allow read: if isTrustedServerApp()
-        || isStaffOrAdmin()
+        || scopedPupil(resource.data)
         || isParentForPupilRecord(pupilId);
       // parentAccountId is an authorization boundary, so parent browsers can
       // never assign or alter it directly.
-      allow write: if isTrustedServerApp() || isStaffOrAdmin();
+      allow create: if isTrustedServerApp() || scopedPupil(request.resource.data);
+      allow update: if isTrustedServerApp() || (scopedPupil(resource.data) && scopedPupil(request.resource.data));
+      allow delete: if isTrustedServerApp() || scopedPupil(resource.data);
     }
 
     // Dev Contral reads are administrator-only. Operational telemetry still
@@ -98,15 +132,24 @@ service cloud.firestore {
     // Do not let a parent query these raw collections while that ownership is
     // not rule-checkable on every legacy record.
     match /bankAccounts/{accountId} {
-      allow read, write: if isTrustedServerApp() || isStaffOrAdmin();
+      allow read: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+      allow create: if isTrustedServerApp() || scopedPupilRecord(request.resource.data);
+      allow update: if isTrustedServerApp() || (scopedPupilRecord(resource.data) && scopedPupilRecord(request.resource.data));
+      allow delete: if isTrustedServerApp() || scopedPupilRecord(resource.data);
     }
 
     match /bankLoans/{loanId} {
-      allow read, write: if isTrustedServerApp() || isStaffOrAdmin();
+      allow read: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+      allow create: if isTrustedServerApp() || scopedPupilRecord(request.resource.data);
+      allow update: if isTrustedServerApp() || (scopedPupilRecord(resource.data) && scopedPupilRecord(request.resource.data));
+      allow delete: if isTrustedServerApp() || scopedPupilRecord(resource.data);
     }
 
     match /bankTransactions/{transactionId} {
-      allow read, write: if isTrustedServerApp() || isStaffOrAdmin();
+      allow read: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+      allow create: if isTrustedServerApp() || scopedPupilRecord(request.resource.data);
+      allow update: if isTrustedServerApp() || (scopedPupilRecord(resource.data) && scopedPupilRecord(request.resource.data));
+      allow delete: if isTrustedServerApp() || scopedPupilRecord(resource.data);
     }
 
     // A parent receives only its account's compact change counters. The
@@ -114,7 +157,7 @@ service cloud.firestore {
     // one saved child only after a relevant school-side change.
     match /parentDashboardRevisions/{accountId} {
       allow read: if isTrustedServerApp()
-        || isStaffOrAdmin()
+        || isUnrestrictedStaffOrAdmin()
         || (isActiveApplicationUser()
           && request.auth.token.role == 'Parent'
           && request.auth.uid == accountId);
@@ -125,26 +168,36 @@ service cloud.firestore {
     // prevents a browser caller from reading another child's history or
     // changing a staff attendance record directly.
     match /attendanceRecords/{recordId} {
-      allow read, write: if isTrustedServerApp() || isStaffOrAdmin();
+      allow read: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+      allow create: if isTrustedServerApp() || scopedPupilRecord(request.resource.data);
+      allow update: if isTrustedServerApp() || (scopedPupilRecord(resource.data) && scopedPupilRecord(request.resource.data));
+      allow delete: if isTrustedServerApp() || scopedPupilRecord(resource.data);
     }
 
     // A released exam source document holds every learner in a class. The
     // parent dashboard receives a server-filtered, one-child projection only.
     match /examResults/{resultId} {
-      allow read, write: if isTrustedServerApp() || isStaffOrAdmin();
+      allow read, delete: if isTrustedServerApp() || classWideScope(resource.data.get('classId', ''));
+      allow create: if isTrustedServerApp() || classWideScope(request.resource.data.get('classId', ''));
+      allow update: if isTrustedServerApp() || (classWideScope(resource.data.get('classId', '')) && classWideScope(request.resource.data.get('classId', '')));
     }
 
     // Release lists contain the identifiers of other children in the class.
     // They are used by the server projection and are never a parent query.
     match /resultReleases/{releaseId} {
-      allow read, write: if isTrustedServerApp() || isStaffOrAdmin();
+      allow read, delete: if isTrustedServerApp() || classWideScope(resource.data.get('classId', ''));
+      allow create: if isTrustedServerApp() || classWideScope(request.resource.data.get('classId', ''));
+      allow update: if isTrustedServerApp() || (classWideScope(resource.data.get('classId', '')) && classWideScope(request.resource.data.get('classId', '')));
     }
 
     // Ordered pupil cache deltas contain only revision, pupil id, and operation.
     // Staff/admin mutations publish them atomically with the source document;
     // parent devices continue using their family-scoped pupils query.
     match /pupilCacheChanges/{changeId} {
-      allow read, write: if isStaffOrAdmin();
+      allow read, update, delete: if isTrustedServerApp() || isUnrestrictedStaffOrAdmin();
+      allow create: if isTrustedServerApp() || isUnrestrictedStaffOrAdmin()
+        || (request.resource.data.get('operation', '') == 'delete' && scopedPupilId(request.resource.data.get('pupilId', '')))
+        || scopedPupil(getAfter(/databases/$(database)/documents/pupils/$(request.resource.data.pupilId)).data);
     }
 
     // Browser endpoints are owned by the verified Firebase identity. Clients
@@ -152,7 +205,7 @@ service cloud.firestore {
     // cleanup go through the trusted subscription API.
     match /pushSubscriptions/{subscriptionId} {
       allow read: if isTrustedServerApp()
-        || isStaffOrAdmin()
+        || isUnrestrictedStaffOrAdmin()
         || (isActiveApplicationUser() && resource.data.userId == request.auth.uid);
       allow write: if isTrustedServerApp();
     }
@@ -160,7 +213,7 @@ service cloud.firestore {
     // This derived document contains school-wide pupil attendance details.
     // Parents must continue through their family-scoped attendance flow.
     match /attendanceDailySummaries/{summaryId} {
-      allow read, write: if isStaffOrAdmin();
+      allow read, write: if isUnrestrictedStaffOrAdmin();
     }
 
     // Automation configuration and execution logs are server-owned. The
@@ -211,7 +264,7 @@ service cloud.firestore {
     // All schedule mutations go through permission-checked server routes so
     // the source document and its due pointer cannot drift apart.
     match /scheduledSMS/{scheduleId} {
-      allow read: if isStaffOrAdmin();
+      allow read: if isUnrestrictedStaffOrAdmin();
       allow write: if false;
     }
 
@@ -230,7 +283,7 @@ service cloud.firestore {
 
     // Canonical SchoolPay callbacks are written only by trusted server routes.
     match /schoolPayInboundTransactions/{transactionId} {
-      allow read: if isStaffOrAdmin();
+      allow read: if isUnrestrictedStaffOrAdmin();
       allow write: if false;
     }
 
@@ -239,11 +292,11 @@ service cloud.firestore {
     }
 
     match /schoolPaySyncLogs/{logId} {
-      allow read, write: if isStaffOrAdmin();
+      allow read, write: if isUnrestrictedStaffOrAdmin();
     }
 
     match /schoolPayPaymentMappings/{receiptId} {
-      allow read, write: if isStaffOrAdmin();
+      allow read, write: if isUnrestrictedStaffOrAdmin();
     }
 
     // Salary data is especially sensitive. Payroll reads and all mutations use
@@ -280,6 +333,118 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+
+    // Definitions may be shared; class selection and exam creation stay inside
+    // the user's class Circumference. Mixed result documents are projected by
+    // the authenticated API for section/gender scopes.
+    match /classes/{classId} {
+      allow read: if isTrustedServerApp() || scopedClass(classId) || (isActiveApplicationUser() && request.auth.token.role == 'Parent');
+      allow create, update, delete: if isTrustedServerApp() || scopedClass(classId);
+    }
+    match /classes/{classId}/{documentPath=**} {
+      allow read, write: if isTrustedServerApp() || scopedClass(classId);
+    }
+    match /exams/{examId} {
+      allow read, delete: if isTrustedServerApp() || scopedClass(resource.data.get('classId', '')) || (isActiveApplicationUser() && request.auth.token.role == 'Parent');
+      allow create: if isTrustedServerApp() || scopedClass(request.resource.data.get('classId', ''));
+      allow update: if isTrustedServerApp() || (scopedClass(resource.data.get('classId', '')) && scopedClass(request.resource.data.get('classId', '')));
+    }
+    match /payments/{recordId} {
+      allow read: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+      allow create: if isTrustedServerApp() || scopedPupilRecord(request.resource.data);
+      allow update: if isTrustedServerApp() || (scopedPupilRecord(resource.data) && scopedPupilRecord(request.resource.data));
+      allow delete: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+    }
+    match /feesHolidays/{recordId} {
+      allow read: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+      allow create: if isTrustedServerApp() || scopedPupilRecord(request.resource.data);
+      allow update: if isTrustedServerApp() || (scopedPupilRecord(resource.data) && scopedPupilRecord(request.resource.data));
+      allow delete: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+    }
+    match /feeAdjustments/{recordId} {
+      allow read: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+      allow create: if isTrustedServerApp() || scopedPupilRecord(request.resource.data);
+      allow update: if isTrustedServerApp() || (scopedPupilRecord(resource.data) && scopedPupilRecord(request.resource.data));
+      allow delete: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+    }
+    match /pupilTermSnapshots/{recordId} {
+      allow read: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+      allow create: if isTrustedServerApp() || scopedPupilRecord(request.resource.data);
+      allow update: if isTrustedServerApp() || (scopedPupilRecord(resource.data) && scopedPupilRecord(request.resource.data));
+      allow delete: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+    }
+    match /pupilSnapshots/{recordId} {
+      allow read: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+      allow create: if isTrustedServerApp() || scopedPupilRecord(request.resource.data);
+      allow update: if isTrustedServerApp() || (scopedPupilRecord(resource.data) && scopedPupilRecord(request.resource.data));
+      allow delete: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+    }
+    match /uniformTracking/{recordId} {
+      allow read: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+      allow create: if isTrustedServerApp() || scopedPupilRecord(request.resource.data);
+      allow update: if isTrustedServerApp() || (scopedPupilRecord(resource.data) && scopedPupilRecord(request.resource.data));
+      allow delete: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+    }
+    match /requirement-tracking/{recordId} {
+      allow read: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+      allow create: if isTrustedServerApp() || scopedPupilRecord(request.resource.data);
+      allow update: if isTrustedServerApp() || (scopedPupilRecord(resource.data) && scopedPupilRecord(request.resource.data));
+      allow delete: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+    }
+    match /pupilHistory/{recordId} {
+      allow read: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+      allow create: if isTrustedServerApp() || scopedPupilRecord(request.resource.data);
+      allow update: if isTrustedServerApp() || (scopedPupilRecord(resource.data) && scopedPupilRecord(request.resource.data));
+      allow delete: if isTrustedServerApp() || scopedPupilRecord(resource.data);
+    }
+
+    match /dormitories/{dormitoryId} {
+      allow read, write: if isTrustedServerApp() || isUnrestrictedStaffOrAdmin();
+    }
+    match /examLocks/{examId} {
+      allow read, write: if isTrustedServerApp() || scopedClass(get(/databases/$(database)/documents/exams/$(examId)).data.get('classId', ''));
+    }
+    match /digital_signatures/{signatureId} {
+      allow read: if isUnrestrictedStaffOrAdmin() || (isStaffOrAdmin() && (!exists(/databases/$(database)/documents/digital_signatures/$(signatureId)) || resource.data.userId == request.auth.uid));
+      allow create: if isTrustedServerApp() || isUnrestrictedStaffOrAdmin() || (isStaffOrAdmin() && request.resource.data.userId == request.auth.uid);
+      allow update, delete: if isTrustedServerApp() || isUnrestrictedStaffOrAdmin();
+    }
+    match /audit_trail/{auditId} {
+      allow read: if isUnrestrictedStaffOrAdmin() || (isStaffOrAdmin() && (!exists(/databases/$(database)/documents/audit_trail/$(auditId)) || resource.data.signature.userId == request.auth.uid));
+      allow create: if isTrustedServerApp() || isUnrestrictedStaffOrAdmin() || (isStaffOrAdmin() && request.resource.data.signature.userId == request.auth.uid);
+      allow update, delete: if isTrustedServerApp() || isUnrestrictedStaffOrAdmin();
+    }
+
+    match /academicYears/{yearId} {
+      allow read: if isActiveApplicationUser();
+      allow write: if isTrustedServerApp() || isStaffOrAdmin();
+    }
+    match /academicYears/{yearId}/terms/{termId} {
+      allow read: if isActiveApplicationUser();
+      allow write: if isTrustedServerApp() || isStaffOrAdmin();
+    }
+    function scopedTimetable(data) {
+      return isStaffOrAdmin() && (request.auth.token.role == 'Admin' || staffCircumference().get('classIds', null) == null || data.get('classIds', []).hasAny(staffCircumference().classIds));
+    }
+    function managesTimetable(data) {
+      return isStaffOrAdmin() && (request.auth.token.role == 'Admin' || staffCircumference().get('classIds', null) == null || data.get('classIds', []).hasOnly(staffCircumference().classIds));
+    }
+    match /academicYears/{yearId}/terms/{termId}/timetables/{tableId} {
+      allow read: if isTrustedServerApp() || scopedTimetable(resource.data);
+      allow create: if isTrustedServerApp() || managesTimetable(request.resource.data);
+      allow update: if isTrustedServerApp() || (managesTimetable(resource.data) && managesTimetable(request.resource.data));
+      allow delete: if isTrustedServerApp() || managesTimetable(resource.data);
+    }
+    match /academicYears/{yearId}/terms/{termId}/timetables/{tableId}/periods/{periodId} {
+      allow read: if isTrustedServerApp() || scopedTimetable(get(/databases/$(database)/documents/academicYears/$(yearId)/terms/$(termId)/timetables/$(tableId)).data);
+      allow write: if isTrustedServerApp() || managesTimetable(get(/databases/$(database)/documents/academicYears/$(yearId)/terms/$(termId)/timetables/$(tableId)).data);
+    }
+    match /academicYears/{yearId}/terms/{termId}/timetables/{tableId}/entries/{entryId} {
+      allow read, delete: if isTrustedServerApp() || scopedClass(resource.data.get('classId', ''));
+      allow create: if isTrustedServerApp() || scopedClass(request.resource.data.get('classId', ''));
+      allow update: if isTrustedServerApp() || (scopedClass(resource.data.get('classId', '')) && scopedClass(request.resource.data.get('classId', '')));
+    }
+
     // Transitional production boundary: preserve every existing authenticated
     // application flow while denying anonymous users and arbitrary Firebase
     // anonymous accounts. Collection-level role restrictions are introduced
@@ -288,6 +453,22 @@ service cloud.firestore {
       allow read, write: if collection != 'authCredentials'
         && collection != 'system_users'
         && collection != 'pupils'
+        && (collection != 'academicYears' || request.auth.token.role != 'Staff' || isUnrestrictedStaffOrAdmin())
+        && collection != 'classes'
+        && collection != 'dormitories'
+        && collection != 'examLocks'
+        && collection != 'digital_signatures'
+        && collection != 'audit_trail'
+        && collection != 'exams'
+        && collection != 'payments'
+        && collection != 'feesHolidays'
+        && collection != 'feeAdjustments'
+        && collection != 'pupilTermSnapshots'
+        && collection != 'pupilSnapshots'
+        && collection != 'uniformTracking'
+        && collection != 'requirementTracking'
+        && collection != 'requirement-tracking'
+        && collection != 'pupilHistory'
         && collection != 'historicalPupilSeeds'
         && collection != 'operationalAuditLogs'
         && collection != 'bankAccounts'
@@ -324,7 +505,10 @@ service cloud.firestore {
         && collection != 'staffSalaryPayments'
         && collection != 'staffSalaryOccurrences'
         && collection != 'staffSalaryAdjustments'
-        && isActiveApplicationUser();
+        && isActiveApplicationUser()
+        && (request.auth.token.role != 'Staff' || isUnrestrictedStaffOrAdmin()
+          || collection in ['subjects', 'staff', 'academicYears', 'academic_years', 'feeStructures', 'requirements', 'requirementItems', 'uniforms', 'uniformInventory', 'dynamicDiscounts', 'excludedDays', 'pleSubjects', 'houses', 'access_levels', 'accessLevels', 'examTypes', 'timetablePeriods', 'timetableProfiles', 'schoolSettings', 'gradingScales', 'roleDefinitions', 'departmentDefinitions']
+          || (request.method == 'create' && collection in ['historyLogs', 'pupilCacheChanges']));
     }
   }
 }

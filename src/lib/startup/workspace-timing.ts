@@ -28,10 +28,10 @@ export async function measureWorkspaceOperation<T>(name: string, operation: () =
 }
 
 /** Request headers received; response parsing/rendering is measured separately. */
-export async function measureWorkspaceRequest(name: string, input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+export async function measureWorkspaceRequest(name: string, input: RequestInfo | URL, init?: RequestInit, fetchRequest: typeof fetch = fetch): Promise<Response> {
   const start = performance.now();
   try {
-    const response = await fetch(input, init);
+    const response = await fetchRequest(input, init);
     measureWorkspaceStep(response.ok ? name : `${name}:http-error`, start);
     return response;
   } catch (error) { measureWorkspaceStep(`${name}:failed`, start); throw error; }

@@ -1,3 +1,5 @@
+import { requireAppUser } from '@/lib/server/app-auth';
+import { CircumferenceError, requireScopedPupil, canReadScopedModule } from '@/lib/server/circumference';
 import { NextRequest, NextResponse } from 'next/server';
 import { PupilSnapshotsService } from '@/lib/services/pupil-snapshots.service';
 import { PupilsService } from '@/lib/services/pupils.service';
@@ -6,6 +8,8 @@ import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-
 
 export async function POST(request: NextRequest) {
     try {
+        const actor = await requireAppUser(request);
+        if (!canReadScopedModule(actor, 'pupilTermSnapshots')) throw new CircumferenceError();
         await ensureServerFirestoreAuth();
         const body = await request.json();
         const { pupilIds, termId, academicYearId } = body;
@@ -32,6 +36,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        await Promise.all(pupilIds.map((id: string) => requireScopedPupil(actor, id)));
         // Fetch academic year
         const academicYear = await AcademicYearsService.getAcademicYearById(academicYearId);
         if (!academicYear) {
@@ -47,6 +52,7 @@ export async function POST(request: NextRequest) {
                 try {
                     return await PupilsService.getPupilById(pupilId);
                 } catch (error) {
+                    if (error instanceof CircumferenceError) throw error;
                     console.error(`Failed to fetch pupil ${pupilId}:`, error);
                     return null;
                 }
@@ -72,6 +78,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(result);
     } catch (error) {
+        if (error instanceof CircumferenceError) return NextResponse.json({error: error.message}, {status: error.status});
         console.error('Batch recapture API error:', error);
         return NextResponse.json(
             {

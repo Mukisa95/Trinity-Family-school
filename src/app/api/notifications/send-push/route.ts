@@ -1,3 +1,4 @@
+import { CircumferenceError, requireScopedPupil, requireScopedClass } from '@/lib/server/circumference';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
@@ -143,6 +144,8 @@ export async function POST(request: NextRequest) {
     // they are sent. The destination picker supplies stable IDs; names are only
     // a friendly display value and never used to build the link.
     if (selectedDestination?.entityId && destinationDefinition?.entity) {
+      if (destinationDefinition.entity === 'pupil') await requireScopedPupil(actor, selectedDestination.entityId);
+      else requireScopedClass(actor, selectedDestination.entityId);
       const collectionName = destinationDefinition.entity === 'pupil' ? 'pupils' : 'classes';
       const entity = await adminDb.collection(collectionName).doc(selectedDestination.entityId).get();
       if (!entity.exists) {
@@ -319,7 +322,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     console.error('send-push error:', err);
     const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = ['AUTH_REQUIRED', 'APP_AUTH_REQUIRED'].includes(message)
+    const status = err instanceof CircumferenceError ? err.status : ['AUTH_REQUIRED', 'APP_AUTH_REQUIRED'].includes(message)
       ? 401
       : message === 'ACCOUNT_INACTIVE'
         ? 403

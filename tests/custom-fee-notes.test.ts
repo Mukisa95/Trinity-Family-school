@@ -168,7 +168,7 @@ test('cancelled custom notes immediately explain cancellation without inventing 
   const f = setup(), note = await f.server.createFeeReminder(f.input, actor);
   await f.server.cancelFeeReminder(note.id, actor, 'Meeting rescheduled');
   assert.equal(f.pushes.length, 1); assert.equal(f.pushes[0].payload.data.type, 'FEE_REMINDER_RESOLVED');
-  assert.match(f.pushes[0].payload.body, /custom Fees note.*Joan Kagwa/); assert.match(f.pushes[0].payload.body, /Meeting rescheduled/);
+  assert.match(f.pushes[0].payload.body, /custom Fees note.*Kagwa Joan/); assert.match(f.pushes[0].payload.body, /Meeting rescheduled/);
   assert.doesNotMatch(f.pushes[0].payload.body, /0 shillings promise/);
   await f.server.dispatchFeeReminder(note.id, new Date(note.dueAt)); assert.equal(f.pushes.length, 1);
 });

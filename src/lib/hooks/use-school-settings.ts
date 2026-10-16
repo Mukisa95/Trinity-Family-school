@@ -1,5 +1,5 @@
 import { skipToken, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from '@/lib/access/scoped-firestore';
 import { useEffect } from 'react';
 import { registerWorkspaceRecovery, reportWorkspaceTask } from '@/lib/startup/workspace-setup';
 import type { SchoolSettings } from '@/types';

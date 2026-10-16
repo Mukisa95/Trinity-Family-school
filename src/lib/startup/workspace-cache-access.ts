@@ -1,4 +1,5 @@
 import type { SystemUser } from '@/types';
+import { circumferenceKey, hasCircumference } from '@/lib/access/circumference';
 
 const ACCESS_KEY = 'trinity_workspace_cache_access_v1';
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -21,6 +22,7 @@ export function workspaceCacheAccessScope(user: WorkspaceUser): string {
     project: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools',
     id: user.id, role: user.role, active: user.isActive !== false, familyId: user.familyId, pupilId: user.pupilId,
     modulePermissions: user.modulePermissions, granularPermissions: user.granularPermissions,
+    ...(hasCircumference(user) ? { circumference: circumferenceKey(user) } : {}),
   }));
 }
 

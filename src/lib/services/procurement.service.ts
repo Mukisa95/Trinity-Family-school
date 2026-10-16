@@ -10,7 +10,7 @@ import {
   serverTimestamp,
   Timestamp,
   writeBatch,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import type { 
   ProcurementItem, 
   CreateProcurementItemData,

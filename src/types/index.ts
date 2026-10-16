@@ -71,6 +71,7 @@ export type SystemUser = {
   lastName?: string;
   modulePermissions?: ModulePermission[]; // Legacy - for backward compatibility
   granularPermissions?: ModulePermissions[]; // New granular permissions
+  circumference?: import('@/lib/access/circumference').Circumference;
 
   // Parent-specific fields
   pupilId?: string; // Links to Pupil record for parents (legacy - for backward compatibility)

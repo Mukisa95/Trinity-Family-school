@@ -7,7 +7,7 @@ import { auth } from '@/lib/firebase';
 import { androidOfflineRequest, hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
 import { exportAndroidCachedSnapshot } from '@/lib/offline/android-cache-export';
 import { androidSnapshotRevision, isAndroidSavedCacheKey } from '@/lib/offline/android-sync-policy';
-import { isAndroidOfflineSnapshot, type AndroidOfflineSession } from '@/lib/offline/android-contracts';
+import { androidSessionMatchesUser, isAndroidOfflineSnapshot, type AndroidOfflineSession } from '@/lib/offline/android-contracts';
 import { subscribeToParentOfflineChanges } from '@/lib/parent-offline/repository';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { useTimetableEntries, useTimetablePeriods, useTimetableProfiles } from '@/lib/hooks/use-timetable';
@@ -17,6 +17,7 @@ import { useSubjects } from '@/lib/hooks/use-subjects';
 import { useStaff } from '@/lib/hooks/use-staff';
 import { prepareAndroidAppShell, isAndroidOffline, installAndroidOfflineNavigation } from '@/lib/offline/android-app-shell';
 import { toast } from '@/hooks/use-toast';
+import { circumferenceKey } from '@/lib/access/circumference';
 import { getDashboardTimetableTerm } from '@/lib/offline/timetable-feed';
 import { recordAppDiagnostic } from '@/lib/utils/app-diagnostics';
 import { measureWorkspaceOperation } from '@/lib/startup/workspace-timing';
@@ -47,6 +48,9 @@ export function AndroidOfflineProvider() {
   const { user, isLoading, isLocked } = useAuth();
   const [session, setSession] = useState<AndroidOfflineSession | null>(null);
   const generation = useRef(0);
+  const scopeKey = circumferenceKey(user);
+  const accessKey = JSON.stringify([user?.id, user?.role, scopeKey, user?.granularPermissions, user?.modulePermissions]);
+  const previousAccess = useRef(accessKey);
   useEffect(() => {
     if (!hasAndroidOfflineBridge() || isLoading) return;
     const current = ++generation.current;
@@ -56,16 +60,22 @@ export function AndroidOfflineProvider() {
     let retry: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
     let lastConnectionAt = 0;
+    const changedAccess = previousAccess.current !== accessKey;
+    previousAccess.current = accessKey;
+    let prepared: Promise<void> | undefined;
     const connect = async () => {
       if (refreshing || disposed || isAndroidOffline() || !user || isLocked || auth.currentUser?.uid !== user.id) return;
       if (Date.now() - lastConnectionAt < 15 * 60 * 1000) return;
       refreshing = true;
       try {
+        prepared ||= prepareNative();
+        await prepared;
+        if (disposed || current !== generation.current) return;
         const token = await auth.currentUser.getIdToken();
         if (disposed || current !== generation.current || auth.currentUser?.uid !== user.id) return;
         const reply = await androidOfflineRequest('connect', { token });
-        if (!disposed && current === generation.current && reply.session?.accountId === user.id) {
-          setSession(reply.session); attempts = 0;
+        if (!disposed && current === generation.current && androidSessionMatchesUser(reply.session, user)) {
+          setSession(reply.session!); attempts = 0;
           lastConnectionAt = Date.now();
           recordAppDiagnostic('offline_access_ready');
           window.dispatchEvent(new Event('trinity-android-session-updated'));
@@ -77,23 +87,27 @@ export function AndroidOfflineProvider() {
       }
       finally { refreshing = false; }
     };
-    if (!user) void androidOfflineRequest('clear').catch(() => undefined);
-    else {
-      void androidOfflineRequest('status').then(reply => {
-        if (!disposed && current === generation.current && reply.session?.accountId === user.id) setSession(reply.session);
-      }).catch(() => undefined);
-      void connect();
-    }
+    const prepareNative = async () => {
+      if (!user || changedAccess) { await androidOfflineRequest('clear'); return; }
+      const reply = await androidOfflineRequest('status');
+      if (disposed || current !== generation.current) return;
+      if (reply.session && !androidSessionMatchesUser(reply.session, user)) await androidOfflineRequest('clear');
+      else if (reply.session) setSession(reply.session);
+    };
+    prepared = prepareNative();
+    // A failed clear/status must not revive or overwrite an incompatible saved session.
+    void prepared.catch(() => { prepared = undefined; });
+    if (user) void connect();
     const unsubscribeAuth = auth.onIdTokenChanged(() => void connect());
     const onVisible = () => { if (document.visibilityState === 'visible') void connect(); };
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('online', connect);
     window.addEventListener('trinity-android-connectivity', connect);
     return () => { disposed = true; if (retry) clearTimeout(retry); unsubscribeAuth(); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('online', connect); window.removeEventListener('trinity-android-connectivity', connect); };
-  }, [user?.id, user?.role, user?.granularPermissions, user?.modulePermissions, isLoading, isLocked]);
+  }, [user?.id, user?.role, user?.granularPermissions, user?.modulePermissions, scopeKey, isLoading, isLocked]);
 
   useEffect(() => {
-    if (!session || !user || session.accountId !== user.id || isLocked) return;
+    if (!session || !user || !androidSessionMatchesUser(session, user) || isLocked) return;
     let disposed = false;
     let previous = '';
     let sourceGeneration = 0;
@@ -143,7 +157,7 @@ export function AndroidOfflineProvider() {
     window.addEventListener('trinity-native-cache-written', onCacheWritten);
     schedule();
     return () => { disposed = true; preparation.abort(); scheduler.dispose(); unsubscribeNavigation(); unsubscribeParent(); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('trinity-native-cache-written', onCacheWritten); };
-  }, [session, user?.id, isLocked]);
+  }, [session, user?.id, scopeKey, isLocked]);
 
   useEffect(() => {
     // HTML and immutable assets contain no private records; prepare them even

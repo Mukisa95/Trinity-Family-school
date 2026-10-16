@@ -1,5 +1,6 @@
+import { circumferenceCacheSuffix } from '@/lib/access/circumference-session';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, getDocs, getDocsFromServer, query, where } from 'firebase/firestore';
+import { collection, getDocs, getDocsFromServer, query, where } from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import { TimetableService, getPeriodsCollectionPath, getEntriesCollectionPath, getTimetablesCollectionPath } from '../services/timetable.service';
 import type { TimetableProfile, GeneratedPeriod, TimetableEntry } from '@/types';
@@ -124,7 +125,7 @@ function useTimetableRevision(yearId: string, termId: string) {
     const revision = revisionsQuery.data?.timetable?.[revisionKey] ?? 0;
     const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
     const scope = user
-        ? [projectId, user.id, user.role, user.familyId || 'school'].map(encodeURIComponent).join(':')
+        ? [projectId, user.id, user.role, user.familyId || 'school'].map(encodeURIComponent).join(':') + circumferenceCacheSuffix(user.id)
         : '';
 
     return {

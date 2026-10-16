@@ -11,7 +11,7 @@ import {
   query, 
   orderBy, 
   where
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { FeeStructure, FeeAdjustmentEntry } from '@/types';
 

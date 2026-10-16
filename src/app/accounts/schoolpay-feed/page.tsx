@@ -5,7 +5,7 @@ import { usePageDataTiming } from '@/lib/hooks/use-page-data-timing';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import {
   Zap, ArrowLeft, ExternalLink, ChevronDown, ChevronRight,

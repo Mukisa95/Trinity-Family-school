@@ -1,4 +1,5 @@
 import { getEventCacheScope } from '@/lib/cache/event-cache';
+import { circumferenceOf, hasCircumference } from '@/lib/access/circumference';
 import type { SystemUser } from '@/types';
 import { GranularPermissionService as Permissions } from '@/lib/services/granular-permissions.service';
 import { ANDROID_OFFLINE_SESSION_DAYS, type AndroidOfflineSession } from './android-contracts';
@@ -23,7 +24,8 @@ export function createAndroidOfflineSession(user: SystemUser, pupilIds: string[]
     displayName: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username,
     timeZone: 'Africa/Kampala',
     issuedAt: now.toISOString(), expiresAt: new Date(now.getTime() + ANDROID_OFFLINE_SESSION_DAYS * 86400_000).toISOString(),
-    pupilIds: parent ? [...new Set(pupilIds)] : [],
+    pupilIds: parent || hasCircumference(user) ? [...new Set(pupilIds)] : [],
+    circumference: hasCircumference(user) ? circumferenceOf(user) : undefined,
     grants: {
       dashboard: !parent && Permissions.canAccessPage(user, 'reports', 'dashboard'), pupils,
       timetable: !parent && can('timetable', 'list', 'view_timetable'),

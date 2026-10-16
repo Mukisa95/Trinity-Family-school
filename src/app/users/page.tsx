@@ -1,4 +1,6 @@
 "use client";
+import { CircumferenceEditor } from '@/components/users/circumference-editor';
+import { ALL_CIRCUMFERENCE, circumferenceOf, circumferenceSummary, type Circumference } from '@/lib/access/circumference';
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import * as React from "react";
@@ -123,6 +125,7 @@ export default function UsersPage() {
   const [permissionsUser, setPermissionsUser] = useState<SystemUser | null>(null);
   const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false);
   const [permissionsDraft, setPermissionsDraft] = useState<ModulePermissions[]>([]);
+  const [circumferenceDraft, setCircumferenceDraft] = useState<Circumference>(ALL_CIRCUMFERENCE);
   const [activeTab, setActiveTab] = useState("staff");
   const [isMorphOpen, setIsMorphOpen] = useState(false);
   const [morphUserId, setMorphUserId] = useState("");
@@ -137,7 +140,8 @@ export default function UsersPage() {
     password: "",
     accessLevelId: "",
     modulePermissions: [] as ModulePermission[],
-    granularPermissions: [] as ModulePermissions[]
+    granularPermissions: [] as ModulePermissions[],
+    circumference: circumferenceOf(currentUser)
   });
 
   // Form states for parent creation
@@ -163,6 +167,7 @@ export default function UsersPage() {
     isActive: boolean;
     modulePermissions?: ModulePermission[];
     granularPermissions?: ModulePermissions[];
+    circumference?: Circumference;
   }>({
     isActive: true
   });
@@ -180,7 +185,8 @@ export default function UsersPage() {
         newUsername: editingUser.username,
         isActive: editingUser.isActive,
         modulePermissions: editingUser.modulePermissions || [],
-        granularPermissions: editingUser.granularPermissions || []
+        granularPermissions: editingUser.granularPermissions || [],
+        circumference: editingUser.circumference || ALL_CIRCUMFERENCE
       });
     }
   }, [editingUser]);
@@ -206,7 +212,8 @@ export default function UsersPage() {
       password: "",
       accessLevelId: "",
       modulePermissions: [],
-      granularPermissions: []
+      granularPermissions: [],
+      circumference: circumferenceOf(currentUser)
     });
     setMorphUserId("");
     setIsMorphOpen(false);
@@ -408,6 +415,7 @@ export default function UsersPage() {
 
     // Include module permissions for staff
     if (editingUser.role === 'Staff') {
+      updates.circumference = editFormData.circumference || ALL_CIRCUMFERENCE;
       updates.modulePermissions = editFormData.modulePermissions || [];
       
       // Ensure granular permissions exist - convert from legacy if needed
@@ -542,6 +550,7 @@ export default function UsersPage() {
   const openPermissionsWorkspace = (user: SystemUser) => {
     setPermissionsUser(user);
     setPermissionsDraft(getEditablePermissions(user));
+    setCircumferenceDraft(user.circumference || ALL_CIRCUMFERENCE);
     setIsPermissionsDialogOpen(true);
   };
 
@@ -635,6 +644,7 @@ export default function UsersPage() {
         updates: {
           modulePermissions: permissionsUser.modulePermissions || [],
           granularPermissions: permissionsDraft,
+          circumference: circumferenceDraft,
         },
       });
 
@@ -896,7 +906,7 @@ export default function UsersPage() {
                               />
                             </div>
                           </TableCell>
-                          <TableCell>{user.username}</TableCell>
+                          <TableCell>{user.username}<p className="mt-1 max-w-64 text-xs text-muted-foreground">Circumference: {circumferenceSummary(user)}</p></TableCell>
                           <TableCell>{user.email}</TableCell>
                           <TableCell>
                             <Badge variant={user.isActive ? 'default' : 'secondary'}>
@@ -1376,6 +1386,7 @@ export default function UsersPage() {
                     Configure detailed permissions for each module and page
                   </p>
                   
+                  <CircumferenceEditor value={staffFormData.circumference} onChange={circumference => setStaffFormData(prev => ({ ...prev, circumference }))} disabled={createStaffAccountMutation.isPending} />
                   <GranularPermissionsEditor
                     permissions={staffFormData.granularPermissions}
                     onChange={(newPermissions) => 
@@ -1589,6 +1600,7 @@ export default function UsersPage() {
                 />
               </div>
 
+              {editingUser?.role === 'Staff' && <CircumferenceEditor value={editFormData.circumference} onChange={circumference => setEditFormData(prev => ({ ...prev, circumference }))} disabled={updateUserMutation.isPending} />}
               {/* Module Permissions (Staff Only) */}
               {editingUser.role === 'Staff' && (
                 <>
@@ -1694,6 +1706,7 @@ export default function UsersPage() {
                   <h3 className="font-semibold text-slate-900 dark:text-slate-100">Change access</h3>
                   <p className="text-sm text-muted-foreground">Use a section, menu, page, or individual action checkbox to grant or revoke access.</p>
                 </div>
+                <CircumferenceEditor value={circumferenceDraft} onChange={setCircumferenceDraft} disabled={updateUserMutation.isPending} />
                 <GranularPermissionsEditor
                   permissions={permissionsDraft}
                   onChange={setPermissionsDraft}

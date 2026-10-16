@@ -50,7 +50,7 @@ import { useSMSTemplates } from '@/lib/hooks/use-sms-templates';
 import { useWizaSMSAccount } from '@/lib/hooks/use-wiza-sms-account';
 import { SMSService } from '@/lib/services/sms.service';
 import { useUnifiedAccountBalance } from '@/lib/hooks/use-unified-account-balance';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import type { Pupil, Class } from '@/types';
 import type { SMSRecipientReviewItem } from '@/lib/utils/sms-recipient-deduplication';

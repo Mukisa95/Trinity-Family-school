@@ -1,6 +1,6 @@
 'use client';
 
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from '@/lib/access/scoped-firestore';
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
 

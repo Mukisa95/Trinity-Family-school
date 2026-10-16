@@ -20,7 +20,7 @@ import {
   getDocs,
   serverTimestamp,
   Timestamp,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 
 // ─── Shared types ────────────────────────────────────────────────────────────
 

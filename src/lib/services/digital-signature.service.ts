@@ -10,7 +10,7 @@ import {
   serverTimestamp,
   runTransaction,
   writeBatch,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/auth-context';
 import type { 

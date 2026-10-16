@@ -4,6 +4,8 @@ import * as React from 'react';
 import { Eye, EyeOff, KeyRound, Loader2, ShieldCheck, UserRoundPlus } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { SystemUser } from '@/types';
+import { CircumferenceEditor } from './circumference-editor';
+import { ALL_CIRCUMFERENCE, circumferenceOf, type Circumference } from '@/lib/access/circumference';
 import { UsersService, type LinkedAccountTarget } from '@/lib/services/users.service';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
@@ -55,11 +57,12 @@ export function LinkedUserAccountDialog({
 }: LinkedUserAccountDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { canAccessModule, canEdit, canPerformAction } = useAuth();
+  const { user, canAccessModule, canEdit, canPerformAction } = useAuth();
   const [account, setAccount] = React.useState<SystemUser | null>(null);
   const [username, setUsername] = React.useState(defaultUsername);
   const [password, setPassword] = React.useState('');
   const [isActive, setIsActive] = React.useState(true);
+  const [circumference, setCircumference] = React.useState<Circumference>(ALL_CIRCUMFERENCE);
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -80,13 +83,14 @@ export function LinkedUserAccountDialog({
       setAccount(nextAccount);
       setUsername(nextAccount?.username || defaultUsername);
       setIsActive(nextAccount?.isActive ?? true);
+      setCircumference(nextAccount?.circumference || circumferenceOf(user));
     } catch (error) {
       setAccount(null);
       setLoadError(error instanceof Error ? error.message : 'Could not load this account.');
     } finally {
       setIsLoading(false);
     }
-  }, [canView, defaultUsername, target, targetId]);
+  }, [canView, defaultUsername, target, targetId, user]);
 
   React.useEffect(() => {
     if (open) {
@@ -130,13 +134,15 @@ export function LinkedUserAccountDialog({
           targetId,
           username: trimmedUsername,
           password,
+          ...(target === 'staff' ? { circumference } : {}),
         });
         setAccount(created);
         setUsername(created.username);
         setIsActive(created.isActive);
         toast({ title: 'Account activated', description: `${copy.title} created for ${targetName}.` });
       } else {
-        const updates: { username?: string; isActive?: boolean; password?: string } = {};
+        const updates: { username?: string; isActive?: boolean; password?: string; circumference?: Circumference } = {};
+        if (target === 'staff' && JSON.stringify(circumference) !== JSON.stringify(account.circumference || ALL_CIRCUMFERENCE)) updates.circumference = circumference;
         if (trimmedUsername !== account.username) updates.username = trimmedUsername;
         if (isActive !== account.isActive) updates.isActive = isActive;
         if (password) updates.password = password;
@@ -145,7 +151,7 @@ export function LinkedUserAccountDialog({
           closeDialog(false);
           return;
         }
-        if ((updates.username !== undefined || updates.isActive !== undefined) && !canUpdate) {
+        if ((updates.username !== undefined || updates.isActive !== undefined || updates.circumference !== undefined) && !canUpdate) {
           throw new Error('You do not have permission to change this account.');
         }
         if (updates.password && !canResetPassword) {
@@ -157,6 +163,7 @@ export function LinkedUserAccountDialog({
           ...current,
           ...(updates.username !== undefined ? { username: updates.username } : {}),
           ...(updates.isActive !== undefined ? { isActive: updates.isActive } : {}),
+          ...(updates.circumference !== undefined ? { circumference: updates.circumference } : {}),
         } : current);
         setPassword('');
         toast({
@@ -180,7 +187,7 @@ export function LinkedUserAccountDialog({
 
   return (
     <Dialog open={open} onOpenChange={closeDialog}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 pr-7">
             <ShieldCheck className="h-5 w-5 text-link" />
@@ -279,6 +286,8 @@ export function LinkedUserAccountDialog({
             )}
           </div>
         )}
+
+        {target === 'staff' && canView && !isLoading && !loadError && <CircumferenceEditor value={circumference} onChange={setCircumference} disabled={isSaving || (account ? !canUpdate : !canCreate)} />}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => closeDialog(false)} disabled={isSaving}>Cancel</Button>

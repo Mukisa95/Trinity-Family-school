@@ -14,6 +14,8 @@ import {
   requireAppUser,
 } from '@/lib/server/app-auth';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+import { assignableCircumference, circumferenceClaims } from '@/lib/server/circumference-accounts';
+import { CircumferenceError, requireScopedPupil } from '@/lib/server/circumference';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -76,6 +78,7 @@ export async function PATCH(
       'lastName',
       'modulePermissions',
       'granularPermissions',
+      'circumference',
     ]);
     const unknownField = Object.keys(profileUpdates).find(field => !allowedProfileFields.has(field));
     if (unknownField) return json({ error: 'That account field cannot be changed here.' }, 400);
@@ -105,6 +108,13 @@ export async function PATCH(
     const userRef = db.collection('system_users').doc(id);
     const existing = await userRef.get();
     if (!existing.exists) return json({ error: 'User not found.' }, 404);
+    if (existing.data()?.role === 'Staff' || existing.data()?.role === 'Admin') {
+      assignableCircumference(actor, existing.data()?.circumference, existing.data()?.role);
+    }
+    if (cleanUpdates.circumference !== undefined) {
+      if (existing.data()?.role !== 'Staff') throw new CircumferenceError('Circumference applies to staff accounts.', 400);
+      cleanUpdates.circumference = assignableCircumference(actor, cleanUpdates.circumference);
+    }
 
     if (cleanUpdates.username) {
       const duplicate = await db
@@ -119,9 +129,11 @@ export async function PATCH(
 
     const now = Timestamp.now();
     const existingData = existing.data() || {};
-    const parentPupilRefs = cleanUpdates.isActive !== undefined
-      ? await getParentFamilyPupilRefs(db, existingData)
-      : [];
+    const familyPupilRefs = await getParentFamilyPupilRefs(db, existingData);
+    await Promise.all(familyPupilRefs.map(ref => requireScopedPupil(actor, ref.id)));
+    const parentPupilRefs = cleanUpdates.isActive !== undefined ? familyPupilRefs : [];
+    if (existing.data()?.role === 'Parent' && existing.data()?.pupilId) await requireScopedPupil(actor, existing.data()!.pupilId);
+    await Promise.all(parentPupilRefs.map(ref => requireScopedPupil(actor, ref.id)));
     const batch = db.batch();
     batch.update(userRef, { ...cleanUpdates, updatedAt: now });
     parentPupilRefs.forEach(pupilRef => batch.update(pupilRef, {
@@ -145,7 +157,7 @@ export async function PATCH(
       changedFields: Object.keys(cleanUpdates),
       passwordChanged: Boolean(password),
       module: 'security',
-      sensitive: Boolean(password) || ['role', 'isActive', 'modulePermissions', 'granularPermissions']
+      sensitive: Boolean(password) || ['role', 'isActive', 'modulePermissions', 'granularPermissions', 'circumference']
         .some(field => field in cleanUpdates),
       actor: { id: actor.user.id, name: actor.user.username, role: actor.user.role },
       createdAt: now,
@@ -168,6 +180,7 @@ export async function PATCH(
         appUser: true,
         role: merged.role || 'Staff',
         isActive: !shouldDisable,
+        ...circumferenceClaims(merged),
         ...(merged.familyId ? { familyId: merged.familyId } : {}),
         ...(merged.staffId ? { staffId: merged.staffId } : {}),
         ...(merged.pupilId ? { pupilId: merged.pupilId } : {}),
@@ -181,6 +194,8 @@ export async function PATCH(
 
     return json({ success: true });
   } catch (error) {
+    if (error instanceof CircumferenceError) return json({ error: error.message }, error.status);
+    if (error instanceof CircumferenceError) return json({ error: error.message }, error.status);
     const message = error instanceof Error ? error.message : '';
     if (message === 'PERMISSION_DENIED') return json({ error: 'Permission denied.' }, 403);
     if (message.includes('AUTH') || message.includes('INACTIVE')) {
@@ -205,7 +220,11 @@ export async function DELETE(
     const existing = await userRef.get();
     if (!existing.exists) return json({ error: 'User not found.' }, 404);
 
+    if (['Staff', 'Admin'].includes(existing.data()?.role)) assignableCircumference(actor, existing.data()?.circumference, existing.data()?.role);
     const parentPupilRefs = await getParentFamilyPupilRefs(db, existing.data() || {});
+    await Promise.all(parentPupilRefs.map(ref => requireScopedPupil(actor, ref.id)));
+    if (existing.data()?.role === 'Parent' && existing.data()?.pupilId) await requireScopedPupil(actor, existing.data()!.pupilId);
+    await Promise.all(parentPupilRefs.map(ref => requireScopedPupil(actor, ref.id)));
     const batch = db.batch();
     batch.delete(userRef);
     batch.delete(db.collection('authCredentials').doc(id));
@@ -233,6 +252,7 @@ export async function DELETE(
 
     return json({ success: true });
   } catch (error) {
+    if (error instanceof CircumferenceError) return json({ error: error.message }, error.status);
     const message = error instanceof Error ? error.message : '';
     if (message === 'PERMISSION_DENIED') return json({ error: 'Permission denied.' }, 403);
     if (message.includes('AUTH') || message.includes('INACTIVE')) {

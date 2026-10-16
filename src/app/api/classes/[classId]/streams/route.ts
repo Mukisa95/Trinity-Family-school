@@ -1,3 +1,5 @@
+import { CircumferenceError, requireScopedClass } from '@/lib/server/circumference';
+import { circumferenceOf } from '@/lib/access/circumference';
 import { FieldValue, Timestamp, getFirestore, type DocumentData, type UpdateData } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
@@ -96,14 +98,24 @@ export async function PUT(
 
     const { classId: rawClassId } = await params;
     const classId = cleanId(rawClassId, 'classId');
+    requireScopedClass(actor, classId);
+    const axes = circumferenceOf(actor.user);
+    if (axes.sections !== null || axes.genders !== null) throw new CircumferenceError('Class stream setup requires access to every pupil in this class.');
     const body = parseBody(await request.json());
     const adminDb = getFirestore(getFirebaseAdminApp());
     const classRef = adminDb.collection('classes').doc(classId);
     const operationRef = adminDb.collection('classStreamOperations').doc(body.operationId);
 
     const result = await adminDb.runTransaction(async transaction => {
+      const profile = await transaction.get(adminDb.collection('system_users').doc(actor.user.id));
+      const currentUser = profile.exists ? {...profile.data(), id: profile.id} as typeof actor.user : actor.user;
+      requireScopedClass({...actor, user: currentUser}, classId);
+      const currentScope = circumferenceOf(currentUser);
+      if (!currentUser.isActive || currentScope.sections !== null || currentScope.genders !== null
+        || !(GranularPermissionService.canPerformAction(currentUser, 'classes', 'detail', 'manage_streams') || GranularPermissionService.canPerformAction(currentUser, 'classes', 'list', 'edit_class'))) throw new CircumferenceError();
       const operationSnapshot = await transaction.get(operationRef);
       if (operationSnapshot.exists) {
+        if (operationSnapshot.data()?.classId !== classId || operationSnapshot.data()?.configuredBy !== actor.decoded.uid) throw new CircumferenceError();
         return { duplicate: true, ...(operationSnapshot.data()?.result || {}) };
       }
 
@@ -260,7 +272,7 @@ export async function PUT(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     const resourceExhausted = isFirestoreResourceExhausted(error);
-    const status = resourceExhausted ? 503
+    const status = error instanceof CircumferenceError ? error.status : resourceExhausted ? 503
       : ['AUTH_REQUIRED', 'APP_AUTH_REQUIRED'].includes(message) ? 401
       : message === 'ACCOUNT_INACTIVE' ? 403
         : message === 'CLASS_NOT_FOUND' ? 404

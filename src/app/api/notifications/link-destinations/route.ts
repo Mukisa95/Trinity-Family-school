@@ -1,8 +1,7 @@
+import { CircumferenceError, readWithinCircumference } from '@/lib/server/circumference';
 import { formatPupilName } from '@/lib/utils/name-formatter';
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirestore } from 'firebase-admin/firestore';
 
-import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { requireAppUser } from '@/lib/server/app-auth';
 import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
@@ -43,11 +42,10 @@ export async function GET(request: NextRequest) {
     const searchTerms = search.split(/\s+/).filter(Boolean);
 
     await ensureServerFirestoreAuth();
-    const db = getFirestore(getFirebaseAdminApp());
     const collectionName = entity === 'pupil' ? 'pupils' : 'classes';
-    const snapshot = await db.collection(collectionName).limit(1000).get();
-    const results = snapshot.docs
-      .map(document => ({ id: document.id, data: document.data() as Record<string, unknown> }))
+    const records = await readWithinCircumference(actor, {collection: collectionName, limit: 1000});
+    const results = records
+      .map(data => ({id: data.id, data: data as Record<string, unknown>}))
       .map(({ id, data }) => {
         if (entity === 'pupil') {
           const label = pupilLabel(data);
@@ -79,7 +77,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ results });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to search application records.';
-    const status = message === 'AUTH_REQUIRED' || message === 'APP_AUTH_REQUIRED' ? 401 : 500;
+    const status = error instanceof CircumferenceError ? error.status : message === 'AUTH_REQUIRED' || message === 'APP_AUTH_REQUIRED' ? 401 : 500;
     return NextResponse.json({ error: status === 401 ? 'Sign in again to search application records.' : message }, { status });
   }
 }

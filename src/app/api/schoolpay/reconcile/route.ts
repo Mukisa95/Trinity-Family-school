@@ -1,3 +1,4 @@
+import { hasCircumference } from '@/lib/access/circumference';
 import { NextRequest, NextResponse } from 'next/server';
 import { Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
@@ -36,6 +37,7 @@ function enumerateDates(dateFrom: string, dateTo: string): string[] {
 export async function POST(request: NextRequest) {
   try {
     const actor = await requireAppUser(request);
+    if (hasCircumference(actor.user)) return NextResponse.json({error: 'School-wide SchoolPay recovery and diagnostics require access to all pupils.'}, {status: 403});
     if (!GranularPermissionService.canAccessPage(actor.user, 'fees', 'schoolpay_feed')) {
       return jsonError('You do not have permission to recover SchoolPay payments.', 403);
     }

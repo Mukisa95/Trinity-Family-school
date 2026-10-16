@@ -1,3 +1,4 @@
+import { getCircumferenceUser, circumferenceCacheSuffix } from '@/lib/access/circumference-session';
 import {notifyFeeReminderChange} from '@/lib/fees/fee-reminder-change-client';
 import { 
   collection, 
@@ -11,7 +12,7 @@ import {
   Timestamp,
   type Transaction,
   writeBatch,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { PaymentRecord } from '@/types';
 import { HistoryLogService } from './history-log.service';
@@ -99,7 +100,7 @@ export class PaymentsService {
   private static paymentsByTermInFlight = new Map<string, Promise<PaymentRecord[]>>();
 
   private static termCacheKey(academicYearId: string, termId: string) {
-    return `${academicYearId}:${termId}`;
+    return `${academicYearId}:${termId}:${getCircumferenceUser()?.id || 'server'}${circumferenceCacheSuffix(getCircumferenceUser()?.id)}`;
   }
 
   private static clearYearPaymentsCache(academicYearId?: string) {
@@ -110,8 +111,8 @@ export class PaymentsService {
       return;
     }
 
-    this.paymentsByYearCache.delete(academicYearId);
-    this.paymentsByYearInFlight.delete(academicYearId);
+    [...this.paymentsByYearCache.keys()].filter(key => key.startsWith(`${academicYearId}:`)).forEach(key => this.paymentsByYearCache.delete(key));
+    [...this.paymentsByYearInFlight.keys()].filter(key => key.startsWith(`${academicYearId}:`)).forEach(key => this.paymentsByYearInFlight.delete(key));
     const termPrefix = `${academicYearId}:`;
     [...this.paymentsByTermInFlight.keys()]
       .filter(key => key.startsWith(termPrefix))
@@ -151,6 +152,7 @@ export class PaymentsService {
     paymentId: string,
     paymentData: Omit<PaymentRecord, 'id' | 'createdAt'>,
     historyContext?: PaymentHistoryContext,
+    skipHistoryLog = false,
   ) {
     const newPayment = cleanUndefinedPaymentValues({
       ...paymentData,
@@ -158,7 +160,7 @@ export class PaymentsService {
       paymentDate: paymentData.paymentDate || new Date().toISOString(),
     });
     transaction.set(doc(db, PAYMENTS_COLLECTION, paymentId), newPayment);
-    HistoryLogService.addToTransaction(transaction, {
+    if (!skipHistoryLog) HistoryLogService.addToTransaction(transaction, {
       action: 'create',
       entity: 'payment',
       recordId: paymentId,
@@ -181,7 +183,7 @@ export class PaymentsService {
   static async createPaymentOperation(
     operationId: string,
     allocations: PaymentOperationAllocation[],
-    options?: { paymentIds?: string[] },
+    options?: { paymentIds?: string[]; skipHistoryLog?: boolean; authorize?: (transaction: import('firebase/firestore').Transaction) => Promise<void> },
   ): Promise<PaymentOperationResult> {
     validatePaymentOperationInput(operationId, allocations);
     if (options?.paymentIds && (options.paymentIds.length !== allocations.length
@@ -198,6 +200,7 @@ export class PaymentsService {
     const operationRef = doc(db, PAYMENT_OPERATIONS_COLLECTION, operationId);
 
     const result = await runTransaction(db, async transaction => {
+      await options?.authorize?.(transaction);
       const existingOperation = await transaction.get(operationRef);
       if (existingOperation.exists()) {
         const existing = existingOperation.data();
@@ -247,6 +250,7 @@ export class PaymentsService {
           paymentIds[index],
           allocation.paymentData,
           allocation.historyContext,
+          options?.skipHistoryLog,
         );
       });
       uniformSnapshots.forEach(([trackingId, trackingSnapshot]) => {
@@ -459,12 +463,13 @@ export class PaymentsService {
   }
 
   static async getAllPaymentsByYear(academicYearId: string): Promise<PaymentRecord[]> {
-    const cached = this.paymentsByYearCache.get(academicYearId);
+    const cacheKey = `${academicYearId}:${getCircumferenceUser()?.id || 'server'}${circumferenceCacheSuffix(getCircumferenceUser()?.id)}`;
+    const cached = this.paymentsByYearCache.get(cacheKey);
     if (cached) {
       return cached;
     }
 
-    const inFlight = this.paymentsByYearInFlight.get(academicYearId);
+    const inFlight = this.paymentsByYearInFlight.get(cacheKey);
     if (inFlight) {
       return inFlight;
     }
@@ -492,14 +497,14 @@ export class PaymentsService {
         const endTime = performance.now();
         console.log(`✅ BATCH LOADING: Loaded ${payments.length} year payments in ${(endTime - startTime).toFixed(2)}ms`);
 
-        this.paymentsByYearCache.set(academicYearId, payments);
+        this.paymentsByYearCache.set(cacheKey, payments);
         return payments;
       } finally {
-        this.paymentsByYearInFlight.delete(academicYearId);
+        [...this.paymentsByYearInFlight.keys()].filter(key => key.startsWith(`${academicYearId}:`)).forEach(key => this.paymentsByYearInFlight.delete(key));
       }
     })();
 
-    this.paymentsByYearInFlight.set(academicYearId, request);
+    this.paymentsByYearInFlight.set(cacheKey, request);
     return request;
   }
 

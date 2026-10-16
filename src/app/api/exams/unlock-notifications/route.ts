@@ -1,3 +1,4 @@
+import { CircumferenceError, requireScopedClass } from '@/lib/server/circumference';
 import { randomUUID } from 'crypto';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server';
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest) {
       adminDb.collection('examLocks').doc(examId).get(),
       getServerPushSubscriptionsForUsers([actor.decoded.uid]),
     ]);
+    if (examSnapshot.exists) requireScopedClass(actor, examSnapshot.data()!.classId);
     if (!examSnapshot.exists) return NextResponse.json({ error: 'EXAM_NOT_FOUND' }, { status: 404 });
     if (!subscriptions.length) {
       return NextResponse.json({ error: 'PUSH_NOT_ACTIVE' }, { status: 409 });
@@ -100,6 +102,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof CircumferenceError) return NextResponse.json({error: error.message}, {status: error.status});
     const message = error instanceof Error ? error.message : 'Unknown error';
     const status = ['AUTH_REQUIRED', 'APP_AUTH_REQUIRED'].includes(message) ? 401
       : message === 'ACCOUNT_INACTIVE' ? 403 : 500;
@@ -121,6 +124,9 @@ export async function PUT(request: NextRequest) {
     if (!examId) return NextResponse.json({ error: 'A valid examId is required.' }, { status: 400 });
 
     const adminDb = getFirestore(getFirebaseAdminApp());
+    const exam = await adminDb.collection('exams').doc(examId).get();
+    if (!exam.exists) return NextResponse.json({error: 'EXAM_NOT_FOUND'}, {status: 404});
+    requireScopedClass(actor, exam.data()!.classId);
     const lockRef = adminDb.collection('examLocks').doc(examId);
     const requestsQuery = adminDb.collection('examUnlockNotificationRequests').where('examId', '==', examId);
     const dispatchId = randomUUID();
@@ -193,6 +199,7 @@ export async function PUT(request: NextRequest) {
       pushFailed: push.failed,
     });
   } catch (error) {
+    if (error instanceof CircumferenceError) return NextResponse.json({error: error.message}, {status: error.status});
     const message = error instanceof Error ? error.message : 'Unknown error';
     const status = ['AUTH_REQUIRED', 'APP_AUTH_REQUIRED'].includes(message) ? 401
       : message === 'ACCOUNT_INACTIVE' ? 403 : 500;

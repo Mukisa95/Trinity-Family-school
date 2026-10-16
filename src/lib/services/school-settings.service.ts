@@ -3,7 +3,7 @@ import {
   getDocFromCache,
   getDocFromServer,
   runTransaction,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { SchoolSettings } from '@/types';
 import { isFirestoreOfflineError } from '@/lib/utils/firestore-helpers';

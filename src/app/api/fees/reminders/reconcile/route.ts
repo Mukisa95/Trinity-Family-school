@@ -1,3 +1,5 @@
+import { CircumferenceError, requireScopedPupil, scopedPupils } from '@/lib/server/circumference';
+import { hasCircumference } from '@/lib/access/circumference';
 import {NextRequest, NextResponse} from 'next/server';
 import {readFeeNotesGate} from '@/lib/server/fee-notes-gate';
 import {requireAppUser} from '@/lib/server/app-auth';
@@ -40,9 +42,16 @@ export async function POST(request: NextRequest) {
       // Recompute committed pupil data only; source lookup would add an off-pupil read.
     }
     if (!change.pupilIds?.length && !change.feeIds?.length) return NextResponse.json({success: true, skipped: true});
+    if (change.pupilIds?.length) await Promise.all(change.pupilIds.map(id => requireScopedPupil(actor, id)));
+    if (hasCircumference(actor.user) && change.feeIds?.length) {
+      // Restrict fee-wide recalculation to this user's pupils.
+      change.pupilIds = (await scopedPupils(actor)).map(pupil => pupil.id);
+      delete change.feeIds;
+    }
     await processFeeReminderChange(change);
     return NextResponse.json({success: true});
   } catch (error) {
+    if (error instanceof CircumferenceError) return NextResponse.json({error: error.message}, {status: error.status});
     const message = error instanceof Error ? error.message : '';
     const status = ['AUTH_REQUIRED', 'APP_AUTH_REQUIRED'].includes(message) ? 401 : message === 'ACCOUNT_INACTIVE' ? 403 : error instanceof SyntaxError ? 400 : 503;
     if (status === 503) console.error('Fee reminder change queued for retry:', error);

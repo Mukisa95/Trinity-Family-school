@@ -1,3 +1,4 @@
+import { CircumferenceError } from '@/lib/server/circumference';
 import { NextRequest, NextResponse } from 'next/server';
 import {readFeeNotesGate} from '@/lib/server/fee-notes-gate';
 import { requireAppUser } from '@/lib/server/app-auth';
@@ -21,7 +22,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     return NextResponse.json({ success: true, ...result });
   } catch (error) {
     const message = error instanceof Error ? error.message : '';
-    const status = error instanceof FeeReminderError ? error.status
+    const status = error instanceof FeeReminderError || error instanceof CircumferenceError ? error.status
       : ['AUTH_REQUIRED', 'APP_AUTH_REQUIRED'].includes(message) ? 401
         : message === 'ACCOUNT_INACTIVE' ? 403 : error instanceof SyntaxError ? 400 : 500;
     if (status === 500) console.error('Fee reminder update failed:', error);

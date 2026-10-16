@@ -1,4 +1,5 @@
 "use client";
+import { authorizedFetch } from '@/lib/access/authorized-fetch';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
@@ -280,7 +281,7 @@ const prepareResultsWithLivePupilData = async <T extends { pupilInfo: any }>(res
     });
   } else if (pupilIds.length > 0) {
     try {
-      const batchResponse = await fetch('/api/pupils/batch', {
+      const batchResponse = await authorizedFetch('/api/pupils/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pupilIds }),
@@ -2859,7 +2860,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
 
         if (missingFromCache.length > 0) {
           try {
-            const batchResponse = await fetch('/api/pupils/batch', {
+            const batchResponse = await authorizedFetch('/api/pupils/batch', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -3212,7 +3213,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
 
         if (missingFromCache.length > 0) {
           try {
-            const batchResponse = await fetch('/api/pupils/batch', {
+            const batchResponse = await authorizedFetch('/api/pupils/batch', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -3532,7 +3533,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         let fetchedPupilsMap: Record<string, any> = {};
         if (pupilsNeedingPhotos.length > 0) {
           try {
-            const batchResponse = await fetch('/api/pupils/batch', {
+            const batchResponse = await authorizedFetch('/api/pupils/batch', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ pupilIds: [...new Set(pupilsNeedingPhotos)] }),
@@ -3792,7 +3793,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         let fetchedPupilsMap: Record<string, any> = {};
         if (pupilsNeedingPhotos.length > 0) {
           try {
-            const batchResponse = await fetch('/api/pupils/batch', {
+            const batchResponse = await authorizedFetch('/api/pupils/batch', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

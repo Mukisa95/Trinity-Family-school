@@ -1,3 +1,4 @@
+import { CircumferenceError, requireScopedPupil } from '@/lib/server/circumference';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { NextRequest, NextResponse } from 'next/server';
 import { Timestamp, getFirestore } from 'firebase-admin/firestore';
@@ -34,8 +35,10 @@ export async function POST(
     const { pupilId } = await request.json() as { pupilId?: string };
     if (!id || !pupilId) return jsonError('A SchoolPay inbox record and pupil are required.', 400);
 
+    await requireScopedPupil(actor, pupilId);
     const inbox = await SchoolPayInboxService.get(id);
     if (!inbox) return jsonError('SchoolPay payment was not found.', 404);
+    if (inbox.pupilId) await requireScopedPupil(actor, inbox.pupilId);
     if (inbox.status === 'recorded') {
       return NextResponse.json({
         success: true,
@@ -136,6 +139,7 @@ export async function POST(
       receiptNumber: result.receiptNumber,
     });
   } catch (error) {
+    if (error instanceof CircumferenceError) return jsonError(error.message, error.status);
     const message = error instanceof Error ? error.message : 'Failed to assign SchoolPay payment';
     const status = ['AUTH_REQUIRED', 'APP_AUTH_REQUIRED'].includes(message) ? 401
       : message === 'ACCOUNT_INACTIVE' ? 403

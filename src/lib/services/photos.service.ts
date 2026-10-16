@@ -10,7 +10,7 @@ import {
   orderBy, 
   limit,
   Timestamp 
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { 
   ref, 
   uploadBytes, 

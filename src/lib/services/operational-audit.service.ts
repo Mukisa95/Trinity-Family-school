@@ -7,7 +7,7 @@ import {
   query,
   Timestamp,
   where,
-} from 'firebase/firestore';
+} from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
 import type { OperationalAuditContext } from '@/lib/operational-audit/context';
 

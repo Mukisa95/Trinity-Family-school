@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, getDoc, query, where, runTransaction } from 'firebase/firestore';
+import { collection, doc, getDocs, getDoc, query, where, runTransaction } from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import { notifyFeeReminderChange } from '@/lib/fees/fee-reminder-change-client';
 import type { FeesHoliday } from '@/types';
