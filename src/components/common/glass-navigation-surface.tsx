@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { observeNavigationContrast } from "./glass-navigation-contrast";
+import { ActionBarPopupContext, observeActionBarPopups } from "./action-popup-coordinator";
 
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 type Indicator = { x: number; size: number };
@@ -68,10 +69,18 @@ export function GlassNavigationSurface({ children, className, compactOnDesktop =
     if (!surface || !items) return;
     let frame = 0;
     const measureNow = () => {
-      const controls = Array.from(items.querySelectorAll<HTMLElement>('button, a[href]:not(:has(button)), [role="button"]'))
+      const selector = 'button, a[href]:not(:has(button)), select, input, [role="button"]';
+      const controls = Array.from(items.querySelectorAll<HTMLElement>(selector))
         .filter(element => element.getBoundingClientRect().width > 0);
       const count = String(Math.max(1, controls.length));
       if (surface.style.getPropertyValue("--glass-navigation-items") !== count) surface.style.setProperty("--glass-navigation-items", count);
+      // Native timetable selectors keep their own widths; a button count alone
+      // makes the capsule much shorter than the controls mounted into its slots.
+      const controlsWidth = controls.reduce((sum, control) => sum + (control.matches('select, input')
+        ? control.getBoundingClientRect().width : Math.max(44, parseFloat(getComputedStyle(control).minWidth) || 0)), 0);
+      const otherWidth = Array.from(items.children).reduce((sum, child) => sum + (child.matches(selector) || child.querySelector(selector) ? 0 : child.getBoundingClientRect().width), 0);
+      const contentWidth = `${Math.ceil(controlsWidth + otherWidth + 10)}px`;
+      if (surface.style.getPropertyValue('--glass-navigation-content-width') !== contentWidth) surface.style.setProperty('--glass-navigation-content-width', contentWidth);
       const active = controls.find(element => element.getAttribute("aria-current") === "page" || element.getAttribute("aria-pressed") === "true");
       const next = active ? geometry(active) : null;
       setSelection(previous => previous?.x === next?.x && previous?.size === next?.size ? previous : next);
@@ -84,8 +93,10 @@ export function GlassNavigationSurface({ children, className, compactOnDesktop =
     const mutations = new MutationObserver(measure);
     mutations.observe(items, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-current", "aria-pressed", "hidden", "class", "disabled"] });
     items.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure, { passive: true });
     measureNow();
     const stopContrast = observeNavigationContrast(surface);
+    const stopPopupSwitching = observeActionBarPopups(surface);
     return () => {
       cancelAnimationFrame(frame);
       clearTimeout(feedbackTimer.current);
@@ -93,13 +104,15 @@ export function GlassNavigationSurface({ children, className, compactOnDesktop =
       resize.disconnect();
       mutations.disconnect();
       items.removeEventListener("scroll", measure);
+      window.removeEventListener("resize", measure);
       stopContrast();
+      stopPopupSwitching();
     };
   }, []);
 
   const indicator = feedback ?? selection;
   return (
-    <div
+    <ActionBarPopupContext.Provider value={true}><div
       ref={surfaceRef} role="group" aria-label={label}
       className={cn("glass-chrome-surface glass-navigation-surface", compactOnDesktop && "glass-navigation-compact-desktop", className)}
       data-feedback-active={feedback ? "true" : undefined}
@@ -133,6 +146,6 @@ export function GlassNavigationSurface({ children, className, compactOnDesktop =
         />}
       </AnimatePresence>
       <div ref={itemsRef} className="glass-navigation-items">{children}</div>
-    </div>
+    </div></ActionBarPopupContext.Provider>
   );
 }

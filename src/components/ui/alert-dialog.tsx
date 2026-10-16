@@ -5,8 +5,9 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
+import { withActionPopup, useActionPopupCloseAutoFocus } from '@/components/common/action-popup-coordinator'
 
-const AlertDialog = AlertDialogPrimitive.Root
+const AlertDialog = withActionPopup(AlertDialogPrimitive.Root, true)
 
 const AlertDialogTrigger = AlertDialogPrimitive.Trigger
 
@@ -30,11 +31,14 @@ AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName
 const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, onCloseAutoFocus, ...props }, ref) => {
+  const closeAutoFocus = useActionPopupCloseAutoFocus(onCloseAutoFocus)
+  return (
   <AlertDialogPortal>
     <AlertDialogOverlay />
     <AlertDialogPrimitive.Content
       ref={ref}
+      onCloseAutoFocus={closeAutoFocus}
       className={cn(
         "fixed inset-0 z-[99999] flex items-center justify-center overflow-y-auto bg-transparent p-3 outline-none sm:p-4 md:p-6",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
@@ -59,7 +63,7 @@ const AlertDialogContent = React.forwardRef<
       </div>
     </AlertDialogPrimitive.Content>
   </AlertDialogPortal>
-))
+)})
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName
 
 const AlertDialogHeader = ({

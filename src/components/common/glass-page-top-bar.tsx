@@ -22,6 +22,7 @@ import { ArrowLeft, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GlassNavigationSurface } from "@/components/common/glass-navigation-surface";
 import { SmartBackButton } from "@/components/common/SmartBackButton";
+import { ActionBarPopupContext, observeActionBarPopups } from "./action-popup-coordinator";
 
 type GlassActionTone =
   | "blue"
@@ -414,6 +415,12 @@ function getVisibleMobileActionChildren(children: ReactNode): ReactNode[] {
 
 export function GlassActionDock({ children, className, accessory }: GlassActionDockProps) {
   const isSmallScreen = useSmallScreen();
+  const floatingRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // An accessory may also receive React-portalled controls (timetable Edit).
+    if (!isSmallScreen || !accessory || !floatingRef.current) return;
+    return observeActionBarPopups(floatingRef.current);
+  }, [isSmallScreen, Boolean(accessory)]);
 
   const dock = (
     <GlassNavigationSurface compactOnDesktop className={cn("glass-action-island", className)}>
@@ -423,12 +430,12 @@ export function GlassActionDock({ children, className, accessory }: GlassActionD
 
   if (isSmallScreen) {
     return createPortal(
-      <div className="glass-navigation-floating pointer-events-none fixed inset-x-3 z-30 flex justify-center sm:hidden print:hidden">
+      <ActionBarPopupContext.Provider value={true}><div ref={floatingRef} className="glass-navigation-floating pointer-events-none fixed inset-x-3 z-30 flex justify-center sm:hidden print:hidden">
         <div className={cn("pointer-events-auto max-w-full", accessory && "flex min-w-0 items-center gap-2")}>
           <div className="min-w-0">{dock}</div>
           {accessory}
         </div>
-      </div>,
+      </div></ActionBarPopupContext.Provider>,
       document.body
     );
   }

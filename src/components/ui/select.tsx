@@ -5,8 +5,9 @@ import * as SelectPrimitive from "@radix-ui/react-select"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { withActionPopup, useActionPopupCloseAutoFocus } from '@/components/common/action-popup-coordinator'
 
-const Select = SelectPrimitive.Root
+const Select = withActionPopup(SelectPrimitive.Root)
 
 const SelectGroup = SelectPrimitive.Group
 
@@ -70,7 +71,9 @@ SelectScrollDownButton.displayName =
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
+>(({ className, children, position = "popper", onCloseAutoFocus, ...props }, ref) => {
+  const closeAutoFocus = useActionPopupCloseAutoFocus(onCloseAutoFocus)
+  return (
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
@@ -83,6 +86,7 @@ const SelectContent = React.forwardRef<
         className
       )}
       position={position}
+      onCloseAutoFocus={closeAutoFocus}
       {...props}
     >
       <SelectScrollUpButton />
@@ -98,7 +102,7 @@ const SelectContent = React.forwardRef<
       <SelectScrollDownButton />
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
-))
+)})
 SelectContent.displayName = SelectPrimitive.Content.displayName
 
 const SelectLabel = React.forwardRef<

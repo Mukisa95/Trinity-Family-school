@@ -5,6 +5,7 @@ import ReactDOM from "react-dom"
 import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { VisuallyHidden } from "./visually-hidden"
+import { useActionPopupState } from '@/components/common/action-popup-coordinator'
 
 interface ModernDialogProps {
   children: React.ReactNode
@@ -87,8 +88,11 @@ const ModernDialogContent: React.FC<ModernDialogContentProps> = ({
   const context = React.useContext(ModernDialogContext)
 
   // Use context values if available, otherwise fall back to props
-  const open = propOpen ?? context?.open ?? false
-  const onOpenChange = propOnOpenChange ?? context?.onOpenChange ?? (() => { })
+  const { open, setOpen: onOpenChange } = useActionPopupState(
+    propOpen ?? context?.open ?? false,
+    false,
+    propOnOpenChange ?? context?.onOpenChange,
+  )
 
   // Check if children contain DialogTitle and DialogDescription by searching content
   const childrenString = React.Children.toArray(children).map(child =>
@@ -268,4 +272,4 @@ export {
   ModernDialogTitle,
   ModernDialogDescription,
   ModernDialogFooter,
-} 
+}

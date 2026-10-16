@@ -5,8 +5,9 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { withActionPopup, useActionPopupCloseAutoFocus } from '@/components/common/action-popup-coordinator'
 
-const Dialog = DialogPrimitive.Root
+const Dialog = withActionPopup(DialogPrimitive.Root, true)
 
 const DialogTrigger = DialogPrimitive.Trigger
 
@@ -32,7 +33,8 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => {
+>(({ className, children, onCloseAutoFocus, ...props }, ref) => {
+  const closeAutoFocus = useActionPopupCloseAutoFocus(onCloseAutoFocus)
   const hasDialogTitle = React.Children.toArray(children).some(child =>
     React.isValidElement(child) && child.type === DialogTitle
   )
@@ -46,6 +48,7 @@ const DialogContent = React.forwardRef<
       <DialogOverlay />
       <DialogPrimitive.Content
         ref={ref}
+        onCloseAutoFocus={closeAutoFocus}
         className={cn(
           "fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-transparent p-3 outline-none sm:p-4 md:p-6",
           "data-[state=open]:animate-in data-[state=closed]:animate-out",

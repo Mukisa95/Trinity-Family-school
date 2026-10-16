@@ -5,22 +5,18 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
 import { Check, ChevronRight, Circle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { ActionPopupRootContext, useActionPopupState, useActionPopupCloseAutoFocus } from '@/components/common/action-popup-coordinator'
 
 const TouchMenuContext = React.createContext<(() => void) | null>(null)
 
-function DropdownMenu({ open: controlledOpen, defaultOpen = false, onOpenChange, ...props }:
+function DropdownMenu({ open: controlledOpen, defaultOpen = false, onOpenChange, modal, ...props }:
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Root>) {
-  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen)
-  const open = controlledOpen ?? uncontrolledOpen
-  const setOpen = React.useCallback((next: boolean) => {
-    if (controlledOpen === undefined) setUncontrolledOpen(next)
-    onOpenChange?.(next)
-  }, [controlledOpen, onOpenChange])
+  const { open, setOpen, context, inActionBar } = useActionPopupState(controlledOpen, defaultOpen, onOpenChange)
   const toggle = React.useCallback(() => setOpen(!open), [open, setOpen])
   return (
-    <TouchMenuContext.Provider value={toggle}>
-      <DropdownMenuPrimitive.Root {...props} open={open} onOpenChange={setOpen} />
-    </TouchMenuContext.Provider>
+    <ActionPopupRootContext.Provider value={context}><TouchMenuContext.Provider value={toggle}>
+      <DropdownMenuPrimitive.Root {...props} open={open} onOpenChange={setOpen} modal={modal ?? !inActionBar} />
+    </TouchMenuContext.Provider></ActionPopupRootContext.Provider>
   )
 }
 
@@ -124,11 +120,14 @@ DropdownMenuSubContent.displayName =
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
+>(({ className, sideOffset = 4, onCloseAutoFocus, ...props }, ref) => {
+  const closeAutoFocus = useActionPopupCloseAutoFocus(onCloseAutoFocus)
+  return (
   <DropdownMenuPrimitive.Portal>
     <DropdownMenuPrimitive.Content
       ref={ref}
       sideOffset={sideOffset}
+      onCloseAutoFocus={closeAutoFocus}
       avoidCollisions
       collisionPadding={8}
       className={cn(
@@ -138,7 +137,7 @@ const DropdownMenuContent = React.forwardRef<
       {...props}
     />
   </DropdownMenuPrimitive.Portal>
-))
+)})
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName
 
 const DropdownMenuItem = React.forwardRef<

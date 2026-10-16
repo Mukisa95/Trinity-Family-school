@@ -3511,13 +3511,14 @@ html, body, * {
 }
 .glass-navigation-floating { left: 6px; right: 6px; bottom: calc(1rem + env(safe-area-inset-bottom)); }
 .glass-navigation-surface {
+  pointer-events: auto;
   --navigation-label-shadow: none;
   --navigation-icon-shadow: none;
   --navigation-active: var(--brand-700, 29 78 216);
   --navigation-active-top: var(--brand-surface-500, var(--brand-500, 59 130 246));
   position: relative;
   isolation: isolate;
-  width: min(26rem, calc(var(--glass-navigation-items, 6) * 44px + 10px));
+  width: max(calc(var(--glass-navigation-items, 6) * 44px + 10px), var(--glass-navigation-content-width, 0px));
   max-width: 100%;
   padding: 0 !important;
   border: 1px solid rgb(var(--navigation-ink) / var(--navigation-edge-opacity)) !important;
@@ -3605,6 +3606,7 @@ html, body, * {
 }
 .glass-navigation-items a:has(> button) { flex: 1 0 44px; }
 .glass-navigation-items a:has(> button) > button { width: 100%; max-width: none; }
+.glass-navigation-items select { color: rgb(var(--navigation-ink)); }
 .glass-navigation-items :is(button, a):not([role="switch"]) > :first-child:not(.glass-navigation-label):not(.glass-navigation-badge):not(:only-child),
 .glass-navigation-items .glass-navigation-icon {
   display: flex;
@@ -3683,6 +3685,7 @@ html, body, * {
   .glass-navigation-compact-desktop .glass-navigation-items svg { width: 18px; height: 18px; }
 }
 @media (max-width: 360px) { .glass-navigation-items { padding-inline: 0; } }
+@media (max-width: 359px) { .glass-navigation-items select { max-width: 50px; } }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass-chrome-surface, .dark .glass-chrome-surface {
     --navigation-material: var(--brand-700, 29 78 216);

@@ -6,8 +6,9 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { withActionPopup, useActionPopupCloseAutoFocus } from '@/components/common/action-popup-coordinator'
 
-const Sheet = SheetPrimitive.Root
+const Sheet = withActionPopup(SheetPrimitive.Root, true)
 
 const SheetTrigger = SheetPrimitive.Trigger
 
@@ -56,11 +57,14 @@ interface SheetContentProps
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = "right", className, children, ...props }, ref) => (
+>(({ side = "right", className, children, onCloseAutoFocus, ...props }, ref) => {
+  const closeAutoFocus = useActionPopupCloseAutoFocus(onCloseAutoFocus)
+  return (
   <SheetPortal>
     <SheetOverlay />
     <SheetPrimitive.Content
       ref={ref}
+      onCloseAutoFocus={closeAutoFocus}
       className={cn(sheetVariants({ side }), className)}
       {...props}
     >
@@ -71,7 +75,7 @@ const SheetContent = React.forwardRef<
       </SheetPrimitive.Close>
     </SheetPrimitive.Content>
   </SheetPortal>
-))
+)})
 SheetContent.displayName = SheetPrimitive.Content.displayName
 
 const SheetHeader = ({
