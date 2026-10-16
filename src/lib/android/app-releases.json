@@ -7,15 +7,15 @@
     "websiteOrigin": "https://trinityfamilyganda.vercel.app",
     "firebaseProjectId": "trinity-family-ganda",
     "iconUrl": "/trinity-logo-192.png",
-    "versionCode": 28,
-    "versionName": "1.26",
+    "versionCode": 29,
+    "versionName": "1.27",
     "minAndroid": "8.0",
     "filename": "trinity-ganda.apk",
-    "bytes": 4706333,
-    "sha256": "e72a25f23079dcfc5d3793326422a02da5d4151047023c0faecf5a381351a580",
+    "bytes": 4711529,
+    "sha256": "dc32755bcda479731e2e39bb505db3397d04a3a68d622963d21b57527e7bea65",
     "signingCertificateSha256": "5D:13:68:CC:38:C1:49:45:87:B5:3E:0D:70:5A:2A:28:4B:16:DF:FF:0C:2A:43:8C:4D:F2:C6:C7:58:B0:B3:3F",
     "minSdk": 26,
-    "releaseNotes": "Remove the widget heading, track selected subjects across multiple classes with current and next lesson cards, and add Search, Timetable, Events, Pupil and Exams app-icon shortcuts. Includes existing offline calendar, event reminders, diagnostics and session recovery."
+    "releaseNotes": "Reuse the running app for launcher shortcuts and open the keyboard for Search. Compact today's tracked lessons with class/subject codes and the phone's time format. Mix tracked lessons with timetable cards and arrange widget cards in your preferred order."
   },
   {
     "schema": 1,
@@ -25,14 +25,14 @@
     "websiteOrigin": "https://trinityfamilyschool.vercel.app",
     "firebaseProjectId": "trinity-family-schools",
     "iconUrl": "/trinity-logo-192.png",
-    "versionCode": 28,
-    "versionName": "1.26",
+    "versionCode": 29,
+    "versionName": "1.27",
     "minAndroid": "8.0",
     "filename": "trinity-live.apk",
-    "bytes": 4706285,
-    "sha256": "a74e2ed9c9a8640e3dac4cab875cd60e15d50b658fb6134d8fe6af54322a700a",
+    "bytes": 4711545,
+    "sha256": "fd0c80baa67e9598fdb889868624bb1cdb4e221cf54cff3826ea903b92cf9240",
     "signingCertificateSha256": "53:F5:25:7A:02:C4:B4:6C:33:47:E0:49:6F:67:36:55:1D:57:4F:44:91:56:44:D1:3C:02:79:22:BC:04:FC:08",
     "minSdk": 26,
-    "releaseNotes": "Remove the widget heading, track selected subjects across multiple classes with current and next lesson cards, and add Search, Timetable, Events, Pupil and Exams app-icon shortcuts. Includes existing offline calendar, event reminders, diagnostics and session recovery."
+    "releaseNotes": "Reuse the running app for launcher shortcuts and open the keyboard for Search. Compact today's tracked lessons with class/subject codes and the phone's time format. Mix tracked lessons with timetable cards and arrange widget cards in your preferred order."
   }
 ]

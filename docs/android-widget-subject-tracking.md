@@ -71,8 +71,20 @@ plus the new packaged reader handler. All browser checks above passed. Focused w
 comparisons found no new issues: six existing TypeScript diagnostics and nine
 existing ESLint errors remain unchanged.
 
-These refinements are pending locally. Website/APK release metadata and published
-APKs remain unchanged until the user authorizes the next release.
+The authorized release packages these refinements as Android **1.27 (code 29)**
+for both schools, together with the shared website shortcut handler. Install the
+updated school APK to receive native shortcut and widget changes. Existing school
+identities and permanent signing certificates are preserved.
+
+Signed release checks passed all 84 JVM tests per school and release lint with
+zero errors (107 warnings). All 20 download/update/school-isolation/event contracts,
+five route-response tests and all browser checks passed after rebasing onto the
+current production branch. Physical-device verification remains pending.
+
+| Android 1.27 app | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Trinity Ganda | 4711529 | `dc32755bcda479731e2e39bb505db3397d04a3a68d622963d21b57527e7bea65` |
+| Trinity Live | 4711545 | `fd0c80baa67e9598fdb889868624bb1cdb4e221cf54cff3826ea903b92cf9240` |
 
 ## Previous release: Android 1.26
 

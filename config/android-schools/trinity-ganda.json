@@ -4,9 +4,9 @@
   "applicationId": "ug.trinityfamilyganda.live",
   "websiteOrigin": "https://trinityfamilyganda.vercel.app",
   "firebaseProjectId": "trinity-family-ganda",
-  "versionCode": 28,
-  "versionName": "1.26",
-  "releaseNotes": "Remove the widget heading, track selected subjects across multiple classes with current and next lesson cards, and add Search, Timetable, Events, Pupil and Exams app-icon shortcuts. Includes existing offline calendar, event reminders, diagnostics and session recovery.",
+  "versionCode": 29,
+  "versionName": "1.27",
+  "releaseNotes": "Reuse the running app for launcher shortcuts and open the keyboard for Search. Compact today's tracked lessons with class/subject codes and the phone's time format. Mix tracked lessons with timetable cards and arrange widget cards in your preferred order.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {
