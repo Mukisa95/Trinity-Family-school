@@ -13,7 +13,7 @@ import {AndroidOfflineProvider} from './src/components/providers/android-offline
 import {isNavigationPending} from './src/lib/navigation/navigation-work';
 window.Auth=createContext(null);window.NavFixture=createContext(null);window.prefetchCalls=[];window.prepared=new Set();window.exportCount=0;window.saveCount=0;window.Native=true;window.recoveryRequests=[];
 window.session={schema:1,accountId:'test-admin',role:'Admin',grants:{pupils:true,timetable:false},pupilIds:[]};
-const client=new QueryClient({defaultOptions:{queries:{retry:false}}});window.changeSavedData=()=>client.setQueryData(['pupils','list'],[{id:'synthetic'}]);
+const client=new QueryClient({defaultOptions:{queries:{retry:false}}});window.changeSavedData=()=>{client.setQueryData(['pupils','list'],[{id:'synthetic'}]);window.dispatchEvent(new CustomEvent('trinity-native-cache-written',{detail:{key:'trinity-family-schools::pupils::user:test-admin'}}));};
 const items=[{title:'Dashboard',href:'/',icon:Home,section:'Overview'},{title:'Pupils',href:'/pupils',icon:Users,section:'Academics'},
 {title:'Timetable',href:'/timetable',icon:Home,section:'Academics'},
 {title:'Fees',href:'/fees/collection',icon:Wallet,section:'Finance'},{title:'SchoolPay',href:'/accounts/schoolpay-feed',icon:Zap,section:'Finance'},
@@ -55,12 +55,17 @@ createRoot(document.getElementById('root')).render(<App/>);`;
   '@/lib/hooks/use-classes':`export const useClasses=()=>({data:[]});`,
   '@/lib/hooks/use-subjects':`export const useSubjects=()=>({data:[]});`,
   '@/lib/hooks/use-staff':`export const useStaff=()=>({data:[]});`,
+  '@/lib/hooks/use-events-fixed':`export const useEvents=()=>({data:[]});export const useExamsAsEvents=()=>({data:[]});`,
  };
  const built=await esbuild.build({stdin:{contents,loader:'tsx',resolveDir:root},bundle:true,format:'iife',platform:'browser',write:false,jsx:'automatic',
  define:{'process.env.NODE_ENV':'"production"','process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID':'"trinity-family-schools"'},
  plugins:[{name:'boundaries',setup(build){build.onResolve({filter:/.*/},args=>Object.hasOwn(mocks,args.path)?{path:args.path,namespace:'mock'}:undefined);
  build.onLoad({filter:/.*/,namespace:'mock'},args=>({contents:mocks[args.path],loader:'tsx',resolveDir:root}));}}]});
- const cssDir=path.join(root,'.next/static/css');const css=fs.readdirSync(cssDir).filter(f=>f.endsWith('.css')).map(f=>fs.readFileSync(path.join(cssDir,f),'utf8')).join('\n');
+ // Compile the current styles instead of relying on an unrelated local Next build.
+ const ts=require('typescript'),config={exports:{}};
+ new Function('require','module','exports',ts.transpileModule(fs.readFileSync(path.join(root,'tailwind.config.ts'),'utf8'),{compilerOptions:{module:1}}).outputText)(require,config,config.exports);
+ const sourceCss=fs.readFileSync(path.join(root,'src/app/globals.css'),'utf8').replace(/^@import[^;]+;/,'')+'\n'+fs.readFileSync(path.join(root,'src/app/theme.css'),'utf8')+'\n'+fs.readFileSync(path.join(root,'src/app/brand-theme.css'),'utf8');
+ const css=(await require('postcss')([require('tailwindcss')({...config.exports.default,content:[path.join(root,'src/**/*.{ts,tsx}'),{raw:contents,extension:'tsx'}]})]).process(sourceCss,{from:path.join(root,'src/app/globals.css')})).css;
  const extra=`body{margin:0} .app-topbar{position:sticky;top:0;z-index:40;height:52px;background:var(--background,#fff);display:flex;gap:16px;align-items:center}#main{padding:0 16px;min-height:700px}#desktop-nav{display:none}@media(min-width:768px){#desktop-nav{display:block;position:fixed;top:0;left:0;width:240px;height:100vh;z-index:20;background:#ddd}.app-topbar{margin-left:240px}#main{margin-left:240px;height:calc(100vh - 52px);overflow:auto}}`;
  const server=http.createServer((req,res)=>{res.setHeader('Content-Type',req.url==='/fixture.js'?'text/javascript':req.url==='/styles.css'?'text/css':'text/html');res.end(req.url==='/fixture.js'?built.outputFiles[0].text:req.url==='/styles.css'?css+extra:'<!doctype html><link rel="stylesheet" href="/styles.css"><div id="root"></div><script src="/fixture.js"></script>');});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const browser=await chromium.launch({channel:'chrome',headless:true}),errors=[];

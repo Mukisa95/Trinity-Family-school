@@ -164,7 +164,7 @@ html[data-theme-reveal]::view-transition-new(theme-switch-moon) { animation-dura
     box-shadow: none;
   }
   .dashboard-bg-wrapper [data-variant="sidebar"] > .fixed { border: 0; }
-  .dashboard-bg-wrapper [data-sidebar="footer"] {
+  .dashboard-bg-wrapper [data-sidebar="footer"], .app-mobile-sidebar [data-sidebar="footer"] {
     border-top-color: rgb(var(--navigation-border)) !important;
   }
   .dashboard-bg-wrapper [data-sidebar="menu-button"] {

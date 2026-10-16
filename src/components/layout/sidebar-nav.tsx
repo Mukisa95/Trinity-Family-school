@@ -2,511 +2,173 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useMemo } from 'react';
-import type { NavigationItem } from '@/types';
+import { useContext, useId, useState, type MouseEvent } from 'react';
+import type { NavigationItem, NavItem } from '@/types';
+import { isNavItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { isNavGroup, isNavItem } from '@/types';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
-import {
-  SidebarMenu,
-  SidebarMenuItem,
-  useSidebar,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent,
-} from '@/components/ui/sidebar';
+import { SidebarContext, SidebarMenu, SidebarMenuItem, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ChevronDown, ChevronRight } from 'lucide-react';
-import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
-import { getRoutePagePermission } from '@/types/permissions';
-import { isDevControlPath } from '@/config/dev-control';
-import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronRight } from 'lucide-react';
+import { isSidebarRouteActive, visibleSidebarItems } from './sidebar-navigation';
 
-// Premium deeper color palettes for each section's icons and active states
-const sectionColors: Record<string, { icon: string; text: string; activeBg: string; activeIcon: string }> = {
-  Overview: {
-    icon: 'text-brand-ink-600 dark:text-brand-ink-400 group-hover:text-brand-ink-700',
-    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
-    activeBg: 'bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border shadow-none',
-    activeIcon: 'text-brand-ink-700 dark:text-brand-ink-300'
-  },
-  Academics: {
-    icon: 'text-brand-alt-ink-600 dark:text-brand-alt-ink-400 group-hover:text-brand-alt-ink-700',
-    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
-    activeBg: 'bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border shadow-none',
-    activeIcon: 'text-brand-alt-ink-700 dark:text-brand-alt-ink-300'
-  },
-  Finance: {
-    icon: 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-750',
-    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
-    activeBg: 'bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border shadow-none',
-    activeIcon: 'text-emerald-700 dark:text-emerald-300'
-  },
-  Communications: {
-    icon: 'text-rose-600 dark:text-rose-400 group-hover:text-rose-750',
-    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
-    activeBg: 'bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border shadow-none',
-    activeIcon: 'text-rose-700 dark:text-rose-300'
-  },
-  Administration: {
-    icon: 'text-amber-600 dark:text-amber-400 group-hover:text-amber-750',
-    text: 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100',
-    activeBg: 'bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border shadow-none',
-    activeIcon: 'text-amber-700 dark:text-amber-300'
-  }
+const sectionIcons: Record<string, string> = {
+  Overview: 'text-brand-ink-600 dark:text-brand-ink-400 group-hover:text-brand-ink-700',
+  Academics: 'text-brand-alt-ink-600 dark:text-brand-alt-ink-400 group-hover:text-brand-alt-ink-700',
+  Finance: 'text-emerald-600 dark:text-emerald-400',
+  Communications: 'text-rose-600 dark:text-rose-400',
+  Administration: 'text-amber-600 dark:text-amber-400',
 };
-
-const defaultColors = {
-  icon: 'text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200',
-  text: 'text-slate-700 group-hover:text-slate-900 dark:text-slate-200 dark:group-hover:text-slate-100',
-  activeBg: 'bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border shadow-none',
-  activeIcon: 'text-brand-ink-700 dark:text-brand-ink-300'
+const activeIcons: Record<string, string> = {
+  Overview: 'text-brand-ink-700 dark:text-brand-ink-300',
+  Academics: 'text-brand-alt-ink-700 dark:text-brand-alt-ink-300',
+  Finance: 'text-emerald-700 dark:text-emerald-300',
+  Communications: 'text-rose-700 dark:text-rose-300',
+  Administration: 'text-amber-700 dark:text-amber-300',
 };
+const sections = [
+  { id: 'Overview', label: 'Main Overview' },
+  { id: 'Academics', label: 'Academic Management' },
+  { id: 'Finance', label: 'Finance & Operations' },
+  { id: 'Communications', label: 'Communications' },
+  { id: 'Administration', label: 'Administration' },
+];
+const activeStyle = 'bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border shadow-none';
+const inactiveStyle = 'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-900/70 dark:hover:text-slate-100';
 
 interface SidebarNavProps {
   items: NavigationItem[];
+  mobile?: boolean;
+  onClose?: () => void;
+  onNavigate?: (destination: string, href: string) => void;
+  onRouteIntent?: (href: string) => void;
 }
 
-export function SidebarNav({ items }: SidebarNavProps) {
+export function SidebarNav({ items, mobile = false, onClose, onNavigate, onRouteIntent }: SidebarNavProps) {
   const pathname = usePathname();
-  const { state: sidebarState, isMobile, setOpenMobile } = useSidebar();
+  // The custom mobile drawer lives outside SidebarProvider.
+  const sidebar = useContext(SidebarContext);
   const { user } = useAuth();
   const { data: schoolSettings } = useSchoolSettings();
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
   const [openPopovers, setOpenPopovers] = useState<Set<string>>(new Set());
+  const id = useId();
+  const isCollapsed = !mobile && sidebar?.state === 'collapsed' && !sidebar.isMobile;
+  const filteredItems = visibleSidebarItems(items, user);
 
-  if (!items?.length) return null;
-
-  const isCollapsed = sidebarState === 'collapsed' && !isMobile;
-
-  // ── Permission helpers ──────────────────────────────────────────────────────
-  function checkItemPermission(href: string): boolean {
-    // Personal appearance settings do not grant access to school administration.
-    if (href === '/settings/look-and-feel') return Boolean(user);
-    if (href.startsWith('http://') || href.startsWith('https://')) return true;
-
-    if (isDevControlPath(href)) return user?.role === 'Admin';
-    if (href === '/inventory') return GranularPermissionService.canAccessInventoryWorkspace(user);
-    const routePermission = getRoutePagePermission(href);
-    if (routePermission) {
-      return GranularPermissionService.canAccessPage(user, routePermission.moduleId, routePermission.pageId);
-    }
-
-    return false;
+  function closeMenu() {
+    if (onClose) onClose();
+    else if (sidebar?.isMobile) sidebar.setOpenMobile(false);
   }
 
-  // ── Active state ────────────────────────────────────────────────────────────
-  function isItemActive(href: string): boolean {
-    if (!pathname) return false;
-    if (href === '/fees/collection') return pathname === '/fees/collection' || pathname.startsWith('/fees/collect');
-    if (href === '/fees') return pathname === '/fees' || (pathname.startsWith('/fees/') && !pathname.startsWith('/fees/collection') && !pathname.startsWith('/fees/collect'));
-    return href === '/' ? pathname === href : pathname.startsWith(href);
+  function handleLink(event: MouseEvent<HTMLAnchorElement>, item: NavItem, closePopover?: () => void) {
+    if (item.disabled) { event.preventDefault(); return; }
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    closePopover?.();
+    if (!item.external && !event.currentTarget.target && item.href.startsWith('/') && !item.href.startsWith('//')) onNavigate?.(item.title, item.href);
+    closeMenu();
   }
 
-  // Helper to determine if a group (sub-menu) is active
-  const isGroupActive = (group: NavigationItem): boolean => {
-    if (!isNavGroup(group)) return false;
-    return group.items.some(item => isItemActive(item.href));
-  };
-
-  // ── Filter by permissions ───────────────────────────────────────────────────
-  const filteredItems = items.filter(item => {
-    if (!user) return false;
-    if (user.role === 'Admin') return true;
-    if (user.role === 'Parent') return false;
-    if (isNavItem(item)) return checkItemPermission(item.href);
-    if (isNavGroup(item)) return item.items.some(sub => checkItemPermission(sub.href));
-    return false;
-  });
-
-  // ── Handlers ────────────────────────────────────────────────────────────────
-  function toggleGroup(title: string) {
-    setOpenGroups(prev => {
-      const next = new Set(prev);
-      next.has(title) ? next.delete(title) : next.add(title);
-      return next;
-    });
+  function renderLink(item: NavItem, section: string, sub = false, closePopover?: () => void) {
+    const Icon = item.icon;
+    const active = isSidebarRouteActive(pathname, item.href);
+    const className = cn(
+      'sidebar-nav-link flex w-full items-center rounded-lg text-sm group',
+      sub ? 'gap-2.5 px-3 py-1 font-normal' : 'px-3 py-1.5 font-medium',
+      isCollapsed && !sub && 'justify-center px-2',
+      active ? cn(activeStyle, sub && 'font-semibold') : inactiveStyle,
+      item.disabled && 'opacity-50 cursor-not-allowed',
+    );
+    const href = item.title === 'WhatsApp Group' && schoolSettings?.socialMedia?.whatsapp ? schoolSettings.socialMedia.whatsapp : item.href;
+    const content = <>
+      <Icon size={sub ? 14 : 18} className={cn('shrink-0', active ? activeIcons[section] : sectionIcons[section])} aria-hidden="true" />
+      {(!isCollapsed || sub) && <span className={cn('truncate text-left whitespace-nowrap flex-1', !sub && 'ml-3')}>{item.title}</span>}
+      {(!isCollapsed || sub) && active && <span aria-hidden="true" className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-brand-surface-600" />}
+    </>;
+    const props = {
+      className,
+      onClick: (event: MouseEvent<HTMLAnchorElement>) => handleLink(event, item, closePopover),
+      onTouchStart: () => !item.disabled && onRouteIntent?.(item.href),
+      onFocus: () => !item.disabled && onRouteIntent?.(item.href),
+      'aria-current': active ? 'page' as const : undefined,
+      'aria-disabled': item.disabled || undefined,
+    };
+    return item.external ? <a {...props} href={href} target="_blank" rel="noopener noreferrer">{content}</a>
+      : <Link {...props} href={item.disabled ? '#' : href}>{content}</Link>;
   }
 
-  function handleLinkClick() {
-    if (isMobile) setOpenMobile(false);
+  function setPopover(title: string, open: boolean) {
+    setOpenPopovers(previous => { const next = new Set(previous); open ? next.add(title) : next.delete(title); return next; });
   }
 
-  // ── Renderers ───────────────────────────────────────────────────────────────
   function renderItem(item: NavigationItem, index: number) {
     const section = item.section || 'Overview';
-    const colors = sectionColors[section] || defaultColors;
-
-    // ── Flat nav item ─────────────────────────────────────────────────────────
+    // Short, capped stagger: a long menu never waits for preceding rows.
+    const entrance = { className: 'sidebar-nav-item-enter', style: { animationDelay: `${Math.min(index, 3) * 30}ms` } };
     if (isNavItem(item)) {
-      const Icon = item.icon;
-      const active = isItemActive(item.href);
-
-      const content = (
-        <Link
-          href={item.disabled ? '#' : item.href}
-          onClick={handleLinkClick}
-          className={cn(
-            'flex items-center rounded-lg text-sm font-medium w-full py-1.5 group',
-            'transition-all ease-out duration-200 active:scale-[0.98]',
-            !isCollapsed && 'hover:translate-x-[3px]',
-            active
-              ? colors.activeBg
-              : 'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-900/70 dark:hover:text-slate-100',
-            item.disabled && 'opacity-50 cursor-not-allowed pointer-events-none',
-            isCollapsed ? 'justify-center px-2' : 'px-3'
-          )}
-        >
-          <Icon
-            size={18}
-            className={cn(
-              'shrink-0 transition-colors duration-200',
-              active ? colors.activeIcon : colors.icon
-            )}
-          />
-          <AnimatePresence initial={false} mode="popLayout">
-            {!isCollapsed && (
-              <motion.span
-                initial={{ opacity: 0, width: 0, marginLeft: 0 }}
-                animate={{ opacity: 1, width: 'auto', marginLeft: 12 }}
-                exit={{ opacity: 0, width: 0, marginLeft: 0 }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
-                className="truncate text-left whitespace-nowrap overflow-hidden flex-1"
-              >
-                {item.title}
-              </motion.span>
-            )}
-          </AnimatePresence>
-          <AnimatePresence initial={false}>
-            {!isCollapsed && active && (
-              <motion.span
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0, opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-surface-600 shrink-0"
-              />
-            )}
-          </AnimatePresence>
-        </Link>
-      );
-
-      if (isCollapsed) {
-        return (
-          <SidebarMenuItem 
-            key={index} 
-            className="sidebar-nav-item-enter" 
-            style={{ animationDelay: `${index * 35}ms` }}
-          >
-            <Tooltip delayDuration={100}>
-              <TooltipTrigger asChild>{content}</TooltipTrigger>
-              <TooltipContent side="right" sideOffset={12} className="font-semibold">
-                {item.title}
-              </TooltipContent>
-            </Tooltip>
-          </SidebarMenuItem>
-        );
-      }
-
-      return (
-        <SidebarMenuItem 
-          key={index} 
-          className="sidebar-nav-item-enter" 
-          style={{ animationDelay: `${index * 35}ms` }}
-        >
-          {content}
-        </SidebarMenuItem>
-      );
+      const content = renderLink(item, section);
+      return <SidebarMenuItem key={item.href} {...entrance}>
+        {isCollapsed ? <Tooltip delayDuration={100}><TooltipTrigger asChild>{content}</TooltipTrigger>
+          <TooltipContent side="right" sideOffset={12} className="font-semibold">{item.title}</TooltipContent></Tooltip> : content}
+      </SidebarMenuItem>;
     }
 
-    // ── Group nav item ────────────────────────────────────────────────────────
-    if (isNavGroup(item)) {
-      const Icon = item.icon;
-      const isOpen = openGroups.has(item.title);
-      const active = isGroupActive(item);
-
-      const filteredSubs = item.items.filter(sub => checkItemPermission(sub.href));
-      if (filteredSubs.length === 0) return null;
-
-      // Collapsed: hover-triggered Popover so sub-items are fully clickable
-      if (isCollapsed) {
-        const isPopoverOpen = openPopovers.has(item.title);
-        const openPopover  = () => setOpenPopovers(p => new Set(p).add(item.title));
-        const closePopover = () => setOpenPopovers(p => { const n = new Set(p); n.delete(item.title); return n; });
-
-        return (
-          <SidebarMenuItem 
-            key={index} 
-            className="sidebar-nav-item-enter" 
-            style={{ animationDelay: `${index * 35}ms` }}
-          >
-            <Popover open={isPopoverOpen} onOpenChange={open => open ? openPopover() : closePopover()}>
-              <PopoverTrigger asChild>
-                <button
-                  onMouseEnter={openPopover}
-                  onMouseLeave={closePopover}
-                  className={cn(
-                    'flex items-center justify-center w-full px-2 py-1.5 rounded-lg group',
-                    'transition-all ease-out duration-200 active:scale-[0.98]',
-                    active ? colors.activeBg : 'text-slate-500 hover:bg-slate-100/70 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-900/70 dark:hover:text-slate-100'
-                  )}
-                >
-                  <Icon 
-                    size={18} 
-                    className={cn(
-                      'shrink-0 transition-colors duration-200', 
-                      active ? colors.activeIcon : colors.icon
-                    )} 
-                  />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent
-                side="right"
-                align="start"
-                sideOffset={8}
-                className="p-0 w-48 shadow-lg border border-gray-100 rounded-lg overflow-hidden dark:border-slate-700"
-                onMouseEnter={openPopover}
-                onMouseLeave={closePopover}
-                onOpenAutoFocus={e => e.preventDefault()}
-              >
-                {/* Group title */}
-                <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 dark:bg-slate-900 dark:border-slate-700">
-                  <p className="text-xs font-bold text-slate-700 uppercase tracking-wider dark:text-slate-200">
-                    {item.title}
-                  </p>
-                </div>
-
-                {/* Sub-items */}
-                <div className="py-1">
-                  {filteredSubs.map((sub, si) => {
-                    const SubIcon = sub.icon;
-                    const subActive = isItemActive(sub.href);
-
-                    if (sub.external) {
-                      return (
-                        <a
-                          key={si}
-                          href={sub.title === 'WhatsApp Group' && schoolSettings?.socialMedia?.whatsapp
-                            ? schoolSettings.socialMedia.whatsapp
-                            : sub.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={closePopover}
-                          className="flex items-center gap-2.5 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 transition-all ease-out duration-200 hover:translate-x-[3px] active:scale-[0.98] dark:text-slate-200 dark:hover:bg-slate-900"
-                        >
-                          <SubIcon size={14} className={cn("shrink-0", colors.icon)} />
-                          <span className="truncate">{sub.title}</span>
-                        </a>
-                      );
-                    }
-
-                    return (
-                      <Link
-                        key={si}
-                        href={sub.disabled ? '#' : sub.href}
-                        onClick={() => { closePopover(); handleLinkClick(); }}
-                        className={cn(
-                          'flex items-center gap-2.5 px-3 py-1.5 text-sm',
-                          'transition-all ease-out duration-200 hover:translate-x-[3px] active:scale-[0.98]',
-                          subActive
-                            ? colors.activeBg + ' font-medium'
-                            : 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900',
-                          sub.disabled && 'opacity-50 pointer-events-none'
-                        )}
-                      >
-                        <SubIcon
-                          size={14}
-                          className={cn('shrink-0', subActive ? colors.activeIcon : colors.icon)}
-                        />
-                        <span className="truncate">{sub.title}</span>
-                        {subActive && (
-                          <span className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-surface-600 shrink-0" />
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </PopoverContent>
-            </Popover>
-          </SidebarMenuItem>
-        );
-      }
-
-
-      // Expanded: group header + collapsible sub-items
-      return (
-        <SidebarMenuItem 
-          key={index} 
-          className="sidebar-nav-item-enter" 
-          style={{ animationDelay: `${index * 35}ms` }}
-        >
-          {/* Group trigger */}
-          <button
-            onClick={() => toggleGroup(item.title)}
-            className={cn(
-              'flex items-center w-full py-1.5 rounded-lg text-sm font-medium group',
-              'transition-all ease-out duration-200 active:scale-[0.98]',
-              !isCollapsed && 'hover:translate-x-[3px]',
-              active
-                ? colors.activeBg
-                : 'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-900/70 dark:hover:text-slate-100',
-              isCollapsed ? 'justify-center px-2' : 'px-3'
-            )}
-          >
-            <Icon
-              size={18}
-              className={cn('shrink-0 transition-colors duration-200', active ? colors.activeIcon : colors.icon)}
-            />
-            <AnimatePresence initial={false} mode="popLayout">
-              {!isCollapsed && (
-                <motion.span
-                  initial={{ opacity: 0, width: 0, marginLeft: 0 }}
-                  animate={{ opacity: 1, width: 'auto', marginLeft: 12 }}
-                  exit={{ opacity: 0, width: 0, marginLeft: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeInOut' }}
-                  className="truncate text-left whitespace-nowrap overflow-hidden flex-1"
-                >
-                  {item.title}
-                </motion.span>
-              )}
-            </AnimatePresence>
-            <AnimatePresence initial={false}>
-              {!isCollapsed && (
-                <motion.span
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className="shrink-0 text-slate-500 ml-auto group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200"
-                >
-                  {isOpen ? (
-                    <ChevronDown size={14} className="transition-transform duration-205" />
-                  ) : (
-                    <ChevronRight size={14} className="transition-transform duration-205" />
-                  )}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </button>
-
-          {/* Sub-items */}
-          <AnimatePresence initial={false}>
-            {isOpen && !isCollapsed && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
-                className="mt-0.5 ml-4 pl-3 border-l border-slate-200 space-y-0.5 overflow-hidden dark:border-slate-700"
-              >
-                {filteredSubs.map((sub, si) => {
-                  const SubIcon = sub.icon;
-                  const subActive = isItemActive(sub.href);
-
-                  if (sub.external) {
-                    return (
-                      <a
-                        key={si}
-                        href={sub.title === 'WhatsApp Group' && schoolSettings?.socialMedia?.whatsapp
-                          ? schoolSettings.socialMedia.whatsapp
-                          : sub.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2.5 px-3 py-1 rounded-md text-sm text-slate-750 hover:bg-slate-100 hover:text-slate-900 transition-all ease-out duration-200 hover:translate-x-[3px] active:scale-[0.98] dark:hover:bg-slate-900 dark:hover:text-slate-100"
-                      >
-                        <SubIcon size={14} className={cn("shrink-0", colors.icon)} />
-                        <span className="truncate">{sub.title}</span>
-                      </a>
-                    );
-                  }
-
-                  return (
-                    <Link
-                      key={si}
-                      href={sub.disabled ? '#' : sub.href}
-                      onClick={handleLinkClick}
-                      className={cn(
-                        'flex items-center gap-2.5 px-3 py-1 rounded-md text-sm',
-                        'transition-all ease-out duration-200 hover:translate-x-[3px] active:scale-[0.98]',
-                        subActive
-                          ? colors.activeBg + ' font-semibold'
-                          : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-slate-100',
-                        sub.disabled && 'opacity-50 pointer-events-none'
-                      )}
-                    >
-                      <SubIcon
-                        size={14}
-                        className={cn('shrink-0', subActive ? colors.activeIcon : colors.icon)}
-                      />
-                      <span className="truncate">{sub.title}</span>
-                      {subActive && (
-                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-surface-600 shrink-0" />
-                      )}
-                    </Link>
-                  );
-                })}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </SidebarMenuItem>
-      );
+    const Icon = item.icon;
+    const active = item.items.some(child => isSidebarRouteActive(pathname, child.href));
+    const open = openGroups.has(item.title);
+    const contentId = `${id}-${section}-${index}`;
+    if (isCollapsed) {
+      const close = () => setPopover(item.title, false);
+      return <SidebarMenuItem key={item.title} {...entrance}>
+        <Popover open={openPopovers.has(item.title)} onOpenChange={value => setPopover(item.title, value)}>
+          <PopoverTrigger asChild>
+            <button type="button" aria-label={item.title}
+              onMouseEnter={event => { if (matchMedia('(hover: hover) and (pointer: fine)').matches && event.buttons === 0) setPopover(item.title, true); }}
+              className={cn('sidebar-nav-link flex w-full items-center justify-center rounded-lg px-2 py-1.5 group', active ? activeStyle : inactiveStyle)}>
+              <Icon size={18} className={cn('shrink-0', active ? activeIcons[section] : sectionIcons[section])} aria-hidden="true" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side="right" align="start" sideOffset={8}
+            className="w-48 overflow-hidden rounded-lg border border-gray-100 p-0 shadow-lg dark:border-slate-700"
+            onMouseLeave={() => { if (matchMedia('(hover: hover) and (pointer: fine)').matches) close(); }}>
+            <div className="border-b border-slate-100 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">{item.title}</p>
+            </div>
+            <div className="py-1">{item.items.map(child => <div key={child.href}>{renderLink(child, section, true, close)}</div>)}</div>
+          </PopoverContent>
+        </Popover>
+      </SidebarMenuItem>;
     }
 
-    return null;
+    return <SidebarMenuItem key={item.title} {...entrance}>
+      <button type="button" aria-expanded={open} aria-controls={contentId}
+        onClick={() => setOpenGroups(previous => { const next = new Set(previous); open ? next.delete(item.title) : next.add(item.title); return next; })}
+        className={cn('sidebar-nav-link flex w-full items-center rounded-lg px-3 py-1.5 text-sm font-medium group', active ? activeStyle : inactiveStyle)}>
+        <Icon size={18} className={cn('shrink-0', active ? activeIcons[section] : sectionIcons[section])} aria-hidden="true" />
+        <span className="ml-3 flex-1 truncate text-left whitespace-nowrap">{item.title}</span>
+        <ChevronRight size={14} aria-hidden="true" className="sidebar-nav-chevron ml-auto shrink-0 text-slate-500 dark:text-slate-400" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }} />
+      </button>
+      {open && <div id={contentId} className="sidebar-nav-submenu mt-0.5 ml-4 space-y-0.5 border-l border-slate-200 pl-3 dark:border-slate-700">
+        {item.items.map(child => <div key={child.href}>{renderLink(child, section, true)}</div>)}
+      </div>}
+    </SidebarMenuItem>;
   }
 
-  // Group items by section
-  const sections = [
-    { id: 'Overview', label: 'Main Overview' },
-    { id: 'Academics', label: 'Academic Management' },
-    { id: 'Finance', label: 'Finance & Operations' },
-    { id: 'Communications', label: 'Communications' },
-    { id: 'Administration', label: 'Administration' },
-  ];
-
-  const groupedItems = sections.map(sec => {
-    const secItems = filteredItems.filter(item => item.section === sec.id);
-    return {
-      ...sec,
-      items: secItems
-    };
-  }).filter(group => group.items.length > 0);
-
-  // If collapsed: render all items together in a flat list with no section dividers or headers
-  if (isCollapsed) {
-    return (
-      <TooltipProvider>
-        <SidebarGroup className="p-0">
-          <SidebarGroupContent className="px-2 py-1">
-            <SidebarMenu className="gap-0.5">
-              {filteredItems.map((item, index) => renderItem(item, index))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </TooltipProvider>
-    );
-  }
-
-  return (
-    <TooltipProvider>
-      <div className="space-y-3 py-1">
-        {groupedItems.map((group) => (
-          <SidebarGroup key={group.id} className="p-0">
-            {/* Header label when expanded - styled with deeper Slate colors */}
-            <SidebarGroupLabel className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 tracking-wider px-4 py-1 uppercase select-none">
-              {group.label}
-            </SidebarGroupLabel>
-
-            <SidebarGroupContent className="px-2">
-              <SidebarMenu className="gap-0.5">
-                {group.items.map((item, index) => renderItem(item, index))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
-      </div>
-    </TooltipProvider>
-  );
+  return <TooltipProvider>
+    <nav aria-label="Main navigation" className="sidebar-navigation">
+      {isCollapsed ? <SidebarGroup className="p-0"><SidebarGroupContent className="px-2 py-1">
+        <SidebarMenu className="gap-0.5">{filteredItems.map(renderItem)}</SidebarMenu>
+      </SidebarGroupContent></SidebarGroup> : <div className="space-y-3 py-1">
+        {sections.map(section => {
+          const children = filteredItems.filter(item => (item.section || 'Overview') === section.id);
+          return children.length > 0 && <SidebarGroup key={section.id} className="p-0">
+            <SidebarGroupLabel className="px-4 py-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-700 select-none dark:text-slate-300">{section.label}</SidebarGroupLabel>
+            <SidebarGroupContent className="px-2"><SidebarMenu className="gap-0.5">{children.map(renderItem)}</SidebarMenu></SidebarGroupContent>
+          </SidebarGroup>;
+        })}
+      </div>}
+    </nav>
+  </TooltipProvider>;
 }
