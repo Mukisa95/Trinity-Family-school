@@ -11,7 +11,7 @@ import { AcademicYearsService } from './academic-years.service';
 import { FeeStructuresService } from './fee-structures.service';
 import { FeesHolidayService } from './fees-holiday.service';
 import { PaymentsService, type PaymentOperationAllocation } from './payments.service';
-import type { FeeStructure, Pupil } from '@/types';
+import type { FeeStructure, Pupil, PupilTermSnapshot } from '@/types';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import {
   getFeesAccessUserIdsAdmin,
@@ -27,8 +27,11 @@ import {
   assessExistingSchoolPayPayments,
   type ExistingLocalPaymentMatch,
 } from '@/lib/utils/schoolpay-recovery';
-import { hasValidFeeAssignment } from '@/lib/utils/fee-assignment-pipeline';
 import { calculateFeeBalancesAfterDiscounts } from '@/lib/utils/fee-discount-calculation';
+
+import { schoolPayTermSlots, schoolPayHistoricalPupil, schoolPayApplicableFees } from '@/lib/utils/schoolpay-allocation';
+
+import { schoolPayReceiptSummary } from '@/lib/utils/schoolpay-excess';
 
 const SCHOOLPAY_GENERAL_FEE_ID = 'schoolpay-general';
 const SCHOOLPAY_SYNC_LOGS = 'schoolPaySyncLogs';
@@ -565,7 +568,11 @@ export class SchoolPayIntegrationService {
       const slot = await this.resolveAcademicSlot(paymentDate);
       const existingPayments = await PaymentsService.getPaymentsByPupil(pupil.id);
 
-      const recordingResult =
+      const recordingResult: {
+        localPaymentIds: string[];
+        distributionBreakdown: Array<{ feeName: string; feeStructureId: string; amount: number }>;
+        excessSummary?: ReturnType<typeof schoolPayReceiptSummary>;
+      } =
         paymentType === 'OTHER_FEES'
           ? await this.recordSupplementaryFeePayment(payment, pupil, slot)
           : await this.recordSchoolFeesPayment(payment, pupil, slot, existingPayments);
@@ -607,6 +614,8 @@ export class SchoolPayIntegrationService {
           pupilName: payment.studentName || `${formatPupilDisplayName(pupil)}`,
           amount: this.parseAmount(payment.amount),
           breakdown: recordingResult.distributionBreakdown,
+          pupilId: pupil.id,
+          excessSummary: recordingResult.excessSummary,
           source: context.source,
         });
       } catch (err) {
@@ -663,6 +672,8 @@ export class SchoolPayIntegrationService {
     amount: number;
     breakdown: Array<{ feeName: string; feeStructureId: string; amount: number }>;
     paymentCode?: string;
+    pupilId?: string;
+    excessSummary?: { excessAmount: number; appliedThroughOrigin: number; futureAmount: number; advanceAmount: number; futureTerms: string[] } | null;
     mappingRequired?: boolean;
     source: 'webhook' | 'sync' | 'assignment';
   }): Promise<void> {
@@ -702,20 +713,28 @@ export class SchoolPayIntegrationService {
       })
       .join(', ');
 
+    const excess = opts.excessSummary;
+    const ugx = (amount: number) => `UGX ${new Intl.NumberFormat('en-UG').format(amount)}`;
+    const excessBody = excess && excess.excessAmount > 0
+      ? `${ugx(opts.amount)} received for ${opts.pupilName}. Excess ${ugx(excess.excessAmount)}: ${[
+          excess.futureAmount > 0 ? `${ugx(excess.futureAmount)} was pushed to ${excess.futureTerms.join(', ')}` : '',
+          excess.advanceAmount > 0 ? `${ugx(excess.advanceAmount)} remains as advance` : '',
+        ].filter(Boolean).join(' and ')}. ${ugx(excess.appliedThroughOrigin)} covered previous/current fees. Take a look at the pupil’s fees.`
+      : '';
     const body = opts.mappingRequired
       ? `UGX ${formattedAmount} was received${opts.pupilName ? ` for ${opts.pupilName}` : ''}. Payment code ${opts.paymentCode || 'was not supplied'} does not match a pupil. Open SchoolPay Feed to assign it.`
-      : `UGX ${formattedAmount} for ${opts.pupilName}${
+      : excessBody || `UGX ${formattedAmount} for ${opts.pupilName}${
         categories ? `. Allocated to: ${categories}` : ''
       }.`;
 
     const payload = {
       title: opts.mappingRequired
         ? '\u26A0\uFE0F SchoolPay Payment Needs Mapping'
-        : '\uD83D\uDCB3 SchoolPay Payment Received',
+        : excessBody ? 'SchoolPay Payment Exceeds Current Balance' : '\uD83D\uDCB3 SchoolPay Payment Received',
       body,
       icon: '/trinity-logo-192.png',
       badge: '/icons/trinity-badge-72.png',
-      url: '/accounts/schoolpay-feed',
+      url: opts.mappingRequired || !opts.pupilId ? '/accounts/schoolpay-feed' : `/fees/collect/${encodeURIComponent(opts.pupilId)}?schoolpay=${encodeURIComponent(opts.receiptNumber)}`,
       // Receipt number as tag: OS collapses duplicate alerts on SchoolPay retries
       tag: `schoolpay-receipt-${opts.receiptNumber}`,
       requireInteraction: true,
@@ -917,89 +936,12 @@ export class SchoolPayIntegrationService {
     return { year: activeYear, term, allAcademicYears };
   }
 
-  private static extractTermOrder(name?: string): number | null {
-    if (!name) return null;
-    const numericMatch = name.match(/(\d+)/);
-    if (numericMatch) return parseInt(numericMatch[1], 10);
-
-    const normalized = name.trim().toLowerCase();
-    if (normalized.includes('first')) return 1;
-    if (normalized.includes('second')) return 2;
-    if (normalized.includes('third')) return 3;
-    if (normalized.includes('fourth')) return 4;
-    return null;
-  }
-
-  private static lookupTerm(allAcademicYears: any[], termId: string): any | null {
-    for (const year of allAcademicYears) {
-      const term = (year.terms || []).find((item: any) => item.id === termId);
-      if (term) return term;
-    }
-    return null;
-  }
-
   private static async getApplicableFeeStructures(
     pupil: Pupil,
     slot: AcademicSlot,
     allFeeStructures?: FeeStructure[],
   ): Promise<FeeStructure[]> {
-    const currentTermOrder = this.extractTermOrder(slot.term.name);
-    const allFees = allFeeStructures || await FeeStructuresService.getAllFeeStructures();
-
-    return allFees.filter((fee: any) => {
-      if (fee.status === 'inactive') return false;
-      if (fee.category === 'Discount' || (typeof fee.amount === 'number' && fee.amount < 0)) return false;
-
-      if (fee.isAssignmentFee) {
-        const assigned = hasValidFeeAssignment(
-          pupil.assignedFees,
-          fee.id,
-          slot.year.id,
-          slot.term.id,
-          slot.allAcademicYears,
-        );
-        if (!assigned) return false;
-      }
-
-      if (fee.academicYearId) {
-        const feeYear = slot.allAcademicYears.find((year: any) => year.id === fee.academicYearId);
-        if (feeYear) {
-          const feeStart = new Date(feeYear.startDate);
-          const activeStart = new Date(slot.year.startDate);
-          if (activeStart < feeStart) return false;
-        } else if (fee.academicYearId !== slot.year.id) {
-          return false;
-        }
-      }
-
-      if (fee.termId) {
-        const exactMatch = fee.termId === slot.term.id;
-        if (!exactMatch) {
-          const feeTerm = this.lookupTerm(slot.allAcademicYears, fee.termId);
-          const feeTermOrder = feeTerm ? this.extractTermOrder(feeTerm.name) : null;
-          const equivalentMatch =
-            feeTermOrder !== null &&
-            currentTermOrder !== null &&
-            feeTermOrder === currentTermOrder;
-          if (!equivalentMatch) return false;
-        }
-      }
-
-      const classFeeType = fee.classFeeType || 'all';
-      if (classFeeType === 'specific') {
-        const classIds: string[] = Array.isArray(fee.classIds)
-          ? fee.classIds
-          : fee.classId
-            ? [fee.classId]
-            : [];
-        if (!classIds.includes(pupil.classId)) return false;
-      }
-
-      const sectionFeeType = fee.sectionFeeType || 'all';
-      if (sectionFeeType === 'specific' && fee.section && fee.section !== pupil.section) return false;
-
-      return true;
-    });
+    return schoolPayApplicableFees(pupil, slot, allFeeStructures || await FeeStructuresService.getAllFeeStructures());
   }
 
   private static buildPaymentNotes(
@@ -1039,9 +981,9 @@ export class SchoolPayIntegrationService {
   ): Promise<{
     localPaymentIds: string[];
     distributionBreakdown: Array<{ feeName: string; feeStructureId: string; amount: number }>;
+    excessSummary: ReturnType<typeof schoolPayReceiptSummary>;
   }> {
     const allFeeStructures = await FeeStructuresService.getAllFeeStructures();
-    const feeStructures = await this.getApplicableFeeStructures(pupil, slot, allFeeStructures);
     const feesHolidays = await FeesHolidayService.getActiveFeesHolidaysByPupil(pupil.id);
     const allocations: PaymentOperationAllocation[] = [];
     const distributionBreakdown: Array<{ feeName: string; feeStructureId: string; amount: number }> = [];
@@ -1071,6 +1013,8 @@ export class SchoolPayIntegrationService {
           schoolPayTransactionId: payment.sourceChannelTransactionId,
           schoolPayPaymentCode: payment.studentPaymentCode,
           source: 'schoolpay',
+          schoolPayReceivedAmount: this.parseAmount(payment.amount),
+          schoolPayOriginalPupilId: pupil.id,
         } as any });
       distributionBreakdown.push({
         feeName: description,
@@ -1079,194 +1023,81 @@ export class SchoolPayIntegrationService {
       });
     };
 
-    if (feeStructures.length === 0) {
-      createGenericRecord(remainingAmount, slot.year.id, slot.term.id, 'SchoolPay unmatched school fees');
-      const operation = await PaymentsService.createPaymentOperation(this.paymentOperationId(payment), allocations);
-      return { localPaymentIds: operation.paymentIds, distributionBreakdown };
-    }
+    const termSlots = schoolPayTermSlots(slot.allAcademicYears, pupil);
+    const originStart = new Date(slot.term.startDate).getTime();
+    // One authoritative read for every previous term; allocation never creates snapshots.
+    const hasPastTerms = termSlots.some(item => new Date(item.term.startDate).getTime() < originStart);
+    const snapshots = hasPastTerms
+      ? (await getAdminFirestore(getFirebaseAdminApp()).collection('pupilTermSnapshots')
+          .where('pupilId', '==', pupil.id).get()).docs
+          .map(item => ({ id: item.id, ...item.data() }) as PupilTermSnapshot)
+      : [];
 
-    const feesWithBalance = calculateFeeBalancesAfterDiscounts({
-      feeStructures,
-      allFeeStructures,
-      assignedFees: pupil.assignedFees,
-      payments: existingPayments,
-      academicYearId: slot.year.id,
-      termId: slot.term.id,
-      allAcademicYears: slot.allAcademicYears,
-      feesHolidays,
-    })
-      .filter((fee: any) => fee.balance > 0)
-      .sort((a: any, b: any) => b.balance - a.balance);
-
-    if (feesWithBalance.length === 0) {
-      createGenericRecord(remainingAmount, slot.year.id, slot.term.id, 'SchoolPay advance / overpayment');
-      const operation = await PaymentsService.createPaymentOperation(this.paymentOperationId(payment), allocations);
-      return { localPaymentIds: operation.paymentIds, distributionBreakdown };
-    }
-
-    for (const fee of feesWithBalance) {
+    for (const target of termSlots) {
       if (remainingAmount <= 0) break;
+      const isPast = new Date(target.term.startDate).getTime() < originStart;
+      const isOrigin = target.year.id === slot.year.id && target.term.id === slot.term.id;
+      const targetPupil = isPast
+        ? schoolPayHistoricalPupil(pupil, target.year, target.term, snapshots)
+        : pupil;
+      const feeStructures = await this.getApplicableFeeStructures(targetPupil, {
+        ...target, allAcademicYears: slot.allAcademicYears,
+      }, allFeeStructures);
+      const feesWithBalance = calculateFeeBalancesAfterDiscounts({
+        feeStructures,
+        allFeeStructures,
+        assignedFees: pupil.assignedFees,
+        payments: existingPayments,
+        academicYearId: target.year.id,
+        termId: target.term.id,
+        allAcademicYears: slot.allAcademicYears,
+        feesHolidays,
+      }).filter(fee => fee.balance > 0).sort((a, b) => b.balance - a.balance);
 
-      const allocatedAmount = Math.min(remainingAmount, fee.balance);
-      allocations.push({ paymentData: {
-        pupilId: pupil.id,
-        feeStructureId: fee.id,
-        academicYearId: slot.year.id,
-        termId: slot.term.id,
-        amount: allocatedAmount,
-        paymentDate: this.resolvePaymentDate(payment),
-        paidBy: {
-          id: 'schoolpay-system',
-          name: payment.studentName || formatPupilDisplayName(pupil),
-          role: 'Parent/Guardian',
-        },
-        notes: this.buildPaymentNotes(payment, `${fee.name} (SchoolPay)`),
-        paymentMethod: payment.sourcePaymentChannel || 'SchoolPay',
-        schoolPayReceiptNumber: payment.schoolpayReceiptNumber,
-        schoolPayTransactionId: payment.sourceChannelTransactionId,
-        schoolPayPaymentCode: payment.studentPaymentCode,
-        source: 'schoolpay',
-      } as any });
-      distributionBreakdown.push({
-        feeName: fee.name,
-        feeStructureId: fee.id,
-        amount: allocatedAmount,
-      });
-      remainingAmount -= allocatedAmount;
+      for (const fee of feesWithBalance) {
+        if (remainingAmount <= 0) break;
+        const allocatedAmount = Math.min(remainingAmount, fee.balance);
+        const termLabel = `${target.term.name} ${target.year.name}`;
+        const label = isOrigin ? `${fee.name} (SchoolPay)`
+          : `${fee.name} (SchoolPay ${isPast ? 'previous balance for' : 'carried forward to'} ${termLabel})`;
+        allocations.push({ paymentData: {
+          pupilId: pupil.id,
+          feeStructureId: fee.id,
+          academicYearId: target.year.id,
+          termId: target.term.id,
+          amount: allocatedAmount,
+          paymentDate: this.resolvePaymentDate(payment),
+          paidBy: {
+            id: 'schoolpay-system',
+            name: payment.studentName || formatPupilDisplayName(pupil),
+            role: 'Parent/Guardian',
+          },
+          notes: this.buildPaymentNotes(payment, label),
+          paymentMethod: payment.sourcePaymentChannel || 'SchoolPay',
+          schoolPayReceiptNumber: payment.schoolpayReceiptNumber,
+          schoolPayTransactionId: payment.sourceChannelTransactionId,
+          schoolPayPaymentCode: payment.studentPaymentCode,
+          source: 'schoolpay',
+          schoolPayReceivedAmount: this.parseAmount(payment.amount),
+          schoolPayOriginalPupilId: pupil.id,
+          ...(!isOrigin && { schoolPayOriginTermId: slot.term.id, schoolPayOriginYearId: slot.year.id }),
+        } as any });
+        distributionBreakdown.push({
+          feeName: isOrigin ? fee.name : `${fee.name} [${termLabel}]`,
+          feeStructureId: fee.id,
+          amount: allocatedAmount,
+        });
+        remainingAmount -= allocatedAmount;
+      }
     }
 
     if (remainingAmount > 0) {
-      const allTermSlots: Array<{
-        yearId: string;
-        yearName: string;
-        yearStart: Date;
-        termId: string;
-        termName: string;
-        termStart: Date;
-        termOrder: number;
-      }> = [];
-
-      for (const year of slot.allAcademicYears) {
-        for (const term of year.terms || []) {
-          allTermSlots.push({
-            yearId: year.id,
-            yearName: year.name,
-            yearStart: new Date(year.startDate),
-            termId: term.id,
-            termName: term.name,
-            termStart: new Date(term.startDate),
-            termOrder: this.extractTermOrder(term.name) || 0,
-          });
-        }
-      }
-
-      allTermSlots.sort((a, b) => a.termStart.getTime() - b.termStart.getTime());
-      const currentIndex = allTermSlots.findIndex((termSlot) => termSlot.termId === slot.term.id);
-      const allFees = allFeeStructures;
-
-      for (let index = currentIndex + 1; index < allTermSlots.length && remainingAmount > 0; index += 1) {
-        const futureSlot = allTermSlots[index];
-
-        const futureFees = allFees.filter((fee: any) => {
-          if (fee.status === 'inactive') return false;
-          if (fee.category === 'Discount' || (fee.amount ?? 0) < 0) return false;
-
-          if (fee.isAssignmentFee) {
-            const assigned = hasValidFeeAssignment(
-              pupil.assignedFees,
-              fee.id,
-              futureSlot.yearId,
-              futureSlot.termId,
-              slot.allAcademicYears,
-            );
-            if (!assigned) return false;
-          }
-
-          if (fee.academicYearId) {
-            const feeYear = slot.allAcademicYears.find((year: any) => year.id === fee.academicYearId);
-            if (feeYear) {
-              if (futureSlot.yearStart < new Date(feeYear.startDate)) return false;
-            } else if (fee.academicYearId !== futureSlot.yearId) {
-              return false;
-            }
-          }
-
-          if (fee.termId) {
-            const termDetails = this.lookupTerm(slot.allAcademicYears, fee.termId);
-            const feeOrder = termDetails ? this.extractTermOrder(termDetails.name) : null;
-            if (feeOrder !== futureSlot.termOrder) return false;
-          }
-
-          const classFeeType = fee.classFeeType || 'all';
-          if (classFeeType === 'specific') {
-            const classIds: string[] = Array.isArray(fee.classIds)
-              ? fee.classIds
-              : fee.classId
-                ? [fee.classId]
-                : [];
-            if (!classIds.includes(pupil.classId)) return false;
-          }
-
-          if (fee.sectionFeeType === 'specific' && fee.section && fee.section !== pupil.section) return false;
-
-          return true;
-        });
-
-        const futureFeesWithBalance = calculateFeeBalancesAfterDiscounts({
-          feeStructures: futureFees,
-          allFeeStructures,
-          assignedFees: pupil.assignedFees,
-          payments: existingPayments,
-          academicYearId: futureSlot.yearId,
-          termId: futureSlot.termId,
-          allAcademicYears: slot.allAcademicYears,
-          feesHolidays,
-        })
-          .filter((fee: any) => fee.balance > 0)
-          .sort((a: any, b: any) => b.balance - a.balance);
-
-        for (const fee of futureFeesWithBalance) {
-          if (remainingAmount <= 0) break;
-
-          const allocatedAmount = Math.min(remainingAmount, fee.balance);
-          allocations.push({ paymentData: {
-            pupilId: pupil.id,
-            feeStructureId: fee.id,
-            academicYearId: futureSlot.yearId,
-            termId: futureSlot.termId,
-            amount: allocatedAmount,
-            paymentDate: this.resolvePaymentDate(payment),
-            paidBy: {
-              id: 'schoolpay-system',
-              name: payment.studentName || formatPupilDisplayName(pupil),
-              role: 'Parent/Guardian',
-            },
-            notes: this.buildPaymentNotes(
-              payment,
-              `${fee.name} (SchoolPay carried forward to ${futureSlot.termName} ${futureSlot.yearName})`
-            ),
-            paymentMethod: payment.sourcePaymentChannel || 'SchoolPay',
-            schoolPayReceiptNumber: payment.schoolpayReceiptNumber,
-            schoolPayTransactionId: payment.sourceChannelTransactionId,
-            schoolPayPaymentCode: payment.studentPaymentCode,
-            source: 'schoolpay',
-          } as any });
-          distributionBreakdown.push({
-            feeName: `${fee.name} [${futureSlot.termName} ${futureSlot.yearName}]`,
-            feeStructureId: fee.id,
-            amount: allocatedAmount,
-          });
-          remainingAmount -= allocatedAmount;
-        }
-      }
-
-      if (remainingAmount > 0) {
-        createGenericRecord(remainingAmount, slot.year.id, slot.term.id, 'SchoolPay excess / unmatched balance');
-      }
+      createGenericRecord(remainingAmount, slot.year.id, slot.term.id, 'SchoolPay excess / unmatched balance');
     }
 
     const operation = await PaymentsService.createPaymentOperation(this.paymentOperationId(payment), allocations);
-    return { localPaymentIds: operation.paymentIds, distributionBreakdown };
+    const excessSummary = schoolPayReceiptSummary(allocations.map(allocation => allocation.paymentData as any), slot.allAcademicYears);
+    return { localPaymentIds: operation.paymentIds, distributionBreakdown, excessSummary };
   }
 
   private static async recordSupplementaryFeePayment(

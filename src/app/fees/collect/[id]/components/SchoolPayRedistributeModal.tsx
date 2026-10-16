@@ -9,6 +9,9 @@ import type { PaymentRecord, FeeStructure, AcademicYear, Pupil } from '@/types';
 import type { GroupedSchoolPayTx } from './SchoolPayPaymentBanner';
 import { PaymentsService } from '@/lib/services/payments.service';
 import { HistoryLogService } from '@/lib/services/history-log.service';
+import { calculateFeeBalancesAfterDiscounts } from '@/lib/utils/fee-discount-calculation';
+import { schoolPayReceiptSummary } from '@/lib/utils/schoolpay-excess';
+import { isPupilValidForTerm } from '@/lib/utils/pupil-fee-eligibility';
 import { filterApplicableFees } from '../utils/feeProcessing';
 
 interface SchoolPayRedistributeModalProps {
@@ -57,6 +60,12 @@ export function SchoolPayRedistributeModal({
   onClose,
 }: SchoolPayRedistributeModalProps) {
   const total = transaction.totalAmount;
+  const receiptSummary = schoolPayReceiptSummary(transaction.payments, allAcademicYears);
+  const receiptMetadata = {
+    schoolPayReceivedAmount: receiptSummary?.receivedAmount || total,
+    schoolPayTransferredAmount: receiptSummary?.transferredAmount || 0,
+    schoolPayOriginalPupilId: (transaction.payments[0] as any)?.schoolPayOriginalPupilId || pupil.id,
+  };
   const hasSiblings = siblings.length > 0;
 
   // ─── Distribution target tab ───────────────────────────────────────────────
@@ -84,6 +93,7 @@ export function SchoolPayRedistributeModal({
   const removeTerm = (termId: string) => {
     if (termId === selectedTermId) return;
     setActiveTermIds(prev => prev.filter(id => id !== termId));
+    setFamilyAllocations(prev => Object.fromEntries(Object.entries(prev).filter(([key]) => key.split('::')[1] !== termId)));
     setAllocations(prev => {
       const next = { ...prev };
       Object.keys(next).forEach(k => { if (k.startsWith(`${termId}::`)) delete next[k]; });
@@ -92,17 +102,14 @@ export function SchoolPayRedistributeModal({
   };
 
   const termFeeData = useMemo(() => {
-    return activeTermIds.map(termId => {
-      const slot = allTermSlots.find(s => s.termId === termId);
-      if (!slot) return null;
+    return allTermSlots.filter(slot => activeTermIds.includes(slot.termId)).map(slot => {
+      const termId = slot.termId;
       const termYear = allAcademicYears.find(y => y.id === slot.yearId) ?? selectedAcademicYear;
       const fees = filterApplicableFees(feeStructures, pupil, termId, termYear, allAcademicYears);
-      const withBalance = fees.map(fs => {
-        const paid = otherPayments
-          .filter((p: any) => p.feeStructureId === fs.id && p.termId === termId)
-          .reduce((s, p) => s + ((p as any).amount || 0), 0);
-        return { fee: fs, paid, balance: Math.max(0, (fs.amount || 0) - paid) };
-      });
+      const withBalance = calculateFeeBalancesAfterDiscounts({
+        feeStructures: fees, allFeeStructures: feeStructures, assignedFees: pupil.assignedFees,
+        payments: otherPayments, academicYearId: termYear.id, termId, allAcademicYears,
+      }).map(fee => ({ fee: { ...fee, amount: fee.payableAmount }, paid: fee.paid, balance: fee.balance }));
       return { slot, withBalance, hasAnyBalance: withBalance.some(r => r.balance > 0), isCurrent: termId === selectedTermId };
     }).filter(Boolean) as NonNullable<{
       slot: typeof allTermSlots[0]; withBalance: { fee: FeeStructure; paid: number; balance: number }[];
@@ -137,6 +144,7 @@ export function SchoolPayRedistributeModal({
   // ─── Family mode ───────────────────────────────────────────────────────────
   const [siblingPayments, setSiblingPayments] = useState<Record<string, any[]>>({});
   const [loadingSiblings, setLoadingSiblings] = useState(false);
+  const [siblingLoadError, setSiblingLoadError] = useState<string | null>(null);
 
   // Fetch sibling payments once when family tab is first opened
   useEffect(() => {
@@ -144,15 +152,12 @@ export function SchoolPayRedistributeModal({
       setLoadingSiblings(true);
       Promise.all(
         siblings.map(async (sib) => {
-          try {
-            const snap = await getDocs(query(collection(db, 'payments'), where('pupilId', '==', sib.id)));
-            const payments = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter((p: any) => !p.reverted);
-            return [sib.id, payments] as [string, any[]];
-          } catch {
-            return [sib.id, []] as [string, any[]];
-          }
+          const snap = await getDocs(query(collection(db, 'payments'), where('pupilId', '==', sib.id)));
+          const payments = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter((p: any) => !p.reverted);
+          return [sib.id, payments] as [string, any[]];
         })
-      ).then(results => setSiblingPayments(Object.fromEntries(results)))
+      ).then(results => { setSiblingPayments(Object.fromEntries(results)); setSiblingLoadError(null); })
+       .catch(() => setSiblingLoadError('Could not load sibling payments. Reopen this dialog to retry.'))
        .finally(() => setLoadingSiblings(false));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -167,10 +172,9 @@ export function SchoolPayRedistributeModal({
   const getFamilyAlloc = (pupilId: string, termId: string, feeId: string) =>
     familyAllocations[`${pupilId}::${termId}::${feeId}`] || '';
 
-  // Compute fees for current pupil + each sibling (current term only)
+  // Each family member has independent balances in each selected term.
   const familyFeeData = useMemo(() => {
     if (distributionTarget !== 'family') return [];
-
     const members = [
       { person: pupil, payments: otherPayments, isMainPupil: true },
       ...siblings.map(sib => ({
@@ -179,18 +183,22 @@ export function SchoolPayRedistributeModal({
         isMainPupil: false,
       })),
     ];
-
-    return members.map(({ person, payments, isMainPupil }) => {
-      const fees = filterApplicableFees(feeStructures, person, selectedTermId, selectedAcademicYear, allAcademicYears);
-      const withBalance = fees.map(fs => {
-        const paid = payments
-          .filter((p: any) => p.feeStructureId === fs.id && p.termId === selectedTermId)
-          .reduce((s: number, p: any) => s + (p.amount || 0), 0);
-        return { fee: fs, paid, balance: Math.max(0, (fs.amount || 0) - paid) };
-      }).filter(r => r.balance > 0);
-      return { person, withBalance, isMainPupil };
+    // Term first, then family member: Smart Distribute clears older selected terms first.
+    return allTermSlots.filter(slot => activeTermIds.includes(slot.termId)).flatMap(slot => {
+      const year = allAcademicYears.find(item => item.id === slot.yearId)!;
+      const term = year.terms.find(item => item.id === slot.termId)!;
+      return members.filter(({ person }) => isPupilValidForTerm(person, term, year))
+        .map(({ person, payments, isMainPupil }) => {
+          const fees = filterApplicableFees(feeStructures, person, slot.termId, year, allAcademicYears);
+          const withBalance = calculateFeeBalancesAfterDiscounts({
+            feeStructures: fees, allFeeStructures: feeStructures, assignedFees: person.assignedFees,
+            payments, academicYearId: year.id, termId: slot.termId, allAcademicYears,
+          }).filter(fee => fee.balance > 0)
+            .map(fee => ({ fee: { ...fee, amount: fee.payableAmount }, paid: fee.paid, balance: fee.balance }));
+          return { person, slot, withBalance, isMainPupil };
+        });
     });
-  }, [distributionTarget, pupil, siblings, otherPayments, siblingPayments, feeStructures, selectedTermId, selectedAcademicYear, allAcademicYears, txPaymentIds]);
+  }, [distributionTarget, pupil, siblings, otherPayments, siblingPayments, feeStructures, activeTermIds, allTermSlots, allAcademicYears, txPaymentIds]);
 
   const familyAllocatedTotal = Object.values(familyAllocations).reduce((s, v) => {
     const n = parseFloat(v); return s + (isNaN(n) ? 0 : n);
@@ -218,12 +226,12 @@ export function SchoolPayRedistributeModal({
   const handleSmartDistributeFamily = () => {
     let remaining = total;
     const newAlloc: Record<string, string> = {};
-    for (const { person, withBalance } of familyFeeData) {
+    for (const { person, slot, withBalance } of familyFeeData) {
       const sorted = [...withBalance].sort((a, b) => b.balance - a.balance);
       for (const { fee, balance } of sorted) {
         if (remaining <= 0) break;
         const allocate = Math.min(remaining, balance);
-        newAlloc[`${person.id}::${selectedTermId}::${fee.id}`] = String(allocate);
+        newAlloc[`${person.id}::${slot.termId}::${fee.id}`] = String(allocate);
         remaining -= allocate;
       }
       if (remaining <= 0) break;
@@ -241,6 +249,7 @@ export function SchoolPayRedistributeModal({
   const currentOverAllocated = isFamily ? familyOverAllocated : overAllocated;
 
   const handleSubmit = async () => {
+    if (isFamily && (loadingSiblings || siblingLoadError)) return;
     if (currentOverAllocated) {
       setError(`Allocated (${fmt(currentAllocatedTotal)}) exceeds received (${fmt(total)})`);
       return;
@@ -276,6 +285,7 @@ export function SchoolPayRedistributeModal({
                 schoolPayReceiptNumber: transaction.key,
                 schoolPayTransactionId: transaction.txRef,
                 schoolPayPaymentCode: transaction.payCode,
+                ...receiptMetadata,
                 source: 'schoolpay',
                 notes: `${feeName} (SchoolPay – manual redistribution${isCrossTermPush ? ` pushed to ${slot?.termName} ${slot?.yearName}` : ''}) | Payer: ${transaction.payerName} | Transaction: ${transaction.txRef || ''} | Date: ${fmtDate(transaction.paymentDate)}`,
                 skipHistoryLog: true,
@@ -290,6 +300,7 @@ export function SchoolPayRedistributeModal({
               }),
             });
             const result = await response.json();
+            if (!response.ok || !result.paymentId) throw new Error(result.error || 'Failed to save redistribution.');
             await HistoryLogService.log({
               action: 'create',
               entity: 'payment',
@@ -325,13 +336,16 @@ export function SchoolPayRedistributeModal({
           const targetPupil = allMembers.find(m => m.id === targetPupilId);
           if (!targetPupil) continue;
           for (const { termId, feeId, amount } of entries) {
+            const slot = allTermSlots.find(s => s.termId === termId);
+            if (!slot) throw new Error('Selected term is no longer available. Reopen this dialog.');
+            const isCrossTermPush = termId !== selectedTermId;
             const feeName = feeStructures.find(f => f.id === feeId)?.name || feeId;
             const response = await authorizedFetch('/api/payments/create', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 pupilId: targetPupilId,
-                academicYearId: selectedAcademicYear.id,
+                academicYearId: slot.yearId,
                 termId,
                 paymentDate: transaction.paymentDate,
                 feeStructureId: feeId,
@@ -341,8 +355,10 @@ export function SchoolPayRedistributeModal({
                 schoolPayReceiptNumber: transaction.key,
                 schoolPayTransactionId: transaction.txRef,
                 schoolPayPaymentCode: transaction.payCode,
+                ...receiptMetadata,
                 source: 'schoolpay',
-                notes: `${feeName} (SchoolPay – family redistribution) | For: ${formatPupilDisplayName(targetPupil)} | Payer: ${transaction.payerName} | Transaction: ${transaction.txRef || ''} | Date: ${fmtDate(transaction.paymentDate)}`,
+                ...(isCrossTermPush && { schoolPayOriginTermId: selectedTermId, schoolPayOriginYearId: selectedAcademicYear.id }),
+                notes: `${feeName} (SchoolPay – family redistribution${isCrossTermPush ? ` to ${slot.termName} ${slot.yearName}` : ''}) | For: ${formatPupilDisplayName(targetPupil)} | Payer: ${transaction.payerName} | Transaction: ${transaction.txRef || ''} | Date: ${fmtDate(transaction.paymentDate)}`,
                 skipHistoryLog: true,
                 historyContext: {
                   feeName,
@@ -354,6 +370,7 @@ export function SchoolPayRedistributeModal({
               }),
             });
             const result = await response.json();
+            if (!response.ok || !result.paymentId) throw new Error(result.error || 'Failed to save redistribution.');
             await HistoryLogService.log({
               action: 'create',
               entity: 'payment',
@@ -375,7 +392,7 @@ export function SchoolPayRedistributeModal({
 
       // Excess/advance always goes to current (main) pupil
       if (currentExcess > 0) {
-        await authorizedFetch('/api/payments/create', {
+        const response = await authorizedFetch('/api/payments/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -390,10 +407,12 @@ export function SchoolPayRedistributeModal({
             schoolPayReceiptNumber: transaction.key,
             schoolPayTransactionId: transaction.txRef,
             schoolPayPaymentCode: transaction.payCode,
+                ...receiptMetadata,
             source: 'schoolpay',
             notes: `Advance/Excess (SchoolPay – ${isFamily ? 'family ' : ''}redistribution) | ${transaction.txRef || ''}`,
           }),
         });
+        if (!response.ok) throw new Error('Failed to save advance / excess.');
       }
 
       onDone(); onClose();
@@ -460,6 +479,36 @@ export function SchoolPayRedistributeModal({
         {/* ── Body ── */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
 
+              {/* Add term picker */}
+              {availableToAdd.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <select
+                    aria-label="Add redistribution term"
+                    value={pickerValue}
+                    onChange={e => addTerm(e.target.value)}
+                    className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-secondary-alt-500 text-gray-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                  >
+                    <option value="">+ Add another term to redistribute into…</option>
+                    {availableToAdd.map(s => (
+                      <option key={s.termId} value={s.termId}>{s.termName} {s.yearName}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+          {distributionTarget === 'family' && (
+            <div className="flex flex-wrap gap-2">
+              {allTermSlots.filter(slot => activeTermIds.includes(slot.termId)).map(slot => (
+                <div key={slot.termId} className="inline-flex items-center gap-2 rounded-full bg-brand-secondary-alt-surface-50 px-3 py-1 text-xs text-brand-secondary-alt-ink-800 dark:bg-brand-secondary-alt-surface-950/40 dark:text-brand-secondary-alt-ink-200">
+                  <span>{slot.termName} {slot.yearName}</span>
+                  {slot.termId !== selectedTermId && (
+                    <button type="button" aria-label={`Remove ${slot.termName} ${slot.yearName}`} onClick={() => removeTerm(slot.termId)}>✕</button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           {distributionTarget === 'pupil' ? (
             <>
               {/* Controls */}
@@ -470,22 +519,6 @@ export function SchoolPayRedistributeModal({
                   ⚡ Smart Distribute
                 </button>
               </div>
-
-              {/* Add term picker */}
-              {availableToAdd.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <select
-                    value={pickerValue}
-                    onChange={e => addTerm(e.target.value)}
-                    className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-secondary-alt-500 text-gray-700 dark:border-slate-700 dark:text-slate-200"
-                  >
-                    <option value="">+ Add another term to redistribute into…</option>
-                    {availableToAdd.map(s => (
-                      <option key={s.termId} value={s.termId}>{s.termName} {s.yearName}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
 
               {/* Per-term sections */}
               {termFeeData.map(({ slot, withBalance, hasAnyBalance, isCurrent }) => (
@@ -529,10 +562,11 @@ export function SchoolPayRedistributeModal({
                             <span className="text-xs text-gray-500 w-14 shrink-0 dark:text-slate-400">Allocate:</span>
                             <input
                               type="number" min={0} max={total} step={100}
+                              aria-label={`${fee.name} allocation for ${slot.termName} ${slot.yearName}`}
                               value={getAlloc(slot.termId, fee.id)}
                               onChange={e => setAlloc(slot.termId, fee.id, e.target.value)}
                               placeholder="0"
-                              className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary-alt-500 dark:border-slate-700"
+                              className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary-alt-500 min-w-0 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                             />
                             <button
                               onClick={() => {
@@ -555,9 +589,9 @@ export function SchoolPayRedistributeModal({
             <>
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-sm text-gray-600 flex-1 dark:text-slate-300">
-                  Distribute across all {siblings.length + 1} family members for the current term.
+                  Allocate across family members and selected terms. Smart Distribute fills older terms first.
                 </p>
-                {!loadingSiblings && (
+                {!loadingSiblings && !siblingLoadError && (
                   <button onClick={handleSmartDistributeFamily}
                     className="text-xs px-3 py-1.5 bg-brand-secondary-alt-surface-100 hover:bg-brand-secondary-alt-surface-200 text-brand-secondary-alt-ink-700 rounded-full font-semibold transition-colors whitespace-nowrap dark:bg-brand-secondary-alt-surface-950/40 dark:hover:bg-brand-secondary-alt-surface-900/40 dark:text-brand-secondary-alt-ink-300">
                     ⚡ Smart Distribute
@@ -565,14 +599,17 @@ export function SchoolPayRedistributeModal({
                 )}
               </div>
 
-              {loadingSiblings ? (
+              {siblingLoadError ? (
+                <p role="alert" className="text-sm text-red-700 dark:text-red-300">{siblingLoadError}</p>
+              ) : loadingSiblings ? (
                 <div className="flex items-center justify-center py-10 gap-2 text-gray-400 text-sm dark:text-slate-400">
                   <span className="w-4 h-4 border-2 border-brand-secondary-alt-300 border-t-brand-secondary-alt-600 rounded-full animate-spin dark:border-brand-secondary-alt-800/60" />
                   Loading sibling fee data…
                 </div>
               ) : (
-                familyFeeData.map(({ person, withBalance, isMainPupil }) => (
-                  <div key={person.id} className="rounded-xl border border-gray-200 overflow-hidden dark:border-slate-700">
+                familyFeeData.map(({ person, slot, withBalance, isMainPupil }) => (
+                  <div key={`${slot.yearId}::${slot.termId}::${person.id}`} className="rounded-xl border border-gray-200 overflow-hidden dark:border-slate-700">
+                    <div className="px-4 py-2 text-xs font-semibold text-brand-secondary-alt-ink-800 bg-brand-secondary-alt-surface-50 dark:bg-brand-secondary-alt-surface-950/40 dark:text-brand-secondary-alt-ink-200">{slot.termName} {slot.yearName}</div>
                     {/* Person header */}
                     <div className={`px-4 py-2.5 flex items-center gap-2.5 ${isMainPupil ? 'bg-brand-secondary-alt-surface-50 border-b border-brand-secondary-alt-100 dark:bg-brand-secondary-alt-surface-950/40 dark:border-brand-secondary-alt-800/60' : 'bg-brand-alt-surface-50 border-b border-brand-alt-100 dark:bg-brand-alt-surface-950/40 dark:border-brand-alt-800/60'}`}>
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${isMainPupil ? 'bg-brand-secondary-alt-surface-600' : 'bg-brand-alt-surface-500'}`}>
@@ -610,16 +647,17 @@ export function SchoolPayRedistributeModal({
                               <span className="text-xs text-gray-500 w-14 shrink-0 dark:text-slate-400">Allocate:</span>
                               <input
                                 type="number" min={0} max={total} step={100}
-                                value={getFamilyAlloc(person.id, selectedTermId, fee.id)}
-                                onChange={e => setFamilyAlloc(person.id, selectedTermId, fee.id, e.target.value)}
+                                aria-label={`${formatPupilDisplayName(person)} ${fee.name} allocation for ${slot.termName} ${slot.yearName}`}
+                                value={getFamilyAlloc(person.id, slot.termId, fee.id)}
+                                onChange={e => setFamilyAlloc(person.id, slot.termId, fee.id, e.target.value)}
                                 placeholder="0"
-                                className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary-alt-500 dark:border-slate-700"
+                                className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary-alt-500 min-w-0 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                               />
                               <button
                                 onClick={() => {
-                                  const cur = parseFloat(getFamilyAlloc(person.id, selectedTermId, fee.id)) || 0;
+                                  const cur = parseFloat(getFamilyAlloc(person.id, slot.termId, fee.id)) || 0;
                                   const available = total - (familyAllocatedTotal - cur);
-                                  setFamilyAlloc(person.id, selectedTermId, fee.id, String(Math.min(balance, available)));
+                                  setFamilyAlloc(person.id, slot.termId, fee.id, String(Math.min(balance, available)));
                                 }}
                                 className="text-xs px-2 py-1 bg-brand-secondary-alt-surface-100 hover:bg-brand-secondary-alt-surface-200 text-brand-secondary-alt-ink-700 rounded-lg transition-colors whitespace-nowrap dark:bg-brand-secondary-alt-surface-950/40 dark:hover:bg-brand-secondary-alt-surface-900/40 dark:text-brand-secondary-alt-ink-300"
                               >Max</button>
@@ -660,7 +698,7 @@ export function SchoolPayRedistributeModal({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting || currentOverAllocated}
+            disabled={isSubmitting || currentOverAllocated || (isFamily && (loadingSiblings || !!siblingLoadError))}
             className="px-5 py-2 bg-brand-secondary-alt-surface-600 hover:bg-brand-secondary-alt-surface-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full text-sm font-semibold transition-colors flex items-center gap-2"
           >
             {isSubmitting

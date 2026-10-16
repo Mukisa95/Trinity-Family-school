@@ -2802,6 +2802,20 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                         selectedTermId={selectedTermId}
                         selectedAcademicYear={selectedAcademicYear}
                         pupilId={pupil.id}
+                        pupil={pupil}
+                        hasSiblings={hasSiblings}
+                        onTransferred={(pupilIds) => {
+                          PaymentsService.invalidatePaymentCaches();
+                          handleRedistributeDone();
+                          const timestamp = Date.now();
+                          pupilIds.forEach(id => localStorage.setItem(`lastPaymentTimestamp_${id}`, String(timestamp)));
+                          window.dispatchEvent(new CustomEvent('familyPaymentUpdate', { detail: { affectedPupilIds: pupilIds, timestamp } }));
+                          for (const affectedId of pupilIds) {
+                            queryClient.invalidateQueries({ queryKey: ['pupil-payments-all', affectedId] });
+                            queryClient.invalidateQueries({ queryKey: ['previous-balance', affectedId] });
+                            invalidateFinanceSummaryQueries(queryClient, affectedId);
+                          }
+                        }}
                         onRedistribute={handleRedistribute}
                       />
                     )}

@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import type { PaymentRecord, FeeStructure, AcademicYear } from '@/types';
+import type { PaymentRecord, FeeStructure, AcademicYear, Pupil } from '@/types';
+
+import { SchoolPayExcessOptions } from './SchoolPayExcessOptions';
+import { schoolPayReceiptSummary } from '@/lib/utils/schoolpay-excess';
 
 export interface GroupedSchoolPayTx {
   key: string;
@@ -28,6 +31,9 @@ interface SchoolPayPaymentBannerProps {
   selectedTermId: string;
   selectedAcademicYear: AcademicYear | null;
   pupilId: string;
+  pupil?: Pupil;
+  hasSiblings?: boolean;
+  onTransferred?: (pupilIds: string[]) => void;
   onRedistribute: (tx: GroupedSchoolPayTx) => void;
 }
 
@@ -55,11 +61,15 @@ export function SchoolPayPaymentBanner({
   selectedTermId,
   selectedAcademicYear,
   pupilId,
+  pupil,
+  hasSiblings = false,
+  onTransferred,
   onRedistribute,
 }: SchoolPayPaymentBannerProps) {
   // ── Global dismiss state: stored in Firestore so it applies to ALL users ──
   // When any user dismisses a banner it is gone permanently for everyone.
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [dismissedInView, setDismissedInView] = useState<Set<string>>(new Set());
   const [isDismissLoaded, setIsDismissLoaded] = useState(false);
 
   // Load dismissed keys from Firestore on mount
@@ -91,6 +101,7 @@ export function SchoolPayPaymentBanner({
   const dismiss = async (key: string) => {
     // Optimistic local update first for instant UI response
     setDismissed(prev => new Set([...prev, key]));
+    setDismissedInView(prev => new Set([...prev, key]));
     try {
       const { db } = await import('@/lib/firebase');
       const { collection, addDoc } = await import('firebase/firestore');
@@ -148,9 +159,14 @@ export function SchoolPayPaymentBanner({
     return result.sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
   }, [payments, selectedTermId, allAcademicYears]);
 
+  const requestedReceipt = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('schoolpay') : null;
+  useEffect(() => {
+    if (isDismissLoaded && requestedReceipt) document.getElementById(`schoolpay-receipt-${requestedReceipt}`)?.scrollIntoView({ block: 'start' });
+  }, [isDismissLoaded, requestedReceipt, transactions]);
+
   // Wait until dismissed list is loaded (prevents flicker of already-dismissed banners)
   const visible = isDismissLoaded
-    ? transactions.filter(tx => !dismissed.has(tx.key))
+    ? transactions.filter(tx => !dismissed.has(tx.key) || (tx.key === requestedReceipt && !dismissedInView.has(tx.key)))
     : [];
 
   if (visible.length === 0) return null;
@@ -162,17 +178,22 @@ export function SchoolPayPaymentBanner({
 
   return (
     <div className="space-y-3 mb-4">
-      {visible.map((tx) => (
-        <div key={tx.key} className="theme-surface-tint relative rounded-2xl overflow-hidden border border-brand-secondary-alt-300 shadow-md dark:border-brand-secondary-alt-800/60"
-          style={{ background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 40%, #f3e8ff 100%)', animation: 'slideDown 0.3s ease-out' }}>
+      {visible.map((tx, index) => {
+        const receiptSummary = schoolPayReceiptSummary(tx.payments, allAcademicYears);
+        const originalOwner = tx.payments.every(payment => !(payment as any).schoolPayOriginalPupilId || (payment as any).schoolPayOriginalPupilId === pupilId);
+        const receivedAmount = originalOwner ? receiptSummary?.receivedAmount || tx.totalAmount : tx.totalAmount;
+        const originStart = new Date(receiptSummary?.origin.term.startDate || '').getTime();
+        return (
+        <div id={`schoolpay-receipt-${tx.key}`} key={tx.key} className="theme-surface-tint relative scroll-mt-24 rounded-2xl overflow-hidden border border-brand-secondary-alt-300 bg-brand-secondary-alt-surface-50 shadow-md dark:border-brand-secondary-alt-800/60 dark:bg-slate-900"
+          style={{ animation: 'slideDown 0.3s ease-out' }}>
           <div className="h-1 w-full bg-gradient-to-r from-brand-secondary-alt-surface-500 via-brand-secondary-surface-500 to-fuchsia-500" />
           <div className="p-4">
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-secondary-alt-surface-500 to-brand-secondary-surface-600 flex items-center justify-center text-white text-lg shadow-md flex-shrink-0">⚡</div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-brand-secondary-alt-ink-900 text-base dark:text-brand-secondary-alt-ink-200">{fmt(tx.totalAmount)}</span>
+                    <span className="font-bold text-brand-secondary-alt-ink-900 text-base dark:text-brand-secondary-alt-ink-200">{fmt(receivedAmount)}</span>
                     <span className="text-xs bg-brand-secondary-alt-surface-200 text-brand-secondary-alt-ink-800 rounded-full px-2 py-0.5 font-semibold dark:bg-brand-secondary-alt-surface-900/40 dark:text-brand-secondary-alt-ink-200">SchoolPay Payment Received</span>
                     {tx.paymentMethod && <span className="text-xs bg-white/70 border border-brand-secondary-alt-200 text-brand-secondary-alt-ink-700 rounded-full px-2 py-0.5 dark:bg-slate-900/70 dark:border-brand-secondary-alt-800/60 dark:text-brand-secondary-alt-ink-300">{tx.paymentMethod}</span>}
                     {tx.termGroups.length > 1 && <span className="text-xs bg-fuchsia-100 text-fuchsia-700 rounded-full px-2 py-0.5 font-medium">Split across {tx.termGroups.length} terms</span>}
@@ -195,12 +216,14 @@ export function SchoolPayPaymentBanner({
               </div>
             </div>
 
+            {pupil && <SchoolPayExcessOptions transaction={tx} pupil={pupil} years={allAcademicYears} hasSiblings={hasSiblings}
+              initialOpen={tx.key === requestedReceipt || index === 0} onTransferred={onTransferred} />}
             <div className="mt-3 space-y-2">
               {tx.termGroups.map(group => (
                 <div key={group.termId}>
                   <div className="flex items-center gap-1.5 mb-1">
                     {group.isPushed
-                      ? <span className="text-[10px] font-semibold text-fuchsia-600 bg-fuchsia-50 border border-fuchsia-200 rounded-full px-2 py-0.5">→ Pushed to {group.termLabel}</span>
+                      ? <span className="text-[10px] font-semibold text-fuchsia-700 bg-fuchsia-50 border border-fuchsia-200 rounded-full px-2 py-0.5 dark:bg-fuchsia-950/50 dark:border-fuchsia-800 dark:text-fuchsia-200">{new Date(allAcademicYears.flatMap(year => year.terms).find(term => term.id === group.termId)?.startDate || '').getTime() < originStart ? 'Previous balance:' : '→ Pushed to'} {group.termLabel}</span>
                       : <span className="text-[10px] font-semibold text-brand-secondary-alt-ink-600 bg-brand-secondary-alt-surface-50 border border-brand-secondary-alt-200 rounded-full px-2 py-0.5 dark:text-brand-secondary-alt-ink-400 dark:bg-brand-secondary-alt-surface-950/40 dark:border-brand-secondary-alt-800/60">{group.termLabel}</span>}
                     <span className="text-[10px] text-brand-secondary-alt-ink-500 font-medium dark:text-brand-secondary-alt-ink-400">{fmt(group.subTotal)}</span>
                   </div>
@@ -221,7 +244,8 @@ export function SchoolPayPaymentBanner({
             {tx.txRef && <p className="text-[10px] text-brand-secondary-alt-ink-400 font-mono mt-2 truncate">Ref: {tx.txRef}</p>}
           </div>
         </div>
-      ))}
+        );
+      })}
       <style>{`@keyframes slideDown { from { opacity:0;transform:translateY(-8px) } to { opacity:1;transform:translateY(0) } }`}</style>
     </div>
   );

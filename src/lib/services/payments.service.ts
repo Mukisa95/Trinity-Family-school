@@ -119,6 +119,11 @@ export class PaymentsService {
       .forEach(key => this.paymentsByTermInFlight.delete(key));
   }
 
+  /** Refresh browser ledgers after an authorized server-side transfer. */
+  static invalidatePaymentCaches() {
+    this.clearYearPaymentsCache();
+  }
+
   private static buildPaymentHistoryLabel(
     paymentData: Omit<PaymentRecord, 'id' | 'createdAt'>,
     historyContext?: PaymentHistoryContext
