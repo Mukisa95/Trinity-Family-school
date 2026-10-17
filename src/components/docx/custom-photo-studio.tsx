@@ -109,6 +109,7 @@ import {
   createCustomPhotoPdf,
   createPhotoMaskDataUrl,
   rasterizeStudioLayer,
+  getStudioPupilTreatmentRaster,
   estimatePdfPageCount,
   pupilDisplayName,
 } from './custom-photo-renderer';
@@ -143,6 +144,8 @@ import {
   type SchoolDocumentInfo,
 } from './custom-photo-types';
 import { getLayerPreviewStyle, paintToCss } from './custom-photo-appearance';
+import { clearStudioPhotoTreatments, studioPhotoTreatmentKey } from './studio-photo-treatment';
+import { StudioPhotoTreatmentControls } from './studio-photo-treatment-controls';
 import { StudioPdfImport, StudioPdfArtwork, StudioPdfCutouts, StudioCutoutHandles } from './studio-pdf-controls';
 import { readStudioTemplates, writeStudioTemplate } from './studio-template-storage';
 import { getStudioPageDimensions, type PdfCutout, type StudioPdfSource } from './custom-photo-types';
@@ -345,6 +348,7 @@ function FontPicker({ value, onChange }: { value: string; onChange: (family: str
 function StudioLayer({
   layer,
   data,
+  dimensions,
   selected,
   onSelect,
   onPointerDown,
@@ -354,6 +358,7 @@ function StudioLayer({
 }: {
   layer: CustomPhotoLayer;
   data?: RenderPupilData;
+  dimensions: { widthMm: number; heightMm: number };
   selected: boolean;
   onSelect: () => void;
   onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
@@ -365,8 +370,22 @@ function StudioLayer({
     () => layer.kind === 'text' || layer.kind === 'shape' ? undefined : createPhotoMaskDataUrl(layer),
     [layer.feather, layer.featherBottom, layer.featherLeft, layer.featherRight, layer.featherTop, layer.kind, layer.shape],
   );
+  const manualRaster = getStudioRasterOverride(layer, data);
+  const sharedKey = !layer.hidden && !manualRaster && layer.kind === 'avatar' && data?.pupil.photo && data.pupilPhotoTreatment?.removeBackground ? studioPhotoTreatmentKey(layer, data.pupil.photo, dimensions, data.pupilPhotoTreatment) : undefined;
+  const [treated, setTreated] = useState<{ key: string; raster?: string; error?: string }>();
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    if (!sharedKey || !data) return;
+    let cancelled = false;
+    setTreated({ key: sharedKey });
+    const timer = setTimeout(() => {
+      void getStudioPupilTreatmentRaster(layer, data, dimensions).then(raster => { if (!cancelled) setTreated({ key: sharedKey, raster }); }).catch(reason => { if (!cancelled) setTreated({ key: sharedKey, error: reason instanceof Error ? reason.message : 'Photo processing failed.' }); });
+    }, 200);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [sharedKey, retry, data?.pupil.id]);
   if (layer.hidden || (layer.pupilScopeId && layer.pupilScopeId !== data?.pupil.id)) return null;
-  const raster = getStudioRasterOverride(layer, data);
+  const processed = treated?.key === sharedKey ? treated : undefined;
+  const raster = manualRaster || processed?.raster;
   const source = layer.kind === 'avatar' ? data?.pupil.photo : layer.kind === 'schoolLogo' ? data?.school?.logo : layer.source;
   const value = layer.kind === 'text'
     ? applyTextCase(layer.field && data ? resolvePupilField(layer.field, data) : layer.text || 'Your message here', layer.textCase)
@@ -404,9 +423,11 @@ function StudioLayer({
           }}
         />
       )}
-      {raster ? (
+      {sharedKey && !raster ? <div className="absolute inset-0 grid place-content-center gap-1 overflow-auto bg-violet-50 p-2 text-center text-xs text-violet-900" role={processed?.error ? 'alert' : 'status'}>
+        {processed?.error ? <><p>{processed.error}</p><Button size="sm" variant="outline" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); setRetry(value => value + 1); }}>Retry photo treatment</Button></> : <><Loader2 className="mx-auto h-5 w-5 animate-spin" /><span>Removing background…</span></>}
+      </div> : raster ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={raster} alt="Edited layer" draggable={false} className="h-full w-full" />
+        <img src={raster} alt={sharedKey ? `Background removed · ${pupilDisplayName(data!.pupil)}` : 'Edited layer'} draggable={false} className="h-full w-full" />
       ) : layer.kind === 'text' ? (
         <div
           className="flex h-full w-full items-center overflow-hidden px-[1.5%]"
@@ -584,9 +605,9 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [editingCutouts, setEditingCutouts] = useState(false);
   const [preparingPixelEditor, setPreparingPixelEditor] = useState(false);
-  const [pixelEditor, setPixelEditor] = useState<{ source: HTMLCanvasElement; pageId: string; layer: CustomPhotoLayer; data: RenderPupilData } | null>(null);
+  const [pixelEditor, setPixelEditor] = useState<{ source: HTMLCanvasElement; backgroundSource?: HTMLCanvasElement; pageId: string; layer: CustomPhotoLayer; data: RenderPupilData } | null>(null);
   const pixelRequestRef = useRef(0);
-  useEffect(() => () => { pixelRequestRef.current++; }, []);
+  useEffect(() => () => { pixelRequestRef.current++; clearStudioPhotoTreatments(); }, []);
   const [selectedPupilIds, setSelectedPupilIds] = useState<Set<string>>(new Set());
   const [standalone, setStandalone] = useState(false);
   const [pupilSearch, setPupilSearch] = useState('');
@@ -634,7 +655,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     return source.slice(0, Math.max(1, template.pageColumns || 1));
   }, [pupils, selectedPupils, template.pageColumns]);
   const previewPupil = previewPupils[0];
-  const previewRenderData = standalone || !previewPupils.length ? [{ pupil: { id: '' } as Pupil, school: schoolInfo }] : previewPupils.map((pupil) => ({ pupil, fees: feesByPupil[pupil.id], school: schoolInfo }));
+  const previewRenderData: RenderPupilData[] = standalone || !previewPupils.length ? [{ pupil: { id: '' } as Pupil, school: schoolInfo }] : previewPupils.map((pupil) => ({ pupil, fees: feesByPupil[pupil.id], school: schoolInfo, pupilPhotoTreatment: template.pupilPhotoTreatment }));
   const selectedLayerData = selectedLayer ? getStudioLayerData(selectedLayer, previewRenderData, template.pageColumns) : undefined;
   const selectedLayerRaster = selectedLayer ? getStudioRasterOverride(selectedLayer, selectedLayerData) : undefined;
   const usesFees = !standalone && templateUsesFees(template);
@@ -990,7 +1011,9 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     try {
       if (selectedLayer.kind === 'text') await ensureDocXTemplateFontsLoaded({ ...template, pages: [{ ...currentPage, layers: [selectedLayer] }] });
       const source = await rasterizeStudioLayer(selectedLayer, selectedLayerData, pageDimensions);
-      if (request === pixelRequestRef.current) setPixelEditor({ source, pageId: currentPage.id, layer: selectedLayer, data: selectedLayerData });
+      const backgroundSource = selectedLayer.kind !== 'avatar' ? undefined : selectedLayerRaster || selectedLayerData.pupilPhotoTreatment?.removeBackground
+        ? await rasterizeStudioLayer({ ...selectedLayer, pupilImageEdits: undefined, rasterOverride: undefined }, { ...selectedLayerData, pupilPhotoTreatment: undefined }, pageDimensions) : source;
+      if (request === pixelRequestRef.current) setPixelEditor({ source, backgroundSource, pageId: currentPage.id, layer: selectedLayer, data: selectedLayerData });
     } catch (error) {
       if (request === pixelRequestRef.current) toast({ variant: 'destructive', title: 'Layer could not be opened', description: error instanceof Error ? error.message : 'Try importing a local image if this photo does not permit pixel editing.' });
     } finally { if (request === pixelRequestRef.current) setPreparingPixelEditor(false); }
@@ -1002,7 +1025,13 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     const pupilBound = isPupilDataLayer(layer);
     const setRaster = (original: CustomPhotoLayer, image: string): CustomPhotoLayer => pupilBound ? { ...original, pupilImageEdits: { ...original.pupilImageEdits, [data.pupil.id]: image } } : { ...original, rasterOverride: image };
     const extracted = { ...createImageLayer('image', result.selected), id: makeStudioId('selection'), label: `${layer.label} selection`, x: layer.x, y: layer.y, width: layer.width, height: layer.height, opacity: layer.opacity, pdfPlacement: layer.pdfPlacement, outerRotation: getStudioOuterRotation(layer), ...(pupilBound ? { pupilScopeId: data.pupil.id, pupilDataMode: layer.pupilDataMode } : {}) };
-    updatePageById(pageId, page => ({ ...page, layers: [
+    if (result.pupilPhotoTreatment && layer.kind === 'avatar') {
+      setTemplate(previous => ({ ...previous, pupilPhotoTreatment: result.pupilPhotoTreatment, pages: previous.pages.map(page => page.id !== pageId ? page : { ...page, layers: page.layers.map(original => {
+        if (original.id !== layer.id) return original;
+        const edits = { ...original.pupilImageEdits }; delete edits[data.pupil.id];
+        return { ...original, rasterOverride: undefined, pupilImageEdits: edits };
+      }) }) }));
+    } else updatePageById(pageId, page => ({ ...page, layers: [
       ...page.layers.map(original => original.id === layer.id ? result.action === 'mask' ? setRaster(original, result.selected) : result.action === 'cut' && result.remainder ? setRaster(original, result.remainder) : original : original),
       ...(result.action === 'mask' ? [] : [extracted]),
     ] }));
@@ -1274,6 +1303,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
 
               {savedTemplates.length > 0 && <div className="mt-3"><p className="mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500">Saved on this device</p><Select onValueChange={loadTemplate}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue placeholder="Open saved template" /></SelectTrigger><SelectContent>{savedTemplates.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>}
               <input ref={backgroundInputRef} type="file" accept="image/*" hidden onChange={(event) => { void importBackground(event.target.files?.[0]); event.target.value = ''; }} />
+              <StudioPhotoTreatmentControls value={template.pupilPhotoTreatment} onChange={pupilPhotoTreatment => setTemplate(previous => ({ ...previous, pupilPhotoTreatment }))} />
               <input ref={imageLayerInputRef} type="file" accept="image/*" hidden onChange={(event) => { void importImageLayer(event.target.files?.[0]); event.target.value = ''; }} />
             </aside>
 
@@ -1325,6 +1355,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                           key={layer.id}
                           layer={layer}
                           data={layerData}
+                          dimensions={pageDimensions}
                           selected={!editingCutouts && selectedLayerId === layer.id}
                           onSelect={() => { setSelectedLayerId(layer.id); setEditingCutouts(false); }}
                           onPointerDown={(event) => beginTransform(event, layer, 'move')}
@@ -1361,7 +1392,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                   <div className="space-y-2 rounded-xl border border-violet-200 bg-violet-50 p-3">
                     <p className="text-[10px] font-bold uppercase tracking-wide text-violet-900">Photo & object tools</p>
                     <Button className="h-auto min-h-10 w-full whitespace-normal text-xs" disabled={selectedLayer.locked || preparingPixelEditor || !selectedLayerData || (isPupilDataLayer(selectedLayer) && (!selectedLayerData.pupil.id || (!!selectedLayer.pupilScopeId && selectedLayer.pupilScopeId !== selectedLayerData.pupil.id)))} onClick={() => void openPixelEditor()}>{preparingPixelEditor ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : <WandSparkles className="mr-2 h-4 w-4 shrink-0" />}Background remover & object selector</Button>
-                    <p className="text-[10px] leading-4 text-violet-800">Select an object, refine the edges, then keep it or create a layer via cut or copy. {isPupilDataLayer(selectedLayer) ? 'Edits apply to this preview pupil in this template only.' : 'The original source stays available.'}</p>
+                    <p className="text-xs leading-relaxed text-violet-800">Select an object, refine the edges, then keep it or create a layer via cut or copy. {selectedLayer.kind === 'avatar' ? 'Automatic background removal can apply to all pupil photos. Manual corrections and extracted objects stay with this pupil.' : isPupilDataLayer(selectedLayer) ? 'Manual edits apply to this preview pupil only.' : 'The original source stays available.'}</p>
                     {selectedLayerRaster && <Button variant="outline" size="sm" className="w-full text-xs" disabled={selectedLayer.locked} onClick={restoreLayerPixels}><RotateCcw className="mr-1 h-3.5 w-3.5" />Restore original layer pixels</Button>}
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
@@ -1628,7 +1659,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
 
-      {pixelEditor && <StudioLayerEditor source={pixelEditor.source} label={pixelEditor.layer.label} pupilName={isPupilDataLayer(pixelEditor.layer) ? pupilDisplayName(pixelEditor.data.pupil) : undefined} onClose={() => setPixelEditor(null)} onApply={applyPixelEdit} />}
+      {pixelEditor && <StudioLayerEditor source={pixelEditor.source} backgroundSource={pixelEditor.backgroundSource} initialPupilTreatment={pixelEditor.backgroundSource ? pixelEditor.data.pupilPhotoTreatment : undefined} label={pixelEditor.layer.label} pupilName={isPupilDataLayer(pixelEditor.layer) ? pupilDisplayName(pixelEditor.data.pupil) : undefined} onClose={() => setPixelEditor(null)} onApply={applyPixelEdit} />}
 
       <PDFViewer
         isOpen={pdfViewer.isOpen}

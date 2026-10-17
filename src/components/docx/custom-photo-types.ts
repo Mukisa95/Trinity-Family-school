@@ -193,6 +193,17 @@ export interface StudioPdfSource {
   dataUrl: string;
 }
 
+export interface StudioPupilPhotoTreatment {
+  removeBackground: boolean;
+  feather: number;
+  edgeShift: number;
+}
+
+export function normalizeStudioPupilPhotoTreatment(value?: Partial<StudioPupilPhotoTreatment>): StudioPupilPhotoTreatment {
+  const bounded = (input: number | undefined, min: number, max: number) => Number.isFinite(input) ? Math.max(min, Math.min(max, Math.round(input!))) : 0;
+  return { removeBackground: value?.removeBackground === true, feather: bounded(value?.feather, 0, 50), edgeShift: bounded(value?.edgeShift, -12, 12) };
+}
+
 export interface CustomPhotoTemplate {
   version: 1;
   id: string;
@@ -206,6 +217,8 @@ export interface CustomPhotoTemplate {
   pages: CustomPhotoPage[];
   updatedAt: string;
   pdfSources?: Record<string, StudioPdfSource>;
+  /** Reusable processing instructions, never one pupil's pixels. */
+  pupilPhotoTreatment?: StudioPupilPhotoTreatment;
 }
 
 export function getStudioPageDimensions(template: CustomPhotoTemplate, page: CustomPhotoPage) {
@@ -233,6 +246,7 @@ export interface RenderPupilData {
   pupil: Pupil;
   fees?: PupilFeesInfo;
   school?: SchoolDocumentInfo;
+  pupilPhotoTreatment?: StudioPupilPhotoTreatment;
 }
 
 export const DYNAMIC_FIELD_OPTIONS: Array<{ value: DynamicField; label: string; sample: string; group: 'pupil' | 'school' }> = [
@@ -581,6 +595,7 @@ export function normalizeCustomPhotoTemplate(template: Partial<CustomPhotoTempla
     aspectWidth: Number(template.aspectWidth) || fallback.aspectWidth,
     aspectHeight: Number(template.aspectHeight) || fallback.aspectHeight,
     pdfSources: template.pdfSources,
+    pupilPhotoTreatment: template.pupilPhotoTreatment ? normalizeStudioPupilPhotoTreatment(template.pupilPhotoTreatment) : undefined,
     pages: (template.pages?.length ? template.pages : fallback.pages).map((page, pageIndex) => ({
       ...createBlankPage(pageIndex),
       ...page,

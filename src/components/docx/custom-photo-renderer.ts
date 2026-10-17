@@ -22,6 +22,7 @@ import {
   type SchoolDocumentInfo,
 } from './custom-photo-types';
 import { createCanvasPaint, drawStyledShape, drawStyledText } from './custom-photo-appearance';
+import { studioPhotoTreatmentKey, treatStudioPupilPhoto } from './studio-photo-treatment';
 
 interface GridLayout {
   columns: number;
@@ -37,7 +38,7 @@ const imageCache = new Map<string, Promise<HTMLImageElement>>();
 
 function loadImage(source: string) {
   const cached = imageCache.get(source);
-  if (cached) return cached;
+  if (cached) { imageCache.delete(source); imageCache.set(source, cached); return cached; }
   const promise = new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
     image.crossOrigin = 'anonymous';
@@ -46,6 +47,8 @@ function loadImage(source: string) {
     image.src = source;
   });
   imageCache.set(source, promise);
+  while (imageCache.size > 12) imageCache.delete(imageCache.keys().next().value!);
+  void promise.catch(() => { if (imageCache.get(source) === promise) imageCache.delete(source); });
   return promise;
 }
 
@@ -408,12 +411,25 @@ async function renderLayer(
   context.translate(x + width / 2, y + height / 2);
   context.rotate(getStudioOuterRotation(layer) * Math.PI / 180);
   context.translate(-width / 2, -height / 2);
-  const raster = getStudioRasterOverride(layer, data);
-  if (raster) context.drawImage(await loadImage(raster), 0, 0, width, height);
-  else if (layer.kind === 'text') renderTextLayer(context, layer, data, width, height, cardWidth);
-  else if (layer.kind === 'shape') renderShapeLayer(context, layer, width, height);
-  else await renderImageLayer(context, layer, data, width, height);
-  context.restore();
+  try {
+    const raster = getStudioRasterOverride(layer, data) || await getStudioPupilTreatmentRaster(layer, data, { widthMm: cardWidth, heightMm: cardHeight });
+    if (raster) context.drawImage(await loadImage(raster), 0, 0, width, height);
+    else if (layer.kind === 'text') renderTextLayer(context, layer, data, width, height, cardWidth);
+    else if (layer.kind === 'shape') renderShapeLayer(context, layer, width, height);
+    else await renderImageLayer(context, layer, data, width, height);
+  } finally { context.restore(); }
+}
+
+/** Each pupil is processed from their own original layer; individual edits win. */
+export async function getStudioPupilTreatmentRaster(layer: CustomPhotoLayer, data: RenderPupilData, dimensions: { widthMm: number; heightMm: number }) {
+  const settings = data.pupilPhotoTreatment;
+  if (layer.kind !== 'avatar' || !settings?.removeBackground || !data.pupil.photo || getStudioRasterOverride(layer, data)) return undefined;
+  const key = studioPhotoTreatmentKey(layer, data.pupil.photo, dimensions, settings);
+  try {
+    return await treatStudioPupilPhoto(key, () => rasterizeStudioLayer(layer, { ...data, pupilPhotoTreatment: undefined }, dimensions), settings);
+  } catch (reason) {
+    throw new Error(`Background removal failed for ${pupilDisplayName(data.pupil)}. ${reason instanceof Error ? reason.message : 'Try again or add an individual correction.'}`);
+  }
 }
 
 async function renderDesignCard(
@@ -601,7 +617,7 @@ export async function createCustomPhotoPdf(
   for (const group of groups) {
     // A document-only export omits pupil-bound objects, while retaining manual
     // artwork, text and school information in the same rendering pipeline.
-    const renderData = standalone ? [{ pupil: { id: '' } as Pupil, school }] : group.map((pupil) => ({ pupil, fees: feesByPupil[pupil.id], school }));
+    const renderData = standalone ? [{ pupil: { id: '' } as Pupil, school }] : group.map((pupil) => ({ pupil, fees: feesByPupil[pupil.id], school, pupilPhotoTreatment: template.pupilPhotoTreatment }));
     for (const designPage of template.pages) {
       const preservePdfSize = settings.cardsPerPage === 1 && !!designPage.pdfArtwork;
       const dimensions = getStudioPageDimensions(template, designPage);
