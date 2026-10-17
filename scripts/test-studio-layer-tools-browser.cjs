@@ -1,0 +1,115 @@
+// Browser regression for shape styling, selections, cut/copy, pupil isolation and transparent output.
+// Set PLAYWRIGHT_MODULE if Playwright is supplied by an external runtime.
+// Optional STUDIO_TEST_PORTRAIT points to a public sample portrait for both real AI engines.
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),http=require('node:http');
+const esbuild=require('esbuild'),ts=require('typescript');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+const root=path.resolve(__dirname,'..'),output=path.join(root,'output/studio-selection-qa');
+process.chdir(root);
+const mocks={
+ 'next/navigation':`export const usePathname=()=>'/docx',useRouter=()=>({push(){},replace(){},prefetch(){}});`,
+ 'next/link':`import React from 'react';export default ({href,children,...props})=><a href={href} {...props}>{children}</a>;`,
+ '@/lib/contexts/navigation-context':`export const useNavigation=()=>({isNavigating:false,destination:null,isSlow:false,goBack(){}});`,
+ '@/lib/offline/android-bridge':`export const hasAndroidOfflineBridge=()=>false,androidOfflineRequest=async()=>({});`,
+ '@/lib/hooks/use-pupils':`const data=[{id:'pupil',firstName:'AMINA',lastName:'EXAMPLE',status:'Active',gender:'Female',section:'Boarding',classId:'P4',className:'Primary Four',admissionNumber:'FIXTURE001',get photo(){return window.fixturePhotoA||'';}},{id:'pupil-b',firstName:'JOHN',lastName:'EXAMPLE',status:'Active',classId:'P4',className:'Primary Four',admissionNumber:'FIXTURE002',get photo(){return window.fixturePhotoB||'';}}];export const usePupils=()=>({data,isLoading:false});`,
+ '@/lib/hooks/use-school-settings':`export const useSchoolSettings=()=>({data:{generalInfo:{name:'Trinity Family School',logo:''}},isLoading:false});`,
+ '@/lib/hooks/use-term-status':`export const useTermStatus=()=>({effectiveTerm:{academicYear:null,term:null},academicYears:[]});`,
+ '@/lib/hooks/use-progressive-fees':`export const useProgressiveFees=()=>({pupilsWithFees:[],isProcessing:false});`,
+ '@/hooks/use-toast':`export const useToast=()=>({toast(message){window.fixtureToast=message}});`,
+ '@/components/pdf/pdf-viewer':`export const PDFViewer=()=>null;`,
+ '@/lib/hooks/use-pdf-viewer':`export const usePDFViewer=()=>({isOpen:false,closePDF(){},async runPDFJob(_options,generator){const blob=await generator({updateProgress(){}});window.fixturePDF=blob;return blob}});`,
+};
+const fixture=`import React,{useState,useEffect} from 'react';import{createRoot}from'react-dom/client';
+import DocXPage from './src/app/docx/page';import{NavigationContent}from'./src/components/layout/navigation-content';
+function App(){const[desktop,setDesktop]=useState(innerWidth>=768);useEffect(()=>{const resize=()=>setDesktop(innerWidth>=768);addEventListener('resize',resize);return()=>removeEventListener('resize',resize)},[]);
+return <div className={desktop?'dashboard-bg-wrapper flex w-full':'flex w-full'}>
+{desktop&&<aside className="w-64 shrink-0 bg-card p-4">School navigation</aside>}
+<div data-sidebar={desktop?'inset':undefined} className="relative flex h-[100dvh] min-w-0 flex-1 flex-col overflow-hidden">
+<header className="app-topbar sticky top-0 z-40 h-11 shrink-0 bg-card px-4 sm:h-[52px] md:absolute md:left-0 md:right-0"><button className="h-full">School topbar</button></header>
+<main data-fixture-scroller className="min-h-0 flex-1 overflow-y-auto px-3 md:px-6 md:pt-[52px]"><NavigationContent><DocXPage/></NavigationContent></main>
+</div></div>};createRoot(document.getElementById('app')).render(<App/>);`;
+(async()=>{
+ fs.mkdirSync(output,{recursive:true});
+ await esbuild.build({absWorkingDir:root,stdin:{contents:fixture,resolveDir:root,loader:'tsx'},bundle:true,format:'esm',platform:'browser',jsx:'automatic',alias:{'@':path.join(root,'src')},outfile:path.join(output,'fixture.js'),define:{'process.env.NODE_ENV':'"production"','process.env':'{}'},plugins:[{name:'synthetic-records',setup(b){b.onResolve({filter:/.*/},a=>Object.hasOwn(mocks,a.path)?{path:a.path,namespace:'fixture'}:undefined);b.onLoad({filter:/.*/,namespace:'fixture'},a=>({contents:mocks[a.path],loader:'tsx',resolveDir:root}));b.onLoad({filter:/studio-pdf\.ts$/},a=>({contents:fs.readFileSync(a.path,'utf8').replace("new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()","'/pdf.worker.min.mjs'"),loader:'ts',resolveDir:path.dirname(a.path)}));}}]});
+ const config={exports:{}};new Function('require','module','exports',ts.transpileModule(fs.readFileSync('tailwind.config.ts','utf8'),{compilerOptions:{module:1}}).outputText)(require,config,config.exports);
+ const css=['globals.css','theme.css','brand-theme.css'].map(p=>fs.readFileSync(path.join(root,'src/app',p),'utf8').replace(/^@import[^;]+;/,'')).join('\n');
+ const cssPath=path.join(output,'fixture.css');
+ if(!fs.existsSync(cssPath)||fs.statSync(cssPath).mtimeMs<Math.max(...['custom-photo-studio.tsx','studio-pdf-controls.tsx','docx-fonts.ts','studio-layer-editor.tsx'].map(file=>fs.statSync(path.join(root,'src/components/docx',file)).mtimeMs))){
+  const built=await require('postcss')([require('tailwindcss')({...config.exports.default,content:[path.join(root,'src/**/*.{ts,tsx}'),{raw:fixture,extension:'tsx'}]})]).process(css,{from:path.join(root,'src/app/globals.css')});fs.writeFileSync(cssPath,built.css);
+ }
+ const server=http.createServer((req,res)=>{if(req.url==='/pdf.worker.min.mjs'){res.setHeader('Content-Type','text/javascript');res.end(fs.readFileSync(require.resolve('pdfjs-dist/build/pdf.worker.min.mjs')));return;}if(['/fixture.js','/fixture.css'].includes(req.url)){res.setHeader('Content-Type',req.url.endsWith('.js')?'text/javascript':'text/css');res.end(fs.readFileSync(path.join(output,req.url.slice(1))));return;}
+ const file=path.resolve(root,'public','.'+decodeURIComponent(req.url.split('?')[0]));if(file.startsWith(path.join(root,'public')+path.sep)&&fs.existsSync(file)&&fs.statSync(file).isFile()){res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.wasm')?'application/wasm':file.endsWith('.jpg')?'image/jpeg':'application/octet-stream');res.end(fs.readFileSync(file));return;}
+ res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/fixture.css"></head><body><div id="app"></div><script type="module" src="/fixture.js"></script></body></html>');});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
+ const errors=[];
+ try{
+  browser=await chromium.launch({channel:'chrome',headless:true});
+  const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});page.on('console',message=>{if(message.type()==='error')console.error('Console:',message.text().slice(0,300));});page.on('pageerror',e=>{errors.push(e.message);console.error('Browser:',e.message)});
+  page.setDefaultTimeout(15000);console.log('Browser ready');await page.goto('http://127.0.0.1:'+server.address().port);
+  const editor=page.getByRole('dialog',{name:/Custom Photo Studio/});
+  await page.evaluate(()=>{const a=document.createElement('canvas');a.width=300;a.height=300;const x=a.getContext('2d');x.fillStyle='#ed2020';x.fillRect(0,0,150,300);x.fillStyle='#2030ed';x.fillRect(150,0,150,300);window.fixturePhotoA=a.toDataURL('image/png');x.fillStyle='#20b050';x.fillRect(0,0,300,300);window.fixturePhotoB=a.toDataURL('image/png');});
+  const originalPhoto=await page.evaluate(()=>window.fixturePhotoA);
+  const workspace=page.getByRole('dialog',{name:/Select & refine/});
+  const snapshot=async()=>{await editor.getByRole('button',{name:'Save',exact:true}).click();await page.waitForFunction(()=>window.fixtureToast?.title==='Template saved');await page.waitForTimeout(100);return await page.evaluate(()=>new Promise(resolve=>{const r=indexedDB.open('trinity-document-studio',1);r.onsuccess=()=>{const db=r.result,q=db.transaction('templates').objectStore('templates').getAll();q.onsuccess=()=>{resolve(q.result.sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt))[0]);db.close();}};}));};
+  const pngPixel=async(source,x,y)=>page.evaluate(async({source,x,y})=>{const img=new Image();img.src=source;await img.decode();const c=document.createElement('canvas');c.width=img.width;c.height=img.height;const ctx=c.getContext('2d');ctx.drawImage(img,0,0);return [...ctx.getImageData(Math.floor(x*img.width),Math.floor(y*img.height),1,1).data];},{source,x,y});
+  const openTools=async()=>{await editor.getByRole('button',{name:'Background remover & object selector',exact:true}).click();await workspace.waitFor({timeout:20000}).catch(async error=>{console.error('TOAST',await page.evaluate(()=>window.fixtureToast));console.error((await page.locator('body').innerText()).slice(-4000));await page.screenshot({path:path.join(output,'error-open.png')});throw error;});};
+  const chooseTool=async name=>{if(await workspace.getByRole('button',{name:'Tools & refine',exact:true}).isVisible()&&!await workspace.getByRole('button',{name,exact:true}).isVisible())await workspace.getByRole('button',{name:'Tools & refine',exact:true}).click();await workspace.getByRole('button',{name,exact:true}).click();};
+  const rectangle=async(from,to)=>{await chooseTool('Rectangle');const c=workspace.getByLabel('Layer selection canvas',{exact:true});await c.scrollIntoViewIfNeeded();const box=await c.boundingBox();await page.mouse.move(box.x+box.width*from[0],box.y+box.height*from[1]);await page.mouse.down();await page.mouse.move(box.x+box.width*to[0],box.y+box.height*to[1],{steps:4});await page.mouse.up();};
+  const leftPanel=()=>editor.locator('aside').first();
+  await page.getByRole('button',{name:'Custom Photo Studio',exact:true}).click();await editor.waitFor();
+  await leftPanel().getByRole('button',{name:'Delete layer',exact:true}).first().click();await leftPanel().getByRole('button',{name:'Delete layer',exact:true}).first().click();
+  await editor.getByRole('button',{name:'Add layer',exact:true}).click();await page.getByRole('menuitem',{name:'Shape',exact:true}).hover();await page.getByRole('menuitem',{name:'Rectangle',exact:true}).click();
+  await editor.getByRole('checkbox',{name:'Shape fill',exact:true}).uncheck();await editor.getByRole('checkbox',{name:'Shape outline',exact:true}).check();await editor.getByLabel('Shape outline colour',{exact:true}).fill('#ff0000');
+  let stored=await snapshot();assert.equal(stored.pages[0].layers[0].appearance.fillEnabled,false);assert.equal(stored.pages[0].layers[0].appearance.stroke.enabled,true);
+  await openTools();await workspace.getByRole('button',{name:'Select all',exact:true}).click();await workspace.getByRole('button',{name:'Layer via copy',exact:true}).click();await workspace.waitFor({state:'hidden'});
+  stored=await snapshot();let copy=stored.pages[0].layers.at(-1);assert.equal((await pngPixel(copy.source,.5,.5))[3],0,'Unfilled shape exports a transparent center');assert.ok((await pngPixel(copy.source,.003,.5))[0]>180,'Outline survives rasterization');
+  await editor.getByRole('button',{name:'Undo',exact:true}).click();await leftPanel().getByRole('button',{name:'Shape',exact:true}).click();await editor.getByRole('checkbox',{name:'Shape fill',exact:true}).check();await editor.getByRole('checkbox',{name:'Shape outline',exact:true}).uncheck();
+  // The visible feather controls must drive both the preview and every saved action.
+  for(const action of ['Layer via copy','Layer via cut','Keep selection / remove background']){
+   await openTools();await rectangle([.1,.1],[.5,.8]);await workspace.getByLabel('Selection preview').selectOption('result');
+   const canvas=workspace.getByLabel('Layer selection canvas',{exact:true});
+   const crisp=await canvas.evaluate(c=>c.toDataURL('image/png'));
+   const amount=workspace.getByRole('spinbutton',{name:'Feather amount',exact:true}),slider=workspace.getByRole('slider',{name:'Feather edge',exact:true});
+   await amount.fill('50');assert.equal(await slider.inputValue(),'50');assert.equal(await workspace.getByLabel('Selection preview').inputValue(),'result');
+   assert.ok(await canvas.evaluate(c=>c.getContext('2d').getImageData(0,0,c.width,c.height).data.some((v,i)=>i%4===3&&v>0&&v<255)),'Feather produces a live soft alpha edge');
+   await slider.fill('0');assert.equal(await amount.inputValue(),'0');assert.equal(await canvas.evaluate(c=>c.toDataURL('image/png')),crisp,'Reset restores the original crisp mask');
+   await workspace.getByLabel('Selection preview').selectOption('original');await amount.fill('25');assert.equal(await workspace.getByLabel('Selection preview').inputValue(),'result');
+   const preview=await canvas.evaluate(c=>c.toDataURL('image/png'));
+   await workspace.getByRole('button',{name:action,exact:true}).click();await workspace.waitFor({state:'hidden'});stored=await snapshot();
+   const saved=action==='Keep selection / remove background'?stored.pages[0].layers[0].rasterOverride:stored.pages[0].layers.at(-1).source;
+   assert.equal(saved,preview,action+' saves exactly the feathered preview');
+   if(action==='Layer via cut'){
+    const selectedAlpha=(await pngPixel(saved,.5,.5))[3],remainingAlpha=(await pngPixel(stored.pages[0].layers[0].rasterOverride,.5,.5))[3];
+    assert.ok(selectedAlpha>0&&selectedAlpha<255);assert.equal(selectedAlpha+remainingAlpha,255,'Both sides of the cut use the same feather');
+   }
+   await editor.getByRole('button',{name:'Undo',exact:true}).click();await leftPanel().getByRole('button',{name:'Shape',exact:true}).click();
+  }
+  console.log('Feather slider, numeric input, live preview, zero reset and all saved actions passed');
+  await openTools();await rectangle([.1,.1],[.5,.8]);await workspace.getByRole('button',{name:'Layer via copy',exact:true}).click();await workspace.waitFor({state:'hidden'});
+  stored=await snapshot();copy=stored.pages[0].layers.at(-1);assert.equal((await pngPixel(copy.source,.25,.5))[3],255);assert.equal((await pngPixel(copy.source,.75,.5))[3],0);assert.equal(stored.pages[0].layers[0].rasterOverride,undefined,'Copy leaves its source editable');
+  await openTools();await rectangle([.15,.2],[.3,.7]);await workspace.getByRole('button',{name:'Layer via cut',exact:true}).click();await workspace.waitFor({state:'hidden'});stored=await snapshot();assert.equal(stored.pages[0].layers.length,3);assert.equal((await pngPixel(stored.pages[0].layers[1].rasterOverride,.22,.5))[3],0);assert.equal((await pngPixel(stored.pages[0].layers[2].source,.22,.5))[3],255);
+  await editor.getByRole('button',{name:'Undo',exact:true}).click();stored=await snapshot();assert.equal(stored.pages[0].layers.length,2);assert.equal(stored.pages[0].layers[1].rasterOverride,undefined,'One undo restores both sides of a cut');
+  console.log('Shape fill/outline, generic copy/cut and undo passed');
+  await editor.getByRole('button',{name:'Close editor',exact:true}).click();await page.getByRole('button',{name:'Custom Photo Studio',exact:true}).click();await editor.waitFor();
+  await leftPanel().getByRole('button',{name:'Pupil photo',exact:true}).click();await openTools();await rectangle([.02,.02],[.5,.98]);await workspace.getByRole('button',{name:'Layer via cut',exact:true}).click();await workspace.waitFor({state:'hidden'});
+  stored=await snapshot();let original=stored.pages[0].layers.find(layer=>layer.kind==='avatar'),extracted=stored.pages[0].layers.at(-1);
+  assert.equal(extracted.pupilScopeId,'pupil');assert.ok(original.pupilImageEdits.pupil);assert.equal(original.pupilImageEdits['pupil-b'],undefined);assert.equal((await pngPixel(original.pupilImageEdits.pupil,.3,.5))[3],0);assert.equal((await pngPixel(original.pupilImageEdits.pupil,.7,.5))[3],255);assert.equal(await page.evaluate(()=>window.fixturePhotoA),originalPhoto,'Pupil record photo remains unchanged');
+  await editor.getByRole('button',{name:'2. Pupils & output',exact:true}).click();await editor.getByRole('button',{name:/JOHN/}).click();await editor.getByRole('button',{name:'1. Design',exact:true}).click();await leftPanel().getByRole('button',{name:'Pupil photo',exact:true}).click();await openTools();await workspace.getByLabel('Selection preview').selectOption('original');const renderedB=await workspace.getByLabel('Layer selection canvas').evaluate(c=>[...c.getContext('2d').getImageData(c.width/2,c.height/2,1,1).data]);assert.ok(renderedB[1]>120&&renderedB[0]<70,'A different pupil retains the original photo');await workspace.getByRole('button',{name:'Cancel',exact:true}).click();
+  // Manual text also opens as isolated content, without changing the source text.
+  await editor.getByRole('button',{name:'Add layer',exact:true}).click();await page.getByRole('menuitem',{name:'Manual text box',exact:true}).click();await openTools();await workspace.getByRole('button',{name:'Select all',exact:true}).click();await page.keyboard.press('Control+j');await workspace.waitFor({state:'hidden'});stored=await snapshot();assert.equal(stored.pages[0].layers.at(-1).kind,'image');assert.ok(stored.pages[0].layers.some(layer=>layer.kind==='text'&&layer.text==='Your message here'));
+  console.log('Pupil isolation and text layer selection passed');
+  if(process.env.STUDIO_TEST_PORTRAIT){
+   await editor.locator('input[accept="image/*"]').nth(1).setInputFiles(process.env.STUDIO_TEST_PORTRAIT);await openTools();await workspace.getByRole('button',{name:'Remove photo background',exact:true}).click();await workspace.getByRole('button',{name:'Keep selection / remove background',exact:true}).waitFor();await page.waitForFunction(()=>{const el=document.querySelector('[aria-label="Layer selection workspace"]');return el&&!el.querySelector('[role="status"]')},{},{timeout:90000});
+   const alert=workspace.getByRole('alert');if(await alert.count())throw new Error(await alert.innerText());assert.equal(await workspace.getByRole('button',{name:'Keep selection / remove background',exact:true}).isEnabled(),true);await page.screenshot({path:path.join(output,'portrait-background-preview.png')});await workspace.getByRole('button',{name:'Keep selection / remove background',exact:true}).click();await workspace.waitFor({state:'hidden'});stored=await snapshot();const portrait=stored.pages[0].layers.at(-1);assert.ok(portrait.rasterOverride);assert.ok((await pngPixel(portrait.rasterOverride,.02,.02))[3]<80,'Background corner is removed');assert.ok((await pngPixel(portrait.rasterOverride,.5,.5))[3]>100,'Person remains');
+   await editor.getByRole('button',{name:'Restore original layer pixels',exact:true}).click();await openTools();await chooseTool('AI object');await workspace.getByLabel('Layer selection canvas').click({position:await workspace.getByLabel('Layer selection canvas').evaluate(c=>({x:c.clientWidth*.5,y:c.clientHeight*.45}))});await page.waitForFunction(()=>{const el=document.querySelector('[aria-label="Layer selection workspace"]');return el&&!el.querySelector('[role="status"]')},{},{timeout:90000});if(await alert.count())throw new Error(await alert.innerText());assert.equal(await workspace.getByRole('button',{name:'Layer via copy',exact:true}).isEnabled(),true);await workspace.getByLabel('Selection preview').selectOption('result');await page.screenshot({path:path.join(output,'object-ai-preview.png')});await workspace.getByRole('button',{name:'Layer via copy',exact:true}).click();await workspace.waitFor({state:'hidden'});console.log('Real portrait background removal and AI object selection passed');
+  }
+  stored=await snapshot();const lastLayer=stored.pages[0].layers.at(-1);fs.writeFileSync(path.join(output,'last-layer.json'),JSON.stringify({...lastLayer,source:lastLayer.source?.slice(0,50)},null,2));if(lastLayer.source){fs.writeFileSync(path.join(output,'last-layer.png'),Buffer.from(lastLayer.source.split(',')[1],'base64'));if(process.env.STUDIO_TEST_PORTRAIT)assert.ok((await pngPixel(lastLayer.source,.5,.45))[3]>100,'Extracted AI layer retains the subject');}
+  await openTools();const reopenPixel=await workspace.getByLabel('Layer selection canvas').evaluate(c=>[...c.getContext('2d').getImageData(c.width*.5,c.height*.45,1,1).data]);console.log('Reopened pixel',reopenPixel);if(process.env.STUDIO_TEST_PORTRAIT)assert.ok(reopenPixel[3]>100,'Reopened AI layer remains visible');for(const size of [{width:320,height:720},{width:390,height:844},{width:812,height:375},{width:1440,height:900}]){await page.setViewportSize(size);await page.waitForTimeout(100);const sizeInfo=await workspace.evaluate(el=>({client:el.clientWidth,scroll:el.scrollWidth,top:el.getBoundingClientRect().top}));assert.ok(sizeInfo.scroll<=sizeInfo.client+1,'Selection editor stays within viewport width');assert.equal(sizeInfo.top,0);await page.screenshot({path:path.join(output,`selection-${size.width}.png`)});}
+  await page.setViewportSize({width:390,height:844});await chooseTool('Pan / scroll');assert.equal(await workspace.getByLabel('Layer selection canvas').evaluate(c=>getComputedStyle(c).touchAction),'pan-x pan-y','Pan mode leaves native touch scrolling available');
+  await page.evaluate(()=>document.documentElement.classList.add('dark'));await page.screenshot({path:path.join(output,'selection-dark.png')});await page.keyboard.press('Escape');await workspace.waitFor({state:'hidden'});assert.ok(await editor.isVisible(),'Closing the selection workspace keeps the studio open');
+  for(const layer of stored.pages[0].layers.slice(0,-1)){await leftPanel().getByRole('button',{name:layer.label,exact:true}).click();const hide=editor.getByRole('button',{name:'Hide selected layer',exact:true});if(await hide.count())await hide.click();}
+  await page.screenshot({path:path.join(output,'isolated-object-studio.png')});
+  await editor.getByRole('button',{name:'2. Pupils & output',exact:true}).click();await editor.getByRole('button',{name:/Select all 2 filtered pupils/}).click();await editor.getByRole('button',{name:'Open in-app print preview',exact:true}).click();await page.waitForFunction(()=>window.fixturePDF instanceof Blob,{},{timeout:60000});fs.writeFileSync(path.join(output,'layer-tools-export.pdf'),Buffer.from(await page.evaluate(async()=>Array.from(new Uint8Array(await window.fixturePDF.arrayBuffer())))));
+  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(output,'verification.json'),JSON.stringify({cases:['independent fill and outline','shape snapshot alpha','copy preserves source','cut splits alpha','atomic undo','feather slider and numeric input','feather live preview and zero reset','feather saved for background removal, cut and copy','pupil-specific edits','pupil record unchanged','other pupil unchanged','text layer copy shortcut','reopen extracted object','responsive workspace','dark mode','nested Escape','isolated transparent PDF export',...(process.env.STUDIO_TEST_PORTRAIT?['real portrait segmentation with guided refinement','real AI object selection']:[])],errors},null,2));console.log('STUDIO_LAYER_TOOLS_BROWSER_OK');
+ }finally{if(browser)await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
+})().catch(error=>{console.error(error);process.exitCode=1});

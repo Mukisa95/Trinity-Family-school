@@ -105,7 +105,7 @@ export function drawStyledShape(context: CanvasRenderingContext2D, shape: FrameS
     context.restore();
   };
 
-  if (appearance.extrusion.enabled && appearance.extrusion.depth > 0) {
+  if (appearance.fillEnabled !== false && appearance.extrusion.enabled && appearance.extrusion.depth > 0) {
     const vector = direction(appearance.extrusion.angle);
     const steps = Math.min(30, Math.max(1, Math.round(appearance.extrusion.depth * scale)));
     for (let step = steps; step >= 1; step -= 1) {
@@ -122,10 +122,10 @@ export function drawStyledShape(context: CanvasRenderingContext2D, shape: FrameS
   }
   drawPath();
   context.fillStyle = createCanvasPaint(context, appearance.fill, width, height);
-  context.fill();
+  if (appearance.fillEnabled !== false) context.fill();
   context.restore();
 
-  if (appearance.shadow.enabled && appearance.shadow.kind === 'inner') {
+  if (appearance.fillEnabled !== false && appearance.shadow.enabled && appearance.shadow.kind === 'inner') {
     context.save();
     drawPath();
     context.clip();
@@ -171,7 +171,7 @@ export function drawStyledShape(context: CanvasRenderingContext2D, shape: FrameS
     context.restore();
   }
 
-  if (appearance.shine.enabled) {
+  if (appearance.fillEnabled !== false && appearance.shine.enabled) {
     const vector = direction(appearance.shine.angle);
     const center = (vector.x >= 0 ? width : 0) * appearance.shine.position + width * 0.5 * (1 - Math.abs(vector.x));
     const spread = Math.max(width, height) * appearance.shine.width;
@@ -220,7 +220,7 @@ export function drawStyledText(
     context.shadowOffsetY = appearance.shadow.offsetY * scale;
   }
   context.fillStyle = createCanvasPaint(context, appearance.fill, width, height);
-  drawFill(context);
+  if (appearance.fillEnabled !== false) drawFill(context);
   context.restore();
 
   if (appearance.bevel.enabled && appearance.bevel.depth > 0) {
@@ -329,7 +329,7 @@ export function getLayerPreviewStyle(appearance: LayerAppearance, mode: 'text' |
     return { filter: frameFilters };
   }
   return {
-    background: mode === 'shape' ? paintToCss(appearance.fill) : undefined,
+    background: mode === 'shape' ? (appearance.fillEnabled === false ? 'transparent' : paintToCss(appearance.fill)) : undefined,
     boxShadow: shadows,
   };
 }

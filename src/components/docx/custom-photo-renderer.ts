@@ -1,13 +1,17 @@
 import jsPDF from 'jspdf';
+import { paintPdfCutouts } from './studio-pdf';
 import type { Pupil } from '@/types';
 import type { PupilFeesInfo } from '@/lib/hooks/use-progressive-fees';
 import {
   applyTextCase,
-  getLayerColumnIndex,
   isPupilDataLayer,
   pupilDisplayName,
   resolvePupilField,
   getPaperDimensions,
+  getStudioPageDimensions,
+  getStudioRasterOverride,
+  getStudioOuterRotation,
+  getStudioLayerData,
   PAPER_SIZE_OPTIONS,
   type CustomPhotoLayer,
   type CustomPhotoOutputSettings,
@@ -402,9 +406,11 @@ async function renderLayer(
   context.save();
   context.globalAlpha = layer.opacity;
   context.translate(x + width / 2, y + height / 2);
-  if (layer.kind === 'text' || layer.kind === 'shape') context.rotate(layer.rotation * Math.PI / 180);
+  context.rotate(getStudioOuterRotation(layer) * Math.PI / 180);
   context.translate(-width / 2, -height / 2);
-  if (layer.kind === 'text') renderTextLayer(context, layer, data, width, height, cardWidth);
+  const raster = getStudioRasterOverride(layer, data);
+  if (raster) context.drawImage(await loadImage(raster), 0, 0, width, height);
+  else if (layer.kind === 'text') renderTextLayer(context, layer, data, width, height, cardWidth);
   else if (layer.kind === 'shape') renderShapeLayer(context, layer, width, height);
   else await renderImageLayer(context, layer, data, width, height);
   context.restore();
@@ -438,15 +444,46 @@ async function renderDesignCard(
     }
   }
   const primaryData = data[0];
-  for (const layer of page.layers) {
-    const pupilBound = isPupilDataLayer(layer);
-    const layerData = pupilBound && layer.pupilDataMode === 'follow'
-      ? data[getLayerColumnIndex(layer, pageColumns)]
-      : primaryData;
-    if (!layerData) continue;
-    await renderLayer(context, layer, layerData, width, height);
-  }
+  const renderLayers = async (layers: CustomPhotoLayer[]) => {
+    for (const layer of layers) {
+      const pupilBound = isPupilDataLayer(layer);
+      if (pupilBound && !primaryData?.pupil.id) continue;
+      const layerData = getStudioLayerData(layer, data, pageColumns);
+      if (!layerData) continue;
+      if (layer.pupilScopeId && layer.pupilScopeId !== layerData.pupil.id) continue;
+      await renderLayer(context, layer, layerData, width, height);
+    }
+  };
+  if (page.pdfArtwork) {
+    await renderLayers(page.layers.filter(layer => layer.pdfPlacement === 'below'));
+    const artwork = document.createElement('canvas');
+    artwork.width = Math.ceil(width); artwork.height = Math.ceil(height);
+    const artContext = artwork.getContext('2d');
+    if (!artContext) throw new Error('The PDF artwork could not be rendered.');
+    artContext.drawImage(await loadImage(page.pdfArtwork.image), 0, 0, artwork.width, artwork.height);
+    paintPdfCutouts(artContext, page.pdfArtwork, artwork.width, artwork.height);
+    context.drawImage(artwork, 0, 0, width, height);
+    artwork.width = 0; artwork.height = 0;
+    await renderLayers(page.layers.filter(layer => layer.pdfPlacement !== 'below'));
+  } else await renderLayers(page.layers);
   context.restore();
+}
+
+/** Rasterize one local layer, excluding page position, opacity and outer rotation. */
+export async function rasterizeStudioLayer(layer: CustomPhotoLayer, data: RenderPupilData, dimensions: { widthMm: number; heightMm: number }) {
+  const aspect = layer.width * dimensions.widthMm / Math.max(0.001, layer.height * dimensions.heightMm);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(2, Math.round(aspect >= 1 ? 1600 : 1600 * aspect));
+  canvas.height = Math.max(2, Math.round(aspect >= 1 ? 1600 / aspect : 1600));
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) throw new Error('The browser could not prepare this layer.');
+  const source = getStudioRasterOverride(layer, data) || (layer.kind === 'avatar' ? data.pupil.photo : layer.kind === 'schoolLogo' ? data.school?.logo : layer.source);
+  if (source) await loadImage(source); // Report unavailable/CORS images, rather than editing a placeholder.
+  if (layer.kind === 'avatar' && !source) throw new Error('This pupil has no photo. Add a photo before using these tools.');
+  const isolated = { ...layer, x: 0, y: 0, opacity: 1, hidden: false, outerRotation: 0, rotation: layer.kind === 'text' || layer.kind === 'shape' ? 0 : layer.rotation };
+  await renderLayer(context, isolated, data, canvas.width / Math.max(0.001, layer.width), canvas.height / Math.max(0.001, layer.height));
+  context.getImageData(0, 0, 1, 1); // Fail explicitly if a remote photo disallows pixel access.
+  return canvas;
 }
 
 function calculateGrid(
@@ -505,7 +542,8 @@ async function renderOutputSheet(
   const pxPerMm = width / pageWidthMm;
   const margin = settings.marginMm * pxPerMm;
   const gap = settings.gapMm * pxPerMm;
-  const grid = calculateGrid(settings.cardsPerPage, width, height, template.aspectWidth, template.aspectHeight, margin, gap);
+  const dimensions = getStudioPageDimensions(template, designPage);
+  const grid = calculateGrid(settings.cardsPerPage, width, height, dimensions.widthMm, dimensions.heightMm, margin, gap);
   const pageColumns = Math.max(1, template.pageColumns || 1);
   const cardCount = Math.ceil(pupils.length / pageColumns);
 
@@ -535,8 +573,9 @@ export async function createCustomPhotoPdf(
   settings: CustomPhotoOutputSettings,
   school?: SchoolDocumentInfo,
   onProgress?: (completed: number, total: number) => void,
+  standalone = false,
 ) {
-  if (pupils.length === 0) throw new Error('Select at least one pupil.');
+  if (pupils.length === 0 && !standalone) throw new Error('Select at least one pupil.');
   if (template.pages.length === 0) throw new Error('Add at least one design page.');
   const orientation = settings.orientation;
   const preset = PAPER_SIZE_OPTIONS.find((option) => option.value === settings.paperSize) || PAPER_SIZE_OPTIONS[1];
@@ -551,7 +590,8 @@ export async function createCustomPhotoPdf(
   const pageHeightMm = pdf.internal.pageSize.getHeight() || expectedDimensions.heightMm;
   const groups: Pupil[][] = [];
   const pupilsPerSheet = Math.max(1, settings.cardsPerPage) * Math.max(1, template.pageColumns || 1);
-  for (let index = 0; index < pupils.length; index += pupilsPerSheet) {
+  if (standalone) groups.push([]);
+  for (let index = 0; !standalone && index < pupils.length; index += pupilsPerSheet) {
     groups.push(pupils.slice(index, index + pupilsPerSheet));
   }
   const totalPages = groups.length * template.pages.length;
@@ -559,13 +599,23 @@ export async function createCustomPhotoPdf(
   let isFirstPage = true;
 
   for (const group of groups) {
-    const renderData = group.map((pupil) => ({ pupil, fees: feesByPupil[pupil.id], school }));
+    // A document-only export omits pupil-bound objects, while retaining manual
+    // artwork, text and school information in the same rendering pipeline.
+    const renderData = standalone ? [{ pupil: { id: '' } as Pupil, school }] : group.map((pupil) => ({ pupil, fees: feesByPupil[pupil.id], school }));
     for (const designPage of template.pages) {
-      if (!isFirstPage) pdf.addPage(format, orientation);
-      const canvas = await renderOutputSheet(designPage, renderData, template, settings, pageWidthMm, pageHeightMm);
+      const preservePdfSize = settings.cardsPerPage === 1 && !!designPage.pdfArtwork;
+      const dimensions = getStudioPageDimensions(template, designPage);
+      const targetFormat: [number, number] = preservePdfSize ? [dimensions.widthMm, dimensions.heightMm] : format;
+      const targetOrientation = preservePdfSize ? (dimensions.widthMm > dimensions.heightMm ? 'landscape' : 'portrait') : orientation;
+      if (!isFirstPage) pdf.addPage(targetFormat, targetOrientation);
+      else if (preservePdfSize) { pdf.addPage(targetFormat, targetOrientation); pdf.deletePage(1); }
+      const targetWidth = preservePdfSize ? dimensions.widthMm : pageWidthMm;
+      const targetHeight = preservePdfSize ? dimensions.heightMm : pageHeightMm;
+      const canvas = await renderOutputSheet(designPage, renderData, template, settings, targetWidth, targetHeight);
       const blob = await canvasToBlob(canvas);
       const imageData = await blob.arrayBuffer();
-      pdf.addImage(new Uint8Array(imageData), 'JPEG', 0, 0, pageWidthMm, pageHeightMm, undefined, 'FAST');
+      pdf.addImage(new Uint8Array(imageData), 'JPEG', 0, 0, targetWidth, targetHeight, undefined, 'FAST');
+      canvas.width = 0; canvas.height = 0;
       completed += 1;
       onProgress?.(completed, totalPages);
       isFirstPage = false;

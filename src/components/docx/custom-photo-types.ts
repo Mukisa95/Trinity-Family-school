@@ -28,6 +28,7 @@ export interface LayerPaint {
 }
 
 export interface LayerAppearance {
+  fillEnabled?: boolean;
   fill: LayerPaint;
   stroke: {
     enabled: boolean;
@@ -111,6 +112,12 @@ export const PAPER_SIZE_OPTIONS: Array<{ value: PaperSize; label: string; widthM
 
 export interface CustomPhotoLayer {
   id: string;
+  pdfPlacement?: 'below' | 'above';
+  /** Template-only pixel edits; pupil records are never modified. */
+  rasterOverride?: string;
+  pupilImageEdits?: Record<string, string>;
+  pupilScopeId?: string;
+  outerRotation?: number;
   kind: LayerKind;
   label: string;
   field?: DynamicField;
@@ -158,6 +165,32 @@ export interface CustomPhotoPage {
   backgroundFit: BackgroundFit;
   backgroundColor: string;
   layers: CustomPhotoLayer[];
+  pdfArtwork?: PdfArtwork;
+}
+
+export interface PdfCutout {
+  id: string;
+  shape: 'rectangle' | 'oval';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface PdfArtwork {
+  sourceId: string;
+  fileName: string;
+  pageNumber: number;
+  image: string;
+  widthMm: number;
+  heightMm: number;
+  cutouts: PdfCutout[];
+}
+
+export interface StudioPdfSource {
+  id: string;
+  name: string;
+  dataUrl: string;
 }
 
 export interface CustomPhotoTemplate {
@@ -172,6 +205,19 @@ export interface CustomPhotoTemplate {
   aspectHeight: number;
   pages: CustomPhotoPage[];
   updatedAt: string;
+  pdfSources?: Record<string, StudioPdfSource>;
+}
+
+export function getStudioPageDimensions(template: CustomPhotoTemplate, page: CustomPhotoPage) {
+  return { widthMm: page.pdfArtwork?.widthMm || template.aspectWidth, heightMm: page.pdfArtwork?.heightMm || template.aspectHeight };
+}
+
+/** Clamp openings to the page; the original artwork is never changed. */
+export function normalizePdfCutout(cutout: PdfCutout): PdfCutout {
+  const finite = (value: number, fallback: number) => Number.isFinite(value) ? value : fallback;
+  const x = Math.max(0, Math.min(0.99, finite(cutout.x, 0)));
+  const y = Math.max(0, Math.min(0.99, finite(cutout.y, 0)));
+  return { ...cutout, x, y, width: Math.max(0.005, Math.min(1 - x, finite(cutout.width, 0.3))), height: Math.max(0.005, Math.min(1 - y, finite(cutout.height, 0.3))), shape: cutout.shape === 'oval' ? 'oval' : 'rectangle' };
 }
 
 export interface CustomPhotoOutputSettings {
@@ -234,6 +280,7 @@ export function createLayerPaint(color = '#0f172a'): LayerPaint {
 
 export function createLayerAppearance(color = '#0f172a', borderColor = '#ffffff', borderWidth = 0): LayerAppearance {
   return {
+    fillEnabled: true,
     fill: createLayerPaint(color),
     stroke: { enabled: borderWidth > 0, width: borderWidth, opacity: 1, paint: createLayerPaint(borderColor) },
     shadow: { enabled: false, kind: 'outer', color: '#0f172a', opacity: 0.28, blur: 8, offsetX: 0, offsetY: 4 },
@@ -268,6 +315,7 @@ function normalizePaint(paint: Partial<LayerPaint> | undefined, fallbackColor: s
 export function normalizeLayerAppearance(appearance: Partial<LayerAppearance> | undefined, color = '#0f172a', borderColor = '#ffffff', borderWidth = 0): LayerAppearance {
   const base = createLayerAppearance(color, borderColor, borderWidth);
   return {
+    fillEnabled: appearance?.fillEnabled !== false,
     fill: normalizePaint(appearance?.fill, color),
     stroke: {
       enabled: typeof appearance?.stroke?.enabled === 'boolean' ? appearance.stroke.enabled : borderWidth > 0,
@@ -341,10 +389,24 @@ export function getAppearancePreset(id: string) {
   return APPEARANCE_PRESETS.find((preset) => preset.id === id);
 }
 
-export function isPupilDataLayer(layer: Pick<CustomPhotoLayer, 'kind' | 'field'>) {
+export function isPupilDataLayer(layer: Pick<CustomPhotoLayer, 'kind' | 'field' | 'pupilScopeId'>) {
+  if (layer.pupilScopeId) return true;
   if (layer.kind === 'avatar') return true;
   if (layer.kind !== 'text' || !layer.field) return false;
   return DYNAMIC_FIELD_OPTIONS.some((option) => option.value === layer.field && option.group === 'pupil');
+}
+
+export function getStudioRasterOverride(layer: CustomPhotoLayer, data?: RenderPupilData) {
+  return (data?.pupil.id && layer.pupilImageEdits?.[data.pupil.id]) || layer.rasterOverride;
+}
+
+export function getStudioLayerData(layer: CustomPhotoLayer, data: RenderPupilData[], columns: number) {
+  if (layer.pupilScopeId) return data.find(item => item.pupil.id === layer.pupilScopeId);
+  return isPupilDataLayer(layer) && layer.pupilDataMode === 'follow' ? data[getLayerColumnIndex(layer, columns)] : data[0];
+}
+
+export function getStudioOuterRotation(layer: CustomPhotoLayer) {
+  return (layer.kind === 'text' || layer.kind === 'shape' ? layer.rotation : 0) + (layer.outerRotation || 0);
 }
 
 export function getLayerColumnIndex(layer: Pick<CustomPhotoLayer, 'x' | 'width'>, pageColumns: number) {
@@ -518,9 +580,11 @@ export function normalizeCustomPhotoTemplate(template: Partial<CustomPhotoTempla
     pageColumns: Math.min(6, Math.max(1, Math.round(Number(template.pageColumns) || 1))),
     aspectWidth: Number(template.aspectWidth) || fallback.aspectWidth,
     aspectHeight: Number(template.aspectHeight) || fallback.aspectHeight,
+    pdfSources: template.pdfSources,
     pages: (template.pages?.length ? template.pages : fallback.pages).map((page, pageIndex) => ({
       ...createBlankPage(pageIndex),
       ...page,
+      ...(page.pdfArtwork ? { pdfArtwork: { ...page.pdfArtwork, cutouts: (page.pdfArtwork.cutouts || []).map(normalizePdfCutout) } } : {}),
       layers: page.layers.map((layer) => ({
         ...(layer.kind === 'text'
           ? createTextLayer(layer.field || 'name')

@@ -1,6 +1,7 @@
 "use client";
 
 import { matchesPupilSearch } from '@/lib/utils/name-formatter';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import {
   useCallback,
   useEffect,
@@ -107,6 +108,7 @@ import {
 import {
   createCustomPhotoPdf,
   createPhotoMaskDataUrl,
+  rasterizeStudioLayer,
   estimatePdfPageCount,
   pupilDisplayName,
 } from './custom-photo-renderer';
@@ -141,8 +143,12 @@ import {
   type SchoolDocumentInfo,
 } from './custom-photo-types';
 import { getLayerPreviewStyle, paintToCss } from './custom-photo-appearance';
+import { StudioPdfImport, StudioPdfArtwork, StudioPdfCutouts, StudioCutoutHandles } from './studio-pdf-controls';
+import { readStudioTemplates, writeStudioTemplate } from './studio-template-storage';
+import { getStudioPageDimensions, type PdfCutout, type StudioPdfSource } from './custom-photo-types';
+import { getStudioRasterOverride, getStudioOuterRotation, getStudioLayerData } from './custom-photo-types';
+import { StudioLayerEditor, type StudioPixelResult } from './studio-layer-editor';
 
-const TEMPLATE_STORAGE_KEY = 'trinity-docx-custom-photo-templates-v1';
 const SHAPE_OPTIONS: Array<{ value: FrameShape; label: string }> = [
   { value: 'rectangle', label: 'Rectangle' },
   { value: 'rounded', label: 'Rounded' },
@@ -359,7 +365,8 @@ function StudioLayer({
     () => layer.kind === 'text' || layer.kind === 'shape' ? undefined : createPhotoMaskDataUrl(layer),
     [layer.feather, layer.featherBottom, layer.featherLeft, layer.featherRight, layer.featherTop, layer.kind, layer.shape],
   );
-  if (layer.hidden) return null;
+  if (layer.hidden || (layer.pupilScopeId && layer.pupilScopeId !== data?.pupil.id)) return null;
+  const raster = getStudioRasterOverride(layer, data);
   const source = layer.kind === 'avatar' ? data?.pupil.photo : layer.kind === 'schoolLogo' ? data?.school?.logo : layer.source;
   const value = layer.kind === 'text'
     ? applyTextCase(layer.field && data ? resolvePupilField(layer.field, data) : layer.text || 'Your message here', layer.textCase)
@@ -382,8 +389,9 @@ function StudioLayer({
         top: `${layer.y * 100}%`,
         width: `${layer.width * 100}%`,
         height: `${layer.height * 100}%`,
-        transform: layer.kind === 'text' || layer.kind === 'shape' ? `rotate(${layer.rotation}deg)` : undefined,
+        transform: `rotate(${getStudioOuterRotation(layer)}deg)`,
         opacity: layer.opacity,
+        zIndex: layer.pdfPlacement === 'below' ? 0 : 2,
       }}
       >
       {selected && layer.kind !== 'text' && (
@@ -396,7 +404,10 @@ function StudioLayer({
           }}
         />
       )}
-      {layer.kind === 'text' ? (
+      {raster ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={raster} alt="Edited layer" draggable={false} className="h-full w-full" />
+      ) : layer.kind === 'text' ? (
         <div
           className="flex h-full w-full items-center overflow-hidden px-[1.5%]"
           style={{
@@ -417,7 +428,7 @@ function StudioLayer({
         </div>
       ) : layer.kind === 'shape' ? (
         <div className="relative h-full w-full overflow-visible">
-          {layer.appearance.extrusion.enabled && layer.appearance.extrusion.depth > 0 && (
+          {layer.appearance.fillEnabled !== false && layer.appearance.extrusion.enabled && layer.appearance.extrusion.depth > 0 && (
             <div
               className="pointer-events-none absolute inset-0"
               style={{
@@ -435,7 +446,7 @@ function StudioLayer({
               ...getLayerPreviewStyle(layer.appearance, 'shape'),
             }}
           >
-            {layer.appearance.shine.enabled && (
+            {layer.appearance.fillEnabled !== false && layer.appearance.shine.enabled && (
               <div
                 className="pointer-events-none absolute inset-0"
                 style={{
@@ -539,6 +550,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   const canvasRef = useRef<HTMLDivElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
   const imageLayerInputRef = useRef<HTMLInputElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const historyGroupRef = useRef(false);
   const historyGroupRecordedRef = useRef(false);
   const [stage, setStage] = useState<'design' | 'output'>('design');
@@ -569,7 +581,14 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   const [canvasZoom, setCanvasZoom] = useState(1);
   const [showSideFeather, setShowSideFeather] = useState(false);
   const [savedTemplates, setSavedTemplates] = useState<CustomPhotoTemplate[]>([]);
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [editingCutouts, setEditingCutouts] = useState(false);
+  const [preparingPixelEditor, setPreparingPixelEditor] = useState(false);
+  const [pixelEditor, setPixelEditor] = useState<{ source: HTMLCanvasElement; pageId: string; layer: CustomPhotoLayer; data: RenderPupilData } | null>(null);
+  const pixelRequestRef = useRef(0);
+  useEffect(() => () => { pixelRequestRef.current++; }, []);
   const [selectedPupilIds, setSelectedPupilIds] = useState<Set<string>>(new Set());
+  const [standalone, setStandalone] = useState(false);
   const [pupilSearch, setPupilSearch] = useState('');
   const [classFilter, setClassFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('Active');
@@ -602,6 +621,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   }), [schoolBadge, schoolSettings]);
 
   const currentPage = template.pages.find((page) => page.id === activePageId) || template.pages[0];
+  const pageDimensions = getStudioPageDimensions(template, currentPage);
   const selectedLayer = currentPage?.layers.find((layer) => layer.id === selectedLayerId) || null;
   const selectedYear = academicYears.find((year) => year.id === selectedYearId) || null;
   const selectedPupils = useMemo(
@@ -614,8 +634,10 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     return source.slice(0, Math.max(1, template.pageColumns || 1));
   }, [pupils, selectedPupils, template.pageColumns]);
   const previewPupil = previewPupils[0];
-  const previewRenderData = previewPupils.map((pupil) => ({ pupil, fees: feesByPupil[pupil.id], school: schoolInfo }));
-  const usesFees = templateUsesFees(template);
+  const previewRenderData = standalone || !previewPupils.length ? [{ pupil: { id: '' } as Pupil, school: schoolInfo }] : previewPupils.map((pupil) => ({ pupil, fees: feesByPupil[pupil.id], school: schoolInfo }));
+  const selectedLayerData = selectedLayer ? getStudioLayerData(selectedLayer, previewRenderData, template.pageColumns) : undefined;
+  const selectedLayerRaster = selectedLayer ? getStudioRasterOverride(selectedLayer, selectedLayerData) : undefined;
+  const usesFees = !standalone && templateUsesFees(template);
   const classOptions = useMemo(() => Array.from(new Map(
     pupils.filter((pupil) => pupil.classId).map((pupil) => [pupil.classId, pupil.className || pupil.classCode || 'Unnamed class']),
   ).entries()).sort((a, b) => a[1].localeCompare(b[1])), [pupils]);
@@ -632,15 +654,15 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     });
   }, [classFilter, photoFilter, pupilSearch, pupils, statusFilter]);
   const allFilteredSelected = filteredPupils.length > 0 && filteredPupils.every((pupil) => selectedPupilIds.has(pupil.id));
-  const estimatedPages = estimatePdfPageCount(selectedPupils.length, template.pages.length, output.cardsPerPage, template.pageColumns);
+  const estimatedPages = standalone ? template.pages.length : estimatePdfPageCount(selectedPupils.length, template.pages.length, output.cardsPerPage, template.pageColumns);
   const exactOutputSettings = useMemo<CustomPhotoOutputSettings>(() => ({
     ...output,
     paperSize: template.paperSize,
     orientation: template.pageOrientation,
     marginMm: 0,
   }), [output, template.pageOrientation, template.paperSize]);
-  const marginXPercent = clamp(template.pageMarginMm / Math.max(1, template.aspectWidth) * 100, 0, 45);
-  const marginYPercent = clamp(template.pageMarginMm / Math.max(1, template.aspectHeight) * 100, 0, 45);
+  const marginXPercent = clamp(template.pageMarginMm / Math.max(1, pageDimensions.widthMm) * 100, 0, 45);
+  const marginYPercent = clamp(template.pageMarginMm / Math.max(1, pageDimensions.heightMm) * 100, 0, 45);
 
   const undoTemplate = useCallback(() => {
     setTemplateHistory((history) => {
@@ -667,13 +689,14 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   }, []);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(TEMPLATE_STORAGE_KEY);
-      if (stored) setSavedTemplates((JSON.parse(stored) as Partial<CustomPhotoTemplate>[]).map(normalizeCustomPhotoTemplate));
-    } catch {
-      // A malformed old local template should not prevent the editor from opening.
-    }
+    let cancelled = false;
+    void readStudioTemplates().then(items => { if (!cancelled) setSavedTemplates(items); }).catch(() => {
+      if (!cancelled) toast({ variant: 'destructive', title: 'Saved templates unavailable', description: 'Device storage could not be opened. You can continue designing and exporting.' });
+    });
+    return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => { setEditingCutouts(false); }, [activePageId]);
 
   useEffect(() => {
     if (effectiveTerm.academicYear && !selectedYearId) {
@@ -755,7 +778,8 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   };
 
   const addLayer = (layer: CustomPhotoLayer) => {
-    updateCurrentPage((page) => ({ ...page, layers: [...page.layers, layer] }));
+    updateCurrentPage((page) => ({ ...page, layers: [...page.layers, { ...layer, pdfPlacement: page.pdfArtwork && (layer.kind === 'avatar' || layer.kind === 'image') ? 'below' : 'above' }] }));
+    setEditingCutouts(false);
     setSelectedLayerId(layer.id);
     setExpandedPageIds((previous) => new Set(previous).add(activePageId));
   };
@@ -787,11 +811,13 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   const moveLayerOrder = (pageId: string, layerId: string, direction: -1 | 1) => {
     updatePageById(pageId, (page) => {
       const index = page.layers.findIndex((layer) => layer.id === layerId);
-      const next = clamp(index + direction, 0, page.layers.length - 1);
-      if (index < 0 || index === next) return page;
+      if (index < 0) return page;
+      const peers = page.layers.map((layer, position) => ({ layer, position })).filter(({ layer }) => !page.pdfArtwork || (layer.pdfPlacement === 'below') === (page.layers[index].pdfPlacement === 'below'));
+      const peerIndex = peers.findIndex(item => item.position === index);
+      const next = peers[peerIndex + direction]?.position;
+      if (next === undefined) return page;
       const layers = [...page.layers];
-      const [layer] = layers.splice(index, 1);
-      layers.splice(next, 0, layer);
+      [layers[index], layers[next]] = [layers[next], layers[index]];
       return { ...page, layers };
     });
   };
@@ -928,16 +954,69 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     });
   };
 
-  const saveTemplate = () => {
+  const saveTemplate = async () => {
+    if (isSavingTemplate) return;
+    setIsSavingTemplate(true);
     const snapshot = normalizeCustomPhotoTemplate({ ...cloneTemplate(template), updatedAt: new Date().toISOString() });
-    const next = [snapshot, ...savedTemplates.filter((item) => item.id !== snapshot.id)].slice(0, 12);
+    const usedSources = new Set(snapshot.pages.map(page => page.pdfArtwork?.sourceId));
+    snapshot.pdfSources = Object.fromEntries(Object.entries(snapshot.pdfSources || {}).filter(([id]) => usedSources.has(id)));
+    const next = [snapshot, ...savedTemplates.filter((item) => item.id !== snapshot.id)];
     try {
-      localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(next));
+      await writeStudioTemplate(snapshot);
       setSavedTemplates(next);
       toast({ title: 'Template saved', description: `${snapshot.name} is available on this device.` });
     } catch {
-      toast({ variant: 'destructive', title: 'Template is too large to save locally', description: 'Use a smaller background image, or continue without saving.' });
+      toast({ variant: 'destructive', title: 'Template could not be saved', description: 'Device storage may be full or unavailable. Your current design is still open; export it before closing.' });
+    } finally { setIsSavingTemplate(false); }
+  };
+
+  const importPdfPages = (pages: CustomPhotoPage[], source: StudioPdfSource, replace: boolean) => {
+    setTemplate(previous => ({ ...previous, pdfSources: { ...previous.pdfSources, [source.id]: source }, pages: replace ? previous.pages.flatMap(page => page.id === activePageId ? pages : [page]) : [...previous.pages, ...pages], updatedAt: new Date().toISOString() }));
+    setActivePageId(pages[0].id); setSelectedLayerId(null); setEditingCutouts(false);
+    setExpandedPageIds(previous => new Set([...previous, ...pages.map(page => page.id)]));
+  };
+
+  const updateCutouts = (cutouts: PdfCutout[]) => {
+    updateCurrentPage(page => page.pdfArtwork ? { ...page, pdfArtwork: { ...page.pdfArtwork, cutouts } } : page);
+  };
+
+  const openPixelEditor = async () => {
+    if (!selectedLayer || !selectedLayerData || selectedLayer.locked || preparingPixelEditor) return;
+    if (isPupilDataLayer(selectedLayer) && (!selectedLayerData.pupil.id || (selectedLayer.pupilScopeId && selectedLayer.pupilScopeId !== selectedLayerData.pupil.id))) {
+      toast({ title: 'Choose this layer’s pupil', description: 'Select the matching pupil in Pupils & output before editing this layer.' }); return;
     }
+    const request = ++pixelRequestRef.current;
+    setPreparingPixelEditor(true);
+    try {
+      if (selectedLayer.kind === 'text') await ensureDocXTemplateFontsLoaded({ ...template, pages: [{ ...currentPage, layers: [selectedLayer] }] });
+      const source = await rasterizeStudioLayer(selectedLayer, selectedLayerData, pageDimensions);
+      if (request === pixelRequestRef.current) setPixelEditor({ source, pageId: currentPage.id, layer: selectedLayer, data: selectedLayerData });
+    } catch (error) {
+      if (request === pixelRequestRef.current) toast({ variant: 'destructive', title: 'Layer could not be opened', description: error instanceof Error ? error.message : 'Try importing a local image if this photo does not permit pixel editing.' });
+    } finally { if (request === pixelRequestRef.current) setPreparingPixelEditor(false); }
+  };
+
+  const applyPixelEdit = (result: StudioPixelResult) => {
+    if (!pixelEditor) return;
+    const { layer, pageId, data } = pixelEditor;
+    const pupilBound = isPupilDataLayer(layer);
+    const setRaster = (original: CustomPhotoLayer, image: string): CustomPhotoLayer => pupilBound ? { ...original, pupilImageEdits: { ...original.pupilImageEdits, [data.pupil.id]: image } } : { ...original, rasterOverride: image };
+    const extracted = { ...createImageLayer('image', result.selected), id: makeStudioId('selection'), label: `${layer.label} selection`, x: layer.x, y: layer.y, width: layer.width, height: layer.height, opacity: layer.opacity, pdfPlacement: layer.pdfPlacement, outerRotation: getStudioOuterRotation(layer), ...(pupilBound ? { pupilScopeId: data.pupil.id, pupilDataMode: layer.pupilDataMode } : {}) };
+    updatePageById(pageId, page => ({ ...page, layers: [
+      ...page.layers.map(original => original.id === layer.id ? result.action === 'mask' ? setRaster(original, result.selected) : result.action === 'cut' && result.remainder ? setRaster(original, result.remainder) : original : original),
+      ...(result.action === 'mask' ? [] : [extracted]),
+    ] }));
+    setActivePageId(pageId);
+    setExpandedPageIds(previous => new Set(previous).add(pageId));
+    setSelectedLayerId(result.action === 'mask' ? layer.id : extracted.id);
+    setPixelEditor(null);
+  };
+
+  const restoreLayerPixels = () => {
+    if (!selectedLayer) return;
+    if (selectedLayerData?.pupil.id && selectedLayer.pupilImageEdits?.[selectedLayerData.pupil.id]) {
+      const edits = { ...selectedLayer.pupilImageEdits }; delete edits[selectedLayerData.pupil.id]; updateLayer(selectedLayer.id, { pupilImageEdits: edits });
+    } else updateLayer(selectedLayer.id, { rasterOverride: undefined });
   };
 
   const loadTemplate = (id: string) => {
@@ -976,7 +1055,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   }, []);
 
   const generatePdf = async () => {
-    if (selectedPupils.length === 0) return;
+    if (selectedPupils.length === 0 && !standalone) return;
     if (usesFees && feesProcessing) {
       toast({ title: 'Fee data is still loading', description: 'The print button will be ready as soon as all selected pupil balances are calculated.' });
       return;
@@ -994,7 +1073,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
           return createCustomPhotoPdf(template, selectedPupils, feesByPupil, exactOutputSettings, schoolInfo, (completed, total) => {
             setGenerationProgress({ completed, total });
             updateProgress(12 + Math.round((completed / Math.max(total, 1)) * 84), `Rendering page ${completed} of ${total}…`);
-          });
+          }, standalone);
         },
       );
     } catch (error) {
@@ -1008,8 +1087,23 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   return (
     <>
       <style>{DOCX_FONT_FACE_CSS}</style>
-      <div className="fixed inset-0 z-40 isolate flex flex-col overflow-hidden bg-slate-100 text-slate-900" role="dialog" aria-modal="true" aria-label="DocX Custom Photo Studio">
-        <header className="relative z-30 flex min-h-16 shrink-0 flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-3 py-2 shadow-sm sm:px-5">
+      {/* Escape the page's isolated scroll layer so the app frame cannot cover this full-screen editor. */}
+      <DialogPrimitive.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Content
+            asChild
+            onOpenAutoFocus={() => {
+              if (!returnFocusRef.current && document.activeElement instanceof HTMLElement) {
+                returnFocusRef.current = document.activeElement;
+              }
+            }}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              if (returnFocusRef.current?.isConnected) returnFocusRef.current.focus();
+            }}
+          >
+      <div className="fixed inset-0 z-50 isolate flex flex-col overflow-hidden bg-slate-100 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] text-slate-900 print:hidden" aria-label="DocX Custom Photo Studio">
+        <header className="relative z-30 flex max-h-[50dvh] min-h-16 shrink-0 flex-wrap items-center gap-3 overflow-y-auto border-b border-slate-200 bg-white px-3 py-2 shadow-sm sm:px-5">
           <Button variant="ghost" size="sm" onClick={onClose} className="rounded-full">
             <ChevronLeft className="mr-1.5 h-4 w-4" /> DocX
           </Button>
@@ -1017,12 +1111,12 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
             <div className="flex items-center gap-2">
               <span className="grid h-8 w-8 place-items-center rounded-xl bg-violet-100 text-violet-700"><WandSparkles className="h-4 w-4" /></span>
               <div className="min-w-0">
-                <p className="truncate text-sm font-black text-slate-900">Custom Photo Studio</p>
-                <p className="truncate text-[10px] font-medium text-slate-500">Design once, personalise for every selected pupil</p>
+                <DialogPrimitive.Title asChild><p className="truncate text-sm font-black text-slate-900">Custom Photo Studio</p></DialogPrimitive.Title>
+                <DialogPrimitive.Description asChild><p className="truncate text-[10px] font-medium text-slate-500">Design once, personalise for every selected pupil</p></DialogPrimitive.Description>
               </div>
             </div>
           </div>
-          <div className="flex rounded-full border border-slate-200 bg-slate-100 p-1">
+          <div className="flex max-w-full flex-wrap rounded-full border border-slate-200 bg-slate-100 p-1">
             <button type="button" onClick={() => setStage('design')} className={cn('rounded-full px-3 py-1.5 text-xs font-bold transition-colors', stage === 'design' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500')}>1. Design</button>
             <button type="button" onClick={() => setStage('output')} className={cn('rounded-full px-3 py-1.5 text-xs font-bold transition-colors', stage === 'output' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500')}>2. Pupils & output</button>
           </div>
@@ -1030,7 +1124,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
             <Button type="button" variant="ghost" size="icon" disabled={templateHistory.past.length === 0} onClick={undoTemplate} className="h-8 w-8 rounded-full" title="Undo (Ctrl+Z)" aria-label="Undo"><Undo2 className="h-3.5 w-3.5" /></Button>
             <Button type="button" variant="ghost" size="icon" disabled={templateHistory.future.length === 0} onClick={redoTemplate} className="h-8 w-8 rounded-full" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><Redo2 className="h-3.5 w-3.5" /></Button>
           </div>
-          <Button onClick={saveTemplate} variant="outline" size="sm" className="rounded-full"><Save className="mr-1.5 h-3.5 w-3.5" />Save</Button>
+          <Button onClick={() => void saveTemplate()} disabled={isSavingTemplate} variant="outline" size="sm" className="rounded-full">{isSavingTemplate ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-1.5 h-3.5 w-3.5" />}Save</Button>
           <Button onClick={() => setStage('output')} size="sm" className="rounded-full bg-violet-700 hover:bg-violet-800">Create documents <PanelRight className="ml-1.5 h-3.5 w-3.5" /></Button>
           <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full"><X className="h-4 w-4" /><span className="sr-only">Close editor</span></Button>
         </header>
@@ -1042,6 +1136,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                 <div><p className="text-xs font-black text-slate-800">Pages & layers</p><p className="text-[10px] text-slate-500">Arrange the document in one place.</p></div>
                 <Button size="icon" variant="outline" onClick={addPage} className="h-8 w-8 shrink-0 rounded-lg" title="Add page" aria-label="Add page"><Plus className="h-3.5 w-3.5" /></Button>
               </div>
+              <StudioPdfImport onImport={importPdfPages} />
               <div className="mb-3 grid grid-cols-2 gap-2">
                 <Button type="button" variant="outline" onClick={() => backgroundInputRef.current?.click()} className="h-8 justify-start px-2 text-[10px]"><ImagePlus className="mr-1.5 h-3.5 w-3.5" />Template</Button>
                 <DropdownMenu>
@@ -1052,7 +1147,11 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                     <DropdownMenuItem onSelect={() => addLayer(createImageLayer('schoolLogo'))}><Building2 className="mr-2 h-4 w-4" />School badge</DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => imageLayerInputRef.current?.click()}><FilePlus2 className="mr-2 h-4 w-4" />Imported photo or art</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => addLayer(createShapeLayer())}><LayoutGrid className="mr-2 h-4 w-4" />Shape</DropdownMenuItem>
+                    <DropdownMenuSub><DropdownMenuSubTrigger><LayoutGrid className="mr-2 h-4 w-4" />Shape</DropdownMenuSubTrigger><DropdownMenuPortal><DropdownMenuSubContent>{SHAPE_OPTIONS.map(shape => <DropdownMenuItem key={shape.value} onSelect={() => {
+                      const layer = createShapeLayer(shape.value);
+                      if (shape.value === 'circle') { layer.height = Math.min(0.7, layer.width * pageDimensions.widthMm / pageDimensions.heightMm); layer.width = layer.height * pageDimensions.heightMm / pageDimensions.widthMm; }
+                      addLayer(layer);
+                    }}>{shape.label}</DropdownMenuItem>)}</DropdownMenuSubContent></DropdownMenuPortal></DropdownMenuSub>
                     <DropdownMenuItem onSelect={() => addLayer(createCustomTextLayer())}><Type className="mr-2 h-4 w-4" />Manual text box</DropdownMenuItem>
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger><CircleUserRound className="mr-2 h-4 w-4" />Pupil information</DropdownMenuSubTrigger>
@@ -1090,18 +1189,22 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                       </div>
                       {expanded && (
                         <div className="space-y-1 border-t border-slate-200/80 bg-white/75 p-1.5">
-                          {page.layers.length === 0 && <p className="px-2 py-2 text-center text-[10px] text-slate-400">No layers on this page</p>}
-                          {[...page.layers].reverse().map((layer) => {
-                            const layerIndex = page.layers.findIndex((item) => item.id === layer.id);
+                          {page.pdfArtwork && <p className="flex items-center gap-1 rounded bg-amber-100 px-2 py-2 text-[10px] font-bold text-amber-900"><Lock className="h-3 w-3 shrink-0" />PDF artwork locked · {page.pdfArtwork.cutouts.length} cutouts</p>}
+                          {page.layers.length === 0 && <p className="px-2 py-2 text-center text-[10px] text-slate-400">Add photos, text or shapes</p>}
+                          {[...page.layers].sort((a, b) => page.pdfArtwork ? Number(a.pdfPlacement !== 'below') - Number(b.pdfPlacement !== 'below') : 0).reverse().map((layer) => {
+                            const peers = page.layers.filter(item => !page.pdfArtwork || (item.pdfPlacement === 'below') === (layer.pdfPlacement === 'below'));
+                            const layerIndex = peers.findIndex((item) => item.id === layer.id);
                             return (
                               <div key={layer.id} className={cn('flex items-center gap-1 rounded-lg px-1 py-1', activePageId === page.id && selectedLayerId === layer.id ? 'bg-violet-100 text-violet-900' : 'text-slate-600 hover:bg-slate-100')}>
-                                <button type="button" onClick={() => { setActivePageId(page.id); setSelectedLayerId(layer.id); }} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
+                                <button type="button" onClick={() => { setActivePageId(page.id); setSelectedLayerId(layer.id); setEditingCutouts(false); }} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
                                   {layer.kind === 'avatar' ? <CircleUserRound className="h-3.5 w-3.5 shrink-0" /> : layer.kind === 'schoolLogo' ? <Building2 className="h-3.5 w-3.5 shrink-0" /> : layer.kind === 'image' ? <FileImage className="h-3.5 w-3.5 shrink-0" /> : <Type className="h-3.5 w-3.5 shrink-0" />}
                                   <span className="min-w-0 flex-1 truncate text-[10px] font-semibold">{layer.label}</span>
+                                  {page.pdfArtwork && <span className="rounded bg-slate-100 px-1 text-[8px] text-slate-600">{layer.pdfPlacement === 'below' ? 'Below' : 'Above'}</span>}
                                   {layer.hidden && <EyeOff className="h-3 w-3 shrink-0" />}
                                   {layer.locked && <Lock className="h-3 w-3 shrink-0" />}
                                 </button>
-                                {isPupilDataLayer(layer) && (
+                                {layer.pupilScopeId && <span className="px-1 text-[8px] font-bold text-violet-700" title="This extracted layer appears only on pages containing its source pupil">Pupil only</span>}
+                                {isPupilDataLayer(layer) && !layer.pupilScopeId && (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <button type="button" className={cn('rounded px-1.5 py-1 text-[8px] font-black uppercase ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-1', layer.pupilDataMode === 'follow' ? 'bg-cyan-100 text-cyan-700 hover:bg-cyan-200' : 'bg-amber-100 text-amber-700 hover:bg-amber-200')} aria-label={`Pupil list behaviour: ${layer.pupilDataMode === 'follow' ? 'follow list' : 'duplicate'}`}>{layer.pupilDataMode === 'follow' ? 'Fol' : 'Dup'}</button>
@@ -1126,7 +1229,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                                   </DropdownMenu>
                                 )}
                                 <div className="flex shrink-0 items-center">
-                                  <Button type="button" variant="ghost" size="icon" disabled={layerIndex === page.layers.length - 1} onClick={() => moveLayerOrder(page.id, layer.id, 1)} className="h-6 w-5" title="Bring forward" aria-label="Bring layer forward"><ArrowUp className="h-3 w-3" /></Button>
+                                  <Button type="button" variant="ghost" size="icon" disabled={layerIndex === peers.length - 1} onClick={() => moveLayerOrder(page.id, layer.id, 1)} className="h-6 w-5" title="Bring forward" aria-label="Bring layer forward"><ArrowUp className="h-3 w-3" /></Button>
                                   <Button type="button" variant="ghost" size="icon" disabled={layerIndex === 0} onClick={() => moveLayerOrder(page.id, layer.id, -1)} className="h-6 w-5" title="Send backward" aria-label="Send layer backward"><ArrowDown className="h-3 w-3" /></Button>
                                   <Button type="button" variant="ghost" size="icon" onClick={() => duplicateLayer(page.id, layer.id)} className="h-6 w-5" title="Duplicate layer" aria-label="Duplicate layer"><Copy className="h-3 w-3" /></Button>
                                   <Button type="button" variant="ghost" size="icon" onClick={() => removeLayer(page.id, layer.id)} className="h-6 w-5 text-rose-600" title="Delete layer" aria-label="Delete layer"><Trash2 className="h-3 w-3" /></Button>
@@ -1142,6 +1245,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
               </div>
               <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
                 <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-slate-500">Page setup</p>
+                {currentPage.pdfArtwork && <p className="mb-2 text-[10px] leading-4 text-slate-600">PDF canvas size is fixed to the original. Size and orientation below set the collage sheet and blank-page defaults.</p>}
                 <Input value={template.name} onChange={(event) => setTemplate((previous) => ({ ...previous, name: event.target.value }))} className="mb-2 h-8 bg-white text-xs font-bold" aria-label="Template name" />
                 <div className="grid grid-cols-2 gap-2">
                   <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Document size</span><Select value={template.paperSize} onValueChange={(value) => applyPageFormat(value as PaperSize, template.pageOrientation)}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger><SelectContent>{PAPER_SIZE_OPTIONS.map((size) => <SelectItem key={size.value} value={size.value}>{size.label}{size.value !== 'custom' ? ` · ${size.widthMm} × ${size.heightMm} mm` : ''}</SelectItem>)}</SelectContent></Select></label>
@@ -1149,11 +1253,16 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <NumberInput label="Safe margin" value={template.pageMarginMm} min={0} max={50} suffix="mm" onChange={(value) => setTemplate((previous) => ({ ...previous, pageMarginMm: value }))} />
-                  <div className="rounded-lg border border-violet-100 bg-violet-50 px-2 py-1.5"><p className="text-[9px] font-semibold text-violet-500">Canvas</p><p className="mt-1 text-[10px] font-black text-violet-800">{template.aspectWidth} × {template.aspectHeight} mm</p></div>
+                  <div className="rounded-lg border border-violet-100 bg-violet-50 px-2 py-1.5"><p className="text-[9px] font-semibold text-violet-500">Canvas</p><p className="mt-1 text-[10px] font-black text-violet-800">{Number(pageDimensions.widthMm.toFixed(1))} × {Number(pageDimensions.heightMm.toFixed(1))} mm</p></div>
                 </div>
                 {template.paperSize === 'custom' && <div className="mt-2 grid grid-cols-2 gap-2"><NumberInput label="Custom width" value={template.aspectWidth} min={20} max={1000} suffix="mm" onChange={(value) => setTemplate((previous) => ({ ...previous, aspectWidth: value }))} /><NumberInput label="Custom height" value={template.aspectHeight} min={20} max={1000} suffix="mm" onChange={(value) => setTemplate((previous) => ({ ...previous, aspectHeight: value }))} /></div>}
                 <div className="mt-2 grid grid-cols-2 gap-2"><label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Background fit</span><Select value={currentPage?.backgroundFit} onValueChange={(value) => updateCurrentPage((page) => ({ ...page, backgroundFit: value as CustomPhotoPage['backgroundFit'] }))}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="cover">Cover</SelectItem><SelectItem value="contain">Contain</SelectItem><SelectItem value="stretch">Stretch</SelectItem></SelectContent></Select></label><label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Page colour</span><Input type="color" value={currentPage?.backgroundColor || '#ffffff'} onChange={(event) => updateCurrentPage((page) => ({ ...page, backgroundColor: event.target.value }))} className="h-8 bg-white p-1" /></label></div>
               </div>
+
+              {currentPage.pdfArtwork && <>
+                <StudioPdfCutouts artwork={currentPage.pdfArtwork} onChange={updateCutouts} editing={editingCutouts} setEditing={value => { setEditingCutouts(value); if (value) setSelectedLayerId(null); }} />
+                {template.pdfSources?.[currentPage.pdfArtwork.sourceId] && <a className="mt-2 block text-center text-xs font-semibold text-violet-700 underline" href={template.pdfSources[currentPage.pdfArtwork.sourceId].dataUrl} download={template.pdfSources[currentPage.pdfArtwork.sourceId].name}>Download unchanged source PDF</a>}
+              </>}
 
               <div className="mt-3 rounded-xl border border-cyan-200 bg-cyan-50/80 p-3">
                 <div className="mb-2 flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-white text-cyan-700 shadow-sm"><Columns2 className="h-3.5 w-3.5" /></span><div><p className="text-[10px] font-black uppercase tracking-wider text-cyan-900">Page splitter</p><p className="text-[9px] text-cyan-700">Equal pupil columns across every page</p></div></div>
@@ -1173,11 +1282,12 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                 <div className={cn('flex min-h-full min-w-full', canvasZoom > 1 ? 'items-start justify-start' : 'items-center justify-center')}>
                   <div
                     ref={canvasRef}
+                    data-studio-canvas
                     onClick={() => setSelectedLayerId(null)}
                     className="relative shrink-0 overflow-hidden bg-white shadow-[0_24px_80px_rgba(15,23,42,0.25)] ring-1 ring-slate-900/10"
                     style={{
-                      width: template.aspectWidth >= template.aspectHeight ? `min(${78 * canvasZoom}vw, ${800 * canvasZoom}px)` : `min(${58 * canvasZoom}vw, ${620 * canvasZoom}px)`,
-                      aspectRatio: `${template.aspectWidth}/${template.aspectHeight}`,
+                      width: pageDimensions.widthMm >= pageDimensions.heightMm ? `min(${78 * canvasZoom}vw, ${800 * canvasZoom}px)` : `min(${58 * canvasZoom}vw, ${620 * canvasZoom}px)`,
+                      aspectRatio: `${pageDimensions.widthMm}/${pageDimensions.heightMm}`,
                       backgroundColor: currentPage?.backgroundColor,
                       containerType: 'inline-size',
                     }}
@@ -1186,6 +1296,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={currentPage.background} alt="Imported page artwork" draggable={false} className={cn('pointer-events-none absolute inset-0 h-full w-full', currentPage.backgroundFit === 'cover' ? 'object-cover' : currentPage.backgroundFit === 'contain' ? 'object-contain' : 'object-fill')} />
                   )}
+                  {currentPage.pdfArtwork && <StudioPdfArtwork artwork={currentPage.pdfArtwork} />}
                   {template.pageColumns > 1 && (
                     <div className="pointer-events-none absolute inset-0 z-10 flex">
                       {Array.from({ length: template.pageColumns }, (_, columnIndex) => (
@@ -1205,17 +1316,17 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                   )}
                     {currentPage?.layers.map((layer) => {
                       const pupilBound = isPupilDataLayer(layer);
-                      const layerData = pupilBound && layer.pupilDataMode === 'follow'
-                        ? previewRenderData[getLayerColumnIndex(layer, template.pageColumns)]
-                        : previewRenderData[0];
+                      if (standalone && pupilBound) return null;
+                      const layerData = getStudioLayerData(layer, previewRenderData, template.pageColumns);
                       if (pupilBound && layer.pupilDataMode === 'follow' && !layerData) return null;
+                      if (layer.pupilScopeId && layer.pupilScopeId !== layerData?.pupil.id) return null;
                       return (
                         <StudioLayer
                           key={layer.id}
                           layer={layer}
                           data={layerData}
-                          selected={selectedLayerId === layer.id}
-                          onSelect={() => setSelectedLayerId(layer.id)}
+                          selected={!editingCutouts && selectedLayerId === layer.id}
+                          onSelect={() => { setSelectedLayerId(layer.id); setEditingCutouts(false); }}
                           onPointerDown={(event) => beginTransform(event, layer, 'move')}
                           onResizePointerDown={(event) => beginTransform(event, layer, 'resize')}
                           onRotate={() => updateLayer(layer.id, { rotation: ((layer.rotation + 15 + 180) % 360) - 180 })}
@@ -1223,6 +1334,10 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                         />
                       );
                     })}
+                    {currentPage.pdfArtwork && selectedLayer && selectedLayer.pdfPlacement === 'below' && !selectedLayer.hidden && !editingCutouts && <div className="pointer-events-none absolute border-2 border-dashed border-violet-500" style={{ zIndex: 20, left: `${selectedLayer.x * 100}%`, top: `${selectedLayer.y * 100}%`, width: `${selectedLayer.width * 100}%`, height: `${selectedLayer.height * 100}%`, transform: `rotate(${getStudioOuterRotation(selectedLayer)}deg)` }}>
+                      {!selectedLayer.locked && <button type="button" aria-label="Resize element below PDF" className="pointer-events-auto absolute -bottom-2 -right-2 h-5 w-5 cursor-se-resize touch-none rounded-full border-2 border-white bg-violet-600" onPointerDown={event => beginTransform(event, selectedLayer, 'resize')} />}
+                    </div>}
+                    {currentPage.pdfArtwork && editingCutouts && <StudioCutoutHandles artwork={currentPage.pdfArtwork} onChange={updateCutouts} onGroup={active => { historyGroupRef.current = active; historyGroupRecordedRef.current = false; }} />}
                   </div>
                 </div>
               </div>
@@ -1233,7 +1348,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                   <button type="button" onClick={() => setCanvasZoom(1)} className="min-w-11 px-1 text-[9px] font-black tabular-nums text-slate-600" title="Reset canvas zoom">{Math.round(canvasZoom * 100)}%</button>
                   <Button type="button" variant="ghost" size="icon" disabled={canvasZoom >= 4} onClick={() => setCanvasZoom((value) => clamp(Number((value + 0.1).toFixed(2)), 0.25, 4))} className="h-6 w-6 rounded-full" title="Zoom in" aria-label="Zoom in"><ZoomIn className="h-3 w-3" /></Button>
                 </div>
-                <span className="font-semibold">Preview pupil: {previewPupil ? pupilDisplayName(previewPupil) : 'No pupils found'}</span>
+                <span className="font-semibold">{standalone ? 'Document only · pupil data omitted' : `Preview pupil: ${previewPupil ? pupilDisplayName(previewPupil) : 'No pupils found'}`}</span>
               </div>
             </section>
 
@@ -1243,16 +1358,29 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                 <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center"><Layers3 className="mx-auto mb-2 h-7 w-7 text-slate-400" /><p className="text-xs font-bold text-slate-600">Select a layer</p><p className="mt-1 text-[10px] text-slate-500">Click any item on the page or in the layer list.</p></div>
               ) : (
                 <div className="space-y-4">
+                  <div className="space-y-2 rounded-xl border border-violet-200 bg-violet-50 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-violet-900">Photo & object tools</p>
+                    <Button className="h-auto min-h-10 w-full whitespace-normal text-xs" disabled={selectedLayer.locked || preparingPixelEditor || !selectedLayerData || (isPupilDataLayer(selectedLayer) && (!selectedLayerData.pupil.id || (!!selectedLayer.pupilScopeId && selectedLayer.pupilScopeId !== selectedLayerData.pupil.id)))} onClick={() => void openPixelEditor()}>{preparingPixelEditor ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : <WandSparkles className="mr-2 h-4 w-4 shrink-0" />}Background remover & object selector</Button>
+                    <p className="text-[10px] leading-4 text-violet-800">Select an object, refine the edges, then keep it or create a layer via cut or copy. {isPupilDataLayer(selectedLayer) ? 'Edits apply to this preview pupil in this template only.' : 'The original source stays available.'}</p>
+                    {selectedLayerRaster && <Button variant="outline" size="sm" className="w-full text-xs" disabled={selectedLayer.locked} onClick={restoreLayerPixels}><RotateCcw className="mr-1 h-3.5 w-3.5" />Restore original layer pixels</Button>}
+                  </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
                     <div className="mb-3 flex items-center gap-2">
-                      <Input value={selectedLayer.label} onChange={(event) => updateLayer(selectedLayer.id, { label: event.target.value })} className="h-8 flex-1 bg-white text-xs font-bold" />
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => updateLayer(selectedLayer.id, { hidden: !selectedLayer.hidden })}>{selectedLayer.hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}</Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => updateLayer(selectedLayer.id, { locked: !selectedLayer.locked })}>{selectedLayer.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}</Button>
+                      <Input aria-label="Layer name" value={selectedLayer.label} onChange={(event) => updateLayer(selectedLayer.id, { label: event.target.value })} className="h-8 flex-1 bg-white text-xs font-bold" />
+                      <Button size="icon" variant="ghost" className="h-8 w-8" aria-label={selectedLayer.hidden ? 'Show selected layer' : 'Hide selected layer'} onClick={() => updateLayer(selectedLayer.id, { hidden: !selectedLayer.hidden })}>{selectedLayer.hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}</Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" aria-label={selectedLayer.locked ? 'Unlock selected layer' : 'Lock selected layer'} onClick={() => updateLayer(selectedLayer.id, { locked: !selectedLayer.locked })}>{selectedLayer.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}</Button>
                     </div>
+                    {currentPage.pdfArtwork && <label className="mb-3 block space-y-1 text-xs font-semibold">Position relative to PDF<select aria-label="Position relative to PDF" className="h-9 w-full rounded-md border bg-white px-2 text-xs" value={selectedLayer.pdfPlacement || 'above'} onChange={event => updateLayer(selectedLayer.id, { pdfPlacement: event.target.value as CustomPhotoLayer['pdfPlacement'] })}><option value="above">Above PDF artwork</option><option value="below">Below PDF artwork</option></select></label>}
+                    {currentPage.pdfArtwork && <div className="mb-3 grid grid-cols-2 gap-2">
+                      <NumberInput label="X position" value={selectedLayer.x * 100} min={0} max={100} suffix="%" onChange={value => updateLayer(selectedLayer.id, { x: value / 100 })} />
+                      <NumberInput label="Y position" value={selectedLayer.y * 100} min={0} max={100} suffix="%" onChange={value => updateLayer(selectedLayer.id, { y: value / 100 })} />
+                      <NumberInput label="Element width" value={selectedLayer.width * 100} min={0.5} max={100} suffix="%" onChange={value => updateLayer(selectedLayer.id, { width: value / 100 })} />
+                      <NumberInput label="Element height" value={selectedLayer.height * 100} min={0.5} max={100} suffix="%" onChange={value => updateLayer(selectedLayer.id, { height: value / 100 })} />
+                    </div>}
                     <p className="rounded-lg border border-dashed border-slate-200 bg-white/75 px-2.5 py-2 text-[10px] leading-4 text-slate-500">Use the rotate arrow or settings button on the selected layer to adjust its position, size, rotation, opacity and page-boundary mask.</p>
                   </div>
 
-                  {selectedLayer.kind !== 'text' && selectedLayer.kind !== 'shape' ? (
+                  {selectedLayerRaster ? <p className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">This layer has pixel edits. Position and opacity remain editable. Restore its original pixels to change the original text, shape or photo treatment.</p> : selectedLayer.kind !== 'text' && selectedLayer.kind !== 'shape' ? (
                     <div className="space-y-3 rounded-xl border border-slate-200 p-3">
                       <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Photo frame & crop</p>
                       <div className="grid grid-cols-2 gap-2">
@@ -1279,6 +1407,12 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                         <SelectTrigger className="h-8 bg-white text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>{SHAPE_OPTIONS.map((shape) => <SelectItem key={shape.value} value={shape.value}>{shape.label}</SelectItem>)}</SelectContent>
                       </Select>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="flex items-center gap-2 rounded-lg border bg-slate-50 p-2 text-xs font-semibold"><Checkbox aria-label="Shape fill" checked={selectedLayer.appearance.fillEnabled !== false} onCheckedChange={checked => updateLayerAppearance(selectedLayer.id, appearance => ({ ...appearance, fillEnabled: checked === true }))} />Fill</label>
+                        <label className="flex items-center gap-2 rounded-lg border bg-slate-50 p-2 text-xs font-semibold"><Checkbox aria-label="Shape outline" checked={selectedLayer.appearance.stroke.enabled} onCheckedChange={checked => updateLayerAppearance(selectedLayer.id, appearance => ({ ...appearance, stroke: { ...appearance.stroke, enabled: checked === true, width: checked === true ? Math.max(2, appearance.stroke.width) : appearance.stroke.width } }))} />Outline</label>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2"><label className="text-[10px]">Fill colour<Input aria-label="Shape fill colour" type="color" className="h-9 bg-white p-1" value={selectedLayer.appearance.fill.color} disabled={selectedLayer.appearance.fillEnabled === false} onChange={event => setLayerSolidFill(selectedLayer.id, event.target.value)} /></label><label className="text-[10px]">Outline colour<Input aria-label="Shape outline colour" type="color" className="h-9 bg-white p-1" value={selectedLayer.appearance.stroke.paint.color} disabled={!selectedLayer.appearance.stroke.enabled} onChange={event => updateLayerAppearance(selectedLayer.id, appearance => ({ ...appearance, stroke: { ...appearance.stroke, paint: createLayerPaint(event.target.value) } }))} /></label></div>
+                      <NumberInput label="Outline width" value={selectedLayer.appearance.stroke.width} min={0} max={40} suffix="px" onChange={value => updateLayerAppearance(selectedLayer.id, appearance => ({ ...appearance, stroke: { ...appearance.stroke, width: value, enabled: value > 0 } }))} />
                       <p className="rounded-lg bg-slate-50 p-2 text-[9px] leading-3.5 text-slate-500">Use Appearance below to make this shape metallic, glossy, bevelled or dimensional.</p>
                     </div>
                   ) : (
@@ -1322,7 +1456,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                     </div>
                   )}
 
-                  {selectedLayer.kind !== 'text' && selectedLayer.kind !== 'shape' && (
+                  {!selectedLayerRaster && selectedLayer.kind !== 'text' && selectedLayer.kind !== 'shape' && (
                     <details className="group overflow-hidden rounded-xl border border-sky-200 bg-sky-50/55">
                       <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-sky-900 marker:hidden"><span>Frame finish</span><ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" /></summary>
                       <div className="grid grid-cols-2 gap-2 border-t border-sky-100 p-3">
@@ -1334,7 +1468,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                     </details>
                   )}
 
-                  {(selectedLayer.kind === 'text' || selectedLayer.kind === 'shape') && (
+                  {!selectedLayerRaster && (selectedLayer.kind === 'text' || selectedLayer.kind === 'shape') && (
                     <details open className="group overflow-hidden rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50/70 via-white to-violet-50/60">
                       <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-amber-900 marker:hidden">
                         <span className="flex items-center gap-1.5"><WandSparkles className="h-3.5 w-3.5 text-amber-600" />Appearance & depth</span>
@@ -1434,6 +1568,8 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
 
             <aside className="space-y-3 overflow-y-auto rounded-2xl border border-white/80 bg-white/85 p-4 shadow-sm backdrop-blur-xl">
               <div><p className="text-sm font-black text-slate-900">Page output</p><p className="text-[10px] text-slate-500">Print uses the same page setup as the editing canvas.</p></div>
+              <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs"><Checkbox checked={standalone} onCheckedChange={value => setStandalone(value === true)} aria-label="Export once without pupil data" /><span><span className="block font-bold">Export once without pupil data</span><span className="mt-1 block text-[10px] text-slate-500">Print your PDF artwork and manual elements without selecting pupils. Pupil photos and fields are omitted.</span></span></label>
+              {template.pages.some(page => page.pdfArtwork) && <p className="rounded-lg bg-amber-50 p-2 text-[11px] text-amber-900">One design per sheet preserves each PDF page’s original size. Collage output uses the sheet defaults below. The exported PDF is flattened; the source PDF stays unchanged.</p>}
               <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3">
                 <div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-white text-emerald-700 shadow-sm"><Maximize2 className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="text-xs font-black text-emerald-900">Exact design page</p><p className="text-[10px] text-emerald-700">{PAPER_SIZE_OPTIONS.find((size) => size.value === template.paperSize)?.label || 'Custom'} · {template.pageOrientation} · {template.aspectWidth} × {template.aspectHeight} mm</p></div><Check className="h-4 w-4 text-emerald-700" /></div>
                 <p className="mt-2 text-[9px] leading-3.5 text-emerald-700">Orientation, canvas proportions and the {template.pageMarginMm} mm safe margin remain owned by Page setup.</p>
@@ -1468,7 +1604,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                 <p className="text-[10px] leading-4 text-violet-700">For multipage designs, every pupil group gets page 1, page 2, and each additional design page in sequence.</p>
               </div>
 
-              <Button onClick={generatePdf} disabled={selectedPupils.length === 0 || isGenerating || (usesFees && feesProcessing)} className="h-11 w-full rounded-xl bg-violet-700 font-bold hover:bg-violet-800">
+              <Button onClick={generatePdf} disabled={(!standalone && selectedPupils.length === 0) || isGenerating || (usesFees && feesProcessing)} className="h-11 w-full rounded-xl bg-violet-700 font-bold hover:bg-violet-800">
                 {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
                 {isGenerating ? `Creating page ${generationProgress.completed} of ${generationProgress.total}…` : 'Open in-app print preview'}
               </Button>
@@ -1488,6 +1624,11 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
           />
         )}
       </div>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
+
+      {pixelEditor && <StudioLayerEditor source={pixelEditor.source} label={pixelEditor.layer.label} pupilName={isPupilDataLayer(pixelEditor.layer) ? pupilDisplayName(pixelEditor.data.pupil) : undefined} onClose={() => setPixelEditor(null)} onApply={applyPixelEdit} />}
 
       <PDFViewer
         isOpen={pdfViewer.isOpen}
