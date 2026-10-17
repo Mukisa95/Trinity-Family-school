@@ -1,11 +1,12 @@
 "use client";
 
 import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
-import React, { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { SMSComposer, type SMSComposerHandle } from '@/components/BulkSMS/SMSComposer';
+import { smsDocumentText } from '@/lib/utils/sms-document';
 import { useToast } from '@/hooks/use-toast';
 import {
   Card,
@@ -109,9 +110,6 @@ interface MessageTemplate {
   createdAt: string;
 }
 
-const MESSAGE_MIN_CHARS = 320;
-const MESSAGE_MAX_EXPAND_CHARS = 480;
-
 function getCharacterCountColor(count: number): string {
   if (count === 0) return '#2563eb';
   if (count <= 130) return '#16a34a';
@@ -156,8 +154,7 @@ const BulkSMS: React.FC = () => {
   const [wizaBalance, setWizaBalance] = useState<string | null>(null);
   const [balanceLoading, setBalanceLoading] = useState<boolean>(false);
   const [lockedBalance, setLockedBalance] = useState<number>(0);
-  const messageTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const [textareaHeights, setTextareaHeights] = useState({ min: 0, max: 0 });
+  const composerRef = useRef<SMSComposerHandle>(null);
 
   const { toast } = useToast();
   const router = useRouter();
@@ -381,59 +378,10 @@ const BulkSMS: React.FC = () => {
 
   // Effect to update character count and message count
   useEffect(() => {
-    setCharacterCount(message.length);
-    setMessageCount(message.length > 0 ? Math.ceil(message.length / 160) : 1);
+    const length = smsDocumentText(message).length;
+    setCharacterCount(length);
+    setMessageCount(length > 0 ? Math.ceil(length / 160) : 1);
   }, [message]);
-
-  const measureTextareaHeights = useCallback(() => {
-    const el = messageTextareaRef.current;
-    if (!el) return;
-
-    const measure = (charCount: number) => {
-      const savedValue = el.value;
-      const savedHeight = el.style.height;
-      const savedOverflow = el.style.overflowY;
-
-      el.value = charCount > 0 ? '.'.repeat(charCount) : '';
-      el.style.height = 'auto';
-      el.style.overflowY = 'hidden';
-      const height = el.scrollHeight;
-
-      el.value = savedValue;
-      el.style.height = savedHeight;
-      el.style.overflowY = savedOverflow;
-      return height;
-    };
-
-    setTextareaHeights({
-      min: measure(MESSAGE_MIN_CHARS),
-      max: measure(MESSAGE_MAX_EXPAND_CHARS),
-    });
-  }, []);
-
-  useLayoutEffect(() => {
-    measureTextareaHeights();
-    window.addEventListener('resize', measureTextareaHeights);
-    return () => window.removeEventListener('resize', measureTextareaHeights);
-  }, [measureTextareaHeights]);
-
-  useLayoutEffect(() => {
-    const el = messageTextareaRef.current;
-    const { min, max } = textareaHeights;
-    if (!el || min === 0) return;
-
-    el.style.height = 'auto';
-    const contentHeight = el.scrollHeight;
-
-    if (characterCount > MESSAGE_MAX_EXPAND_CHARS) {
-      el.style.height = `${max}px`;
-      el.style.overflowY = 'auto';
-      return;
-    }
-
-    el.style.height = `${Math.min(max, Math.max(min, contentHeight))}px`;
-    el.style.overflowY = 'hidden';
-  }, [message, characterCount, textareaHeights]);
 
   // Preserve pupil and guardian context so repeated family numbers can be
   // reviewed before sending instead of becoming an anonymous phone array.
@@ -1039,14 +987,13 @@ const BulkSMS: React.FC = () => {
           <Card className="h-fit pt-6">
             <CardContent className="space-y-5">
               <div className="space-y-4">
-                <Textarea
+                <SMSComposer
                   id="bulk-message"
                   aria-label="Message"
-                  ref={messageTextareaRef}
+                  ref={composerRef}
                   placeholder="Type your message here..."
                   value={message}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => { setMessage(e.target.value); sendValidation.handleFieldChange('bulk-message'); }}
-                  className="resize-none overflow-hidden"
+                  onChange={value => { setMessage(value); sendValidation.handleFieldChange('bulk-message'); }}
                   {...sendValidation.getFieldProps('bulk-message')}
                 />
                 <FieldError error={sendValidation.getFieldError('bulk-message')} />
@@ -1055,14 +1002,8 @@ const BulkSMS: React.FC = () => {
                   message={message}
                   options={customisationOptions}
                   onOptionsChange={setCustomisationOptions}
-                  onInsert={text => {
-                    const control = messageTextareaRef.current;
-                    const start = control?.selectionStart ?? message.length;
-                    const end = control?.selectionEnd ?? start;
-                    setMessage(message.slice(0, start) + text + message.slice(end));
-                    sendValidation.handleFieldChange('bulk-message');
-                    requestAnimationFrame(() => { control?.focus(); control?.setSelectionRange(start + text.length, start + text.length); });
-                  }}
+                  onInsertField={field => composerRef.current?.insertField(field)}
+                  onInsertText={text => composerRef.current?.insertText(text)}
                   pupils={allPupils}
                   classes={classes}
                   recipients={recipients}
@@ -1076,7 +1017,7 @@ const BulkSMS: React.FC = () => {
                     void fetchWizaBalance();
                   }}
                 />
-                <div className="flex flex-col space-y-2">
+                {!personalisedActive && <div className="flex flex-col space-y-2">
                   <div className="flex items-center justify-between text-sm px-1 text-gray-500 dark:text-slate-400">
                     <div className="flex items-center gap-2">
                       <span className="font-mono tabular-nums font-medium">
@@ -1112,7 +1053,7 @@ const BulkSMS: React.FC = () => {
                       Warning: Your message exceeds 160 characters and will be charged as {messageCount} separate SMS messages.
                     </div>
                   )}
-                </div>
+                </div>}
               </div>
 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-2">

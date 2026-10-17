@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { SMSComposer, type SMSComposerHandle } from '@/components/BulkSMS/SMSComposer';
 import { Label } from '@/components/ui/label';
 import { MessageSquare, Send, Eye, ArrowLeft } from 'lucide-react';
 import { SMSService } from '@/lib/services/sms.service';
@@ -36,13 +36,13 @@ export function BulkSMSModal({ isOpen, onClose, currentUser, previewRequest, cur
   const [deliveries, setDeliveries] = useState<FeesSMSDelivery[]>([]);
   const [isSending, setIsSending] = useState(false);
   const sendingRef = useRef(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { pupils, classes, pupilFeesInfo, selectedFeeId, feeItemName, yearName, termName, isFeesLoading, feesError } = context;
+  const composerRef = useRef<SMSComposerHandle>(null);
+  const { pupils, classes, pupilFeesInfo, selectedFeeId, feeItemName, yearName, termName, termNumber, allowFees, isFeesLoading, feesError } = context;
   const preview = useMemo(() => buildFeesSMSPreview(message, parents, {
-    pupils, classes, pupilFeesInfo, selectedFeeId, feeItemName, yearName, termName, isFeesLoading, feesError,
+    pupils, classes, pupilFeesInfo, selectedFeeId, feeItemName, yearName, termName, termNumber, allowFees, isFeesLoading, feesError,
   }, options), [
     message, parents, pupils, classes, pupilFeesInfo, selectedFeeId, feeItemName,
-    yearName, termName, isFeesLoading, feesError, options,
+    yearName, termName, termNumber, allowFees, isFeesLoading, feesError, options,
   ]);
   useEffect(() => {
     if (previewRequest && !sendingRef.current) {
@@ -60,17 +60,6 @@ export function BulkSMSModal({ isOpen, onClose, currentUser, previewRequest, cur
   const started = deliveries.length > 0;
   const changed = Boolean(review && !started && JSON.stringify(review) !== JSON.stringify(currentPreview || preview));
 
-  const insertText = (text: string) => {
-    const control = textareaRef.current;
-    const start = control?.selectionStart ?? message.length;
-    const end = control?.selectionEnd ?? start;
-    setMessage(message.slice(0, start) + text + message.slice(end));
-    form.handleFieldChange('fees-sms-message');
-    requestAnimationFrame(() => {
-      control?.focus();
-      control?.setSelectionRange(start + text.length, start + text.length);
-    });
-  };
   const handleReview = () => {
     if (!form.validateAll().isValid) return;
     if (preview.issues.length) return;
@@ -121,7 +110,7 @@ export function BulkSMSModal({ isOpen, onClose, currentUser, previewRequest, cur
         <div className="min-h-0 min-w-0 space-y-4 overflow-y-auto pr-1">
           <div className="rounded-xl border border-brand-200 bg-brand-surface-50 px-3 py-2 text-xs text-brand-ink-900 dark:border-brand-800 dark:bg-brand-surface-950/40 dark:text-brand-ink-100">
             {(review || preview).scope}
-            <p className="mt-1 text-brand-ink-700 dark:text-brand-ink-300">Amounts use the fee item and academic period selected on the collection page.</p>
+            {allowFees !== false && <p className="mt-1 text-brand-ink-700 dark:text-brand-ink-300">Amounts use the fee item and academic period selected on the collection page.</p>}
           </div>
 
           {!review ? (
@@ -140,9 +129,9 @@ export function BulkSMSModal({ isOpen, onClose, currentUser, previewRequest, cur
               </fieldset>
               <div className="space-y-2">
                 <Label htmlFor="fees-sms-message">Message <span className="text-red-600">*</span></Label>
-                <Textarea ref={textareaRef} id="fees-sms-message" rows={5} value={message} placeholder="Type your message..." onChange={event => { setMessage(event.target.value); form.handleFieldChange('fees-sms-message'); }} {...form.getFieldProps('fees-sms-message')} />
+                <SMSComposer ref={composerRef} id="fees-sms-message" aria-label="Message" value={message} placeholder="Type your message..." onChange={value => { setMessage(value); form.handleFieldChange('fees-sms-message'); }} {...form.getFieldProps('fees-sms-message')} />
                 <FieldError error={form.getFieldError('fees-sms-message')} />
-                <SMSCustomisation options={options} onChange={setOptions} onInsert={insertText}>
+                <SMSCustomisation options={options} onChange={setOptions} onInsertField={field => composerRef.current?.insertField(field)} onInsertText={text => composerRef.current?.insertText(text)} onConditional={() => composerRef.current?.markBalanceSelection()}>
                   <Button type="button" variant="link" size="sm" className="h-auto px-0 text-xs" onClick={() => setMessage('Dear {guardian_name}, {pupil_name} in {class} has a {fee_item} balance of {balance} for {term}, {year}. Please arrange payment.')}>Use fees reminder example</Button>
                 </SMSCustomisation>
               </div>

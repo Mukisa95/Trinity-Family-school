@@ -2223,6 +2223,7 @@ export default function FeesCollectionPage() {
         feeItemName={dynamicFeeItems.find(fee => fee.id === filters.feeItem)?.name}
         yearName={selectedAcademicYear?.name}
         termName={selectedAcademicYear?.terms.find(term => term.id === filters.term)?.name}
+        termNumber={selectedAcademicYear && filters.term ? selectedAcademicYear.terms.findIndex(term => term.id === filters.term) + 1 || undefined : undefined}
         isFeesLoading={isProcessing || showSkeleton || isPending || isLoadingPupils || isFetchingPupils || !filters.year || !filters.term}
         feesError={progressiveError}
         currentUser={user || undefined}

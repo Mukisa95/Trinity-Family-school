@@ -10,8 +10,8 @@ const output = path.join(root, '.codex-tmp/bulk-sms-personalisation-browser');
 const fixture = `
   const primary={id:'mother',firstName:'Jane',lastName:'Parent',relationship:'Mother',phone:'0700123456',additionalPhones:['0700111222']};
   const secondary={id:'other',firstName:'John',lastName:'Other',relationship:'Uncle',phone:'0700333444'};
-  export const pupils=[{id:'alice',firstName:'Alice',lastName:'Test',otherNames:'Grace',admissionNumber:'001',classId:'p1',status:'Active',section:'Day',gender:'Female',guardians:[secondary,primary]},
-    {id:'ben',firstName:'Ben',lastName:'Test',admissionNumber:'002',classId:'p1',status:'Active',section:'Boarding',gender:'Male',guardians:[primary]}];
+  export const pupils=[{id:'alice',firstName:'Alice',lastName:'Test',otherNames:'Grace',admissionNumber:'001',payCode:'001234',classId:'p1',status:'Active',section:'Day',gender:'Female',guardians:[secondary,primary]},
+    {id:'ben',firstName:'Ben',lastName:'Test',admissionNumber:'002',payCode:'009876',classId:'p1',status:'Active',section:'Boarding',gender:'Male',guardians:[primary]}];
   export const classes=[{id:'p1',name:'Primary One',code:'P1'}];
   export const years=[{id:'year',name:'2026',terms:[{id:'term',name:'Term 3',startDate:'2026-09-01',endDate:'2026-12-01'},{id:'other',name:'Term 2',startDate:'2026-05-01',endDate:'2026-08-01'}]}];
   export const fees={alice:{totalFees:120000,totalPaid:60000,balance:60000,applicableFees:[{feeStructureId:'transport',name:'Transport',amount:20000,paid:20000,balance:0}]},
@@ -91,13 +91,25 @@ async function run() {
       await page.keyboard.press('Escape');
       await page.screenshot({ path: path.join(output, `default-${width}-${dark ? 'dark' : 'light'}.png`), fullPage: true });
       await page.getByRole('button', { name: 'Customisation', exact: true }).click();
-      await input.fill('Dear {pupil_name}.');
-      assert.equal(await page.evaluate(() => window.feeLoads), 0, 'name-only drafts do not load fees');
-      await input.fill('Dear {pupil_name}: {guardian_name}, {balance}.');
-      await page.getByLabel('Pupil name format', { exact: true }).selectOption('first');
-      await page.getByLabel('Pupil name case', { exact: true }).selectOption('upper');
-      await page.getByLabel('Skip balances below (Shs.)').fill('10000');
-      await page.getByLabel('Fee item', { exact: true }).selectOption('transport');
+      assert.equal(await page.getByRole('button', { name: 'Balance', exact: true }).count(), 0);
+      assert.equal(await page.getByRole('button', { name: 'Fee item', exact: true }).count(), 0);
+      assert.equal(await page.getByLabel('Skip balances below (Shs.)').count(), 0);
+      assert.equal(await page.getByRole('button', { name: /Exclude selected text/ }).count(), 0);
+      await input.fill('Dear ');
+      await input.press('End');
+      await page.getByRole('button', { name: 'Pupil name', exact: true }).click();
+      await input.getByRole('button', { name: 'Format Pupil name', exact: true }).click();
+      await page.getByLabel('Name format', { exact: true }).selectOption('first');
+      await page.getByLabel('Text case', { exact: true }).selectOption('upper');
+      await page.getByRole('button', { name: 'Done', exact: true }).click();
+      await page.getByRole('button', { name: 'New line', exact: true }).click();
+      await page.getByRole('button', { name: 'SchoolPay code', exact: true }).click();
+      await input.getByRole('button', { name: 'Format SchoolPay code', exact: true }).click();
+      await page.getByText('Include field label', { exact: true }).click();
+      await page.getByRole('button', { name: 'Done', exact: true }).click();
+      assert.ok(!(await input.innerText()).includes('{pupil_name}'));
+      assert.equal(await page.evaluate(() => window.feeLoads), 0, 'no fee hooks mount on Bulk SMS');
+      await page.screenshot({ path: path.join(output, `chips-${width}-${dark ? 'dark' : 'light'}.png`), fullPage: true });
       await page.getByRole('button', { name: 'Customisation', exact: true }).click();
       await page.getByRole('button', { name: 'Schedule SMS', exact: true }).click();
       assert.equal(await page.getByRole('menuitem', { name: 'Schedule SMS', exact: true }).isDisabled(), true);
@@ -113,14 +125,16 @@ async function run() {
         console.log('Browser errors:', errors);
         throw error;
       });
-      assert.equal(await dialog.locator('article').count(), 2, 'Ben primary and additional phone remain; Alice is excluded');
-      assert.equal(await dialog.getByText('Dear BEN: Jane Parent, Shs. 30,000.', { exact: true }).count(), 2);
+      assert.equal(await dialog.locator('article').count(), 4, 'both pupils and their selected primary/additional numbers remain');
+      assert.deepEqual(await dialog.locator('article p.whitespace-pre-wrap').allTextContents(), ['Dear ALICE\nSchoolPay code: 001234', 'Dear ALICE\nSchoolPay code: 001234', 'Dear BEN\nSchoolPay code: 009876', 'Dear BEN\nSchoolPay code: 009876']);
+      assert.equal(await dialog.getByText('Dear BEN\nSchoolPay code: 009876', { exact: true }).count(), 2);
       await dialog.getByText('1 manual number excluded', { exact: true }).waitFor();
       await page.screenshot({ path: path.join(output, `preview-${width}-${dark ? 'dark' : 'light'}.png`), fullPage: true });
-      await page.getByRole('button', { name: 'Send messages (2)' }).click();
-      await page.getByRole('status').filter({ hasText: '2 accepted' }).waitFor();
-      assert.deepEqual(await page.evaluate(() => window.requests.map(item => item.recipients[0])), ['+256700123456', '+256700111222']);
-      assert.equal(await page.evaluate(() => window.requests.every(item => item.message === 'Dear BEN: Jane Parent, Shs. 30,000.')), true);
+      await page.getByRole('button', { name: 'Send messages (4)' }).click();
+      await page.getByRole('status').filter({ hasText: '4 accepted' }).waitFor();
+      assert.deepEqual(await page.evaluate(() => window.requests.map(item => item.recipients[0])), ['+256700123456', '+256700111222', '+256700123456', '+256700111222']);
+      assert.equal(await page.evaluate(() => window.requests.some(item => /trinity-sms-v1|\{pupil_name\}/.test(item.message))), false);
+      assert.equal(await page.evaluate(() => window.feeLoads), 0);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
       assert.deepEqual(errors, []);
       await page.close();
@@ -129,7 +143,11 @@ async function run() {
     await page.goto(`${url}/?failure`);
     await page.getByText('P1', { exact: true }).click();
     await page.getByText('Primary', { exact: true }).click();
-    await page.getByRole('textbox', { name: 'Message', exact: true }).fill('Dear {pupil_name}.');
+    await page.getByRole('textbox', { name: 'Message', exact: true }).evaluate(element => {
+      element.focus(); const data = new DataTransfer(); data.setData('text/plain', 'Dear {pupil_name}.');
+      element.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, clipboardData: data }));
+    });
+    assert.equal(await page.locator('[data-sms-field]').count(), 1);
     await page.getByRole('button', { name: 'Preview messages', exact: true }).click();
     await page.getByRole('button', { name: 'Send messages (4)' }).click();
     await page.getByRole('status').filter({ hasText: '1 need checking' }).waitFor();
@@ -142,7 +160,7 @@ async function run() {
     assert.equal(await page.evaluate(() => window.requests.length), 4, 'only untouched messages continue');
     assert.equal(await page.evaluate(() => window.feeLoads), 0);
     await page.close();
-    console.log('PASS: real Bulk SMS page; collapsed controls, preserved standard confirmation, fee exclusions, primary/additional guardian numbers, shared parent context, manual exclusions, exact reviewed simulated sends, mobile/desktop light/dark. No real SMS sent.');
+    console.log('PASS: real Bulk SMS page; collapsed controls, standard confirmation/scheduling, protected field formats, SchoolPay, no fee options or reads, primary/additional guardian numbers, shared parent context, manual exclusions, exact simulated sends, mobile/desktop light/dark. No real SMS sent.');
   } finally {
     if (browser) await browser.close();
     await new Promise(resolve => server.close(resolve));
