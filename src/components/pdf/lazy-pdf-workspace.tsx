@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { Expand, Minus } from 'lucide-react';
 import { usePDFWorkspace } from '@/lib/pdf/pdf-workspace-context';
 
 function WorkspaceLoading() {
@@ -13,7 +14,7 @@ function WorkspaceLoading() {
       <div role="status" aria-live="polite"><p className="font-semibold">{activeDocument.title}</p><p className="text-sm text-muted-foreground">{activeDocument.message || 'Opening document workspace…'}</p></div>
       <progress max={100} value={activeDocument.progress} className="h-2 w-full accent-primary" aria-label="Document progress" />
       <div className="flex gap-4 text-sm">
-        <button type="button" className="min-h-11 text-link" onClick={() => mode === 'minimized' ? expandWorkspace(activeDocument.id) : minimizeWorkspace()}>{mode === 'minimized' ? 'Open document' : 'Minimize'}</button>
+        <button type="button" aria-label={mode === 'minimized' ? 'Restore PDF workspace' : 'Minimize PDF workspace'} className="grid h-11 w-11 place-items-center text-link" onClick={() => mode === 'minimized' ? expandWorkspace(activeDocument.id) : minimizeWorkspace()}>{mode === 'minimized' ? <Expand className="h-4 w-4" /> : <Minus className="h-4 w-4" />}</button>
         <button type="button" className="min-h-11 text-link" onClick={() => closeDocument(activeDocument.id)}>Close</button>
       </div>
     </div>

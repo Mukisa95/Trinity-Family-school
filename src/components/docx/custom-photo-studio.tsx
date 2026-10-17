@@ -31,6 +31,7 @@ import {
   Crop,
   Eye,
   EyeOff,
+  Group,
   FileImage,
   FilePlus2,
   ImagePlus,
@@ -153,6 +154,8 @@ import { StudioPdfImport, StudioPdfArtwork, StudioPdfCutouts, StudioCutoutHandle
 import { readStudioTemplates, writeStudioTemplate } from './studio-template-storage';
 import { getStudioPageDimensions, type PdfCutout, type StudioPdfSource } from './custom-photo-types';
 import { getStudioRasterOverride, getStudioOuterRotation, getStudioLayerData } from './custom-photo-types';
+import { StudioGroupRow } from './studio-group-row';
+import { duplicateStudioGroup, duplicateStudioPageGroups, groupStudioLayers, moveStudioLayers, removeStudioGroup, studioGroupBounds, studioLayerTree, ungroupStudioLayers } from './studio-layer-groups';
 import { StudioLayerEditor, type StudioPixelResult } from './studio-layer-editor';
 
 const SHAPE_OPTIONS: Array<{ value: FrameShape; label: string }> = [
@@ -578,6 +581,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   const canvasRef = useRef<HTMLDivElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
   const imageLayerInputRef = useRef<HTMLInputElement>(null);
+  const minimizedRef = useRef(minimized); minimizedRef.current = minimized;
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const [pdfImportAnchor, setPdfImportAnchor] = useState<HTMLDivElement | null>(null);
   const [studioSurface, setStudioSurface] = useState<HTMLDivElement | null>(null);
@@ -619,6 +623,10 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   const [activePageId, setActivePageId] = useState<string>(() => template.pages[0].id);
   useEffect(() => { onTitleChange?.(template.name); }, [onTitleChange, template.name]);
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(() => template.pages[0].layers[0]?.id || null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [checkedLayerIds, setCheckedLayerIds] = useState<Set<string>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  useEffect(() => { setCheckedLayerIds(new Set()); }, [activePageId]);
   const [expandedPageIds, setExpandedPageIds] = useState<Set<string>>(() => new Set([template.pages[0].id]));
   const [canvasZoom, setCanvasZoom] = useState(1);
   const [showSideFeather, setShowSideFeather] = useState(false);
@@ -665,6 +673,9 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   const currentPage = template.pages.find((page) => page.id === activePageId) || template.pages[0];
   const pageDimensions = getStudioPageDimensions(template, currentPage);
   const selectedLayer = currentPage?.layers.find((layer) => layer.id === selectedLayerId) || null;
+  const selectedGroup = currentPage.groups?.find(group => group.id === selectedGroupId);
+  const groupMembers = selectedGroup ? currentPage.layers.filter(layer => layer.groupId === selectedGroup.id) : [];
+  const groupBounds = studioGroupBounds(groupMembers);
   const selectedYear = academicYears.find((year) => year.id === selectedYearId) || null;
   const selectedPupils = useMemo(
     () => pupils.filter((pupil) => selectedPupilIds.has(pupil.id)),
@@ -835,8 +846,19 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     }));
   }, [setTemplate]);
 
+  const selectGroup = (pageId: string, groupId: string) => { setActivePageId(pageId); setSelectedLayerId(null); setSelectedGroupId(groupId); setEditingCutouts(false); };
+  const createLayerGroup = () => {
+    try { const next = groupStudioLayers(currentPage, [...checkedLayerIds]); updateCurrentPage(() => next); setCheckedLayerIds(new Set()); setSelectedLayerId(null); setSelectedGroupId(next.groups!.at(-1)!.id); }
+    catch (error) { toast({ variant: 'destructive', title: 'Layers could not be grouped', description: error instanceof Error ? error.message : 'Check the selected layers.' }); }
+  };
+  const groupAction = (pageId: string, groupId: string, action: 'duplicate' | 'delete' | 'ungroup') => {
+    const page = template.pages.find(item => item.id === pageId); if (!page) return;
+    if (action === 'duplicate') { const result = duplicateStudioGroup(page, groupId); updatePageById(pageId, () => result.page); selectGroup(pageId, result.groupId); }
+    else { updatePageById(pageId, previous => action === 'delete' ? removeStudioGroup(previous, groupId) : ungroupStudioLayers(previous, groupId)); setSelectedGroupId(null); setSelectedLayerId(null); }
+  };
+
   const removeLayer = (pageId: string, layerId: string) => {
-    updatePageById(pageId, (page) => ({ ...page, layers: page.layers.filter((layer) => layer.id !== layerId) }));
+    updatePageById(pageId, page => { const layers = page.layers.filter(layer => layer.id !== layerId); return { ...page, layers, groups: page.groups?.filter(group => layers.some(layer => layer.groupId === group.id)) }; });
     if (selectedLayerId === layerId) setSelectedLayerId(null);
   };
 
@@ -844,7 +866,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     const page = template.pages.find((item) => item.id === pageId);
     const layer = page?.layers.find((item) => item.id === layerId);
     if (!layer) return;
-    const copy = { ...layer, id: makeStudioId(layer.kind), label: `${layer.label} copy`, x: clamp(layer.x + 0.03, 0, 0.94), y: clamp(layer.y + 0.03, 0, 0.94), ...(isPupilDataLayer(layer) ? { pupilDataMode: 'follow' as const } : {}) };
+    const copy = { ...layer, groupId: undefined, id: makeStudioId(layer.kind), label: `${layer.label} copy`, x: clamp(layer.x + 0.03, 0, 0.94), y: clamp(layer.y + 0.03, 0, 0.94), ...(isPupilDataLayer(layer) ? { pupilDataMode: 'follow' as const } : {}) };
     updatePageById(pageId, (item) => ({ ...item, layers: [...item.layers, copy] }));
     setActivePageId(pageId);
     setSelectedLayerId(copy.id);
@@ -881,12 +903,16 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   ) => {
     event.preventDefault();
     event.stopPropagation();
-    setSelectedLayerId(layer.id);
+    setSelectedLayerId(layer.groupId ? null : layer.id); setSelectedGroupId(layer.groupId || null);
     if (layer.locked || !canvasRef.current) return;
     transformCleanupRef.current?.();
     const bounds = canvasRef.current.getBoundingClientRect();
     const startX = event.clientX;
     const startY = event.clientY;
+    const moving = layer.groupId && mode === 'move' ? currentPage.layers.filter(item => item.groupId === layer.groupId) : [layer];
+    if (moving.some(item => item.locked)) return;
+    const memberIds = moving.map(item => item.id);
+    const initialPage = currentPage;
     const initial = { x: layer.x, y: layer.y, width: layer.width, height: layer.height };
     const pointerId = event.pointerId;
     event.currentTarget.setPointerCapture?.(pointerId);
@@ -896,7 +922,11 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     const onMove = (moveEvent: PointerEvent) => {
       const dx = (moveEvent.clientX - startX) / bounds.width;
       const dy = (moveEvent.clientY - startY) / bounds.height;
-      if (mode === 'move') {
+      if (mode === 'move' && moving.length > 1) {
+        const moved = moveStudioLayers(initialPage, memberIds, dx, dy);
+        const positions = new Map(moved.layers.map(item => [item.id, item]));
+        updateCurrentPage(page => ({ ...page, layers: page.layers.map(item => memberIds.includes(item.id) ? { ...item, x: positions.get(item.id)!.x, y: positions.get(item.id)!.y } : item) }));
+      } else if (mode === 'move') {
         const maxX = layer.constrainToPage ? 1 - initial.width : 1.5;
         const maxY = layer.constrainToPage ? 1 - initial.height : 1.5;
         updateLayer(layer.id, {
@@ -960,7 +990,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     const copy = cloneTemplate({ ...template, pages: [source] }).pages[0];
     copy.id = makeStudioId('page');
     copy.name = `${source.name} copy`;
-    copy.layers = copy.layers.map((layer) => ({ ...layer, id: makeStudioId(layer.kind) }));
+    Object.assign(copy, duplicateStudioPageGroups(copy));
     setTemplate((previous) => {
       const pages = [...previous.pages];
       pages.splice(sourceIndex + 1, 0, copy);
@@ -1010,7 +1040,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     try {
       await writeStudioTemplate(snapshot);
       setSavedTemplates(next);
-      toast({ title: 'Template saved', description: `${snapshot.name} is available on this device.` });
+      toast({ title: 'Template saved' });
     } catch {
       toast({ variant: 'destructive', title: 'Template could not be saved', description: 'Device storage may be full or unavailable. Your current design is still open; export it before closing.' });
     } finally { setIsSavingTemplate(false); }
@@ -1078,6 +1108,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     const next = normalizeCustomPhotoTemplate(cloneTemplate(stored));
     setTemplate(next);
     setActivePageId(next.pages[0].id);
+    setExpandedPageIds(new Set([next.pages[0].id])); setCheckedLayerIds(new Set()); setSelectedGroupId(null);
     setSelectedLayerId(next.pages[0].layers[0]?.id || null);
   };
 
@@ -1152,20 +1183,18 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
             }}
             onCloseAutoFocus={(event) => {
               event.preventDefault();
-              if (returnFocusRef.current?.isConnected) returnFocusRef.current.focus();
+              if (!minimizedRef.current && returnFocusRef.current?.isConnected) returnFocusRef.current.focus();
             }}
           >
       <div ref={setStudioSurface} className="fixed inset-0 z-50 isolate flex flex-col overflow-hidden bg-slate-100 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] text-slate-900 print:hidden" aria-label="DocX Custom Photo Studio">
         <header className="relative z-30 flex max-h-[50dvh] min-h-16 shrink-0 flex-wrap items-center gap-3 overflow-y-auto border-b border-slate-200 bg-white px-3 py-2 shadow-sm sm:px-5">
-          <Button variant="ghost" size="sm" onClick={onMinimize || onClose} className="rounded-full">
-            <ChevronLeft className="mr-1.5 h-4 w-4" /> {onMinimize ? 'Back to app' : 'DocX'}
-          </Button>
+          <Button variant="ghost" size="icon" aria-label="Back to app" onClick={onMinimize || onClose} className="h-11 w-11 rounded-full"><ChevronLeft className="h-4 w-4" /></Button>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className="grid h-8 w-8 place-items-center rounded-xl bg-violet-100 text-violet-700"><WandSparkles className="h-4 w-4" /></span>
               <div className="min-w-0">
                 <DialogPrimitive.Title asChild><p className="truncate text-sm font-black text-slate-900">Custom Photo Studio</p></DialogPrimitive.Title>
-                <DialogPrimitive.Description asChild><p className="truncate text-[10px] font-medium text-slate-500">Design once, personalise for every selected pupil</p></DialogPrimitive.Description>
+                <DialogPrimitive.Description className="sr-only" asChild><p className="truncate text-[10px] font-medium text-slate-500">Document editor.</p></DialogPrimitive.Description>
               </div>
             </div>
           </div>
@@ -1179,7 +1208,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
           </div>
           <Button onClick={() => void saveTemplate()} disabled={isSavingTemplate} variant="outline" size="sm" className="rounded-full">{isSavingTemplate ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-1.5 h-3.5 w-3.5" />}Save</Button>
           <Button onClick={() => setStage('output')} size="sm" className="rounded-full bg-violet-700 hover:bg-violet-800">Create documents <PanelRight className="ml-1.5 h-3.5 w-3.5" /></Button>
-          {onMinimize && <Button variant="outline" size="sm" onClick={onMinimize} className="min-h-11 rounded-full" aria-label="Minimize Photo Studio"><Minus className="mr-1.5 h-4 w-4" />Minimize</Button>}
+          {onMinimize && <Button variant="outline" size="icon" onClick={onMinimize} className="h-11 w-11 rounded-full" aria-label="Minimize Photo Studio"><Minus className="h-4 w-4" /></Button>}
           <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full"><X className="h-4 w-4" /><span className="sr-only">Close editor</span></Button>
         </header>
 
@@ -1187,7 +1216,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
           <main className="grid min-h-0 flex-1 grid-cols-1 overflow-auto lg:grid-cols-[250px_minmax(460px,1fr)_300px] lg:overflow-hidden">
             <aside className="border-r border-slate-200 bg-white/75 p-3 lg:overflow-y-auto">
               <div className="mb-2 flex items-center justify-between gap-2">
-                <div><p className="text-xs font-black text-slate-800">Pages & layers</p><p className="text-[10px] text-slate-500">Arrange the document in one place.</p></div>
+                <div><p className="text-xs font-black text-slate-800">Pages & layers</p></div>
                 <Button size="icon" variant="outline" onClick={addPage} className="h-8 w-8 shrink-0 rounded-lg" title="Add page" aria-label="Add page"><Plus className="h-3.5 w-3.5" /></Button>
               </div>
               <div ref={setPdfImportAnchor} />
@@ -1223,6 +1252,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                 </DropdownMenu>
               </div>
               <div className="space-y-2">
+                <Button type="button" variant="outline" size="sm" className="mb-2 h-10 w-full text-xs" aria-label="Group selected layers" disabled={[...checkedLayerIds].filter(id => currentPage.layers.some(layer => layer.id === id && !layer.groupId && !layer.locked)).length < 2} onClick={createLayerGroup}><Group className="mr-2 h-4 w-4" />Group{checkedLayerIds.size > 0 ? ' (' + checkedLayerIds.size + ')' : ''}</Button>
                 {template.pages.map((page, pageIndex) => {
                   const expanded = expandedPageIds.has(page.id);
                   return (
@@ -1245,12 +1275,17 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                         <div className="space-y-1 border-t border-slate-200/80 bg-white/75 p-1.5">
                           {page.pdfArtwork && <p className="flex items-center gap-1 rounded bg-amber-100 px-2 py-2 text-[10px] font-bold text-amber-900"><Lock className="h-3 w-3 shrink-0" />PDF artwork locked · {page.pdfArtwork.cutouts.length} cutouts</p>}
                           {page.layers.length === 0 && <p className="px-2 py-2 text-center text-[10px] text-slate-400">Add photos, text or shapes</p>}
-                          {[...page.layers].sort((a, b) => page.pdfArtwork ? Number(a.pdfPlacement !== 'below') - Number(b.pdfPlacement !== 'below') : 0).reverse().map((layer) => {
+                          {studioLayerTree(page).map((layer) => {
                             const peers = page.layers.filter(item => !page.pdfArtwork || (item.pdfPlacement === 'below') === (layer.pdfPlacement === 'below'));
                             const layerIndex = peers.findIndex((item) => item.id === layer.id);
+                            const group = page.groups?.find(item => item.id === layer.groupId);
+                            const first = group && studioLayerTree(page).find(item => item.groupId === group.id)?.id === layer.id;
                             return (
-                              <div key={layer.id} className={cn('flex items-center gap-1 rounded-lg px-1 py-1', activePageId === page.id && selectedLayerId === layer.id ? 'bg-violet-100 text-violet-900' : 'text-slate-600 hover:bg-slate-100')}>
-                                <button type="button" onClick={() => { setActivePageId(page.id); setSelectedLayerId(layer.id); setEditingCutouts(false); }} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
+                              <div key={layer.id}>
+                                {first && <StudioGroupRow name={group.name} count={page.layers.filter(item => item.groupId === group.id).length} collapsed={collapsedGroups.has(group.id)} selected={selectedGroupId === group.id && activePageId === page.id} onToggle={() => setCollapsedGroups(previous => { const next = new Set(previous); next.has(group.id) ? next.delete(group.id) : next.add(group.id); return next; })} onSelect={() => selectGroup(page.id, group.id)} onAction={action => groupAction(page.id, group.id, action)} />}
+                                {(!group || !collapsedGroups.has(group.id)) && <div className={cn('flex items-center gap-1 rounded-lg px-1 py-1', group && 'ml-3 border-l border-violet-200', activePageId === page.id && selectedLayerId === layer.id ? 'bg-violet-100 text-violet-900' : 'text-slate-600 hover:bg-slate-100')}>
+                                {!group && <input type="checkbox" className="h-4 w-4 shrink-0 accent-violet-600" aria-label={'Select layer ' + layer.label} disabled={layer.locked || activePageId !== page.id} checked={activePageId === page.id && checkedLayerIds.has(layer.id)} onChange={event => { setActivePageId(page.id); setCheckedLayerIds(previous => { const next = activePageId === page.id ? new Set(previous) : new Set<string>(); event.target.checked ? next.add(layer.id) : next.delete(layer.id); return next; }); }} />}
+                                <button type="button" onClick={() => { setActivePageId(page.id); setSelectedGroupId(null); setSelectedLayerId(layer.id); setEditingCutouts(false); }} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
                                   {layer.kind === 'avatar' ? <CircleUserRound className="h-3.5 w-3.5 shrink-0" /> : layer.kind === 'schoolLogo' ? <Building2 className="h-3.5 w-3.5 shrink-0" /> : layer.kind === 'image' ? <FileImage className="h-3.5 w-3.5 shrink-0" /> : <Type className="h-3.5 w-3.5 shrink-0" />}
                                   <span className="min-w-0 flex-1 truncate text-[10px] font-semibold">{layer.label}</span>
                                   {page.pdfArtwork && <span className="rounded bg-slate-100 px-1 text-[8px] text-slate-600">{layer.pdfPlacement === 'below' ? 'Below' : 'Above'}</span>}
@@ -1266,12 +1301,12 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                                     <DropdownMenuContent align="end" className="w-64">
                                       <DropdownMenuLabel className="normal-case">
                                         <span className="block text-xs font-black text-slate-800">Pupil list behaviour</span>
-                                        <span className="mt-1 block text-[10px] font-medium leading-4 text-slate-500">This layer is in column {getLayerColumnIndex(layer, template.pageColumns) + 1}. Choose how its pupil data is filled.</span>
+
                                       </DropdownMenuLabel>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem onSelect={() => setLayerPupilDataMode(page.id, layer.id, 'follow')} className="gap-2">
                                         <span className="grid h-6 w-8 place-items-center rounded bg-cyan-100 text-[9px] font-black text-cyan-700">Fol</span>
-                                        <span className="min-w-0 flex-1"><span className="block text-xs font-bold">Follow pupil list</span><span className="block text-[9px] text-slate-500">Use the pupil assigned to this column.</span></span>
+                                        <span className="min-w-0 flex-1"><span className="block text-xs font-bold">Follow pupil list</span></span>
                                         {layer.pupilDataMode === 'follow' && <Check className="h-3.5 w-3.5 text-cyan-700" />}
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onSelect={() => setLayerPupilDataMode(page.id, layer.id, 'duplicate')} className="gap-2">
@@ -1283,11 +1318,12 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                                   </DropdownMenu>
                                 )}
                                 <div className="flex shrink-0 items-center">
-                                  <Button type="button" variant="ghost" size="icon" disabled={layerIndex === peers.length - 1} onClick={() => moveLayerOrder(page.id, layer.id, 1)} className="h-6 w-5" title="Bring forward" aria-label="Bring layer forward"><ArrowUp className="h-3 w-3" /></Button>
-                                  <Button type="button" variant="ghost" size="icon" disabled={layerIndex === 0} onClick={() => moveLayerOrder(page.id, layer.id, -1)} className="h-6 w-5" title="Send backward" aria-label="Send layer backward"><ArrowDown className="h-3 w-3" /></Button>
+                                  <Button type="button" variant="ghost" size="icon" disabled={!!layer.groupId || layerIndex === peers.length - 1} onClick={() => moveLayerOrder(page.id, layer.id, 1)} className="h-6 w-5" title="Bring forward" aria-label="Bring layer forward"><ArrowUp className="h-3 w-3" /></Button>
+                                  <Button type="button" variant="ghost" size="icon" disabled={!!layer.groupId || layerIndex === 0} onClick={() => moveLayerOrder(page.id, layer.id, -1)} className="h-6 w-5" title="Send backward" aria-label="Send layer backward"><ArrowDown className="h-3 w-3" /></Button>
                                   <Button type="button" variant="ghost" size="icon" onClick={() => duplicateLayer(page.id, layer.id)} className="h-6 w-5" title="Duplicate layer" aria-label="Duplicate layer"><Copy className="h-3 w-3" /></Button>
                                   <Button type="button" variant="ghost" size="icon" onClick={() => removeLayer(page.id, layer.id)} className="h-6 w-5 text-rose-600" title="Delete layer" aria-label="Delete layer"><Trash2 className="h-3 w-3" /></Button>
                                 </div>
+                                </div>}
                               </div>
                             );
                           })}
@@ -1299,7 +1335,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
               </div>
               <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
                 <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-slate-500">Page setup</p>
-                {currentPage.pdfArtwork && <p className="mb-2 text-[10px] leading-4 text-slate-600">PDF canvas size is fixed to the original. Size and orientation below set the collage sheet and blank-page defaults.</p>}
+
                 <Input value={template.name} onChange={(event) => setTemplate((previous) => ({ ...previous, name: event.target.value }))} className="mb-2 h-8 bg-white text-xs font-bold" aria-label="Template name" />
                 <div className="grid grid-cols-2 gap-2">
                   <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Document size</span><Select value={template.paperSize} onValueChange={(value) => applyPageFormat(value as PaperSize, template.pageOrientation)}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger><SelectContent>{PAPER_SIZE_OPTIONS.map((size) => <SelectItem key={size.value} value={size.value}>{size.label}{size.value !== 'custom' ? ` · ${size.widthMm} × ${size.heightMm} mm` : ''}</SelectItem>)}</SelectContent></Select></label>
@@ -1319,11 +1355,11 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
               </>}
 
               <div className="mt-3 rounded-xl border border-cyan-200 bg-cyan-50/80 p-3">
-                <div className="mb-2 flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-white text-cyan-700 shadow-sm"><Columns2 className="h-3.5 w-3.5" /></span><div><p className="text-[10px] font-black uppercase tracking-wider text-cyan-900">Page splitter</p><p className="text-[9px] text-cyan-700">Equal pupil columns across every page</p></div></div>
+                <div className="mb-2 flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-white text-cyan-700 shadow-sm"><Columns2 className="h-3.5 w-3.5" /></span><div><p className="text-[10px] font-black uppercase tracking-wider text-cyan-900">Page splitter</p></div></div>
                 <div className="grid grid-cols-6 gap-1 rounded-lg bg-white/80 p-1">
                   {[1, 2, 3, 4, 5, 6].map((count) => <Button key={count} type="button" variant={template.pageColumns === count ? 'secondary' : 'ghost'} size="sm" onClick={() => setTemplate((previous) => ({ ...previous, pageColumns: count }))} className={cn('h-8 px-0 text-[10px] font-black', template.pageColumns === count && 'bg-cyan-100 text-cyan-800 hover:bg-cyan-100')}>{count}</Button>)}
                 </div>
-                <p className="mt-2 text-[9px] leading-3.5 text-cyan-700">Place pupil layers inside a column, then choose <strong>Dup</strong> for the same pupil or <strong>Fol</strong> to follow the selected pupil list.</p>
+
               </div>
 
               {savedTemplates.length > 0 && <div className="mt-3"><p className="mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500">Saved on this device</p><Select onValueChange={loadTemplate}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue placeholder="Open saved template" /></SelectTrigger><SelectContent>{savedTemplates.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>}
@@ -1338,7 +1374,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                   <div
                     ref={canvasRef}
                     data-studio-canvas
-                    onClick={() => setSelectedLayerId(null)}
+                    onClick={() => { setSelectedLayerId(null); setSelectedGroupId(null); }}
                     className="relative shrink-0 overflow-hidden bg-white shadow-[0_24px_80px_rgba(15,23,42,0.25)] ring-1 ring-slate-900/10"
                     style={{
                       width: pageDimensions.widthMm >= pageDimensions.heightMm ? `min(${78 * canvasZoom}vw, ${800 * canvasZoom}px)` : `min(${58 * canvasZoom}vw, ${620 * canvasZoom}px)`,
@@ -1382,7 +1418,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                           data={layerData}
                           dimensions={pageDimensions}
                           selected={!editingCutouts && selectedLayerId === layer.id}
-                          onSelect={() => { setSelectedLayerId(layer.id); setEditingCutouts(false); }}
+                          onSelect={() => { setSelectedGroupId(layer.groupId || null); setSelectedLayerId(layer.groupId ? null : layer.id); setEditingCutouts(false); }}
                           onPointerDown={(event) => beginTransform(event, layer, 'move')}
                           onResizePointerDown={(event) => beginTransform(event, layer, 'resize')}
                           onRotate={() => updateLayer(layer.id, { rotation: ((layer.rotation + 15 + 180) % 360) - 180 })}
@@ -1393,12 +1429,13 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                     {currentPage.pdfArtwork && selectedLayer && selectedLayer.pdfPlacement === 'below' && !selectedLayer.hidden && !editingCutouts && <div className="pointer-events-none absolute border-2 border-dashed border-violet-500" style={{ zIndex: 20, left: `${selectedLayer.x * 100}%`, top: `${selectedLayer.y * 100}%`, width: `${selectedLayer.width * 100}%`, height: `${selectedLayer.height * 100}%`, transform: `rotate(${getStudioOuterRotation(selectedLayer)}deg)` }}>
                       {!selectedLayer.locked && <button type="button" aria-label="Resize element below PDF" className="pointer-events-auto absolute -bottom-2 -right-2 h-5 w-5 cursor-se-resize touch-none rounded-full border-2 border-white bg-violet-600" onPointerDown={event => beginTransform(event, selectedLayer, 'resize')} />}
                     </div>}
+                    {selectedGroup && !editingCutouts && <div data-studio-group={selectedGroup.id} className="pointer-events-none absolute z-20 border-2 border-violet-600" style={{ left: groupBounds.x * 100 + '%', top: groupBounds.y * 100 + '%', width: groupBounds.width * 100 + '%', height: groupBounds.height * 100 + '%' }}><button type="button" className="pointer-events-auto absolute -top-8 left-0 h-8 max-w-full truncate rounded-t-md bg-violet-600 px-2 text-xs font-bold text-white" disabled={groupMembers.some(layer => layer.locked)} aria-label={'Move group ' + selectedGroup.name} onClick={event => event.stopPropagation()} onPointerDown={event => beginTransform(event, groupMembers[0], 'move')}>{selectedGroup.name}</button></div>}
                     {currentPage.pdfArtwork && editingCutouts && <StudioCutoutHandles artwork={currentPage.pdfArtwork} onChange={updateCutouts} onGroup={active => { historyGroupRef.current = active; historyGroupRecordedRef.current = false; }} />}
                   </div>
                 </div>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/70 bg-white/60 px-4 py-1.5 text-[10px] text-slate-500 backdrop-blur-xl">
-                <span>Drag layers freely. Use the corner handle to resize.</span>
+
                 <div className="flex items-center rounded-full border border-slate-200 bg-white p-0.5 shadow-sm">
                   <Button type="button" variant="ghost" size="icon" disabled={canvasZoom <= 0.25} onClick={() => setCanvasZoom((value) => clamp(Number((value - 0.1).toFixed(2)), 0.25, 4))} className="h-6 w-6 rounded-full" title="Zoom out" aria-label="Zoom out"><ZoomOut className="h-3 w-3" /></Button>
                   <button type="button" onClick={() => setCanvasZoom(1)} className="min-w-11 px-1 text-[9px] font-black tabular-nums text-slate-600" title="Reset canvas zoom">{Math.round(canvasZoom * 100)}%</button>
@@ -1409,15 +1446,15 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
             </section>
 
             <aside className="border-l border-slate-200 bg-white/80 p-3 lg:overflow-y-auto">
-              <div className="mb-3 flex items-center gap-2"><Crop className="h-4 w-4 text-violet-600" /><div><p className="text-xs font-black text-slate-800">Inspector</p><p className="text-[10px] text-slate-500">Precise size, mask and styling</p></div></div>
-              {!selectedLayer ? (
-                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center"><Layers3 className="mx-auto mb-2 h-7 w-7 text-slate-400" /><p className="text-xs font-bold text-slate-600">Select a layer</p><p className="mt-1 text-[10px] text-slate-500">Click any item on the page or in the layer list.</p></div>
+              <div className="mb-3 flex items-center gap-2"><Crop className="h-4 w-4 text-violet-600" /><div><p className="text-xs font-black text-slate-800">Inspector</p></div></div>
+              {selectedGroup ? <div className="space-y-3 rounded-xl border border-violet-200 bg-violet-50 p-3"><Input aria-label="Group name" value={selectedGroup.name} onChange={event => updateCurrentPage(page => ({ ...page, groups: page.groups?.map(group => group.id === selectedGroup.id ? { ...group, name: event.target.value } : group) }))} /><div className="grid grid-cols-2 gap-2"><NumberInput label="Group X" value={groupBounds.x * 100} min={0} max={100} suffix="%" onChange={value => updateCurrentPage(page => moveStudioLayers(page, groupMembers.map(layer => layer.id), value / 100 - groupBounds.x, 0))} /><NumberInput label="Group Y" value={groupBounds.y * 100} min={0} max={100} suffix="%" onChange={value => updateCurrentPage(page => moveStudioLayers(page, groupMembers.map(layer => layer.id), 0, value / 100 - groupBounds.y))} /></div></div> : !selectedLayer ? (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center"><Layers3 className="mx-auto mb-2 h-7 w-7 text-slate-400" /><p className="text-xs font-bold text-slate-600">Select a layer</p></div>
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-2 rounded-xl border border-violet-200 bg-violet-50 p-3">
                     <p className="text-[10px] font-bold uppercase tracking-wide text-violet-900">Photo & object tools</p>
                     <Button className="h-auto min-h-10 w-full whitespace-normal text-xs" disabled={selectedLayer.locked || preparingPixelEditor || !selectedLayerData || (isPupilDataLayer(selectedLayer) && (!selectedLayerData.pupil.id || (!!selectedLayer.pupilScopeId && selectedLayer.pupilScopeId !== selectedLayerData.pupil.id)))} onClick={() => void openPixelEditor()}>{preparingPixelEditor ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : <WandSparkles className="mr-2 h-4 w-4 shrink-0" />}Background remover & object selector</Button>
-                    <p className="text-xs leading-relaxed text-violet-800">Select an object, refine the edges, then keep it or create a layer via cut or copy. {selectedLayer.kind === 'avatar' ? 'Choose Every pupil photo to repeat background removal, object selections and cut/copy layers throughout the document. Each pupil uses their own photo.' : isPupilDataLayer(selectedLayer) ? 'Manual edits apply to this preview pupil only.' : 'The original source stays available.'}</p>
+
                     {(selectedLayerRaster || selectedLayer.photoSelection) && <Button variant="outline" size="sm" className="w-full text-xs" disabled={selectedLayer.locked} onClick={restoreLayerPixels}><RotateCcw className="mr-1 h-3.5 w-3.5" />Restore original layer pixels</Button>}
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
@@ -1433,10 +1470,10 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                       <NumberInput label="Element width" value={selectedLayer.width * 100} min={0.5} max={100} suffix="%" onChange={value => updateLayer(selectedLayer.id, { width: value / 100 })} />
                       <NumberInput label="Element height" value={selectedLayer.height * 100} min={0.5} max={100} suffix="%" onChange={value => updateLayer(selectedLayer.id, { height: value / 100 })} />
                     </div>}
-                    <p className="rounded-lg border border-dashed border-slate-200 bg-white/75 px-2.5 py-2 text-[10px] leading-4 text-slate-500">Use the rotate arrow or settings button on the selected layer to adjust its position, size, rotation, opacity and page-boundary mask.</p>
+
                   </div>
 
-                  {selectedLayerRaster ? <p className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">This layer has pixel edits. Position and opacity remain editable. Restore its original pixels to change the original text, shape or photo treatment.</p> : selectedLayer.kind !== 'text' && selectedLayer.kind !== 'shape' ? (
+                  {selectedLayerRaster ? null : selectedLayer.kind !== 'text' && selectedLayer.kind !== 'shape' ? (
                     <div className="space-y-3 rounded-xl border border-slate-200 p-3">
                       <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Photo frame & crop</p>
                       <div className="grid grid-cols-2 gap-2">
@@ -1469,7 +1506,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                       </div>
                       <div className="grid grid-cols-2 gap-2"><label className="text-[10px]">Fill colour<Input aria-label="Shape fill colour" type="color" className="h-9 bg-white p-1" value={selectedLayer.appearance.fill.color} disabled={selectedLayer.appearance.fillEnabled === false} onChange={event => setLayerSolidFill(selectedLayer.id, event.target.value)} /></label><label className="text-[10px]">Outline colour<Input aria-label="Shape outline colour" type="color" className="h-9 bg-white p-1" value={selectedLayer.appearance.stroke.paint.color} disabled={!selectedLayer.appearance.stroke.enabled} onChange={event => updateLayerAppearance(selectedLayer.id, appearance => ({ ...appearance, stroke: { ...appearance.stroke, paint: createLayerPaint(event.target.value) } }))} /></label></div>
                       <NumberInput label="Outline width" value={selectedLayer.appearance.stroke.width} min={0} max={40} suffix="px" onChange={value => updateLayerAppearance(selectedLayer.id, appearance => ({ ...appearance, stroke: { ...appearance.stroke, width: value, enabled: value > 0 } }))} />
-                      <p className="rounded-lg bg-slate-50 p-2 text-[9px] leading-3.5 text-slate-500">Use Appearance below to make this shape metallic, glossy, bevelled or dimensional.</p>
+
                     </div>
                   ) : (
                     <div className="space-y-3 rounded-xl border border-slate-200 p-3">
@@ -1606,7 +1643,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
           <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto p-3 lg:grid-cols-[minmax(480px,1fr)_350px] lg:overflow-hidden lg:p-5">
             <section className="flex min-h-[540px] flex-col overflow-hidden rounded-2xl border border-white/80 bg-white/85 shadow-sm backdrop-blur-xl lg:min-h-0">
               <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 p-3">
-                <div className="mr-auto"><p className="text-sm font-black text-slate-900">Choose pupils</p><p className="text-[10px] text-slate-500">The same design is personalised for everyone selected.</p></div>
+                <div className="mr-auto"><p className="text-sm font-black text-slate-900">Choose pupils</p></div>
                 <div className="relative min-w-[180px] flex-1 sm:max-w-xs"><Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" /><Input value={pupilSearch} onChange={(event) => setPupilSearch(event.target.value)} placeholder="Search name or admission…" className="h-9 rounded-full bg-white pl-8 text-xs" /></div>
                 <Select value={classFilter} onValueChange={setClassFilter}><SelectTrigger className="h-9 w-[150px] rounded-full bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All classes</SelectItem>{classOptions.map(([id, label]) => <SelectItem key={id} value={id}>{label}</SelectItem>)}</SelectContent></Select>
                 <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="h-9 w-[120px] rounded-full bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All status</SelectItem><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem><SelectItem value="Graduated">Graduated</SelectItem></SelectContent></Select>
@@ -1623,17 +1660,17 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
             </section>
 
             <aside className="space-y-3 overflow-y-auto rounded-2xl border border-white/80 bg-white/85 p-4 shadow-sm backdrop-blur-xl">
-              <div><p className="text-sm font-black text-slate-900">Page output</p><p className="text-[10px] text-slate-500">Print uses the same page setup as the editing canvas.</p></div>
-              <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs"><Checkbox checked={standalone} onCheckedChange={value => setStandalone(value === true)} aria-label="Export once without pupil data" /><span><span className="block font-bold">Export once without pupil data</span><span className="mt-1 block text-[10px] text-slate-500">Print your PDF artwork and manual elements without selecting pupils. Pupil photos and fields are omitted.</span></span></label>
-              {template.pages.some(page => page.pdfArtwork) && <p className="rounded-lg bg-amber-50 p-2 text-[11px] text-amber-900">One design per sheet preserves each PDF page’s original size. Collage output uses the sheet defaults below. The exported PDF is flattened; the source PDF stays unchanged.</p>}
+              <div><p className="text-sm font-black text-slate-900">Page output</p></div>
+              <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs"><Checkbox checked={standalone} onCheckedChange={value => setStandalone(value === true)} aria-label="Export once without pupil data" /><span><span className="block font-bold">Export once without pupil data</span></span></label>
+
               <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3">
                 <div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-white text-emerald-700 shadow-sm"><Maximize2 className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="text-xs font-black text-emerald-900">Exact design page</p><p className="text-[10px] text-emerald-700">{PAPER_SIZE_OPTIONS.find((size) => size.value === template.paperSize)?.label || 'Custom'} · {template.pageOrientation} · {template.aspectWidth} × {template.aspectHeight} mm</p></div><Check className="h-4 w-4 text-emerald-700" /></div>
-                <p className="mt-2 text-[9px] leading-3.5 text-emerald-700">Orientation, canvas proportions and the {template.pageMarginMm} mm safe margin remain owned by Page setup.</p>
+
               </div>
               <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Design cards per sheet</span><Select value={String(output.cardsPerPage)} onValueChange={(value) => setOutput((previous) => ({ ...previous, cardsPerPage: Number(value), gapMm: Number(value) === 1 ? 0 : previous.gapMm }))}><SelectTrigger className="h-9 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent>{[1, 2, 3, 4, 6, 8, 9, 12].map((count) => <SelectItem key={count} value={String(count)}>{count === 1 ? '1 · exact editing size' : `${count} · collage`}</SelectItem>)}</SelectContent></Select></label>
               {output.cardsPerPage > 1 && (
                 <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/70 p-3">
-                  <p className="text-[9px] leading-3.5 text-amber-700">Collage mode intentionally scales the full design to fit multiple copies on the same sheet.</p>
+
                   <NumberInput label="Gap between designs" value={output.gapMm} min={0} max={20} suffix="mm" onChange={(value) => setOutput((previous) => ({ ...previous, gapMm: value }))} />
                   <label className="flex items-center gap-2 rounded-lg bg-white/70 p-2 text-[10px] font-semibold text-slate-600"><Checkbox checked={output.showCutLines} onCheckedChange={(checked) => setOutput((previous) => ({ ...previous, showCutLines: checked === true }))} />Show dotted trimming lines</label>
                 </div>
@@ -1642,7 +1679,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
               {usesFees && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3">
                   <p className="mb-1 text-[10px] font-black uppercase tracking-wider text-amber-800">Fee data period</p>
-                  <p className="mb-2 text-[10px] text-amber-700">Balance, paid and total fields use this academic period.</p>
+
                   <div className="grid grid-cols-2 gap-2">
                     <Select value={selectedYearId} onValueChange={(value) => { setSelectedYearId(value); setSelectedTermId(academicYears.find((year) => year.id === value)?.terms[0]?.id || ''); }}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue placeholder="Year" /></SelectTrigger><SelectContent>{academicYears.map((year) => <SelectItem key={year.id} value={year.id}>{year.name}</SelectItem>)}</SelectContent></Select>
                     <Select value={selectedTermId} onValueChange={setSelectedTermId}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue placeholder="Term" /></SelectTrigger><SelectContent>{selectedYear?.terms.map((term) => <SelectItem key={term.id} value={term.id}>{term.name}</SelectItem>)}</SelectContent></Select>
@@ -1657,7 +1694,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                   <div><p className="text-lg font-black text-violet-800">{template.pages.length}</p><p className="text-[9px] font-semibold uppercase text-violet-500">Design pages</p></div>
                   <div><p className="text-lg font-black text-violet-800">{estimatedPages}</p><p className="text-[9px] font-semibold uppercase text-violet-500">PDF pages</p></div>
                 </div>
-                <p className="text-[10px] leading-4 text-violet-700">For multipage designs, every pupil group gets page 1, page 2, and each additional design page in sequence.</p>
+
               </div>
 
               <Button onClick={generatePdf} disabled={(!standalone && selectedPupils.length === 0) || isGenerating || (usesFees && feesProcessing)} className="h-11 w-full rounded-xl bg-violet-700 font-bold hover:bg-violet-800">

@@ -10,11 +10,11 @@ export function StudioPhotoTreatmentControls({ value, onChange }: { value?: Stud
       <input type="checkbox" aria-label="Remove backgrounds from all pupil photos" className="h-4 w-4 shrink-0 accent-violet-600" checked={settings.removeBackground} onChange={event => onChange({ ...settings, removeBackground: event.target.checked })} />
       Apply photo selection throughout this document
     </label>
-    {settings.selection && <p className="text-xs text-violet-800">Shared object or manual selection is active. <button type="button" className="underline" onClick={() => onChange({ ...settings, selection: undefined })}>Use automatic portrait removal instead</button></p>}
+    {settings.selection && <p className="text-xs text-violet-800"><button type="button" className="underline" onClick={() => onChange({ ...settings, selection: undefined })}>Use automatic portrait removal instead</button></p>}
     {settings.removeBackground && <div className="grid grid-cols-2 gap-2">
       <label className="space-y-1 text-xs text-violet-900">Feather (px)<input type="number" aria-label="Shared photo feather" min={0} max={50} step={1} className="h-11 w-full rounded-md border border-violet-200 bg-white px-2" value={settings.feather} onChange={event => onChange(normalizeStudioPupilPhotoTreatment({ ...settings, feather: event.currentTarget.valueAsNumber }))} /></label>
       <label className="space-y-1 text-xs text-violet-900">Edge shift (px)<input type="number" aria-label="Shared photo edge shift" min={-12} max={12} step={1} className="h-11 w-full rounded-md border border-violet-200 bg-white px-2" value={settings.edgeShift} onChange={event => onChange(normalizeStudioPupilPhotoTreatment({ ...settings, edgeShift: event.currentTarget.valueAsNumber }))} /></label>
     </div>}
-    <p className="text-xs leading-relaxed text-violet-800">Each pupil keeps their own photo. This treatment follows every pupil photo on every page, including pupils you select later. Individual pixel corrections take priority. Original pupil records stay unchanged.</p>
+
   </fieldset>;
 }

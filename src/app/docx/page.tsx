@@ -1,5 +1,5 @@
-import { ThankYouCardStudio } from '@/components/docx/thank-you-card-studio';
+import { PhotoStudioPage } from '@/components/docx/photo-studio-page';
 
 export default function DocXPage() {
-  return <ThankYouCardStudio />;
+  return <PhotoStudioPage />;
 }

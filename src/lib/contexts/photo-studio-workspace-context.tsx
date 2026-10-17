@@ -15,6 +15,7 @@ interface PhotoStudioWorkspace {
   session: StudioSession | null;
   suspended: boolean;
   openStudio: (data: PhotoStudioLaunch) => void;
+  syncStudioData: (data: PhotoStudioLaunch) => void;
   minimizeStudio: () => void;
   restoreStudio: () => void;
   closeStudio: () => void;
@@ -35,11 +36,17 @@ export function PhotoStudioWorkspaceProvider({ children }: { children: ReactNode
     if (!permitted) return;
     setStored(previous => previous?.owner === owner ? { ...previous, data, minimized: false } : { owner, data, minimized: false, title: 'Custom Photo Studio' });
   }, [owner, permitted]);
+  const syncStudioData = useCallback((data: PhotoStudioLaunch) => {
+    if (!permitted) return;
+    setStored(previous => !previous || previous.owner !== owner ||
+      (previous.data.pupils === data.pupils && previous.data.schoolBadge === data.schoolBadge && JSON.stringify(previous.data.schoolSettings) === JSON.stringify(data.schoolSettings))
+      ? previous : { ...previous, data });
+  }, [owner, permitted]);
   const minimizeStudio = useCallback(() => setStored(previous => previous ? { ...previous, minimized: true } : null), []);
   const restoreStudio = useCallback(() => { if (permitted) setStored(previous => previous ? { ...previous, minimized: false } : null); }, [permitted]);
   const closeStudio = useCallback(() => setStored(null), []);
   const setStudioTitle = useCallback((title: string) => setStored(previous => previous && previous.title !== title ? { ...previous, title } : previous), []);
-  const value = useMemo(() => ({ session, suspended: !permitted, openStudio, minimizeStudio, restoreStudio, closeStudio, setStudioTitle }), [session, permitted, openStudio, minimizeStudio, restoreStudio, closeStudio, setStudioTitle]);
+  const value = useMemo(() => ({ session, suspended: !permitted, openStudio, syncStudioData, minimizeStudio, restoreStudio, closeStudio, setStudioTitle }), [session, permitted, openStudio, syncStudioData, minimizeStudio, restoreStudio, closeStudio, setStudioTitle]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 

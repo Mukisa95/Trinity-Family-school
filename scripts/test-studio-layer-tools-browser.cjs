@@ -59,7 +59,7 @@ return <PhotoStudioWorkspaceProvider><div className={desktop?'dashboard-bg-wrapp
   const chooseTool=async name=>{if(await workspace.getByRole('button',{name:'Tools & refine',exact:true}).isVisible()&&!await workspace.getByRole('button',{name,exact:true}).isVisible())await workspace.getByRole('button',{name:'Tools & refine',exact:true}).click();await workspace.getByRole('button',{name,exact:true}).click();};
   const rectangle=async(from,to)=>{await chooseTool('Rectangle');const c=workspace.getByLabel('Layer selection canvas',{exact:true});await c.scrollIntoViewIfNeeded();const box=await c.boundingBox();await page.mouse.move(box.x+box.width*from[0],box.y+box.height*from[1]);await page.mouse.down();await page.mouse.move(box.x+box.width*to[0],box.y+box.height*to[1],{steps:4});await page.mouse.up();};
   const leftPanel=()=>editor.locator('aside').first();
-  await page.getByRole('button',{name:'Custom Photo Studio',exact:true}).click();await editor.waitFor();
+  await page.getByRole('dialog',{name:/Custom Photo Studio/}).waitFor();await editor.waitFor();
   await leftPanel().getByRole('button',{name:'Delete layer',exact:true}).first().click();await leftPanel().getByRole('button',{name:'Delete layer',exact:true}).first().click();
   await editor.getByRole('button',{name:'Add layer',exact:true}).click();await page.getByRole('menuitem',{name:'Shape',exact:true}).hover();await page.getByRole('menuitem',{name:'Rectangle',exact:true}).click();
   await editor.getByRole('checkbox',{name:'Shape fill',exact:true}).uncheck();await editor.getByRole('checkbox',{name:'Shape outline',exact:true}).check();await editor.getByLabel('Shape outline colour',{exact:true}).fill('#ff0000');

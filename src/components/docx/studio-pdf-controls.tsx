@@ -57,17 +57,17 @@ export function StudioPdfImport({ onImport, suspended = false, onMinimize, trigg
   return <Dialog open={open && !suspended} onOpenChange={close}>
     {triggerContainer === undefined ? trigger : triggerContainer ? createPortal(trigger, triggerContainer) : null}
     <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg" onEscapeKeyDown={event => { if (busy) event.preventDefault(); }} onInteractOutside={event => { if (busy) event.preventDefault(); }}>
-      <DialogHeader><DialogTitle>Import PDF artwork</DialogTitle><DialogDescription>Use a flattened or layered PDF as protected artwork. Add your own elements above or below it; the original file stays unchanged.</DialogDescription></DialogHeader>
+      <DialogHeader><DialogTitle>Import PDF artwork</DialogTitle><DialogDescription className="sr-only">Local PDF import.</DialogDescription></DialogHeader>
       <label className="space-y-2 text-sm font-medium">PDF file · no fixed file-size limit<Input aria-label="PDF file" type="file" accept="application/pdf,.pdf" disabled={busy} onChange={event => { void inspect(event.target.files?.[0]); event.target.value = ''; }} /></label>
-      <p className="text-xs text-muted-foreground">PDFs and edits stay on this device, including saved templates. Nothing is uploaded to cloud storage. Larger files depend on your device’s available memory and storage.</p>
+
       {count > 0 && <>
         <p className="text-sm text-muted-foreground">{file?.name} · {count} {count === 1 ? 'page' : 'pages'}</p>
         <label className="space-y-2 text-sm font-medium">Pages to import<Input aria-label="Pages to import" value={range} onChange={event => setRange(event.target.value)} disabled={busy} placeholder="1-3, 5" /><span className="block text-xs text-muted-foreground">Up to {MAX_PDF_IMPORT_PAGES} pages per import. Each page keeps its original dimensions.</span></label>
         <label className="space-y-2 text-sm font-medium">Add to template<select aria-label="PDF import destination" value={replace ? 'replace' : 'append'} onChange={event => setReplace(event.target.value === 'replace')} disabled={busy} className="flex h-10 w-full rounded-md border bg-background px-3 text-sm"><option value="append">Add as new pages</option><option value="replace">Replace current page (including its elements)</option></select></label>
       </>}
-      <p className="text-xs text-muted-foreground">PDF pages are imported as high-resolution artwork. Print export combines the visible artwork and your elements into a flattened PDF. Forms and source PDF objects are not editable here.</p>
+
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      {onMinimize && <Button type="button" variant="ghost" className="min-h-11" onClick={onMinimize}><Minus className="mr-2 h-4 w-4" />Minimize Photo Studio</Button>}
+      {onMinimize && <Button type="button" variant="ghost" size="icon" className="h-11 w-11" aria-label="Minimize Photo Studio" onClick={onMinimize}><Minus className="h-4 w-4" /></Button>}
       <div className="flex flex-wrap items-center justify-end gap-2"><span role="status" className="mr-auto text-xs text-muted-foreground">{progress}</span><Button variant="outline" disabled={busy} onClick={() => close(false)}>Cancel</Button><Button disabled={!count || busy} onClick={() => void importPages()}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileUp className="mr-2 h-4 w-4" />}Import pages</Button></div>
     </DialogContent>
   </Dialog>;
@@ -97,7 +97,7 @@ export function StudioPdfArtwork({ artwork }: { artwork: PdfArtwork }) {
 export function StudioPdfCutouts({ artwork, onChange, editing, setEditing }: { artwork: PdfArtwork; onChange: (cutouts: PdfCutout[]) => void; editing: boolean; setEditing: (value: boolean) => void }) {
   return <section className="mt-3 space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-slate-800">
     <p className="flex items-center gap-2 text-xs font-bold"><Lock className="h-3.5 w-3.5" />Protected PDF · page {artwork.pageNumber}</p>
-    <p className="text-[11px] leading-relaxed">Place a photo below the PDF. If its opening is opaque, add a cutout to reveal the photo. Cutouts affect the artwork only.</p>
+
     <div className="flex flex-wrap gap-2"><Button size="sm" variant={editing ? 'secondary' : 'outline'} onClick={() => setEditing(!editing)} className="gap-1 text-xs"><Scissors className="h-3.5 w-3.5" />{editing ? 'Finish cutouts' : 'Edit cutouts'}</Button><Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => { onChange([...artwork.cutouts, { id: makeStudioId('cutout'), shape: 'rectangle', x: 0.3, y: 0.3, width: 0.4, height: 0.4 }]); setEditing(true); }}><Plus className="h-3.5 w-3.5" />Add cutout</Button></div>
     {editing && artwork.cutouts.map((cutout, index) => <div key={cutout.id} className="space-y-2 rounded-lg border border-amber-200 bg-white p-2">
       <div className="flex items-center gap-2"><span className="text-xs font-bold">Opening {index + 1}</span><select aria-label={`Opening ${index + 1} shape`} className="min-w-0 flex-1 rounded border bg-white p-1 text-xs" value={cutout.shape} onChange={event => onChange(artwork.cutouts.map(c => c.id === cutout.id ? { ...c, shape: event.target.value as PdfCutout['shape'] } : c))}><option value="rectangle">Rectangle</option><option value="oval">Oval</option></select><Button size="icon" variant="ghost" className="h-7 w-7" aria-label={`Delete opening ${index + 1}`} onClick={() => onChange(artwork.cutouts.filter(c => c.id !== cutout.id))}><Trash2 className="h-3.5 w-3.5" /></Button></div>

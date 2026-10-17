@@ -55,7 +55,7 @@ function PDFDocumentSurface({
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{document.message}</p>
           <Progress value={document.progress} className="mt-6 h-2 bg-slate-100 dark:bg-slate-900" />
           <div className="mt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-            <span>Generation continues if this window is minimized</span>
+
             <span className="font-semibold text-brand-ink-700 dark:text-brand-ink-300">{document.progress}%</span>
           </div>
         </div>
@@ -263,7 +263,7 @@ export function PDFWorkspace() {
           </span>
           <div className="min-w-0">
             <h1 className="truncate text-sm font-semibold sm:text-base">PDF workspace</h1>
-            <p className="hidden text-xs text-slate-500 sm:block dark:text-slate-400">Create, compare and keep several documents open</p>
+
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">

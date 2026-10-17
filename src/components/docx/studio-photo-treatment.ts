@@ -44,7 +44,7 @@ export class StudioPhotoTreatmentCache {
 
 export function studioPhotoTreatmentKey(layer: CustomPhotoLayer, photo: string, dimensions: { widthMm: number; heightMm: number }, settings: StudioPupilPhotoTreatment) {
   // Position, selection and individual raster edits never belong to the reusable recipe.
-  const { id, label, x, y, opacity, hidden, locked, pdfPlacement, pupilImageEdits, rasterOverride, pupilScopeId, pupilDataMode, outerRotation, constrainToPage, ...pixels } = layer;
+  const { id, groupId, label, x, y, opacity, hidden, locked, pdfPlacement, pupilImageEdits, rasterOverride, pupilScopeId, pupilDataMode, outerRotation, constrainToPage, ...pixels } = layer;
   return JSON.stringify([photo, dimensions.widthMm / dimensions.heightMm, pixels, normalizeStudioPupilPhotoTreatment(settings)]);
 }
 

@@ -69,7 +69,7 @@ return <PhotoStudioWorkspaceProvider><div className={desktop?'dashboard-bg-wrapp
   // Keep the entire portrait visible so synthetic pointer gestures never hit the fixed footer.
   const remove=async()=>{await workspace.getByRole('button',{name:'Remove photo background',exact:true}).click();await page.waitForFunction(()=>{const el=document.querySelector('[aria-label="Layer selection workspace"]');return el&&!el.querySelector('[role="status"]');},{},{timeout:90000});assert.equal(await workspace.getByRole('alert').count(),0);};
   const processed=async name=>{const image=editor.getByRole('img',{name:'Background removed · '+name,exact:true});await image.first().waitFor({timeout:90000}).catch(async error=>{console.error((await editor.innerText()).slice(-2500));await page.screenshot({path:path.join(output,'failure.png')});throw error;});return image.first().getAttribute('src');};
-  await page.getByRole('button',{name:'Custom Photo Studio',exact:true}).click();await editor.waitFor();
+  await page.getByRole('dialog',{name:/Custom Photo Studio/}).waitFor();await editor.waitFor();
   await editor.locator('aside').first().getByRole('button',{name:'Pupil photo',exact:true}).click();await openTools();
   assert.equal(await workspace.getByLabel('Background removal scope').inputValue(),'document','Background removal defaults to all pupils');
   for(const size of [{width:320,height:720},{width:390,height:844},{width:812,height:375},{width:1440,height:900}]){

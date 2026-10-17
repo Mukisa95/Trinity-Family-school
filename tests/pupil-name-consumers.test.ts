@@ -45,7 +45,6 @@ const arrowCases: Array<[string, string, (query: string) => Record<string, unkno
   ['src/app/classes/pending/page.tsx', 'pupil', query => ({ searchQuery: query, allClasses: [] }), pupil],
   ['src/app/pupil-history/page.tsx', 'pupil', query => ({ searchTerm: query }), { ...pupil, guardian: { name: 'Ann Other' } }],
   ['src/components/events/attendance/parent-attendance-form.tsx', 'pupil', query => ({ pupilSearchTerm: query, allClasses: [] }), pupil],
-  ['src/components/docx/thank-you-card-studio.tsx', 'pupil', query => ({ search: query, normalizedSearch: query.trim().toLowerCase() }), pupil],
   ['src/components/docx/custom-photo-studio.tsx', 'pupil', query => ({ pupilSearch: query, query, classFilter: 'all', statusFilter: 'all', photoFilter: 'all' }), pupil],
   ['src/app/exams/ple-results/[pleId]/view-results/page.tsx', 'pupil', query => ({ searchTerm: query }), pupil],
   ['src/app/exams/ple-results/[pleId]/record-results/page.tsx', 'pupil', query => ({ searchTerm: query }), pupil],

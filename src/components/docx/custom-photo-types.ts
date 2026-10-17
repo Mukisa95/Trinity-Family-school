@@ -113,6 +113,7 @@ export const PAPER_SIZE_OPTIONS: Array<{ value: PaperSize; label: string; widthM
 export interface CustomPhotoLayer {
   id: string;
   pdfPlacement?: 'below' | 'above';
+  groupId?: string;
   /** Template-only pixel edits; pupil records are never modified. */
   rasterOverride?: string;
   pupilImageEdits?: Record<string, string>;
@@ -167,6 +168,7 @@ export interface CustomPhotoPage {
   backgroundFit: BackgroundFit;
   backgroundColor: string;
   layers: CustomPhotoLayer[];
+  groups?: Array<{ id: string; name: string }>;
   pdfArtwork?: PdfArtwork;
 }
 

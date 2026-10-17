@@ -63,7 +63,7 @@ return <PhotoStudioWorkspaceProvider><div className={desktop?'dashboard-bg-wrapp
    fixtures[kind]=Buffer.from(await pdf.save());fs.writeFileSync(path.join(output,kind+'.pdf'),fixtures[kind]);
   }
   const red=Buffer.from(await page.evaluate(()=>{const c=document.createElement('canvas');c.width=200;c.height=200;const x=c.getContext('2d');x.fillStyle='#e02020';x.fillRect(0,0,200,200);return c.toDataURL('image/png').split(',')[1];}),'base64');
-  await page.getByRole('button',{name:'Custom Photo Studio',exact:true}).click();await editor.waitFor();
+  await page.getByRole('dialog',{name:/Custom Photo Studio/}).waitFor();await editor.waitFor();
   const canvas=editor.locator('[data-studio-canvas]');
   const pixel=async(x,y)=>{const bytes=await canvas.screenshot();return await page.evaluate(async({url,x,y})=>{const image=new Image();image.src=url;await image.decode();const c=document.createElement('canvas');c.width=image.width;c.height=image.height;const ctx=c.getContext('2d');ctx.drawImage(image,0,0);return Array.from(ctx.getImageData(Math.floor(x*image.width),Math.floor(y*image.height),1,1).data);},{url:'data:image/png;base64,'+bytes.toString('base64'),x,y});};
   const isRed=p=>p[0]>180&&p[1]<75&&p[2]<75;

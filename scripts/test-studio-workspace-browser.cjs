@@ -61,12 +61,12 @@ return <PhotoStudioWorkspaceProvider><div className={desktop?'dashboard-bg-wrapp
   document.catalog.set(PDFName.of('LocalStudioFixture'),unused);
   const large=Buffer.from(await document.save({useObjectStreams:false}));assert.ok(large.length>25*1024*1024);
   const originalHash=crypto.createHash('sha256').update(large).digest('hex');
-  await page.getByRole('button',{name:'Custom Photo Studio',exact:true}).click();await editor.waitFor();
+  await page.getByRole('dialog',{name:/Custom Photo Studio/}).waitFor();await editor.waitFor();
   await editor.getByRole('textbox',{name:'Template name',exact:true}).fill('Persistent local studio');
-  await editor.getByRole('button',{name:'Import PDF',exact:true}).click();await importer.waitFor();assert.match(await importer.innerText(),/no fixed file-size limit/);
+  await editor.getByRole('button',{name:'Import PDF',exact:true}).click();await importer.waitFor();assert.equal(await importer.getByLabel('PDF file',{exact:true}).isVisible(),true);
   const uploadPath=path.join(output,'large-local.pdf');fs.writeFileSync(uploadPath,large);
   await importer.getByLabel('PDF file',{exact:true}).setInputFiles(uploadPath,{timeout:60000});
-  await importer.getByRole('button',{name:'Minimize Photo Studio',exact:true}).click();await dock.waitFor();assert.equal(await editor.count(),0);assert.equal(await importer.count(),0);
+  await importer.getByRole('button',{name:'Minimize Photo Studio',exact:true}).click();await dock.waitFor();await editor.waitFor({state:'hidden'});await importer.waitFor({state:'hidden'});assert.equal(await editor.count(),0);assert.equal(await importer.count(),0);
   await page.getByRole('button',{name:'Other app page',exact:true}).click();await page.getByRole('textbox',{name:'Other app work'}).fill('Working elsewhere while the PDF stays local');
   assert.ok(await page.evaluate(()=>window.fixtureDocXUnmounts>0),'The actual DocX route component unmounts');
   assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).pointerEvents),'auto','Minimizing releases the app pointer lock');
@@ -112,7 +112,7 @@ return <PhotoStudioWorkspaceProvider><div className={desktop?'dashboard-bg-wrapp
   await editor.getByRole('button',{name:'1. Design',exact:true}).click();
   const download=page.waitForEvent('download');await editor.getByRole('link',{name:'Download unchanged source PDF'}).click();const result=await download;const downloaded=path.join(output,'original-local.pdf');await result.saveAs(downloaded);assert.equal(crypto.createHash('sha256').update(fs.readFileSync(downloaded)).digest('hex'),originalHash);
   await editor.getByRole('button',{name:'Close editor',exact:true}).click();await editor.waitFor({state:'hidden'});
-  await page.getByRole('button',{name:'DocX page',exact:true}).click();await page.getByRole('button',{name:'Custom Photo Studio',exact:true}).click();await editor.waitFor();
+  await page.getByRole('button',{name:'DocX page',exact:true}).click();await editor.waitFor();
   await editor.getByRole('combobox').filter({hasText:'Open saved template'}).click();await page.getByRole('option',{name:'Persistent local studio',exact:true}).click();await editor.getByRole('link',{name:'Download unchanged source PDF'}).waitFor();
   console.log('Pupil selection, output stage, responsive dock, PDF export, download and save/reopen passed');
   // Locked or replaced accounts cannot keep a previous visible studio session.
