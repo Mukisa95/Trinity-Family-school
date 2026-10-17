@@ -117,6 +117,8 @@ export interface CustomPhotoLayer {
   rasterOverride?: string;
   pupilImageEdits?: Record<string, string>;
   pupilScopeId?: string;
+  /** Replayed on each pupil's own photo, including extracted copy/cut layers. */
+  photoSelection?: StudioPupilPhotoTreatment;
   outerRotation?: number;
   kind: LayerKind;
   label: string;
@@ -190,18 +192,32 @@ export interface PdfArtwork {
 export interface StudioPdfSource {
   id: string;
   name: string;
-  dataUrl: string;
+  /** Local IndexedDB Blob; legacy templates may still contain a data URL. */
+  blob?: Blob;
+  dataUrl?: string;
 }
+
+/** Preserve immutable local Blobs without a base64 copy in every snapshot. */
+export function cloneStudioTemplate(template: CustomPhotoTemplate): CustomPhotoTemplate {
+  return structuredClone(template);
+}
+
+export type StudioSelectionStep =
+  | { tool: 'person' | 'all' | 'clear' | 'invert'; mode: 'replace' | 'add' | 'subtract' }
+  | { tool: 'object' | 'wand'; mode: 'replace' | 'add' | 'subtract'; point: { x: number; y: number }; tolerance?: number }
+  | { tool: 'rectangle' | 'ellipse' | 'polygon' | 'brush'; mode: 'replace' | 'add' | 'subtract'; points: Array<{ x: number; y: number }>; radius?: number; erase?: boolean };
 
 export interface StudioPupilPhotoTreatment {
   removeBackground: boolean;
   feather: number;
   edgeShift: number;
+  selection?: StudioSelectionStep[];
+  keep?: boolean;
 }
 
 export function normalizeStudioPupilPhotoTreatment(value?: Partial<StudioPupilPhotoTreatment>): StudioPupilPhotoTreatment {
   const bounded = (input: number | undefined, min: number, max: number) => Number.isFinite(input) ? Math.max(min, Math.min(max, Math.round(input!))) : 0;
-  return { removeBackground: value?.removeBackground === true, feather: bounded(value?.feather, 0, 50), edgeShift: bounded(value?.edgeShift, -12, 12) };
+  return { removeBackground: value?.removeBackground === true, feather: bounded(value?.feather, 0, 50), edgeShift: bounded(value?.edgeShift, -12, 12), ...(value?.selection?.length ? { selection: structuredClone(value.selection) } : {}), ...(value?.keep === false ? { keep: false } : {}) };
 }
 
 export interface CustomPhotoTemplate {

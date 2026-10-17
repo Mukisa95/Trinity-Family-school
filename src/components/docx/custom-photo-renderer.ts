@@ -422,11 +422,11 @@ async function renderLayer(
 
 /** Each pupil is processed from their own original layer; individual edits win. */
 export async function getStudioPupilTreatmentRaster(layer: CustomPhotoLayer, data: RenderPupilData, dimensions: { widthMm: number; heightMm: number }) {
-  const settings = data.pupilPhotoTreatment;
+  const settings = layer.photoSelection || data.pupilPhotoTreatment;
   if (layer.kind !== 'avatar' || !settings?.removeBackground || !data.pupil.photo || getStudioRasterOverride(layer, data)) return undefined;
   const key = studioPhotoTreatmentKey(layer, data.pupil.photo, dimensions, settings);
   try {
-    return await treatStudioPupilPhoto(key, () => rasterizeStudioLayer(layer, { ...data, pupilPhotoTreatment: undefined }, dimensions), settings);
+    return await treatStudioPupilPhoto(key, () => rasterizeStudioLayer({ ...layer, photoSelection: undefined }, { ...data, pupilPhotoTreatment: undefined }, dimensions), settings);
   } catch (reason) {
     throw new Error(`Background removal failed for ${pupilDisplayName(data.pupil)}. ${reason instanceof Error ? reason.message : 'Try again or add an individual correction.'}`);
   }

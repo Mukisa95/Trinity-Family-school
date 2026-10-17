@@ -10,3 +10,6 @@ const studioOutput = 'public/photo-tools/studio-v1/selection-worker.js';
 require('esbuild').buildSync({ entryPoints: ['src/lib/photo/studio-object-worker.ts'], bundle: true,
   platform: 'browser', format: 'iife', target: 'es2020', outfile: studioOutput, legalComments: 'inline' });
 fs.writeFileSync(studioOutput, fs.readFileSync(studioOutput, 'utf8').replace(/[ \t]+$/gm, ''));
+const mattingOutput = 'public/photo-tools/studio-v2/matting-worker.js';
+require('esbuild').buildSync({ entryPoints: ['src/lib/photo/studio-matting-worker.ts'], bundle: true,
+  platform: 'browser', format: 'iife', target: 'es2020', outfile: mattingOutput, legalComments: 'inline' });

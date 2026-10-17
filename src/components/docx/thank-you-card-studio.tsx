@@ -32,7 +32,7 @@ import { PDFViewer } from '@/components/pdf/pdf-viewer';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { CustomPhotoStudio } from './custom-photo-studio';
+import { usePhotoStudioWorkspace } from '@/lib/contexts/photo-studio-workspace-context';
 
 const FRONT_ARTWORK = '/Document%20Macro/0d6ff135-4b7e-487e-b10a-137ae9782773.png';
 const BACK_ARTWORK = '/Document%20Macro/64503b0c-d32f-4dfc-a07f-d595a28ee3a4.png';
@@ -402,7 +402,7 @@ export function ThankYouCardStudio() {
   const [photoFilter, setPhotoFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isPreparingPrint, setIsPreparingPrint] = useState(false);
-  const [isCustomStudioOpen, setIsCustomStudioOpen] = useState(false);
+  const { openStudio } = usePhotoStudioWorkspace();
   const pdfViewer = usePDFViewer();
   const { toast } = useToast();
 
@@ -521,7 +521,7 @@ export function ThankYouCardStudio() {
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
-                onClick={() => setIsCustomStudioOpen(true)}
+                onClick={() => openStudio({ pupils, schoolSettings, schoolBadge })}
                 className="h-9 rounded-full border-violet-200 bg-violet-50/80 px-4 text-xs font-semibold text-violet-700 shadow-sm hover:bg-violet-100"
               >
                 <WandSparkles className="mr-2 h-4 w-4" />
@@ -723,10 +723,6 @@ export function ThankYouCardStudio() {
           </Card>
         </div>
       </div>
-
-      {isCustomStudioOpen && (
-        <CustomPhotoStudio pupils={pupils} schoolSettings={schoolSettings} schoolBadge={schoolBadge} onClose={() => setIsCustomStudioOpen(false)} />
-      )}
 
       <PDFViewer
         isOpen={pdfViewer.isOpen}

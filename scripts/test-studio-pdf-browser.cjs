@@ -7,6 +7,8 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
 const root=path.resolve(__dirname,'..'),output=path.join(root,'output/studio-pdf-qa');
 process.chdir(root);
 const mocks={
+ '@/lib/pdf/pdf-workspace-context':`export const usePDFWorkspace=()=>({documents:[],mode:'expanded'});`,
+ '@/lib/contexts/auth-context':`export const useAuth=()=>({user:{id:'studio-fixture',role:'Admin',isActive:true},isLocked:false,canAccessPage:()=>true});`,
  'next/navigation':`export const usePathname=()=>'/docx',useRouter=()=>({push(){},replace(){},prefetch(){}});`,
  'next/link':`import React from 'react';export default ({href,children,...props})=><a href={href} {...props}>{children}</a>;`,
  '@/lib/contexts/navigation-context':`export const useNavigation=()=>({isNavigating:false,destination:null,isSlow:false,goBack(){}});`,
@@ -20,21 +22,22 @@ const mocks={
  '@/lib/hooks/use-pdf-viewer':`export const usePDFViewer=()=>({isOpen:false,closePDF(){},async runPDFJob(_options,generator){const blob=await generator({updateProgress(){}});window.fixturePDF=blob;return blob}});`,
 };
 const fixture=`import React,{useState,useEffect} from 'react';import{createRoot}from'react-dom/client';
+import{PhotoStudioWorkspaceProvider}from'./src/lib/contexts/photo-studio-workspace-context';import{LazyPhotoStudioWorkspace}from'./src/components/docx/lazy-photo-studio-workspace';
 import DocXPage from './src/app/docx/page';import{NavigationContent}from'./src/components/layout/navigation-content';
 function App(){const[desktop,setDesktop]=useState(innerWidth>=768);useEffect(()=>{const resize=()=>setDesktop(innerWidth>=768);addEventListener('resize',resize);return()=>removeEventListener('resize',resize)},[]);
-return <div className={desktop?'dashboard-bg-wrapper flex w-full':'flex w-full'}>
+return <PhotoStudioWorkspaceProvider><div className={desktop?'dashboard-bg-wrapper flex w-full':'flex w-full'}>
 {desktop&&<aside className="w-64 shrink-0 bg-card p-4">School navigation</aside>}
 <div data-sidebar={desktop?'inset':undefined} className="relative flex h-[100dvh] min-w-0 flex-1 flex-col overflow-hidden">
 <header className="app-topbar sticky top-0 z-40 h-11 shrink-0 bg-card px-4 sm:h-[52px] md:absolute md:left-0 md:right-0"><button className="h-full">School topbar</button></header>
 <main data-fixture-scroller className="min-h-0 flex-1 overflow-y-auto px-3 md:px-6 md:pt-[52px]"><NavigationContent><DocXPage/></NavigationContent></main>
-</div></div>};createRoot(document.getElementById('app')).render(<App/>);`;
+</div></div><LazyPhotoStudioWorkspace/></PhotoStudioWorkspaceProvider>};createRoot(document.getElementById('app')).render(<App/>);`;
 (async()=>{
  fs.mkdirSync(output,{recursive:true});
  await esbuild.build({absWorkingDir:root,stdin:{contents:fixture,resolveDir:root,loader:'tsx'},bundle:true,format:'esm',platform:'browser',jsx:'automatic',alias:{'@':path.join(root,'src')},outfile:path.join(output,'fixture.js'),define:{'process.env.NODE_ENV':'"production"','process.env':'{}'},plugins:[{name:'synthetic-records',setup(b){b.onResolve({filter:/.*/},a=>Object.hasOwn(mocks,a.path)?{path:a.path,namespace:'fixture'}:undefined);b.onLoad({filter:/.*/,namespace:'fixture'},a=>({contents:mocks[a.path],loader:'tsx',resolveDir:root}));b.onLoad({filter:/studio-pdf\.ts$/},a=>({contents:fs.readFileSync(a.path,'utf8').replace("new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()","'/pdf.worker.min.mjs'"),loader:'ts',resolveDir:path.dirname(a.path)}));}}]});
  const config={exports:{}};new Function('require','module','exports',ts.transpileModule(fs.readFileSync('tailwind.config.ts','utf8'),{compilerOptions:{module:1}}).outputText)(require,config,config.exports);
  const css=['globals.css','theme.css','brand-theme.css'].map(p=>fs.readFileSync(path.join(root,'src/app',p),'utf8').replace(/^@import[^;]+;/,'')).join('\n');
  const cssPath=path.join(output,'fixture.css');
- if(!fs.existsSync(cssPath)||fs.statSync(cssPath).mtimeMs<Math.max(...['custom-photo-studio.tsx','studio-pdf-controls.tsx','docx-fonts.ts'].map(file=>fs.statSync(path.join(root,'src/components/docx',file)).mtimeMs))){
+ if(!fs.existsSync(cssPath)||fs.statSync(cssPath).mtimeMs<Math.max(...['custom-photo-studio.tsx','studio-pdf-controls.tsx','lazy-photo-studio-workspace.tsx','docx-fonts.ts'].map(file=>fs.statSync(path.join(root,'src/components/docx',file)).mtimeMs))){
   const built=await require('postcss')([require('tailwindcss')({...config.exports.default,content:[path.join(root,'src/**/*.{ts,tsx}'),{raw:fixture,extension:'tsx'}]})]).process(css,{from:path.join(root,'src/app/globals.css')});fs.writeFileSync(cssPath,built.css);
  }
  const server=http.createServer((req,res)=>{if(req.url==='/pdf.worker.min.mjs'){res.setHeader('Content-Type','text/javascript');res.end(fs.readFileSync(require.resolve('pdfjs-dist/build/pdf.worker.min.mjs')));return;}if(['/fixture.js','/fixture.css'].includes(req.url)){res.setHeader('Content-Type',req.url.endsWith('.js')?'text/javascript':'text/css');res.end(fs.readFileSync(path.join(output,req.url.slice(1))));return;}
@@ -91,7 +94,7 @@ return <div className={desktop?'dashboard-bg-wrapper flex w-full':'flex w-full'}
   await editor.getByRole('button',{name:/Photo art Above/}).click();await editor.getByLabel('Position relative to PDF').selectOption('below');await canvas.click({position:{x:3,y:3}});assert.ok(isWhite(await pixel(.5,.25)),'Below PDF respects white source outside cutout');console.log('Cutouts and placement passed');
   await editor.getByRole('textbox',{name:'Template name'}).fill('PDF roundtrip');await editor.getByRole('button',{name:'Save',exact:true}).click();await page.waitForFunction(()=>window.fixtureToast?.title==='Template saved');
   const saved=await page.evaluate(()=>new Promise((resolve,reject)=>{const r=indexedDB.open('trinity-document-studio',1);r.onsuccess=()=>{const db=r.result,q=db.transaction('templates').objectStore('templates').getAll();q.onsuccess=()=>{resolve(q.result[0]);db.close()};q.onerror=()=>reject(q.error)};}));
-  assert.equal(saved.pages[0].pdfArtwork.cutouts.length,1);assert.equal(saved.pages[0].layers[0].pdfPlacement,'below');assert.equal(Object.values(saved.pdfSources)[0].dataUrl.split(',')[1],fixtures.flat.toString('base64'),'Original PDF bytes are unchanged');
+  assert.equal(saved.pages[0].pdfArtwork.cutouts.length,1);assert.equal(saved.pages[0].layers[0].pdfPlacement,'below');assert.ok(Object.values(saved.pdfSources)[0].blob);assert.equal(Object.values(saved.pdfSources)[0].dataUrl,undefined,'New sources avoid base64 copies');const sourceHash=await page.evaluate(()=>new Promise(resolve=>{const r=indexedDB.open('trinity-document-studio',1);r.onsuccess=()=>{const db=r.result,q=db.transaction('templates').objectStore('templates').getAll();q.onsuccess=async()=>{const blob=Object.values(q.result[0].pdfSources)[0].blob;resolve(Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))).map(x=>x.toString(16).padStart(2,'0')).join(''));db.close();};};}));assert.equal(sourceHash,require('crypto').createHash('sha256').update(fixtures.flat).digest('hex'),'Original PDF bytes are unchanged');
   await page.screenshot({path:path.join(output,'flat-cutout-desktop.png')});
   await editor.getByRole('button',{name:'2. Pupils & output',exact:true}).click();await editor.getByRole('button',{name:/Select all 1 filtered pupils/}).click();await editor.getByRole('button',{name:'Open in-app print preview',exact:true}).click();await page.waitForFunction(()=>window.fixturePDF instanceof Blob,{},{timeout:60000});
   fs.writeFileSync(path.join(output,'flat-cutout-export.pdf'),Buffer.from(await page.evaluate(async()=>Array.from(new Uint8Array(await window.fixturePDF.arrayBuffer())))));await page.evaluate(()=>window.fixturePDF=null);

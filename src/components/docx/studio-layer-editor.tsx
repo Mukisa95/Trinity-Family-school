@@ -2,17 +2,16 @@
 
 import * as Dialog from '@radix-ui/react-dialog';
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { Copy, Eraser, Loader2, MousePointer2, Redo2, Scissors, Undo2, WandSparkles, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { Copy, Eraser, Loader2, Minus, MousePointer2, Redo2, Scissors, Undo2, WandSparkles, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PhotoToolsClient } from '@/lib/photo/photo-tools-client';
+import { segmentStudioPortrait } from '@/lib/photo/studio-matting-client';
 import { StudioObjectClient } from '@/lib/photo/studio-object-client';
-import type { PersonMask } from '@/lib/photo/photo-processing';
-import type { StudioPupilPhotoTreatment } from './custom-photo-types';
+import type { StudioPupilPhotoTreatment, StudioSelectionStep } from './custom-photo-types';
 import { studioPersonSelection } from './studio-photo-treatment';
 import { combineSelection, extractSelectedPixels, MAX_SELECTION_FEATHER, normalizeSelectionFeather, paintSelectionStroke, refineSelection, selectConnectedColour, selectPolygon, selectRegion, type SelectionMode, type SelectionPoint } from './studio-selection';
 
 export type StudioPixelAction = 'mask' | 'copy' | 'cut';
-export interface StudioPixelResult { action: StudioPixelAction; selected: string; remainder?: string; pupilPhotoTreatment?: StudioPupilPhotoTreatment }
+export interface StudioPixelResult { action: StudioPixelAction; selected: string; remainder?: string; pupilPhotoTreatment?: StudioPupilPhotoTreatment; replaceIndividualEdits?: boolean }
 type Tool = 'object' | 'wand' | 'polygon' | 'rectangle' | 'ellipse' | 'addBrush' | 'eraseBrush' | 'pan';
 const TOOLS: Array<{ value: Tool; label: string }> = [
   { value: 'object', label: 'AI object' }, { value: 'wand', label: 'Colour wand' }, { value: 'polygon', label: 'Polygon' },
@@ -20,15 +19,14 @@ const TOOLS: Array<{ value: Tool; label: string }> = [
   { value: 'pan', label: 'Pan / scroll' },
 ];
 
-export function StudioLayerEditor({ source: layerSource, backgroundSource, initialPupilTreatment, label, pupilName, onClose, onApply }: { source: HTMLCanvasElement; backgroundSource?: HTMLCanvasElement; initialPupilTreatment?: StudioPupilPhotoTreatment; label: string; pupilName?: string; onClose: () => void; onApply: (result: StudioPixelResult) => void }) {
-  const [useOriginalPhoto, setUseOriginalPhoto] = useState(false);
-  const source = useOriginalPhoto && backgroundSource ? backgroundSource : layerSource;
-  const [repeatBackground, setRepeatBackground] = useState(false);
+export function StudioLayerEditor({ source: layerSource, backgroundSource, initialPupilTreatment, label, pupilName, onClose, onApply, suspended = false, onMinimize }: { source: HTMLCanvasElement; backgroundSource?: HTMLCanvasElement; initialPupilTreatment?: StudioPupilPhotoTreatment; label: string; pupilName?: string; onClose: () => void; onApply: (result: StudioPixelResult) => void; suspended?: boolean; onMinimize?: () => void }) {
   const [backgroundScope, setBackgroundScope] = useState<'document' | 'pupil'>('document');
+  const [replaceIndividualEdits, setReplaceIndividualEdits] = useState(true);
+  const source = backgroundScope === 'document' && backgroundSource ? backgroundSource : layerSource;
+  const [steps, setSteps] = useState<StudioSelectionStep[]>([]);
   const { width, height } = source;
   const original = useMemo(() => source.getContext('2d')!.getImageData(0, 0, width, height), [source, width, height]);
   const [previewCanvas, setPreviewCanvas] = useState<HTMLCanvasElement | null>(null);
-  const personRef = useRef<PhotoToolsClient>();
   const objectRef = useRef<StudioObjectClient>();
   const alive = useRef(true);
   const [tool, setTool] = useState<Tool>('object');
@@ -36,9 +34,10 @@ export function StudioLayerEditor({ source: layerSource, backgroundSource, initi
   const [mask, setMask] = useState<Uint8ClampedArray>(() => new Uint8ClampedArray(width * height));
   const maskRef = useRef(mask); maskRef.current = mask;
   const [revision, setRevision] = useState(0);
-  const [past, setPast] = useState<Uint8ClampedArray[]>([]), [future, setFuture] = useState<Uint8ClampedArray[]>([]);
+  type Snapshot = { mask: Uint8ClampedArray; steps: StudioSelectionStep[] };
+  const [past, setPast] = useState<Snapshot[]>([]), [future, setFuture] = useState<Snapshot[]>([]);
   const [points, setPoints] = useState<SelectionPoint[]>([]);
-  const [gesture, setGesture] = useState<{ start: SelectionPoint; last: SelectionPoint; base: Uint8ClampedArray; working?: Uint8ClampedArray }>();
+  const [gesture, setGesture] = useState<{ start: SelectionPoint; last: SelectionPoint; base: Uint8ClampedArray; working?: Uint8ClampedArray; path?: SelectionPoint[] }>();
   const [brush, setBrush] = useState(32), [tolerance, setTolerance] = useState(15);
   const [feather, setFeather] = useState(initialPupilTreatment?.feather || 0), [shift, setShift] = useState(initialPupilTreatment?.edgeShift || 0);
   const [view, setView] = useState<'selection' | 'result' | 'original'>('selection');
@@ -48,7 +47,7 @@ export function StudioLayerEditor({ source: layerSource, backgroundSource, initi
   const [showTools, setShowTools] = useState(false);
   const [busy, setBusy] = useState(''), [error, setError] = useState('');
   const frameRef = useRef<number>();
-  useEffect(() => { alive.current = true; return () => { alive.current = false; personRef.current?.dispose(); objectRef.current?.dispose(); personRef.current = undefined; objectRef.current = undefined; if (frameRef.current) cancelAnimationFrame(frameRef.current); }; }, []);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; objectRef.current?.dispose(); objectRef.current = undefined; if (frameRef.current) cancelAnimationFrame(frameRef.current); }; }, []);
   const refined = useMemo(() => refineSelection(mask, width, height, feather, shift), [mask, width, height, feather, shift, revision]);
   const hasSelection = refined.some((value, index) => value > 0 && original.data[index * 4 + 3] > 0);
   useEffect(() => {
@@ -66,34 +65,24 @@ export function StudioLayerEditor({ source: layerSource, backgroundSource, initi
     context.putImageData(new ImageData(result, width, height), 0, 0);
   }, [previewCanvas, original, refined, view, width, height, revision]);
 
-  const commit = (next: Uint8ClampedArray, combine = true) => {
-    setRepeatBackground(false);
-    setPast(items => [...items, maskRef.current].slice(-12)); setFuture([]);
+  const commit = (next: Uint8ClampedArray, combine = true, step?: StudioSelectionStep) => {
+    setPast(items => [...items, { mask: maskRef.current, steps }].slice(-12)); setFuture([]);
     setMask(combine ? combineSelection(maskRef.current, next, mode) : next); setError('');
+    setSteps(current => step ? step.mode === 'replace' && !['invert', 'brush'].includes(step.tool) ? [step] : [...current, step] : []);
   };
-  const undo = () => { setRepeatBackground(false); const previous = past.at(-1); if (!previous) return; setFuture(items => [maskRef.current, ...items].slice(0, 12)); setPast(items => items.slice(0, -1)); setMask(previous); };
-  const redo = () => { setRepeatBackground(false); const next = future[0]; if (!next) return; setPast(items => [...items, maskRef.current].slice(-12)); setFuture(items => items.slice(1)); setMask(next); };
+  const undo = () => { const previous = past.at(-1); if (!previous) return; setFuture(items => [{ mask: maskRef.current, steps }, ...items].slice(0, 12)); setPast(items => items.slice(0, -1)); setMask(previous.mask); setSteps(previous.steps); };
+  const redo = () => { const next = future[0]; if (!next) return; setPast(items => [...items, { mask: maskRef.current, steps }].slice(-12)); setFuture(items => items.slice(1)); setMask(next.mask); setSteps(next.steps); };
   const runAi = async (point?: SelectionPoint) => {
     if (busy) return;
-    const aiSource = !point && backgroundSource ? backgroundSource : source;
-    if (!point && backgroundSource) setUseOriginalPhoto(true);
-    setBusy(point ? 'Selecting the object…' : 'Separating the person from the background…'); setError('');
+    setBusy(point ? 'Selecting the object…' : 'Preparing detailed portrait matting…'); setError('');
     try {
-      let result: PersonMask;
-      if (point) { objectRef.current ||= new StudioObjectClient(); result = await objectRef.current.select(source, point); }
-      else { personRef.current ||= new PhotoToolsClient(); result = await personRef.current.segment(aiSource); }
+      objectRef.current ||= new StudioObjectClient();
+      const result = point ? await objectRef.current.select(source, point) : await segmentStudioPortrait(source);
       if (!alive.current) return;
-      if (!point) {
-        setBusy('Refining hair and subject edges…');
-        objectRef.current ||= new StudioObjectClient();
-        result = await objectRef.current.refine(aiSource, result);
-        if (!alive.current) return;
-      }
       const selected = studioPersonSelection(result, width, height);
-      const aiPixels = aiSource.getContext('2d')!.getImageData(0, 0, width, height).data;
-      if (!selected.some((v, i) => v > 128 && aiPixels[i * 4 + 3] > 0)) throw new Error('No clear subject was found. Click inside an object or use the brush and polygon tools.');
-      commit(selected, !!point);
-      if (!point) { setRepeatBackground(!!backgroundSource); setView('result'); }
+      if (!selected.some((v, i) => v > 128 && original.data[i * 4 + 3] > 0)) throw new Error('No clear subject was found. Click inside an object or use the brush and polygon tools.');
+      commit(selected, !!point, point ? { tool: 'object', point, mode } : { tool: 'person', mode: 'replace' });
+      setView('result');
     } catch (reason) { if (alive.current) setError(reason instanceof Error ? reason.message : 'Automatic selection failed. Manual tools remain available.'); }
     finally { if (alive.current) setBusy(''); }
   };
@@ -108,30 +97,30 @@ export function StudioLayerEditor({ source: layerSource, backgroundSource, initi
   };
   const pointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (busy || tool === 'pan' || event.button !== 0) return;
-    const point = pointFrom(event); event.preventDefault(); setError(''); setRepeatBackground(false);
+    const point = pointFrom(event); event.preventDefault(); setError('');
     if (tool === 'object') { void runAi(point); return; }
-    if (tool === 'wand') { commit(selectConnectedColour(original.data, width, height, point, tolerance)); return; }
+    if (tool === 'wand') { commit(selectConnectedColour(original.data, width, height, point, tolerance), true, { tool: 'wand', point, tolerance, mode }); return; }
     if (tool === 'polygon') { setPoints(current => [...current, point]); return; }
     event.currentTarget.setPointerCapture(event.pointerId);
     if (tool === 'addBrush' || tool === 'eraseBrush') {
       const working = new Uint8ClampedArray(maskRef.current);
-      setPast(items => [...items, maskRef.current].slice(-12)); setFuture([]); setMask(working);
-      updateBrush(working, point, point); setGesture({ start: point, last: point, base: maskRef.current, working });
+      setPast(items => [...items, { mask: maskRef.current, steps }].slice(-12)); setFuture([]); setMask(working);
+      updateBrush(working, point, point); setGesture({ start: point, last: point, base: maskRef.current, working, path: [point] });
     } else setGesture({ start: point, last: point, base: maskRef.current });
   };
   const pointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!gesture || busy) return;
     const point = pointFrom(event);
     if (gesture.working) updateBrush(gesture.working, gesture.last, point);
-    setGesture({ ...gesture, last: point });
+    setGesture({ ...gesture, last: point, path: gesture.path ? [...gesture.path, point] : undefined });
   };
   const finishGesture = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!gesture) return;
-    if (!gesture.working) commit(selectRegion(width, height, gesture.start, pointFrom(event), tool === 'ellipse'));
-    else setMask(new Uint8ClampedArray(gesture.working));
+    if (!gesture.working) commit(selectRegion(width, height, gesture.start, pointFrom(event), tool === 'ellipse'), true, { tool: tool === 'ellipse' ? 'ellipse' : 'rectangle', points: [gesture.start, pointFrom(event)], mode });
+    else { setMask(new Uint8ClampedArray(gesture.working)); setSteps(current => [...current, { tool: 'brush', mode: 'replace', points: gesture.path || [gesture.start], radius: brush / 2 / Math.max(width, height), erase: tool === 'eraseBrush' }]); }
     setGesture(undefined);
   };
-  const finishPolygon = () => { if (points.length >= 3) { commit(selectPolygon(width, height, points)); setPoints([]); } };
+  const finishPolygon = () => { if (points.length >= 3) { commit(selectPolygon(width, height, points), true, { tool: 'polygon', points, mode }); setPoints([]); } };
   const apply = (action: StudioPixelAction) => {
     if (!hasSelection || busy || points.length) return;
     const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
@@ -140,9 +129,10 @@ export function StudioLayerEditor({ source: layerSource, backgroundSource, initi
     const selected = canvas.toDataURL('image/png');
     let remainder: string | undefined;
     if (action === 'cut') { context.putImageData(new ImageData(extractSelectedPixels(original.data, refined, false), width, height), 0, 0); remainder = canvas.toDataURL('image/png'); }
-    onApply({ action, selected, remainder, ...(action === 'mask' && repeatBackground && backgroundScope === 'document' ? { pupilPhotoTreatment: { removeBackground: true, feather, edgeShift: shift } } : {}) });
+    onApply({ action, selected, remainder, ...(backgroundSource && steps.length && backgroundScope === 'document' ? { replaceIndividualEdits, pupilPhotoTreatment: { removeBackground: true, feather, edgeShift: shift, ...(steps.length === 1 && steps[0].tool === 'person' ? {} : { selection: steps }) } } : {}) });
   };
   const numberControl = (label: string, value: number, min: number, max: number, change: (value: number) => void) => <label className="space-y-1 text-xs font-medium"><span>{label}: {value}</span><input className="w-full accent-violet-600" type="range" aria-label={label} value={value} min={min} max={max} onChange={event => change(Number(event.target.value))} disabled={!!busy} /></label>;
+  if (suspended) return null;
   return <Dialog.Root open onOpenChange={value => { if (!value) onClose(); }}><Dialog.Portal><Dialog.Content asChild onEscapeKeyDown={event => { if (points.length) { event.preventDefault(); setPoints([]); } }}>
     <div className="fixed inset-0 z-[70] isolate flex flex-col bg-slate-100 pb-[env(safe-area-inset-bottom)] text-slate-900 print:hidden [&_button]:min-h-11" aria-label="Layer selection workspace" onKeyDown={event => {
       const editing = (event.target as HTMLElement).closest('input,select,textarea');
@@ -152,11 +142,12 @@ export function StudioLayerEditor({ source: layerSource, backgroundSource, initi
       }
       if (event.key === 'Enter' && !editing && points.length >= 3) { event.preventDefault(); finishPolygon(); }
     }}>
-      <header className="grid max-h-[35dvh] shrink-0 grid-cols-[40px_minmax(0,1fr)_64px] items-center gap-2 overflow-auto border-b border-slate-200 bg-white px-4 py-3 lg:flex lg:gap-3">
+      <header className="grid max-h-[35dvh] shrink-0 grid-cols-[40px_minmax(0,1fr)_96px] items-center gap-2 overflow-auto border-b border-slate-200 bg-white px-4 py-3 lg:flex lg:gap-3">
         <span className="grid h-10 w-10 place-items-center rounded-xl bg-violet-100 text-violet-700"><MousePointer2 className="h-5 w-5" /></span>
         <div className="min-w-0 flex-1"><Dialog.Title className="truncate text-sm font-bold">Select & refine · {label}</Dialog.Title><Dialog.Description className="mt-1 truncate text-xs text-slate-500">{pupilName ? `${pupilName} · template-only photo edit` : 'Select an object, refine its edges and keep, copy or cut it into a layer.'}</Dialog.Description></div>
         <Button variant="outline" size="sm" className="col-span-2 col-start-1 row-start-2 lg:shrink-0" aria-label="Remove photo background" disabled={!!busy} onClick={() => void runAi()}><WandSparkles className="mr-2 h-4 w-4 shrink-0" /><span className="lg:hidden">Remove background</span><span className="hidden lg:inline">Remove photo background</span></Button>
         <Button variant="outline" size="sm" className="col-start-3 row-start-2 px-2 lg:hidden" aria-label="Tools & refine" aria-expanded={showTools} onClick={() => setShowTools(value => !value)}>Tools</Button>
+        {onMinimize && <Button type="button" variant="ghost" size="icon" className="col-start-3 row-start-1 justify-self-start lg:shrink-0" aria-label="Minimize Photo Studio" title="Minimize Photo Studio" onClick={() => { if (gesture) { setMask(gesture.base); setGesture(undefined); } onMinimize(); }}><Minus className="h-5 w-5" /></Button>}
         <Button variant="ghost" size="icon" className="col-start-3 row-start-1 justify-self-end lg:shrink-0" aria-label="Close selection workspace" onClick={onClose}><X className="h-5 w-5" /></Button>
       </header>
       <main className="grid min-h-0 flex-1 grid-cols-1 overflow-auto lg:grid-cols-[260px_minmax(0,1fr)] lg:overflow-hidden">
@@ -167,7 +158,7 @@ export function StudioLayerEditor({ source: layerSource, backgroundSource, initi
           {tool === 'polygon' && <Button className="w-full" variant="outline" disabled={points.length < 3 || !!busy} onClick={finishPolygon}>Close polygon ({points.length} points)</Button>}
           {(tool === 'addBrush' || tool === 'eraseBrush') && numberControl('Brush size', brush, 2, 200, setBrush)}
           {tool === 'wand' && numberControl('Colour tolerance', tolerance, 0, 100, setTolerance)}
-          <div className="grid grid-cols-2 gap-2"><Button size="sm" variant="outline" disabled={!!busy} onClick={() => commit(new Uint8ClampedArray(width * height).fill(255), false)}>Select all</Button><Button size="sm" variant="outline" disabled={!!busy} onClick={() => commit(mask.map(value => 255 - value), false)}>Invert</Button><Button size="sm" variant="outline" disabled={!!busy} onClick={() => commit(new Uint8ClampedArray(width * height), false)}>Clear</Button><div className="flex gap-1"><Button size="icon" variant="outline" disabled={!past.length || !!busy} aria-label="Undo selection" onClick={undo}><Undo2 className="h-4 w-4" /></Button><Button size="icon" variant="outline" disabled={!future.length || !!busy} aria-label="Redo selection" onClick={redo}><Redo2 className="h-4 w-4" /></Button></div></div>
+          <div className="grid grid-cols-2 gap-2"><Button size="sm" variant="outline" disabled={!!busy} onClick={() => commit(new Uint8ClampedArray(width * height).fill(255), false, { tool: 'all', mode: 'replace' })}>Select all</Button><Button size="sm" variant="outline" disabled={!!busy} onClick={() => commit(mask.map(value => 255 - value), false, { tool: 'invert', mode: 'replace' })}>Invert</Button><Button size="sm" variant="outline" disabled={!!busy} onClick={() => commit(new Uint8ClampedArray(width * height), false, { tool: 'clear', mode: 'replace' })}>Clear</Button><div className="flex gap-1"><Button size="icon" variant="outline" disabled={!past.length || !!busy} aria-label="Undo selection" onClick={undo}><Undo2 className="h-4 w-4" /></Button><Button size="icon" variant="outline" disabled={!future.length || !!busy} aria-label="Redo selection" onClick={redo}><Redo2 className="h-4 w-4" /></Button></div></div>
           <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><p className="text-xs font-bold">Refine edge</p>{numberControl('Expand or contract edge', shift, -12, 12, setShift)}<p className="text-[11px] text-slate-500">Use the feather control above the preview to soften the cut. Preview on light and dark backgrounds to check hair, outlines and fine edges.</p></div>
           <p className="text-[11px] leading-relaxed text-slate-500">Automatic person and object masks are estimates. Brush and polygon tools give manual control. Photos stay on this device; the first AI use downloads the processing tools.</p>
         </aside>
@@ -181,7 +172,8 @@ export function StudioLayerEditor({ source: layerSource, backgroundSource, initi
               </label>
               <input type="range" aria-label="Feather edge" aria-describedby="studio-feather-help" className="h-11 min-w-0 flex-1 accent-violet-600" min={0} max={MAX_SELECTION_FEATHER} step={1} value={feather} onChange={event => changeFeather(Number(event.currentTarget.value))} disabled={!!busy} />
             </div>
-            {backgroundSource && <label className="flex flex-col gap-1 text-xs font-semibold lg:flex-row lg:items-center lg:gap-2">Apply background removal to<select aria-label="Background removal scope" className="h-11 max-w-full rounded-md border border-slate-200 bg-white px-2 font-normal" value={backgroundScope} onChange={event => setBackgroundScope(event.target.value as typeof backgroundScope)} disabled={!!busy}><option value="document">Every pupil photo in document</option><option value="pupil">Only this pupil</option></select><span className="sr-only font-normal text-slate-500 lg:not-sr-only">Manual selections, cut and copy affect this pupil only.</span></label>}
+            {backgroundSource && <label className="flex flex-col gap-1 text-xs font-semibold lg:flex-row lg:items-center lg:gap-2">Apply selection, cut or copy to<select aria-label="Background removal scope" className="h-11 max-w-full rounded-md border border-slate-200 bg-white px-2 font-normal" value={backgroundScope} onChange={event => { setBackgroundScope(event.target.value as typeof backgroundScope); setMask(new Uint8ClampedArray(width * height)); setSteps([]); setPast([]); setFuture([]); }} disabled={!!busy}><option value="document">Every pupil photo in document</option><option value="pupil">Only this pupil</option></select><span className="sr-only font-normal text-slate-500 lg:not-sr-only">AI selects each photo separately. Shapes and brush strokes repeat at the same relative positions.</span></label>}
+            {backgroundSource && backgroundScope === 'document' && <label className="flex min-h-9 items-center gap-2 text-xs"><input type="checkbox" className="h-4 w-4 shrink-0 accent-violet-600" checked={replaceIndividualEdits} disabled={!!busy} onChange={event => setReplaceIndividualEdits(event.target.checked)} />Replace existing single-pupil corrections on affected photo layers</label>}
             <p id="studio-feather-help" className="sr-only text-[11px] leading-relaxed text-slate-500 lg:not-sr-only">0–{MAX_SELECTION_FEATHER} image pixels · Applies to background removal, cut and copy. Zero adds no softening; AI hair detail is preserved.</p>
           </div>
           <div className="min-h-0 flex-1 overflow-auto p-5"><div className="relative mx-auto shadow-xl" style={{ width: `min(${zoom * 100}%, ${Math.min(width, 900) * zoom}px)`, minWidth: zoom > 1 ? `${zoom * 85}%` : undefined, background: backdrop === 'checker' ? 'conic-gradient(#cbd5e1 25%, #fff 0 50%, #cbd5e1 0 75%, #fff 0) 0 0 / 20px 20px' : backdrop }}>
@@ -194,7 +186,7 @@ export function StudioLayerEditor({ source: layerSource, backgroundSource, initi
           {(busy || error) && <div className="shrink-0 border-t bg-white px-4 py-3">{busy && <p role="status" className="flex items-center gap-2 text-xs"><Loader2 className="h-4 w-4 animate-spin" />{busy}</p>}{error && <p role="alert" className="text-xs text-red-700">{error}</p>}</div>}
         </section>
       </main>
-      <footer className="grid max-h-[30dvh] shrink-0 grid-cols-2 flex-wrap items-center justify-end gap-2 overflow-auto sm:flex border-t border-slate-200 bg-white px-4 py-3"><span className="col-span-2 mr-auto text-xs text-slate-500">PNG transparency · original record unchanged{repeatBackground && backgroundScope === 'document' ? ' - Background removal: all pupil photos' : pupilName ? ` · ${pupilName} only` : ''}</span><Button className="h-auto min-w-0 whitespace-normal px-2 text-xs" variant="outline" onClick={onClose}>Cancel</Button><Button className="h-auto min-w-0 whitespace-normal px-2 text-xs" variant="outline" disabled={!hasSelection || !!busy || !!gesture || !!points.length} onClick={() => apply('copy')}><Copy className="mr-2 h-4 w-4" />Layer via copy</Button><Button className="h-auto min-w-0 whitespace-normal px-2 text-xs" variant="outline" disabled={!hasSelection || !!busy || !!gesture || !!points.length} onClick={() => apply('cut')}><Scissors className="mr-2 h-4 w-4" />Layer via cut</Button><Button className="h-auto min-w-0 whitespace-normal px-2 text-left text-xs" disabled={!hasSelection || !!busy || !!gesture || !!points.length} onClick={() => apply('mask')}><Eraser className="mr-2 h-4 w-4 shrink-0" />Keep selection / remove background</Button></footer>
+      <footer className="grid max-h-[30dvh] shrink-0 grid-cols-2 flex-wrap items-center justify-end gap-2 overflow-auto sm:flex border-t border-slate-200 bg-white px-4 py-3"><span className="col-span-2 mr-auto text-xs text-slate-500">PNG transparency · original record unchanged{backgroundSource && steps.length > 0 && backgroundScope === 'document' ? ' - Selection: all pupil photos' : pupilName ? ` · ${pupilName} only` : ''}</span><Button className="h-auto min-w-0 whitespace-normal px-2 text-xs" variant="outline" onClick={onClose}>Cancel</Button><Button className="h-auto min-w-0 whitespace-normal px-2 text-xs" variant="outline" disabled={!hasSelection || !!busy || !!gesture || !!points.length} onClick={() => apply('copy')}><Copy className="mr-2 h-4 w-4" />Layer via copy</Button><Button className="h-auto min-w-0 whitespace-normal px-2 text-xs" variant="outline" disabled={!hasSelection || !!busy || !!gesture || !!points.length} onClick={() => apply('cut')}><Scissors className="mr-2 h-4 w-4" />Layer via cut</Button><Button className="h-auto min-w-0 whitespace-normal px-2 text-left text-xs" disabled={!hasSelection || !!busy || !!gesture || !!points.length} onClick={() => apply('mask')}><Eraser className="mr-2 h-4 w-4 shrink-0" />Keep selection / remove background</Button></footer>
     </div>
   </Dialog.Content></Dialog.Portal></Dialog.Root>;
 }

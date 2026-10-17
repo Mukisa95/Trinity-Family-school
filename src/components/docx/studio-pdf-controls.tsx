@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type PointerEvent } from 'react';
-import { FileUp, Loader2, Lock, Plus, Scissors, Trash2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { FileUp, Loader2, Lock, Minus, Plus, Scissors, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { importStudioPdfPages, MAX_PDF_IMPORT_PAGES, openStudioPdf, parsePdfPageRange, type StudioPdfDocument } from './studio-pdf';
 import { makeStudioId, normalizePdfCutout, type CustomPhotoPage, type PdfArtwork, type PdfCutout, type StudioPdfSource } from './custom-photo-types';
 
-export function StudioPdfImport({ onImport }: { onImport: (pages: CustomPhotoPage[], source: StudioPdfSource, replace: boolean) => void }) {
+export function StudioPdfImport({ onImport, suspended = false, onMinimize, triggerContainer }: { onImport: (pages: CustomPhotoPage[], source: StudioPdfSource, replace: boolean) => void; suspended?: boolean; onMinimize?: () => void; triggerContainer?: HTMLElement | null }) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File>();
   const [count, setCount] = useState(0);
@@ -52,11 +53,13 @@ export function StudioPdfImport({ onImport }: { onImport: (pages: CustomPhotoPag
     } catch (reason) { if (request === requestRef.current) setError(reason instanceof Error ? reason.message : 'PDF import failed.'); }
     finally { if (request === requestRef.current) { setBusy(false); setProgress(''); } }
   };
-  return <Dialog open={open} onOpenChange={close}>
-    <DialogTrigger asChild><Button type="button" variant="outline" size="sm" className="mb-3 w-full gap-2"><FileUp className="h-4 w-4" />Import PDF</Button></DialogTrigger>
+  const trigger = <DialogTrigger asChild><Button type="button" variant="outline" size="sm" className="mb-3 w-full gap-2"><FileUp className="h-4 w-4" />Import PDF</Button></DialogTrigger>;
+  return <Dialog open={open && !suspended} onOpenChange={close}>
+    {triggerContainer === undefined ? trigger : triggerContainer ? createPortal(trigger, triggerContainer) : null}
     <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg" onEscapeKeyDown={event => { if (busy) event.preventDefault(); }} onInteractOutside={event => { if (busy) event.preventDefault(); }}>
       <DialogHeader><DialogTitle>Import PDF artwork</DialogTitle><DialogDescription>Use a flattened or layered PDF as protected artwork. Add your own elements above or below it; the original file stays unchanged.</DialogDescription></DialogHeader>
-      <label className="space-y-2 text-sm font-medium">PDF file · up to 25 MB<Input aria-label="PDF file" type="file" accept="application/pdf,.pdf" disabled={busy} onChange={event => { void inspect(event.target.files?.[0]); event.target.value = ''; }} /></label>
+      <label className="space-y-2 text-sm font-medium">PDF file · no fixed file-size limit<Input aria-label="PDF file" type="file" accept="application/pdf,.pdf" disabled={busy} onChange={event => { void inspect(event.target.files?.[0]); event.target.value = ''; }} /></label>
+      <p className="text-xs text-muted-foreground">PDFs and edits stay on this device, including saved templates. Nothing is uploaded to cloud storage. Larger files depend on your device’s available memory and storage.</p>
       {count > 0 && <>
         <p className="text-sm text-muted-foreground">{file?.name} · {count} {count === 1 ? 'page' : 'pages'}</p>
         <label className="space-y-2 text-sm font-medium">Pages to import<Input aria-label="Pages to import" value={range} onChange={event => setRange(event.target.value)} disabled={busy} placeholder="1-3, 5" /><span className="block text-xs text-muted-foreground">Up to {MAX_PDF_IMPORT_PAGES} pages per import. Each page keeps its original dimensions.</span></label>
@@ -64,9 +67,20 @@ export function StudioPdfImport({ onImport }: { onImport: (pages: CustomPhotoPag
       </>}
       <p className="text-xs text-muted-foreground">PDF pages are imported as high-resolution artwork. Print export combines the visible artwork and your elements into a flattened PDF. Forms and source PDF objects are not editable here.</p>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      {onMinimize && <Button type="button" variant="ghost" className="min-h-11" onClick={onMinimize}><Minus className="mr-2 h-4 w-4" />Minimize Photo Studio</Button>}
       <div className="flex flex-wrap items-center justify-end gap-2"><span role="status" className="mr-auto text-xs text-muted-foreground">{progress}</span><Button variant="outline" disabled={busy} onClick={() => close(false)}>Cancel</Button><Button disabled={!count || busy} onClick={() => void importPages()}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileUp className="mr-2 h-4 w-4" />}Import pages</Button></div>
     </DialogContent>
   </Dialog>;
+}
+
+export function StudioPdfSourceDownload({ source }: { source: StudioPdfSource }) {
+  const [href, setHref] = useState<string>();
+  useEffect(() => {
+    const localUrl = source.blob ? URL.createObjectURL(source.blob) : undefined;
+    setHref(localUrl || source.dataUrl);
+    return () => { if (localUrl) URL.revokeObjectURL(localUrl); };
+  }, [source.blob, source.dataUrl]);
+  return href ? <a className="mt-2 block text-center text-xs font-semibold text-violet-700 underline" href={href} download={source.name}>Download unchanged source PDF</a> : null;
 }
 
 export function StudioPdfArtwork({ artwork }: { artwork: PdfArtwork }) {

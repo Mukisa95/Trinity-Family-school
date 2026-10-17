@@ -17,7 +17,6 @@ export function parsePdfPageRange(value: string, count: number): number[] {
 }
 
 export async function openStudioPdf(file: File) {
-  if (file.size > 25 * 1024 * 1024) throw new Error('Choose a PDF smaller than 25 MB.');
   if (file.size === 0) throw new Error('This PDF is empty.');
   const pdfjs = await import('pdfjs-dist');
   // PDF.js ships a nonempty relative default which is not a Next.js asset URL.
@@ -64,13 +63,9 @@ export async function importStudioPdfPages(doc: StudioPdfDocument, file: File, n
       } });
     } finally { canvas.width = 0; canvas.height = 0; page.cleanup(); }
   }
-  const dataUrl = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error('The original PDF could not be retained.'));
-    reader.readAsDataURL(file);
-  });
-  const source: StudioPdfSource = { id: sourceId, name: file.name, dataUrl };
+  // File/Blob bytes stay on this device. IndexedDB can retain them without
+  // inflating the source into a second, much larger base64 string.
+  const source: StudioPdfSource = { id: sourceId, name: file.name, blob: file };
   return { pages, source };
 }
 

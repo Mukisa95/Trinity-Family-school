@@ -1,15 +1,16 @@
-import { PhotoToolsClient } from '@/lib/photo/photo-tools-client';
+import { segmentStudioPortrait, disposeStudioMatting } from '@/lib/photo/studio-matting-client';
 import { StudioObjectClient } from '@/lib/photo/studio-object-client';
 import type { PersonMask } from '@/lib/photo/photo-processing';
 import { normalizeStudioPupilPhotoTreatment, type CustomPhotoLayer, type StudioPupilPhotoTreatment } from './custom-photo-types';
 import { extractSelectedPixels, refineSelection } from './studio-selection';
+import { replayStudioSelection } from './studio-selection-recipe';
 
 /** Share the exact confidence conversion between interactive and batch removal. */
 export function studioPersonSelection(value: PersonMask, width: number, height: number) {
   const small = document.createElement('canvas'); small.width = value.width; small.height = value.height;
   const ctx = small.getContext('2d')!, data = ctx.createImageData(small.width, small.height);
   for (let i = 0; i < value.confidence.length; i++) {
-    const confidence = Math.max(0, Math.min(1, (value.confidence[i] - 0.05) / 0.9));
+    const confidence = Math.max(0, Math.min(1, value.confidence[i]));
     data.data[i * 4] = data.data[i * 4 + 1] = data.data[i * 4 + 2] = 255;
     data.data[i * 4 + 3] = confidence * 255;
   }
@@ -48,24 +49,26 @@ export function studioPhotoTreatmentKey(layer: CustomPhotoLayer, photo: string, 
 }
 
 const treatmentCache = new StudioPhotoTreatmentCache();
-export function clearStudioPhotoTreatments() { treatmentCache.clear(); }
+export function clearStudioPhotoTreatments() { treatmentCache.clear(); disposeStudioMatting(); }
 
 export function treatStudioPupilPhoto(key: string, createSource: () => Promise<HTMLCanvasElement>, settings: StudioPupilPhotoTreatment) {
   return treatmentCache.get(key, async () => {
-    const person = new PhotoToolsClient(), edges = new StudioObjectClient();
+    const objects = new StudioObjectClient();
     let canvas: HTMLCanvasElement | undefined;
     try {
       canvas = await createSource();
       const context = canvas.getContext('2d', { willReadFrequently: true })!;
       const original = context.getImageData(0, 0, canvas.width, canvas.height);
-      const mask = await edges.refine(canvas, await person.segment(canvas));
-      const selection = studioPersonSelection(mask, canvas.width, canvas.height);
+      const selection = await replayStudioSelection(canvas.width, canvas.height, original.data, settings.selection || [{ tool: 'person', mode: 'replace' }], async step => {
+        const mask = step.tool === 'object' ? await objects.select(canvas!, step.point) : await segmentStudioPortrait(canvas!);
+        return studioPersonSelection(mask, canvas!.width, canvas!.height);
+      });
       if (!selection.some((value, index) => value > 128 && original.data[index * 4 + 3] > 0)) throw new Error('No clear person was found. Use an individual correction for this pupil.');
       const refined = refineSelection(selection, canvas.width, canvas.height, settings.feather, settings.edgeShift);
-      context.putImageData(new ImageData(extractSelectedPixels(original.data, refined), canvas.width, canvas.height), 0, 0);
+      context.putImageData(new ImageData(extractSelectedPixels(original.data, refined, settings.keep !== false), canvas.width, canvas.height), 0, 0);
       return canvas.toDataURL('image/png');
     } finally {
-      person.dispose(); edges.dispose();
+      objects.dispose();
       if (canvas) { canvas.width = 0; canvas.height = 0; }
     }
   });

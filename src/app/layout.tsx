@@ -23,6 +23,8 @@ import { PrintProvider } from '@/lib/contexts/print-context';
 import { ServiceWorkerProvider } from '@/components/providers/service-worker-provider';
 import { PDFWorkspaceProvider } from '@/lib/pdf/pdf-workspace-context';
 import { LazyPDFWorkspace } from '@/components/pdf/lazy-pdf-workspace';
+import { PhotoStudioWorkspaceProvider } from '@/lib/contexts/photo-studio-workspace-context';
+import { LazyPhotoStudioWorkspace } from '@/components/docx/lazy-photo-studio-workspace';
 import { OperationalAuditProvider } from '@/components/providers/operational-audit-provider';
 
 const geistSans = GeistSans;
@@ -194,6 +196,7 @@ export default function RootLayout({
           <AuthProvider>
             <PrintProvider>
               <PDFWorkspaceProvider>
+                <PhotoStudioWorkspaceProvider>
                 <ServiceWorkerProvider />
                 <GlobalDataPreloader />
                   <AndroidOfflineProvider />
@@ -205,6 +208,8 @@ export default function RootLayout({
                   <Toaster />
                 </SyncProvider>
                 <LazyPDFWorkspace />
+                <LazyPhotoStudioWorkspace />
+                </PhotoStudioWorkspaceProvider>
               </PDFWorkspaceProvider>
             </PrintProvider>
           </AuthProvider>

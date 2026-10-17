@@ -6,7 +6,7 @@ import { usePDFWorkspace } from '@/lib/pdf/pdf-workspace-context';
 function WorkspaceLoading() {
   const { activeDocument, mode, minimizeWorkspace, expandWorkspace, closeDocument } = usePDFWorkspace();
   if (!activeDocument) return null;
-  return <div className={mode === 'minimized'
+  return <div aria-label={mode === 'minimized' ? 'Minimized PDF workspace' : undefined} className={mode === 'minimized'
     ? 'fixed bottom-3 right-3 z-[90] w-[min(380px,calc(100vw-24px))] rounded-xl border bg-card p-4 text-card-foreground shadow-lg'
     : 'fixed inset-0 z-[90] flex items-center justify-center bg-background p-6 text-foreground'}>
     <div className="w-full max-w-md space-y-4">

@@ -1,13 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parsePdfPageRange } from '../src/components/docx/studio-pdf';
-import { createBlankTemplate, getStudioPageDimensions, normalizeCustomPhotoTemplate, normalizePdfCutout } from '../src/components/docx/custom-photo-types';
+import { cloneStudioTemplate, createBlankTemplate, getStudioPageDimensions, normalizeCustomPhotoTemplate, normalizePdfCutout } from '../src/components/docx/custom-photo-types';
 
 test('page selection supports ranges, deduplicates, and rejects invalid or excessive selections', () => {
   assert.deepEqual(parsePdfPageRange('1-3, 2, 5', 6), [1, 2, 3, 5]);
   for (const value of ['', '0', '31', '3-1', '1,,2', '1.5', 'a', '1-999999999']) assert.throws(() => parsePdfPageRange(value, 30));
   assert.throws(() => parsePdfPageRange('1-20,21', 30), /up to 20/);
   assert.equal(parsePdfPageRange('10-29', 30).length, 20);
+});
+
+test('local PDF Blobs survive snapshots and normalization without becoming base64 strings', async () => {
+  const template=createBlankTemplate();
+  const bytes=new Uint8Array([37,80,68,70,45,49,0,255]);
+  template.pdfSources={local:{id:'local',name:'original.pdf',blob:new Blob([bytes],{type:'application/pdf'})}};
+  const snapshot=normalizeCustomPhotoTemplate(cloneStudioTemplate(template));
+  const source=snapshot.pdfSources!.local;
+  assert.ok(source.blob instanceof Blob);assert.equal(source.dataUrl,undefined);
+  assert.deepEqual(new Uint8Array(await source.blob!.arrayBuffer()),bytes);
+  snapshot.pages[0].layers[0].label='Changed snapshot';
+  assert.notEqual(snapshot.pages[0].layers[0].label,template.pages[0].layers[0].label);
+  assert.equal(template.pdfSources.local.blob!.size,bytes.length);
 });
 
 test('cutouts retain bounded geometry including overlapping and invalid inputs', () => {
