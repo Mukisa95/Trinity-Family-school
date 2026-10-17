@@ -48,6 +48,7 @@ import { toast } from '@/hooks/use-toast';
 import { PupilFeesRow } from '@/components/fees/PupilFeesRow';
 import { PupilFeesRowSkeleton } from '@/components/fees/PupilFeesRowSkeleton';
 import { useProgressiveFees } from '@/lib/hooks/use-progressive-fees';
+import { calculateFeesCollectionTotals } from '@/lib/utils/fees-collection-totals';
 import { ClassSelector } from '@/components/common/class-selector';
 import { useTermStatus } from '@/lib/hooks/use-term-status';
 import { RecessStatusBanner } from '@/components/common/recess-status-banner';
@@ -89,7 +90,6 @@ interface SortConfig {
 
 interface Filters {
   section: string;
-  class: string;
   selectedClassId: string; // For class-based filtering optimization
   status: string; // Pupil status: Active, Inactive, Graduated, etc.
   balanceStatus: string; // Balance status: with_balance, without_balance, never_paid
@@ -188,7 +188,6 @@ export default function FeesCollectionPage() {
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const [filters, setFilters] = useState<Filters>({
     section: 'all',
-    class: 'all',
     selectedClassId: '', // Start with NO class selected - user must choose first
     status: 'Active',
     balanceStatus: 'all',
@@ -218,7 +217,6 @@ export default function FeesCollectionPage() {
 
     setFilters(previous => ({
       ...previous,
-      class: linkedClassId || previous.class,
       selectedClassId: linkedClassId || previous.selectedClassId,
       section: linkedSection || previous.section,
       status: linkedStatus || previous.status,
@@ -232,7 +230,6 @@ export default function FeesCollectionPage() {
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (filters.section !== 'all') count++;
-    if (filters.class !== 'all') count++;
     if (filters.status !== 'Active') count++;
     if (filters.balanceStatus !== 'all') count++;
     if (filters.balanceMin) count++;
@@ -503,7 +500,6 @@ export default function FeesCollectionPage() {
     processingStatus,
     progressPercentage,
     error: progressiveError,
-    totals,
     restart: restartProcessing
   } = progressiveFeesData;
 
@@ -538,7 +534,6 @@ export default function FeesCollectionPage() {
       // Basic filters
       const matchesSection = !filters.section || filters.section === 'all' ||
         pupil.section?.toLowerCase() === filters.section.toLowerCase();
-      const matchesClass = !filters.class || filters.class === 'all' || pupil.classId === filters.class;
 
       // Pupil Status filter (Active, Inactive, Graduated, etc.)
       const matchesStatus = !filters.status || filters.status === 'all' ||
@@ -625,9 +620,15 @@ export default function FeesCollectionPage() {
         }
       }
 
-      return matchesSearch && matchesSection && matchesClass && matchesStatus && matchesFeeItem && matchesBalanceStatus && matchesBalanceRange && matchesRegistrationDate;
+      return matchesSearch && matchesSection && matchesStatus && matchesFeeItem && matchesBalanceStatus && matchesBalanceRange && matchesRegistrationDate;
     });
-  }, [pupils, searchQuery, filters.section, filters.class, filters.status, filters.feeItem, filters.balanceStatus, filters.balanceMin, filters.balanceMax, pupilFeesInfo, selectedAcademicYear, filters.term]);
+  }, [pupils, searchQuery, filters.section, filters.status, filters.feeItem, filters.balanceStatus, filters.balanceMin, filters.balanceMax, pupilFeesInfo, selectedAcademicYear, filters.term]);
+
+  // The summary bar, table footer, and report must describe the same visible rows.
+  const totals = useMemo(
+    () => calculateFeesCollectionTotals(filteredPupils, pupilFeesInfo, filters.feeItem),
+    [filteredPupils, pupilFeesInfo, filters.feeItem],
+  );
 
   // Sort pupils
   const sortedPupils = useMemo(() => {
@@ -689,10 +690,9 @@ export default function FeesCollectionPage() {
       const matchesSearch = matchesPupilSearch(pupil, searchQuery, [pupil.admissionNumber]);
       const matchesSection = !filters.section || filters.section === 'all' ||
         pupil.section?.toLowerCase() === filters.section.toLowerCase();
-      const matchesClass = !filters.class || filters.class === 'all' || pupil.classId === filters.class;
       const matchesStatus = !filters.status || filters.status === 'all' ||
         pupil.status?.toLowerCase() === filters.status.toLowerCase();
-      return matchesSearch && matchesSection && matchesClass && matchesStatus;
+      return matchesSearch && matchesSection && matchesStatus;
     });
 
     // Collect all unique fee items with pupil count
@@ -722,7 +722,7 @@ export default function FeesCollectionPage() {
       if (!a.isAssignmentFee && b.isAssignmentFee) return 1;
       return a.name.localeCompare(b.name);
     });
-  }, [pupils, searchQuery, filters.section, filters.class, filters.status, pupilFeesInfo, availableFeeStructures]);
+  }, [pupils, searchQuery, filters.section, filters.status, pupilFeesInfo, availableFeeStructures]);
 
   // Handle sort
   const handleSort = (key: string) => {
@@ -760,43 +760,6 @@ export default function FeesCollectionPage() {
     try {
       // Dynamic import to avoid SSR issues
       const { PDFDownloadLink, pdf, Document, Page, Text, View, StyleSheet, Image } = await import('@react-pdf/renderer');
-
-      // Calculate filtered totals based on current filters (especially feeItem)
-      const calculateFilteredTotals = () => {
-        let filteredTotalFees = 0;
-        let filteredTotalPaid = 0;
-        let filteredBalance = 0;
-
-        sortedPupils.forEach((pupil: any) => {
-          const feesInfo = pupilFeesInfo[pupil.id];
-          if (!feesInfo) return;
-
-          if (filters.feeItem) {
-            // When a specific fee item is selected, use only that fee's data
-            const selectedFee = feesInfo.applicableFees?.find(
-              (fee: any) => fee.feeStructureId === filters.feeItem
-            );
-            if (selectedFee) {
-              filteredTotalFees += selectedFee.amount || 0;
-              filteredTotalPaid += selectedFee.paid || 0;
-              filteredBalance += selectedFee.balance || 0;
-            }
-          } else {
-            // When no specific fee item is selected, use total fees
-            filteredTotalFees += feesInfo.totalFees || 0;
-            filteredTotalPaid += feesInfo.totalPaid || 0;
-            filteredBalance += feesInfo.balance || 0;
-          }
-        });
-
-        return {
-          totalFees: filteredTotalFees,
-          totalPaid: filteredTotalPaid,
-          balance: filteredBalance
-        };
-      };
-
-      const filteredTotals = calculateFilteredTotals();
 
       // Create PDF component inline to avoid import issues
       const createPDFComponent = (props: any) => {
@@ -935,8 +898,8 @@ export default function FeesCollectionPage() {
 
         const getFilterDescription = () => {
           const filterParts = [];
-          if (filters.class !== 'all') {
-            const className = classes.find((c: any) => c.id === filters.class)?.name;
+          if (filters.selectedClassId && filters.selectedClassId !== 'all') {
+            const className = classes.find((c: any) => c.id === filters.selectedClassId)?.name;
             if (className) filterParts.push(`Class: ${className}`);
           }
           if (filters.section !== 'all') filterParts.push(`Section: ${filters.section.charAt(0).toUpperCase() + filters.section.slice(1)}`);
@@ -980,7 +943,7 @@ export default function FeesCollectionPage() {
                       : null;
                     const classLabel = selClass
                       ? (selClass.code || selClass.name || '')
-                      : (filters.class && filters.class !== 'all' ? filters.class : '');
+                      : '';
                     return classLabel
                       ? `${classLabel} Fees Collection Report`
                       : 'Fees Collection Report';
@@ -1251,14 +1214,14 @@ export default function FeesCollectionPage() {
         filters,
         sortConfig,
         columnSelection,
-        totals: filteredTotals,
+        totals,
         availableFeeStructures
       });
 
       // Generate PDF and open in viewer
       const selClass = filters.selectedClassId && filters.selectedClassId !== 'all' && filters.selectedClassId !== ''
         ? classes.find((c: any) => c.id === filters.selectedClassId)
-        : (filters.class && filters.class !== 'all' ? { code: filters.class, name: filters.class } : null);
+        : null;
       const classLabel = selClass ? (selClass.code || selClass.name || '') : '';
       const reportTitle = classLabel ? `${classLabel} Fees Collection Report` : 'Fees Collection Report';
       const fileName = classLabel
@@ -1483,7 +1446,7 @@ export default function FeesCollectionPage() {
               <div className="flex items-center justify-between gap-2 sm:gap-4 mb-2 sm:mb-3">
                 {/* Statistics Pills */}
                 <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                  {(searchQuery || filters.class !== 'all' || filters.section !== 'all' || filters.status !== 'Active' || filters.balanceStatus !== 'all' || filters.balanceMin || filters.balanceMax) && (
+                  {(searchQuery || activeFiltersCount > 0) && (
                     <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-brand-secondary-surface-50 rounded-full border border-brand-secondary-100 dark:bg-brand-secondary-surface-950/40 dark:border-brand-secondary-800/60">
                       <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-brand-secondary-surface-500"></div>
                       <span className="text-xs text-brand-secondary-ink-600 font-medium dark:text-brand-secondary-ink-400">Filtered</span>
@@ -1493,21 +1456,18 @@ export default function FeesCollectionPage() {
 
                 {/* Clear Button */}
                 <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-                  {(searchQuery || filters.class !== 'all' || filters.section !== 'all' || filters.status !== 'Active' || filters.balanceStatus !== 'all' || filters.balanceMin || filters.balanceMax || filters.feeItem) && (
+                  {(searchQuery || activeFiltersCount > 0) && (
                     <button
                       onClick={() => {
-                        setFilters({
+                        setFilters(previous => ({
+                          ...previous,
                           section: 'all',
-                          class: 'all',
-                          selectedClassId: '',
                           status: 'Active',
                           balanceStatus: 'all',
                           balanceMin: '',
                           balanceMax: '',
                           feeItem: '',
-                          year: selectedAcademicYear?.id || '',
-                          term: selectedAcademicYear?.terms.find(t => t.isCurrent)?.id || selectedAcademicYear?.terms[0]?.id || ''
-                        });
+                        }));
                         setSearchQuery('');
                       }}
                       className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-full border border-red-100 transition-all duration-200 hover:scale-105 dark:text-red-400 dark:bg-red-950/40 dark:hover:bg-red-950/40 dark:border-red-800/60"
@@ -1523,22 +1483,7 @@ export default function FeesCollectionPage() {
 
               {/* Expandable Filter Controls */}
               <div className="border-t border-brand-50 pt-2 sm:pt-3 dark:border-brand-800/60">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-                  {/* Class Filter */}
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-brand-ink-700 dark:text-brand-ink-300">Class</label>
-                    <select
-                      value={filters.class}
-                      onChange={(e) => setFilters(prev => ({ ...prev, class: e.target.value }))}
-                      className="w-full rounded-lg border-0 bg-brand-surface-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-brand-400/50 focus:bg-white transition-all duration-200 hover:bg-white dark:bg-brand-surface-950/50 dark:focus:bg-slate-900 dark:hover:bg-slate-900"
-                    >
-                      <option value="all">All Classes</option>
-                      {classes.map(cls => (
-                        <option key={cls.id} value={cls.id}>{cls.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
                   {/* Section Filter */}
                   <div className="space-y-1">
                     <label className="block text-xs font-medium text-brand-ink-700 dark:text-brand-ink-300">Section</label>
@@ -2272,6 +2217,14 @@ export default function FeesCollectionPage() {
         isOpen={isBulkSMSModalOpen}
         onClose={() => setIsBulkSMSModalOpen(false)}
         pupils={sortedPupils}
+        classes={classes}
+        pupilFeesInfo={pupilFeesInfo}
+        selectedFeeId={filters.feeItem}
+        feeItemName={dynamicFeeItems.find(fee => fee.id === filters.feeItem)?.name}
+        yearName={selectedAcademicYear?.name}
+        termName={selectedAcademicYear?.terms.find(term => term.id === filters.term)?.name}
+        isFeesLoading={isProcessing || showSkeleton || isPending || isLoadingPupils || isFetchingPupils || !filters.year || !filters.term}
+        feesError={progressiveError}
         currentUser={user || undefined}
       />
 

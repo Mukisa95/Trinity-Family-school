@@ -55,8 +55,10 @@ import { db } from '@/lib/firebase';
 import type { Pupil, Class } from '@/types';
 import type { SMSRecipientReviewItem } from '@/lib/utils/sms-recipient-deduplication';
 import { getPupilClassDisplay } from '@/lib/utils/class-streams';
+import { BulkSMSPersonalisation, type BulkSMSPersonalisationHandle, type PupilSMSRecipient } from '@/components/BulkSMS/BulkSMSPersonalisation';
+import { usesSMSCustomisation, type FeesSMSOptions } from '@/lib/utils/fees-sms';
 
-interface Recipient {
+interface Recipient extends PupilSMSRecipient {
   name: string;
   phone: string;
   class?: string;
@@ -123,6 +125,9 @@ function getCharacterCountColor(count: number): string {
 
 const BulkSMS: React.FC = () => {
   const [message, setMessage] = useState<string>('');
+  const [customisationOptions, setCustomisationOptions] = useState<FeesSMSOptions>({});
+  const personalisationRef = useRef<BulkSMSPersonalisationHandle>(null);
+  const personalisedActive = usesSMSCustomisation(message, customisationOptions);
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
   const [selectedGuardians, setSelectedGuardians] = useState<('primary' | 'secondary')[]>([]);
@@ -286,6 +291,8 @@ const BulkSMS: React.FC = () => {
             name: `${formatPupilDisplayName(pupil)}`,
             phone: primaryGuardian.phone!.trim(),
             class: className,
+            pupilId: pupil.id,
+            guardian: primaryGuardian,
             guardianType: 'primary'
           });
 
@@ -297,6 +304,8 @@ const BulkSMS: React.FC = () => {
                   name: `${formatPupilDisplayName(pupil)}`,
                   phone: additionalPhone.trim(),
                   class: className,
+                  pupilId: pupil.id,
+                  guardian: primaryGuardian,
                   guardianType: `primary_${index + 1}`
                 });
               }
@@ -310,6 +319,8 @@ const BulkSMS: React.FC = () => {
             name: `${formatPupilDisplayName(pupil)}`,
             phone: secondaryGuardian.phone!.trim(),
             class: className,
+            pupilId: pupil.id,
+            guardian: secondaryGuardian,
             guardianType: 'secondary'
           });
 
@@ -321,6 +332,8 @@ const BulkSMS: React.FC = () => {
                   name: `${formatPupilDisplayName(pupil)}`,
                   phone: additionalPhone.trim(),
                   class: className,
+                  pupilId: pupil.id,
+                  guardian: secondaryGuardian,
                   guardianType: `secondary_${index + 1}`
                 });
               }
@@ -553,6 +566,11 @@ const BulkSMS: React.FC = () => {
 
   const handleSendSMS = async () => {
     if (!sendValidation.validateAll().isValid) return;
+    if (personalisedActive) {
+      if (!user?.id) return;
+      personalisationRef.current?.review();
+      return;
+    }
 
     setPendingSmsData({
       message: message.trim(),
@@ -758,7 +776,7 @@ const BulkSMS: React.FC = () => {
 
       {/* Schedule Dialogs */}
       <SMSScheduleDialog
-        open={showSchedule}
+        open={showSchedule && !personalisedActive}
         onClose={() => setShowSchedule(false)}
         message={message}
         recipientCount={allRecipients.length}
@@ -807,6 +825,7 @@ const BulkSMS: React.FC = () => {
                       }}
                       className="h-8 text-xs flex-1"
                       {...manualNumberValidation.getFieldProps('manual-phone')}
+                      onBlur={() => { if (newNumber.trim()) manualNumberValidation.validateField('manual-phone'); }}
                     />
                     <Button
                       onClick={handleAddNumber}
@@ -1022,6 +1041,7 @@ const BulkSMS: React.FC = () => {
               <div className="space-y-4">
                 <Textarea
                   id="bulk-message"
+                  aria-label="Message"
                   ref={messageTextareaRef}
                   placeholder="Type your message here..."
                   value={message}
@@ -1030,6 +1050,32 @@ const BulkSMS: React.FC = () => {
                   {...sendValidation.getFieldProps('bulk-message')}
                 />
                 <FieldError error={sendValidation.getFieldError('bulk-message')} />
+                <BulkSMSPersonalisation
+                  ref={personalisationRef}
+                  message={message}
+                  options={customisationOptions}
+                  onOptionsChange={setCustomisationOptions}
+                  onInsert={text => {
+                    const control = messageTextareaRef.current;
+                    const start = control?.selectionStart ?? message.length;
+                    const end = control?.selectionEnd ?? start;
+                    setMessage(message.slice(0, start) + text + message.slice(end));
+                    sendValidation.handleFieldChange('bulk-message');
+                    requestAnimationFrame(() => { control?.focus(); control?.setSelectionRange(start + text.length, start + text.length); });
+                  }}
+                  pupils={allPupils}
+                  classes={classes}
+                  recipients={recipients}
+                  manualNumbers={manualNumbers}
+                  active={personalisedActive}
+                  sentBy={user?.id || 'Admin'}
+                  onCompleted={() => {
+                    setMessage('');
+                    sendValidation.resetValidation();
+                    triggerActivityRefresh('sms-send-completed');
+                    void fetchWizaBalance();
+                  }}
+                />
                 <div className="flex flex-col space-y-2">
                   <div className="flex items-center justify-between text-sm px-1 text-gray-500 dark:text-slate-400">
                     <div className="flex items-center gap-2">
@@ -1098,7 +1144,7 @@ const BulkSMS: React.FC = () => {
                     ) : (
                       <>
                         <Send className="h-4 w-4" />
-                        Send
+                        {personalisedActive ? 'Preview messages' : 'Send'}
                       </>
                     )}
                   </Button>
@@ -1116,7 +1162,7 @@ const BulkSMS: React.FC = () => {
                     <DropdownMenuContent align="end" className="w-52">
                       <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">SMS Scheduling</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setShowSchedule(true)} className="cursor-pointer">
+                      <DropdownMenuItem disabled={personalisedActive} onClick={() => { if (!personalisedActive) setShowSchedule(true); }} className="cursor-pointer">
                         <Calendar className="mr-2 h-4 w-4 text-brand-ink-600 dark:text-brand-ink-400" />
                         Schedule SMS
                       </DropdownMenuItem>
@@ -1131,13 +1177,13 @@ const BulkSMS: React.FC = () => {
             </CardContent>
           </Card>
 
-          <SMSCostCalculator
+          {!personalisedActive && <SMSCostCalculator
             recipientCount={recipients.length + manualNumbers.length}
             messageCount={messageCount}
             pricePerSMS={35}
             currency="UGX"
             walletBalance={availableBalance}
-          />
+          />}
         </div>
 
         {/* Account Information Sidebar */}
