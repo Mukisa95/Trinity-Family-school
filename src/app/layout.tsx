@@ -6,6 +6,9 @@ import { AndroidShortcutNavigator } from '@/components/common/android-shortcut-n
 import { AndroidOfflineBoundary } from '@/components/common/android-offline-boundary';
 import { AndroidOfflineProvider } from '@/components/providers/android-offline-provider';
 import type { Metadata } from 'next';
+import type { Viewport } from 'next';
+import { HomeScreenLifecycle } from '@/components/pwa/lifecycle';
+import { schoolWebAppManifest } from '@/lib/pwa/manifest';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import './globals.css';
@@ -29,6 +32,8 @@ import { OperationalAuditProvider } from '@/components/providers/operational-aud
 
 const geistSans = GeistSans;
 const geistMono = GeistMono;
+
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' };
 
 const siteUrl = 'https://trinityfamilyschool.vercel.app';
 const schoolName = 'Trinity Family Nursery & Primary School';
@@ -125,7 +130,8 @@ export const metadata: Metadata = {
       },
     ],
   },
-  manifest: '/manifest.json',
+  manifest: '/api/pwa/manifest',
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: schoolWebAppManifest(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools').short_name },
   openGraph: {
     type: 'website',
     locale: 'en_UG',
@@ -194,6 +200,7 @@ export default function RootLayout({
         <AndroidShortcutNavigator />
         <QueryProvider>
           <AuthProvider>
+            <HomeScreenLifecycle />
             <PrintProvider>
               <PDFWorkspaceProvider>
                 <PhotoStudioWorkspaceProvider>

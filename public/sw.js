@@ -35,7 +35,7 @@ const PARENT_APP_SHELL_CACHE = `parent-app-shell-${SW_VERSION}`;
 const PARENT_APP_ROUTES = new Set(['/parent', '/parent/settings']);
 const ANDROID_APP_SHELL_CACHE = `android-app-shell-${SW_VERSION}`;
 const ANDROID_SHELL_IMAGES = new Set(['/images/D.B%20background.png', '/trinity-logo-192.png']);
-const ANDROID_APP_ROUTES = new Set(['/', '/pupils', '/pupil-detail', '/timetable', '/events', '/login', '/parent', '/parent/settings']);
+const ANDROID_APP_ROUTES = new Set(['/', '/pupils', '/pupil-detail', '/timetable', '/events', '/login', '/parent', '/parent/settings', '/settings/account']);
 
 async function androidShellMatch(request) {
   const names = (await caches.keys()).filter(name => name.startsWith('android-app-shell-')).sort().reverse();
@@ -297,7 +297,7 @@ self.addEventListener('message', (event) => {
 
   // Android stores the SAME public HTML shell and hashed assets used online.
   // Identity and school records remain in their existing account-scoped stores.
-  // This explicit message keeps ordinary browser/PWA navigation unchanged.
+  // This explicit preparation is used by native Android and installed web apps.
   if (event.data.type === 'CACHE_ANDROID_APP_SHELL') {
     const routes = Array.isArray(event.data.routes) ? event.data.routes : [];
     const assets = Array.isArray(event.data.assetUrls) ? event.data.assetUrls : [];
@@ -514,6 +514,9 @@ async function handleFeeReminderPush(payload) {
 }
 
 self.addEventListener('push', (event) => {
+  // A dot means a new alert, not an invented unread count. Keep displaying the
+  // notification below: iOS does not permit silent background push work.
+  if (self.navigator?.setAppBadge) event.waitUntil(self.navigator.setAppBadge().catch(() => {}));
   if (event.data) {
     try {
       const payload = event.data.json();

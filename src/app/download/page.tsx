@@ -1,10 +1,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { HomeScreenInstallGuide } from '@/components/pwa/install-guide';
 import { headers } from 'next/headers';
 import { Download, ArrowLeft, CalendarDays, BellRing, WifiOff } from 'lucide-react';
 import { androidReleaseForSite, androidRequestOrigin, websiteFirebaseProjectId } from '@/lib/android/download';
 
-export const metadata = { title: 'Download Android app', robots: { index: false, follow: true } };
+export const metadata = { title: 'Install school app', robots: { index: false, follow: true } };
 export const dynamic = 'force-dynamic';
 export default async function AndroidDownloadPage() {
   const requestHeaders = await headers();
@@ -14,6 +15,7 @@ export default async function AndroidDownloadPage() {
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:py-16 dark:bg-slate-950 dark:text-slate-100">
       <div className="mx-auto max-w-xl">
         <Link href="/login" className="mb-6 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:text-emerald-400 dark:hover:bg-slate-900"><ArrowLeft className="h-4 w-4" aria-hidden="true" />Back to school website</Link>
+        <HomeScreenInstallGuide />
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-slate-800 dark:bg-slate-900">
           {release ? <>
             <div className="flex items-center gap-4">
@@ -35,6 +37,7 @@ export default async function AndroidDownloadPage() {
             <p className="mt-5 text-sm leading-relaxed text-slate-500 dark:text-slate-400">Sign in online first to prepare offline access. Notification and reminder timing permissions can be enabled in the app. Parent accounts retain their existing access.</p>
           </> : <><h1 className="text-2xl font-bold">Android app</h1><p className="mt-4 text-slate-600 dark:text-slate-300">The Android download is not available for this school yet.</p></>}
         </section>
+        <HomeScreenInstallGuide always nonApple />
       </div>
     </main>
   );

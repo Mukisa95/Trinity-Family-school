@@ -20,7 +20,7 @@ type SnapshotReuse = { previous: AndroidOfflineSnapshot; pupilsUnchanged: boolea
 const fields = (value: object, names: string[]) => Object.fromEntries(names.filter(name => name in value).map(name => [name, (value as Record<string, unknown>)[name]]));
 
 /** No network reads: reuse the same authorized caches that feed the PWA. */
-export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession, options?: AbortSignal | SnapshotReuse): Promise<AndroidOfflineSnapshot | null> {
+export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession, options?: AbortSignal | SnapshotReuse, target: 'native' | 'browser' = 'native'): Promise<AndroidOfflineSnapshot | null> {
   const reuse = options && 'previous' in options ? options : undefined;
   const signal = options && !('previous' in options) ? options : undefined;
   await yieldAndroidPreparation(signal);
@@ -30,7 +30,7 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
     const bundle = await measureWorkspaceOperation('android:cache-read', () => readParentOfflineBundle(session.accountId));
     if (!bundle) return null;
     bundle.family.pupils = bundle.family.pupils.filter(pupil => session.pupilIds.includes(pupil.id));
-    bundle.family.pupils = await projectOfflinePhotos(session.accountId, bundle.family.pupils as unknown as Record<string, unknown>[], signal) as unknown as typeof bundle.family.pupils;
+    if (target === 'native') bundle.family.pupils = await projectOfflinePhotos(session.accountId, bundle.family.pupils as unknown as Record<string, unknown>[], signal) as unknown as typeof bundle.family.pupils;
     const ids = new Set(bundle.family.pupils.map(pupil => pupil.id));
     bundle.fees = bundle.fees.filter(record => ids.has(record.pupilId));
     bundle.banking = bundle.banking.filter(record => ids.has(record.pupilId));
@@ -52,7 +52,7 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
   }
   if (session.grants.pupils && previous?.datasets.pupils) result.datasets.pupils = previous.datasets.pupils;
   if (session.grants.pupils && pupils && Array.isArray(pupils.data)) result.datasets.pupils = {
-    data: await projectOfflinePhotos(session.accountId,
+    data: target === 'browser' ? pupils.data.filter(pupil => !session.circumference || session.pupilIds.includes(pupil.id)).map(pupil => ({ id: pupil.id })) : await projectOfflinePhotos(session.accountId,
       await measureWorkspaceOperation('android:record-projection', () => projectAndroidRecords(pupils.data.filter(pupil => !session.circumference || session.pupilIds.includes(pupil.id)), pupil => projectOfflinePupil(pupil as unknown as Record<string, unknown>, session), signal)), signal),
     preparedAt: new Date(pupils.writtenAt).toISOString(),
   };

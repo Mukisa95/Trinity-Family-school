@@ -23,6 +23,7 @@ import { ParentOfflineReadinessCard } from '@/components/parent/parent-offline-r
 import { PasskeySettings } from '@/components/settings/passkey-settings';
 import { AutoLockSettings } from '@/components/settings/auto-lock-settings';
 import { AndroidNotificationStatus } from '@/components/notifications/android-notification-status';
+import { HomeScreenSettings } from '@/components/pwa/home-screen-settings';
 import {
   updatePassword,
   reauthenticateWithCredential,
@@ -140,6 +141,7 @@ export default function ParentSettingsPage() {
         <PasskeySettings />
         <AutoLockSettings />
         <AndroidNotificationStatus />
+        <HomeScreenSettings />
 
         {/* Alert message */}
         {message && (

@@ -3,9 +3,10 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { androidOfflineRequest, hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
+import { workspaceOfflineRequest as androidOfflineRequest, hasOfflineWorkspace as hasAndroidOfflineBridge } from '@/lib/offline/workspace-bridge';
 import { canOpenAndroidOfflineRoute, isAndroidOffline } from '@/lib/offline/android-app-shell';
 import type { AndroidOfflineSession } from '@/lib/offline/android-contracts';
+import { androidSessionMatchesUser } from '@/lib/offline/android-contracts';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { recordAppDiagnostic } from '@/lib/utils/app-diagnostics';
@@ -26,7 +27,8 @@ export function AndroidOfflineBoundary({ children }: { children: ReactNode }) {
   useEffect(() => {
     const update = () => setRevision(value => value + 1);
     window.addEventListener('trinity-android-session-updated', update);
-    return () => window.removeEventListener('trinity-android-session-updated', update);
+    window.addEventListener('trinity-pwa-offline-changed', update);
+    return () => { window.removeEventListener('trinity-android-session-updated', update); window.removeEventListener('trinity-pwa-offline-changed', update); };
   }, []);
   useEffect(() => {
     if (!hasAndroidOfflineBridge() || !user) return;
@@ -34,12 +36,12 @@ export function AndroidOfflineBoundary({ children }: { children: ReactNode }) {
     let expiry: ReturnType<typeof setTimeout> | undefined;
     void androidOfflineRequest('status').then(reply => {
       if (disposed) return;
-      const session = reply.session?.accountId === user.id && reply.session.role === user.role ? reply.session : null;
+      const session = androidSessionMatchesUser(reply.session, user) ? reply.session! : null;
       setAccess({ accountId: user.id, session });
       if (session) expiry = setTimeout(() => setAccess({ accountId: user.id, session: null }), Math.max(0, Date.parse(session.expiresAt) - Date.now()));
     }).catch(() => { recordAppDiagnostic('offline_status_failed'); if (!disposed) setAccess({ accountId: user.id, session: null }); });
     return () => { disposed = true; if (expiry) clearTimeout(expiry); };
-  }, [offline, user?.id, user?.role, revision]);
+  }, [offline, user?.id, user?.role, user?.circumference, revision]);
 
   useEffect(() => {
     if (!offline || !hasAndroidOfflineBridge()) return;

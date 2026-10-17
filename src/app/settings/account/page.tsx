@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { AndroidNotificationStatus } from '@/components/notifications/android-notification-status';
+import { HomeScreenSettings } from '@/components/pwa/home-screen-settings';
 import { GlassActionButton, GlassActionDock, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import { AccountIdentity, AccountSection, AccountStatus } from "@/components/account/account-profile";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
@@ -351,6 +352,7 @@ export default function AccountSettingsPage() {
           </aside>
         </div>
         <AndroidNotificationStatus />
+        <HomeScreenSettings />
       </div>
       <Dialog open={showLockModal} onOpenChange={setShowLockModal}>
         <DialogContent className="max-w-md border-border/70 bg-card dark:bg-card">

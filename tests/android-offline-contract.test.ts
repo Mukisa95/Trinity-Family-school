@@ -42,7 +42,7 @@ test('offline sessions expire and ordinary browsers do not trigger Android prepa
   const session = createAndroidOfflineSession(staff, [], now);
   assert.equal(session.expiresAt, '2026-10-14T10:00:00.000Z');
   const provider = readFileSync('src/components/providers/android-offline-provider.tsx', 'utf8');
-  assert.match(provider, /if \(!hasAndroidOfflineBridge\(\) \|\| isLoading\) return/);
+  assert.match(provider, /if \(!hasAndroidOfflineBridge\(\) \|\| isLoading \|\| !user\) return/);
   assert.match(provider, /auth\.currentUser\?\.uid !== user\.id/);
   const parent = readFileSync('src/lib/parent-offline/repository.ts', 'utf8');
   assert.match(parent, /readParentOfflineBundle/);

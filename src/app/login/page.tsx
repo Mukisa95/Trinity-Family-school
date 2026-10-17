@@ -848,7 +848,7 @@ export default function LoginPage() {
         .trinity-portal-landing .mfield input {
           width:100%; padding:10px 16px 10px 42px;
           background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15);
-          border-radius:99px; color:#fff; font-size:14px;
+          border-radius:99px; color:#fff; font-size:max(16px, 1rem);
           outline:none;
           transition:background .25s, border-color .25s, box-shadow .25s;
         }
@@ -1141,7 +1141,7 @@ export default function LoginPage() {
             </a>
             <a className="ql-item" href="/download">
               <div className="ql-icon ic-blue"><Download size={22} aria-hidden="true" /></div>
-              <div className="ql-text"><strong>Download App</strong><span>Android · Offline access</span></div>
+              <div className="ql-text"><strong>Get the App</strong><span>iPhone &amp; Android · Offline access</span></div>
             </a>
             <a className="ql-item" href="#gallery">
               <div className="ql-icon ic-purple">🖼️</div>
@@ -1581,7 +1581,7 @@ export default function LoginPage() {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       disabled={isSubmitting}
-                      className="w-full py-3.5 pl-[44px] pr-3.5 bg-white/7 border border-white/12 rounded-full text-white text-sm outline-none transition-all duration-200 focus:bg-[#4F63FF]/15 focus:border-[#4F63FF] dark:bg-slate-900/7 dark:border-slate-700/12"
+                      className="w-full py-3.5 pl-[44px] pr-3.5 bg-white/7 border border-white/12 rounded-full text-white text-base outline-none transition-all duration-200 focus:bg-[#4F63FF]/15 focus:border-[#4F63FF] dark:bg-slate-900/7 dark:border-slate-700/12"
                     />
                   </div>
                 </div>
@@ -1599,7 +1599,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       disabled={isSubmitting}
-                      className="w-full py-3.5 pl-[44px] pr-[44px] bg-white/7 border border-white/12 rounded-full text-white text-sm outline-none transition-all duration-200 focus:bg-[#4F63FF]/15 focus:border-[#4F63FF] dark:bg-slate-900/7 dark:border-slate-700/12"
+                      className="w-full py-3.5 pl-[44px] pr-[44px] bg-white/7 border border-white/12 rounded-full text-white text-base outline-none transition-all duration-200 focus:bg-[#4F63FF]/15 focus:border-[#4F63FF] dark:bg-slate-900/7 dark:border-slate-700/12"
                     />
                     <span
                       className="eye-btn absolute right-[16px] top-1/2 -translate-y-1/2 cursor-pointer text-white/35 hover:text-white"

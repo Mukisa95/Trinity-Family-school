@@ -41,6 +41,9 @@ export function createAppDiagnosticReport() {
   flushAppDiagnostics();
   return JSON.stringify({ schema: 1, bugId: `TRI-${crypto.randomUUID()}`, createdAt: new Date().toISOString(),
     online: navigator.onLine, nativeConnected: window.trinityAndroidConnected ?? null,
+    environment: { homeScreen: window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone),
+      iosVersion: /(?:iPhone|iPad|iPod).*OS ([\d_]+)/.exec(navigator.userAgent)?.[1]?.replaceAll('_', '.') || null,
+      webPush: 'PushManager' in window && 'Notification' in window, serviceWorker: 'serviceWorker' in navigator },
     events: readEvents() }, null, 2);
 }
 

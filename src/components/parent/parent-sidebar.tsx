@@ -343,7 +343,7 @@ export function ParentSidebar({
         {/* Bottom Actions */}
         <div className="p-4 space-y-2">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/download" aria-label="Download Android app" title="Download Android app" className={cn("w-full min-h-11 p-3 justify-start text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800", isCollapsed && "justify-center")}>
+            <Link href="/download" aria-label="Get the school app" title="Get the school app" className={cn("w-full min-h-11 p-3 justify-start text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800", isCollapsed && "justify-center")}>
               <Download className="h-4 w-4" aria-hidden="true" />
               {!isCollapsed && <span className="ml-3 text-sm">Download app</span>}
             </Link>

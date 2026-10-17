@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "Trinity School Online - School Management System",
   "short_name": "Trinity School",
   "description": "Trinity School Online - Comprehensive school management system for efficient administration, student tracking, and academic performance monitoring",
@@ -8,7 +9,7 @@
   "display_override": ["standalone", "minimal-ui"],
   "background_color": "#111827",
   "theme_color": "#111827",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "categories": ["education", "productivity", "business"],
   "lang": "en",
   "dir": "ltr",

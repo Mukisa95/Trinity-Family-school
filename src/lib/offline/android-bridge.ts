@@ -43,4 +43,5 @@ export async function androidOfflineRequest(action: string, data: Record<string,
 /** Called before logout/account clearing, even if the app is currently offline. */
 export async function clearAndroidOfflineAccess() {
   if (hasAndroidOfflineBridge()) await androidOfflineRequest('clear');
+  if (typeof indexedDB !== 'undefined') await (await import('@/lib/pwa/offline-store')).clearBrowserOfflineAccess();
 }

@@ -2,6 +2,7 @@
 
 import { auth } from '@/lib/firebase';
 import { androidOfflineRequest, hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
+import { isAppleMobile, isHomeScreenApp } from '@/lib/pwa/platform';
 
 const DEFAULT_VAPID_PUBLIC_KEY =
   'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY';
@@ -198,20 +199,18 @@ let activeSync: { userId: string; promise: Promise<PushSyncResult> } | null = nu
 export function supportsWebPush(): boolean {
   return typeof window !== 'undefined'
     && !hasAndroidOfflineBridge()
+    && (!isAppleMobile() || isHomeScreenApp())
     && 'serviceWorker' in navigator
     && 'PushManager' in window
     && 'Notification' in window;
 }
 
 export function isIosDevice(): boolean {
-  return typeof navigator !== 'undefined'
-    && /iphone|ipad|ipod/i.test(navigator.userAgent);
+  return isAppleMobile();
 }
 
 export function isStandalonePwa(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia('(display-mode: standalone)').matches
-    || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+  return isHomeScreenApp();
 }
 
 /**

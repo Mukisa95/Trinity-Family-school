@@ -4,7 +4,9 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { auth } from '@/lib/firebase';
-import { androidOfflineRequest, hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
+import { workspaceOfflineRequest as androidOfflineRequest, hasOfflineWorkspace as hasAndroidOfflineBridge } from '@/lib/offline/workspace-bridge';
+import { hasBrowserOfflineWorkspace } from '@/lib/pwa/platform';
+import { androidRouteBuildId } from '@/lib/offline/android-route-cache';
 import { exportAndroidCachedSnapshot } from '@/lib/offline/android-cache-export';
 import { androidSnapshotRevision, isAndroidSavedCacheKey } from '@/lib/offline/android-sync-policy';
 import { androidSessionMatchesUser, isAndroidOfflineSnapshot, type AndroidOfflineSession } from '@/lib/offline/android-contracts';
@@ -42,7 +44,7 @@ function PrepareCurrentTimetables() {
 
 function PrepareEvents() { useEvents(); useExamsAsEvents(); useAcademicYears(); return null; }
 
-/** Inert in the normal browser/PWA; Android reuses existing caches and query owners. */
+/** Installed apps reuse existing caches and query owners; ordinary tabs stay inert. */
 export function AndroidOfflineProvider() {
   const router = useRouter();
   const { user, isLoading, isLocked } = useAuth();
@@ -50,9 +52,11 @@ export function AndroidOfflineProvider() {
   const generation = useRef(0);
   const scopeKey = circumferenceKey(user);
   const accessKey = JSON.stringify([user?.id, user?.role, scopeKey, user?.granularPermissions, user?.modulePermissions]);
-  const previousAccess = useRef(accessKey);
+  const previousAccess = useRef<{ accountId: string; key: string } | null>(null);
   useEffect(() => {
-    if (!hasAndroidOfflineBridge() || isLoading) return;
+    // Auth can restore the Firebase identity after its cached profile. Do not
+    // erase saved access during that initial gap; auth owns explicit logout.
+    if (!hasAndroidOfflineBridge() || isLoading || !user) return;
     const current = ++generation.current;
     setSession(null);
     let disposed = false;
@@ -60,8 +64,8 @@ export function AndroidOfflineProvider() {
     let retry: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
     let lastConnectionAt = 0;
-    const changedAccess = previousAccess.current !== accessKey;
-    previousAccess.current = accessKey;
+    const changedAccess = previousAccess.current?.accountId === user.id && previousAccess.current.key !== accessKey;
+    previousAccess.current = { accountId: user.id, key: accessKey };
     let prepared: Promise<void> | undefined;
     const connect = async () => {
       if (refreshing || disposed || isAndroidOffline() || !user || isLocked || auth.currentUser?.uid !== user.id) return;
@@ -73,7 +77,7 @@ export function AndroidOfflineProvider() {
         if (disposed || current !== generation.current) return;
         const token = await auth.currentUser.getIdToken();
         if (disposed || current !== generation.current || auth.currentUser?.uid !== user.id) return;
-        const reply = await androidOfflineRequest('connect', { token });
+        const reply = await androidOfflineRequest('connect', { token, accountId: user.id });
         if (!disposed && current === generation.current && androidSessionMatchesUser(reply.session, user)) {
           setSession(reply.session!); attempts = 0;
           lastConnectionAt = Date.now();
@@ -103,7 +107,9 @@ export function AndroidOfflineProvider() {
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('online', connect);
     window.addEventListener('trinity-android-connectivity', connect);
-    return () => { disposed = true; if (retry) clearTimeout(retry); unsubscribeAuth(); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('online', connect); window.removeEventListener('trinity-android-connectivity', connect); };
+    const refresh = () => { lastConnectionAt = 0; void connect(); };
+    window.addEventListener('trinity-pwa-prepare', refresh);
+    return () => { disposed = true; if (retry) clearTimeout(retry); unsubscribeAuth(); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('online', connect); window.removeEventListener('trinity-android-connectivity', connect); window.removeEventListener('trinity-pwa-prepare', refresh); };
   }, [user?.id, user?.role, user?.granularPermissions, user?.modulePermissions, scopeKey, isLoading, isLocked]);
 
   useEffect(() => {
@@ -117,7 +123,7 @@ export function AndroidOfflineProvider() {
       const startedAt = performance.now();
       const capturedGeneration = sourceGeneration;
       const exportAt = performance.now();
-      const snapshot = await measureWorkspaceOperation('android:snapshot-export', () => exportAndroidCachedSnapshot(session, preparation.signal));
+      const snapshot = await measureWorkspaceOperation('android:snapshot-export', () => exportAndroidCachedSnapshot(session, preparation.signal, hasBrowserOfflineWorkspace() ? 'browser' : 'native'));
       if (performance.now() - exportAt >= 2000) recordAppDiagnostic('offline_snapshot_export_slow', performance.now() - exportAt);
       if (disposed || !snapshot || !isAndroidOfflineSnapshot(snapshot, session)) return;
       if (isNavigationPending() || document.visibilityState === 'hidden') { scheduler.request(); return; }
@@ -155,14 +161,15 @@ export function AndroidOfflineProvider() {
     };
     const unsubscribeParent = subscribeToParentOfflineChanges(session.accountId, persistedChange);
     window.addEventListener('trinity-native-cache-written', onCacheWritten);
+    window.addEventListener('trinity-pwa-prepare', persistedChange);
     schedule();
-    return () => { disposed = true; preparation.abort(); scheduler.dispose(); unsubscribeNavigation(); unsubscribeParent(); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('trinity-native-cache-written', onCacheWritten); };
+    return () => { disposed = true; preparation.abort(); scheduler.dispose(); unsubscribeNavigation(); unsubscribeParent(); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('trinity-native-cache-written', onCacheWritten); window.removeEventListener('trinity-pwa-prepare', persistedChange); };
   }, [session, user?.id, scopeKey, isLocked]);
 
   useEffect(() => {
     // HTML and immutable assets contain no private records; prepare them even
     // while the existing session privacy screen is locked.
-    if (!session) return;
+    if (!session || !user || !androidSessionMatchesUser(session, user)) return;
     let disposed = false;
     let preparing = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
@@ -170,7 +177,10 @@ export function AndroidOfflineProvider() {
       if (disposed || preparing || isAndroidOffline()) return;
       preparing = true;
       if (retry) { clearTimeout(retry); retry = undefined; }
-      try { await measureWorkspaceOperation('android:app-shell-preparation', () => prepareAndroidAppShell(session)); }
+      try {
+        await measureWorkspaceOperation('android:app-shell-preparation', () => prepareAndroidAppShell(session));
+        if (!disposed && hasBrowserOfflineWorkspace()) await androidOfflineRequest('shellReady', { build: androidRouteBuildId() });
+      }
       catch { recordAppDiagnostic('offline_shell_failed'); if (!disposed) retry = setTimeout(() => void prepare(), 15_000); }
       finally { preparing = false; }
     };
@@ -178,13 +188,14 @@ export function AndroidOfflineProvider() {
     window.addEventListener('online', prepare);
     window.addEventListener('trinity-android-connectivity', prepare);
     window.addEventListener('trinity-service-worker-updated', prepare);
-    return () => { disposed = true; if (retry) clearTimeout(retry); window.removeEventListener('online', prepare); window.removeEventListener('trinity-android-connectivity', prepare); window.removeEventListener('trinity-service-worker-updated', prepare); };
-  }, [session?.accountId, session?.role, session?.grants.dashboard, session?.grants.pupils, session?.grants.timetable, session?.grants.events]);
+    window.addEventListener('trinity-pwa-prepare', prepare);
+    return () => { disposed = true; if (retry) clearTimeout(retry); window.removeEventListener('online', prepare); window.removeEventListener('trinity-android-connectivity', prepare); window.removeEventListener('trinity-service-worker-updated', prepare); window.removeEventListener('trinity-pwa-prepare', prepare); };
+  }, [session?.accountId, session?.role, session?.grants.dashboard, session?.grants.pupils, session?.grants.timetable, session?.grants.events, user?.id, user?.role, scopeKey]);
 
   useEffect(() => {
     if (!hasAndroidOfflineBridge() || !user) return;
     return installAndroidOfflineNavigation(user.role, () => toast({ title: 'Connection needed', description: 'This page has not finished downloading, or needs a connection to make changes.' }), { navigate: href => router.push(href) });
   }, [user?.id, user?.role, router]);
 
-  return !isLocked ? <>{session?.grants.timetable && <PrepareCurrentTimetables />}{session?.grants.events && <PrepareEvents />}</> : null;
+  return !isLocked && user && androidSessionMatchesUser(session, user) ? <>{session?.grants.timetable && <PrepareCurrentTimetables />}{session?.grants.events && <PrepareEvents />}</> : null;
 }

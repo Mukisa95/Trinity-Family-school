@@ -2,7 +2,8 @@
  * No hosted school, Firebase account, or private records are opened. */
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),{spawn}=require('node:child_process');
 const root=path.resolve(__dirname,'..'), fixture=path.join(root,'output/android-spa-fixture');
-const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+const playwright=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+const homeScreen=process.env.OFFLINE_PLATFORM==='pwa';
 fs.mkdirSync(path.join(fixture,'app'),{recursive:true});fs.mkdirSync(path.join(fixture,'public'),{recursive:true});
 if(!fs.existsSync(path.join(fixture,'node_modules')))fs.symlinkSync(path.join(root,'node_modules'),path.join(fixture,'node_modules'),'junction');
 fs.writeFileSync(path.join(fixture,'package.json'),JSON.stringify({name:'offline-navigation-fixture',private:true}));
@@ -26,23 +27,25 @@ return <><AndroidShortcutNavigator/><header><input aria-label="Header state" def
 export function Content(){const path=usePathname(),query=useSearchParams();return <main><h1>{path}</h1><output id="pupil">{query.get('id')}</output><input aria-label="Page state" defaultValue="saved page"/></main>}
 `);
 fs.writeFileSync(path.join(fixture,'app/layout.jsx'),`import React,{Suspense}from'react';import{Shell}from'./client';export default function Layout({children}){return <html><body><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify({name:'School 😀 é'.repeat(300)})}}/><Suspense><Shell>{children}</Shell></Suspense></body></html>}`);
-for(const route of ['','pupils','pupil-detail','timetable','events','exams','parent','parent/settings','finance','login']){
+for(const route of ['','pupils','pupil-detail','timetable','events','exams','parent','parent/settings','settings/account','finance','login']){
  const dir=path.join(fixture,'app',route);fs.mkdirSync(dir,{recursive:true});const relative=path.relative(dir,path.join(fixture,'app/client')).replaceAll('\\','/');fs.writeFileSync(path.join(dir,'page.jsx'),`import React,{Suspense}from'react';import{Content}from'${relative.startsWith('.')?relative:'./'+relative}';export default function Page(){return <Suspense><Content/></Suspense>}`);
 }
 function command(args){return new Promise((resolve,reject)=>{const proc=spawn(process.execPath,[require.resolve('next/dist/bin/next'),...args],{cwd:fixture,env:{...process.env,NEXT_TELEMETRY_DISABLED:'1'},stdio:['ignore','pipe','pipe']});let output='';proc.stdout.on('data',x=>output+=x);proc.stderr.on('data',x=>output+=x);proc.on('exit',code=>code===0?resolve():reject(new Error(output)));});}
 (async()=>{
 if(!process.env.SKIP_FIXTURE_BUILD)await command(['build']);console.log('NEXT_NAVIGATION_FIXTURE_BUILT');
-const port=19347,origin='http://127.0.0.1:'+port;const server=spawn(process.execPath,[require.resolve('next/dist/bin/next'),'start','-p',String(port)],{cwd:fixture,env:{...process.env,NEXT_TELEMETRY_DISABLED:'1'},stdio:'ignore'});
+const port=19347,origin='http://127.0.0.1:'+port;const server=spawn(process.execPath,[require.resolve('next/dist/bin/next'),'start','-p',String(port)],{cwd:fixture,env:{...process.env,NEXT_TELEMETRY_DISABLED:'1'},stdio:['ignore','pipe','pipe']});
+let startupOutput='';server.stdout.on('data',chunk=>startupOutput+=chunk);server.stderr.on('data',chunk=>startupOutput+=chunk);
 let browser;try{
-for(let i=0;i<100;i++){try{if((await fetch(origin)).ok)break}catch{}await new Promise(r=>setTimeout(r,150));}
-browser=await chromium.launch({channel:process.env.PLAYWRIGHT_CHANNEL||'msedge',headless:true});
+let ready=false;for(let i=0;i<400;i++){try{if((await fetch(origin)).ok){ready=true;break}}catch{}if(server.exitCode!==null)break;await new Promise(r=>setTimeout(r,150));}
+if(!ready)throw new Error('Fixture server did not start: '+startupOutput);
+browser=await playwright[process.env.PLAYWRIGHT_ENGINE||'chromium'].launch({...(process.env.PLAYWRIGHT_ENGINE==='webkit'?{}:{channel:process.env.PLAYWRIGHT_CHANNEL||'msedge'}),headless:true});
 for(const parent of [false,true]){
- const context=await browser.newContext({viewport:{width:375,height:812}});await context.addInitScript(parent=>{window.parentFixture=parent;window.shortcutReady=false;window.searchRequests=0;window.addEventListener('trinity-open-dashboard-search',()=>window.searchRequests++);window.TrinityOffline={postMessage(raw){const message=JSON.parse(raw);if(message.action==='shortcutRouterReady')window.shortcutReady=true;queueMicrotask(()=>this.onmessage?.({data:JSON.stringify({id:message.id,success:true})}));}};window.trinityAndroidConnected=true;},parent);
+ const context=await browser.newContext({viewport:{width:390,height:844}});await context.addInitScript(({parent,homeScreen})=>{window.parentFixture=parent;window.shortcutReady=false;window.searchRequests=0;window.addEventListener('trinity-open-dashboard-search',()=>window.searchRequests++);if(homeScreen)Object.defineProperty(navigator,'standalone',{value:true});else window.TrinityOffline={postMessage(raw){const message=JSON.parse(raw);if(message.action==='shortcutRouterReady')window.shortcutReady=true;queueMicrotask(()=>this.onmessage?.({data:JSON.stringify({id:message.id,success:true})}));}};window.trinityAndroidConnected=true;},{parent,homeScreen});
  let probes=0;await context.route('https://www.gstatic.com/**',route=>{probes++;return route.fulfill({status:204,body:''})});
  let page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(origin+(parent?'/parent':'/'));await page.waitForFunction(()=>window.prepareFixture);await page.evaluate(()=>window.prepareFixture());await page.waitForFunction(()=>navigator.serviceWorker.controller);await page.locator('#ready').filter({hasText:'ready'}).waitFor();
  await page.getByLabel('Header state').fill('keep session and header');await page.evaluate(()=>window.documentMarker='same-document');const baseMounts=await page.evaluate(()=>window.shellMounts);
  let documentRequests=0;page.on('request',request=>{if(request.isNavigationRequest())documentRequests++});
- if(!parent){
+ if(!parent&&!homeScreen){
   await page.waitForFunction(()=>window.shortcutReady);
   for(const [id,route] of [['timetable','/timetable'],['events','/events'],['pupils','/pupils'],['exams','/exams'],['search','/?openSearch=1']]){
    await page.evaluate(id=>window.dispatchEvent(new CustomEvent('trinity-android-shortcut',{detail:id})),id);await page.waitForURL(origin+route);await page.waitForFunction(path=>document.querySelector('h1')?.textContent===path,route.split('?')[0]);
@@ -52,14 +55,17 @@ for(const parent of [false,true]){
   assert.equal(documentRequests,0);
  }
  // Native offline signal arrives while WebView navigator still reports online.
+ if(homeScreen)await context.setOffline(true);
  await page.evaluate(()=>{window.trinityAndroidConnected=false;window.dispatchEvent(new Event('trinity-android-connectivity'))});await page.getByRole('button',{name:'Network: Offline',exact:true}).waitFor();const measured=probes;
  if(!parent){await page.waitForTimeout(10_100);assert.equal(probes,measured);await page.getByRole('button',{name:'Network: Offline',exact:true}).waitFor();}
  await context.setOffline(true);
  const routes=parent?['/parent/settings','/parent','/parent/settings']:['/pupils','/pupil-detail?id=child-1','/pupil-detail?id=child-2','/timetable','/events','/pupils'];
  for(const route of routes){await page.getByRole('link',{name:route,exact:true}).click();await page.waitForURL(origin+route);await page.waitForFunction(path=>document.querySelector('h1')?.textContent===path,route.split('?')[0]);assert.equal(await page.evaluate(()=>window.documentMarker),'same-document');assert.equal(await page.getByLabel('Header state').inputValue(),'keep session and header');assert.equal(await page.evaluate(()=>window.shellMounts),baseMounts);if(route.includes('?'))assert.equal(await page.locator('#pupil').innerText(),new URL(route,origin).searchParams.get('id'));}
  if(!parent){
-  for(const [id,route] of [['timetable','/timetable'],['events','/events'],['pupils','/pupils']]){await page.evaluate(id=>window.dispatchEvent(new CustomEvent('trinity-android-shortcut',{detail:id})),id);await page.waitForURL(origin+route);assert.equal(await page.evaluate(()=>window.documentMarker),'same-document');assert.equal(await page.evaluate(()=>window.shellMounts),baseMounts);}
-  await page.evaluate(()=>window.dispatchEvent(new CustomEvent('trinity-android-shortcut',{detail:'exams'})));await page.waitForTimeout(150);assert.equal(page.url(),origin+'/pupils');
+  if(!homeScreen){
+   for(const [id,route] of [['timetable','/timetable'],['events','/events'],['pupils','/pupils']]){await page.evaluate(id=>window.dispatchEvent(new CustomEvent('trinity-android-shortcut',{detail:id})),id);await page.waitForURL(origin+route);assert.equal(await page.evaluate(()=>window.documentMarker),'same-document');assert.equal(await page.evaluate(()=>window.shellMounts),baseMounts);}
+   await page.evaluate(()=>window.dispatchEvent(new CustomEvent('trinity-android-shortcut',{detail:'exams'})));await page.waitForTimeout(150);assert.equal(page.url(),origin+'/pupils');
+  }
   await page.getByRole('button',{name:'Programmatic timetable',exact:true}).click();await page.waitForURL(origin+'/timetable');await page.getByRole('button',{name:'Back',exact:true}).click();await page.waitForURL(origin+'/pupils');
   await page.getByRole('button',{name:'Replace events',exact:true}).click();await page.waitForURL(origin+'/events');await page.locator('#plain-events').click();
   await page.getByRole('link',{name:'/finance',exact:true}).click();await page.waitForFunction(()=>Number(document.querySelector('#blocked').textContent)>0);assert.equal(page.url(),origin+'/events');
@@ -69,6 +75,15 @@ for(const parent of [false,true]){
   await page.getByRole('link',{name:'/timetable',exact:true}).click();await page.waitForTimeout(150);assert.equal(page.url(),origin+'/events');
  }
  assert.equal(documentRequests,0);assert.equal(probes,measured);assert.deepEqual(errors,[]);
+ if(process.env.PLAYWRIGHT_ENGINE==='webkit'){
+  // Playwright WebKit rejects even a literal SW navigation with setOffline(true):
+  // https://github.com/microsoft/playwright/issues/42775
+  // Keep the warm-navigation coverage above; do not call cold launch verified.
+  console.log('WEBKIT_COLD_OFFLINE_NOT_VERIFIED: Playwright offline navigation limitation; test on iPhone.');
+  await context.setOffline(false);await page.evaluate(()=>{window.trinityAndroidConnected=true;window.dispatchEvent(new Event('trinity-android-connectivity'))});
+  await page.getByRole('link',{name:parent?'/parent':'/timetable',exact:true}).click();await page.waitForURL(origin+(parent?'/parent':'/timetable'));assert.equal(await page.evaluate(()=>window.documentMarker),'same-document');
+  await context.close();continue;
+ }
  // Cold offline launch remains supported; next transitions remain in that document.
  await page.close();page=await context.newPage();await page.goto(origin+(parent?'/parent':'/'));await page.waitForFunction(()=>window.fixtureRouter);await page.evaluate(()=>{window.trinityAndroidConnected=false;window.documentMarker='cold-document';window.dispatchEvent(new Event('trinity-android-connectivity'))});
  if(!parent){
@@ -84,6 +99,6 @@ for(const parent of [false,true]){
  await context.setOffline(false);await page.evaluate(()=>{window.trinityAndroidConnected=true;window.dispatchEvent(new Event('trinity-android-connectivity'))});await page.getByRole('link',{name:parent?'/parent':'/timetable',exact:true}).click();await page.waitForURL(origin+(parent?'/parent':'/timetable'));assert.equal(await page.evaluate(()=>window.documentMarker),'cold-document');
  await context.close();
 }
-console.log('ANDROID_OFFLINE_SPA_OK: real Next routes, native offline status, search IDs, push/replace/back, parent routes, cold launch, zero document reloads/pings, missing/unsupported/incompatible routes, storage failure and reconnect.');
+console.log(`${homeScreen?'PWA':'ANDROID'}_OFFLINE_SPA_OK: real Next routes, push/replace/back, parent routes, zero document reloads/pings, unavailable routes and reconnect. Cold launch checked in Chromium only.`);
 }finally{if(browser)await browser.close();server.kill();}
 })().catch(error=>{console.error(error);process.exitCode=1});

@@ -161,7 +161,7 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
             <DropdownMenuItem asChild>
               <Link href="/download" onClick={handleItemClick} className="flex min-h-11 items-center w-full px-3 py-2 text-xs text-gray-700 hover:bg-brand-surface-50 hover:text-brand-ink-700 rounded-md cursor-pointer dark:text-slate-200 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-300">
                 <Download className="mr-2 h-4 w-4 text-gray-400 dark:text-slate-400" aria-hidden="true" />
-                Download Android app
+                Get the school app
               </Link>
             </DropdownMenuItem>
 
