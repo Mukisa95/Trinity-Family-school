@@ -1,6 +1,6 @@
 "use client";
 import { setCircumferenceUser, getCircumferenceUser } from '@/lib/access/circumference-session';
-import { circumferenceKey } from '@/lib/access/circumference';
+import { normalizeSessionProfile, sessionAccessKey } from '@/lib/access/session-profile';
 import { ClassesService } from '@/lib/services/classes.service';
 import { ExamsService } from '@/lib/services/exams.service';
 import { clearAndroidOfflineAccess } from '@/lib/offline/android-bridge';
@@ -83,7 +83,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [user, setUserState] = useState<SystemUser | null>(null);
   const setUser = React.useCallback((input: React.SetStateAction<SystemUser | null>) => {
-    const next = typeof input === 'function' ? input(getCircumferenceUser()) : input;
+    const previous = getCircumferenceUser();
+    const resolved = typeof input === 'function' ? input(previous) : input;
+    if (resolved === previous) return;
+    let next = resolved ? normalizeSessionProfile(resolved) : null;
+    if (next && previous && sessionAccessKey(next) === sessionAccessKey(previous)) {
+      // Token renewals must not restart native/offline effects whose dependencies
+      // include permission objects when only transport object ordering changed.
+      next = { ...next, granularPermissions: previous.granularPermissions,
+        modulePermissions: previous.modulePermissions };
+    }
     if (setCircumferenceUser(next)) {
       queryClient.clear();
       PupilsService.clearSharedPupils();
@@ -111,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // which is built by spreading the raw Firestore document. Even if it somehow ends up
     // on the object, it must never reach localStorage where XSS could read it.
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...safeUser } = userData as SystemUser & { passwordHash?: string };
+    const { passwordHash, ...safeUser } = normalizeSessionProfile(userData) as SystemUser & { passwordHash?: string };
     const payload: StoredAuthCache = { user: safeUser as SystemUser, cachedAt: Date.now() };
     try { localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(payload)); }
     catch { recordAppDiagnostic('auth_cache_write_failed'); }
@@ -153,10 +162,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const parsed = JSON.parse(storedUser);
     if (parsed?.user && typeof parsed.cachedAt === 'number') {
-      return { user: parsed.user, ageMs: Date.now() - parsed.cachedAt, isLegacy: false };
+      return { user: normalizeSessionProfile(parsed.user), ageMs: Date.now() - parsed.cachedAt, isLegacy: false };
     }
 
-    return { user: parsed, ageMs: AUTH_CACHE_MAX_AGE_MS, isLegacy: true };
+    return { user: normalizeSessionProfile(parsed), ageMs: AUTH_CACHE_MAX_AGE_MS, isLegacy: true };
   };
 
   // Function to validate stored user token
@@ -209,7 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const restorationStarted = performance.now();
       let restorationRecorded = false;
       try {
-        // First, try to restore user from localStorage immediately
+        // Restore local preferences and retain the saved profile for verification.
         const storedAutoLock = localStorage.getItem('trinity_auto_lock');
         const storedLockState = localStorage.getItem('trinity_account_locked');
         const storedAutoLockAction = localStorage.getItem('trinity_auto_lock_action');
@@ -276,8 +285,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (storedCache) {
           try {
             if (validateStoredUser(storedCache.user)) {
-              // Always restore the cached session immediately — no time-based expiry.
-              // We only invalidate if DB says the account is gone or permissions changed.
+              // Keep the saved profile without a time-based expiry, but wait for
+              // the signed identity and current access scope before publishing it.
               logger.debug('Restored user from local cache', {
                 username: storedCache.user.username,
                 ageMinutes: Math.round(storedCache.ageMs / 60000),
@@ -288,7 +297,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setHasStoredUser(true);
               setSessionStatus('checking');
               setSessionMessage(null);
-              setIsLoading(false);
+              // A saved profile is not a signed-out result. Keep the startup
+              // screen until the identity listener finishes verification below.
               performance.mark?.('trinity:auth-cache-ready');
 
             } else {
@@ -333,23 +343,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               }
 
               // Bind the signed Firebase uid to the profile returned by the
-              // successful login. No system_users read is needed on reload.
+              // successful login. Staff also verify their current server scope.
               const latestCache = readUserCache();
               const cachedUser = latestCache?.user || restoredCachedUser;
               if (!cachedUser || cachedUser.id !== firebaseUser.uid || !validateStoredUser(cachedUser)) {
                 throw Object.assign(new Error('The signed identity does not match the cached application profile.'), { code: 'app/profile-mismatch' });
               }
 
-              let systemUserData: SystemUser = {
+              let systemUserData: SystemUser = normalizeSessionProfile({
                 ...cachedUser,
                 role: (tokenResult.claims.role || cachedUser.role) as UserRole,
                 isActive: true,
-              };
+              });
 
               if (systemUserData.role === 'Staff') {
                 const response = await fetch('/api/auth/session', { headers: { Authorization: `Bearer ${await firebaseUser.getIdToken()}` }, cache: 'no-store' });
                 if (!response.ok) throw new Error('The current account scope could not be verified.');
-                systemUserData = (await response.json()).user;
+                systemUserData = normalizeSessionProfile((await response.json()).user);
+                if (currentGeneration !== authGeneration || auth.currentUser?.uid !== firebaseUser.uid) return;
+                if (systemUserData.id !== firebaseUser.uid || !validateStoredUser(systemUserData)) {
+                  throw Object.assign(new Error('The server profile does not match the signed identity.'), { code: 'app/profile-mismatch' });
+                }
               }
               logger.debug('Setting user from verified Firebase identity', { username: systemUserData.username });
               if (restoredCachedUser?.id && restoredCachedUser.id !== systemUserData.id) {
@@ -487,6 +501,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [autoLockEnabled, autoLockAction, user]);
 
   const acceptAuthenticatedUser = (authenticatedUser: SystemUser) => {
+    authenticatedUser = normalizeSessionProfile(authenticatedUser);
     if (user?.id && user.id !== authenticatedUser.id) clearPrivatePupilSession(user.id);
     queryClient.setQueryData(['parentPupilScope', authenticatedUser.id], 'loading');
     setUser(authenticatedUser);
@@ -736,9 +751,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // A single listener for the signed-in parent keeps their pupil scope current
-  // when school staff attach or detach pupils. It does not listen to all parent
-  // accounts and is separate from the fee-payment notification pipeline.
+  // One listener for the current staff/parent profile keeps access current.
+  // Equivalent snapshots must not force tokens to refresh and feed back into
+  // this listener, clear dashboard queries, or restart offline preparation.
   useEffect(() => {
     if (!user?.id || !['Staff', 'Parent'].includes(user.role)) return;
     return onSnapshot(doc(db, 'system_users', user.id), { includeMetadataChanges: true }, snapshot => {
@@ -757,25 +772,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setUser(current => {
         if (!current || current.id !== snapshot.id) return current;
-        const next = {
+        const next = normalizeSessionProfile({
           ...current,
           ...data,
           id: snapshot.id,
-          familyId: typeof data.familyId === 'string' && data.familyId.trim() ? data.familyId : undefined,
-          pupilId: typeof data.pupilId === 'string' && data.pupilId.trim() ? data.pupilId : undefined,
-        } as SystemUser;
-        if (
-          next.role === current.role
-          && next.familyId === current.familyId
-          && next.pupilId === current.pupilId
-          && next.isActive === current.isActive
-          && circumferenceKey(next) === circumferenceKey(current)
-          && JSON.stringify(next.granularPermissions) === JSON.stringify(current.granularPermissions)
-          && JSON.stringify(next.modulePermissions) === JSON.stringify(current.modulePermissions)
-        ) return current;
+          familyId: data.familyId,
+          pupilId: data.pupilId,
+        } as SystemUser);
+        if (sessionAccessKey(next) === sessionAccessKey(current)) return current;
         saveUserCache(next);
         void auth.currentUser?.getIdToken(true).catch(error => {
-          logger.warn('Parent scope token refresh will retry automatically', error);
+          logger.warn('Account scope token refresh will retry automatically', error);
         });
         return next;
       });

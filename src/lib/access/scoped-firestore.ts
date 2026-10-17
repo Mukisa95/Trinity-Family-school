@@ -4,8 +4,9 @@
  * projections use the authenticated server boundary. Never retry unscoped.
  */
 import * as sdk from 'firebase/firestore';
-import { circumferenceOf, hasCircumference, permitsClass, permitsPupil, projectExamResult, scopeFilters, circumferenceKey } from './circumference';
+import { circumferenceOf, hasCircumference, permitsClass, permitsPupil, projectExamResult, scopeFilters } from './circumference';
 import { circumferencePupil, getCircumferenceUser } from './circumference-session';
+import { sessionAccessKey } from './session-profile';
 import { isCircumferenceCollection, circumferenceCollectionKind } from './scoped-collections';
 export * from 'firebase/firestore';
 
@@ -41,7 +42,7 @@ function metadata(ref: any): Metadata | null {
   return queries.get(ref) || (ref.type === 'collection' ? { base: ref, collection: ref.path, constraints: [] } : null);
 }
 function needsScope(name?: string) { return !!name && hasCircumference(getCircumferenceUser()) && isCircumferenceCollection(name); }
-function identity() { const user = getCircumferenceUser(); return JSON.stringify([user?.id, user?.role, circumferenceKey(user), user?.modulePermissions, user?.granularPermissions]); }
+function identity() { return sessionAccessKey(getCircumferenceUser()); }
 function wireValue(value: any): any {
   if (value instanceof Date) return {timestampMillis: value.getTime()};
   if (value?.toMillis instanceof Function) return {timestampMillis: value.toMillis()};

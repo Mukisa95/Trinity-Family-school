@@ -6,6 +6,7 @@ import ts from 'typescript';
 import * as scopes from '../src/lib/access/circumference';
 import * as registry from '../src/lib/access/scoped-collections';
 import * as session from '../src/lib/access/circumference-session';
+import * as profile from '../src/lib/access/session-profile';
 
 function fixture(scope = scopes.ALL_CIRCUMFERENCE) {
   session.setCircumferenceUser({id: 'staff', role: 'Staff', circumference: scope} as any);
@@ -39,6 +40,7 @@ function fixture(scope = scopes.ALL_CIRCUMFERENCE) {
       if (name === 'firebase/firestore') return sdk;
       if (name === './circumference') return scopes;
       if (name === './circumference-session') return session;
+      if (name === './session-profile') return profile;
       if (name === './scoped-collections') return registry;
       if (name === '@/lib/firebase') return {auth: {currentUser: {uid: 'staff', getIdToken: async () => 'signed-token'}}};
       throw new Error(`Unexpected import ${name}`);
