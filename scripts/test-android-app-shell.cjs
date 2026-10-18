@@ -61,6 +61,19 @@ const session = { schema: 1, accountId: 'fixture', role: 'Admin', expiresAt: new
    assert.equal(await page.evaluate(() => window.documentCodeExecuted), undefined, 'Offline preparation caches document bytes without running them');
    assert.equal(requests.includes('/api/private'), false, 'The document manifest cannot cache private API data');
    const online = await page.locator('body').innerText();
+   // Reproduce Android having an attached network with no validated internet:
+   // the browser still says online, but its launch request carries native state.
+   const timetableReads = () => requests.filter(request => request === '/timetable').length;
+   const beforeHint = timetableReads();
+   await context.setExtraHTTPHeaders({ 'X-Trinity-Offline': '1' });
+   await page.goto(url+'/timetable');
+   assert.equal(await page.evaluate(()=>navigator.onLine),true);
+   assert.equal(await page.locator('main').getAttribute('data-route'),'/timetable');
+   assert.equal(timetableReads(),beforeHint,'Native offline launch must use the saved page without a network lookup');
+   await context.setExtraHTTPHeaders({});
+   await page.goto(url+'/timetable?online-probe=1');
+   assert.equal(timetableReads(),beforeHint+1,'A connected launch must still fetch the current page');
+   await page.goto(url+'/');
    await context.setOffline(true);
    await page.reload(); assert.equal(await page.locator('body').innerText(), online); assert.equal(await page.evaluate(() => originalRuntime), true);
    assert.equal(await page.locator('header').evaluate(el => getComputedStyle(el).height), '64px');

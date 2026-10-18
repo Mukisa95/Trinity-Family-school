@@ -20,6 +20,7 @@ import { useStaff } from '@/lib/hooks/use-staff';
 import { prepareAndroidAppShell, isAndroidOffline, installAndroidOfflineNavigation } from '@/lib/offline/android-app-shell';
 import { toast } from '@/hooks/use-toast';
 import { circumferenceKey } from '@/lib/access/circumference';
+import { sessionAccessKey } from '@/lib/access/session-profile';
 import { getDashboardTimetableTerm } from '@/lib/offline/timetable-feed';
 import { recordAppDiagnostic } from '@/lib/utils/app-diagnostics';
 import { measureWorkspaceOperation } from '@/lib/startup/workspace-timing';
@@ -51,7 +52,7 @@ export function AndroidOfflineProvider() {
   const [session, setSession] = useState<AndroidOfflineSession | null>(null);
   const generation = useRef(0);
   const scopeKey = circumferenceKey(user);
-  const accessKey = JSON.stringify([user?.id, user?.role, scopeKey, user?.granularPermissions, user?.modulePermissions]);
+  const accessKey = sessionAccessKey(user);
   const previousAccess = useRef<{ accountId: string; key: string } | null>(null);
   useEffect(() => {
     // Auth can restore the Firebase identity after its cached profile. Do not
@@ -92,10 +93,12 @@ export function AndroidOfflineProvider() {
       finally { refreshing = false; }
     };
     const prepareNative = async () => {
-      if (!user || changedAccess) { await androidOfflineRequest('clear'); return; }
+      if (changedAccess) { recordAppDiagnostic('offline_clear/access_changed'); await androidOfflineRequest('clear'); return; }
       const reply = await androidOfflineRequest('status');
       if (disposed || current !== generation.current) return;
-      if (reply.session && !androidSessionMatchesUser(reply.session, user)) await androidOfflineRequest('clear');
+      if (reply.session && !androidSessionMatchesUser(reply.session, user)) {
+        recordAppDiagnostic('offline_clear/session_mismatch'); await androidOfflineRequest('clear');
+      }
       else if (reply.session) setSession(reply.session);
     };
     prepared = prepareNative();
@@ -110,7 +113,7 @@ export function AndroidOfflineProvider() {
     const refresh = () => { lastConnectionAt = 0; void connect(); };
     window.addEventListener('trinity-pwa-prepare', refresh);
     return () => { disposed = true; if (retry) clearTimeout(retry); unsubscribeAuth(); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('online', connect); window.removeEventListener('trinity-android-connectivity', connect); window.removeEventListener('trinity-pwa-prepare', refresh); };
-  }, [user?.id, user?.role, user?.granularPermissions, user?.modulePermissions, scopeKey, isLoading, isLocked]);
+  }, [accessKey, isLoading, isLocked]);
 
   useEffect(() => {
     if (!session || !user || !androidSessionMatchesUser(session, user) || isLocked) return;

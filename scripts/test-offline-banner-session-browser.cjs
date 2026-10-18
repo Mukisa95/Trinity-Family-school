@@ -8,7 +8,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const mocks = new Map([
   ['@/lib/firebase', 'export const auth=window.fixtureFirebaseAuth,db={};'],
   ['firebase/auth', `export const onIdTokenChanged=(auth,next)=>{window.fixtureIdentityListener=next;let live=true;auth.authStateReady().then(()=>{if(live)next(auth.currentUser)});return()=>{live=false}};export const signOut=async auth=>{window.fixtureSignOuts++;auth.currentUser=null;await window.fixtureIdentityListener(null)};`],
-  ['firebase/firestore', 'export const doc=()=>({}),onSnapshot=()=>()=>{};'],
+  ['@/lib/access/scoped-firestore', 'export const doc=()=>({}),onSnapshot=()=>()=>{};'],
   ['@/lib/services/users.service', 'export class UsersService {}'],
   ['@/lib/services/secure-auth.service', 'export class SecureAuthError extends Error {} export class SecureAuthService {}'],
   ['@/lib/services/granular-permissions.service', 'export class GranularPermissionService {}'],
@@ -16,7 +16,9 @@ const mocks = new Map([
   ['@/lib/parent-offline/repository', 'export const removeParentOfflineAccount=async()=>{};'],
   ['@/lib/offline/android-bridge', 'export const clearAndroidOfflineAccess=async()=>{window.fixturePrivateClears++};'],
   ['@/lib/cache/persistent-collection-cache', 'export const deletePersistentCollection=async()=>{},persistentCollectionCacheKey=(...x)=>x.join(":");'],
-  ['@/lib/services/pupils.service', 'export const PupilsService={clearSharedPupils:()=>{window.fixturePrivateClears++}};'],
+  ['@/lib/services/pupils.service', 'export const PupilsService={clearSharedPupils:()=>{window.fixturePupilCacheClears++}};'],
+  ['@/lib/services/classes.service', 'export const ClassesService={clearSharedClasses:()=>{}};'],
+  ['@/lib/services/exams.service', 'export const ExamsService={clearSharedExams:()=>{}};'],
   ['@/lib/services/passkey.service', 'export class PasskeyService {}'],
 ]);
 const plugin = { name: 'fixture-service-boundaries', setup(builder) {
@@ -53,7 +55,7 @@ async function bundle(contents) {
     await page.addInitScript(() => {
       window.fixtureOnline=false;window.trinityAndroidConnected=false;
       Object.defineProperty(navigator,'onLine',{get:()=>window.fixtureOnline});
-      window.fixtureSignOuts=0;window.fixturePrivateClears=0;
+      window.fixtureSignOuts=0;window.fixturePrivateClears=0;window.fixturePupilCacheClears=0;
       let restore;const ready=new Promise(resolve=>{restore=resolve});
       window.fixtureFirebaseAuth={currentUser:null,authStateReady:()=>ready};
       window.fixtureRestore=()=>{window.fixtureFirebaseAuth.currentUser={uid:'fixture-user',isAnonymous:false,getIdTokenResult:async()=>({claims:{appUser:true,isActive:true,role:'Admin'}})};restore()};
@@ -67,7 +69,7 @@ async function bundle(contents) {
     await page.evaluate(()=>{window.fixtureOnline=true;window.dispatchEvent(new Event('online'))});
     assert.equal(await downloads.count(),0); // Native connection still absent.
     await page.evaluate(()=>{window.trinityAndroidConnected=true;window.dispatchEvent(new Event('trinity-android-connectivity'))});
-    await downloads.waitFor();await page.waitForFunction(()=>window.fixtureRetries===1);
+    await page.waitForFunction(()=>window.fixtureRetries===1);assert.equal(await downloads.count(),0);
     const saved=await page.evaluate(()=>JSON.stringify(window.fixture.state().tasks));
     await page.evaluate(()=>{window.trinityAndroidConnected=false;window.dispatchEvent(new Event('trinity-android-connectivity'))});
     await downloads.waitFor({state:'hidden'});assert.equal(await page.evaluate(()=>JSON.stringify(window.fixture.state().tasks)),saved);
@@ -75,11 +77,11 @@ async function bundle(contents) {
     assert.equal(await page.evaluate(()=>window.fixtureRetries),1);
     assert.ok(await page.getByText('Saved fixture records remain visible').isVisible());
     await page.evaluate(()=>{window.trinityAndroidConnected=true;window.dispatchEvent(new Event('trinity-android-connectivity'))});
-    await downloads.waitFor();await page.waitForFunction(()=>window.fixtureRetries===2);
+    await page.waitForFunction(()=>window.fixtureRetries===2);assert.equal(await downloads.count(),0);
     await page.evaluate(()=>window.fixture.finish());await page.clock.fastForward(150);await downloads.waitFor({state:'hidden'});
 
     await page.goto(origin+'/auth');
-    await page.waitForFunction(()=>window.fixtureSession?.().user==='fixture-user').catch(async error => {
+    await page.waitForFunction(()=>window.fixtureSession?.().loading===true).catch(async error => {
       console.error('Auth fixture state:', await page.evaluate(()=>({session:window.fixtureSession?.(),body:document.body.textContent,cache:localStorage.getItem('trinity_user')})),errors);
       throw error;
     });
@@ -99,7 +101,7 @@ async function bundle(contents) {
     assert.equal(await page.evaluate(()=>window.fixtureSession().user),undefined);
     assert.ok(await page.evaluate(()=>localStorage.getItem('trinity_reliability_v1').includes('auth_validation_reason/auth/user-disabled')));
     assert.deepEqual(errors,[]);
-    console.log('OFFLINE_BANNER_SESSION_BROWSER_OK: both connection signals, no offline retries, retained saved tasks, reconnect/complete visibility, cold-start focus/resume, and confirmed revocation.');
+    console.log('OFFLINE_BANNER_SESSION_BROWSER_OK: silent background recovery, both connection signals, no offline retries, retained saved tasks, cold-start focus/resume, and confirmed revocation.');
     await page.close();
   } finally { if(browser)await browser.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve)); }
 })().catch(error=>{console.error(error);process.exitCode=1});

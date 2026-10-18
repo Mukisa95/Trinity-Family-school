@@ -110,9 +110,9 @@ createRoot(document.getElementById('app')).render(<ThemeProvider><QueryClientPro
     await page.evaluate(()=>{window.fixture.report('pupils','error');window.fixture.report('uniforms','loading');window.fixture.verify();});
     await page.getByRole('heading',{name:'Workspace available'}).waitFor();
     await page.getByRole('button',{name:'Open pupils'}).click();assert.equal(await page.evaluate(()=>window.clicked),true,'Pending downloads do not block clicks');
-    assert.ok(await page.getByText(/Background downloads:/).isVisible());
-    await page.setViewportSize({width:390,height:844});await page.getByText(/Background downloads:/).click();
-    assert.ok(await page.locator('details').evaluate(element=>element.scrollWidth<=window.innerWidth));
+    assert.equal(await page.getByText(/Background downloads:/).count(),0,'Downloads continue without a workspace notice');
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.getByText(/Background downloads:|Showing saved pupil data/).count(),0);
     await page.screenshot({path:path.join(output,'background-downloads-mobile.png')});
     assert.deepEqual(await page.evaluate(()=>window.appliedPrivacy),{enabled:true,action:'lock-on-leave',deviceUnlock:true});
     assert.equal(await page.evaluate(()=>window.appliedCount),1);assert.equal(await page.evaluate(()=>window.fixture.marker()),'complete');

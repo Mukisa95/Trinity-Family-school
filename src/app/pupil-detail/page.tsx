@@ -2,7 +2,6 @@
 
 import { usePageDataTiming } from '@/lib/hooks/use-page-data-timing';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
-import { SavedPupilDataNotice } from '@/components/pupils/saved-pupil-data-notice';
 
 import * as React from "react";
 import Link from "next/link";
@@ -3838,7 +3837,6 @@ function PupilDetailContent() {
 
   return (
     <>
-      <SavedPupilDataNotice />
       <GlassPageTopBar
         title={`${formatPupilDisplayName(pupil)}'s Profile`}
         recordDetails={

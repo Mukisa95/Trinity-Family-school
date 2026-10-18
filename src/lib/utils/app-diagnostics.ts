@@ -49,6 +49,7 @@ export function createAppDiagnosticReport() {
 
 export function installAppDiagnosticMonitor() {
   recordAppDiagnostic('web_started');
+  recordAppDiagnostic('web_release/session_recovery_v2');
   const route = () => {
     const section = location.pathname.split('/')[1];
     return ['', 'login', 'parent', 'pupils', 'pupil-detail', 'timetable', 'fees', 'attendance', 'exams', 'staff', 'settings'].includes(section)

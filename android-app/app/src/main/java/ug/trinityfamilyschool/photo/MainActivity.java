@@ -55,6 +55,8 @@ public final class MainActivity extends FragmentActivity {
     private DeviceUnlock deviceUnlock;
     private AppDiagnostics diagnostics;
     private boolean loadErrorShown;
+    private android.app.AlertDialog loadErrorDialog;
+    private final Runnable pendingLoadError = this::showLoadError;
     private String pendingShortcut;
     private boolean shortcutRouterReady, searchKeyboardArmed, searchEditorReady;
     private int keyboardAttempts;
@@ -100,22 +102,29 @@ public final class MainActivity extends FragmentActivity {
         }
         web.setWebViewClient(new WebViewClient() {
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
+                view.removeCallbacks(pendingLoadError);
                 shortcutRouterReady = false;
                 searchEditorReady = false;
                 view.removeCallbacks(shortcutKeyboard);
                 if (deviceUnlock != null) deviceUnlock.navigation();
+                if (offline != null) offline.publishConnectivity();
                 loadErrorShown = false;
                 diagnostics.record("web_navigation_started", 0);
             }
             @Override public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
                 if (!request.isForMainFrame()) return;
                 diagnostics.record("web_load_error_" + Math.abs(error.getErrorCode()), 0);
-                showLoadError();
+                // The service worker can recover the saved page immediately
+                // after a failed network navigation. Let its web_started signal
+                // cancel this warning instead of covering a working workspace.
+                view.removeCallbacks(pendingLoadError);
+                view.postDelayed(pendingLoadError, 1500);
             }
             @Override public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse response) {
                 if (request.isForMainFrame()) diagnostics.record("web_http_" + response.getStatusCode(), 0);
             }
             @Override public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+                view.removeCallbacks(pendingLoadError);
                 diagnostics.record(detail.didCrash() ? "web_renderer_crashed" : "web_renderer_killed", 0);
                 if (deviceUnlock != null) { deviceUnlock.destroy(); deviceUnlock = null; }
                 offline.destroy(); offline = null;
@@ -358,7 +367,7 @@ public final class MainActivity extends FragmentActivity {
             deliverShortcut();
         } else {
             String route = NativePush.tapRoute(this, intent);
-            if (route != null && web != null) web.loadUrl(route);
+            if (route != null && web != null && offline != null) offline.openRoute(route);
         }
         if (updater != null && AppUpdater.ACTION_INSTALL.equals(intent.getAction())) updater.resume();
     }
@@ -420,17 +429,34 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void showLoadError() {
-        if (loadErrorShown || isDestroyed() || isFinishing()) return;
+        if (loadErrorShown || (loadErrorDialog != null && loadErrorDialog.isShowing()) || isDestroyed() || isFinishing()) return;
         loadErrorShown = true;
-        new android.app.AlertDialog.Builder(this).setTitle("Page could not open")
+        loadErrorDialog = new android.app.AlertDialog.Builder(this).setTitle("Page could not open")
             .setMessage("The page could not load. Your saved sign-in data has been kept. App help can identify the connection and offline preparation state.")
-            .setPositiveButton("Retry", (dialog, which) -> { if (web != null) web.reload(); })
+            .setPositiveButton("Retry", (dialog, which) -> {
+                if (web == null) return;
+                String route = web.getUrl();
+                if (offline != null && PhotoPolicy.trusted(route)) offline.openRoute(route);
+                else web.reload();
+            })
             .setNeutralButton("App help", (dialog, which) -> { if (offline != null) offline.showDiagnostics(); })
             .setNegativeButton("Close", null).show();
+    }
+    void webStarted() {
+        if (web == null || isDestroyed()) return;
+        web.removeCallbacks(pendingLoadError);
+        if (loadErrorDialog != null) {
+            loadErrorDialog.dismiss();
+            loadErrorDialog = null;
+            diagnostics.record("web_load_recovered", 0);
+        }
+        loadErrorShown = false;
     }
     @Override protected void onPause() { if (diagnostics != null) diagnostics.pause(); if (updater != null) updater.pause(); if (offline != null) offline.pause(); super.onPause(); }
     @Override protected void onResume() { super.onResume(); if (diagnostics != null) diagnostics.resume(); if (offline != null) offline.resume(); if (updater != null) updater.resume(); }
     @Override protected void onDestroy() {
+        if (web != null) web.removeCallbacks(pendingLoadError);
+        if (loadErrorDialog != null) { loadErrorDialog.dismiss(); loadErrorDialog = null; }
         if (deviceUnlock != null) deviceUnlock.destroy();
         if (updater != null) updater.destroy();
         if (diagnostics != null) diagnostics.destroy();

@@ -21,8 +21,8 @@
 
 // ⚠️ IMPORTANT: Increment this version number with EVERY deployment
 // This ensures users get the latest version of your app
-const SW_VERSION = 'build-20261010122708255';
-const BUILD_TIMESTAMP = '2026-10-10T12:27:08.255Z'; // Update this on each build
+const SW_VERSION = 'build-20261018054334998';
+const BUILD_TIMESTAMP = '2026-10-18T05:43:34.998Z'; // Update this on each build
 
 const CACHE_NAME = `trinity-schools-${SW_VERSION}`;
 const STATIC_CACHE = `static-${SW_VERSION}`;
@@ -733,7 +733,9 @@ self.addEventListener('fetch', (event) => {
       const cached = await androidShellMatch(request)
         || (url.pathname === PARENT_OFFLINE_LAUNCH_ROUTE
           ? await (await caches.open(PARENT_APP_SHELL_CACHE)).match(request) : undefined);
-      if (cached && self.navigator.onLine === false) return cached;
+      // Android can have Wi-Fi while the network has no validated internet.
+      // Its launch hint arrives before the new page can publish connectivity.
+      if (cached && (self.navigator.onLine === false || event.request.headers.get('X-Trinity-Offline') === '1')) return cached;
       try {
         const response = await fetch(event.request, { cache: 'no-store' });
         if (cached && response.status >= 500) return cached;

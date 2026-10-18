@@ -63,7 +63,7 @@ export function AndroidOfflineBoundary({ children }: { children: ReactNode }) {
     if (!offline || !user || !access || access.accountId !== user.id) return;
     recordAppDiagnostic(!access.session ? 'offline_access_missing'
       : Date.parse(access.session.expiresAt) <= Date.now() ? 'offline_access_expired'
-      : !canOpenAndroidOfflineRoute(path, access.session) ? 'offline_section_requires_connection' : 'offline_section_ready');
+      : !canOpenAndroidOfflineRoute(path, access.session) ? 'offline_section_requires_connection' : 'offline_section_authorized');
   }, [offline, access, path, user?.id]);
 
   if (!offline || !user || path === '/login') return <>{children}</>;

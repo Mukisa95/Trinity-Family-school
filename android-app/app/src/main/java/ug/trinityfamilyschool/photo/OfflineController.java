@@ -37,6 +37,8 @@ final class OfflineController {
     private volatile String role = "";
     private boolean unlockOpen;
     private boolean preparingDiagnostics;
+    private androidx.webkit.ScriptHandler connectivityScript;
+    private Boolean bootstrapConnection;
     private ConnectivityManager.NetworkCallback network;
     private android.content.BroadcastReceiver pushChanges, appearanceChanges;
     private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
@@ -82,21 +84,49 @@ final class OfflineController {
     }
     void start() {
         io.execute(() -> {
-            try { JSONObject value = store.read(); if (value != null) role = value.getJSONObject("session").optString("role"); } catch (Exception ignored) { }
+            try {
+                JSONObject value = store.read();
+                if (value != null) role = value.getJSONObject("session").optString("role");
+                diagnostics.record("offline_start/" + OfflineStore.accessStatus(value).getString("state"), 0);
+            } catch (Exception ignored) { diagnostics.record("offline_start/storage_unreadable", 0); }
             activity.runOnUiThread(() -> {
                 if (activity.isDestroyed()) return;
                 String deepLink = activity.getIntent().getStringExtra("offlineRoute");
                 String onlineLink = activity.getIntent().getStringExtra("onlineRoute");
                 String pushLink = NativePush.tapRoute(activity, activity.getIntent());
                 String shortcut = AppShortcuts.route(activity.getIntent().getStringExtra(AppShortcuts.EXTRA));
-                web.loadUrl(shortcut != null ? shortcut : pushLink != null ? pushLink : OfflinePolicy.launchRoute(deepLink, onlineLink, role));
+                openRoute(shortcut != null ? shortcut : pushLink != null ? pushLink : OfflinePolicy.launchRoute(deepLink, onlineLink, role));
             });
         });
     }
-    void publishConnectivity() {
-        if (activity.isDestroyed() || !PhotoPolicy.trusted(web.getUrl())) return;
+    void openRoute(String route) {
+        boolean online = prepareNavigation();
+        // The worker handles the first navigation before page JavaScript runs.
+        // Carry Android's validated state into that request as well.
+        web.loadUrl(route, !online && PhotoPolicy.trusted(route)
+            ? Collections.singletonMap("X-Trinity-Offline", "1") : Collections.emptyMap());
+    }
+    boolean prepareNavigation() {
         boolean online = connected();
         web.getSettings().setCacheMode(online ? android.webkit.WebSettings.LOAD_DEFAULT : android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK);
+        // Apply before loadUrl, including when getUrl() is still null. Wi-Fi can
+        // exist without validated internet, so navigator.onLine alone is unsafe.
+        if (bootstrapConnection == null || bootstrapConnection != online) {
+            if (connectivityScript != null) connectivityScript.remove();
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+                connectivityScript = WebViewCompat.addDocumentStartJavaScript(web,
+                    "window.trinityNativeDiagnostics=true;window.trinityAndroidConnected=" + online + ";",
+                    Collections.singleton(PhotoPolicy.ORIGIN));
+            }
+            bootstrapConnection = online;
+            diagnostics.record(online ? "native_connection_online" : "native_connection_offline", 0);
+        }
+        return online;
+    }
+    void publishConnectivity() {
+        if (activity.isDestroyed()) return;
+        boolean online = prepareNavigation();
+        if (!PhotoPolicy.trusted(web.getUrl())) return;
         web.evaluateJavascript("window.trinityNativeDiagnostics=true;window.dispatchEvent(new Event('trinity-native-diagnostics'));if(window.trinityAndroidConnected!==" + online + "){window.trinityAndroidConnected=" + online + ";window.dispatchEvent(new Event('trinity-android-connectivity'))}", null);
     }
     private void reply(JavaScriptReplyProxy reply, String id, boolean success, String error, JSONObject data) {
@@ -138,7 +168,9 @@ final class OfflineController {
             return;
         }
         if ("recordDiagnostic".equals(action)) {
-            diagnostics.record(input.optString("code"), input.optLong("durationMs", 0));
+            String code = input.optString("code");
+            diagnostics.record(code, input.optLong("durationMs", 0));
+            if ("web_started".equals(code)) ((MainActivity) activity).webStarted();
             return;
         }
         if ("diagnostics".equals(action)) { showDiagnostics(); reply(reply, id, true, null, null); return; }
@@ -207,7 +239,7 @@ final class OfflineController {
             if ("openOnline".equals(action) || "openParent".equals(action)) {
                 if (!connected() && !"openParent".equals(action)) { reply(reply, id, false, "Connect to the internet to open the full application.", null); return; }
                 reply(reply, id, true, null, null);
-                web.loadUrl("openParent".equals(action) ? PhotoPolicy.ORIGIN + "/parent" : OfflinePolicy.onlineRoute(web.getUrl(), role)); return;
+                openRoute("openParent".equals(action) ? PhotoPolicy.ORIGIN + "/parent" : OfflinePolicy.onlineRoute(web.getUrl(), role)); return;
             }
             if (!"status".equals(action)) { reply(reply, id, false, "Unsupported action.", null); return; }
         } else if (!"connect".equals(action) && !"save".equals(action) && !"clear".equals(action) && !"status".equals(action)) {
@@ -224,7 +256,7 @@ final class OfflineController {
                         TimetableUpdates.refresh(activity, store);
                         output.put("session", session); break;
                     case "save": store.save(input.getJSONObject("snapshot")); TimetableUpdates.refresh(activity, store); break;
-                    case "clear": store.clear(); role = ""; TimetableUpdates.clear(activity); break;
+                    case "clear": store.clear(); role = ""; TimetableUpdates.clear(activity); diagnostics.record("offline_access_cleared", 0); break;
                     case "status":
                         // Access and snapshot preparation are different states.
                         output = OfflineStore.accessStatus(store.read());
@@ -323,6 +355,7 @@ final class OfflineController {
     }
     void pause() { if (!unlockOpen) lock(); }
     void destroy() {
+        if (connectivityScript != null) { connectivityScript.remove(); connectivityScript = null; }
         if(appearanceChanges!=null){try{activity.unregisterReceiver(appearanceChanges);}catch(Exception ignored){}appearanceChanges=null;}
         if(pushChanges!=null){try{activity.unregisterReceiver(pushChanges);}catch(Exception ignored){}pushChanges=null;}
         handler.removeCallbacksAndMessages(null);

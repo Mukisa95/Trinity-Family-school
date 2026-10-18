@@ -65,8 +65,8 @@ test('the actual signed-session validator preserves outage access and rejects mi
 test('profile read failures cannot be returned as a missing account', async () => {
   const result = await build({ entryPoints: ['src/lib/services/users.service.ts'], bundle: true, write: false,
     platform: 'node', format: 'cjs', plugins: [{ name: 'fixture-profile-read', setup(builder) {
-      builder.onResolve({ filter: /firebase\/firestore$/ }, () => ({ path: 'firestore', namespace: 'fixture' }));
-      builder.onResolve({ filter: /^\.\.\/firebase$/ }, () => ({ path: 'firebase', namespace: 'fixture' }));
+      builder.onResolve({ filter: /(?:firebase\/firestore|access\/scoped-firestore)$/ }, () => ({ path: 'firestore', namespace: 'fixture' }));
+      builder.onResolve({ filter: /^(?:\.\.\/firebase|@\/lib\/firebase)$/ }, () => ({ path: 'firebase', namespace: 'fixture' }));
       builder.onResolve({ filter: /firestore-helpers$/ }, () => ({ path: 'helpers', namespace: 'fixture' }));
       builder.onResolve({ filter: /secure-auth\.service$/ }, () => ({ path: 'secure', namespace: 'fixture' }));
       builder.onResolve({ filter: /pupils\.service$/ }, () => ({ path: 'pupils', namespace: 'fixture' }));
