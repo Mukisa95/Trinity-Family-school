@@ -22,6 +22,22 @@ export function canOpenAndroidOfflineRoute(path: string, session: AndroidOffline
   return path === '/events' ? !!session.grants.events : path === '/' ? session.grants.dashboard : path === '/timetable' ? session.grants.timetable : session.grants.pupils;
 }
 
+function samePage(url: URL) {
+  const current = new URL(location.href);
+  const query = (value: URL) => {
+    const params = new URLSearchParams(value.search);
+    params.delete('_rsc');
+    params.sort();
+    return params.toString();
+  };
+  return url.pathname === current.pathname && query(url) === query(current);
+}
+
+function isRoutePrefetch(headers: Headers) {
+  return headers.has('Next-Router-Prefetch') || headers.has('Next-Router-Segment-Prefetch')
+    || /\bprefetch\b/i.test(`${headers.get('Purpose') || ''} ${headers.get('Sec-Purpose') || ''}`);
+}
+
 /** Save original Next pages; never copy data or credentials into HTML caches. */
 export async function prepareAndroidAppShell(session: AndroidOfflineSession) {
   if (!hasOfflineWorkspace() || !('serviceWorker' in navigator) || isAndroidOffline()) return;
@@ -84,12 +100,18 @@ export function installAndroidOfflineNavigation(role: string, unavailable: () =>
           const saved = await readAndroidRoute(url.pathname, buildId());
           if (saved) return saved;
         }
-        // Hover/prefetch never opens another page or shows a reconnect prompt.
-        if (headers.get('Next-Router-Prefetch') !== '1') blocked();
+        // Refreshing the mounted page and speculative downloads are background
+        // work. Keep its current tree without presenting a navigation failure.
+        if (!isRoutePrefetch(headers)) {
+          if (!samePage(url)) blocked();
+          else window.dispatchEvent(new Event('trinity-android-navigation-blocked'));
+        }
         return cancelledAndroidRoute(buildId());
       }
       if (url.origin === location.origin && (init?.method || request?.method || 'GET').toUpperCase() !== 'GET') {
-        blocked(); throw new Error('Connect to make changes.');
+        // User actions have their own mutation guards. A background POST must
+        // not create a reconnect toast over an otherwise usable workspace.
+        throw new Error('Connect to make changes.');
       }
     }
     return originalFetch.call(window, input, init);

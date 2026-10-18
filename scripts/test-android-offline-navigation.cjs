@@ -36,7 +36,7 @@ if(!process.env.SKIP_FIXTURE_BUILD)await command(['build']);console.log('NEXT_NA
 const port=19347,origin='http://127.0.0.1:'+port;const server=spawn(process.execPath,[require.resolve('next/dist/bin/next'),'start','-p',String(port)],{cwd:fixture,env:{...process.env,NEXT_TELEMETRY_DISABLED:'1'},stdio:['ignore','pipe','pipe']});
 let startupOutput='';server.stdout.on('data',chunk=>startupOutput+=chunk);server.stderr.on('data',chunk=>startupOutput+=chunk);
 let browser;try{
-let ready=false;for(let i=0;i<400;i++){try{if((await fetch(origin)).ok){ready=true;break}}catch{}if(server.exitCode!==null)break;await new Promise(r=>setTimeout(r,150));}
+let ready=false;for(let i=0;i<400;i++){try{if((await fetch(origin,{signal:AbortSignal.timeout(2000)})).ok){ready=true;break}}catch{}if(server.exitCode!==null)break;await new Promise(r=>setTimeout(r,150));}
 if(!ready)throw new Error('Fixture server did not start: '+startupOutput);
 browser=await playwright[process.env.PLAYWRIGHT_ENGINE||'chromium'].launch({...(process.env.PLAYWRIGHT_ENGINE==='webkit'?{}:{channel:process.env.PLAYWRIGHT_CHANNEL||'msedge'}),headless:true});
 for(const parent of [false,true]){
@@ -59,6 +59,13 @@ for(const parent of [false,true]){
  await page.evaluate(()=>{window.trinityAndroidConnected=false;window.dispatchEvent(new Event('trinity-android-connectivity'))});await page.getByRole('button',{name:'Network: Offline',exact:true}).waitFor();const measured=probes;
  if(!parent){await page.waitForTimeout(10_100);assert.equal(probes,measured);await page.getByRole('button',{name:'Network: Offline',exact:true}).waitFor();}
  await context.setOffline(true);
+ // A failed automatic refresh of the mounted page is silent and keeps local state.
+ const beforeRefresh=await page.locator('#blocked').innerText();
+ await page.evaluate(()=>{window.cacheKeys=caches.keys.bind(caches);caches.keys=async()=>{throw new Error('fixture refresh storage unavailable')};window.fixtureRouter.refresh()});
+ await page.waitForTimeout(350);
+ assert.equal(await page.locator('#blocked').innerText(),beforeRefresh,'Background router.refresh must not show Connection needed');
+ assert.equal(await page.evaluate(()=>window.documentMarker),'same-document');assert.equal(await page.getByLabel('Header state').inputValue(),'keep session and header');
+ await page.evaluate(()=>{caches.keys=window.cacheKeys});
  const routes=parent?['/parent/settings','/parent','/parent/settings']:['/pupils','/pupil-detail?id=child-1','/pupil-detail?id=child-2','/timetable','/events','/pupils'];
  for(const route of routes){await page.getByRole('link',{name:route,exact:true}).click();await page.waitForURL(origin+route);await page.waitForFunction(path=>document.querySelector('h1')?.textContent===path,route.split('?')[0]);assert.equal(await page.evaluate(()=>window.documentMarker),'same-document');assert.equal(await page.getByLabel('Header state').inputValue(),'keep session and header');assert.equal(await page.evaluate(()=>window.shellMounts),baseMounts);if(route.includes('?'))assert.equal(await page.locator('#pupil').innerText(),new URL(route,origin).searchParams.get('id'));}
  if(!parent){

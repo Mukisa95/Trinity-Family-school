@@ -56,7 +56,8 @@ public final class MainActivity extends FragmentActivity {
     private AppDiagnostics diagnostics;
     private boolean loadErrorShown;
     private android.app.AlertDialog loadErrorDialog;
-    private final Runnable pendingLoadError = this::showLoadError;
+    private final PageLoadState pageLoad = new PageLoadState();
+    private final Runnable pendingLoadError = () -> checkLoadedDocument(true);
     private String pendingShortcut;
     private boolean shortcutRouterReady, searchKeyboardArmed, searchEditorReady;
     private int keyboardAttempts;
@@ -103,6 +104,8 @@ public final class MainActivity extends FragmentActivity {
         web.setWebViewClient(new WebViewClient() {
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
                 view.removeCallbacks(pendingLoadError);
+                pageLoad.begin(url);
+                dismissLoadError();
                 shortcutRouterReady = false;
                 searchEditorReady = false;
                 view.removeCallbacks(shortcutKeyboard);
@@ -114,9 +117,9 @@ public final class MainActivity extends FragmentActivity {
             @Override public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
                 if (!request.isForMainFrame()) return;
                 diagnostics.record("web_load_error_" + Math.abs(error.getErrorCode()), 0);
-                // The service worker can recover the saved page immediately
-                // after a failed network navigation. Let its web_started signal
-                // cancel this warning instead of covering a working workspace.
+                if (!pageLoad.fail(request.getUrl().toString())) return;
+                // Recovery can precede this callback. Check the actual document
+                // after the delay, rather than relying on callback order.
                 view.removeCallbacks(pendingLoadError);
                 view.postDelayed(pendingLoadError, 1500);
             }
@@ -140,6 +143,7 @@ public final class MainActivity extends FragmentActivity {
             @Override public void onPageFinished(WebView view, String url) {
                 if (offline == null) return;
                 diagnostics.record("web_navigation_finished", 0);
+                if (PhotoPolicy.trusted(url)) webStarted();
                 offline.publishConnectivity();
                 if (PhotoPolicy.trusted(url)) view.evaluateJavascript("(()=>{const send=()=>window.TrinityOffline?.postMessage(JSON.stringify({id:crypto.randomUUID(),action:'appearance',preference:localStorage.getItem('trinity-appearance')||'system',dark:document.documentElement.classList.contains('dark')}));window.__trinityBarsObserver?.disconnect();window.__trinityBarsObserver=new MutationObserver(send);window.__trinityBarsObserver.observe(document.documentElement,{attributes:true,attributeFilter:['class']});send();})()", null);
                 if (OfflinePolicy.local(url)) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
@@ -443,12 +447,28 @@ public final class MainActivity extends FragmentActivity {
             .setNegativeButton("Close", null).show();
     }
     void webStarted() {
-        if (web == null || isDestroyed()) return;
-        web.removeCallbacks(pendingLoadError);
+        checkLoadedDocument(false);
+    }
+    private void checkLoadedDocument(boolean warnIfUnavailable) {
+        if (web == null || isDestroyed() || isFinishing()) return;
+        WebView document = web;
+        long revision = pageLoad.revision();
+        document.evaluateJavascript("Boolean(window.trinityAppMounted || document.querySelector('[data-workspace-visible=\"true\"]'))", result -> {
+            if (web != document || isDestroyed() || isFinishing() || !pageLoad.current(revision)) return;
+            if ("true".equals(result)) {
+                pageLoad.recovered(revision);
+                document.removeCallbacks(pendingLoadError);
+                if (loadErrorDialog != null) diagnostics.record("web_load_recovered", 0);
+                dismissLoadError();
+            } else if (warnIfUnavailable && pageLoad.pending(revision)) {
+                showLoadError();
+            }
+        });
+    }
+    private void dismissLoadError() {
         if (loadErrorDialog != null) {
             loadErrorDialog.dismiss();
             loadErrorDialog = null;
-            diagnostics.record("web_load_recovered", 0);
         }
         loadErrorShown = false;
     }

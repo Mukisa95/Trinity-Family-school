@@ -7,7 +7,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'output/android-same-interface-qa');
 fs.mkdirSync(output, { recursive: true });
-require('esbuild').buildSync({ absWorkingDir: root, stdin: { contents: `export * from './src/lib/offline/android-app-shell';`, resolveDir: root, loader: 'ts' }, bundle: true, platform: 'browser', format: 'iife', globalName: 'Shell', alias: { '@': path.join(root, 'src') }, outfile: path.join(output, 'shell.js') });
+require('esbuild').buildSync({ absWorkingDir: root, stdin: { contents: `export * from './src/lib/offline/android-app-shell'; export {installAppDiagnosticMonitor} from './src/lib/utils/app-diagnostics';`, resolveDir: root, loader: 'ts' }, bundle: true, platform: 'browser', format: 'iife', globalName: 'Shell', alias: { '@': path.join(root, 'src') }, outfile: path.join(output, 'shell.js') });
 async function buildBoundary() {
   await require('esbuild').build({ jsx:'automatic', absWorkingDir:root, stdin:{contents:`import React from 'react'; import {createRoot} from 'react-dom/client'; import {AndroidOfflineBoundary} from './src/components/common/android-offline-boundary'; const node=document.createElement('div'); document.body.append(node); const root=createRoot(node); window.renderBoundary=()=>root.render(<AndroidOfflineBoundary><div id="original-content"><input aria-label="Search pupils" defaultValue="retained search"/><button onClick={()=>window.edits++}>Edit pupil</button></div></AndroidOfflineBoundary>); window.renderBoundary();`,resolveDir:root,loader:'tsx'}, bundle:true,platform:'browser', alias:{'@':path.join(root,'src')},outfile:path.join(output,'boundary.js'),plugins:[{name:'fixture-auth',setup(build){build.onResolve({filter:/^@\/lib\/contexts\/auth-context$/},args=>({path:args.path,namespace:'fixture'}));build.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:"export function useAuth(){return {user:window.fixtureUser}}",loader:'js'}));}}]});
 }
@@ -38,6 +38,12 @@ const session = { schema: 1, accountId: 'fixture', role: 'Admin', expiresAt: new
    await context.addInitScript(() => { window.TrinityOffline = { postMessage() {} }; });
    let page = await context.newPage(); await page.goto(url+'/');
    await page.addScriptTag({ url: '/shell.js' });
+   assert.deepEqual(await page.evaluate(()=>{
+     let readyAtStartup=false;
+     window.TrinityOffline={postMessage(raw){if(JSON.parse(raw).code==='web_started')readyAtStartup=window.trinityAppMounted===true;}};
+     const cleanup=Shell.installAppDiagnosticMonitor();cleanup();
+     return {readyAtStartup,readyAfterCleanup:window.trinityAppMounted};
+   }),{readyAtStartup:true,readyAfterCleanup:true},'Native readiness describes the current document before its startup acknowledgement');
    await page.evaluate(async () => { await navigator.serviceWorker.register('/sw.js'); await navigator.serviceWorker.ready; });
    await page.waitForFunction(async () => {
      for (const name of await caches.keys()) {
@@ -92,10 +98,37 @@ const session = { schema: 1, accountId: 'fixture', role: 'Admin', expiresAt: new
    await page.getByRole('link',{ name:'Finance', exact:true }).click(); assert.equal(await page.evaluate(()=>window.blocked),1); assert.equal(new URL(page.url()).pathname,'/pupil-detail');
    await page.getByRole('link',{name:'Timetables',exact:true}).click(); await page.waitForURL('**/timetable'); assert.equal(await page.locator('main').getAttribute('data-route'),'/timetable');
    assert.equal(await page.evaluate(()=>window.documentMarker),'same-document');
+   // Background refresh/prefetch misses must not cover an already usable page.
+   const quietBackground = await page.evaluate(async()=>{
+     window.blocked=0;
+     const keys=caches.keys.bind(caches);
+     caches.keys=async()=>{throw new Error('Storage temporarily unavailable');};
+     try {
+       await fetch('/timetable?_rsc=refresh',{headers:{RSC:'1'}});
+       for (const hints of [{'Next-Router-Prefetch':'1'},{'Next-Router-Segment-Prefetch':'/_tree'},{Purpose:'prefetch'},{'Sec-Purpose':'prefetch;prerender'}]) {
+         await fetch('/finance?_rsc=prefetch',{headers:{RSC:'1',...hints}});
+       }
+       let rejected=false;
+       try {await fetch('/api/background',{method:'POST'});} catch {rejected=true;}
+       return {blocked:window.blocked,rejected};
+     } finally {caches.keys=keys;}
+   });
+   assert.deepEqual(quietBackground,{blocked:0,rejected:true},'Background requests stay silent while writes remain blocked');
    await page.evaluate(()=>{window.blocked=0;});
    const rsc = await page.evaluate(async()=>{try {await fetch('/finance?_rsc=fixture',{headers:{RSC:'1'}})} catch {} return window.blocked;}); assert.equal(rsc,1);
    const savedRoute=await page.evaluate(async()=> (await fetch('/pupil-detail?id=child-2&_rsc=fixture',{headers:{RSC:'1'}})).text());assert.ok(savedRoute.includes('fixture-build'));assert.equal(new URL(page.url()).pathname,'/timetable');
    await page.getByRole('link',{name:'Pupil details',exact:true}).click();await page.waitForURL('**/pupil-detail?id=child-1');
+   const queryNavigation = await page.evaluate(async()=>{
+     window.blocked=0;
+     const keys=caches.keys.bind(caches);caches.keys=async()=>[];
+     try {
+       await fetch('/pupil-detail?_rsc=refresh&id=child-1',{headers:{RSC:'1'}});
+       const refresh=window.blocked;
+       await fetch('/pupil-detail?id=child-2&_rsc=navigate',{headers:{RSC:'1'}});
+       return {refresh,navigate:window.blocked};
+     } finally {caches.keys=keys;}
+   });
+   assert.deepEqual(queryNavigation,{refresh:0,navigate:1},'An unavailable different pupil still reports a blocked navigation');
    // Reconnect changes availability without replacing the document.
    const documentId = await page.evaluate(()=>window.documentMarker='original-document');
    await context.setOffline(false); assert.equal(await page.evaluate(()=>window.documentMarker),documentId);
@@ -132,7 +165,7 @@ const session = { schema: 1, accountId: 'fixture', role: 'Admin', expiresAt: new
    await parentPage.evaluate(async()=>{await new Promise((resolve,reject)=>{const channel=new MessageChannel();channel.port1.onmessage=event=>event.data.type==='PARENT_APP_SHELL_CACHED'?resolve():reject(new Error('Parent preparation failed'));navigator.serviceWorker.controller.postMessage({type:'CACHE_PARENT_APP_SHELL',routes:['/','/parent','/parent/settings']},[channel.port2]);});});
    await parentContext.setOffline(true);await parentPage.goto(url+'/');assert.equal(await parentPage.locator('main').getAttribute('data-route'),'/');
    await parentPage.goto(url+'/parent');assert.equal(await parentPage.locator('main').getAttribute('data-route'),'/parent');await parentContext.close();
-   console.log('PASS: same original HTML/styles, offline restart, all supported pages, query IDs, blocked anchors/RSC, reconnect without replacement, 503 fallback, retained shell, unchanged search state, blocked edits account/grant isolation and legacy parent launches.');
+   console.log('PASS: document readiness, silent background refresh/prefetch/POST, real unavailable navigation warnings, original HTML/styles, offline restart, supported pages and pupil IDs, reconnect without replacement, 503 fallback, retained shell, unchanged search, blocked edits, account/grant isolation and parent launches.');
    await context.close();
- } finally { await browser.close(); await new Promise(resolve=>server.close(resolve)); }
+ } finally { await browser.close(); server.closeAllConnections(); await new Promise(resolve=>server.close(resolve)); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

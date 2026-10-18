@@ -1,7 +1,7 @@
 // Deliberately accept only codes and numbers, never user records, credentials,
 // query strings, console messages, or arbitrary exception text.
 export type DiagnosticEvent = { at: string; code: string; durationMs?: number };
-declare global { interface Window { trinityNativeDiagnostics?: boolean } }
+declare global { interface Window { trinityNativeDiagnostics?: boolean; trinityAppMounted?: boolean } }
 const KEY = 'trinity_reliability_v1';
 let events: DiagnosticEvent[] | undefined;
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -48,6 +48,9 @@ export function createAppDiagnosticReport() {
 }
 
 export function installAppDiagnosticMonitor() {
+  // This belongs to the document and survives client route/effect cleanup.
+  // Android checks it before displaying a delayed main-frame load error.
+  window.trinityAppMounted = true;
   recordAppDiagnostic('web_started');
   recordAppDiagnostic('web_release/session_recovery_v2');
   const route = () => {
