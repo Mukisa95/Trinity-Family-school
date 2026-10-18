@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { usePushSubscribe } from '@/lib/hooks/use-push-subscribe';
 import { useAndroidOfflineStatus } from '@/lib/hooks/use-android-offline-status';
-import { hasBrowserOfflineWorkspace, isAppleMobile, isHomeScreenApp } from '@/lib/pwa/platform';
+import { hasBrowserOfflineWorkspace, isAppleMobile } from '@/lib/pwa/platform';
 import { useHomeScreenWorkspace } from '@/lib/pwa/use-workspace';
 import { createAppDiagnosticReport } from '@/lib/utils/app-diagnostics';
 import { HomeScreenInstallGuide } from './install-guide';
@@ -73,7 +73,7 @@ function InstalledSettings() {
       <p className="text-sm text-muted-foreground">{!push.isSupported ? 'Web notifications need an installed Home Screen app on iOS 16.4 or newer.' : push.permission === 'denied' ? 'Notifications are blocked. Allow them for this app in iPhone Settings → Notifications, then reopen the app.' : push.isSubscribed ? 'This device is registered for school notifications.' : 'Enable alerts for school notifications sent to your account.'}</p>
       {push.isSupported && push.permission !== 'denied' && !push.isSubscribed && <Button className="min-h-11" disabled={offline || push.isLoading || push.isChecking} onClick={() => void push.subscribe(user.id)}>{push.isLoading ? 'Enabling…' : 'Enable notifications'}</Button>}
       {push.error && <p role="alert" className="text-sm text-destructive">{push.error}</p>}
-      <p className="text-xs leading-relaxed text-muted-foreground">Push alerts need an internet connection. iOS controls delivery and Focus settings. Android Home Screen widgets and exact offline lesson alarms are unavailable here; lesson tracking stays inside the app.</p>
+      <p className="text-xs leading-relaxed text-muted-foreground">Push alerts need an internet connection. iOS controls delivery and Focus settings. Android Home Screen widgets and exact offline lesson alarms are unavailable here.</p>
     </div>
     <div className="space-y-3 border-t pt-4">
       <h3 className="font-medium">Problem report</h3>
@@ -88,6 +88,6 @@ function InstalledSettings() {
 export function HomeScreenSettings() {
   const { user } = useAuth();
   const [mode, setMode] = useState<'hidden' | 'install' | 'app'>('hidden');
-  useEffect(() => { if (!window.TrinityOffline) setMode(hasBrowserOfflineWorkspace() ? 'app' : isAppleMobile() || isHomeScreenApp() ? 'install' : 'hidden'); }, []);
+  useEffect(() => { if (!window.TrinityOffline && isAppleMobile()) setMode(hasBrowserOfflineWorkspace() ? 'app' : 'install'); }, []);
   return mode === 'app' ? <InstalledSettings /> : mode === 'install' ? <HomeScreenInstallGuide always settingsPath={user?.role === 'Parent' ? '/parent/settings' : '/settings/account'} /> : null;
 }

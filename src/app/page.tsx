@@ -78,7 +78,6 @@ import { TermScheduleCard } from '@/components/dashboard/TermScheduleCard';
 import { MonthCalendarCard } from '@/components/dashboard/MonthCalendarCard';
 import { DashboardLiveTracker } from '@/components/dashboard/DashboardLiveTracker';
 import { DashboardWelcomeWithEvents } from '@/components/dashboard/dashboard-welcome-with-events';
-import { HomeScreenAgenda } from '@/components/pwa/agenda-card';
 import { CatalogueDataNotice } from '@/components/common/catalogue-data-notice';
 import { ClassAttendanceSummaryDialog } from '@/components/dashboard/class-attendance-summary-dialog';
 import { PhotoViewerDialog } from '@/components/common/photo-viewer-dialog';
@@ -2422,7 +2421,6 @@ export default function DashboardPage() {
       </Head>
 
       <DashboardWelcomeWithEvents schoolSettings={schoolSettings} enabled={canViewCalendarSchedule} />
-      <HomeScreenAgenda />
 
       <motion.div
         variants={groupVariants}

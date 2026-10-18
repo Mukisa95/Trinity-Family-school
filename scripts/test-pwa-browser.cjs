@@ -40,12 +40,12 @@ async function run() {
   fs.mkdirSync(output, { recursive: true });
   await esbuild.build({ absWorkingDir: root, stdin: { resolveDir: root, loader: 'tsx', contents: `
     import React from'react';import{createRoot}from'react-dom/client';
-    import{HomeScreenSettings}from'./src/components/pwa/home-screen-settings';import{HomeScreenAgenda}from'./src/components/pwa/agenda-card';
+    import{HomeScreenSettings}from'./src/components/pwa/home-screen-settings';
     import{HomeScreenLifecycle}from'./src/components/pwa/lifecycle';import{AndroidOfflineProvider}from'./src/components/providers/android-offline-provider';
     import{browserOfflineRequest,readBrowserWorkspace,clearBrowserOfflineAccess}from'./src/lib/pwa/offline-store';
     import{hasBrowserOfflineWorkspace,isAppleMobile}from'./src/lib/pwa/platform';import{supportsWebPush,enablePushSubscription}from'./src/lib/push-subscription-client';
     window.fixtureAPI={browserOfflineRequest,readBrowserWorkspace,clearBrowserOfflineAccess,hasBrowserOfflineWorkspace,isAppleMobile,supportsWebPush,enablePushSubscription};
-    createRoot(document.getElementById('app')).render(<><AndroidOfflineProvider/><HomeScreenLifecycle/><HomeScreenSettings/><HomeScreenAgenda/></>);
+    createRoot(document.getElementById('app')).render(<><AndroidOfflineProvider/><HomeScreenLifecycle/><HomeScreenSettings/></>);
   ` }, bundle: true, jsx: 'automatic', platform: 'browser', alias: { '@': path.join(root, 'src') }, define: { 'process.env.NODE_ENV': '"production"', 'process.env': '{}' }, outfile: path.join(output, 'fixture.js'), plugins: [{ name: 'synthetic-school', setup(build) {
     build.onResolve({ filter: /.*/ }, args => Object.hasOwn(mocks, args.path) ? { path: args.path, namespace: 'mock' } : undefined);
     build.onLoad({ filter: /.*/, namespace: 'mock' }, args => ({ contents: mocks[args.path], loader: 'tsx', resolveDir: root }));
@@ -118,19 +118,6 @@ async function run() {
         }), true);
         await page.getByText('Saved', { exact: true }).first().waitFor();
         assert.equal(await page.getByRole('button', { name: 'Prepare offline access', exact: true }).isDisabled(), true);
-        await page.getByRole('button', { name: 'Customize', exact: true }).click();
-        await page.getByLabel('P4 · MTC', { exact: true }).check();
-        await page.getByLabel('Class to customize', { exact: true }).selectOption('p5');
-        await page.getByLabel('P5 · MTC', { exact: true }).check();
-        await page.getByRole('button', { name: 'Move P5 MTC earlier', exact: true }).click();
-        const agenda = page.getByRole('region', { name: 'My school day' });
-        assert.deepEqual((await agenda.getByRole('link').allTextContents()).filter(text => text.startsWith('P')), (await agenda.getByRole('link').allTextContents()).filter(text => text.startsWith('P')).sort((a, b) => b.localeCompare(a)));
-        assert.equal((await agenda.textContent()).includes('private-teacher'), false);
-        await page.getByLabel('Show period times alongside tracked subjects').uncheck();
-        await page.getByLabel('Show upcoming events', { exact: true }).uncheck();
-        await agenda.getByText('School celebration', { exact: true }).waitFor();
-        await page.getByRole('button', { name: 'Move events up', exact: true }).click();
-        await page.getByRole('button', { name: 'Customize', exact: true }).click();
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
         await page.screenshot({ path: path.join(output, `${engine}-${dark ? 'dark-large-text' : 'light'}.png`), fullPage: true });
         for (const viewport of [{ width: 375, height: 812 }, { width: 844, height: 390 }]) {
@@ -175,10 +162,9 @@ async function run() {
         assert.equal(await page.evaluate(async () => (await window.fixtureAPI.readBrowserWorkspace())?.snapshot || null), null);
         await page.evaluate(() => window.setFixtureAuth({ user: { id: 'other', role: 'Admin' }, isLocked: true }));
         await page.getByRole('heading', { name: 'Home Screen app', exact: true }).waitFor({ state: 'hidden' });
-        assert.equal(await agenda.count(), 0);
         assert.deepEqual(errors, []);
         await context.close();
-        console.log(`PWA_BROWSER_OK ${engine} ${dark ? 'dark 150% text' : 'light'}: saved auth gap, offline readiness, subject selection/order, smart event, diagnostics, permission gesture, disk failure, outage/revocation/logout/account switch and lock.`);
+        console.log(`PWA_BROWSER_OK ${engine} ${dark ? 'dark 150% text' : 'light'}: saved auth gap, offline readiness, diagnostics, permission gesture, disk failure, outage/revocation/logout/account switch and lock.`);
       }
       // Ordinary Safari remains inert and gives installation instructions.
       const context = await browser.newContext({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_4 like Mac OS X) AppleWebKit/605.1.15' });
@@ -186,7 +172,30 @@ async function run() {
       assert.equal(await page.evaluate(() => window.fixtureAPI.hasBrowserOfflineWorkspace()), false);
       assert.equal(await page.evaluate(() => window.fixtureAPI.supportsWebPush()), false);
       assert.equal(requests.includes('/api/offline/session'), false);
-      await context.close(); await browser.close(); browser = undefined;
+      await context.close();
+      // iPhone-specific management must never add UI to desktop or Android apps.
+      for (const platform of [
+        { name: 'Windows installed', agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36', native: false },
+        { name: 'Android installed', agent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36', native: false },
+        { name: 'Android native', agent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36', native: true },
+      ]) {
+        const other = await browser.newContext({ userAgent: platform.agent });
+        await other.addInitScript(({ native }) => {
+          Object.defineProperty(navigator, 'standalone', { value: true });
+          if (native) window.TrinityOffline = {};
+        }, platform);
+        const otherPage = await other.newPage();
+        const otherErrors = []; otherPage.on('pageerror', error => otherErrors.push(error.message));
+        await otherPage.goto(origin); await otherPage.waitForFunction(() => window.fixtureAPI);
+        await otherPage.evaluate(() => window.setFixtureAuth({ user: { id: 'fixture', role: 'Admin' } }));
+        // Drain effects and rendering before checking for unwanted visible controls.
+        await otherPage.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        assert.equal(await otherPage.locator('#app').innerText(), '', platform.name);
+        assert.deepEqual(otherErrors, [], platform.name);
+        console.log(`PWA_PLATFORM_UI_OK ${engine} ${platform.name}: no iPhone settings or install panel.`);
+        await other.close();
+      }
+      await browser.close(); browser = undefined;
     }
   } finally { if (browser) await browser.close(); await new Promise(resolve => server.close(resolve)); }
 }
