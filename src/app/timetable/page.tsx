@@ -314,9 +314,7 @@ export default function TimetablePage() {
                 actionsLeading={mobileHeaderSelectors}
                 actions={
                     yearId && termId && profiles.length > 0 ? (
-                        <GlassActionDock accessory={activeProfile && viewMode === 'single' ? (
-                            <div ref={setMobileEditTarget} id="timetable-mobile-edit-control" className="flex shrink-0 items-center sm:hidden" />
-                        ) : undefined}>
+                        <GlassActionDock className="timetable-action-dock">
                             {profiles.length > 1 && (
                                 <div data-mobile-action-hidden className="hidden sm:contents">
                                     <GlassActionButton
@@ -329,9 +327,9 @@ export default function TimetablePage() {
                             )}
                             {activeProfile && viewMode === 'single' && (
                                 <>
-                                    <div ref={setMobileViewTarget} id="timetable-mobile-view-control" className="flex shrink-0 items-center sm:hidden" />
-                                    <div ref={setMobileFilterTarget} id="timetable-mobile-filter-control" className="flex shrink-0 items-center sm:hidden" />
-                                    <div ref={setMobileFilterValueTarget} id="timetable-mobile-filter-value-control" className="flex shrink-0 items-center sm:hidden" />
+                                    <div ref={setMobileViewTarget} id="timetable-mobile-view-control" className="timetable-dock-slot flex shrink-0 items-center sm:hidden" />
+                                    <div ref={setMobileFilterTarget} id="timetable-mobile-filter-control" className="timetable-dock-slot flex shrink-0 items-center sm:hidden" />
+                                    <div ref={setMobileFilterValueTarget} id="timetable-mobile-filter-value-control" className="timetable-dock-slot flex shrink-0 items-center sm:hidden" />
                                     <div data-mobile-action-hidden className="hidden sm:contents">
                                         <GlassActionButton
                                             label="Zoom -"
@@ -356,6 +354,7 @@ export default function TimetablePage() {
                                         tone="blue"
                                         onClick={() => setIsPrintSelectorOpen(true)}
                                     />
+                                    <div ref={setMobileEditTarget} id="timetable-mobile-edit-control" className="timetable-dock-slot flex shrink-0 items-center sm:hidden" />
                                 </>
                             )}
                             <DropdownMenu>

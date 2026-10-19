@@ -4023,3 +4023,72 @@ html, body, * {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
+
+/* Timetable selectors and actions share one touch-friendly mobile dock. */
+@media (max-width: 639px) {
+  .timetable-action-dock .glass-navigation-items { padding: 2px 4px; }
+  .timetable-action-dock .glass-navigation-items > .timetable-dock-slot:empty { display: none; }
+  .timetable-action-dock .glass-navigation-items > .timetable-dock-slot,
+  .timetable-action-dock.glass-navigation-surface .glass-navigation-items .glass-navigation-control {
+    flex: 0 0 48px;
+    width: 48px;
+    min-width: 48px;
+    max-width: 48px;
+    height: 48px;
+  }
+  .timetable-dock-select {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 48px;
+    height: 48px;
+    color: rgb(var(--navigation-ink));
+    border-radius: 999px;
+    text-shadow: var(--navigation-label-shadow);
+  }
+  .timetable-action-dock .glass-navigation-label { font-size: 10px; font-weight: 600; }
+  .timetable-dock-select .glass-navigation-label { max-width: 44px; }
+  .timetable-dock-select select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    font-size: 16px;
+    touch-action: manipulation;
+  }
+  .timetable-action-dock .timetable-dock-chevron {
+    position: absolute;
+    right: 4px;
+    top: 9px;
+    width: 8px;
+    height: 8px;
+    stroke-width: 2;
+  }
+  .timetable-dock-select:focus-within {
+    outline: 2px solid rgb(var(--navigation-ink));
+    outline-offset: -4px;
+  }
+  .timetable-dock-select:active,
+  .timetable-action-dock .glass-navigation-items .glass-navigation-control:active,
+  .timetable-action-dock .glass-navigation-items .glass-navigation-control[aria-pressed="true"],
+  .timetable-action-dock .glass-navigation-items .glass-navigation-control[data-glass-feedback] {
+    background: rgb(var(--navigation-ink) / .14) !important;
+  }
+  /* Keep Edit/Done and other action labels visible during feedback. */
+  .timetable-action-dock .glass-navigation-indicator { display: none; }
+  .timetable-action-dock .glass-navigation-items .glass-navigation-control > .glass-navigation-icon {
+    color: inherit !important;
+    transform: none !important;
+  }
+  .timetable-action-dock .glass-navigation-items .glass-navigation-control > .glass-navigation-label { opacity: 1 !important; }
+}
+
+@media (min-width: 640px) {
+  .timetable-action-dock .glass-navigation-items > .timetable-dock-slot { display: none !important; }
+}

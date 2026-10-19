@@ -6,7 +6,8 @@ import { useTimetablePeriods, useTimetableEntries, useTimetableProfiles } from "
 import { useClasses } from "@/lib/hooks/use-classes";
 import { useSubjects } from "@/lib/hooks/use-subjects";
 import { useStaff } from "@/lib/hooks/use-staff";
-import { Loader2, CalendarDays, AlignJustify, Pencil, Check } from "lucide-react";
+import { Loader2, CalendarDays, AlignJustify, Pencil, Check, ListFilter, Users, UserRound, BookOpen } from "lucide-react";
+import { TimetableDockSelect } from "@/components/timetable/TimetableDockSelect";
 import { GlassActionButton } from "@/components/common/glass-page-top-bar";
 import { useTimetableDensity } from "@/lib/hooks/use-timetable-density";
 import { getTimetablePeriodWidth } from "@/lib/utils/timetable-density";
@@ -657,8 +658,8 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
     const FILTER_OPTIONS = [
         { id: "all" as FilterMode, label: "All Classes", mobileLabel: "Classes" },
         { id: "class" as FilterMode, label: "By Class", mobileLabel: "Class" },
-        { id: "teacher" as FilterMode, label: "By Teacher", mobileLabel: "Tr" },
-        { id: "subject" as FilterMode, label: "By Subject", mobileLabel: "Sub" },
+        { id: "teacher" as FilterMode, label: "By Teacher", mobileLabel: "Teacher" },
+        { id: "subject" as FilterMode, label: "By Subject", mobileLabel: "Subject" },
     ];
 
     // Compute the initialDay prop for TimetableGrid when in day view + class filter
@@ -740,38 +741,45 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-5 min-w-0 flex flex-col gap-3 h-[calc(100vh-170px)] overflow-hidden dark:bg-slate-900 dark:border-slate-700">
 
             {mobileControlTargets?.view && createPortal(
-                <select
+                <TimetableDockSelect
+                    icon={<CalendarDays />}
+                    label={viewMode === "day" ? "Day" : "Week"}
                     value={viewMode}
                     onChange={(event) => setViewMode(event.target.value as ViewMode)}
                     aria-label="Choose week or day view"
-                    className="h-11 w-[46px] cursor-pointer appearance-none bg-transparent px-1 text-center text-[11px] font-semibold text-gray-700 focus:outline-none sm:hidden dark:text-slate-200"
                 >
                     <option value="day">Day</option>
                     <option value="week">Week</option>
-                </select>,
+                </TimetableDockSelect>,
                 mobileControlTargets.view,
             )}
 
             {mobileControlTargets?.filter && createPortal(
-                <select
+                <TimetableDockSelect
+                    icon={<ListFilter />}
+                    label={FILTER_OPTIONS.find(option => option.id === filterMode)?.mobileLabel || "Classes"}
                     value={filterMode}
                     onChange={event => setFilterMode(event.target.value as FilterMode)}
                     aria-label="Filter timetable by classes, class, teacher, or subject"
-                    className="h-11 w-[54px] cursor-pointer appearance-none bg-transparent px-1 text-center text-[11px] font-medium text-gray-700 focus:outline-none sm:hidden dark:text-slate-200"
                 >
                     {FILTER_OPTIONS.map(option => (
-                        <option key={option.id} value={option.id}>{option.mobileLabel}</option>
+                        <option key={option.id} value={option.id}>{option.label}</option>
                     ))}
-                </select>,
+                </TimetableDockSelect>,
                 mobileControlTargets.filter,
             )}
 
             {mobileControlTargets?.filterValue && filterMode !== "all" && createPortal(
-                <select
+                <TimetableDockSelect
+                    icon={filterMode === "teacher" ? <UserRound /> : filterMode === "subject" ? <BookOpen /> : <Users />}
+                    label={filterMode === "class"
+                        ? profileClasses.find(item => item.id === filterId)?.name || "Choose"
+                        : filterMode === "teacher"
+                            ? staffList.filter(item => item.id === filterId).map(item => `${item.firstName} ${item.lastName}`).join("") || "Choose"
+                            : subjects.find(item => item.id === filterId)?.name || "Choose"}
                     value={filterId}
                     onChange={event => setFilterId(event.target.value)}
                     aria-label={`Choose ${filterMode}`}
-                    className="h-11 w-[76px] cursor-pointer appearance-none truncate bg-transparent px-1 text-center text-[10px] font-semibold text-brand-alt-ink-700 focus:outline-none sm:hidden dark:text-brand-alt-ink-300"
                 >
                     <option value="">{filterMode === "class" ? "Class" : filterMode === "teacher" ? "Teacher" : "Subject"}</option>
                     {filterMode === "class" && profileClasses.map(classItem => (
@@ -783,7 +791,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                     {filterMode === "subject" && subjects.map(subject => (
                         <option key={subject.id} value={subject.id}>{subject.name}</option>
                     ))}
-                </select>,
+                </TimetableDockSelect>,
                 mobileControlTargets.filterValue,
             )}
 
@@ -795,7 +803,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                     icon={isEditing ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
                     tone={isEditing ? "emerald" : "blue"}
                     onClick={() => { setViewMode("day"); setIsEditing(!isEditing); }}
-                    className="h-[54px] w-[54px] min-w-[54px] flex-none rounded-full border-brand-alt-300/65 bg-white/72 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-brand-alt-200/55 backdrop-blur-[20px] sm:hidden dark:border-brand-alt-800/65 dark:bg-slate-900/72 dark:ring-brand-alt-800/55"
+                    className="sm:hidden"
                 />,
                 mobileControlTargets.edit,
             )}

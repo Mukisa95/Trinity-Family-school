@@ -54,6 +54,7 @@ public final class MainActivity extends FragmentActivity {
     private AppUpdater updater;
     private DeviceUnlock deviceUnlock;
     private AppDiagnostics diagnostics;
+    private StartupSurface startupSurface;
     private boolean loadErrorShown;
     private android.app.AlertDialog loadErrorDialog;
     private final PageLoadState pageLoad = new PageLoadState();
@@ -82,6 +83,7 @@ public final class MainActivity extends FragmentActivity {
         android.widget.LinearLayout frame = new android.widget.LinearLayout(this);
         frame.setOrientation(android.widget.LinearLayout.VERTICAL);
         web = new WebView(this);
+        web.setBackgroundColor(StartupSurface.BACKGROUND);
         searchKeyboardArmed = "search".equals(getIntent().getStringExtra(AppShortcuts.EXTRA));
         android.widget.FrameLayout browserFrame = new android.widget.FrameLayout(this);
         browserFrame.addView(web, new android.widget.FrameLayout.LayoutParams(-1, -1));
@@ -91,6 +93,7 @@ public final class MainActivity extends FragmentActivity {
         diagnostics = new AppDiagnostics(this);
         offline = new OfflineController(this, web, deviceUnlock, diagnostics);
         SystemBars.install(this, frame);
+        startupSurface = new StartupSurface(this, frame, browserFrame);
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true); settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(false); settings.setAllowContentAccess(true);
@@ -102,6 +105,7 @@ public final class MainActivity extends FragmentActivity {
             WebSettingsCompat.setWebAuthenticationSupport(settings, WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_APP);
         }
         web.setWebViewClient(new WebViewClient() {
+            @Override public void onPageCommitVisible(WebView view, String url) { revealStartupDocument(); }
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
                 view.removeCallbacks(pendingLoadError);
                 pageLoad.begin(url);
@@ -143,6 +147,7 @@ public final class MainActivity extends FragmentActivity {
             @Override public void onPageFinished(WebView view, String url) {
                 if (offline == null) return;
                 diagnostics.record("web_navigation_finished", 0);
+                revealStartupDocument();
                 if (PhotoPolicy.trusted(url)) webStarted();
                 offline.publishConnectivity();
                 if (PhotoPolicy.trusted(url)) view.evaluateJavascript("(()=>{const send=()=>window.TrinityOffline?.postMessage(JSON.stringify({id:crypto.randomUUID(),action:'appearance',preference:localStorage.getItem('trinity-appearance')||'system',dark:document.documentElement.classList.contains('dark')}));window.__trinityBarsObserver?.disconnect();window.__trinityBarsObserver=new MutationObserver(send);window.__trinityBarsObserver.observe(document.documentElement,{attributes:true,attributeFilter:['class']});send();})()", null);
@@ -447,7 +452,21 @@ public final class MainActivity extends FragmentActivity {
             .setNegativeButton("Close", null).show();
     }
     void webStarted() {
+        revealStartupDocument();
         checkLoadedDocument(false);
+    }
+    private void revealStartupDocument() {
+        if (startupSurface == null || !startupSurface.pending() || web == null || isDestroyed()) return;
+        WebView document = web;
+        long revision = pageLoad.revision();
+        document.evaluateJavascript("Boolean(document.querySelector('.startup-screen, [data-workspace-visible=\"true\"], #root > *') || window.trinityAppMounted)", ready -> {
+            if (!"true".equals(ready) || web != document || !pageLoad.current(revision) || isDestroyed()) return;
+            document.postVisualStateCallback(revision, new WebView.VisualStateCallback() {
+                @Override public void onComplete(long requestId) {
+                    if (web == document && pageLoad.current(requestId) && !isDestroyed() && startupSurface != null) startupSurface.release();
+                }
+            });
+        });
     }
     private void checkLoadedDocument(boolean warnIfUnavailable) {
         if (web == null || isDestroyed() || isFinishing()) return;
@@ -475,6 +494,7 @@ public final class MainActivity extends FragmentActivity {
     @Override protected void onPause() { if (diagnostics != null) diagnostics.pause(); if (updater != null) updater.pause(); if (offline != null) offline.pause(); super.onPause(); }
     @Override protected void onResume() { super.onResume(); if (diagnostics != null) diagnostics.resume(); if (offline != null) offline.resume(); if (updater != null) updater.resume(); }
     @Override protected void onDestroy() {
+        if (startupSurface != null) startupSurface.destroy();
         if (web != null) web.removeCallbacks(pendingLoadError);
         if (loadErrorDialog != null) { loadErrorDialog.dismiss(); loadErrorDialog = null; }
         if (deviceUnlock != null) deviceUnlock.destroy();

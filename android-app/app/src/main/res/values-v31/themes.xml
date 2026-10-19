@@ -1,0 +1,9 @@
+<resources>
+    <style name="TrinityLaunchTheme" parent="TrinityTheme">
+        <item name="android:windowBackground">#111827</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowSplashScreenBackground">#111827</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/launcher_foreground</item>
+    </style>
+</resources>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { afterStartupPaint, isNonLoginPublicPath, STARTUP_SCREEN_ID } from '@/lib/performance/startup-display';
+import { afterStartupContentPaint, isNonLoginPublicPath, STARTUP_SCREEN_ID } from '@/lib/performance/startup-display';
 
 /** Own only the visual handoff; authentication and data retain their owners. */
 export function StartupHandoff({ pathname, authLoading, isAuthenticated }: { pathname: string | null; authLoading: boolean; isAuthenticated: boolean }) {
@@ -13,7 +13,7 @@ export function StartupHandoff({ pathname, authLoading, isAuthenticated }: { pat
     if (authLoading || !isAuthenticated || pathname === '/login') return;
     // Frontend/auth only: never wait for Firestore, React Query, cache hydration
     // or GlobalDataPreloader completion. Let the destination paint before fading.
-    return afterStartupPaint(() => setPhase('fading'));
+    return afterStartupContentPaint(() => setPhase('fading'));
   }, [phase, publicRoute, isAuthenticated, authLoading, pathname]);
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export function StartupHandoff({ pathname, authLoading, isAuthenticated }: { pat
 
   useEffect(() => {
     if (phase !== 'fading') return;
-    const timer = setTimeout(() => setPhase('complete'), 300);
+    const timer = setTimeout(() => setPhase('complete'), 180);
     return () => clearTimeout(timer);
   }, [phase]);
   return null;

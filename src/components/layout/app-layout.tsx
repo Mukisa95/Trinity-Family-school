@@ -47,6 +47,7 @@ import { SchoolSettingsLoader } from './school-settings-loader';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BrandedAuthScreen } from '@/components/common/premium-splash-loader';
 import { StartupHandoff } from '@/components/common/startup-handoff';
+import { afterStartupContentPaint } from '@/lib/performance/startup-display';
 import { WorkspaceWelcomeScreen } from '@/components/common/workspace-welcome-screen';
 import { useFirstWorkspaceSetup } from '@/lib/hooks/use-first-workspace-setup';
 import { WorkspacePreparationStatus } from '@/components/common/workspace-preparation-status';
@@ -561,16 +562,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [startupPhase, setStartupPhase] = useState<'visible' | 'fading' | 'complete'>(() => (
     isNonLoginPublicRoute ? 'complete' : 'visible'
   ));
-  const [minimumFrontendDisplayElapsed, setMinimumFrontendDisplayElapsed] = useState(false);
-
-  // Ensure a restored session is visible long enough to show useful progress.
-  // This is deliberately a frontend-only timer: it must never wait for
-  // Firestore, React Query, cache hydration, or GlobalDataPreloader work.
-  useEffect(() => {
-    const timer = window.setTimeout(() => setMinimumFrontendDisplayElapsed(true), 1000);
-    return () => window.clearTimeout(timer);
-  }, []);
-
   // The workspace is already mounted beneath this overlay before the fade
   // begins. This gives a real cross-fade without an intermediate white frame.
   useEffect(() => {
@@ -585,15 +576,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (authLoading || !isAuthenticated || !minimumFrontendDisplayElapsed || pathname === '/login') return;
+    if (authLoading || !isAuthenticated || pathname === '/login') return;
 
-    const frame = window.requestAnimationFrame(() => setStartupPhase('fading'));
-    return () => window.cancelAnimationFrame(frame);
-  }, [authLoading, isAuthenticated, isPublicRoute, minimumFrontendDisplayElapsed, pathname, setup.required, startupPhase]);
+    return afterStartupContentPaint(() => setStartupPhase('fading'));
+  }, [authLoading, isAuthenticated, isPublicRoute, pathname, setup.required, startupPhase]);
 
   useEffect(() => {
     if (startupPhase !== 'fading') return;
-    const timer = window.setTimeout(() => setStartupPhase('complete'), 300);
+    const timer = window.setTimeout(() => setStartupPhase('complete'), 180);
     return () => window.clearTimeout(timer);
   }, [startupPhase]);
 
@@ -651,7 +641,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         }} />}
       {!setup.required && startupPhase !== 'complete' && (
         <BrandedAuthScreen
-          message={startupPhase === 'fading' ? 'Your workspace is ready.' : 'Checking your secure sign-in…'}
+          message="Opening your school workspace…"
           isExiting={startupPhase === 'fading'}
         />
       )}

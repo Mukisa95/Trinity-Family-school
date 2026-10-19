@@ -10,6 +10,7 @@ import { androidSessionMatchesUser } from '@/lib/offline/android-contracts';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { recordAppDiagnostic } from '@/lib/utils/app-diagnostics';
+import { BrandedAuthScreen } from '@/components/common/premium-splash-loader';
 
 function subscribe(listener: () => void) {
   window.addEventListener('online', listener); window.addEventListener('offline', listener);
@@ -67,7 +68,9 @@ export function AndroidOfflineBoundary({ children }: { children: ReactNode }) {
   }, [offline, access, path, user?.id]);
 
   if (!offline || !user || path === '/login') return <>{children}</>;
-  if (!access || access.accountId !== user.id) return <p role="status" className="py-8 text-center text-muted-foreground">Checking saved access…</p>;
+  if (!access || access.accountId !== user.id) return <div data-startup-access-pending="true">
+    <BrandedAuthScreen message="Opening your school workspace…" />
+  </div>;
   if (!access.session || Date.parse(access.session.expiresAt) <= Date.now() || !canOpenAndroidOfflineRoute(path, access.session)) {
     return <div className="py-8 text-center space-y-3">
       <p className="text-muted-foreground">{access.session ? 'This section is available when connected.' : 'Connect to renew your secure session.'}</p>

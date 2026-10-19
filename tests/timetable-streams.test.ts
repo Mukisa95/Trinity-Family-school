@@ -216,8 +216,8 @@ test('mobile view and filter controls live in the action island while weekdays r
   assert.match(source, /<option value="week">Week<\/option>/);
   assert.match(source, /mobileLabel: "Classes"/);
   assert.match(source, /mobileLabel: "Class"/);
-  assert.match(source, /mobileLabel: "Tr"/);
-  assert.match(source, /mobileLabel: "Sub"/);
+  assert.match(source, /mobileLabel: "Teacher"/);
+  assert.match(source, /mobileLabel: "Subject"/);
   assert.match(source, /aria-label=\{`Show \$\{dayName\}`\}/);
   assert.match(source, /aria-pressed=\{selectedDay === dayId\}/);
   assert.match(source, /justify-between/);

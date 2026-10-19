@@ -2,7 +2,8 @@ import { STARTUP_SCREEN_ID, NON_LOGIN_PUBLIC_ROUTES } from '@/lib/performance/st
 
 // Critical styles let the server-rendered loader paint before app bundles.
 const startupStyles = `
-.startup-screen{position:fixed;inset:0;z-index:100;display:flex;min-height:100dvh;align-items:center;justify-content:center;background:#111827;color:#fff;text-align:center;padding:24px;font-family:system-ui,sans-serif;transition:opacity 300ms ease-out}
+.startup-screen,.startup-screen *{box-sizing:border-box}
+.startup-screen{position:fixed;inset:0;z-index:100;display:flex;min-height:100dvh;align-items:center;justify-content:center;background:#111827;color:#fff;text-align:center;padding:24px;font-family:system-ui,sans-serif;transition:opacity 180ms cubic-bezier(.23,1,.32,1)}
 .startup-screen[hidden]{display:none}.startup-screen[data-startup-state="fading"]{opacity:0;pointer-events:none}
 .startup-screen section{width:100%;max-width:320px}.startup-brand{display:flex;align-items:center;justify-content:center;gap:16px}
 .startup-logo{width:80px;height:80px;display:flex;align-items:center;justify-content:center;border:1px solid #ffffff26;border-radius:16px;background:#ffffff1a}
