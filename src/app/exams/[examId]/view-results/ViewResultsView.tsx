@@ -1,4 +1,5 @@
 "use client";
+import { RemainingViewport } from "@/components/common/remaining-viewport";
 import { authorizedFetch } from '@/lib/access/authorized-fetch';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -4777,8 +4778,9 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
               </div>
             ) : (
               // Compact Table View for Desktop with Column Sorting
+              <RemainingViewport>
               <Table
-                containerClassName="max-h-[62vh] overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset"
+                containerClassName="workspace-table-scroll h-full min-h-0 overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset"
                 containerProps={{ tabIndex: 0, role: 'region', 'aria-label': 'Exam results table' }}
               >
                   <TableHeader className="sticky top-0 z-30 bg-gray-50 shadow-[0_2px_8px_rgba(15,23,42,0.12)] dark:bg-slate-900">
@@ -4995,6 +4997,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                     })}
                   </TableBody>
               </Table>
+              </RemainingViewport>
             )}
           </div>
         </div>

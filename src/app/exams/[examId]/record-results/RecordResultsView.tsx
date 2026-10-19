@@ -1,4 +1,5 @@
 "use client";
+import { RemainingViewport } from "@/components/common/remaining-viewport";
 
 import { formatPupilName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -1456,7 +1457,7 @@ export default function RecordResultsView() {
     
     return (
       <div
-        className="flex max-h-[62vh] flex-col overflow-auto overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset"
+        className="workspace-table-scroll h-full min-h-0 overflow-auto overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset"
         role="region"
         aria-label="Record results table for the selected subject"
         tabIndex={0}
@@ -1596,7 +1597,7 @@ export default function RecordResultsView() {
   const renderDesktopTable = () => {
     return (
       <div
-        className="max-h-[62vh] overflow-auto overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset"
+        className="workspace-table-scroll h-full min-h-0 overflow-auto overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset"
         role="region"
         aria-label="Record results table"
         tabIndex={0}
@@ -1790,7 +1791,7 @@ export default function RecordResultsView() {
 
   return (
     <div
-      className={`min-h-screen transition-[transform,opacity] duration-200 ease-out motion-reduce:transform-none motion-reduce:opacity-100 motion-reduce:transition-none ${isSwitchingExam ? 'pointer-events-none opacity-70' : 'opacity-100'}`}
+      className={`min-h-0 transition-[transform,opacity] duration-200 ease-out motion-reduce:transform-none motion-reduce:opacity-100 motion-reduce:transition-none ${isSwitchingExam ? 'pointer-events-none opacity-70' : 'opacity-100'}`}
       style={{
         transform: isSwitchingExam
           ? 'perspective(1400px) rotateX(2deg)'
@@ -2025,9 +2026,10 @@ export default function RecordResultsView() {
         }
       />
 
-      <div className="max-w-none px-4 sm:px-6 lg:px-8 pb-12">
-        <Card className="shadow-sm overflow-hidden">
-          <CardContent className="p-0">
+      <div className="max-w-none px-4 sm:px-6 lg:px-8">
+        <RemainingViewport className="flex flex-col">
+        <Card className="flex min-h-0 flex-1 flex-col shadow-sm overflow-hidden">
+          <CardContent className="flex min-h-0 flex-1 flex-col p-0">
 
             <MajorSubjectsSelectorComponent />
           
@@ -2055,12 +2057,13 @@ export default function RecordResultsView() {
           </CardContent>
 
           {/* Compact Footer */}
-          <CardFooter className="p-2 border-t bg-gray-50 flex justify-end dark:bg-slate-900">
+          <CardFooter className="shrink-0 p-2 border-t bg-gray-50 flex justify-end dark:bg-slate-900">
             <div className="text-xs text-gray-500 dark:text-slate-400">
               Updated: {examResultData.lastUpdatedAt ? new Date(examResultData.lastUpdatedAt).toLocaleString() : 'N/A'}
             </div>
           </CardFooter>
         </Card>
+        </RemainingViewport>
       </div>
 
       <Dialog

@@ -1,4 +1,5 @@
 'use client';
+import { RemainingViewport } from "@/components/common/remaining-viewport";
 import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { GlassActionButton, GlassActionDock, GlassPageSearchInput, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
@@ -524,7 +525,7 @@ function PupilRosterTable({
 
   return (
     <table className="w-full table-fixed text-sm">
-      <thead className="sticky top-0 z-10 border-b-2 border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/30 backdrop-blur-sm">
+      <thead className="sticky top-[var(--roster-heading-offset,0px)] z-10 border-b-2 border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/30 backdrop-blur-sm">
         <tr>
           <th scope="col" aria-sort={sortBy === 'name' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'} className="w-[52%] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider">{header('name', 'Name')}</th>
           <th scope="col" aria-sort={sortBy !== 'name' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider">
@@ -571,7 +572,6 @@ function ClassDetailContent() {
   const [sortBy, setSortBy] = React.useState<'name' | 'section' | 'gender' | 'age'>('name');
   const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('asc');
   const [hiddenStreams, setHiddenStreams] = React.useState<Set<string>>(new Set());
-  const [classTopbarHeight, setClassTopbarHeight] = React.useState(96);
 
   // State for exam loading
   const [shouldLoadExams, setShouldLoadExams] = React.useState(false);
@@ -626,16 +626,6 @@ function ClassDetailContent() {
   React.useEffect(() => {
     setHiddenStreams(new Set());
   }, [classId]);
-
-  React.useEffect(() => {
-    const topbar = document.querySelector<HTMLElement>('.class-detail-topbar');
-    if (!topbar) return;
-    const measure = () => setClassTopbarHeight(Math.ceil(topbar.getBoundingClientRect().height));
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(topbar);
-    return () => observer.disconnect();
-  }, [classDetail?.id]);
 
   // 🚀 REAL-TIME: Use the main usePupils hook which has the Firestore listener
   // This ensures we get real-time updates when pupils are added/removed/changed
@@ -1132,7 +1122,7 @@ function ClassDetailContent() {
   const assistantCaptain = classDetail.assistantClassCaptainId ? pupilsInClassWithPhotos.find(p => p.id === classDetail.assistantClassCaptainId) : null;
 
   return (
-    <div className="min-h-screen animate-in fade-in duration-500">
+    <div className="min-h-0 animate-in fade-in duration-500">
       <GlassPageTopBar
         title={classDetail.name}
         subtitle="Class overview, teacher, leaders, and pupil roster"
@@ -1358,12 +1348,12 @@ function ClassDetailContent() {
         </div>
       )}
 
-      <div className={cn(
-        "grid grid-cols-1 items-start gap-6",
+      <RemainingViewport minWidth={1024} className={cn(
+        "grid min-h-0 grid-cols-1 items-start gap-6",
         (shouldLoadExams || shouldLoadSubjects) && "lg:grid-cols-[minmax(20rem,1fr)_minmax(0,2fr)] xl:grid-cols-[minmax(22rem,1fr)_minmax(0,2fr)] 2xl:grid-cols-[minmax(24rem,1fr)_minmax(0,2fr)]"
       )}>
         {(shouldLoadExams || shouldLoadSubjects) && (
-          <div className="min-w-0 space-y-4">
+          <div className="min-w-0 space-y-4 lg:h-full lg:min-h-0 lg:overflow-auto lg:overscroll-contain">
             {shouldLoadExams && (
               <ClassExamsCard classId={classId || ''} exams={classExams} academicYears={academicYears} terms={terms}
                 filters={examFilters} onFilterChange={handleExamFilterChange} isLoading={examsLoading}
@@ -1385,12 +1375,11 @@ function ClassDetailContent() {
 
         {/* Pupils stay beside the exam column on large screens. */}
         <div role="region" aria-label="Class pupils"
-          style={{ '--class-detail-sticky-top': `${classTopbarHeight + 12}px` } as React.CSSProperties}
-          className="min-w-0 space-y-3 lg:sticky lg:top-[var(--class-detail-sticky-top)] lg:max-h-[calc(100dvh-var(--class-detail-sticky-top)-1rem)] lg:space-y-6 lg:overflow-y-auto">
-          <Card className="shadow-xl border-2 border-primary/10 bg-gradient-to-br from-card via-card to-muted/5 rounded-2xl overflow-hidden backdrop-blur-sm">
-            <CardContent className="p-0">
+          className="min-w-0 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
+          <Card className="shadow-xl border-2 border-primary/10 bg-gradient-to-br from-card via-card to-muted/5 rounded-2xl overflow-hidden backdrop-blur-sm lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
+            <CardContent className="p-0 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
               {pupilStreamGroups.some(group => group.name) && (
-                <div role="group" aria-label="Visible pupil streams" className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b bg-card/95 px-3 py-2 backdrop-blur">
+                <div role="group" aria-label="Visible pupil streams" className="shrink-0 z-20 flex flex-wrap items-center gap-2 border-b bg-card/95 px-3 py-2 backdrop-blur">
                   {pupilStreamGroups.map(group => (
                     <Button key={group.id} type="button" size="sm" variant={hiddenStreams.has(group.id) ? 'outline' : 'secondary'}
                       aria-pressed={!hiddenStreams.has(group.id)} onClick={() => toggleVisibleStream(group.id)}
@@ -1400,6 +1389,7 @@ function ClassDetailContent() {
                   ))}
                 </div>
               )}
+              <div className="workspace-table-scroll lg:min-h-0 lg:flex-1 lg:overflow-auto lg:overscroll-contain" role="region" aria-label="Class pupil records" tabIndex={0}>
               {pupilsInClass.length === 0 && allPupilsLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -1431,45 +1421,20 @@ function ClassDetailContent() {
                     <div className="hidden lg:block">
                       <div className="space-y-4 p-3">
                         {visibleStreamGroups.map(group => (
-                          <section key={group.id} className={`overflow-hidden rounded-xl border ${group.isUnassigned ? 'border-amber-300 bg-amber-50/30 dark:border-amber-800/60 dark:bg-amber-950/30' : 'border-cyan-200 bg-white dark:border-cyan-800/60 dark:bg-slate-900'}`}>
+                          <section key={group.id} style={{ "--roster-heading-offset": group.name ? "40px" : "0px" } as React.CSSProperties} className={`rounded-xl border ${group.isUnassigned ? 'border-amber-300 bg-amber-50/30 dark:border-amber-800/60 dark:bg-amber-950/30' : 'border-cyan-200 bg-white dark:border-cyan-800/60 dark:bg-slate-900'}`}>
                             {group.name ? (
-                              <div className={`flex items-center justify-between border-b px-4 py-2 ${group.isUnassigned ? 'border-amber-200 bg-amber-100/70 text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/70 dark:text-amber-100' : 'border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-800/60 dark:bg-cyan-950/40 dark:text-cyan-100'}`}>
+                              <div className={`sticky top-0 z-20 flex h-10 items-center justify-between border-b px-4 py-2 ${group.isUnassigned ? 'border-amber-200 bg-amber-100/70 text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/70 dark:text-amber-100' : 'border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-800/60 dark:bg-cyan-950/40 dark:text-cyan-100'}`}>
                                 <div className="flex items-center gap-2"><GitBranch className="h-4 w-4" /><h3 className="font-bold">{group.name}{group.code ? ` (${group.code})` : ''}</h3></div>
                                 <Badge variant="outline" className="bg-white tabular-nums dark:bg-slate-900">{group.pupils.length} pupils</Badge>
                               </div>
                             ) : null}
-                            <div className="overflow-x-auto">
+                            <div>
                               <PupilRosterTable pupils={group.pupils} classDetail={classDetail} photosLoading={photosLoading} onOpenRequirements={handleOpenRequirements} sortBy={sortBy} sortOrder={sortOrder} onSort={handlePupilSort} />
                             </div>
                           </section>
                         ))}
                       </div>
-                      {/* Enhanced footer with better organization */}
-                      <div className="px-3 py-3 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/10 border-t-2 border-primary/20 backdrop-blur-sm rounded-b-lg">
-                        <div className="flex items-center justify-between text-xs text-foreground font-medium">
-                          <div className="flex items-center space-x-4">
-                            <span className="font-medium">
-                              {visiblePupilCount} of {pupilsInClass.length} pupils
-                            </span>
-                            {filteredPupils.length !== pupilsInClass.length && (
-                              <span className="flex items-center space-x-1">
-                                <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                                <span>{pupilsInClass.filter((p: Pupil) => p.status === 'Active').length} active</span>
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center space-x-2 text-xs">
-                            <span className="flex items-center space-x-1">
-                              <div className="w-1.5 h-1.5 bg-brand-surface-500 rounded-full"></div>
-                              <span>{pupilsInClass.filter((p: Pupil) => p.gender === 'Male').length} male</span>
-                            </span>
-                            <span className="flex items-center space-x-1">
-                              <div className="w-1.5 h-1.5 bg-pink-500 rounded-full"></div>
-                              <span>{pupilsInClass.filter((p: Pupil) => p.gender === 'Female').length} female</span>
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+
                     </div>
 
                   {/* Mobile pupil cards */}
@@ -1490,10 +1455,37 @@ function ClassDetailContent() {
                     </div>
                 </>
               )}
+              </div>
+              {/* Keep the roster summary below the scrolling records. */}
+              {filteredPupils.length > 0 && visibleStreamGroups.length > 0 && (
+                <div className="hidden shrink-0 px-3 py-3 lg:block bg-card bg-gradient-to-r from-primary/10 via-primary/5 to-muted/10 border-t-2 border-primary/20 backdrop-blur-sm rounded-b-lg">
+                  <div className="flex items-center justify-between text-xs text-foreground font-medium">
+                    <div className="flex items-center space-x-4">
+                      <span className="font-medium">{visiblePupilCount} of {pupilsInClass.length} pupils</span>
+                      {filteredPupils.length !== pupilsInClass.length && (
+                        <span className="flex items-center space-x-1">
+                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                          <span>{pupilsInClass.filter((p: Pupil) => p.status === 'Active').length} active</span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2 text-xs">
+                      <span className="flex items-center space-x-1">
+                        <div className="w-1.5 h-1.5 bg-brand-surface-500 rounded-full" />
+                        <span>{pupilsInClass.filter((p: Pupil) => p.gender === 'Male').length} male</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <div className="w-1.5 h-1.5 bg-pink-500 rounded-full" />
+                        <span>{pupilsInClass.filter((p: Pupil) => p.gender === 'Female').length} female</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
-      </div>
+      </RemainingViewport>
 
 
       {/* Edit Class Dialog */}

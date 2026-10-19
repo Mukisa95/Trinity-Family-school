@@ -4092,3 +4092,12 @@ html, body, * {
 @media (min-width: 640px) {
   .timetable-action-dock .glass-navigation-items > .timetable-dock-slot { display: none !important; }
 }
+
+/* Bounded workspace panels grow with the available space, never with their rows. */
+@media screen {
+  .remaining-viewport { height: var(--remaining-viewport-height, auto); }
+}
+@media print {
+  .remaining-viewport { height: auto !important; overflow: visible !important; }
+  .remaining-viewport .workspace-table-scroll { height: auto !important; overflow: visible !important; }
+}
