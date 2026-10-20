@@ -1,32 +1,34 @@
-import type { AcademicYear, AttendanceRecord, Class, Event, Exam, ExamResult, InventoryItem, PaymentRecord, ProcurementBudget, ProcurementPurchase, Pupil, Staff, Account, UniformTracking, RequirementTracking, TimetableEntry, TimetableProfile, SystemUser, FeeStructure } from '@/types';
+import type { AcademicYear, AttendanceRecord, Class, Event, Exam, ExamResult, InventoryItem, PaymentRecord, ProcurementBudget, ProcurementPurchase, Pupil, Staff, Account, UniformTracking, UniformItem, RequirementTracking, TimetableEntry, TimetableProfile, SystemUser, FeeStructure } from '@/types';
 import type { PayrollSpendSummary } from '@/lib/payroll/payroll-accounting';
 import { canUseSidebarRoute } from '@/components/layout/sidebar-navigation';
 
 export type ReportSectionId = 'enrollment' | 'fees' | 'finance' | 'attendance' | 'academics' | 'staff' | 'payroll' | 'procurement' | 'requirements' | 'uniforms' | 'inventory' | 'banking' | 'events' | 'timetable';
-export type ReportSourceId = 'pupils' | 'classes' | 'staff' | 'payments' | 'feeStructures' | 'assessments' | 'cashPayments' | 'attendance' | 'exams' | 'results' | 'purchases' | 'budgets' | 'payroll' | 'requirements' | 'uniforms' | 'inventory' | 'banking' | 'events' | 'timetable';
+export type ReportSourceId = 'pupils' | 'classes' | 'staff' | 'payments' | 'feeStructures' | 'assessments' | 'cashPayments' | 'attendance' | 'exams' | 'results' | 'purchases' | 'budgets' | 'payroll' | 'requirements' | 'uniforms' | 'uniformItems' | 'inventory' | 'banking' | 'events' | 'timetable';
 export type ReportPeriod = { year: AcademicYear; termId: string; start: string; end: string; label: string };
 export type ReportValue = string | number;
-export type ReportMetric = { label: string; value: ReportValue; format?: 'number' | 'money' | 'percent'; detail?: string };
-export type ReportTable = { title: string; columns: string[]; rows: ReportValue[][]; moneyColumns?: number[]; detail?: boolean };
-export type ReportSection = { id: ReportSectionId; title: string; description: string; metrics: ReportMetric[]; insights: string[]; notes: string[]; tables: ReportTable[] };
+export type ReportTone = 'blue' | 'green' | 'red' | 'violet' | 'amber' | 'slate';
+export type ReportMetric = { label: string; value: ReportValue; format?: 'number' | 'money' | 'percent'; detail?: string; tone?: ReportTone; tableTitle?: string };
+export type ReportChart = { title: string; description: string; kind: 'donut' | 'bar'; items: { label: string; value: number; tone?: ReportTone }[]; centerLabel?: string; centerValue?: string; format?: ReportMetric['format']; tableTitle?: string };
+export type ReportTable = { title: string; description?: string; columns: string[]; rows: ReportValue[][]; total?: ReportValue[]; moneyColumns?: number[]; percentColumns?: number[]; detail?: boolean };
+export type ReportSection = { id: ReportSectionId; title: string; description: string; summary?: string; actions?: string[]; sources?: string[]; asOf?: string; charts?: ReportChart[]; metrics: ReportMetric[]; insights: string[]; notes: string[]; tables: ReportTable[] };
 export type ReportData = {
-  pupils: Pupil[]; classes: Class[]; staff: Staff[]; payments: PaymentRecord[]; feeStructures: FeeStructure[]; assessments: { rows: { pupilId:string; pupilName:string; admission:string; className:string; termName:string; assessed:number; paid:number; balance:number }[]; missingHistorical:number }; cashPayments: PaymentRecord[]; attendance: AttendanceRecord[];
+  pupils: Pupil[]; classes: Class[]; staff: Staff[]; payments: PaymentRecord[]; feeStructures: FeeStructure[]; assessments: { rows: { pupilId:string; pupilName:string; admission:string; classId?:string; className:string; termId?:string; termName:string; assessed:number; paid:number; balance:number; extra?:number; paymentIds?:string[]; lastPaymentDate?:string }[]; missingHistorical:number }; cashPayments: PaymentRecord[]; attendance: AttendanceRecord[];
   exams: Exam[]; results: { exam: Exam; result: ExamResult | null }[]; purchases: ProcurementPurchase[]; budgets: ProcurementBudget[];
-  payroll: PayrollSpendSummary; requirements: RequirementTracking[]; uniforms: UniformTracking[]; inventory: InventoryItem[];
+  payroll: PayrollSpendSummary; requirements: RequirementTracking[]; uniforms: UniformTracking[]; uniformItems: UniformItem[]; inventory: InventoryItem[];
   banking: Account[]; events: Event[]; timetable: { profile: TimetableProfile; entries: TimetableEntry[] }[];
 };
 export type ReportDefinition = { id: ReportSectionId; title: string; description: string; group: 'School' | 'Finance' | 'Operations'; routes: string[]; sources: ReportSourceId[] };
 export const REPORT_SECTIONS: ReportDefinition[] = [
-  { id:'enrollment', title:'Enrollment & classes', description:'Pupil status, class sizes, boarding and record completeness', group:'School', routes:['/pupils','/classes'], sources:['pupils','classes'] },
-  { id:'fees', title:'Fees collection', description:'Receipts, paying pupils, class collections and fee allocation', group:'Finance', routes:['/fees/collection'], sources:['payments','pupils','classes','feeStructures','assessments'] },
+  { id:'enrollment', title:'Enrollment & classes', description:'Who is at school, how classes compare and which records need checking', group:'School', routes:['/pupils','/classes'], sources:['pupils','classes'] },
+  { id:'fees', title:'Fees collection', description:'What pupils should pay, what has been paid and what is still unpaid', group:'Finance', routes:['/fees/collection'], sources:['payments','pupils','classes','feeStructures','assessments'] },
   { id:'finance', title:'Income & expenditure', description:'Recorded fee income, procurement costs and salary payments', group:'Finance', routes:['/fees/collection','/procurement/purchases','/payroll'], sources:['cashPayments','purchases','payroll'] },
   { id:'attendance', title:'Attendance', description:'Recorded attendance, trends, class coverage and repeated absence', group:'School', routes:['/attendance'], sources:['attendance'] },
   { id:'academics', title:'Exams & performance', description:'Exam progress, result completeness and subject performance', group:'School', routes:['/exams'], sources:['exams','results'] },
-  { id:'staff', title:'Staff', description:'Staff status, departments, roles and contact completeness', group:'School', routes:['/staff'], sources:['staff'] },
+  { id:'staff', title:'Staff', description:'Who works at school, how roles overlap and what we can compare', group:'School', routes:['/staff'], sources:['staff'] },
   { id:'payroll', title:'Payroll expenditure', description:'Salary payments, payment methods and staff paid', group:'Finance', routes:['/payroll'], sources:['payroll'] },
   { id:'procurement', title:'Procurement & budgets', description:'Purchase categories, suppliers, approvals and budget plans', group:'Finance', routes:['/procurement/purchases','/procurement/budget'], sources:['purchases','budgets'] },
   { id:'requirements', title:'Requirements', description:'Payment and delivery progress in the selected academic period', group:'Operations', routes:['/requirement-tracking'], sources:['requirements'] },
-  { id:'uniforms', title:'Uniforms', description:'Orders, amounts due, collections and uncollected items', group:'Operations', routes:['/uniform-tracking'], sources:['uniforms'] },
+  { id:'uniforms', title:'Uniforms', description:'How much has been paid and who is still waiting for uniforms', group:'Operations', routes:['/uniform-tracking'], sources:['uniforms','uniformItems','pupils','classes'] },
   { id:'inventory', title:'Inventory & assets', description:'Current stock, asset values, reorder needs and condition', group:'Operations', routes:['/inventory'], sources:['inventory'] },
   { id:'banking', title:'Pupil banking', description:'Current savings balances and account status', group:'Finance', routes:['/banking/list'], sources:['banking'] },
   { id:'events', title:'Events & calendar', description:'Activities, status, cancellations and upcoming commitments', group:'School', routes:['/events'], sources:['events'] },
@@ -63,6 +65,6 @@ export const inReportPeriod = (value: unknown, period: ReportPeriod) => { const 
 export const reportNumber = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0;
 export function formatReportValue(value: ReportValue, format: ReportMetric['format'] = 'number'): string {
   if (typeof value === 'string') return value;
-  return `${format === 'money' ? 'UGX ' : ''}${new Intl.NumberFormat('en-UG',{maximumFractionDigits:format === 'percent' ? 1 : 0}).format(value)}${format === 'percent' ? '%' : ''}`;
+  return `${format === 'money' ? 'UGX ' : ''}${new Intl.NumberFormat('en-UG',{maximumFractionDigits:format === 'percent' ? 2 : 0}).format(value)}${format === 'percent' ? '%' : ''}`;
 }
 export type ReportDocument = { title: string; schoolName: string; schoolContact?: string; period: ReportPeriod; generatedAt: string; preparedBy: string; sections: ReportSection[]; includeDetails: boolean; notes?: string[] };

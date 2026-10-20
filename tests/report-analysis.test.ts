@@ -13,13 +13,13 @@ test('cash statement excludes reversed, duplicate and out-of-range receipts; sav
  assert.equal(figure('banking','Recorded pupil savings'),1000000);
 });
 test('fee collections retain academic allocations paid outside term dates without double counting IDs',()=>{
- assert.equal(figure('fees','Allocated collections'),120000);assert.equal(figure('fees','Assessed positive balances'),200000);assert.equal(validPayments(data.payments).length,2);
- assert.equal(buildReportSection('fees',data,period).tables.find(table=>table.title==='Fee allocation')?.rows[0][0],'Tuition');
+ assert.equal(figure('fees','Payments listed for the term'),120000);assert.equal(figure('fees','Fees still unpaid'),200000);assert.equal(validPayments(data.payments).length,2);
+ assert.equal(buildReportSection('fees',data,period).tables.find(table=>table.title==='What was the money paid for?')?.rows[0][0],'Tuition');
 });
 test('missing historical assessments are marked incomplete instead of showing fabricated school totals',()=>{
- const input={...data,assessments:{...data.assessments,missingHistorical:1}};assert.equal(figure('fees','Assessed fees',input),'Incomplete');assert.match(buildReportSection('fees',input,period).insights.join(' '),/missing historical/);
+ const input={...data,assessments:{...data.assessments,missingHistorical:1}};assert.equal(figure('fees','Fees pupils are expected to pay',input),'Not complete');assert.match(buildReportSection('fees',input,period).summary||'',/saved details for an earlier term are missing/);
 });
-test('full-year assessments stay separated by term instead of inventing one annual invoice',()=>{assert.equal(buildReportSection('fees',data,reportPeriod(reportYear,'')).metrics.find(metric=>metric.label==='Assessed fees')?.value,'By term');});
+test('full-year assessments stay separated by term instead of inventing one annual invoice',()=>{assert.equal(buildReportSection('fees',data,reportPeriod(reportYear,'')).metrics.find(metric=>metric.label==='Fees pupils are expected to pay')?.value,'See each term below');});
 test('attendance denominator uses marked pupil-days and includes late attendance',()=>{assert.equal(figure('attendance','Recorded attendance rate'),50);assert.equal(figure('attendance','Attendance records'),4);});
 test('academic averages normalize valid scores and preserve zero while excluding missed scores',()=>{
  assert.equal(figure('academics','Recorded subject scores'),2);assert.equal(figure('academics','Subject-score pass rate'),50);

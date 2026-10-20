@@ -1,8 +1,9 @@
-import { differenceInYears, parseISO, isValid } from 'date-fns';
 import type { ReportData, ReportSection, ReportSectionId, ReportPeriod, ReportValue, ReportMetric } from './report-model';
 import { REPORT_SECTIONS, reportNumber as n, reportDate, inReportPeriod } from './report-model';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { selectBudgetsForPeriod } from '@/lib/utils/procurement-selectors';
+import { buildFeesReport, buildUniformReport } from './financial-report-analysis';
+import { buildEnrollmentReport, buildStaffReport } from './school-people-analysis';
 
 const sum=<T,>(items:T[],fn:(item:T)=>unknown)=>items.reduce((total,item)=>total+n(fn(item)),0);
 const pct=(value:number,total:number)=>total?Math.round(value/total*1000)/10:0;
@@ -21,35 +22,8 @@ export function buildReportSection(id:ReportSectionId,data:ReportData,period:Rep
   const report:ReportSection={id,title:definition.title,description:definition.description,metrics:[],insights:[],notes:[],tables:[]};
   const table=(title:string,columns:string[],rows:ReportValue[][],moneyColumns?:number[],detail=false)=>report.tables.push({title,columns,rows,moneyColumns,detail});
   switch(id){
-    case 'enrollment': {
-      const active=data.pupils.filter(p=>p.status==='Active'), missingDob=active.filter(p=>!p.dateOfBirth || !isValid(parseISO(p.dateOfBirth))).length;
-      const missingContact=active.filter(p=>!p.guardians?.some(g=>g.phone)).length;
-      report.metrics=[metric('Active pupils',active.length),metric('Classes',data.classes.length),metric('New registrations',data.pupils.filter(p=>inReportPeriod(p.registrationDate,period)).length),metric('Boarding pupils',active.filter(p=>p.section==='Boarding').length)];
-      table('Class enrollment',['Class','Pupils','Male','Female','Day','Boarding'],data.classes.map(cls=>{const pupils=active.filter(p=>p.classId===cls.id);return [cls.code||cls.name,pupils.length,pupils.filter(p=>p.gender==='Male').length,pupils.filter(p=>p.gender==='Female').length,pupils.filter(p=>p.section==='Day').length,pupils.filter(p=>p.section==='Boarding').length];}));
-      table('Pupil status',['Status','Records'],groups(data.pupils,p=>p.status));
-      const ages=active.flatMap(p=>{const dob=p.dateOfBirth?parseISO(p.dateOfBirth):null;return dob&&isValid(dob)&&dob<=now?[differenceInYears(now,dob)]:[];});
-      table('Age groups',['Age','Pupils'],groups(ages,age=>age<6?'Under 6':age<9?'6-8':age<12?'9-11':age<15?'12-14':'15+'));
-      report.insights=[`${missingDob} active pupils have no valid date of birth.`,`${missingContact} active pupils have no recorded guardian phone number.`,`${active.filter(p=>!data.classes.some(cls=>cls.id===p.classId)).length} active pupils have no matching class record.`];
-      report.notes=['Enrollment, age and boarding figures are current saved records; new registrations use the selected date range. Historical class membership is not inferred.'];break;
-    }
-    case 'fees': {
-      const all=data.payments, payments=validPayments(all), pupils=new Map(data.pupils.map(p=>[p.id,p]));
-      const paid=sum(payments,p=>p.amount),payers=new Set(payments.map(p=>p.pupilId));
-      report.metrics=[metric('Allocated collections',paid,'money'),metric('Pupils with payments',payers.size),metric('Payment allocations',payments.length),metric('Reverted allocations',all.filter(p=>p.reverted).length)];
-      table('Collections by current class',['Class','Pupils paid','Collected (UGX)'],groups(payments,p=>pupils.get(p.pupilId)?.classCode||pupils.get(p.pupilId)?.className||'Unknown / historical pupil',p=>n(p.amount)).map(([cls,amount])=>[cls,new Set(payments.filter(p=>(pupils.get(p.pupilId)?.classCode||pupils.get(p.pupilId)?.className||'Unknown / historical pupil')===cls).map(p=>p.pupilId)).size,amount]),[2]);
-      const feeNames=new Map(data.feeStructures.map(fee=>[fee.id,fee.name]));
-      table('Fee allocation',['Fee item','Collected (UGX)'],groups(payments,p=>feeNames.get(p.feeStructureId)||p.feeStructureId,p=>n(p.amount)),[1]);
-      table('Collections by month',['Month','Collected (UGX)'],groups(payments,p=>reportDate(p.paymentDate).slice(0,7)||'Date unavailable',p=>n(p.amount)).sort((a,b)=>a[0].localeCompare(b[0])),[1]);
-      const perPupil=groups(payments,p=>p.pupilId,p=>n(p.amount));
-      table('Pupil payment summary',['Pupil','Admission','Current class','Allocated (UGX)'],perPupil.map(([id,amount])=>{const p=pupils.get(id);return [p?name(p):id,p?.admissionNumber||'-',p?.classCode||p?.className||'-',amount];}),[3],true);
-      const assessed=data.assessments,complete=assessed.missingHistorical===0;
-      report.metrics.push(metric('Assessed fees',complete?(period.termId?sum(assessed.rows,row=>row.assessed):'By term'):'Incomplete','money'),metric('Assessed positive balances',complete?(period.termId?sum(assessed.rows,row=>row.balance):'By term'):'Incomplete','money'));
-      table('Assessed fees by class and term',['Class','Term','Assessed (UGX)','Applied payments (UGX)','Balance (UGX)'],[...new Set(assessed.rows.map(row=>`${row.className}::${row.termName}`))].map(key=>{const rows=assessed.rows.filter(row=>`${row.className}::${row.termName}`===key);return [rows[0].className,rows[0].termName,sum(rows,row=>row.assessed),sum(rows,row=>row.paid),sum(rows,row=>row.balance)];}),[2,3,4]);
-      table('Outstanding assessed fees',['Pupil','Admission','Class','Term','Balance (UGX)'],assessed.rows.filter(row=>row.balance>0).sort((a,b)=>b.balance-a.balance).map(row=>[row.pupilName,row.admission,row.className,row.termName,row.balance]),[4],true);
-      report.insights=[`${all.filter(p=>p.reverted).length} reverted allocations are excluded from collection totals.`,`${payments.filter(p=>!inReportPeriod(p.paymentDate,period)).length} allocations were paid outside the selected academic dates; they remain assigned to this period.`];
-      if(!complete)report.insights.push(`${assessed.missingHistorical} pupil-term assessments are missing historical snapshots. Headline assessment totals are incomplete; supporting rows cover only available snapshots.`);
-      report.notes=['Fee collections follow the selected academic year/term allocation, regardless of payment date. Assessed fees are calculated separately below using saved fee and discount rules; receipts can include allocations outside those assessed items. Current receipt class labels can differ from a pupil\'s historical class. Assessment rows use historical snapshots for ended terms; carry-forward arrears outside the selected period are not included.','Full-year assessments are presented by term rather than combined into an annual invoice; recurring or yearly items must be interpreted using their term applicability. Multiple allocations from one payment operation remain separate fee rows. Rows are deduplicated by record ID only.'];break;
-    }
+    case 'enrollment': return buildEnrollmentReport(data,period,now);
+    case 'fees': return buildFeesReport(data,period,now);
     case 'finance': {
       const payments=validPayments(data.cashPayments).filter(p=>inReportPeriod(p.paymentDate,period)), purchases=acceptedPurchases(data.purchases), income=sum(payments,p=>p.amount),spend=sum(purchases,p=>p.totalCost),salaries=n(data.payroll.totalAmount),expenditure=spend+salaries;
       report.metrics=[metric('Recorded fee receipts',income,'money'),metric('Recorded expenditure',expenditure,'money'),metric('Receipts less expenditure',income-expenditure,'money'),metric('Salary payments',salaries,'money')];
@@ -88,14 +62,7 @@ export function buildReportSection(id:ReportSectionId,data:ReportData,period:Rep
       report.insights=[`${data.exams.filter(e=>e.status==='Completed' && !data.results.find(row=>row.exam.id===e.id)?.result).length} completed exams have no result record.`,`${missed} subject entries are marked missed and are excluded from score averages.`];
       report.notes=['Subject averages use valid numeric scores normalized to each subject/exam maximum. Pass rates count subject scores, not pupils; different exams can include the same pupil. Commentary-only nursery assessments are not converted into numeric scores.'];break;
     }
-    case 'staff': {
-      const active=data.staff.filter(s=>s.status==='active'||s.status==='onLeave'), roles=data.staff.flatMap(member=>(Array.isArray(member.role)?member.role:[String(member.role||'Other')]).map(role=>({role})));
-      report.metrics=[metric('Staff records',data.staff.length),metric('Active / on leave',active.length),metric('On leave',data.staff.filter(s=>s.status==='onLeave').length),metric('Without contact',data.staff.filter(s=>!s.contactNumber && !s.email).length)];
-      table('Staff status',['Status','Staff'],groups(data.staff,s=>s.status||'Not recorded'));table('Staff by role',['Role','Staff assignments'],groups(roles,s=>s.role));
-      table('Departments',['Department','Staff assignments'],groups(data.staff.flatMap(s=>(s.department||[]).map(department=>({department}))),s=>s.department));
-      table('Contract type',['Contract','Staff'],groups(data.staff,s=>s.contractType||'Not recorded'));
-      report.notes=['Staff counts are current saved records. A staff member can have multiple roles/departments, so assignment totals may exceed staff headcount.'];break;
-    }
+    case 'staff': return buildStaffReport(data,period,now);
     case 'payroll': {
       const payroll=data.payroll;report.metrics=[metric('Salary payments',n(payroll.totalAmount),'money'),metric('Payments',n(payroll.paymentCount)),metric('Staff paid',n(payroll.staffPaidCount)),metric('Average payment',payroll.paymentCount?payroll.totalAmount/payroll.paymentCount:0,'money')];
       table('Salary spend by method',['Method','Payments','Amount (UGX)'],(payroll.paymentMethods||[]).map(row=>[row.method,row.paymentCount,row.amount]),[2]);
@@ -119,12 +86,7 @@ export function buildReportSection(id:ReportSectionId,data:ReportData,period:Rep
       report.insights=[`${rows.filter(r=>r.paymentStatus==='paid' && r.releaseStatus!=='released').length} paid requirement records have not been released.`];
       report.notes=['Academic-period tracking snapshot. Paid amounts are cumulative values on tracking records, not cash received within the date range. In-kind quantities use different items/units and are not added together. These amounts are not added to the income statement.'];break;
     }
-    case 'uniforms': {
-      const rows=data.uniforms,due=sum(rows,r=>r.finalAmount),paid=sum(rows,r=>r.paidAmount);report.metrics=[metric('Uniform records',rows.length),metric('Order value',due,'money'),metric('Recorded payments',paid,'money'),metric('Positive balances',sum(rows,r=>Math.max(0,n(r.finalAmount)-n(r.paidAmount))),'money')];
-      table('Payment status',['Status','Records'],groups(rows,r=>r.paymentStatus));table('Collection status',['Status','Records'],groups(rows,r=>r.collectionStatus));
-      report.insights=[`${rows.filter(r=>r.paymentStatus==='paid' && r.collectionStatus!=='collected').length} paid uniform records are not fully collected.`];
-      report.notes=['Academic-period tracking snapshot. Payments are cumulative tracking values, not date-based cash receipts. Final order amounts include saved discounts. These payments are not added again to the income statement.'];break;
-    }
+    case 'uniforms': return buildUniformReport(data,period,now);
     case 'inventory': {
       const rows=data.inventory.filter(item=>item.isActive),low=rows.filter(item=>item.reorderLevel!==undefined && n(item.quantity)<=n(item.reorderLevel));
       report.metrics=[metric('Active stock items',rows.length),metric('Recorded asset value',sum(rows,item=>item.totalValue),'money'),metric('At / below reorder',low.length),metric('Out of stock',rows.filter(item=>n(item.quantity)<=0).length)];

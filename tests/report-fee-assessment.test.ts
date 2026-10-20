@@ -14,6 +14,15 @@ test('fee report assessment uses fee-engine amounts and payment application',asy
 test('pupils registered after a term are not retrospectively charged',async()=>{
  const result=await assessReportFees([{...pupil,registrationDate:'2101-01-01'}],[fee],[],reportPeriod(year,'term'));assert.equal(result.rows.length,0);
 });
+
+test('fee assessment keeps an extra payment on one item separate from another unpaid item',async()=>{
+ const second={...fee,id:'meals',name:'Meals',amount:50000};
+ const payment={id:'over',pupilId:'p1',feeStructureId:'tuition',academicYearId:'future',termId:'term',amount:310000,paymentDate:'2100-10-01'} as any;
+ const result=await assessReportFees([pupil],[fee,second],[payment],reportPeriod(year,'term'));
+ assert.equal(result.rows[0].assessed,350000);assert.equal(result.rows[0].paid,310000);
+ assert.equal(result.rows[0].balance,50000);assert.equal(result.rows[0].extra,10000);
+ assert.deepEqual(result.rows[0].paymentIds,['over']);assert.equal(result.rows[0].lastPaymentDate,'2100-10-01');
+});
 test('missing historical snapshots are reported without creating or substituting snapshots',async()=>{
  const original=PupilSnapshotsService.getActiveSnapshotsForTerm;PupilSnapshotsService.getActiveSnapshotsForTerm=async()=>[];
  try{const past={...year,id:'past',name:'2000',startDate:'2000-01-01',endDate:'2000-12-31',terms:[{...year.terms[0],startDate:'2000-09-01',endDate:'2000-12-10'}]};
@@ -22,8 +31,8 @@ test('missing historical snapshots are reported without creating or substituting
 });
 
 test('historical assessment labels follow the saved class ID instead of current denormalized labels',async()=>{
- const original=PupilSnapshotsService.getActiveSnapshotsForTerm;PupilSnapshotsService.getActiveSnapshotsForTerm=async()=>[{pupilId:'p1',classId:'p6',section:'Boarding',admissionNumber:'TF/001'}] as any;
+ const original=PupilSnapshotsService.getActiveSnapshotsForTerm;PupilSnapshotsService.getActiveSnapshotsForTerm=async()=>[{pupilId:'p1',classId:'p6',section:'Boarding',admissionNumber:'OLD/001'}] as any;
  try{const past={...year,id:'past',name:'2000',startDate:'2000-01-01',endDate:'2000-12-31',terms:[{...year.terms[0],startDate:'2000-09-01',endDate:'2000-12-10'}]};
- const result=await assessReportFees([{...pupil,registrationDate:'1999-01-01'}],[],[],reportPeriod(past,'term'),[past],[{id:'p6',code:'P.6',name:'Primary Six'}] as any);assert.equal(result.rows[0].className,'P.6');
+ const result=await assessReportFees([{...pupil,registrationDate:'1999-01-01',streamName:'Current stream'}],[],[],reportPeriod(past,'term'),[past],[{id:'p6',code:'P.6',name:'Primary Six'}] as any);assert.equal(result.rows[0].className,'P.6');assert.equal(result.rows[0].admission,'OLD/001');
  }finally{PupilSnapshotsService.getActiveSnapshotsForTerm=original;}
 });

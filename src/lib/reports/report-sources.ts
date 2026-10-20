@@ -63,6 +63,7 @@ export async function loadReportSource<S extends ReportSourceId>(source:S, conte
     }
     case 'requirements': result=await academicRecords<RequirementTracking>('requirement-tracking',period);break;
     case 'uniforms': result=await academicRecords<UniformTracking>('uniformTracking',period);break;
+    case 'uniformItems': { const snapshot=await getDocs(collection(db,'uniforms'));result=snapshot.docs.map(doc=>({...doc.data(),id:doc.id}) as ReportData['uniformItems'][number]);break; }
     case 'inventory': { const snapshot=await getDocs(collection(db,'inventoryItems'));result=snapshot.docs.map(doc=>({...doc.data(),id:doc.id}) as ReportData['inventory'][number]);break; }
     case 'banking': result=await (await import('@/lib/services/banking.service')).BankingService.getAllAccounts();break;
     case 'exams': {
