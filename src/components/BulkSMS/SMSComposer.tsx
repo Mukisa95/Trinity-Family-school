@@ -13,6 +13,7 @@ export interface SMSComposerHandle {
   markBalanceSelection: () => void;
 }
 interface Props {
+  fieldLabels?:Partial<Record<SMSField,string>>;
   id: string;
   value: string;
   onChange: (value: string) => void;
@@ -25,7 +26,7 @@ interface Props {
 const newId = () => `sms-${crypto.randomUUID()}`;
 const selectClass = 'min-h-10 w-full rounded-md border border-input bg-background px-2 text-sm';
 
-function build(parts: SMSPart[]): DocumentFragment {
+function build(parts: SMSPart[],labels:Partial<Record<SMSField,string>>={}): DocumentFragment {
   const fragment = document.createDocumentFragment();
   for (const part of parts) {
     if (part.type === 'text') { fragment.append(document.createTextNode(part.text)); continue; }
@@ -42,8 +43,8 @@ function build(parts: SMSPart[]): DocumentFragment {
       const variant = part.format.name && part.format.name !== 'all' ? part.format.name === 'both' ? 'Surname + first' : part.format.name === 'surname' ? 'Surname' : 'First name'
         : part.field === 'class' && part.format.class === 'code' ? 'Code'
           : part.field === 'term' && part.format.term && part.format.term !== 'original' ? ({ words: 'Term One', number: 'Term 1', short: 'T 1' }[part.format.term]) : '';
-      button.textContent = `${smsFieldLabel(part.field)}${variant ? ` · ${variant}` : ''} ▾`;
-      button.setAttribute('aria-label', `Format ${smsFieldLabel(part.field)}`);
+      button.textContent = `${labels[part.field]||smsFieldLabel(part.field)}${variant ? ` · ${variant}` : ''} ▾`;
+      button.setAttribute('aria-label', `Format ${labels[part.field]||smsFieldLabel(part.field)}`);
       fragment.append(button);
     } else {
       const section = document.createElement('span');
@@ -53,7 +54,7 @@ function build(parts: SMSPart[]): DocumentFragment {
       button.dataset.smsConditionControl = 'true';
       button.setAttribute('aria-label', 'Edit balance condition');
       button.className += ' !border-amber-300 !bg-amber-100 !text-amber-950 dark:!border-amber-700 dark:!bg-amber-900 dark:!text-amber-100';
-      section.append(button, build(part.children));
+      section.append(button, build(part.children,labels));
       fragment.append(section);
     }
   }
@@ -78,7 +79,7 @@ function readNodes(parent: Node): SMSPart[] {
 }
 
 /** DOM-owned editing keeps the caret stable; storage and sending use a validated document. */
-export const SMSComposer = forwardRef<SMSComposerHandle, Props>(function SMSComposer({ value, onChange, placeholder = 'Type your message…', ...props }, ref) {
+export const SMSComposer = forwardRef<SMSComposerHandle, Props>(function SMSComposer({ value, onChange, placeholder = 'Type your message…',fieldLabels, ...props }, ref) {
   const root = useRef<HTMLDivElement>(null);
   const lastValue = useRef<string>();
   const savedRange = useRef<Range | null>(null);
@@ -90,11 +91,11 @@ export const SMSComposer = forwardRef<SMSComposerHandle, Props>(function SMSComp
   const historyIndex = useRef(-1);
 
   const render = useCallback((next: string) => {
-    root.current?.replaceChildren(build(readSMSDocument(next).parts));
+    root.current?.replaceChildren(build(readSMSDocument(next).parts,fieldLabels));
     lastValue.current = next;
     savedRange.current = null;
     setEmpty(!smsDocumentText(next));
-  }, []);
+  }, [fieldLabels]);
   const remember = useCallback((next: string) => {
     if (history.current[historyIndex.current] === next) return;
     history.current = history.current.slice(0, historyIndex.current + 1);
@@ -144,7 +145,7 @@ export const SMSComposer = forwardRef<SMSComposerHandle, Props>(function SMSComp
     const range = restore();
     if (!range) return;
     range.deleteContents();
-    const fragment = build(parts);
+    const fragment = build(parts,fieldLabels);
     const last = fragment.lastChild;
     range.insertNode(fragment);
     if (last) { range.setStartAfter(last); range.collapse(true); }
@@ -168,7 +169,7 @@ export const SMSComposer = forwardRef<SMSComposerHandle, Props>(function SMSComp
     }
     const selected = range.extractContents();
     const children = readNodes(selected);
-    const section = build([{ type: 'balance', id: newId(), children }]);
+    const section = build([{ type: 'balance', id: newId(), children }],fieldLabels);
     const last = section.lastChild!;
     range.insertNode(section);
     range.setStartAfter(last); range.collapse(true);
@@ -185,7 +186,7 @@ export const SMSComposer = forwardRef<SMSComposerHandle, Props>(function SMSComp
   function updateFormat(format: SMSFieldFormat) {
     if (!active?.field || !activeElement.current) return;
     const element = activeElement.current;
-    const replacement = build([{ type: 'field', id: active.id, field: active.field, format }]).firstChild as HTMLElement;
+    const replacement = build([{ type: 'field', id: active.id, field: active.field, format }],fieldLabels).firstChild as HTMLElement;
     element.replaceWith(replacement);
     activeElement.current = replacement;
     setActive({ ...active, format });
@@ -264,8 +265,8 @@ export const SMSComposer = forwardRef<SMSComposerHandle, Props>(function SMSComp
       {notice && <p role="status" className="mt-1 text-xs text-muted-foreground">{notice}</p>}
       <Popover open={Boolean(active)} onOpenChange={open => { if (!open) setActive(null); }}>
         <PopoverAnchor virtualRef={activeElement} />
-        <PopoverContent align="start" className="max-h-[65dvh] w-72 space-y-3 overflow-y-auto" aria-label={active?.field ? `Format ${smsFieldLabel(active.field)}` : 'Balance condition'} onCloseAutoFocus={event => { event.preventDefault(); restore(); }}>
-          <p className="text-sm font-semibold">{active?.field ? smsFieldLabel(active.field) : 'Only with a balance'}</p>
+        <PopoverContent align="start" className="max-h-[65dvh] w-72 space-y-3 overflow-y-auto" aria-label={active?.field ? `Format ${fieldLabels?.[active.field]||smsFieldLabel(active.field)}` : 'Balance condition'} onCloseAutoFocus={event => { event.preventDefault(); restore(); }}>
+          <p className="text-sm font-semibold">{active?.field ? fieldLabels?.[active.field]||smsFieldLabel(active.field) : 'Only with a balance'}</p>
           {active?.field ? <>
             {['pupil_name', 'guardian_name'].includes(active.field) && choice('Name format', 'name', FEES_SMS_NAME_FORMATS, 'all')}
             {active.field === 'class' && choice('Class format', 'class', [['name', 'Class name'], ['code', 'Class code'], ['both', 'Name and code']], 'name')}

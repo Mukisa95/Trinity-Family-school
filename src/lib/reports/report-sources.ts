@@ -7,7 +7,7 @@ import type { ReportData, ReportPeriod, ReportSourceId } from './report-model';
 import { reportDate, inReportPeriod } from './report-model';
 import { circumferenceCacheSuffix } from '@/lib/access/circumference-session';
 
-export type ReportLoadContext = { user: SystemUser; period: ReportPeriod; queryClient: QueryClient; years?: AcademicYear[]; forceRefresh?: boolean };
+export type ReportLoadContext = { user: SystemUser; period: ReportPeriod; queryClient: QueryClient; years?: AcademicYear[]; forceRefresh?: boolean; networkMode?: 'online' | 'always' };
 /** Includes access changes so a narrowed session cannot reuse a wider report snapshot. */
 export function reportAccessScope(user: SystemUser) {
   return `${user.id}:${user.role}:${JSON.stringify([user.granularPermissions || [],(user as SystemUser & {permissions?:unknown}).permissions || []])}${circumferenceCacheSuffix(user.id)}`;
@@ -31,7 +31,7 @@ async function dateRecords<T>(name: string, field: string, period: ReportPeriod)
 }
 export async function loadReportSource<S extends ReportSourceId>(source:S, context:ReportLoadContext):Promise<ReportData[S]> {
   const {user,period,queryClient}=context;
-  const dependency = <K extends ReportSourceId>(id:K) => queryClient.fetchQuery({queryKey:reportSourceKey(id,context),queryFn:()=>loadReportSource(id,context),staleTime:0});
+  const dependency = <K extends ReportSourceId>(id:K) => queryClient.fetchQuery({queryKey:reportSourceKey(id,context),queryFn:()=>loadReportSource(id,context),staleTime:0,networkMode:context.networkMode});
   let result: ReportData[ReportSourceId];
   switch(source) {
     case 'pupils': {

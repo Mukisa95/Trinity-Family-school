@@ -38,7 +38,8 @@ export function PupilAttendanceForm({ eventId, event }: PupilAttendanceFormProps
   // Hooks
   const { data: allClasses = [] } = useClasses();
   const { data: allPupils = [] } = usePupilsByClass(selectedClassId);
-  const { recordedPupils = [] } = useRecordedPupils(eventId, selectedClassId);
+  const selectedClass=allClasses.find(cls=>cls.id===selectedClassId);
+  const { recordedPupils = [],recordedEntries=[],refetch:refetchRecorded } = useRecordedPupils(eventId, selectedClassId,selectedClass?.code,selectedClass?.name);
   const { recordAttendance, loading: isRecording, error } = useRecordPupilAttendance();
 
   // Get classes relevant to this event
@@ -52,8 +53,8 @@ export function PupilAttendanceForm({ eventId, event }: PupilAttendanceFormProps
   // Filter out pupils who already have attendance recorded
   const availablePupils = useMemo(() => {
     const recordedPupilIds = new Set(recordedPupils);
-    return allPupils.filter(pupil => !recordedPupilIds.has(pupil.id));
-  }, [allPupils, recordedPupils]);
+    return allPupils.filter(pupil => !recordedPupilIds.has(pupil.id)&&(event.planning?.kind!=='academic'||event.expectedAttendees?.includes(pupil.id)));
+  }, [allPupils, recordedPupils,event.planning,event.expectedAttendees]);
 
   const handleStatusChange = (pupilId: string, status: 'present' | 'absent' | 'late') => {
     setAttendanceStatuses(prev => ({
@@ -113,7 +114,7 @@ export function PupilAttendanceForm({ eventId, event }: PupilAttendanceFormProps
     }
 
     const attendanceRecords = Object.values(attendanceStatuses).filter(status => status.status);
-    
+
     if (attendanceRecords.length === 0) {
       alert('Please mark attendance for at least one pupil');
       return;
@@ -125,7 +126,7 @@ export function PupilAttendanceForm({ eventId, event }: PupilAttendanceFormProps
       const selectedClass = allClasses.find(cls => cls.id === selectedClassId);
       const formData: PupilAttendanceFormData = {
         classId: selectedClassId,
-        className: selectedClass?.name || '',
+        className: selectedClass?.code || selectedClassId,
         pupils: attendanceRecords.map(record => {
           const pupil = availablePupils.find(p => p.id === record.pupilId);
           return {
@@ -138,15 +139,16 @@ export function PupilAttendanceForm({ eventId, event }: PupilAttendanceFormProps
       };
 
       const success = await recordAttendance(eventId, event, formData);
-      
+
       if (success) {
+        refetchRecorded();
         // Reset form
         setAttendanceStatuses({});
         setGeneralNotes('');
       } else {
         throw new Error('Failed to record attendance');
       }
-      
+
     } catch (error) {
       console.error('Error submitting attendance:', error);
     } finally {
@@ -190,7 +192,7 @@ export function PupilAttendanceForm({ eventId, event }: PupilAttendanceFormProps
                 <SelectContent>
                   {eventClasses.map(cls => (
                     <SelectItem key={cls.id} value={cls.id}>
-                      {cls.name}
+                      {cls.code||cls.id}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -243,8 +245,8 @@ export function PupilAttendanceForm({ eventId, event }: PupilAttendanceFormProps
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  {allPupils.length === 0 
-                    ? "No pupils found in this class." 
+                  {allPupils.length === 0
+                    ? "No pupils found in this class."
                     : "All pupils in this class already have attendance recorded for this event."
                   }
                 </AlertDescription>
@@ -358,10 +360,10 @@ export function PupilAttendanceForm({ eventId, event }: PupilAttendanceFormProps
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {recordedPupils.map(record => (
+              {recordedEntries.map(record => (
                 <div key={record.pupilId} className="flex items-center justify-between p-2 bg-gray-50 rounded dark:bg-slate-900">
                   <span className="font-medium">{record.pupilName}</span>
-                  <Badge 
+                  <Badge
                     variant={
                       record.status === 'present' ? 'default' :
                       record.status === 'late' ? 'secondary' : 'destructive'
@@ -377,4 +379,4 @@ export function PupilAttendanceForm({ eventId, event }: PupilAttendanceFormProps
       )}
     </div>
   );
-} 
+}

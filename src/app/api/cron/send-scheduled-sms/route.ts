@@ -19,6 +19,7 @@ import { findAcademicYearForTermDate } from '@/lib/scheduler/academic-term-statu
 import { SCHEDULED_DISPATCH_QUEUE } from '@/lib/server/scheduled-dispatch-queue';
 import { dispatchFeeReminder, dispatchFeeReconciliation } from '@/lib/server/fee-reminders';
 import { FEE_REMINDER_COLLECTION } from '@/lib/fees/fee-reminders';
+import { dispatchEventSms,eventDispatchBlocked } from '@/lib/server/event-dispatch';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = false;
@@ -140,6 +141,7 @@ async function dispatchSms(sourceId: string, dueAt: Date): Promise<DispatchOutco
   const snapshot = await ref.get();
   const job = snapshot.data();
   if (!snapshot.exists || job?.status !== 'scheduled') return { terminal: true, reason: 'SMS schedule is no longer active.' };
+  if(job.eventPersonalised)return dispatchEventSms(ref,job,dueAt);
 
   const username = process.env.WIZA_SMS_USERNAME || '';
   const password = process.env.WIZA_SMS_PASSWORD || '';
@@ -186,6 +188,7 @@ async function dispatchPush(request: NextRequest, sourceId: string): Promise<Dis
   const ref = db.collection('scheduledNotifications').doc(sourceId);
   const snapshot = await ref.get();
   const job = snapshot.data();
+  if(job?.eventId){const reason=await eventDispatchBlocked(job);if(reason){await ref.update({status:'cancelled',lastError:reason});return {terminal:true,skipped:true,reason};}}
   if (!snapshot.exists || !['scheduled', 'processing'].includes(job?.status)) {
     return { terminal: true, reason: 'Push schedule is no longer active.' };
   }

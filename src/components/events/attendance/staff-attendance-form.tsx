@@ -55,11 +55,12 @@ export function StaffAttendanceForm({ eventId, event }: StaffAttendanceFormProps
 
   // Filter staff by department
   const filteredStaff = useMemo(() => {
+    const eligible=event.planning?.kind==='staff'?allStaff.filter(staff=>event.expectedAttendees?.includes(staff.id)):allStaff;
     if (selectedDepartment === 'all') {
-      return allStaff.filter((staff: Staff) => staff.status === 'active');
+      return eligible.filter((staff: Staff) => event.planning?.kind==='staff'?staff.status!=='inactive'&&staff.status!=='suspended':staff.status==='active');
     }
-    return allStaff.filter((staff: Staff) => {
-      if (staff.status !== 'active') return false;
+    return eligible.filter((staff: Staff) => {
+      if (event.planning?.kind==='staff'?staff.status==='inactive'||staff.status==='suspended':staff.status!=='active') return false;
       
       // Handle both old string format and new array format
       if (Array.isArray(staff.department)) {
@@ -68,7 +69,7 @@ export function StaffAttendanceForm({ eventId, event }: StaffAttendanceFormProps
         return staff.department === selectedDepartment;
       }
     });
-  }, [allStaff, selectedDepartment]);
+  }, [allStaff, selectedDepartment,event.planning,event.expectedAttendees]);
 
   const handleStatusChange = (staffId: string, status: 'present' | 'absent' | 'late') => {
     setAttendanceStatuses(prev => ({
@@ -126,8 +127,8 @@ export function StaffAttendanceForm({ eventId, event }: StaffAttendanceFormProps
           return {
             staffId: record.staffId,
             staffName: staff ? `${staff.firstName} ${staff.lastName}` : 'Unknown',
-            position: staff?.position || '',
-            department: staff?.department || '',
+            position: Array.isArray(staff?.role)?staff.role.join(', '):staff?.role||'',
+            department: Array.isArray(staff?.department)?staff.department.join(', '):staff?.department||'',
             email: staff?.email || '',
             status: record.status,
           };

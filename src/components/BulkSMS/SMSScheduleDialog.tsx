@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo,useEffect } from 'react';
+import { nextSmsRunAt,formatKampalaDate } from '@/lib/scheduler/schedule-times';
+import { validateEventTimes } from '@/lib/events/event-planning';
 import {
   Dialog,
   DialogContent,
@@ -69,6 +71,8 @@ export interface ScheduleJobPayload {
 }
 
 interface SMSScheduleDialogProps {
+  onSelectSchedule?: (entries:ScheduleEntry[])=>void;
+  initialEntries?:ScheduleEntry[];
   open: boolean;
   onClose: () => void;
   message: string;
@@ -89,7 +93,7 @@ interface SMSScheduleDialogProps {
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 function todayStr() {
-  return new Date().toISOString().split('T')[0];
+  return formatKampalaDate(new Date());
 }
 
 function toLocalDateTimeInput(dateStr: string) {
@@ -113,6 +117,8 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
   manualNumbers,
   walletBalance,
   pricePerSMS = 35,
+  onSelectSchedule,
+  initialEntries,
 }) => {
   const { toast } = useToast();
   // Step: 1 = pick type, 2 = configure, 3 = confirm
@@ -124,7 +130,7 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
   // Once
   const [onceDateTime, setOnceDateTime] = useState(() => {
     const d = new Date(Date.now() + 60 * 60 * 1000);
-    return d.toISOString().slice(0, 16);
+    return new Date(d.getTime()+3*3600000).toISOString().slice(0, 16);
   });
 
   // Weekly
@@ -134,13 +140,14 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
   const [weeklyEnd, setWeeklyEnd] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() + 1);
-    return d.toISOString().split('T')[0];
+    return formatKampalaDate(d);
   });
 
   // Multi-dates
   const [dateEntries, setDateEntries] = useState<ScheduleEntry[]>([
     { date: todayStr(), time: '08:00' },
   ]);
+  useEffect(()=>{if(open&&onSelectSchedule){setStep(1);setScheduleType('dates');setDateEntries(initialEntries?.length?initialEntries:[{date:todayStr(),time:'08:00'}]);}},[open]);
 
   // ─── Computed cost ─────────────────────────────────────────────────────────
 
@@ -185,6 +192,7 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
   // ─── Submit ────────────────────────────────────────────────────────────────
 
   async function submitSchedule(saveDraft: boolean) {
+    if(onSelectSchedule){handleConfirm();return;}
     setLoading(true);
     try {
       const status = saveDraft ? 'draft' : (canAfford ? 'scheduled' : 'draft');
@@ -239,6 +247,14 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
   }
 
   function handleConfirm() {
+    if(onSelectSchedule){
+      if(scheduleType==='dates'){const error=validateEventTimes(dateEntries);if(error){toast({title:'Check reminder times',description:error,variant:'destructive'});return;}}
+      const entries:ScheduleEntry[]=[];let after=new Date();
+      for(let i=0;i<51;i++){const next=nextSmsRunAt(scheduleType,buildSchedule() as unknown as Record<string,unknown>,after);if(!next)break;entries.push({date:formatKampalaDate(next),time:new Date(next.getTime()+3*3600000).toISOString().slice(11,16)});after=next;}
+      const error=validateEventTimes(entries);
+      if(error){toast({title:'Check reminder times',description:error,variant:'destructive'});return;}
+      onSelectSchedule(entries);onClose();return;
+    }
     if (canAfford === false) {
       setInsufficientOpen(true);
     } else {
@@ -268,7 +284,7 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-brand-ink-600 dark:text-brand-ink-400" />
-            Schedule SMS
+            {onSelectSchedule?'Reminder schedule':'Schedule SMS'}
             <Badge variant="outline" className="ml-auto text-xs">
               Step {step} of 3
             </Badge>

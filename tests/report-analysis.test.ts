@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { buildReportSection,validPayments } from '@/lib/reports/report-analysis';
-import { REPORT_SECTIONS,reportPeriod,reportDate,requiredReportSources,permittedReportSections,type ReportData } from '@/lib/reports/report-model';
+import { REPORT_SECTIONS,reportPeriod,reportDate,requiredReportSources,permittedReportSections,canPrintFeesCollectionReport,type ReportData } from '@/lib/reports/report-model';
 import { generateSchoolReportPdf } from '@/lib/reports/report-pdf';
 import { reportFixture as data,reportYear } from './fixtures/report-center';
 import type { SystemUser } from '@/types';
@@ -34,6 +34,14 @@ test('report sections require their own component permissions, not just Reports 
  const user={id:'staff',role:'Staff',isActive:true,granularPermissions:[{moduleId:'reports',pages:[{pageId:'reports',canAccess:true,actions:[]}]}]} as SystemUser;
  assert.deepEqual(permittedReportSections(user),[]);assert.equal(permittedReportSections({...user,role:'Admin'}).length,14);assert.deepEqual(permittedReportSections({...user,role:'Parent'}),[]);
  assert.deepEqual(requiredReportSources(['payroll']),['payroll']);assert.equal(new Set(requiredReportSources(['finance','payroll'])).size,3);
+});
+test('collection printing requires analytics access plus a collection or existing Reports print grant',()=>{
+ const staff={id:'staff',role:'Staff',isActive:true,granularPermissions:[{moduleId:'fees',pages:[{pageId:'analytics',canAccess:true,actions:[]}]}]} as SystemUser;
+ assert.equal(canPrintFeesCollectionReport(staff),false);
+ const collectionGrant=structuredClone(staff);collectionGrant.granularPermissions![0].pages[0].actions.push({actionId:'print_reports',allowed:true});assert.equal(canPrintFeesCollectionReport(collectionGrant),true);
+ const reportGrant=structuredClone(staff);reportGrant.granularPermissions!.push({moduleId:'reports',pages:[{pageId:'reports',canAccess:true,actions:[{actionId:'print_reports',allowed:true}]}]});assert.equal(canPrintFeesCollectionReport(reportGrant),true);
+ reportGrant.granularPermissions![0].pages[0].canAccess=false;assert.equal(canPrintFeesCollectionReport(reportGrant),false);
+ assert.equal(canPrintFeesCollectionReport({...collectionGrant,role:'Parent'}),false);assert.equal(canPrintFeesCollectionReport(null),false);
 });
 test('every component produces finite figures, source notes and supporting tables',()=>{
  for(const definition of REPORT_SECTIONS){const report=buildReportSection(definition.id,data,period);assert.ok(report.tables.length);assert.ok(report.notes.length);for(const item of report.metrics)assert.ok(typeof item.value==='string'||Number.isFinite(item.value));}

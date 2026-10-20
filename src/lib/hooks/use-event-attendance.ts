@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from '@/lib/access/scoped-firestore';
 import { db } from '@/lib/firebase';
+import { matchesAttendanceClass,mergePupilAttendance } from '@/lib/events/attendance-roster';
 import { useAuth } from '@/lib/contexts/auth-context';
 import type { 
   EventAttendanceDocument, 
@@ -208,6 +209,7 @@ export function useRecordPupilAttendance() {
         pupilId: pupil.pupilId,
         pupilName: pupil.pupilName,
         className: formData.className,
+        classId: formData.classId,
         status: pupil.status,
         recordedAt: new Date(),
         recordedBy: user.id
@@ -218,11 +220,7 @@ export function useRecordPupilAttendance() {
         const existingData = docSnap.data() as EventAttendanceDocument;
         
         // Remove existing pupil records from the same class to avoid duplicates
-        const filteredPupils = (existingData.pupils || []).filter(
-          p => p.className !== formData.className
-        );
-        
-        const updatedPupils = [...filteredPupils, ...newPupilEntries];
+        const updatedPupils = mergePupilAttendance(existingData.pupils||[],newPupilEntries);
         const summary = calculateSummary(
           updatedPupils,
           existingData.staff || [],
@@ -445,12 +443,14 @@ export function useRecordParentAttendance() {
 }
 
 // Hook to get already recorded pupils for a specific class (to filter them out)
-export function useRecordedPupils(eventId: string, classId: string) {
-  const [recordedPupils, setRecordedPupils] = useState<string[]>([]);
+export function useRecordedPupils(eventId: string, classId: string, classCode?:string, legacyClassName?:string) {
+  const [recordedEntries, setRecordedEntries] = useState<PupilAttendanceEntry[]>([]);
+  const [refresh,setRefresh]=useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!eventId || !classId) {
+      setRecordedEntries([]);
       setLoading(false);
       return;
     }
@@ -465,22 +465,21 @@ export function useRecordedPupils(eventId: string, classId: string) {
         if (docSnap.exists()) {
           const data = docSnap.data() as EventAttendanceDocument;
           const classPupils = (data.pupils || [])
-            .filter(p => p.className === classId)
-            .map(p => p.pupilId);
-          setRecordedPupils(classPupils);
+            .filter(p => matchesAttendanceClass(p,classId,classCode,legacyClassName));
+          setRecordedEntries(classPupils);
         } else {
-          setRecordedPupils([]);
+          setRecordedEntries([]);
         }
       } catch (err) {
         console.error('Error fetching recorded pupils:', err);
-        setRecordedPupils([]);
+        setRecordedEntries([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchRecordedPupils();
-  }, [eventId, classId]);
+  }, [eventId, classId,classCode,legacyClassName,refresh]);
 
-  return { recordedPupils, loading };
+  return { recordedPupils:recordedEntries.map(entry=>entry.pupilId),recordedEntries, loading,refetch:()=>setRefresh(value=>value+1) };
 }

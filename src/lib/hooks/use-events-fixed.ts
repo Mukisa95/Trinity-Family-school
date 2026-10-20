@@ -30,6 +30,7 @@ import type {
   CreateExamData
 } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { saveEventPlan } from '@/lib/events/save-event-plan';
 import { format } from 'date-fns';
 import { useAcademicNow, useAcademicYears } from './use-academic-years';
 import { useDashboardDataRevisions } from './use-school-settings';
@@ -100,6 +101,8 @@ const convertFirestoreEvent = (doc: any): Event => {
   const data = doc.data();
   return {
     id: doc.id,
+    planning:data.planning,
+    communicationRevision:data.communicationRevision,
     title: data.title || '',
     description: data.description || '',
     type: data.type || 'Academic',
@@ -507,6 +510,7 @@ export function useCreateEvent() {
   return useMutation({
     mutationFn: async (eventData: CreateEventData) => {
       try {
+        if(eventData.planning){const result=await saveEventPlan(eventData);return convertLocalEvent(result.event.id,result.event as unknown as Record<string,unknown>);}
         const data = convertToFirestoreData({
           ...eventData,
           createdBy: eventData.createdBy || user?.id || '',
@@ -567,6 +571,7 @@ export function useUpdateEvent() {
         const firestoreData = convertToFirestoreData(data);
         const cachedEvent = getCachedEvents(queryClient, scope)?.find(event => event.id === eventId);
         const existingEvent = cachedEvent ?? convertFirestoreEvent(await getDoc(docRef));
+        if(data.planning||existingEvent.planning){const result=await saveEventPlan({...data,planning:data.planning||existingEvent.planning},eventId);return convertLocalEvent(eventId,result.event as unknown as Record<string,unknown>);}
         const batch = writeBatch(db);
         batch.update(docRef, firestoreData);
 
@@ -1429,8 +1434,10 @@ export function useCreateExamFromEvent() {
       passingMarks: number;
       instructions?: string;
       existingExamIds?: string[]; // Optional: if provided, skip creating exams and use these IDs
+      eventSettings?:Partial<Event>;
     }) => {
       try {
+        if(eventData.eventSettings?.planning){const result=await saveEventPlan(eventData.eventSettings,undefined,{examTypeId:eventData.examTypeId,examNature:eventData.examNature,maxMarks:eventData.maxMarks,passingMarks:eventData.passingMarks,instructions:eventData.instructions||''});return {eventId:result.event.id,examIds:result.examIds};}
         let createdExamIds: string[];
         const createsExamDefinitions = !eventData.existingExamIds?.length;
         const firestoreBatch = writeBatch(db);

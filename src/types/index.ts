@@ -1972,6 +1972,8 @@ export interface EventNotificationRecord {
 // Main Event Interface
 export interface Event {
   id: string;
+  planning?: import('@/lib/events/event-planning').EventPlanning;
+  communicationRevision?: string;
   title: string;
   description?: string;
   type: EventType;

@@ -4,6 +4,7 @@ export type AttendanceStatus = 'present' | 'absent' | 'late' | 'delayed';
 
 // Individual record types for storing within the main document
 export interface PupilAttendanceEntry {
+  classId?:string;
   pupilId: string;
   pupilName: string;
   className: string;

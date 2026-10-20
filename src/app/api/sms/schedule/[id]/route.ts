@@ -33,7 +33,7 @@ async function authorisedJob(
     const snapshot = await transaction.get(ref);
     if (!snapshot.exists) return 'missing' as const;
     const data = snapshot.data() || {};
-    if (actor.user.role !== 'Admin' && data.createdBy !== actor.decoded.uid) return 'forbidden' as const;
+    if (actor.user.role !== 'Admin' && data.createdBy !== actor.decoded.uid && data.createdBy !== actor.user.id) return 'forbidden' as const;
     mutate({ db, transaction, ref, queueRef, data, actor });
     return 'updated' as const;
   });
@@ -53,7 +53,9 @@ export async function PATCH(
     if (!schedule) return NextResponse.json({ error: 'A valid schedule is required.' }, { status: 400 });
 
     let invalidSchedule = false;
+    let eventOwned = false;
     const result = await authorisedJob(request, id, ({ transaction, ref, queueRef, data }) => {
+      if(data.eventId){eventOwned=true;return;}
       const type = data.type as SmsScheduleType;
       const nextRunAt = nextSmsRunAt(type, schedule, new Date(Date.now() - 1000));
       if (!nextRunAt && data.status === 'scheduled') {
@@ -77,6 +79,7 @@ export async function PATCH(
         }, { merge: true });
       }
     });
+    if(eventOwned) return NextResponse.json({error:'Change event reminder dates from Events & Calendar so SMS and push stay together and approval is checked.'},{status:400});
     if (invalidSchedule) return NextResponse.json({ error: 'Choose at least one future SMS time.' }, { status: 400 });
     if (result.outcome === 'missing') return NextResponse.json({ error: 'Schedule not found.' }, { status: 404 });
     if (result.outcome === 'forbidden') return NextResponse.json({ error: 'You cannot edit this schedule.' }, { status: 403 });

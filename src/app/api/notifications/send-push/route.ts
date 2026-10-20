@@ -1,4 +1,5 @@
 import { CircumferenceError, requireScopedPupil, requireScopedClass } from '@/lib/server/circumference';
+import { eventDispatchBlocked } from '@/lib/server/event-dispatch';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
       }
       const jobSnapshot = await adminDb.collection('scheduledNotifications').doc(scheduledJobId).get();
       const job = jobSnapshot.data();
+      if(job?.eventId){const reason=await eventDispatchBlocked(job);if(reason)return NextResponse.json({error:reason},{status:409});}
       if (!jobSnapshot.exists || job?.status !== 'processing') {
         return NextResponse.json({ error: 'The scheduled notification is not ready for dispatch.' }, { status: 409 });
       }

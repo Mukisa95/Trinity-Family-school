@@ -60,13 +60,13 @@ export function PlanningFilters({ filters, onChange, years, classes, subjects, a
     </div>
     <FilterChoices label="Event type" selected={filters.types} options={['Academic', 'Co-curricular', 'Administrative', 'Holiday'].map(id => ({ id, name: id }))} onChange={ids => change('types', ids)} />
     <label className="flex min-h-11 cursor-pointer sm:min-h-9 items-center gap-2 text-[0.8125rem]"><Checkbox checked={filters.isExamEvent === true} onCheckedChange={checked => change('isExamEvent', checked ? true : undefined)} />Examinations only</label>
-    <FilterChoices label="Classes" searchable options={classes} selected={filters.classIds} onChange={ids => change('classIds', ids)} />
+    <FilterChoices label="Classes" searchable options={classes.map(cls=>({...cls,name:cls.code||cls.id}))} selected={filters.classIds} onChange={ids => change('classIds', ids)} />
     <FilterChoices label="Academic year" options={years} selected={filters.academicYearIds} onChange={ids => onChange({ ...filters, academicYearIds: ids, termIds: [] })} />
     <FilterChoices label="Academic term" options={terms} selected={filters.termIds} onChange={ids => change('termIds', ids)} />
     <details><summary className="cursor-pointer py-2 text-xs font-semibold">Status, subject & dates</summary>
       <div className="mt-3 space-y-5">
         <FilterChoices label="Status" options={['Scheduled', 'Ongoing', 'Completed', 'Draft', 'Cancelled'].map(id => ({ id, name: id }))} selected={filters.statuses} onChange={ids => change('statuses', ids)} />
-        <FilterChoices label="Subjects" searchable options={subjects} selected={filters.subjectIds} onChange={ids => change('subjectIds', ids)} />
+        <FilterChoices label="Subjects" searchable options={subjects.map(subject=>({...subject,name:subject.code||subject.id}))} selected={filters.subjectIds} onChange={ids => change('subjectIds', ids)} />
         <div className="space-y-2"><label className="block text-xs font-semibold">From date<Input type="date" aria-label="Filter from date" className="mt-2" value={filters.dateRange?.startDate || ''} onChange={event => change('dateRange', { ...filters.dateRange, startDate: event.target.value })} /></label>
           <label className="block text-xs font-semibold">To date<Input type="date" aria-label="Filter to date" className="mt-2" value={filters.dateRange?.endDate || ''} onChange={event => change('dateRange', { ...filters.dateRange, endDate: event.target.value })} /></label></div>
       </div>

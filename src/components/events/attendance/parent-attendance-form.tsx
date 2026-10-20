@@ -65,14 +65,15 @@ export function ParentAttendanceForm({ eventId, event }: ParentAttendanceFormPro
     
     const searchLower = pupilSearchTerm.toLowerCase().trim();
     const filteredPupils = allPupils.filter(pupil => {
-      return matchesPupilSearch(pupil, pupilSearchTerm, [allClasses.find(cls => cls.id === pupil.classId)?.name, pupil.id]);
+      if(event.planning?.kind==='parent'&&!event.expectedAttendees?.some(key=>key.startsWith(`parent:${pupil.id}:`)))return false;
+      return matchesPupilSearch(pupil, pupilSearchTerm, [allClasses.find(cls => cls.id === pupil.classId)?.code, pupil.id]);
     });
 
     return filteredPupils.slice(0, 10); // Limit to 10 results
-  }, [pupilSearchTerm, allPupils, allClasses]);
+  }, [pupilSearchTerm, allPupils, allClasses,event.planning,event.expectedAttendees]);
 
   const addPupilToSelection = (pupil: Pupil) => {
-    const className = allClasses.find(cls => cls.id === pupil.classId)?.name || 'Unknown Class';
+    const className = allClasses.find(cls => cls.id === pupil.classId)?.code || pupil.classCode || pupil.classId;
     const selectedPupil: SelectedPupil = {
       pupilId: pupil.id,
       pupilName: `${formatPupilDisplayName(pupil)}`,

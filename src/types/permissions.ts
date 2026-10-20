@@ -181,7 +181,8 @@ export const MODULE_ACTIONS = {
           { id: 'view_by_date', name: 'View by date', description: 'Can view date-based analysis' },
           { id: 'view_payment_details', name: 'View payment details', description: 'Can expand and view detailed payments' },
           { id: 'filter_data', name: 'Filter data', description: 'Can filter by year/term/period' },
-          { id: 'refresh_data', name: 'Refresh data', description: 'Can manually refresh analytics data' }
+          { id: 'refresh_data', name: 'Refresh data', description: 'Can manually refresh analytics data' },
+          { id: 'print_reports', name: 'Print collection reports', description: 'Can generate, print and download the fees collection analysis report' }
         ]
       },
       {
@@ -616,6 +617,7 @@ export const MODULE_ACTIONS = {
           { id: 'view_calendar', name: 'View calendar', description: 'Can see events calendar' },
           { id: 'view_events', name: 'View events', description: 'Can see event list' },
           { id: 'create_event', name: 'Create event', description: 'Can create new events' },
+          { id: 'approve_event', name: 'Approve events', description: 'Can approve or reject events and activate their reminders' },
           { id: 'edit_event', name: 'Edit event', description: 'Can edit event details' },
           { id: 'delete_event', name: 'Delete event', description: 'Can delete events' },
           { id: 'view_event_details', name: 'View event details', description: 'Can see detailed event information' },

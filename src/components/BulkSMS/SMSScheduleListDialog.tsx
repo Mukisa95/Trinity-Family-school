@@ -41,7 +41,10 @@ interface ScheduledJob {
   message: string;
   recipients: { resolvedPhones?: string[]; classes?: string[]; guardians?: string[] };
   schedule: Record<string, unknown>;
-  status: 'scheduled' | 'draft' | 'sent' | 'completed' | 'cancelled' | 'error';
+  status: 'scheduled' | 'draft' | 'held' | 'needs_review' | 'sent' | 'completed' | 'cancelled' | 'error';
+  eventId?:string;
+  nextRunAt?:string | {toDate:()=>Date};
+  lastError?:string;
   lockedAmount: number;
   estimatedSMSCount: number;
   estimatedCost: number;
@@ -58,6 +61,7 @@ interface SMSScheduleListDialogProps {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getNextRun(job: ScheduledJob): Date | null {
+  if(job.eventId){if(job.status!=='scheduled'||!job.nextRunAt)return null;return typeof job.nextRunAt==='string'?new Date(job.nextRunAt):job.nextRunAt.toDate();}
   const type = job.type as string;
   const schedule = (job.schedule ?? {}) as Record<string, unknown>;
   const now = new Date();
@@ -294,6 +298,9 @@ function JobCard({
           <Badge variant="outline" className="text-[10px] shrink-0 flex items-center gap-1">
             {typeIcon(job.type)} {typeLabel(job.type)}
           </Badge>
+          {job.eventId&&<Badge variant="outline" className="text-[10px]">Event reminder</Badge>}
+          {job.status==='held'&&<Badge variant="secondary" className="text-[10px]">Waiting for publication / approval</Badge>}
+          {job.status==='needs_review'&&<Badge variant="destructive" className="text-[10px]">Review delivery</Badge>}
           {job.status === 'draft' && (
             <Badge variant="secondary" className="text-[10px]">Draft</Badge>
           )}
@@ -317,6 +324,7 @@ function JobCard({
             <span>Created {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : '—'}</span>
           </div>
 
+          {job.status==='needs_review'&&<p role="alert" className="text-xs text-destructive">{job.lastError||'Check delivery with the SMS provider before sending again.'}</p>}
           {nextRun && (
             <div className="flex items-center gap-2 pb-1">
               <Clock className="h-3.5 w-3.5 text-gray-400 flex-shrink-0 dark:text-slate-400" />
@@ -325,7 +333,7 @@ function JobCard({
           )}
 
           <div className="flex justify-end gap-2 pt-1 border-t">
-            <Button size="sm" variant="ghost" className="h-7 text-xs text-brand-ink-600 hover:bg-brand-surface-50 dark:text-brand-ink-400 dark:hover:bg-brand-surface-950/40" onClick={() => setIsEditing(true)}>
+            <Button size="sm" variant="ghost" className="h-7 text-xs text-brand-ink-600 hover:bg-brand-surface-50 dark:text-brand-ink-400 dark:hover:bg-brand-surface-950/40" disabled={!!job.eventId} title={job.eventId?'Change reminders in Events & Calendar':undefined} onClick={() => setIsEditing(true)}>
               <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit Time
             </Button>
             <Button size="sm" variant="ghost" className="h-7 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40" onClick={() => onCancel(job.id)}>
@@ -519,7 +527,7 @@ export const SMSScheduleListDialog: React.FC<SMSScheduleListDialogProps> = ({ op
     }
   }
 
-  const upcoming = jobs.filter(j => ['scheduled', 'draft'].includes(j.status));
+  const upcoming = jobs.filter(j => ['scheduled', 'draft', 'held', 'needs_review'].includes(j.status));
   const history = jobs.filter(j => ['sent', 'completed', 'cancelled', 'error'].includes(j.status));
 
   return (

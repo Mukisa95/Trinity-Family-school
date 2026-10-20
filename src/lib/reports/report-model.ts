@@ -1,6 +1,7 @@
 import type { AcademicYear, AttendanceRecord, Class, Event, Exam, ExamResult, InventoryItem, PaymentRecord, ProcurementBudget, ProcurementPurchase, Pupil, Staff, Account, UniformTracking, UniformItem, RequirementTracking, TimetableEntry, TimetableProfile, SystemUser, FeeStructure } from '@/types';
 import type { PayrollSpendSummary } from '@/lib/payroll/payroll-accounting';
 import { canUseSidebarRoute } from '@/components/layout/sidebar-navigation';
+import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 
 export type ReportSectionId = 'enrollment' | 'fees' | 'finance' | 'attendance' | 'academics' | 'staff' | 'payroll' | 'procurement' | 'requirements' | 'uniforms' | 'inventory' | 'banking' | 'events' | 'timetable';
 export type ReportSourceId = 'pupils' | 'classes' | 'staff' | 'payments' | 'feeStructures' | 'assessments' | 'cashPayments' | 'attendance' | 'exams' | 'results' | 'purchases' | 'budgets' | 'payroll' | 'requirements' | 'uniforms' | 'uniformItems' | 'inventory' | 'banking' | 'events' | 'timetable';
@@ -37,6 +38,11 @@ export const REPORT_SECTIONS: ReportDefinition[] = [
 export function permittedReportSections(user: SystemUser | null) {
   if (!canUseSidebarRoute(user, '/reports')) return [];
   return REPORT_SECTIONS.filter(section => section.routes.every(route => canUseSidebarRoute(user, route)));
+}
+export function canPrintFeesCollectionReport(user:SystemUser|null):boolean {
+  return GranularPermissionService.canAccessPage(user,'fees','analytics')
+    && (GranularPermissionService.canPerformAction(user,'fees','analytics','print_reports')
+      || GranularPermissionService.canPerformAction(user,'reports','reports','print_reports'));
 }
 export function requiredReportSources(ids: ReportSectionId[]): ReportSourceId[] {
   return [...new Set(REPORT_SECTIONS.filter(section => ids.includes(section.id)).flatMap(section => section.sources))];

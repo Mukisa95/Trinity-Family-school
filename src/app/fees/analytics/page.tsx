@@ -25,6 +25,7 @@ import { AnimatedCurrency, AnimatedNumber, AnimatedPercentage } from '@/componen
 import { PaymentsService } from '@/lib/services/payments.service';
 import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
 import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
+import { FeesCollectionPrintButton } from '@/components/reports/fees-collection-print-button';
 
 export default function CollectionAnalyticsPage() {
   const router = useRouter();
@@ -94,8 +95,8 @@ export default function CollectionAnalyticsPage() {
     const term = activeYear.terms?.find(t => t.id === effectiveTermId);
     if (!term) return null;
     return {
-      startDate: term.startDate instanceof Date ? term.startDate : new Date(term.startDate),
-      endDate: term.endDate instanceof Date ? term.endDate : new Date(term.endDate)
+      startDate: new Date(term.startDate),
+      endDate: new Date(term.endDate)
     };
   }, [activeYear?.id, effectiveTermId]); // Use ID instead of whole object
 
@@ -483,6 +484,7 @@ export default function CollectionAnalyticsPage() {
     <div className="flex items-center gap-1.5 flex-wrap">
       {/* Year Selector */}
       <select
+        aria-label="Analytics academic year"
         value={activeYearId || ''}
         onChange={(e) => {
           setManualYearId(e.target.value);
@@ -499,6 +501,7 @@ export default function CollectionAnalyticsPage() {
 
       {/* Term Selector */}
       <select
+        aria-label="Analytics term"
         value={effectiveTermId}
         onChange={(e) => setManualTermId(e.target.value)}
         className="appearance-none h-[30px] rounded-full border border-brand-alt-200/60 bg-white/90 px-3 text-[10px] font-semibold text-brand-alt-ink-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-alt-400/50 cursor-pointer text-center dark:border-brand-alt-800/60 dark:bg-slate-900/90 dark:text-brand-alt-ink-300"
@@ -515,6 +518,7 @@ export default function CollectionAnalyticsPage() {
 
       {/* Analysis View Selector */}
       <select
+        aria-label="Collection analysis view"
         value={analysisView}
         onChange={(e) => {
           setAnalysisView(e.target.value as 'daily' | 'weekly' | 'term');
@@ -613,6 +617,7 @@ export default function CollectionAnalyticsPage() {
         className="mb-1.5"
         actions={
           <GlassActionDock>
+            <FeesCollectionPrintButton year={activeYear} termId={effectiveTermId} years={allYears} />
             <GlassActionButton
               label="Refresh"
               icon={<RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />}

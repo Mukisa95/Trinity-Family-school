@@ -16,11 +16,13 @@ interface Props {
   onInsertText: (text: string) => void;
   onConditional?: () => void;
   allowFees?: boolean;
+  allowedFields?:SMSField[];
+  fieldLabels?:Partial<Record<SMSField,string>>;
   children?: React.ReactNode;
 }
 
 /** The composer stays compact until the user explicitly opens these controls. */
-export function SMSCustomisation({ options, onChange, onInsertField, onInsertText, onConditional, allowFees = true, children }: Props) {
+export function SMSCustomisation({ options, onChange, onInsertField, onInsertText, onConditional, allowFees = true,allowedFields,fieldLabels, children }: Props) {
   const [expanded, setExpanded] = useState(false);
   const id = useId();
   return (
@@ -33,11 +35,11 @@ export function SMSCustomisation({ options, onChange, onInsertField, onInsertTex
           <div className="space-y-2">
             <p className="text-sm font-semibold">Insert automatic field</p>
             <div className="flex flex-wrap gap-1.5">
-              {FEES_SMS_FIELDS.filter(([field]) => allowFees || !SMS_FEE_FIELDS.has(field)).map(([field, label]) => <Button key={field} type="button" variant="outline" size="sm" onClick={() => onInsertField(field)} className="min-h-9 rounded-full px-3 text-xs">{label}</Button>)}
+              {FEES_SMS_FIELDS.filter(([field]) => (allowFees || !SMS_FEE_FIELDS.has(field))&&(!allowedFields||allowedFields.includes(field))).map(([field, label]) => <Button key={field} type="button" variant="outline" size="sm" onClick={() => onInsertField(field)} className="min-h-9 rounded-full px-3 text-xs">{fieldLabels?.[field]||label}</Button>)}
               <Button type="button" variant="outline" size="sm" onClick={() => onInsertText('\n')} className="min-h-9 rounded-full px-3 text-xs">New line</Button>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">Click an inserted field in your message to change its format. Fields are filled automatically for each pupil.</p>
+          <p className="text-xs text-muted-foreground">Click an inserted field in your message to change its format. Fields are filled automatically for each recipient.</p>
           {children}
           {allowFees && <>
           <div className="space-y-1.5">
