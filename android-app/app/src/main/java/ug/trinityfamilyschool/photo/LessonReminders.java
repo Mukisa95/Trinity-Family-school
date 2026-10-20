@@ -147,11 +147,10 @@ final class LessonReminders {
     }
     private static void post(Context context, LessonReminderPlan.Settings settings, String account, List<LessonReminderPlan.Event> events, long at, String token, boolean snoozed, ZoneId zone) {
         channels(context); StringBuilder lines = new StringBuilder();
-        // Event times were already resolved in the school's zone; display it explicitly.
+        java.text.DateFormat clock = android.text.format.DateFormat.getTimeFormat(context);
         for (int i = 0; i < Math.min(12, events.size()); i++) {
             LessonReminderPlan.Event event = events.get(i); if (i > 0) lines.append('\n');
-            lines.append(snoozed ? event.classLabel + " · " + event.subject : event.line()).append("\n").append(event.tableName).append(" · ").append(Instant.ofEpochMilli(event.start).atZone(zone).toLocalTime()).append("–").append(Instant.ofEpochMilli(event.end).atZone(zone).toLocalTime()).append(" ").append(zone.getId());
-            if (!event.teacher.isEmpty()) lines.append(" · ").append(event.teacher);
+            lines.append(event.notificationLine(snoozed, zone.getId(), clock));
         }
         if (events.size() > 12) lines.append("\n+").append(events.size()-12).append(" more lessons. Open timetable to view all.");
         Intent open = new Intent(context, MainActivity.class).putExtra("onlineRoute", PhotoPolicy.ORIGIN + "/timetable");
@@ -159,7 +158,7 @@ final class LessonReminders {
         PendingIntent options = PendingIntent.getActivity(context, 7243, new Intent(context, LessonReminderSettingsActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         String title = snoozed ? "Snoozed lesson reminder" : events.size() == 1 ? "Lesson reminder" : events.size() + " lesson reminders";
         NotificationCompat.Builder notification = new NotificationCompat.Builder(context, channel(settings.alert)).setSmallIcon(R.drawable.school_icon).setLargeIcon(SchoolApp.notificationLogo(context)).setColor(android.graphics.Color.rgb(0, 140, 69)).setContentTitle(title)
-            .setContentText(snoozed ? events.get(0).classLabel + " · " + events.get(0).subject : events.get(0).line()).setStyle(new NotificationCompat.BigTextStyle().bigText(lines.toString())).setContentIntent(tap)
+            .setContentText(events.get(0).notificationLine(snoozed, zone.getId(), clock)).setStyle(new NotificationCompat.BigTextStyle().bigText(lines.toString())).setContentIntent(tap)
             .setCategory(NotificationCompat.CATEGORY_REMINDER).setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setAutoCancel(true).setTimeoutAfter(30 * 60_000L)
             .addAction(0, "Snooze " + settings.snooze + " min", pending(context, intent(context, SNOOZE).putExtra("account", account).putExtra("at", at).putExtra("token", token), 7245))
             .addAction(0, "Settings", options);

@@ -1,22 +1,28 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { createRequire } from 'node:module';
-import { transformSync } from 'esbuild';
+import { fileURLToPath } from 'node:url';
+import { buildSync } from 'esbuild';
 import { renderToStaticMarkup } from 'react-dom/server';
 import * as download from '../src/lib/android/download';
 import releases from '../src/lib/android/app-releases.json';
 
 const require = createRequire(import.meta.url);
 async function pageFor(origin: string, projectId: string) {
-  const source = readFileSync(new URL('../src/app/download/page.tsx', import.meta.url), 'utf8');
+  // Bundle client children with the same automatic JSX runtime used by Next.
+  const source = buildSync({
+    entryPoints: [fileURLToPath(new URL('../src/app/download/page.tsx', import.meta.url))],
+    alias: { '@': fileURLToPath(new URL('../src', import.meta.url)), '@/lib/android/download': 'school-download-fixture' },
+    packages: 'external', bundle: true,
+    platform: 'node', format: 'cjs', jsx: 'automatic', write: false,
+  }).outputFiles[0].text;
   const module = { exports: {} as any };
-  runInNewContext(transformSync(source, { loader: 'tsx', format: 'cjs', jsx: 'automatic' }).code, {
+  runInNewContext(source, {
     module, exports: module.exports, console, process,
     require: (name: string) => {
       if (name === 'next/headers') return { headers: async () => new Headers({ host: new URL(origin).host, 'x-forwarded-proto': 'https' }) };
-      if (name === '@/lib/android/download') return { ...download, websiteFirebaseProjectId: () => projectId };
+      if (name === 'school-download-fixture') return { ...download, websiteFirebaseProjectId: () => projectId };
       return require(name);
     },
   });

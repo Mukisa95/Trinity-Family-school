@@ -23,6 +23,45 @@ public class LessonReminderPlanTest {
         data.put("teachers", new JSONObject().put("data", new JSONArray().put(new JSONObject().put("id", "a").put("name", "Teacher A")).put(new JSONObject().put("id", "b").put("name", "Teacher B")))); return data;
     }
     private LessonReminderPlan.Settings settings() throws Exception { return new LessonReminderPlan.Settings(new JSONObject().put("enabled", true).put("starts", true).put("ends", true).put("beforeStart", 5).put("beforeEnd", 5)); }
+    private JSONObject codedData() throws Exception {
+        JSONObject data = data();
+        data.getJSONObject("classes").getJSONArray("data").getJSONObject(0).put("code", "P4");
+        data.getJSONObject("classes").getJSONArray("data").getJSONObject(1).put("code", "P5");
+        data.getJSONObject("subjects").getJSONArray("data").getJSONObject(0).put("code", "ENG");
+        data.getJSONObject("subjects").getJSONArray("data").getJSONObject(1).put("code", "MTC");
+        return data;
+    }
+    @Test public void compactReminderAndSnoozeUseCodesWithoutNamesOrTeachersAndRespectPhoneClock() throws Exception {
+        LessonReminderPlan.Settings selected = settings(); selected.classes = Set.of("p4");
+        LessonReminderPlan.Event event = plan(codedData(), selected).stream().filter(row -> row.kind.equals("start")).findFirst().get();
+        assertEquals("P4 · ENG · starts now", event.line());
+        assertEquals("P4 · ENG · starts now · 08:00 – 10:00", event.notificationLine(false, "Africa/Kampala", new java.text.SimpleDateFormat("HH:mm", Locale.US)));
+        assertEquals("P4 · ENG · 8:00 AM – 10:00 AM", event.notificationLine(true, "Africa/Kampala", new java.text.SimpleDateFormat("h:mm a", Locale.US)));
+        for (boolean snoozed : new boolean[]{false, true}) {
+            String text = event.notificationLine(snoozed, "Africa/Kampala", new java.text.SimpleDateFormat("HH:mm", Locale.US));
+            assertFalse(text.contains("Primary Four")); assertFalse(text.contains("English")); assertFalse(text.contains("Teacher A"));
+            assertFalse(text.contains("Upper primary")); assertFalse(text.contains("\n"));
+        }
+        assertEquals("Teacher A", event.teacher); // Teacher filters and schedule identities still use the original data.
+    }
+    @Test public void compactReminderPreservesStreamCodesAndBothOptionalSubjectCodes() throws Exception {
+        JSONObject data = codedData(), table = data.getJSONObject("timetables").getJSONArray("data").getJSONObject(0);
+        table.getJSONObject("profile").put("streamLayouts", new JSONObject().put("p4", new JSONObject().put("defaultMode", "separate")));
+        table.getJSONArray("entries").getJSONObject(0).put("streamId", "north").put("optionalSubjectId", "math").put("optionalTeacherId", "b");
+        data.getJSONObject("classes").getJSONArray("data").getJSONObject(0).put("streams", new JSONArray().put(new JSONObject().put("id", "north").put("name", "North Wing").put("code", "NW")));
+        LessonReminderPlan.Settings selected = settings(); selected.classes = Set.of("p4"); selected.teachers = Set.of("b");
+        LessonReminderPlan.Event event = plan(data, selected).get(0);
+        assertEquals("P4 NW · ENG / MTC", event.compactLabel());
+        assertFalse(event.line().contains("Teacher")); assertFalse(event.line().contains("North Wing"));
+    }
+    @Test public void missingCodesUseCompactFallbacksAndActivitiesAndBreaksKeepTheirLabels() throws Exception {
+        LessonReminderPlan.Settings selected = settings(); selected.classes = Set.of("p4");
+        assertEquals("PF · ENG", plan(data(), selected).get(0).compactLabel());
+        selected.classes = null; selected.breaks = true;
+        List<LessonReminderPlan.Event> events = plan(codedData(), selected);
+        assertTrue(events.stream().anyMatch(row -> row.subject.equals("Reading club") && row.compactLabel().equals("P5 · Reading club")));
+        assertTrue(events.stream().anyMatch(row -> row.subject.equals("Break") && row.compactLabel().equals("Upper primary · Break")));
+    }
     private List<LessonReminderPlan.Event> plan(JSONObject data, LessonReminderPlan.Settings settings) throws Exception { return LessonReminderPlan.events(data, settings, time("2026-10-07T07:00:00"), time("2026-10-07T23:59:00").toInstant().toEpochMilli()); }
     @Test public void doubleLessonsHaveOneStartAndOneEndAndNoContinuationAlert() throws Exception {
         List<LessonReminderPlan.Event> events = plan(data(), settings());

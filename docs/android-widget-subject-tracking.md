@@ -1,10 +1,38 @@
 # Widget subject tracking and launcher shortcuts
 
+## Android 1.28 (code 30)
+
+This release adds class-first subject selection, compact teacher-free lesson
+notifications (including snoozed reminders), and widget content that adapts to
+launcher-reported sizes. Existing tracked subjects and card order are retained.
+The release also includes the current startup/offline reliability changes and
+an Android 8.0 launch-theme compatibility correction.
+
+Both permanently signed school releases passed all 96 release JVM tests and
+Android release lint with zero errors (108 existing warnings). School identities,
+signing certificates, shortcut targets, packaged reader names, APK hashes and
+embedded feature code were verified. All 27 download/update/event/notification
+contracts and 11 route-response/hosting-build checks passed. Device UI tests
+compiled during local validation; physical launcher and notification validation
+is still required. A website refresh does not install native changes: install
+the updated APK from the matching school's download page.
+
+| Android 1.28 app | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Trinity Ganda | 4720781 | `2db735c05861565d41b7fdd4d4ce1c352e9b4d0a332c69bf0b4dd64974db6345` |
+| Trinity Live | 4720721 | `54b6e21ffcf21d5507a9cdf21b9726db0d37806216396e024fdc7f6b5ac4347a` |
+
+## Widget settings and behaviour
+
 Both timetable widget providers hide the shared heading at every size. Individual
 lesson, class and event cards retain their own labels.
 
 Long-press a widget and open its launcher's widget configuration. Enable **Track
-selected subjects**, then select class/subject pairs. There is no selection count
+selected subjects**, choose a class, then select subjects within that class.
+Only that class's subjects are shown. Choose another class to add more; existing
+selections remain checked when switching classes. A per-class count summarizes
+all selected subjects, including those outside the currently visible class.
+Saved selections from earlier versions remain intact. There is no selection count
 limit. Each widget saves its own choices; full timetable cards remain the default.
 Tracked feeds load cards on demand rather than parceling every selected subject
 into every responsive widget size. **Show timetable cards alongside tracked
@@ -51,7 +79,9 @@ Android and launcher limits determine how many shortcuts appear in a particular
 menu; defining five cannot override the phone's limit. See the official
 [shortcut management documentation](https://developer.android.com/develop/ui/compose/system/shortcuts/managing-shortcuts).
 
-Current local validation covers clock formatting, today's lesson/end/midnight
+## Android 1.27 validation history
+
+Android 1.27 validation covered clock formatting, today's lesson/end/midnight
 states, mixed card ordering and saved-code fallback in JVM tests. Synthetic browser
 fixtures exercise the real header, Next router, service worker and packaged reader:
 warm and cold search, focused-editor bridge messages, safe route identifiers,
@@ -64,6 +94,18 @@ phone-clock formatting and compact text scaling. Instrumentation is compiled,
 not executed without a connected phone. Actual launcher task reuse, keyboard
 visibility and native widget appearance/scrolling still need device validation.
 
+Lesson reminder alerts, including snoozed and expanded text, use class/stream
+and subject codes without teacher names. Times use the phone's 12/24-hour format
+in the school's time zone. Teacher subscription filters remain available.
+
+Widget layouts follow the launcher's exact reported sizes on Android 12+ rather
+than six app-defined size presets. Older or third-party launchers without exact
+sizes use their portrait/landscape ranges. Chips reflow with available width and
+system text size, while the scrollable feed fills the chosen height. Both widgets
+can shrink to 120dp wide and 48dp high, with no app-defined maximum size. The
+launcher still determines its grid and actual resize increments; the app cannot
+override that grid to provide arbitrary pixel-by-pixel resizing.
+
 Both school debug APKs and instrumentation APKs built successfully. Each school
 passed all 84 JVM tests and Android lint with zero errors (108 warnings). Compiled
 APK inspection confirmed school-specific targets and the isolated shortcut task,
@@ -71,7 +113,7 @@ plus the new packaged reader handler. All browser checks above passed. Focused w
 comparisons found no new issues: six existing TypeScript diagnostics and nine
 existing ESLint errors remain unchanged.
 
-The authorized release packages these refinements as Android **1.27 (code 29)**
+The previous release packaged these refinements as Android **1.27 (code 29)**
 for both schools, together with the shared website shortcut handler. Install the
 updated school APK to receive native shortcut and widget changes. Existing school
 identities and permanent signing certificates are preserved.

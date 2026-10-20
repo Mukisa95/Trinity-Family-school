@@ -23,7 +23,7 @@ public final class TimetableSettingsActivity extends Activity {
     private LinearLayout orderPanel;
     private List<String> order = new ArrayList<>();
     private String timeZone = "Africa/Kampala";
-    private final Map<String, CheckBox> subjects = new LinkedHashMap<>();
+    private TrackedSubjectPicker subjectPicker;
     private final List<String> tableIds = new ArrayList<>();
     private final Map<String, CheckBox> visibility = new LinkedHashMap<>(); private Set<String> hidden;
     private TextView message, timing; private Button apply;
@@ -116,7 +116,7 @@ public final class TimetableSettingsActivity extends Activity {
     }
     private void apply() {
         try {
-            if (tracking != null && tracking.isChecked() && subjects.values().stream().noneMatch(CheckBox::isChecked)) {
+            if (tracking != null && tracking.isChecked() && subjectPicker.selectedKeys().isEmpty()) {
                 message.setVisibility(View.VISIBLE); message.setText("Choose at least one subject to track."); return;
             }
             if (((notificationCard != null && notificationCard.isChecked()) || (eventReminders != null && eventReminders.isChecked())) && android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -128,7 +128,7 @@ public final class TimetableSettingsActivity extends Activity {
             selected.put("accountId", accountId).put("hiddenTables", new JSONArray(chosenHidden));
             if (tracking != null) {
                 JSONArray chosen = new JSONArray();
-                for (Map.Entry<String, CheckBox> choice : subjects.entrySet()) if (choice.getValue().isChecked()) chosen.put(choice.getKey());
+                for (String key : subjectPicker.selectedKeys()) chosen.put(key);
                 selected.put("tracking", tracking.isChecked()).put("trackedSubjects", chosen);
                 selected.put("trackingWithTables", withTables.isChecked());
             }
@@ -153,7 +153,7 @@ public final class TimetableSettingsActivity extends Activity {
         tracking = new Switch(this); tracking.setText("Track selected subjects"); tracking.setMinHeight(dp(48));
         tracking.setChecked(TimetableSurfaces.tracking(this, widgetId)); content.addView(tracking);
         LinearLayout choices = new LinearLayout(this); choices.setOrientation(LinearLayout.VERTICAL); content.addView(choices);
-        TextView help = new TextView(this); help.setText("Choose subjects across classes for today. Compact cards use class and subject codes, without dates or teachers. Times follow your phone's 12/24-hour setting."); help.setPadding(0, dp(8), 0, dp(8)); choices.addView(help);
+        TextView help = new TextView(this); help.setText("Choose a class, then select its subjects for today. Repeat for any other classes. Compact cards use class and subject codes, without dates or teachers. Times follow your phone's 12/24-hour setting."); help.setPadding(0, dp(8), 0, dp(8)); choices.addView(help);
         withTables = new Switch(this); withTables.setText("Show timetable cards alongside tracked lessons"); withTables.setMinHeight(dp(48)); withTables.setChecked(TimetableSurfaces.trackingWithTables(this, widgetId)); choices.addView(withTables);
         withTables.setOnCheckedChangeListener((button, checked) -> { updateTableControls(); rebuildOrder(); });
         Set<String> saved = TimetableSurfaces.trackedSubjects(this, widgetId);
@@ -162,14 +162,8 @@ public final class TimetableSettingsActivity extends Activity {
             try { JSONArray pair = new JSONArray(id); available.put(id, TimetableSchedule.name(datasets, "classes", pair.getString(0)) + " · " + TimetableSchedule.name(datasets, "subjects", pair.getString(1)) + " (not in saved timetables)"); }
             catch (JSONException ignored) { }
         }
-        for (Map.Entry<String, String> entry : available.entrySet()) {
-            CheckBox check = new CheckBox(this); JSONArray pair = new JSONArray(entry.getKey());
-            check.setText(TrackedSubjects.code(datasets, "classes", pair.getString(0)) + " · " + TrackedSubjects.code(datasets, "subjects", pair.getString(1)));
-            check.setContentDescription(entry.getValue()); check.setMinHeight(dp(48)); check.setChecked(saved.contains(entry.getKey()));
-            choices.addView(check); subjects.put(entry.getKey(), check);
-            check.setOnCheckedChangeListener((button, checked) -> rebuildOrder());
-        }
-        if (available.isEmpty()) { TextView empty = new TextView(this); empty.setText("Connect and open Timetable to load subject choices."); choices.addView(empty); }
+        subjectPicker = new TrackedSubjectPicker(this, datasets, available, saved, this::rebuildOrder);
+        choices.addView(subjectPicker);
         choices.setVisibility(tracking.isChecked() ? View.VISIBLE : View.GONE);
         tracking.setOnCheckedChangeListener((button, checked) -> { choices.setVisibility(checked ? View.VISIBLE : View.GONE); updateTableControls(); rebuildOrder(); });
     }
@@ -191,7 +185,7 @@ public final class TimetableSettingsActivity extends Activity {
                 if (choice.getValue().isChecked()) cards.put("timetable:" + choice.getKey(), "Timetable · " + choice.getValue().getText());
             }
             if (tracking != null && tracking.isChecked()) {
-                Set<String> selected = new HashSet<>(); for (Map.Entry<String, CheckBox> choice : subjects.entrySet()) if (choice.getValue().isChecked()) selected.add(choice.getKey());
+                Set<String> selected = subjectPicker.selectedKeys();
                 for (TimetableSchedule.Frame row : TrackedSubjects.feed(datasets, selected, now, true).profiles) cards.put(WidgetFeedOrder.key(row), "Lesson · " + row.classCode + " · " + row.subjectCode);
             }
             cards.putAll(laterEvents);

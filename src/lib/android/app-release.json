@@ -6,13 +6,13 @@
   "websiteOrigin": "https://trinityfamilyschool.vercel.app",
   "firebaseProjectId": "trinity-family-schools",
   "iconUrl": "/trinity-logo-192.png",
-  "versionCode": 29,
-  "versionName": "1.27",
+  "versionCode": 30,
+  "versionName": "1.28",
   "minAndroid": "8.0",
   "filename": "trinity-live.apk",
-  "bytes": 4711545,
-  "sha256": "fd0c80baa67e9598fdb889868624bb1cdb4e221cf54cff3826ea903b92cf9240",
+  "bytes": 4720721,
+  "sha256": "54b6e21ffcf21d5507a9cdf21b9726db0d37806216396e024fdc7f6b5ac4347a",
   "signingCertificateSha256": "53:F5:25:7A:02:C4:B4:6C:33:47:E0:49:6F:67:36:55:1D:57:4F:44:91:56:44:D1:3C:02:79:22:BC:04:FC:08",
   "minSdk": 26,
-  "releaseNotes": "Reuse the running app for launcher shortcuts and open the keyboard for Search. Compact today's tracked lessons with class/subject codes and the phone's time format. Mix tracked lessons with timetable cards and arrange widget cards in your preferred order."
+  "releaseNotes": "Choose a class before selecting tracked subjects. Compact lesson notifications use class and subject codes without teacher names. Widgets fit launcher-provided sizes, reflow content and support smaller resize bounds. Includes startup and offline reliability improvements."
 }

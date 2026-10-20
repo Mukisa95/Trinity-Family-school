@@ -8,6 +8,7 @@ import type { SystemUser, Event } from '../src/types';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { transformSync } from 'esbuild';
+import { hasCircumference } from '../src/lib/access/circumference';
 const user: SystemUser={id:'events-staff',username:'Events',role:'Staff',isActive:true,createdAt:'2026-01-01',granularPermissions:[{moduleId:'events',pages:[{pageId:'calendar',canAccess:true,actions:[{actionId:'view_events',allowed:true}]}]}]};
 test('event-only staff access follows existing permission and identity scope',()=>{
   const session=createAndroidOfflineSession(user,[]);
@@ -42,6 +43,7 @@ test('the session endpoint negotiates native event support without changing auth
       if(name==='next/server') return {NextResponse:{json:(data:any)=>({data})}};
       if(name.endsWith('/app-auth')) return {requireAppUser:async()=>({user})};
       if(name.endsWith('/android-session-policy')) return {createAndroidOfflineSession};
+      if(name.endsWith('/access/circumference')) return {hasCircumference};
       return {};
     },
   });

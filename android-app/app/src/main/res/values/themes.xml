@@ -8,6 +8,5 @@
     <style name="TrinityLaunchTheme" parent="TrinityTheme">
         <item name="android:windowBackground">#111827</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowLightNavigationBar">false</item>
     </style>
 </resources>

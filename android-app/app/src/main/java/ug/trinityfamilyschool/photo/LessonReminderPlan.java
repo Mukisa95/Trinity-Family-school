@@ -50,9 +50,14 @@ final class LessonReminderPlan {
     static final class Event {
         long at, start, end;
         String identity, tableId, tableName, classLabel, subject, teacher, kind;
+        String classCode = "", subjectCode = "";
+        String compactLabel() { return (classCode.isEmpty() ? tableName : classCode) + " · " + subjectCode; }
         String line() {
             String verb = "start".equals(kind) ? "starts now" : "end".equals(kind) ? "ended" : "beforeStart".equals(kind) ? "starts in " + ((start-at)/60_000L) + " min" : "ends in " + ((end-at)/60_000L) + " min";
-            return (classLabel.isEmpty() ? tableName : classLabel) + " · " + subject + " · " + verb;
+            return compactLabel() + " · " + verb;
+        }
+        String notificationLine(boolean snoozed, String zone, java.text.DateFormat format) {
+            return (snoozed ? compactLabel() : line()) + " · " + WidgetLessonText.range(start, end, zone, format);
         }
     }
     static boolean includes(Set<String> selected, String id) { return selected == null || selected.contains(id); }
@@ -78,7 +83,7 @@ final class LessonReminderPlan {
                     try {
                         if (!"lesson".equals(period.optString("type"))) {
                             boolean relevant = false; for (int c = 0; c < classIds.length(); c++) relevant |= includes(settings.classes, classIds.optString(c));
-                            if (settings.breaks && relevant && includes(settings.periods, profile.optString("id") + "|" + period.optString("id"))) add(result, settings, from, through, date, profile, period, period, null, "", period.optString("customLabel", period.optString("type")), "");
+                            if (settings.breaks && relevant && includes(settings.periods, profile.optString("id") + "|" + period.optString("id"))) add(data, result, settings, from, through, date, profile, period, period, null, "", period.optString("customLabel", period.optString("type")), "");
                             continue;
                         }
                         for (int e = 0; e < entries.length(); e++) {
@@ -114,7 +119,7 @@ final class LessonReminderPlan {
                             if (!entry.optString("optionalSubjectId").isEmpty()) subject += " / " + TimetableSchedule.name(data, "subjects", entry.optString("optionalSubjectId"));
                             String teacher = TimetableSchedule.name(data, "teachers", entry.optString("teacherId"));
                             if (!entry.optString("optionalTeacherId").isEmpty()) teacher += (teacher.isEmpty() ? "" : " / ") + TimetableSchedule.name(data, "teachers", entry.optString("optionalTeacherId"));
-                            add(result, settings, from, through, date, profile, period, periods.get(last), entry, label, subject, teacher);
+                            add(data, result, settings, from, through, date, profile, period, periods.get(last), entry, label, subject, teacher);
                         }
                     } catch (DateTimeException | JSONException ignored) { /* One malformed period cannot suppress the rest. */ }
                 }
@@ -123,20 +128,22 @@ final class LessonReminderPlan {
         result.sort(Comparator.comparingLong((Event event) -> event.at).thenComparing(event -> event.identity));
         Set<String> seen = new HashSet<>(); result.removeIf(event -> !seen.add(event.identity)); return result;
     }
-    private static void add(List<Event> result, Settings settings, ZonedDateTime from, long through, LocalDate date, JSONObject profile, JSONObject first, JSONObject last, JSONObject entry, String label, String subject, String teacher) throws Exception {
+    private static void add(JSONObject data, List<Event> result, Settings settings, ZonedDateTime from, long through, LocalDate date, JSONObject profile, JSONObject first, JSONObject last, JSONObject entry, String label, String subject, String teacher) throws Exception {
         long start = date.atTime(LocalTime.parse(first.getString("startTime"))).atZone(from.getZone()).toInstant().toEpochMilli();
         long end = date.atTime(LocalTime.parse(last.getString("endTime"))).atZone(from.getZone()).toInstant().toEpochMilli();
         if (end <= start) return;
-        if (settings.starts) event(result, settings, from, through, start, start, end, "start", profile, first, entry, label, subject, teacher);
-        if (settings.ends) event(result, settings, from, through, end, start, end, "end", profile, first, entry, label, subject, teacher);
-        if (settings.beforeStart > 0) event(result, settings, from, through, start - settings.beforeStart * 60_000L, start, end, "beforeStart", profile, first, entry, label, subject, teacher);
-        if (settings.beforeEnd > 0 && start < end - settings.beforeEnd * 60_000L) event(result, settings, from, through, end - settings.beforeEnd * 60_000L, start, end, "beforeEnd", profile, first, entry, label, subject, teacher);
+        if (settings.starts) event(data, result, settings, from, through, start, start, end, "start", profile, first, entry, label, subject, teacher);
+        if (settings.ends) event(data, result, settings, from, through, end, start, end, "end", profile, first, entry, label, subject, teacher);
+        if (settings.beforeStart > 0) event(data, result, settings, from, through, start - settings.beforeStart * 60_000L, start, end, "beforeStart", profile, first, entry, label, subject, teacher);
+        if (settings.beforeEnd > 0 && start < end - settings.beforeEnd * 60_000L) event(data, result, settings, from, through, end - settings.beforeEnd * 60_000L, start, end, "beforeEnd", profile, first, entry, label, subject, teacher);
     }
-    private static void event(List<Event> result, Settings settings, ZonedDateTime from, long through, long at, long start, long end, String kind, JSONObject profile, JSONObject period, JSONObject entry, String label, String subject, String teacher) throws Exception {
+    private static void event(JSONObject data, List<Event> result, Settings settings, ZonedDateTime from, long through, long at, long start, long end, String kind, JSONObject profile, JSONObject period, JSONObject entry, String label, String subject, String teacher) throws Exception {
         ZonedDateTime time = Instant.ofEpochMilli(at).atZone(from.getZone());
         if (at < from.toInstant().toEpochMilli() || at > through || settings.quietAt(time) || (settings.days & (1 << (time.getDayOfWeek().getValue()-1))) == 0) return;
         Event event = new Event(); event.at = at; event.start = start; event.end = end; event.kind = kind;
         event.tableId = profile.optString("id"); event.tableName = profile.optString("name", "Timetable"); event.classLabel = label; event.subject = subject; event.teacher = teacher;
+        event.classCode = entry == null ? "" : TrackedSubjects.classCode(data, entry);
+        event.subjectCode = entry == null ? subject : TrackedSubjects.subjectCode(data, entry);
         event.identity = digest(event.tableId + "|" + period.optString("id") + "|" + (entry == null ? "break" : entry.optString("classId") + "|" + entry.optString("streamId")) + "|" + at + "|" + start + "|" + end + "|" + kind + "|" + subject + "|" + teacher);
         result.add(event);
     }

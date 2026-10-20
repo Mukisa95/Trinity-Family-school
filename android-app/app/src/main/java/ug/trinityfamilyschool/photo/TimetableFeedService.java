@@ -20,7 +20,7 @@ public final class TimetableFeedService extends RemoteViewsService {
             }
             public void onDestroy() { rows.clear(); }
             public int getCount() { return rows.size(); }
-            public RemoteViews getViewAt(int position) { return position < rows.size() ? TimetableSurfaces.profileView(TimetableFeedService.this, rows.get(position), intent.getBooleanExtra("progress", false), intent.getIntExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_ID, 0), intent.getBooleanExtra("compact", false), false) : null; }
+            public RemoteViews getViewAt(int position) { return position < rows.size() ? TimetableSurfaces.profileView(TimetableFeedService.this, rows.get(position), intent.getBooleanExtra("progress", false), intent.getIntExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_ID, 0), intent.getBooleanExtra("compact", false), false, intent.getIntExtra("columns", intent.getBooleanExtra("compact", false) ? 2 : 5)) : null; }
             public RemoteViews getLoadingView() { return null; }
             public int getViewTypeCount() { return 3; }
             public long getItemId(int position) { return position; }

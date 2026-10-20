@@ -4,9 +4,9 @@
   "applicationId": "ug.trinityfamilyganda.live",
   "websiteOrigin": "https://trinityfamilyganda.vercel.app",
   "firebaseProjectId": "trinity-family-ganda",
-  "versionCode": 29,
-  "versionName": "1.27",
-  "releaseNotes": "Reuse the running app for launcher shortcuts and open the keyboard for Search. Compact today's tracked lessons with class/subject codes and the phone's time format. Mix tracked lessons with timetable cards and arrange widget cards in your preferred order.",
+  "versionCode": 30,
+  "versionName": "1.28",
+  "releaseNotes": "Choose a class before selecting tracked subjects. Compact lesson notifications use class and subject codes without teacher names. Widgets fit launcher-provided sizes, reflow content and support smaller resize bounds. Includes startup and offline reliability improvements.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {

@@ -52,6 +52,31 @@ final class TrackedSubjects {
         for (Map.Entry<String, String> entry : sorted) result.put(entry.getKey(), entry.getValue());
         return result;
     }
+    static String classCode(JSONObject data, JSONObject entry) {
+        String value = code(data, "classes", entry.optString("classId"));
+        String streamId = entry.optString("streamId");
+        if (streamId.isEmpty()) return value;
+        JSONObject schoolClass = TimetableSchedule.find(data, "classes", entry.optString("classId"));
+        JSONArray streams = schoolClass.optJSONArray("streams"); JSONObject stream = new JSONObject();
+        if (streams != null) for (int i = 0; i < streams.length(); i++) {
+            JSONObject row = streams.optJSONObject(i);
+            if (row != null && streamId.equals(row.optString("id"))) { stream = row; break; }
+        }
+        String streamCode = entry.optString("streamCode", stream.optString("code")).trim();
+        if (streamCode.isEmpty()) {
+            String name = entry.optString("streamName", stream.optString("name")).trim();
+            StringBuilder initials = new StringBuilder();
+            for (String word : name.split("\\s+")) if (!word.isEmpty()) initials.append(word.charAt(0));
+            streamCode = initials.toString().toUpperCase(Locale.ROOT);
+        }
+        return value + (streamCode.isEmpty() ? "" : " " + streamCode);
+    }
+    static String subjectCode(JSONObject data, JSONObject entry) {
+        String value = "activity".equals(entry.optString("entryType")) ? entry.optString("activityName", "Activity")
+            : code(data, "subjects", entry.optString("subjectId"));
+        String optional = entry.optString("optionalSubjectId");
+        return value + (optional.isEmpty() ? "" : " / " + code(data, "subjects", optional));
+    }
     private static boolean includes(JSONArray values, String id) {
         if (values != null) for (int i = 0; i < values.length(); i++) if (id.equals(values.optString(i))) return true;
         return false;
