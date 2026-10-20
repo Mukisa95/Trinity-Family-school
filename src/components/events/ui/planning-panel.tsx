@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { isValid, parseISO } from 'date-fns';
 import Link from 'next/link';
 import { Bell, CalendarDays, Clock, Copy, Edit, ExternalLink, MapPin, Paperclip, Users, X, AlertTriangle } from 'lucide-react';
 import type { Event } from '@/types';
@@ -10,10 +11,13 @@ import { calendarDateLabel, calendarTone, eventOccursOn, eventTimeLabel, examSou
 import { getComputedEventStatus } from '@/lib/utils/event-status-utils';
 
 export function PlanningEventButton({ event, onSelect }: { event: Event; onSelect: (event: Event) => void }) {
+  const date = parseISO(event.startDate);
+  const holiday = event.type === 'Holiday' || !!event.customFields?.isUgandaPublicHoliday;
+  const redDate = holiday || (isValid(date) && date.getDay() === 0);
   return <button type="button" onClick={() => onSelect(event)} className="flex w-full items-start gap-2.5 rounded-xl p-2.5 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
     <span aria-hidden="true" className={`planning-event-icon calendar-tone-${calendarTone(event)}`}><CalendarDays className="h-4 w-4" /></span>
-    <span className="min-w-0 flex-1"><span className="block text-[0.8125rem] font-semibold leading-snug">{event.title}</span>
-      <span className="mt-1 block text-xs text-muted-foreground">{calendarDateLabel(event.startDate, 'EEE, d MMM')} · {eventTimeLabel(event)}</span>
+    <span className="min-w-0 flex-1"><span className={`block text-[0.8125rem] font-semibold leading-snug${holiday ? ' calendar-event-red-date' : ''}`}>{event.title}</span>
+      <span className="mt-1 block text-xs text-muted-foreground"><span className={redDate ? 'calendar-event-red-date' : undefined}>{calendarDateLabel(event.startDate, 'EEE, d MMM')}</span> · {eventTimeLabel(event)}</span>
       {event.location && <span className="mt-1 block truncate text-xs text-muted-foreground">{event.location}</span>}
     </span>
   </button>;

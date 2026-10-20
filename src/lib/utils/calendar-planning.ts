@@ -157,3 +157,23 @@ export function findCalendarConflicts(candidate: Partial<Event>, events: Event[]
     return reasons.length ? [{ eventId: event.id, title: event.title, reasons }] : [];
   });
 }
+
+export function isPublicHolidayDate(date: string, events: Event[]): boolean {
+  return events.some(event => event.customFields?.isUgandaPublicHoliday && eventOccursOn(event, date));
+}
+
+/** Date overlaps include untagged activities and holidays between school terms. */
+export function calendarYearSections(year: AcademicYear, events: Event[]) {
+  const overlaps = (event: Event, start: string, end: string) => {
+    const eventEnd = event.endDate && event.endDate >= event.startDate ? event.endDate : event.startDate;
+    return event.startDate <= end.slice(0, 10) && eventEnd >= start.slice(0, 10);
+  };
+  const inYear = events.filter(event => overlaps(event, year.startDate, year.endDate))
+    .sort((a, b) => `${a.startDate}${a.startTime || ''}`.localeCompare(`${b.startDate}${b.startTime || ''}`));
+  const terms = [...year.terms].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const sections = terms.map(term => ({ id: term.id, name: term.name, startDate: term.startDate, endDate: term.endDate,
+    events: inYear.filter(event => overlaps(event, term.startDate, term.endDate)) }));
+  const outside = inYear.filter(event => !terms.some(term => overlaps(event, term.startDate, term.endDate)));
+  if (outside.length) sections.push({ id: '__outside-terms', name: 'Outside term dates', startDate: year.startDate, endDate: year.endDate, events: outside });
+  return sections;
+}

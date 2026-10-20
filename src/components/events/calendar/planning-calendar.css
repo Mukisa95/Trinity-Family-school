@@ -7,12 +7,12 @@
   --fc-now-indicator-color: hsl(var(--primary));
 }
 .calendar-tone-exam { --planning-bg: #fff1f2; --planning-ink: #9f1239; --planning-border: #fecdd3; }
-.calendar-tone-holiday { --planning-bg: #fffbeb; --planning-ink: #92400e; --planning-border: #fde68a; }
+.calendar-tone-holiday { --planning-bg: #fef2f2; --planning-ink: #dc2626; --planning-border: #fecaca; }
 .calendar-tone-academic { --planning-bg: rgb(var(--brand-100) / .55); --planning-ink: rgb(var(--brand-ink-800)); --planning-border: rgb(var(--brand-300) / .75); }
 .calendar-tone-meeting { --planning-bg: #eef2ff; --planning-ink: #3730a3; --planning-border: #c7d2fe; }
 .calendar-tone-activity { --planning-bg: #ecfdf5; --planning-ink: #065f46; --planning-border: #a7f3d0; }
 .dark .calendar-tone-exam { --planning-bg: #3b1624; --planning-ink: #fecdd3; --planning-border: #881337; }
-.dark .calendar-tone-holiday { --planning-bg: #34250f; --planning-ink: #fde68a; --planning-border: #78350f; }
+.dark .calendar-tone-holiday { --planning-bg: #450a0a; --planning-ink: #fca5a5; --planning-border: #991b1b; }
 .dark .calendar-tone-academic { --planning-bg: rgb(var(--brand-900) / .45); --planning-ink: rgb(var(--brand-ink-200)); --planning-border: rgb(var(--brand-700) / .75); }
 .dark .calendar-tone-meeting { --planning-bg: #242547; --planning-ink: #c7d2fe; --planning-border: #4338ca; }
 .dark .calendar-tone-activity { --planning-bg: #11372d; --planning-ink: #a7f3d0; --planning-border: #065f46; }
@@ -63,20 +63,20 @@
 
 .dark .school-calendar input[type="date"] { color-scheme: dark; }
 
-/* These controls need room for labels on both the floating and desktop bars. */
+/* Match the compact, round workspace controls at every screen size. */
 .calendar-action-dock.glass-navigation-surface { width: max-content; }
 .calendar-action-dock .glass-navigation-items { padding: 2px 4px; gap: 2px; }
 .calendar-action-dock.glass-navigation-surface .glass-navigation-items .glass-navigation-control {
-  flex: 0 0 64px;
-  width: 64px;
-  min-width: 64px;
-  max-width: 64px;
+  flex: 0 0 48px;
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
   height: 48px;
   padding: 3px 2px;
 }
 .calendar-action-dock .glass-navigation-items .glass-navigation-control > .glass-navigation-label {
-  max-width: 60px;
-  font-size: 10px;
+  max-width: 44px;
+  font-size: 9px;
   font-weight: 600;
   opacity: 1 !important;
 }
@@ -88,19 +88,22 @@
 .calendar-action-dock .glass-navigation-items .glass-navigation-control:is([aria-pressed="true"], [aria-expanded="true"], [data-glass-feedback]) {
   background: rgb(var(--navigation-ink) / .14) !important;
 }
-.calendar-action-dock .glass-navigation-items .glass-navigation-badge { top: 0; right: 4px; }
-@media (min-width: 640px) {
-  .calendar-action-dock.glass-navigation-surface .glass-navigation-items .glass-navigation-control {
-    flex: 0 0 auto;
-    flex-direction: row;
-    gap: 6px;
-    width: auto;
-    min-width: 44px;
-    max-width: none;
-    height: 44px;
-    padding: 6px 12px;
-  }
-  .calendar-action-dock .glass-navigation-items .glass-navigation-control > .glass-navigation-label { max-width: none; font-size: 12px; }
-  .calendar-action-dock .glass-navigation-items .glass-navigation-control:has(.glass-navigation-badge) { padding-right: 26px; }
-  .calendar-action-dock .glass-navigation-items .glass-navigation-badge { top: 4px; right: 6px; }
+.calendar-action-dock .glass-navigation-items .glass-navigation-badge { top: 0; right: 1px; }
+.school-calendar .calendar-toolbar-control { height: 36px; min-height: 36px; border-radius: 999px; font-size: 12px; }
+.school-calendar .fc .calendar-red-date .fc-daygrid-day-number,
+.school-calendar .fc .calendar-red-date .fc-col-header-cell-cushion,
+.school-calendar .fc .calendar-red-date .fc-list-day-text,
+.school-calendar .fc .calendar-red-date .fc-list-day-side-text { color: #dc2626; }
+.school-calendar .fc .calendar-red-date.fc-day-today .fc-daygrid-day-number { background: #fee2e2; color: #b91c1c; }
+.dark .school-calendar .fc .calendar-red-date .fc-daygrid-day-number,
+.dark .school-calendar .fc .calendar-red-date .fc-col-header-cell-cushion,
+.dark .school-calendar .fc .calendar-red-date .fc-list-day-text,
+.dark .school-calendar .fc .calendar-red-date .fc-list-day-side-text { color: #fca5a5; }
+.dark .school-calendar .fc .calendar-red-date.fc-day-today .fc-daygrid-day-number { background: #450a0a; color: #fca5a5; }
+.calendar-event-red-date { color: #dc2626; }
+.dark .calendar-event-red-date { color: #fca5a5; }
+@media (max-width: 639px) {
+  .school-calendar .calendar-view-switch button { padding-inline: 6px; font-size: 10px; }
+  .school-calendar .glass-page-topbar:has(.glass-page-search-input:focus-within) .calendar-topbar-counts,
+  .school-calendar .calendar-topbar-counts[data-search-filled="true"] { display: none; }
 }

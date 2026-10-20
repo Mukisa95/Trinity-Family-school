@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { AcademicYear, Class, Event } from '../src/types';
-import { activeCalendarFilterCount, calendarMovePatch, eventOccursOn, filterCalendarEvents, findCalendarConflicts, fullCalendarDates, isGeneratedCalendarEvent, isPersonalCalendarEvent, mergeCalendarEvents } from '../src/lib/utils/calendar-planning';
+import { calendarYearSections, isPublicHolidayDate, activeCalendarFilterCount, calendarMovePatch, eventOccursOn, filterCalendarEvents, findCalendarConflicts, fullCalendarDates, isGeneratedCalendarEvent, isPersonalCalendarEvent, mergeCalendarEvents } from '../src/lib/utils/calendar-planning';
 
 const base: Event = {
   id: 'meeting', title: 'School planning', description: 'Assessment preparation', type: 'Administrative', priority: 'Medium', status: 'Scheduled',
@@ -93,4 +93,44 @@ test('empty selections do not inflate the active filter count', () => {
 test('a malformed or reversed end date cannot break the whole month grid', () => {
   assert.equal(fullCalendarDates({ ...base, isAllDay: true, endDate: 'invalid' }).end, '2026-10-15');
   assert.equal(fullCalendarDates({ ...base, isAllDay: true, endDate: '2026-10-01' }).end, '2026-10-15');
+});
+
+
+test('year planning groups all dates by term and retains school-break activities', () => {
+  const academicYear = { ...year, terms: [
+    { id: 't2', name: 'Term 2', startDate: '2026-05-01', endDate: '2026-08-01' },
+    { id: 't1', name: 'Term 1', startDate: '2026-01-15', endDate: '2026-04-01' },
+    ...year.terms,
+  ] };
+  const events = [
+    { ...base, id: 't1-event', startDate: '2026-02-10', endDate: '2026-02-10', academicYearId: '', termId: '' },
+    { ...base, id: 't2-event', startDate: '2026-06-10', endDate: '2026-06-10' },
+    { ...base, id: 'break', startDate: '2026-12-25', endDate: '2026-12-25', type: 'Holiday' as const },
+    { ...base, id: 'old', startDate: '2025-02-01', endDate: '2025-02-01' },
+    base,
+  ];
+  const sections = calendarYearSections(academicYear, events);
+  assert.deepEqual(sections.map(section => [section.id, section.events.map(event => event.id)]), [
+    ['t1', ['t1-event']], ['t2', ['t2-event']], ['term-3', ['meeting']], ['__outside-terms', ['break']],
+  ]);
+  assert.equal(academicYear.terms[0].id, 't2', 'Grouping never reorders saved configuration');
+});
+
+test('year planning retains multi-day activities crossing a term boundary', () => {
+  const academicYear = { ...year, terms: [
+    { id: 'a', name: 'A', startDate: '2026-01-01', endDate: '2026-06-30' },
+    { id: 'b', name: 'B', startDate: '2026-07-01', endDate: '2026-12-31' },
+  ] };
+  const crossing = { ...base, startDate: '2026-06-30', endDate: '2026-07-02' };
+  assert.deepEqual(calendarYearSections(academicYear, [crossing]).map(section => section.events.length), [1, 1]);
+  const reversed = { ...base, startDate: '2026-07-02', endDate: '2026-01-01' };
+  assert.deepEqual(calendarYearSections(academicYear, [reversed]).map(section => section.events.length), [0, 1]);
+});
+
+test('public holiday date highlighting uses the original holiday source', () => {
+  const holiday = { ...base, type: 'Holiday' as const, startDate: '2026-10-09', endDate: '2026-10-10', customFields: { isUgandaPublicHoliday: true } };
+  assert.equal(isPublicHolidayDate('2026-10-09', [holiday]), true);
+  assert.equal(isPublicHolidayDate('2026-10-10', [holiday]), true);
+  assert.equal(isPublicHolidayDate('2026-10-11', [holiday]), false);
+  assert.equal(isPublicHolidayDate('2026-10-09', [{ ...holiday, customFields: {} }]), false);
 });
