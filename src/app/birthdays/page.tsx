@@ -3,23 +3,14 @@
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { useMemo, useState } from "react";
 import { format, parseISO, isValid, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, differenceInYears, compareAsc, isSameDay } from "date-fns";
-import { ArrowLeft, Calendar, CalendarDays, ChevronLeft, ChevronRight, Clock, Sparkles, Users } from "lucide-react";
-import { GlassPageTopBar } from "@/components/common/glass-page-top-bar";
+import { Calendar, CalendarDays, ChevronLeft, ChevronRight, Users, RotateCcw } from "lucide-react";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
 import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
-import { SmartBackButton } from "@/components/common/SmartBackButton";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
 import { usePupils } from "@/lib/hooks/use-pupils";
 import { useClasses } from "@/lib/hooks/use-classes";
 import { useAuth } from "@/lib/contexts/auth-context";
@@ -220,14 +211,6 @@ export default function BirthdaysPage() {
     });
     return countBirthdaysInDates(filteredPupils, weekDates);
   }, [filteredPupils, today]);
-  const monthCount = useMemo(() => {
-    const monthDates = eachDayOfInterval({
-      start: startOfMonth(today),
-      end: endOfMonth(today),
-    });
-    return countBirthdaysInDates(filteredPupils, monthDates);
-  }, [filteredPupils, today]);
-
   const nearestUpcomingBirthday = useMemo(() => {
     let closest: (BirthdayResult & { daysAway: number }) | null = null;
 
@@ -264,13 +247,6 @@ export default function BirthdaysPage() {
 
     return closest;
   }, [anchor, filteredPupils]);
-
-  const pageDescription =
-    viewMode === "day"
-      ? "Birthdays for a single calendar day"
-      : viewMode === "week"
-        ? "Birthdays across the selected Monday-start week"
-        : "Birthdays across the selected calendar month";
 
   const monthInputValue = format(anchor, "yyyy-MM");
   const selectedClassLabel = selectedClass === ALL_CLASSES_VALUE ? "All classes" : selectedClass;
@@ -328,7 +304,7 @@ export default function BirthdaysPage() {
   }
 
   return (
-    <div className="min-h-screen animate-in fade-in duration-500">
+    <div className="min-h-screen pb-24 sm:pb-6">
       <GlassPageTopBar
         title="Birthdays"
         subtitle="Birthday tracking for active pupils"
@@ -336,113 +312,52 @@ export default function BirthdaysPage() {
         backLabel="Back to pupils"
         className="mb-1.5"
         meta={
-          <span className="bg-brand-alt-surface-50 text-brand-alt-ink-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-brand-alt-100/80 whitespace-nowrap dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300 dark:border-brand-alt-800/80">
+          <span className="bg-brand-alt-surface-50 text-brand-alt-ink-700 hidden sm:inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full border border-brand-alt-100/80 whitespace-nowrap dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-300 dark:border-brand-alt-800/80">
             {birthdaysInPeriod.length} matches
           </span>
         }
-        titleControls={
-          <div className="flex items-center gap-1.5 lg:hidden">
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="h-[34px] min-w-[80px] max-w-[110px] rounded-full border-brand-200/60 bg-white/90 px-2 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden shrink-0 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
-                <SelectValue placeholder="Class" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value={ALL_CLASSES_VALUE} className="rounded-lg text-sm">All classes</SelectItem>
-                {classOptions.map((className) => (
-                  <SelectItem key={className} value={className} className="rounded-lg text-sm">
-                    {className}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={viewMode} onValueChange={(val: BirthdayViewMode) => setViewMode(val)}>
-              <SelectTrigger className="h-[34px] min-w-[75px] max-w-[100px] rounded-full border-brand-200/60 bg-white/90 px-2 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden shrink-0 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
-                <SelectValue placeholder="View" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="day" className="rounded-lg text-xs">Day</SelectItem>
-                <SelectItem value="week" className="rounded-lg text-xs">Week</SelectItem>
-                <SelectItem value="month" className="rounded-lg text-xs">Month</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        }
-        center={
-          <div className="hidden lg:flex items-center gap-2">
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="h-[34px] min-w-[90px] max-w-[125px] rounded-full border-brand-200/60 bg-white/90 px-2.5 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden shrink-0 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
-                <SelectValue placeholder="Class" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value={ALL_CLASSES_VALUE} className="rounded-lg text-sm">All classes</SelectItem>
-                {classOptions.map((className) => (
-                  <SelectItem key={className} value={className} className="rounded-lg text-sm">
-                    {className}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={viewMode} onValueChange={(val: BirthdayViewMode) => setViewMode(val)}>
-              <SelectTrigger className="h-[34px] min-w-[85px] max-w-[110px] rounded-full border-brand-200/60 bg-white/90 px-2.5 text-xs font-semibold text-brand-ink-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-brand-400/50 [&>svg]:hidden shrink-0 dark:border-brand-800/60 dark:bg-slate-900/90 dark:text-brand-ink-300">
-                <SelectValue placeholder="View" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="day" className="rounded-lg text-xs">Day</SelectItem>
-                <SelectItem value="week" className="rounded-lg text-xs">Week</SelectItem>
-                <SelectItem value="month" className="rounded-lg text-xs">Month</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        inlineActions
+        recordDetails={<span>{period.label}</span>}
+        actionsLeading={
+          <Input
+            aria-label={viewMode === "month" ? "Birthday month" : "Birthday date"}
+            type={viewMode === "month" ? "month" : "date"}
+            value={viewMode === "month" ? monthInputValue : anchorDate}
+            onChange={event => { if (event.target.value) setAnchorDate(viewMode === "month" ? `${event.target.value}-01` : event.target.value); }}
+            className="h-9 w-[124px] min-w-0 rounded-full border-brand-200/60 bg-white/90 px-2 text-xs shadow-sm sm:w-[150px] dark:border-brand-800/60 dark:bg-slate-900/90"
+          />
         }
         actions={
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <div className="flex items-center gap-0.5 flex-shrink-0">
-              <button
-                onClick={goToPreviousPeriod}
-                className="flex items-center justify-center w-7 h-7 rounded-full bg-white/80 border border-gray-200 hover:border-brand-400 hover:bg-brand-surface-50 transition-all text-gray-600 shadow-sm dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-brand-surface-950/40 dark:text-slate-300"
-                title="Previous Period"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </button>
-
-              <button
-                onClick={resetToCurrentPeriod}
-                className="h-7 px-2.5 rounded-full bg-white/80 border border-gray-200 hover:border-brand-400 hover:bg-brand-surface-50 transition-all text-[10px] font-medium text-gray-700 whitespace-nowrap shadow-sm dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-brand-surface-950/40 dark:text-slate-200"
-              >
-                {viewMode === "day" ? "Today" : viewMode === "week" ? "This Week" : "This Month"}
-              </button>
-
-              <button
-                onClick={goToNextPeriod}
-                className="flex items-center justify-center w-7 h-7 rounded-full bg-white/80 border border-gray-200 hover:border-brand-400 hover:bg-brand-surface-50 transition-all text-gray-600 shadow-sm dark:bg-slate-900/80 dark:border-slate-700 dark:hover:bg-brand-surface-950/40 dark:text-slate-300"
-                title="Next Period"
-              >
-                <ChevronRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            {viewMode === "month" ? (
-              <Input
-                type="month"
-                value={monthInputValue}
-                onChange={(event) => {
-                  if (event.target.value) {
-                    setAnchorDate(`${event.target.value}-01`);
-                  }
-                }}
-                className="h-7 w-[110px] sm:w-[130px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-brand-400 transition-all rounded-full text-[10px] sm:text-xs py-0 px-2 shadow-sm dark:bg-slate-900/80 dark:border-slate-700"
-              />
-            ) : (
-              <Input
-                type="date"
-                value={anchorDate}
-                onChange={(event) => setAnchorDate(event.target.value)}
-                className="h-7 w-[120px] sm:w-[140px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-brand-400 transition-all rounded-full text-[10px] sm:text-xs py-0 px-2 shadow-sm dark:bg-slate-900/80 dark:border-slate-700"
-              />
-            )}
-          </div>
+          <GlassActionDock>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <GlassActionButton label={selectedClassLabel} aria-label="Choose birthday class" title={`Class: ${selectedClassLabel}`} icon={<Users />} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="max-h-[60vh] overflow-y-auto">
+                <DropdownMenuLabel>Class</DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={selectedClass} onValueChange={setSelectedClass}>
+                  <DropdownMenuRadioItem value={ALL_CLASSES_VALUE}>All classes</DropdownMenuRadioItem>
+                  {classOptions.map(className => <DropdownMenuRadioItem key={className} value={className}>{className}</DropdownMenuRadioItem>)}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <GlassActionButton label={viewMode === "day" ? "Day" : viewMode === "week" ? "Week" : "Month"} aria-label="Choose birthday period" icon={<CalendarDays />} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center">
+                <DropdownMenuLabel>Birthday period</DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={viewMode} onValueChange={value => setViewMode(value as BirthdayViewMode)}>
+                  <DropdownMenuRadioItem value="day">Day</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="week">Week</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="month">Month</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <GlassActionButton label="Previous" aria-label="Previous birthday period" icon={<ChevronLeft />} onClick={goToPreviousPeriod} />
+            <GlassActionButton label="Today" title={viewMode === "day" ? "Today" : viewMode === "week" ? "This week" : "This month"} icon={<RotateCcw />} onClick={resetToCurrentPeriod} />
+            <GlassActionButton label="Next" aria-label="Next birthday period" icon={<ChevronRight />} onClick={goToNextPeriod} />
+          </GlassActionDock>
         }
       />
 
@@ -483,7 +398,7 @@ export default function BirthdaysPage() {
         }
       />
 
-      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+      <div className="max-w-7xl mx-auto px-1 py-4 sm:px-4 space-y-6">
 
         <Card className="border-white/20 bg-white/85 shadow-lg backdrop-blur-sm dark:border-slate-700/20 dark:bg-slate-900/85">
           <CardContent className="p-4 sm:p-6">

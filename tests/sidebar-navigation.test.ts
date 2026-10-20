@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { Home } from 'lucide-react';
 import type { NavigationItem, SystemUser } from '@/types';
 import { isNavGroup } from '@/types';
+import { navItems } from '@/config/nav';
 import { DEV_CONTROL_PATHS } from '@/config/dev-control';
 import { isSidebarRouteActive, visibleSidebarItems } from '@/components/layout/sidebar-navigation';
 
@@ -37,4 +38,13 @@ test('selected state keeps fees management separate from collection and matches 
   assert.equal(isSidebarRouteActive('/fees/analytics', '/fees'), true);
   assert.equal(isSidebarRouteActive('/staff/synthetic', '/staff'), true);
   assert.equal(isSidebarRouteActive('/staffing', '/staff'), false);
+});
+
+test('Reports is a shared Main Overview destination governed by its existing page permission', () => {
+  const reportUser: SystemUser = { ...staff, granularPermissions: [{ moduleId: 'reports', pages: [{ pageId: 'reports', canAccess: true, actions: [] }] }] };
+  const reports = visibleSidebarItems(navItems, reportUser).filter(item => 'href' in item && item.href === '/reports');
+  assert.equal(reports.length, 1);
+  assert.equal(reports[0].section, 'Overview');
+  assert.equal(visibleSidebarItems(navItems, staff).some(item => 'href' in item && item.href === '/reports'), false);
+  assert.equal(isSidebarRouteActive('/reports', '/reports'), true);
 });

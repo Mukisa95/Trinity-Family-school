@@ -1,0 +1,21 @@
+/* Keep the report palette readable in both themes and in saved PDFs. */
+@media print {
+  body:has(.reports-page) { background: white !important; }
+  body:has(.reports-page) :is(header, aside, [data-sidebar="sidebar"], .app-topbar, .glass-navigation-floating) { display: none !important; }
+  body:has(.reports-page) :is(main, div):has(.reports-page) { height: auto !important; min-height: 0 !important; overflow: visible !important; padding: 0 !important; }
+  /* Accessible table duplicates must not create overflow pages in Chromium print. */
+  .reports-page :is(.reports-controls, .sr-only) { display: none !important; }
+  .reports-page { min-height: 0 !important; padding: 0 !important; color: #0f172a !important; background: white !important; }
+  .reports-page .reports-content { max-width: none; padding: 0; }
+  .reports-page .report-heading { color: #0f172a; margin-bottom: 16px; }
+  .reports-page .report-heading :is(h2, p) { color: #334155 !important; }
+  .reports-page .report-panel { background: white !important; border-color: #cbd5e1 !important; box-shadow: none; backdrop-filter: none; break-inside: avoid; }
+  .reports-page .report-panel :is(p, h3, [role="heading"], li, strong, span, .text-muted-foreground) { color: #334155 !important; }
+  .reports-page .report-panel svg text { fill: #334155 !important; }
+  .reports-page .report-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .reports-page .report-charts { display: block; }
+  .reports-page .report-charts > * { margin-bottom: 16px; }
+  .reports-page .report-charts > :last-child { margin-bottom: 0; }
+  .reports-page .report-chart { max-height: none; }
+  .reports-page * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}

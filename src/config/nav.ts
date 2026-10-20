@@ -22,6 +22,12 @@ export const navItems: NavigationItem[] = [
     section: 'Overview',
   },
   {
+    title: 'Reports',
+    href: '/reports',
+    icon: FileText,
+    section: 'Overview',
+  },
+  {
     title: 'Pupils',
     icon: UserSquare,
     section: 'Academics',
