@@ -21,7 +21,7 @@ final class TimetableSchedule {
         String eventId = "", trackedSubject = "", classCode = "", subjectCode = "", profileId = "", periodId = "", shortLabel = "", accountId = "", timeZone = "Africa/Kampala";
         int viewIndex, baseIndex, periodCount;
         long start, countdownEnd;
-        boolean hasPeriod, hasPrevious, hasNext, live = true;
+        boolean hasPeriod, hasPrevious, hasNext, sharedProgress, live = true;
         int progress, remainingMinutes; long end, boundary; boolean active;
     }
     static String name(JSONObject datasets, String dataset, String id) {
@@ -171,6 +171,7 @@ final class TimetableSchedule {
         boolean ended = time.compareTo(shown.getString("endTime")) >= 0;
         row.title = periodName(shown) + (row.active ? "" : ended ? " · ended" : " · upcoming"); row.time = shown.getString("startTime") + " – " + shown.getString("endTime");
         long start = now.toLocalDate().atTime(LocalTime.parse(shown.getString("startTime"))).atZone(now.getZone()).toInstant().toEpochMilli();
+        row.start = start;
         row.end = now.toLocalDate().atTime(LocalTime.parse(shown.getString("endTime"))).atZone(now.getZone()).toInstant().toEpochMilli();
         row.countdownEnd = row.active ? row.end : ended ? 0 : start;
         for (JSONObject period : periods) {

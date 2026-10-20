@@ -5,6 +5,20 @@ import java.time.*;
 import static org.junit.Assert.*;
 
 public class TimetableScheduleTest {
+    @Test public void trackingSharesVisibleTimetableProgressAndRestoresItAfterBrowsingOrHiding() throws Exception {
+        JSONObject datasets = data();
+        datasets.getJSONObject("timetables").getJSONArray("data").getJSONObject(0).getJSONArray("entries").getJSONObject(0).put("periodSpan", 1);
+        ZonedDateTime now = time("2026-10-07T08:30:00");
+        TimetableSchedule.Frame subjects = TrackedSubjects.feed(datasets, java.util.Set.of(TrackedSubjects.key("p4", "english")), now, true);
+        TimetableSchedule.Frame tracked = subjects.profiles.get(0), feed = TimetableSchedule.feed(datasets, now);
+        assertEquals(tracked.start, feed.profiles.get(0).start); assertEquals(tracked.end, feed.profiles.get(0).end);
+        feed.profiles.add(tracked); TrackedWidgetLayout.shareProgress(feed.profiles); assertTrue(tracked.sharedProgress);
+        TimetableSchedule.Frame browsed = TimetableSchedule.feed(datasets, now, java.util.Map.of("main", 1));
+        browsed.profiles.add(tracked); TrackedWidgetLayout.shareProgress(browsed.profiles); assertFalse(tracked.sharedProgress);
+        TimetableSchedule.Frame hidden = TimetableSchedule.feed(datasets, now);
+        TimetableVisibility.apply(hidden, java.util.Set.of("main"), now);
+        hidden.profiles.add(tracked); TrackedWidgetLayout.shareProgress(hidden.profiles); assertFalse(tracked.sharedProgress);
+    }
     @Test public void todaysTrackingStopsAtDayEndAndDoesNotDisplayNextWeeksLesson() throws Exception {
         JSONObject data = data();
         TimetableSchedule.Frame current = TrackedSubjects.next(data, "p4", "english", time("2026-10-07T09:00:00"), true);

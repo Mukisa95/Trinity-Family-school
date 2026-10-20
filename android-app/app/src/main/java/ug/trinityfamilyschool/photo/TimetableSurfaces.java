@@ -151,6 +151,7 @@ final class TimetableSurfaces {
         frame.accountId = envelope.getJSONObject("session").optString("accountId");
         for (TimetableSchedule.Frame row : frame.profiles) row.accountId = frame.accountId;
         if (scope != AppWidgetManager.INVALID_APPWIDGET_ID) WidgetFeedOrder.apply(frame, rowOrder(context, scope));
+        TrackedWidgetLayout.shareProgress(frame.profiles);
         return frame;
     }
     private static Intent interaction(Context context, int scope, TimetableSchedule.Frame row, String operation, String pillId) {
@@ -235,7 +236,8 @@ final class TimetableSurfaces {
     }
     static RemoteViews widgetForSize(Context context, int id, TimetableSchedule.Frame frame, boolean progress, float width, float height) {
         int columns = WidgetSizing.columns(width, context.getResources().getConfiguration().fontScale);
-        RemoteViews view = widgetView(context, id, new JSONObject(), frame, progress, R.layout.timetable_widget, columns);
+        float inset = height < 80 ? 2 : 6;
+        RemoteViews view = widgetView(context, id, new JSONObject(), frame, progress, R.layout.timetable_widget, columns, Math.max(1, width - 2 * inset));
         int padding = Math.round((height < 80 ? 2 : 6) * context.getResources().getDisplayMetrics().density);
         view.setViewPadding(R.id.widget_root, padding, padding, padding, padding);
         return view;
@@ -350,6 +352,9 @@ final class TimetableSurfaces {
         return widgetView(context, id, ignored, frame, progress, layout, layout == R.layout.timetable_widget_compact ? 2 : 5);
     }
     static RemoteViews widgetView(Context context, int id, JSONObject ignored, TimetableSchedule.Frame frame, boolean progress, int layout, int columns) {
+        return widgetView(context, id, ignored, frame, progress, layout, columns, columns * 68f);
+    }
+    static RemoteViews widgetView(Context context, int id, JSONObject ignored, TimetableSchedule.Frame frame, boolean progress, int layout, int columns, float contentWidth) {
         RemoteViews views = new RemoteViews(context.getPackageName(), layout);
         AppearancePalette palette = AppAppearance.palette(context);
         AppAppearance.background(views,R.id.widget_root,palette,R.drawable.widget_background,R.drawable.widget_background_light,R.drawable.widget_background_dark);
@@ -368,28 +373,66 @@ final class TimetableSurfaces {
             for (int i = 0; i < frame.profiles.size(); i++) rows.addItem(i, profileView(context, frame.profiles.get(i), progress, id, columns <= 2, false, columns));
             views.setRemoteAdapter(R.id.feed_list, rows.build());
         } else {
-            Intent service = new Intent(context, TimetableFeedService.class).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id).putExtra("progress", progress).putExtra("compact", columns <= 2).putExtra("columns", columns);
-            service.setData(android.net.Uri.parse("trinity-widget://feed/" + id + "/" + progress + "/" + layout + "/" + columns)); views.setRemoteAdapter(R.id.feed_list, service);
+            Intent service = new Intent(context, TimetableFeedService.class).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id).putExtra("progress", progress).putExtra("compact", columns <= 2).putExtra("columns", columns).putExtra("contentWidth", contentWidth);
+            service.setData(android.net.Uri.parse("trinity-widget://feed/" + id + "/" + progress + "/" + layout + "/" + columns + "/" + contentWidth)); views.setRemoteAdapter(R.id.feed_list, service);
         }
         return views;
     }
     static RemoteViews trackedSubjectView(Context context, TimetableSchedule.Frame frame, boolean progress) {
-        RemoteViews row = new RemoteViews(context.getPackageName(), R.layout.tracked_subject_row);
+        return trackedSubjectView(context, frame, progress, 0);
+    }
+    static String trackedTime(Context context, TimetableSchedule.Frame frame) {
+        return frame.hasPeriod ? WidgetLessonText.range(frame.start, frame.end, frame.timeZone, android.text.format.DateFormat.getTimeFormat(context)) : frame.time;
+    }
+    private static float trackedTextWidth(Context context, String text, int sp, boolean bold) {
+        android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        paint.setTypeface(bold ? android.graphics.Typeface.DEFAULT_BOLD : android.graphics.Typeface.DEFAULT);
+        paint.setTextSize(android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, sp, context.getResources().getDisplayMetrics()));
+        return (float)Math.ceil(paint.measureText(text) / context.getResources().getDisplayMetrics().density) + 2;
+    }
+    static float trackedWidth(Context context, TimetableSchedule.Frame frame, boolean inline) {
+        float code = trackedTextWidth(context, frame.classCode + " · " + frame.subjectCode, 12, true) + 12;
+        float time = trackedTextWidth(context, trackedTime(context, frame), 12, false);
+        String stateText = WidgetLessonText.state(frame, ZonedDateTime.now(ZoneId.of(frame.timeZone)));
+        float state = stateText.isEmpty() ? 0 : trackedTextWidth(context, stateText, 11, false) + 4;
+        // Include card padding and a small font/launcher rounding allowance. Never shrink text to fit.
+        return 16 + (inline ? code + 4 + time + state : Math.max(code + state, time));
+    }
+    static RemoteViews widgetFeedRow(Context context, TrackedWidgetLayout.Row row, boolean progress, int scope, boolean compact, int columns) {
+        if (row.first.trackedSubject.isEmpty()) return profileView(context, row.first, progress, scope, compact, false, columns);
+        RemoteViews first = trackedSubjectView(context, row.first, progress, row.cardWidth);
+        if (row.second == null) return first;
+        RemoteViews pair = new RemoteViews(context.getPackageName(), R.layout.tracked_subject_pair);
+        pair.removeAllViews(R.id.tracked_left); pair.removeAllViews(R.id.tracked_right);
+        pair.addView(R.id.tracked_left, first);
+        pair.addView(R.id.tracked_right, trackedSubjectView(context, row.second, progress, row.cardWidth));
+        // Nested RemoteViews roots store row-click tags. Bind each column from the
+        // collection row itself so Android installs independent descendant listeners.
+        pair.setOnClickFillInIntent(R.id.tracked_left, trackedIntent(row.first));
+        pair.setOnClickFillInIntent(R.id.tracked_right, trackedIntent(row.second));
+        return pair;
+    }
+    private static Intent trackedIntent(TimetableSchedule.Frame frame) {
+        return new Intent().putExtra("operation", "TRACKED").putExtra("accountId", frame.accountId).putExtra("trackedSubject", frame.trackedSubject);
+    }
+    static RemoteViews trackedSubjectView(Context context, TimetableSchedule.Frame frame, boolean progress, float width) {
+        boolean inline = width >= trackedWidth(context, frame, true);
+        RemoteViews row = new RemoteViews(context.getPackageName(), inline ? R.layout.tracked_subject_inline : R.layout.tracked_subject_row);
         AppearancePalette palette = AppAppearance.palette(context);
         ZonedDateTime now = ZonedDateTime.now(ZoneId.of(frame.timeZone));
         for (int id : new int[]{R.id.tracked_subject, R.id.tracked_time, R.id.tracked_state}) AppAppearance.text(row, id, palette, "#1F2937", "#E2E8F0");
         row.setTextViewText(R.id.tracked_subject, frame.classCode + " · " + frame.subjectCode);
         AppAppearance.badge(row, R.id.tracked_subject, palette, frame.active ? 2 : frame.hasPeriod ? 1 : 0);
         String state = WidgetLessonText.state(frame, now);
-        String time = frame.hasPeriod ? WidgetLessonText.range(frame.start, frame.end, frame.timeZone, android.text.format.DateFormat.getTimeFormat(context)) : frame.time;
+        String time = trackedTime(context, frame);
         row.setTextViewText(R.id.tracked_state, state);
         row.setViewVisibility(R.id.tracked_state, state.isEmpty() ? View.GONE : View.VISIBLE);
         row.setTextViewText(R.id.tracked_time, time);
         AppAppearance.progress(row, R.id.tracked_progress, palette, "#4F46E5", "#818CF8");
         row.setProgressBar(R.id.tracked_progress, 100, frame.progress, false);
-        row.setViewVisibility(R.id.tracked_progress, progress && frame.active ? View.VISIBLE : View.GONE);
+        row.setViewVisibility(R.id.tracked_progress, progress && frame.active && !frame.sharedProgress ? View.VISIBLE : View.GONE);
         row.setContentDescription(R.id.tracked_row, frame.className + " · " + frame.title + " · " + state + " · " + time);
-        row.setOnClickFillInIntent(R.id.tracked_row, new Intent().putExtra("operation", "TRACKED").putExtra("accountId", frame.accountId).putExtra("trackedSubject", frame.trackedSubject));
+        row.setOnClickFillInIntent(R.id.tracked_row, trackedIntent(frame));
         return row;
     }
     private static void renderEmptyWidgets(Context context) {

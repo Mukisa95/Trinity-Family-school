@@ -1,5 +1,38 @@
 # Widget subject tracking and launcher shortcuts
 
+## Android 1.29 (code 31)
+
+Tracked class/subject codes and phone-formatted times share a line when the
+available width fits their text. Adjacent tracked cards use two equal columns
+when both fit at the current system text size; otherwise they remain full width.
+Pairing preserves saved card order, independent taps and scrolling, and never
+moves cards across a timetable or event. Wider widgets can use inline text in
+both columns. Narrow widgets and larger fonts keep wrapping without reducing text.
+
+A live tracked card hides its progress bar when a visible live timetable already
+shows progress over the same lesson interval. Tracking alone, hidden/browsed or
+different timetables, and double lessons with a different interval keep their own
+progress. This is per widget and does not change notification cards or reminder
+subscriptions. Native changes require a new installed APK after release.
+
+Device tests cover inline and paired card geometry at multiple text sizes and
+light/dark appearances, independent collection actions, and shared-progress
+visibility. The suite compiled successfully. No phone was connected, so device
+tests and launcher verification have not been executed. Paired columns bind their
+own collection actions; the device suite checks both against a collection template.
+
+Both permanently signed 1.29 school releases passed all 101 release JVM tests
+and lint with zero errors (108 existing warnings). APK versions, school identities,
+permanent signing certificates, shortcut targets, responsive widget resources and
+updated native code were verified. All 27 download/update/event/notification
+contracts and 11 route-response/hosting-build checks passed. Install the updated
+APK from the matching school download page to receive these native changes.
+
+| Android 1.29 app | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Trinity Ganda | 4724281 | `a3f664634c23a81b5ee4643bc8315a769db74163b681341fd67e5edcd8439927` |
+| Trinity Live | 4724273 | `eec75f327525bc8078cd7947000e716994e2c779228ce0a011bb77a58e671c27` |
+
 ## Android 1.28 (code 30)
 
 This release adds class-first subject selection, compact teacher-free lesson
