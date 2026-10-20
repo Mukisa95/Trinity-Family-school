@@ -61,7 +61,7 @@ import {
   GlassPageSearchInput,
   GlassPageTopBar,
 } from '@/components/common/glass-page-top-bar';
-import { GlassSummaryBar } from '@/components/common/glass-summary-bar';
+import { ExamGradingScaleAction } from '@/components/exam/exam-grading-scale-action';
 import {
   isNurseryAssessment,
   isNurseryCommentary,
@@ -260,7 +260,7 @@ function GradingScaleModal({
         
         <div className="flex-1 flex flex-col min-h-0">
           {/* Header Row */}
-          <div className="grid grid-cols-4 gap-4 px-4 py-3 bg-gray-50 border-b sticky top-0 z-10 dark:bg-slate-900">
+          <div className="hidden sm:grid grid-cols-4 gap-4 px-4 py-3 bg-gray-50 border-b sticky top-0 z-10 dark:bg-slate-900">
             <div className="text-sm font-semibold text-gray-700 dark:text-slate-200">Minimum Score</div>
             <div className="text-sm font-semibold text-gray-700 dark:text-slate-200">Maximum Score</div>
             <div className="text-sm font-semibold text-gray-700 dark:text-slate-200">Grade</div>
@@ -268,10 +268,10 @@ function GradingScaleModal({
           </div>
           
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="space-y-2 p-4">
               {localGradingScale.map((scale, index) => (
-                <div key={index} className={`grid grid-cols-4 gap-4 p-4 rounded-lg border transition-all duration-200 ${
+                <div key={index} className={`grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border transition-all duration-200 ${
                   validationErrors[index] 
                     ? 'bg-red-50 border-red-300 shadow-sm dark:bg-red-950/40 dark:border-red-800/60'
                     : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm dark:bg-slate-900 dark:border-slate-700 dark:hover:border-slate-700'
@@ -328,7 +328,7 @@ function GradingScaleModal({
                   </div>
                   
                   {validationErrors[index] && (
-                    <div className="col-span-4 mt-3 p-3 bg-red-100 border border-red-300 rounded-md dark:bg-red-950/40 dark:border-red-800/60">
+                    <div className="col-span-2 sm:col-span-4 mt-3 p-3 bg-red-100 border border-red-300 rounded-md dark:bg-red-950/40 dark:border-red-800/60">
                       <div className="flex items-start space-x-2">
                         <div className="flex-shrink-0 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
                           <span className="text-white text-xs font-bold">!</span>
@@ -1941,15 +1941,12 @@ export default function RecordResultsView() {
                 disabled={!viewResultsHref}
                 title="View results for this class or set"
               />
-              {!isNurseryExam && (
-                <GlassActionButton
-                  label="Scale"
-                  icon={<Settings className="h-4 w-4" />}
-                  tone="slate"
-                onClick={() => setIsGradingModalOpen(true)}
-                disabled={!resultLease.canSave}
-                />
-              )}
+              <ExamGradingScaleAction
+                gradingScale={gradingScaleItems}
+                isNursery={isNurseryExam}
+                canEdit={resultLease.canSave}
+                onEdit={() => setIsGradingModalOpen(true)}
+              />
               <GlassActionButton
                 label={isSubmitting ? 'Saving' : resultLease.canOverride ? 'Override' : 'Save'}
                 icon={isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : resultLease.canOverride ? <AlertTriangle className="h-4 w-4" /> : <Save className="h-4 w-4" />}
@@ -1991,40 +1988,6 @@ export default function RecordResultsView() {
           </div>
         </div>
       )}
-
-      <GlassSummaryBar
-        left={
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs sm:text-sm font-black tracking-wider text-brand-alt-ink-900 dark:text-brand-alt-ink-200 uppercase">
-              {isNurseryExam ? 'Nursery Assessment Scale' : 'Grading Scale'}
-            </span>
-          </div>
-        }
-        right={
-          <div className="flex items-center gap-1.5 overflow-x-auto max-w-full">
-            {isNurseryExam ? NURSERY_COMMENTARY_OPTIONS.map(option => (
-              <div key={option} className="border border-emerald-200 bg-emerald-50/80 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold text-emerald-800 whitespace-nowrap dark:border-emerald-800/60 dark:bg-emerald-950/80 dark:text-emerald-200">
-                {option}
-              </div>
-            )) : [...gradingScaleItems]
-              .sort((a, b) => a.minMark - b.minMark)
-              .map((scale, index) => (
-                <div
-                  key={index}
-                  className={`border px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold whitespace-nowrap ${
-                    scale.grade === 'MISSED' ? 'bg-orange-50/80 text-orange-700 border-orange-200 dark:bg-orange-950/80 dark:text-orange-300 dark:border-orange-800/60' :
-                    scale.grade.startsWith('D') ? 'bg-green-50/80 text-green-700 border-green-200 dark:bg-green-950/80 dark:text-green-300 dark:border-green-800/60' :
-                    scale.grade.startsWith('C') ? 'bg-brand-surface-50/80 text-brand-ink-700 border-brand-200 dark:bg-brand-surface-950/80 dark:text-brand-ink-300 dark:border-brand-800/60' :
-                    scale.grade.startsWith('P') ? 'bg-yellow-50/80 text-yellow-700 border-yellow-200 dark:bg-yellow-950/80 dark:text-yellow-300 dark:border-yellow-800/60' :
-                    'bg-red-50/80 text-red-700 border-red-200 dark:bg-red-950/80 dark:text-red-300 dark:border-red-800/60'
-                  }`}
-                >
-                  <span className="opacity-80 font-medium">{scale.grade}:</span> {scale.minMark}-{scale.maxMark}
-                </div>
-              ))}
-          </div>
-        }
-      />
 
       <div className="max-w-none px-4 sm:px-6 lg:px-8">
         <RemainingViewport className="flex flex-col">

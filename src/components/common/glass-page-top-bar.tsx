@@ -17,7 +17,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Search, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { GlassNavigationSurface } from "@/components/common/glass-navigation-surface";
@@ -328,9 +328,11 @@ export function GlassPageSearchInput({
   placeholder = "Search...",
   onFocus,
   onBlur,
+  onKeyDown,
   ...inputProps
 }: GlassPageSearchInputProps) {
   const isSmallScreen = useSmallScreen();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [isFocused, setIsFocused] = useState(false);
   const hasValue =
     typeof inputProps.value === "string"
@@ -338,53 +340,82 @@ export function GlassPageSearchInput({
       : typeof inputProps.defaultValue === "string"
         ? inputProps.defaultValue.length > 0
         : false;
-  const isMobileExpanded = !isSmallScreen || hasValue || isFocused;
+  const isMobileExpanded = !isSmallScreen || isFocused;
 
   return (
     <div
       className={cn(
-        "glass-page-search-input group relative min-w-0 shrink-0 transition-[width,flex-basis] duration-200 ease-out",
+        "glass-page-search-input group relative min-w-0 shrink-0",
+        isSmallScreen && isFocused && "z-40",
         containerClassName,
       )}
       style={isSmallScreen ? {
-        width: isMobileExpanded ? "min(50vw, 14rem)" : "2.25rem",
+        width: "2.25rem",
+        height: "34px",
         flex: "none",
       } : undefined}
     >
-      <div className={cn(
-        "pointer-events-none absolute inset-y-0 z-10 flex items-center text-brand-ink-500/80 transition-all duration-200 group-hover:text-brand-ink-600 dark:text-brand-ink-400/80 dark:group-hover:text-brand-ink-400",
-        isSmallScreen && !isMobileExpanded ? "inset-x-0 justify-center pl-0" : "left-0 pl-2.5",
-      )}>
-        <Search className="h-3.5 w-3.5 transition-all duration-300 group-hover:scale-110" />
-      </div>
-      <input
-        type="text"
-        autoComplete="off"
-        data-1p-ignore="true"
-        data-lpignore="true"
-        data-form-type="other"
-        placeholder={isMobileExpanded ? placeholder : ""}
-        aria-label={inputProps["aria-label"] || placeholder}
-        style={{ boxShadow: "0 1px 4px rgba(59, 130, 246, 0.05)" }}
+      <div
         className={cn(
-          "h-[34px] rounded-full border border-brand-200/60 bg-white/90 text-xs shadow-sm transition-all duration-200 ease-out placeholder:text-gray-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:placeholder:text-slate-400",
-          isSmallScreen
-            ? (isMobileExpanded ? "w-full pl-7 pr-3" : "w-full px-0 placeholder:text-transparent")
-            : (hasValue
-              ? "w-56 pl-7 pr-8 lg:w-72"
-              : "w-32 pl-7 pr-8 group-hover:w-56 focus:w-56 lg:group-hover:w-72 lg:focus:w-72"),
-          className
+          isSmallScreen && "absolute right-0 top-0 rounded-full transition-[width] duration-200 ease-out motion-reduce:transition-none",
+          isSmallScreen && isFocused && "bg-white/80 shadow-lg backdrop-blur-[20px] dark:bg-slate-900/80",
         )}
-        onFocus={(event) => {
-          setIsFocused(true);
-          onFocus?.(event);
-        }}
-        onBlur={(event) => {
-          setIsFocused(false);
-          onBlur?.(event);
-        }}
-        {...inputProps}
-      />
+        style={isSmallScreen ? { width: isMobileExpanded ? "min(72vw, 22rem)" : "2.25rem" } : undefined}
+      >
+        <div className={cn(
+          "pointer-events-none absolute inset-y-0 z-10 flex items-center text-brand-ink-500/80 transition-all duration-200 group-hover:text-brand-ink-600 dark:text-brand-ink-400/80 dark:group-hover:text-brand-ink-400",
+          isSmallScreen && !isMobileExpanded ? "inset-x-0 justify-center pl-0" : "left-0 pl-2.5",
+        )}>
+          <Search className="h-3.5 w-3.5 transition-all duration-300 group-hover:scale-110" />
+        </div>
+        <input
+          ref={inputRef}
+          type="text"
+          autoComplete="off"
+          data-1p-ignore="true"
+          data-lpignore="true"
+          data-form-type="other"
+          placeholder={isMobileExpanded ? placeholder : ""}
+          aria-label={inputProps["aria-label"] || placeholder}
+          style={{ boxShadow: "0 1px 4px rgba(59, 130, 246, 0.05)" }}
+          className={cn(
+            "h-[34px] rounded-full border border-brand-200/60 bg-white/90 text-xs shadow-sm transition-all duration-200 ease-out motion-reduce:transition-none placeholder:text-gray-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-400/50 dark:border-brand-800/60 dark:bg-slate-900/90 dark:placeholder:text-slate-400",
+            isSmallScreen
+              ? (isMobileExpanded ? "w-full bg-transparent pl-7 pr-9 text-base dark:bg-transparent" : "w-full cursor-pointer px-0 text-transparent caret-transparent placeholder:text-transparent")
+              : (hasValue
+                ? "w-56 pl-7 pr-8 lg:w-72"
+                : "w-32 pl-7 pr-8 group-hover:w-56 focus:w-56 lg:group-hover:w-72 lg:focus:w-72"),
+            className
+          )}
+          onFocus={(event) => {
+            setIsFocused(true);
+            onFocus?.(event);
+          }}
+          onBlur={(event) => {
+            setIsFocused(false);
+            onBlur?.(event);
+          }}
+          onKeyDown={(event) => {
+            onKeyDown?.(event);
+            if (!event.defaultPrevented && isSmallScreen && event.key === "Escape") {
+              event.preventDefault();
+              event.currentTarget.blur();
+            }
+          }}
+          {...inputProps}
+        />
+        {isSmallScreen && isFocused && (
+          <button
+            type="button"
+            aria-label="Close search"
+            className="absolute inset-y-0 right-0 flex w-9 items-center justify-center rounded-full text-slate-600 hover:bg-brand-surface-100/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:text-slate-300 dark:hover:bg-slate-800/60"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => inputRef.current?.blur()}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

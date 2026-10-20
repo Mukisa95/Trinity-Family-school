@@ -2162,11 +2162,34 @@ export default function ExamsPage() {
                   (parseInt(a.split(' ')[1]) || 0) - (parseInt(b.split(' ')[1]) || 0)
                 );
                 const defaultCATSetKey = sortedCATSets[sortedCATSets.length - 1]?.[0] || 'SET 1';
-                const selectedCATSetKey = selectedCATSetKeys[batchId] || defaultCATSetKey;
+                const selectedCATSetKey = catSetGroups[selectedCATSetKeys[batchId]] ? selectedCATSetKeys[batchId] : defaultCATSetKey;
                 const selectedCATSetExams = catSetGroups[selectedCATSetKey] || [];
                 const mobileSelectionKey = isCATExam ? `${batchId}_${selectedCATSetKey}` : batchId;
                 const mobileExamChoices = isCATExam ? selectedCATSetExams : exams;
                 const mobileSelectedExam = mobileExamChoices.find(exam => exam.id === selectedCollapsedBatchExams[mobileSelectionKey]) || mobileExamChoices[0] || selectedCollapsedExam;
+
+                const catSetSelector = isCATExam && sortedCATSets.length > 1 ? (
+                  <div className="flex w-fit max-w-full flex-wrap gap-1 rounded-full border border-brand-alt-300/65 bg-white/72 p-1 shadow-[0_3px_12px_rgb(var(--brand-alt-600)/0.08),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-brand-alt-200/45 backdrop-blur-[16px] dark:border-brand-alt-800/65 dark:bg-slate-900/72 dark:ring-brand-alt-800/45 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:ring-0 sm:backdrop-blur-none dark:sm:bg-transparent" role="group" aria-label="Choose continuous assessment set">
+                    {sortedCATSets.map(([setName]) => {
+                      const isSelected = setName === selectedCATSetKey;
+                      return (
+                        <button
+                          key={setName}
+                          type="button"
+                          aria-pressed={isSelected}
+                          onClick={() => setSelectedCATSetKeys(previous => ({ ...previous, [batchId]: setName }))}
+                          className={`h-8 whitespace-nowrap rounded-full border px-2.5 text-[11px] font-semibold transition-colors sm:h-7 sm:rounded-md sm:px-2 sm:text-xs ${
+                            isSelected
+                              ? 'border-brand-secondary-500 bg-brand-secondary-surface-500 text-white shadow-sm'
+                              : 'border-transparent bg-transparent text-brand-secondary-ink-700 hover:bg-brand-secondary-surface-50 dark:text-brand-secondary-ink-300 dark:hover:bg-brand-secondary-surface-950/40 sm:border-brand-secondary-200 sm:bg-white dark:sm:border-brand-secondary-800/60 dark:sm:bg-slate-900'
+                          }`}
+                        >
+                          {setName}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null;
 
                 return (
                   <div
@@ -2250,6 +2273,8 @@ export default function ExamsPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setExpandedBatches(prev => ({ ...prev, [batchId]: !isExpanded }))}
+                                aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${isCATExam ? 'assessment sets' : 'exam classes'}`}
+                                aria-expanded={isExpanded}
                                 className="hidden h-8 w-8 rounded-full border border-white/20 p-0 transition-colors hover:bg-white/20 sm:inline-flex sm:h-7 sm:w-7 dark:border-slate-700/20 dark:hover:bg-slate-900/20"
                               >
                                 <ChevronDown className={`h-3 w-3 text-white transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
@@ -2262,27 +2287,7 @@ export default function ExamsPage() {
 
                     {/* Phone layout: details and controls reflow instead of compressing a table. */}
                     <div className="space-y-2 p-2.5 sm:hidden">
-                      {isCATExam && sortedCATSets.length > 1 && (
-                        <div className="flex w-fit max-w-full flex-wrap gap-1 rounded-full border border-brand-alt-300/65 bg-white/72 p-1 shadow-[0_3px_12px_rgb(var(--brand-alt-600)/0.08),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-brand-alt-200/45 backdrop-blur-[16px] dark:border-brand-alt-800/65 dark:bg-slate-900/72 dark:ring-brand-alt-800/45" aria-label="Choose continuous assessment set">
-                          {sortedCATSets.map(([setName, setExams]) => {
-                            const isSelected = setName === selectedCATSetKey;
-                            return (
-                              <button
-                                key={setName}
-                                type="button"
-                                onClick={() => setSelectedCATSetKeys(previous => ({ ...previous, [batchId]: setName }))}
-                                className={`h-8 rounded-full border px-2.5 text-[11px] font-semibold transition-colors ${
-                                  isSelected
-                                    ? 'border-brand-secondary-500 bg-brand-secondary-surface-500 text-white shadow-sm'
-                                    : 'border-transparent bg-transparent text-brand-secondary-ink-700 hover:bg-brand-secondary-surface-50 dark:text-brand-secondary-ink-300 dark:hover:bg-brand-secondary-surface-950/40'
-                                }`}
-                              >
-                                {setName} <span className="opacity-75">({setExams.length})</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
+                      {catSetSelector}
 
                       {mobileExamChoices.length > 1 && (
                         <div className="flex w-fit max-w-full flex-wrap gap-1 rounded-full border border-brand-300/65 bg-white/72 p-1 shadow-[0_3px_12px_rgb(var(--brand-500)/0.08),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-brand-200/45 backdrop-blur-[16px] dark:border-brand-800/65 dark:bg-slate-900/72 dark:ring-brand-800/45" aria-label="Choose class">
@@ -2353,28 +2358,10 @@ export default function ExamsPage() {
                           {isCATExam ? (
                             // CAT Exam rendering - group by sets and show exam names
                             (() => {
-                              // Group exams by set number for CAT exams
-                              const setGroups: Record<string, Exam[]> = {};
-                              exams.forEach(exam => {
-                                const setMatch = exam.name.match(/SET (\d+)$/i);
-                                const setNumber = setMatch ? setMatch[1] : '1';
-                                const setKey = `SET ${setNumber}`;
-
-                                if (!setGroups[setKey]) {
-                                  setGroups[setKey] = [];
-                                }
-                                setGroups[setKey].push(exam);
-                              });
-
-                              // Sort sets by number
-                              const sortedSets = Object.entries(setGroups).sort(([a], [b]) => {
-                                const numA = parseInt(a.split(' ')[1]);
-                                const numB = parseInt(b.split(' ')[1]);
-                                return numA - numB;
-                              });
-
-                              // For CAT exams, respect the main batch collapse/expand state
-                              const setsToShow = isExpanded ? sortedSets : sortedSets.slice(0, 1);
+                              const sortedSets = sortedCATSets;
+                              const setsToShow = isExpanded
+                                ? sortedSets
+                                : sortedSets.filter(([setName]) => setName === selectedCATSetKey);
 
                               return (
                                 <>
@@ -2387,24 +2374,26 @@ export default function ExamsPage() {
                                         {/* Set header row */}
                                         <TableRow className="border-b border-gray-100 dark:border-slate-700">
                                           <TableCell className="font-medium text-sm">
-                                            <div className="flex items-center gap-2">
-                                              <div className="w-6 h-6 bg-gradient-to-br from-brand-secondary-surface-500 to-brand-alt-surface-600 rounded-md flex items-center justify-center flex-shrink-0">
-                                                <span className="text-white font-bold text-xs">
-                                                  {setName.split(' ')[1]}
-                                                </span>
-                                              </div>
-                                              <div>
-                                                <span className="font-semibold text-sm">{setName}</span>
-                                                <p className="text-xs text-gray-500 leading-tight dark:text-slate-400">
-                                                  {firstSetExam.name.replace(new RegExp(`^${(firstSetExam.baseName || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} - `), '').replace(/ - SET \d+$/i, '')}
-                                                </p>
-                                              </div>
-                                              {setExams.length > 1 && (
-                                                <Badge variant="secondary" className="text-xs">
-                                                  {setExams.length} exam{setExams.length !== 1 ? 's' : ''}
-                                                </Badge>
+                                            {!isExpanded && sortedSets.length > 1 ? catSetSelector : (
+                                              <div className="flex items-center gap-2">
+                                                <div className="w-6 h-6 bg-gradient-to-br from-brand-secondary-surface-500 to-brand-alt-surface-600 rounded-md flex items-center justify-center flex-shrink-0">
+                                                  <span className="text-white font-bold text-xs">
+                                                    {setName.split(' ')[1]}
+                                                  </span>
+                                                </div>
+                                                <div>
+                                                  <span className="font-semibold text-sm">{setName}</span>
+                                                  <p className="text-xs text-gray-500 leading-tight dark:text-slate-400">
+                                                    {firstSetExam.name.replace(new RegExp(`^${(firstSetExam.baseName || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} - `), '').replace(/ - SET \d+$/i, '')}
+                                                  </p>
+                                                </div>
+                                                {setExams.length > 1 && (
+                                                  <Badge variant="secondary" className="text-xs">
+                                                    {setExams.length} exam{setExams.length !== 1 ? 's' : ''}
+                                                  </Badge>
                                               )}
                                             </div>
+                                            )}
                                           </TableCell>
                                           <TableCell className="hidden md:table-cell text-xs text-gray-600 dark:text-slate-300">
                                             {setExams.length === 1 || isSetExpanded ? (
@@ -2523,6 +2512,19 @@ export default function ExamsPage() {
                                                   <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isSetExpanded ? 'rotate-180' : ''}`} />
                                                 </Button>
                                               )}
+                                              {!isExpanded && sortedSets.length > 1 && (
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  onClick={() => setExpandedBatches(previous => ({ ...previous, [batchId]: true }))}
+                                                  className="h-8 px-2 text-xs text-brand-secondary-ink-600 hover:bg-brand-secondary-surface-50 hover:text-brand-secondary-ink-800 dark:text-brand-secondary-ink-300 dark:hover:bg-brand-secondary-surface-950/40"
+                                                  aria-label="Expand assessment sets"
+                                                  aria-expanded={false}
+                                                >
+                                                  <ChevronDown className="mr-1 h-3.5 w-3.5" />
+                                                  Expand
+                                                </Button>
+                                              )}
                                             </div>
                                           </TableCell>
                                         </TableRow>
@@ -2624,20 +2626,6 @@ export default function ExamsPage() {
                                       </React.Fragment>
                                     );
                                   })}
-
-                                  {/* Show collapse indicator when there are multiple sets and collapsed */}
-                                  {!isExpanded && sortedSets.length > 1 && (
-                                    <TableRow className="border-b border-gray-100 bg-brand-secondary-surface-50/30 dark:border-slate-700 dark:bg-brand-secondary-surface-950/30">
-                                      <TableCell colSpan={5} className="text-center py-3">
-                                        <div className="flex items-center justify-center gap-2 text-brand-secondary-ink-700 dark:text-brand-secondary-ink-300">
-                                          <ChevronDown className="h-4 w-4" />
-                                          <span className="text-sm">
-                                            {sortedSets.length - 1} more set{sortedSets.length - 1 !== 1 ? 's' : ''} • Click expand to view all
-                                          </span>
-                                        </div>
-                                      </TableCell>
-                                    </TableRow>
-                                  )}
                                 </>
                               );
                             })()
