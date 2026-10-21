@@ -43,6 +43,7 @@ import { getExamCacheScope, readExamCache } from '@/lib/cache/exam-cache';
 import { useClasses } from './use-classes';
 import { useSubjects } from './use-subjects';
 import {
+  EXAM_EVENT_CACHE_SCHEMA,
   getEventCacheScope,
   readEventCache,
   readLegacyExamEventCache,
@@ -50,6 +51,7 @@ import {
   writeLegacyExamEventCache,
 } from '@/lib/cache/event-cache';
 import { getRevisionCachePolicy } from '@/lib/cache/revision-cache-policy';
+import { groupExamCalendarEvents } from '@/lib/utils/exam-calendar-events';
 
 const EVENTS_COLLECTION = 'events';
 
@@ -668,6 +670,9 @@ export function useDeleteEvent() {
         }
 
         // Check if this is an exam ID (starts with "exam-")
+        if (eventId.startsWith('exam-batch-')) {
+          throw new Error('Manage this exam batch from Exams.');
+        }
         if (eventId.startsWith('exam-')) {
           console.log('This is an exam ID, deleting from exams collection');
 
@@ -791,7 +796,8 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
     ? getEventCacheScope(user?.id, user?.role, user?.familyId)
     : '';
   const persisted = readLegacyExamEventCache(scope);
-  const initialData = persisted?.data;
+  const initialData = persisted && (!revisionsReady || persisted.examRevision === examRevision)
+    ? persisted.data : undefined;
   const cachePolicy = getRevisionCachePolicy({
     hasCachedData: initialData !== undefined,
     cachedRevision: persisted?.revision,
@@ -809,6 +815,7 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
       revision,
       examRevision,
       revisionsReady ? 'ready' : 'pending',
+      EXAM_EVENT_CACHE_SCHEMA,
     ],
     enabled:
       (options?.enabled ?? true) &&
@@ -826,7 +833,7 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
         // projection to parents could reveal another class's exam. Parents use
         // only canonical public event documents until legacy exams are migrated.
         if (user?.role === 'Parent') {
-          writeLegacyExamEventCache(scope, revision, []);
+          writeLegacyExamEventCache(scope, revision, [], examRevision);
           return [];
         }
 
@@ -1207,9 +1214,9 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
           };
         });
 
-        writeLegacyExamEventCache(scope, revisionsReady ? revision : -1, examEvents);
-        console.log('Converted exam events:', examEvents.length);
-        return examEvents;
+        const groupedExamEvents = groupExamCalendarEvents(examEvents, exams);
+        writeLegacyExamEventCache(scope, revisionsReady ? revision : -1, groupedExamEvents, examRevision);
+        return groupedExamEvents;
       } catch (error) {
         console.error('Error fetching exams as events:', error);
         throw error;

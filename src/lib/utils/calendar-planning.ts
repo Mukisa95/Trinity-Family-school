@@ -24,6 +24,7 @@ export function calendarDateLabel(value: string, pattern = 'EEE, d MMM yyyy'): s
 }
 
 export function eventTimeLabel(event: Partial<Event>): string {
+  if (event.customFields?.classTimesVary) return 'Times vary by class';
   if (event.isAllDay) return 'All day';
   const time = (value?: string) => {
     const date = parseISO(`2000-01-01T${value || ''}`);
@@ -45,7 +46,8 @@ export function examSourceIds(event: Event): string[] {
     ...(event.examIntegration?.examIds || []),
     event.linkedExamId,
     event.customFields?.originalExamId,
-    ...(event.isExamEvent && event.id.startsWith('exam-') ? [event.id.slice(5)] : []),
+    ...(event.customFields?.originalExamIds || []),
+    ...(event.isExamEvent && event.id.startsWith('exam-') && !event.id.startsWith('exam-batch-') ? [event.id.slice(5)] : []),
   ].filter((id): id is string => typeof id === 'string' && id.length > 0))];
 }
 

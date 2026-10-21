@@ -3,10 +3,12 @@ import type { Event, UserRole } from '@/types';
 import { liteRead, liteReadMetadata, liteWrite, LITE_TTL } from './lite-cache';
 
 const EVENT_CACHE_SCHEMA = 2;
+export const EXAM_EVENT_CACHE_SCHEMA = 3;
 
 export type EventCacheSnapshot = {
   schema: number;
   revision: number;
+  examRevision?: number;
   data: Event[];
 };
 
@@ -57,7 +59,7 @@ export function readLegacyExamEventCache(scope: string): EventCacheSnapshot | nu
   if (!scope) return null;
   const cacheKey = getLegacyExamEventCacheKey(scope);
   const snapshot = liteRead<EventCacheSnapshot>(cacheKey);
-  if (snapshot?.schema !== EVENT_CACHE_SCHEMA) return null;
+  if (snapshot?.schema !== EXAM_EVENT_CACHE_SCHEMA) return null;
   if (liteReadMetadata(cacheKey)?.ttlMs !== LITE_TTL.events) {
     liteWrite(cacheKey, snapshot, LITE_TTL.events);
   }
@@ -68,11 +70,12 @@ export function writeLegacyExamEventCache(
   scope: string,
   revision: number,
   events: Event[],
+  examRevision: number,
 ): void {
   if (!scope) return;
   liteWrite(
     getLegacyExamEventCacheKey(scope),
-    { schema: EVENT_CACHE_SCHEMA, revision, data: events } satisfies EventCacheSnapshot,
+    { schema: EXAM_EVENT_CACHE_SCHEMA, revision, examRevision, data: events } satisfies EventCacheSnapshot,
     LITE_TTL.events,
   );
 }

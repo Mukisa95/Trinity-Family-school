@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { calendarDateLabel, calendarTone, eventOccursOn, eventTimeLabel, examSourceIds, findCalendarConflicts } from '@/lib/utils/calendar-planning';
 import { getComputedEventStatus } from '@/lib/utils/event-status-utils';
+import type { ClassExamSchedule } from '@/lib/utils/exam-calendar-events';
 
 export function PlanningEventButton({ event, onSelect }: { event: Event; onSelect: (event: Event) => void }) {
   const date = parseISO(event.startDate);
@@ -19,6 +20,7 @@ export function PlanningEventButton({ event, onSelect }: { event: Event; onSelec
     <span className="min-w-0 flex-1"><span className={`block text-[0.8125rem] font-semibold leading-snug${holiday ? ' calendar-event-red-date' : ''}`}>{event.title}</span>
       <span className="mt-1 block text-xs text-muted-foreground"><span className={redDate ? 'calendar-event-red-date' : undefined}>{calendarDateLabel(event.startDate, 'EEE, d MMM')}</span> · {eventTimeLabel(event)}</span>
       {event.location && <span className="mt-1 block truncate text-xs text-muted-foreground">{event.location}</span>}
+      {!!event.customFields?.classExamDetails?.length && <span className="mt-1 block text-xs text-muted-foreground">{event.classIds?.length} classes · {event.classNames?.join(', ')}</span>}
     </span>
   </button>;
 }
@@ -55,6 +57,7 @@ export function EventPlanningDetails({ event, events, canEdit, canCreate, canDel
 }) {
   const conflicts = findCalendarConflicts(event, events);
   const sourceIds = examSourceIds(event);
+  const classExams: ClassExamSchedule[] = event.customFields?.classExamDetails || [];
   const status = getComputedEventStatus(event);
   const safeUrl = (url: string) => /^https?:\/\//i.test(url) || /^\/(?!\/)/.test(url);
   return <section tabIndex={-1} id="calendar-event-details" aria-label="Event details" className="scroll-mt-36 rounded-2xl border bg-card p-4 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -63,7 +66,7 @@ export function EventPlanningDetails({ event, events, canEdit, canCreate, canDel
     <div className="mt-3 flex flex-wrap gap-1.5"><Badge variant="secondary">{event.isExamEvent ? 'Examination' : event.planning?.kind==='staff'?'Staff event':event.planning?.kind==='parent'?'Parent event':event.type}</Badge><Badge variant="outline">{status}</Badge>{event.requiresApproval && <Badge variant="outline">Approval: {event.approvalStatus || 'Pending'}</Badge>}{event.priority === 'Urgent' && <Badge variant="destructive">Urgent</Badge>}</div>
     <dl className="mt-4 space-y-3 text-[0.8125rem]">
       <div className="flex gap-2"><CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><div><dt className="sr-only">Date</dt><dd>{calendarDateLabel(event.startDate)}{event.endDate && event.endDate !== event.startDate && ` – ${calendarDateLabel(event.endDate)}`}</dd></div></div>
-      <div className="flex gap-2"><Clock className="h-4 w-4 shrink-0 text-muted-foreground" /><div><dt className="sr-only">Time</dt><dd>{eventTimeLabel(event)}</dd></div></div>
+      <div className="flex gap-2"><Clock className="h-4 w-4 shrink-0 text-muted-foreground" /><div><dt className="sr-only">Time</dt><dd>{event.customFields?.classTimesVary ? 'See each class schedule below' : eventTimeLabel(event)}</dd></div></div>
       {event.location && <div className="flex gap-2"><MapPin className="h-4 w-4 shrink-0 text-muted-foreground" /><div><dt className="sr-only">Venue</dt><dd>{event.location}</dd></div></div>}
       {!!event.classNames?.length && <div className="flex gap-2"><Users className="h-4 w-4 shrink-0 text-muted-foreground" /><div><dt className="text-xs text-muted-foreground">Classes</dt><dd>{event.classNames.join(', ')}</dd></div></div>}
       <div><dt className="text-xs text-muted-foreground">Organiser / created by</dt><dd>{event.customFields?.organiserName || event.createdByName || 'Not recorded'}</dd></div>
@@ -71,13 +74,18 @@ export function EventPlanningDetails({ event, events, canEdit, canCreate, canDel
       <div><dt className="text-xs text-muted-foreground">Visibility</dt><dd>{event.isPublic ? 'Public school event' : 'Restricted school event'}</dd></div>
       {event.expectedAttendees?.length ? <div><dt className="text-xs text-muted-foreground">Participants</dt><dd>{event.actualAttendees?.length || 0} recorded / {event.expectedAttendees.length} expected</dd></div> : null}
     </dl>
+    {classExams.length > 0 && <div className="mt-4 border-t pt-3"><h4 className="text-sm font-semibold">Classes involved ({event.classIds?.length})</h4><ul className="mt-2 space-y-2">{classExams.map(detail => <li key={`${detail.examId}:${detail.classId}`} className="rounded-xl border p-3 text-[0.8125rem]">
+      <Link className="inline-flex min-h-9 max-w-full items-center gap-2 break-words font-semibold text-link underline" href={`/exams/${encodeURIComponent(detail.examId)}/view-results${detail.classId ? `?classId=${encodeURIComponent(detail.classId)}` : ''}`}>{detail.className}<ExternalLink className="h-3.5 w-3.5 shrink-0" /></Link>
+      <p className="mt-1 text-xs text-muted-foreground">{calendarDateLabel(detail.startDate)}{detail.endDate !== detail.startDate && ` – ${calendarDateLabel(detail.endDate)}`}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{eventTimeLabel(detail)}{detail.location && ` · ${detail.location}`}</p>
+    </li>)}</ul></div>}
     {event.description && <p className="mt-4 whitespace-pre-wrap break-words border-t pt-3 text-[0.8125rem] leading-relaxed text-muted-foreground">{event.description}</p>}
     {conflicts.length > 0 && <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"><h4 className="font-semibold">Possible conflicts ({conflicts.length})</h4>{conflicts.map(conflict => <p key={conflict.eventId} className="mt-2">{conflict.title}: {conflict.reasons.join(' · ')}</p>)}</div>}
     {!!event.attachments?.length && <div className="mt-4 space-y-2 border-t pt-3"><h4 className="text-xs font-semibold">Attachments</h4>{event.attachments.map(attachment => safeUrl(attachment.url) && <a key={attachment.id} href={attachment.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 break-all text-xs text-link underline"><Paperclip className="h-3.5 w-3.5 shrink-0" />{attachment.name}</a>)}</div>}
     <div className="mt-4 border-t pt-3 text-xs text-muted-foreground"><p>{event.sendReminders ? `${event.planning?.times.length||event.reminders?.filter(reminder => reminder.enabled).length || 0} reminder settings configured` : 'Reminders off'}</p><p className="mt-1">{event.notificationsSent?.length || 0} notification delivery records</p>
       {!!event.notificationsSent?.length && <details className="mt-2"><summary className="cursor-pointer">Delivery history</summary><ul className="mt-2 space-y-2">{event.notificationsSent.map((record, index) => <li key={`${record.sentAt}:${index}`}>{record.deliveryStatus || 'Status not recorded'} · {record.recipients.length} recipients · {calendarDateLabel(record.sentAt)}</li>)}</ul></details>}
     </div>
-    {sourceIds.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{sourceIds.map((id, index) => <Button key={id} size="sm" variant="outline" asChild><Link href={`/exams/${encodeURIComponent(id)}/view-results${event.classIds?.length === 1 ? `?classId=${encodeURIComponent(event.classIds[0])}` : ''}`}><ExternalLink className="mr-1.5 h-3.5 w-3.5" />Open exam{sourceIds.length > 1 ? ` ${index + 1}` : ''}</Link></Button>)}</div>}
+    {sourceIds.length > 0 && !classExams.length && <div className="mt-4 flex flex-wrap gap-2">{sourceIds.map((id, index) => <Button key={id} size="sm" variant="outline" asChild><Link href={`/exams/${encodeURIComponent(id)}/view-results${event.classIds?.length === 1 ? `?classId=${encodeURIComponent(event.classIds[0])}` : ''}`}><ExternalLink className="mr-1.5 h-3.5 w-3.5" />Open exam{sourceIds.length > 1 ? ` ${index + 1}` : ''}</Link></Button>)}</div>}
     {event.requiresAttendance && canEdit && <Button asChild variant="outline" size="sm" className="mr-2 mt-3"><Link href={`/events/${encodeURIComponent(event.id)}/attendance`}>Record attendance</Link></Button>}
     {event.requiresAttendance && canViewAttendance && <Button asChild variant="outline" size="sm" className="mt-3"><Link href={`/events/${encodeURIComponent(event.id)}/view-attendance`}>View attendance</Link></Button>}
     <div className="mt-4 flex flex-wrap gap-2 border-t pt-3">
