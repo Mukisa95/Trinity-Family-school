@@ -1,3 +1,4 @@
+import { drawListDocumentHeader, drawListDocumentFooters, listTableStyles } from '@/lib/printing/list-document-jspdf';
 import { applyMonochromePDF } from '@/lib/printing/monochrome-jspdf';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import jsPDF from 'jspdf';
@@ -56,27 +57,13 @@ export const generateDutyRotaPDF = async ({
   const doc = new jsPDF();
   applyMonochromePDF(doc);
   
-  // Add header with school name
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text(schoolName, 105, 20, { align: 'center' });
-  
-  // Add duty rota name and academic year/term in the same line
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  
   const academicYearText = academicYear ? academicYear.name : dutyRota.academicYearId;
   const termText = term ? term.name : dutyRota.termId;
-  
-  let reportTitle = `${dutyRota.dutyName}`;
-  if (dutyRota.termId) {
-    reportTitle += ` (${academicYearText} - ${termText})`;
-  } else {
-    reportTitle += ` (${academicYearText})`;
-  }
-  
-  doc.text(reportTitle, 105, 30, { align: 'center' });
-  
+  const registerHeader = { schoolName, title: dutyRota.dutyName,
+    context: [academicYearText, termText].filter(Boolean).join(' / '),
+    count: `${timeline.periods.length} PERIODS`, margin: 10 };
+  const tableTop = drawListDocumentHeader(doc, registerHeader);
+
   // Function to get member name (compact format)
   const getMemberName = (memberId: string, memberType: string) => {
     if (memberType === 'staff') {
@@ -179,7 +166,7 @@ export const generateDutyRotaPDF = async ({
   
   // Calculate optimal font size based on available space and content
   const pageHeight = doc.internal.pageSize.height;
-  const headerHeight = 40; // Space taken by header
+  const headerHeight = tableTop; // Space taken by header
   const footerHeight = 20; // Space for page number
   const availableHeight = pageHeight - headerHeight - footerHeight;
   const rowCount = tableData.length;
@@ -201,7 +188,7 @@ export const generateDutyRotaPDF = async ({
       columns.map(col => col.title)
     ],
     body: tableData.length > 0 ? tableData : [columns.map(() => 'No periods available')],
-    startY: 40,
+    startY: tableTop,
     styles: {
       fontSize: dynamicFontSize,
       cellPadding: dynamicCellPadding,
@@ -226,17 +213,14 @@ export const generateDutyRotaPDF = async ({
       styles[index] = { cellWidth: col.width };
       return styles;
     }, {} as any),
-    margin: { top: 20, right: 10, bottom: 0, left: 10 },
-    didDrawPage: function (data) {
-      // Add page number
-      const pageCount = doc.getNumberOfPages();
-      doc.setFontSize(10);
-      doc.text(`Page ${data.pageNumber} of ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
-    },
+    margin: { top: 33, right: 10, bottom: 18, left: 10 },
+    didDrawPage: () => { if (doc.getCurrentPageInfo().pageNumber > 1) drawListDocumentHeader(doc, { ...registerHeader, compact: true }); },
     tableWidth: 'auto',
     theme: 'grid',
-    pageBreak: 'avoid', // Prevent page breaks
+    pageBreak: 'auto',
+    rowPageBreak: 'avoid',
     showFoot: 'lastPage',
+    ...listTableStyles,
     footStyles: {
       fillColor: [255, 255, 255],
       textColor: [0, 0, 0],
@@ -246,5 +230,6 @@ export const generateDutyRotaPDF = async ({
   
   // Footer removed - table now extends to bottom of page
   
+  drawListDocumentFooters(doc, schoolName, 10);
   return doc.output('blob');
 };

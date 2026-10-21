@@ -1,3 +1,4 @@
+import { drawListDocumentHeader, drawListDocumentFooters, listTableStyles } from '@/lib/printing/list-document-jspdf';
 import { applyMonochromePDF } from '@/lib/printing/monochrome-jspdf';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -44,19 +45,15 @@ export function generateSchoolReportPdf(report:ReportDocument):jsPDF {
     for(const [index,width] of Object.entries(item.columnWidths||{}))columnStyles[Number(index)]={...columnStyles[Number(index)],cellWidth:width};
     autoTable(doc,{startY:y,head:[item.columns.map(text)],body:rows,foot:item.total?[cells(item.total)]:undefined,showFoot:'lastPage',theme:'striped',margin:{left:19,right:19,top:36,bottom:22},
       styles:{font:'helvetica',fontSize:9,cellPadding:1.7,overflow:'linebreak',textColor:ink,lineColor:[226,232,240],lineWidth:0},
-      headStyles:{fillColor:blue,textColor:[255,255,255],fontStyle:'bold',fontSize:8.5},alternateRowStyles:{fillColor:[242,247,252]},
-      footStyles:{fillColor:[226,244,238],textColor:ink,fontStyle:'bold'},
+      headStyles:listTableStyles.headStyles,alternateRowStyles:listTableStyles.alternateRowStyles,
+      footStyles:listTableStyles.footStyles,
       columnStyles,pageBreak:'auto',rowPageBreak:'avoid',showHead:'everyPage',
       didDrawPage:()=>{if(doc.getNumberOfPages()>firstPage){doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...ink);doc.text(text(`${item.title} (continued)`).slice(0,105),19,29);}},
     });
     y=(doc as jsPDF & {lastAutoTable?:{finalY:number}}).lastAutoTable!.finalY+5;
   };
   const asOf=reportDate(report.generatedAt);
-  doc.setFillColor(...blue);doc.rect(0,0,210,26,'F');doc.setFillColor(5,150,145);doc.roundedRect(19,7,12,12,3,3,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(255,255,255);doc.text(report.schoolName.split(/\s+/).slice(0,2).map(word=>word[0]).join(''),25,15,{align:'center'});
-  doc.setFontSize(12);doc.text(doc.splitTextToSize(text(report.schoolName),149),37,12);
-  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(193,211,230);doc.text(text(report.schoolContact||'SCHOOL REPORTS / CURRENT RECORDS & CLEAR NEXT STEPS'),37,22);
-  y=36;line(report.title,18,true);line(`${report.period.label} / ${report.period.start} to ${report.period.end}`,10);
+  y=drawListDocumentHeader(doc,{schoolName:report.schoolName,title:report.title,context:report.period.label,date:`${report.period.start} to ${report.period.end}`,margin:19});
   line(`Checked ${new Date(report.generatedAt).toLocaleString('en-GB',{timeZone:'Africa/Kampala'})} EAT / Prepared by ${report.preparedBy}`,8.5);
   const status=asOf<report.period.start?'not yet started':asOf<=report.period.end?'still in progress':'ended';
   line(`Selected period: ${status}. Full supporting lists: ${report.includeDetails?'included after the summaries':'not selected'}.`,8.5);

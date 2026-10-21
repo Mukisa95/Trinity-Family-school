@@ -1,4 +1,6 @@
 'use client';
+import { listDocumentStyles } from '@/lib/printing/list-document-theme';
+
 import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
 import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
@@ -760,6 +762,7 @@ export default function FeesCollectionPage() {
     try {
       // Dynamic import to avoid SSR issues
       const { PDFDownloadLink, pdf, Document, Page, Text, View, StyleSheet, Image } = await import('@/lib/printing/monochrome-react-pdf');
+      const { ListDocumentHeader, ListDocumentFooter } = await import('@/lib/printing/list-document-react-pdf');
 
       // Create PDF component inline to avoid import issues
       const createPDFComponent = (props: any) => {
@@ -768,7 +771,7 @@ export default function FeesCollectionPage() {
         // Determine orientation and create styles
         const isLandscape = Object.entries(columnSelection).filter(([_, selected]) => selected).length > 6;
 
-        const styles = StyleSheet.create({
+        const styles = StyleSheet.create(listDocumentStyles({
           page: {
             flexDirection: 'column',
             backgroundColor: '#ffffff',
@@ -864,7 +867,7 @@ export default function FeesCollectionPage() {
             fontFamily: 'Helvetica',
             fontWeight: 'bold',
           },
-        });
+        }));
 
         const getOptimalColumnWidths = () => {
           const dataColumns = ['pupilInfo','admissionNumber','class','section','totalFees','totalPaid','balance','feeBreakdown','statusMark'] as const;
@@ -933,23 +936,7 @@ export default function FeesCollectionPage() {
               wrap
             >
               {/* School Header */}
-              <View style={styles.header}>
-                <Text style={styles.schoolName}>Trinity Family School</Text>
-                <Text style={styles.title}>
-                  {(() => {
-                    const selClassId = filters.selectedClassId;
-                    const selClass = selClassId && selClassId !== 'all' && selClassId !== ''
-                      ? classes.find((c: any) => c.id === selClassId)
-                      : null;
-                    const classLabel = selClass
-                      ? (selClass.code || selClass.name || '')
-                      : '';
-                    return classLabel
-                      ? `${classLabel} Fees Collection Report`
-                      : 'Fees Collection Report';
-                  })()}
-                </Text>
-              </View>
+              <ListDocumentHeader schoolName="Trinity Family School" title="Fees Collection Report" context={classes.find((c: any) => c.id === filters.selectedClassId)?.name || 'All classes'} date={new Date().toLocaleDateString('en-GB')} count={String(pupils.length) + ' PUPILS'} section="FEES COLLECTION REGISTER" />
 
               {/* Filter Information - only shown when showFilters is enabled */}
               {columnSelection.showFilters && (
@@ -1195,13 +1182,7 @@ export default function FeesCollectionPage() {
               </View>
 
               {/* Footer */}
-              <Text
-                style={styles.footer}
-                fixed
-                render={({ pageNumber, totalPages }: any) =>
-                  `Trinity Family School - Fees Collection Report • Page ${pageNumber} of ${totalPages} • Generated: ${new Date().toLocaleDateString()}`
-                }
-              />
+              <ListDocumentFooter label="Trinity Family School" />
             </Page>
           </Document>
         );

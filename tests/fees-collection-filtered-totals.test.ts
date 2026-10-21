@@ -6,6 +6,7 @@ import React from 'react';
 import ts from 'typescript';
 import { calculateFeesCollectionTotals } from '@/lib/utils/fees-collection-totals';
 import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { listDocumentStyles } from '@/lib/printing/list-document-theme';
 
 const pupils = [
   { id: 'alice', firstName: 'Alice', lastName: 'Test', admissionNumber: '001', classId: 'p1', section: 'Day', status: 'Active' },
@@ -85,6 +86,8 @@ function pageHarness() {
     '@tanstack/react-query': { useQuery: () => ({ data: [{ id: 'tuition', name: 'Tuition' }, { id: 'transport', name: 'Transport' }] }) },
     '@/lib/utils/name-formatter': { matchesPupilSearch, formatPupilDisplayName },
     '@/lib/utils/fees-collection-totals': { calculateFeesCollectionTotals },
+    '@/lib/printing/list-document-theme': { listDocumentStyles },
+    '@/lib/printing/list-document-react-pdf': { ListDocumentHeader: 'list-header', ListDocumentFooter: 'list-footer' },
     '@/lib/hooks/use-pupils': { usePupils: () => ({ data: pupils }) },
     '@/lib/hooks/use-classes': { useClasses: () => ({ data: [{ id: 'p1', name: 'Primary One' }, { id: 'p2', name: 'Primary Two' }] }) },
     '@/lib/hooks/use-academic-years': { useAcademicYears: () => ({ data: [{ id: 'year', name: '2026', terms: [{ id: 'term', name: 'Term 3', startDate: '2026-09-01', endDate: '2026-12-01' }] }] }) },
@@ -156,7 +159,9 @@ test('page summaries and PDF follow fee, balance, section, status, search, and c
   await page.click(pdfLabel);
   assert.ok(page.getReport(), 'PDF was generated');
   assert.match(page.text(page.getReport()), /Total Fees: Shs\. 30,000, Paid: Shs\. 0, Balance: Shs\. 30,000/);
-  assert.match(page.text(page.getReport()), /Primary One Fees Collection Report/);
+  const reportHeader = page.nodes(page.getReport(), element => element.type === 'list-header')[0];
+  assert.equal(reportHeader.props.title, 'Fees Collection Report');
+  assert.equal(reportHeader.props.context, 'Primary One');
   page.click('Clear');
   assert.match(page.summary(page.render()), /Total Fees:Shs\. 250,000/);
   assert.equal(page.nodes(page.render(), element => element.type === 'ClassSelector')[0].props.selectedClassId, 'p1');

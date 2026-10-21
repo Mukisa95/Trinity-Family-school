@@ -1,3 +1,4 @@
+import { LIST_DOCUMENT_CSS, listDocumentHeaderHTML } from '@/lib/printing/list-document-html';
 import { MONOCHROME_PRINT_CSS } from '@/lib/printing/monochrome';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState } from 'react';
@@ -334,14 +335,11 @@ export function FamilyPrintModal({
             .pupils-table { box-shadow: none; }
           }
         ${MONOCHROME_PRINT_CSS}
+${LIST_DOCUMENT_CSS}
 </style>
       </head>
       <body>
-        <div class="header">
-          <div class="school-name">Trinity Family Schools</div>
-          <div class="document-title">Family Fees Summary</div>
-        </div>
-        
+        ${listDocumentHeaderHTML({ schoolName: 'Trinity Family School', title: 'Family Fees Summary', context: 'Family ' + familyId, date: (selectedAcademicYear?.name || '') + ' / ' + (selectedTerm || ''), count: familyPupils.length + ' PUPILS' })}
         <div class="family-info">
           <div class="info-grid">
             <div class="info-item">
@@ -733,14 +731,11 @@ export function FamilyPrintModal({
             .pupil-section { page-break-inside: avoid; }
           }
         ${MONOCHROME_PRINT_CSS}
+${LIST_DOCUMENT_CSS}
 </style>
       </head>
       <body>
-        <div class="header">
-          <div class="school-name">Trinity Family Schools</div>
-          <div class="document-title">Family Detailed Fees Statement</div>
-        </div>
-        
+        ${listDocumentHeaderHTML({ schoolName: 'Trinity Family School', title: 'Family Detailed Fees Statement', context: 'Family ' + familyId, date: (selectedAcademicYear?.name || '') + ' / ' + (selectedTerm || ''), count: familyPupils.length + ' PUPILS' })}
         <div class="family-info">
           <div class="info-grid">
             <div class="info-item">

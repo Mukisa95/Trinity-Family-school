@@ -1137,6 +1137,7 @@ export const TransPupilReportCardPDF: React.FC<TransPupilReportCardProps> = (pro
                     borderColor: '#1e3a8a',
                 }, dynamicStyles.sectionSpacing]}>
                     <View style={{
+                        position: 'relative',
                         flexDirection: 'row',
                         justifyContent: 'space-between',
                         alignItems: 'center',
@@ -1213,8 +1214,8 @@ export const TransPupilReportCardPDF: React.FC<TransPupilReportCardProps> = (pro
                                 textAlign: 'center',
                                 marginTop: 2,
                             }}>{division}</Text>
-                        {isTermThree(term) && config.promoted.show && config.promoted.fill && promotionRanking && <Text style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 1, fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#dc2626', textAlign: 'center' }}>{promotionRanking}</Text>}
                         </View>
+                        {isTermThree(term) && config.promoted.show && config.promoted.fill && promotionRanking && <Text style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 11, fontSize: 19.5, lineHeight: 1, fontFamily: 'Helvetica-Bold', color: '#dc2626', textAlign: 'right' }}>{promotionRanking}</Text>}
                     </View>
                 </View>
 

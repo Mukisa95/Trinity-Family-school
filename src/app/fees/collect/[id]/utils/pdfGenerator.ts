@@ -1,3 +1,5 @@
+import { drawListDocumentHeader, drawListDocumentFooters, listTableStyles } from '@/lib/printing/list-document-jspdf';
+import { LIST_DOCUMENT_CSS, listDocumentHeaderHTML } from '@/lib/printing/list-document-html';
 import { MONOCHROME_PRINT_CSS } from '@/lib/printing/monochrome';
 import { applyMonochromePDF } from '@/lib/printing/monochrome-jspdf';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
@@ -69,21 +71,14 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
   const schoolName = schoolSettings?.generalInfo?.name || 'TRINITY FAMILY SCHOOL';
   const pupilName = `${formatPupilDisplayName(pupil)}`.trim() || 'Pupil';
 
-  doc.setFillColor(30, 64, 175);
-  doc.roundedRect(margin, 12, contentWidth, 31, 4, 4, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.text(schoolName, pageWidth / 2, 23, { align: 'center', maxWidth: contentWidth - 14 });
-  doc.setFontSize(11);
-  doc.text('FEE STATEMENT', pageWidth / 2, 30, { align: 'center' });
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text(`Generated ${new Date().toLocaleDateString('en-UG')}`, pageWidth / 2, 36, { align: 'center' });
+  const registerHeader = { schoolName, title: 'Fee Statement', context: pupilName,
+    date: `${selectedAcademicYear?.name || 'All years'} / ${selectedTerm || 'All terms'}`,
+    count: `${fees.length} FEE ITEMS`, margin };
+  drawListDocumentHeader(doc, registerHeader);
 
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(margin, 49, contentWidth, 29, 3, 3, 'FD');
+  doc.rect(margin, 49, contentWidth, 29, 'FD');
   doc.setTextColor(30, 41, 59);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
@@ -122,7 +117,7 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
     const x = margin + index * (width + 3);
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(x, summaryY, width, 18, 3, 3, 'FD');
+    doc.rect(x, summaryY, width, 18, 'FD');
     doc.setTextColor(100, 116, 139);
     doc.setFontSize(7);
     doc.text(label, x + 4, summaryY + 6);
@@ -135,7 +130,7 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
 
   autoTable(doc, {
     startY: 110,
-    margin: { left: margin, right: margin },
+    margin: { top: 38, bottom: 20, left: margin, right: margin },
     head: [['Fee item', 'Category', 'Amount', 'Paid', 'Balance', 'Status']],
     body: fees.map((fee) => {
       const paid = fee.paid || 0;
@@ -144,10 +139,7 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
       return [fee.name, fee.category || 'General', formatAmount(fee.amount || 0), formatAmount(paid), formatAmount(balance), status];
     }),
     foot: [['Total', '', formatAmount(totalFees), formatAmount(totalPaid), formatAmount(totalBalance), '']],
-    theme: 'grid',
-    styles: { font: 'helvetica', fontSize: 7.5, cellPadding: 2.2, textColor: [30, 41, 59] },
-    headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255], fontStyle: 'bold' },
-    footStyles: { fillColor: [241, 245, 249], textColor: [30, 41, 59], fontStyle: 'bold' },
+    ...listTableStyles,
     columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'center' } },
   });
 
@@ -162,7 +154,7 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
   if (includePaymentHistory && payments.length > 0) {
     if (nextY > pageHeight - 40) {
       doc.addPage();
-      nextY = 18;
+      nextY = 38;
     }
     doc.setTextColor(30, 41, 59);
     doc.setFont('helvetica', 'bold');
@@ -170,12 +162,10 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
     doc.text('PAYMENT HISTORY', margin, nextY);
     autoTable(doc, {
       startY: nextY + 4,
-      margin: { left: margin, right: margin },
+      margin: { top: 38, bottom: 20, left: margin, right: margin },
       head: [['Date', 'Fee item', 'Amount', 'Method']],
       body: payments,
-      theme: 'grid',
-      styles: { font: 'helvetica', fontSize: 7.5, cellPadding: 2.2, textColor: [30, 41, 59] },
-      headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255], fontStyle: 'bold' },
+      ...listTableStyles,
       columnStyles: { 2: { halign: 'right' } },
     });
     nextY = (doc as any).lastAutoTable.finalY + 14;
@@ -184,7 +174,7 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
   if (includeSignature) {
     if (nextY > pageHeight - 16) {
       doc.addPage();
-      nextY = 30;
+      nextY = 42;
     }
     doc.setDrawColor(148, 163, 184);
     doc.line(margin + 8, nextY, margin + 70, nextY);
@@ -195,13 +185,10 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
     doc.text('Parent / guardian', pageWidth - margin - 39, nextY + 5, { align: 'center' });
   }
 
-  const pageCount = doc.getNumberOfPages();
-  for (let page = 1; page <= pageCount; page += 1) {
-    doc.setPage(page);
-    doc.setTextColor(100, 116, 139);
-    doc.setFontSize(7);
-    doc.text(`${schoolName} · Fee statement · Page ${page} of ${pageCount}`, pageWidth / 2, pageHeight - 7, { align: 'center' });
+  for (let page = 2; page <= doc.getNumberOfPages(); page++) {
+    doc.setPage(page); drawListDocumentHeader(doc, { ...registerHeader, compact: true });
   }
+  drawListDocumentFooters(doc, schoolName, margin);
 
   return doc.output('blob');
 }
@@ -324,7 +311,7 @@ export async function generateFeeStatementPDF(options: PDFGenerationOptions): Pr
           gap: 10px;
         }
         .section-title::before {
-          content: '👤';
+          content: none;
           font-size: 20px;
         }
         .info-grid {
@@ -464,7 +451,7 @@ export async function generateFeeStatementPDF(options: PDFGenerationOptions): Pr
           gap: 8px;
         }
         .table-title::before {
-          content: '📋';
+          content: none;
           font-size: 16px;
         }
         .fees-table {
@@ -603,28 +590,11 @@ export async function generateFeeStatementPDF(options: PDFGenerationOptions): Pr
           size: A4;
         }
       ${MONOCHROME_PRINT_CSS}
+${LIST_DOCUMENT_CSS}
 </style>
     </head>
     <body>
-      <!-- Header -->
-      <div class="header">
-        ${schoolSettings?.generalInfo?.logo ? 
-          `<div class="school-logo"><img src="${schoolSettings.generalInfo.logo}" alt="School Logo" style="width: 60px; height: 60px; object-fit: contain;" /></div>` :
-          '<div class="school-logo">🏫</div>'
-        }
-        <div class="school-name">${schoolSettings?.generalInfo?.name || 'SCHOOL NAME'}</div>
-        <div class="document-title">STUDENT FEE STATEMENT</div>
-        <div class="generation-date">
-          Generated on ${new Date().toLocaleDateString('en-UG', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          })}
-        </div>
-      </div>
-
+      ${listDocumentHeaderHTML({ schoolName: schoolSettings?.generalInfo?.name || 'Trinity Family School', title: 'Student Fee Statement', context: formatPupilDisplayName(pupil), date: (selectedAcademicYear?.name || 'All years') + ' / ' + (selectedTerm || 'All terms'), count: fees.length + ' FEE ITEMS' })}
       <!-- Student Information -->
       <div class="student-info">
         <div class="section-title">Student Information</div>
@@ -691,12 +661,12 @@ export async function generateFeeStatementPDF(options: PDFGenerationOptions): Pr
                     <div style="font-weight: 600; color: #1f2937;">${fee.name}</div>
                     ${fee.description ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">${fee.description}</div>` : ''}
                     ${fee.discount ? `<div style="font-size: 11px; color: #059669; margin-top: 4px; font-weight: 600;">
-                      💰 Discount: ${fee.discount.type === 'percentage' ? fee.discount.amount + '%' : formatCurrency(fee.discount.amount)}
+                      Discount: ${fee.discount.type === 'percentage' ? fee.discount.amount + '%' : formatCurrency(fee.discount.amount)}
                     </div>` : ''}
                 </td>
                   <td>
                     <span style="background: #f1f5f9; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; color: #475569;">
-                      ${fee.category}
+                      ${fee.category || 'General'}
                     </span>
                   </td>
                 <td class="amount">
@@ -745,14 +715,14 @@ export async function generateFeeStatementPDF(options: PDFGenerationOptions): Pr
       ` : ''}
 
       <div class="footer">
-        <div class="footer-title">🏫 ${schoolSettings?.generalInfo?.name || 'SCHOOL NAME'}</div>
+        <div class="footer-title">${schoolSettings?.generalInfo?.name || 'SCHOOL NAME'}</div>
         <div class="footer-disclaimer">
           This is a computer-generated statement showing the fee status as of the generation date. 
           Please keep this document for your records and contact the Finance Office for any queries.
         </div>
         <div class="footer-contact">
-          📍 ${schoolSettings?.address?.physical || 'N/A'}, ${schoolSettings?.address?.city || 'N/A'}, ${schoolSettings?.address?.country || 'N/A'} | 
-          📞 ${schoolSettings?.contact?.phone || 'N/A'} | 
+          ${schoolSettings?.address?.physical || 'N/A'}, ${schoolSettings?.address?.city || 'N/A'}, ${schoolSettings?.address?.country || 'N/A'} |
+          Tel: ${schoolSettings?.contact?.phone || 'N/A'} |
           ✉️ ${schoolSettings?.contact?.email || 'N/A'}
         </div>
       </div>
@@ -1186,21 +1156,11 @@ export async function generateFamilyFeeStatementPDF(
           body { margin: 0; }
         }
       ${MONOCHROME_PRINT_CSS}
+${LIST_DOCUMENT_CSS}
 </style>
     </head>
     <body>
-      <div class="header">
-        <div class="school-name">Trinity Family School</div>
-        <div class="document-title">FAMILY FEE STATEMENT</div>
-        <div style="margin-top: 10px; font-size: 14px; color: #6b7280;">
-          Generated on ${new Date().toLocaleDateString('en-UG', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}
-        </div>
-      </div>
-
+      ${listDocumentHeaderHTML({ schoolName: 'Trinity Family School', title: 'Family Fee Statement', context: family.name, date: (selectedAcademicYear?.name || 'All years') + ' / ' + (selectedTerm || 'All terms'), count: students.length + ' PUPILS' })}
       <div class="family-summary">
         <h2 style="margin-top: 0; color: #1f2937;">Family: ${family.name}</h2>
         <p>Academic Year: ${selectedAcademicYear?.name || 'All Years'} | Term: ${selectedTerm || 'All Terms'}</p>
@@ -1237,7 +1197,7 @@ export async function generateFamilyFeeStatementPDF(
                 ${student.fees.map(fee => `
                   <tr>
                     <td>${fee.name}</td>
-                    <td>${fee.category}</td>
+                    <td>${fee.category || 'General'}</td>
                     <td class="amount">${formatCurrency(fee.amount || 0)}</td>
                     <td class="amount">${formatCurrency(fee.paid || 0)}</td>
                     <td class="amount">${formatCurrency(fee.balance || 0)}</td>

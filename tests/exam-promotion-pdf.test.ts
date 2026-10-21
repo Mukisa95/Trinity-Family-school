@@ -52,7 +52,7 @@ async function inspect(blob: Blob, name: string) {
   const task = getDocument({ data: bytes, useSystemFonts: true }); const doc = await task.promise;
   const page = await doc.getPage(1); await page.getOperatorList();
   const content = await page.getTextContent();
-  const text = content.items.flatMap(item => 'str' in item ? [{ text: item.str, x: item.transform[4], y: item.transform[5], font: (page as any).commonObjs.get(item.fontName).name as string }] : []);
+  const text = content.items.flatMap(item => 'str' in item ? [{ text: item.str, x: item.transform[4], y: item.transform[5], width: item.width, size: item.height, font: (page as any).commonObjs.get(item.fontName).name as string }] : []);
   const count = doc.numPages, width = page.getViewport({ scale: 1 }).width;
   await task.destroy(); return { text, count, width };
 }
@@ -62,7 +62,9 @@ for (const [template, generate] of [['full', generateTransBatchReportPDF], ['bes
     const enabled = await inspect(await generate(props('TERM 3', true, progress)), `${template}-${progress ? 'progress' : 'grading'}-on`);
     const disabled = await inspect(await generate(props('TERM 3', false, progress)), `${template}-${progress ? 'progress' : 'grading'}-off`);
     const label = enabled.text.find(item => item.text === 'PROMOTED ON PROBATION');
-    assert.ok(label); assert.ok(label.font.includes('Bold')); assert.ok(label.x > enabled.width * 0.55);
+    assert.ok(label); assert.ok(label.font.includes('Bold'));
+    assert.equal(label.size, template === 'bespoke' ? 21 : 19.5, 'Ranking must be three times its previous font size');
+    assert.ok(label.x + label.width <= enabled.width - 20 && label.x + label.width > enabled.width * .8, 'Ranking must fit against the right edge below Division');
     const division = enabled.text.find(item => item.text === 'III' && item.x > enabled.width * 0.55);
     assert.ok(division && label.y < division.y, 'Ranking must be below the Division value');
     assert.equal(disabled.text.some(item => item.text.includes('PROMOTED')), false);

@@ -1,4 +1,6 @@
-'use client';
+"use client";
+import { LIST_DOCUMENT_CSS, listDocumentHeaderHTML } from '@/lib/printing/list-document-html';
+
 import { MONOCHROME_PRINT_CSS } from '@/lib/printing/monochrome';
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
@@ -365,14 +367,11 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
               .text-red { color: #dc2626; }
               .font-bold { font-weight: bold; }
             ${MONOCHROME_PRINT_CSS}
+${LIST_DOCUMENT_CSS}
 </style>
           </head>
           <body>
-            <div class="header">
-              <h2>Fee Summary Report</h2>
-              <p><strong>${formatPupilDisplayName(pupil ?? {})}</strong> | ID: ${pupil?.admissionNumber}</p>
-              <p>Class: ${pupil?.className} | Academic Year: ${selectedAcademicYear?.name}</p>
-            </div>
+            ${listDocumentHeaderHTML({ schoolName: 'Trinity Family School', title: 'Fee Summary Report', context: formatPupilDisplayName(pupil ?? {}), date: (selectedAcademicYear?.name || '') + ' / ' + (pupil?.className || ''), count: '' })}
             <div class="totals">
               <h3>Summary Overview</h3>
               <div class="grid">

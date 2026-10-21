@@ -1,3 +1,5 @@
+import { ListDocumentHeader, ListDocumentFooter } from '@/lib/printing/list-document-react-pdf';
+import { listDocumentStyles } from '@/lib/printing/list-document-theme';
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Photo } from '@/lib/printing/monochrome-react-pdf';
 import { Pupil, Class, SchoolSettings } from '@/types';
@@ -7,7 +9,7 @@ import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 // Font.register({ family: 'YourFontFamily', src: '/path/to/font.ttf' });
 
 // Define styles with a more modern aesthetic
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(listDocumentStyles({
   page: {
     fontFamily: 'Helvetica',
     fontSize: 9,
@@ -230,7 +232,7 @@ const styles = StyleSheet.create({
     color: 'rgba(200, 200, 200, 0.15)',
     transform: 'rotate(-45deg)',
   },
-});
+}));
 
 // Helper to get status style
 const getStatusStyle = (status: string | null | undefined) => {
@@ -282,33 +284,7 @@ const PupilPerformanceListPDF: React.FC<PupilPerformanceListPDFProps> = ({
   return (
     <Document title={`Performance List - ${pupilClass?.name || 'Class'}`}>
       <Page size="A4" style={styles.page}>
-        {/* Background elements */}
-        <View style={styles.pageBackground}>
-          <View style={styles.colorAccent} />
-          <Text style={styles.watermark}>
-            {settings?.generalInfo?.name || 'School Records'}
-          </Text>
-        </View>
-
-        {/* Header section */}
-        <View style={styles.headerContainer}>
-          <View style={styles.headerContent}>
-            <View>
-              <Text style={styles.headerTitle}>Performance List</Text>
-              <Text style={styles.headerSubtitle}>
-                {pupilClass?.name || 'Selected Class'} - Student Performance Status
-              </Text>
-              <Text style={styles.dateText}>
-                Generated on {new Date().toLocaleDateString('en-GB', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric'
-                })}
-              </Text>
-            </View>
-            {/* School logo could go here if available */}
-          </View>
-        </View>
+        <ListDocumentHeader schoolName={settings?.generalInfo?.name || 'Trinity Family School'} title="Performance List" context={pupilClass?.name || 'All classes'} date={new Date().toLocaleDateString('en-GB')} count={String(pupils.length) + ' PUPILS'} />
 
         {/* Class info box */}
         <View style={styles.classInfoContainer}>
@@ -336,7 +312,7 @@ const PupilPerformanceListPDF: React.FC<PupilPerformanceListPDFProps> = ({
         {/* Table */}
         <View style={styles.table}>
           {/* Table Header */}
-          <View style={styles.tableHeader}>
+          <View style={styles.tableHeader} fixed wrap={false}>
             <View style={styles.colPhoto}>
               <Text style={styles.headerText}>Photo</Text>
             </View>
@@ -393,17 +369,7 @@ const PupilPerformanceListPDF: React.FC<PupilPerformanceListPDFProps> = ({
           ))}
         </View>
 
-        {/* Footer */}
-        <Text style={styles.footer}>
-          {settings?.generalInfo?.name || 'School'} - {settings?.generalInfo?.motto || 'Excellence in Education'}
-        </Text>
-
-        {/* Page number */}
-        <Text
-          style={styles.pageNumber}
-          render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
-          fixed
-        />
+        <ListDocumentFooter label={settings?.generalInfo?.name || 'School'} />
       </Page>
     </Document>
   );

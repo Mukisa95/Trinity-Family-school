@@ -1,4 +1,7 @@
 "use client";
+import { ListDocumentHeader, ListDocumentFooter } from '@/lib/printing/list-document-react-pdf';
+import { listDocumentStyles } from '@/lib/printing/list-document-theme';
+
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React from 'react';
@@ -19,7 +22,7 @@ interface BankStatementPDFProps {
   };
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(listDocumentStyles({
   page: {
     flexDirection: 'column',
     backgroundColor: '#FFFFFF',
@@ -101,7 +104,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
   },
-});
+}));
 
 const BankStatementPDF: React.FC<BankStatementPDFProps> = ({
   pupil,
@@ -139,15 +142,7 @@ const BankStatementPDF: React.FC<BankStatementPDFProps> = ({
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>BANK STATEMENT</Text>
-          <Text style={styles.subtitle}>
-            Statement Period: {format(dateRange.startDate, 'dd/MM/yyyy')} - {format(dateRange.endDate, 'dd/MM/yyyy')}
-          </Text>
-          <Text style={styles.subtitle}>
-            Generated on: {format(new Date(), 'dd/MM/yyyy HH:mm')}
-          </Text>
-        </View>
+        <ListDocumentHeader schoolName="Trinity Family School" title="Bank Statement" context={formatPupilDisplayName(pupil)} date={format(dateRange.startDate, 'dd/MM/yyyy') + ' - ' + format(dateRange.endDate, 'dd/MM/yyyy')} count={String(transactions.length) + ' ENTRIES'} section="TRANSACTIONS" />
 
         {/* Account Information */}
         <View style={styles.accountInfo}>
@@ -198,7 +193,7 @@ const BankStatementPDF: React.FC<BankStatementPDFProps> = ({
           <Text style={styles.summaryTitle}>Transaction History</Text>
           
           {/* Table Header */}
-          <View style={styles.tableHeader}>
+          <View style={styles.tableHeader} fixed wrap={false}>
             <Text style={styles.col1}>Date</Text>
             <Text style={styles.col2}>Type</Text>
             <Text style={styles.col3}>Description</Text>
@@ -251,6 +246,7 @@ const BankStatementPDF: React.FC<BankStatementPDFProps> = ({
           <Text>This is a computer-generated statement and does not require a signature.</Text>
           <Text>For any queries, please contact the school administration.</Text>
         </View>
+        <ListDocumentFooter label="Trinity Family School" />
       </Page>
     </Document>
   );

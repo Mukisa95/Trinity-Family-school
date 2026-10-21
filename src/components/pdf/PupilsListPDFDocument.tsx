@@ -1,3 +1,5 @@
+import { ListDocumentHeader, ListDocumentFooter } from '@/lib/printing/list-document-react-pdf';
+import { listDocumentStyles } from '@/lib/printing/list-document-theme';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Photo } from '@/lib/printing/monochrome-react-pdf';
@@ -122,7 +124,7 @@ interface PupilsListPDFDocumentProps {
 }
 
 // Create styles with 1cm margins (28.35 points = 1cm)
-const createStyles = (isLandscape: boolean) => StyleSheet.create({
+const createStyles = (isLandscape: boolean) => StyleSheet.create(listDocumentStyles({
   page: {
     flexDirection: 'column',
     backgroundColor: '#ffffff',
@@ -266,7 +268,7 @@ const createStyles = (isLandscape: boolean) => StyleSheet.create({
   continuousTable: {
     width: '100%',
   },
-});
+}));
 
 // Helper function to calculate age
 const calculateAge = (dateOfBirth: string) => {
@@ -292,39 +294,20 @@ const getSiblings = (pupil: ActivePupil, allPupils: ActivePupil[]): ActivePupil[
 
 // Helper function to determine optimal column widths
 const getOptimalColumnWidths = (columnSelection: ColumnSelection, isLandscape: boolean) => {
-  const selectedColumns = Object.entries(columnSelection).filter(([_, selected]) => selected);
-  const totalColumns = selectedColumns.length;
-  
-  // Base widths for different column types (in percentage)
-  const columnWidths: Record<string, number> = {
-    pin: 8,
-    name: 20,
-    gender: 8,
-    age: 6,
-    class: 7,
-    section: 10,
-    status: 8,
-    house: 12,
-    guardianContacts: 25,
-    siblings: 15,
-    religion: 8,
-    photo: 8,
-  };
-
-  // Calculate total desired width
-  const totalDesiredWidth = selectedColumns.reduce((sum, [column]) => {
-    return sum + columnWidths[column];
-  }, 0);
-
-  // Scale widths to fit 100%
-  const scaleFactor = 100 / totalDesiredWidth;
-  
-  const optimizedWidths: Record<string, string> = {};
-  selectedColumns.forEach(([column]) => {
-    optimizedWidths[column] = `${(columnWidths[column] * scaleFactor).toFixed(1)}%`;
-  });
-
-  return optimizedWidths;
+  // Widths describe rendered columns, including the grouped fields, rather than
+  // counting every selected field as a separate column.
+  const weights: Record<string, number> = {};
+  if (columnSelection.photo) weights.photo = 8;
+  if (columnSelection.pin) weights.pin = columnSelection.section ? 15 : 8;
+  else if (columnSelection.section) weights.section = 10;
+  if (columnSelection.name) weights.name = 20;
+  if (columnSelection.class || columnSelection.status) weights.class = columnSelection.class && columnSelection.status ? 12 : 8;
+  if (columnSelection.age || columnSelection.gender || columnSelection.religion) weights.details = 15;
+  if (columnSelection.house) weights.house = 12;
+  if (columnSelection.guardianContacts) weights.guardianContacts = 25;
+  if (columnSelection.siblings) weights.siblings = 15;
+  const total = Object.values(weights).reduce((sum, value) => sum + value, 0) || 1;
+  return Object.fromEntries(Object.entries(weights).map(([key, weight]) => [key, `${weight / total * 100}%`]));
 };
 
 // Helper function to determine if landscape orientation is needed
@@ -385,43 +368,20 @@ const PupilsListPDFDocument: React.FC<PupilsListPDFDocumentProps> = ({
         wrap
       >
         {/* School Header - only on first page */}
-        <View style={styles.header} fixed={false}>
-          <Text style={styles.schoolName}>{settings.generalInfo.name}</Text>
-          {settings.generalInfo.motto && (
-            <Text style={styles.motto}>"{settings.generalInfo.motto}"</Text>
-          )}
-          {settings.generalInfo.registrationNumber && (
-            <Text style={[styles.motto, { fontSize: 10, marginBottom: 5 }]}>
-              Reg. No: {settings.generalInfo.registrationNumber}
-            </Text>
-          )}
-          {settings.address.physical && (
-            <Text style={[styles.motto, { fontSize: 10, marginBottom: 5 }]}>
-              {settings.address.physical}
-            </Text>
-          )}
-          {(settings.contact.phone || settings.contact.email) && (
-            <Text style={[styles.motto, { fontSize: 10, marginBottom: 10 }]}>
-              {settings.contact.phone && `Tel: ${settings.contact.phone}`}
-              {settings.contact.phone && settings.contact.email && ' | '}
-              {settings.contact.email && `Email: ${settings.contact.email}`}
-            </Text>
-          )}
-          <Text style={styles.title}>Pupils List</Text>
-        </View>
+        <ListDocumentHeader schoolName={settings.generalInfo.name} title="Pupils List" context={classes.map(c => c.name).join(' / ')} date={new Date().toLocaleDateString('en-GB')} count={String(pupils.length) + ' PUPILS'} />
 
         {/* Continuous Table with Smart Breaking */}
         <View style={styles.tableContainer}>
           {/* Table Header - will repeat on new pages */}
-          <View style={[styles.table, styles.continuousTable]} wrap={false}>
+          <View style={[styles.table, styles.continuousTable]}>
             <View style={styles.tableRow} fixed>
               {columnSelection.photo && (
-                <View style={[styles.tableColHeader, { width: '8%' }]}>
+                <View style={[styles.tableColHeader, { width: columnWidths.photo }]}>
                   <Text style={styles.tableCellHeader}>Photo</Text>
                 </View>
               )}
               {columnSelection.pin && (
-                <View style={[styles.tableColHeader, { width: columnSelection.section ? '15%' : columnWidths.pin }]}>
+                <View style={[styles.tableColHeader, { width: columnWidths.pin }]}>
                   <Text style={styles.tableCellHeader}>PIN {columnSelection.section ? '/ Section' : ''}</Text>
                 </View>
               )}
@@ -436,14 +396,14 @@ const PupilsListPDFDocument: React.FC<PupilsListPDFDocumentProps> = ({
                 </View>
               )}
               {(columnSelection.class || columnSelection.status) && (
-                <View style={[styles.tableColHeader, { width: columnSelection.class && columnSelection.status ? '12%' : (columnWidths.class || columnWidths.status) }]}>
+                <View style={[styles.tableColHeader, { width: columnWidths.class }]}>
                   <Text style={styles.tableCellHeader}>
                     {columnSelection.class && columnSelection.status ? 'Class / Status' : (columnSelection.class ? 'Class' : 'Status')}
                   </Text>
                 </View>
               )}
               {(columnSelection.age || columnSelection.gender || columnSelection.religion) && (
-                <View style={[styles.tableColHeader, { width: '15%' }]}>
+                <View style={[styles.tableColHeader, { width: columnWidths.details }]}>
                   <Text style={styles.tableCellHeader}>Details</Text>
                 </View>
               )}
@@ -471,14 +431,14 @@ const PupilsListPDFDocument: React.FC<PupilsListPDFDocumentProps> = ({
               const emergencyGuardian = pupil.guardians?.find(g => g.id === pupil.emergencyContactGuardianId);
 
               return (
-                <View key={pupil.id} style={styles.tableRowBreakable} wrap={false} minPresenceAhead={40}>
+                <View key={pupil.id} style={[styles.tableRowBreakable, { backgroundColor: index % 2 ? '#f8f8f8' : '#ffffff' }]} wrap={false} minPresenceAhead={40}>
                   {/* Photo - First column on the left */}
                   {columnSelection.photo && (
-                    <View style={[styles.tableCol, { width: '8%', alignItems: 'center', justifyContent: 'center' }]}>
+                    <View style={[styles.tableCol, { width: columnWidths.photo, alignItems: 'center', justifyContent: 'center' }]}>
                       {pupil.photo ? (
                         <Photo color={colorPhotos} style={styles.pupilPhoto} src={pupil.photo} />
                       ) : (
-                        <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' }}>
+                        <View style={{ width: 30, height: 30, borderRadius: 1, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' }}>
                           <Text style={[styles.tableCellSmall, { fontSize: 8 }]}>No photo</Text>
                         </View>
                       )}
@@ -486,7 +446,7 @@ const PupilsListPDFDocument: React.FC<PupilsListPDFDocumentProps> = ({
                   )}
                   {/* PIN and Section combined */}
                   {columnSelection.pin && (
-                    <View style={[styles.tableCol, { width: columnSelection.section ? '15%' : columnWidths.pin }]}>
+                    <View style={[styles.tableCol, { width: columnWidths.pin }]}>
                       <Text style={styles.tableCell}>
                         {pupil.pupilIdentificationNumber || 'N/A'}
                         {columnSelection.section && ` • ${pupil.section === 'boarding' ? 'Boarding' : 'Day'}`}
@@ -510,7 +470,7 @@ const PupilsListPDFDocument: React.FC<PupilsListPDFDocumentProps> = ({
                   )}
                   {/* Class and Status combined */}
                   {(columnSelection.class || columnSelection.status) && (
-                    <View style={[styles.tableCol, { width: columnSelection.class && columnSelection.status ? '12%' : (columnWidths.class || columnWidths.status) }]}>
+                    <View style={[styles.tableCol, { width: columnWidths.class }]}>
                       <Text style={styles.combinedCell}>
                         {columnSelection.class && `${pupilClass?.code || 'N/A'}`}
                         {columnSelection.class && columnSelection.status && ' • '}
@@ -520,7 +480,7 @@ const PupilsListPDFDocument: React.FC<PupilsListPDFDocumentProps> = ({
                   )}
                   {/* Age, Gender, and Religion combined */}
                   {(columnSelection.age || columnSelection.gender || columnSelection.religion) && (
-                    <View style={[styles.tableCol, { width: '15%' }]}>
+                    <View style={[styles.tableCol, { width: columnWidths.details }]}>
                       <Text style={styles.combinedCell}>
                         {[
                           columnSelection.age && `${calculateAge(pupil.dateOfBirth)}`,
@@ -592,13 +552,7 @@ const PupilsListPDFDocument: React.FC<PupilsListPDFDocumentProps> = ({
         </View>
 
         {/* Footer */}
-        <Text 
-          style={styles.footer} 
-          fixed 
-          render={({ pageNumber, totalPages }) => 
-            `${settings.generalInfo.name} • Page ${pageNumber} of ${totalPages} • Generated: ${new Date().toLocaleDateString()}`
-          }
-        />
+        <ListDocumentFooter label={settings.generalInfo.name} />
       </Page>
     </Document>
   );

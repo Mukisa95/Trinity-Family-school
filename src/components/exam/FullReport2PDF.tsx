@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   summaryCardImage: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'fill' },
   summaryValue: { position: 'absolute', left: '39%', right: 7, bottom: 5, fontFamily: 'Helvetica-Bold', fontSize: 16, color: '#ffffff', textAlign: 'center' },
   ungradedSummaryValue: { bottom: 11 },
-  promotion: { position: 'absolute', left: '67.5%', right: 0, top: 62, color: '#dc2626', fontFamily: 'Helvetica-Bold', fontSize: 7, textAlign: 'center' },
+  promotion: { position: 'absolute', left: 0, right: 0, top: 62, color: '#dc2626', fontFamily: 'Helvetica-Bold', fontSize: 21, lineHeight: 1, textAlign: 'right' },
 
   scaleSection: { height: 65, marginTop: 9 },
   scaleTitle: { height: 15, fontFamily: 'Helvetica-Bold', fontSize: 8.7, color: '#64748b', paddingTop: 1 },

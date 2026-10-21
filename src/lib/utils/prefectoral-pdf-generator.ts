@@ -1,3 +1,4 @@
+import { drawListDocumentHeader, drawListDocumentFooters, listTableStyles } from '@/lib/printing/list-document-jspdf';
 import { applyMonochromePDF } from '@/lib/printing/monochrome-jspdf';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -48,6 +49,8 @@ export const generatePrefectoralPDF = async ({
   const schoolSettings = await getCachedSchoolSettings();
   const schoolName = schoolSettings?.generalInfo?.name || 'Trinity Family Schools';
 
+  // Tree and card printouts retain their separate diagram layout.
+  if (viewType !== 'list') {
   // Add header
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
@@ -63,8 +66,9 @@ export const generatePrefectoralPDF = async ({
   const generationDate = `Generated on: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`;
   doc.text(generationDate, doc.internal.pageSize.width / 2, 40, { align: 'center' });
 
+  }
   if (viewType === 'list') {
-    await generateListViewPDF(doc, posts, assignments, getPupilName, getPupilClass);
+    await generateListViewPDF(doc, posts, assignments, getPupilName, getPupilClass, schoolName);
   } else {
     await generateTreeViewPDF(doc, posts, assignments, viewType, getPupilName, getPupilClass, getPupilPhoto);
   }
@@ -77,7 +81,8 @@ const generateListViewPDF = async (
   posts: PrefectoralPost[],
   assignments: PostAssignment[],
   getPupilName: (pupilId: string) => string,
-  getPupilClass: (pupilId: string) => string
+  getPupilClass: (pupilId: string) => string,
+  schoolName: string,
 ) => {
   // Sort posts by position of honour
   const sortedPosts = [...posts].sort((a, b) => a.positionOfHonour - b.positionOfHonour);
@@ -102,7 +107,8 @@ const generateListViewPDF = async (
   const availableWidth = pageWidth - 20; // Account for margins
   
   // Calculate available height for table
-  const headerSpace = 50; // Space for header
+  const registerHeader = { schoolName, title: 'Prefectoral Body', context: 'Current post holders', count: `${posts.length} POSTS`, margin: 10 };
+  const headerSpace = drawListDocumentHeader(doc, registerHeader); // Space for header
   const footerSpace = 30; // Space for footer and page number
   const availableHeight = pageHeight - headerSpace - footerSpace;
   
@@ -147,18 +153,15 @@ const generateListViewPDF = async (
       fillColor: [248, 250, 252],
     },
     columnStyles: columnWidths as any,
-    margin: { top: headerSpace, right: 10, bottom: footerSpace, left: 10 },
-    didDrawPage: function (data) {
-      // Add page number
-      const pageCount = doc.getNumberOfPages();
-      doc.setFontSize(8);
-      doc.text(`Page ${data.pageNumber} of ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
-    },
+    margin: { top: 33, right: 10, bottom: footerSpace, left: 10 },
+    ...listTableStyles,
+    didDrawPage: () => { if (doc.getCurrentPageInfo().pageNumber > 1) drawListDocumentHeader(doc, { ...registerHeader, compact: true }); },
     tableWidth: 'auto',
     theme: 'grid',
     pageBreak: 'auto', // Allow page breaks if needed
     showFoot: 'lastPage',
   });
+  drawListDocumentFooters(doc, schoolName, 10);
 };
 
 const generateTreeViewPDF = async (

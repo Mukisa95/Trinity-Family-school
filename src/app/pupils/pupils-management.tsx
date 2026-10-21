@@ -1,4 +1,6 @@
 "use client";
+import { listDocumentStyles } from '@/lib/printing/list-document-theme';
+
 
 import { PhotoPrintOptions } from '@/components/common/photo-print-options';
 import { PupilsPageLoading } from '@/components/pupils/pupils-page-loading';
@@ -1616,6 +1618,7 @@ function PupilsContent() {
     try {
       // Dynamic import to avoid SSR issues
       const { PDFDownloadLink, pdf, Document, Page, Text, View, StyleSheet, Photo } = await import('@/lib/printing/monochrome-react-pdf');
+      const { ListDocumentHeader, ListDocumentFooter } = await import('@/lib/printing/list-document-react-pdf');
 
       // Create PDF component inline to avoid import issues
       const createPDFComponent = (props: any) => {
@@ -1627,7 +1630,7 @@ function PupilsContent() {
         const hasHeavyColumns = selectedColumns.some(([column]) => heavyColumns.includes(column));
         const isLandscape = selectedColumns.length > 5 || hasHeavyColumns;
 
-        const styles = StyleSheet.create({
+        const styles = StyleSheet.create(listDocumentStyles({
           page: {
             flexDirection: 'column',
             backgroundColor: '#ffffff',
@@ -1837,7 +1840,7 @@ function PupilsContent() {
             borderTop: '1 solid #e2e8f0',
             paddingTop: 8,
           },
-        });
+        }));
 
         // Helper functions
         const calculateAge = (dateOfBirth: string) => {
@@ -1904,6 +1907,11 @@ function PupilsContent() {
           codes: columnSelection.codes && hasCodes,
         };
 
+        const hasContactColumn = effectiveColumnSelection.guardianContacts || effectiveColumnSelection.siblings;
+        const dataWidth = effectiveColumnSelection.actualPhoto ? 92 : 100;
+        const dataWeight = hasContactColumn ? 100 : 68;
+        const listColumnWidths = { student: `${dataWidth * 28 / dataWeight}%`, academic: `${dataWidth * 22 / dataWeight}%`, personal: `${dataWidth * 18 / dataWeight}%`, contact: `${dataWidth * 32 / dataWeight}%` };
+
         const getFilterDescription = () => {
           const filterParts = [];
           if (filters.classId) {
@@ -1929,17 +1937,7 @@ function PupilsContent() {
               wrap
             >
               {/* School Header */}
-              <View style={styles.header}>
-                <Text style={styles.schoolName}>{settings.generalInfo.name}</Text>
-                {settings.generalInfo.motto && (
-                  <Text style={styles.motto}>"{settings.generalInfo.motto}"</Text>
-                )}
-                <Text style={styles.title}>
-                  {selectedClassId && selectedClassId !== 'all' && selectedClassId !== ''
-                    ? `${(classes.find(c => c.id === selectedClassId)?.name || classes.find(c => c.id === selectedClassId)?.code || '').toUpperCase()} PUPILS LIST`
-                    : 'PUPILS LIST'}
-                </Text>
-              </View>
+              <ListDocumentHeader schoolName={settings.generalInfo.name} title="Pupils List" context={selectedClassId && selectedClassId !== 'all' ? (classes.find(c => c.id === selectedClassId)?.name || 'All classes') : 'All classes'} date={new Date().toLocaleDateString('en-GB')} count={String(pupils.length) + ' PUPILS'} />
 
               {/* Modern Table with Combined Columns */}
               <View style={styles.table}>
@@ -1952,23 +1950,23 @@ function PupilsContent() {
                     </View>
                   )}
                   {/* Student Information Column */}
-                  <View style={[styles.studentInfoCol, { width: effectiveColumnSelection.actualPhoto ? '26%' : '28%' }]}>
+                  <View style={[styles.studentInfoCol, { width: listColumnWidths.student }]}>
                     <Text style={styles.headerCell}>STUDENT INFORMATION</Text>
                   </View>
 
                   {/* Academic Information Column */}
-                  <View style={styles.academicInfoCol}>
+                  <View style={[styles.academicInfoCol, { width: listColumnWidths.academic }]}>
                     <Text style={styles.headerCell}>ACADEMIC DETAILS</Text>
                   </View>
 
                   {/* Personal Information Column */}
-                  <View style={styles.personalInfoCol}>
+                  <View style={[styles.personalInfoCol, { width: listColumnWidths.personal }]}>
                     <Text style={styles.headerCell}>PERSONAL INFO</Text>
                   </View>
 
                   {/* Contact Information Column */}
                   {(effectiveColumnSelection.guardianContacts || effectiveColumnSelection.siblings) && (
-                    <View style={styles.contactInfoCol}>
+                    <View style={[styles.contactInfoCol, { width: listColumnWidths.contact }]}>
                       <Text style={styles.headerCell}>FAMILY & CONTACTS</Text>
                     </View>
                   )}
@@ -1999,7 +1997,7 @@ function PupilsContent() {
                               style={{
                                 width: 25,
                                 height: 25,
-                                borderRadius: 12.5,
+                                borderRadius: 1,
                                 border: '1 solid #e2e8f0'
                               }}
                               src={pupil.photo}
@@ -2009,7 +2007,7 @@ function PupilsContent() {
                       )}
 
                       {/* Student Information Column */}
-                      <View style={[styles.studentInfoCol, { width: effectiveColumnSelection.actualPhoto ? '26%' : '28%' }]}>
+                      <View style={[styles.studentInfoCol, { width: listColumnWidths.student }]}>
                         {/* PIN and Section combined */}
                         {columnSelection.pin && (
                           <Text style={[styles.accentText, { marginBottom: 1 }]}>
@@ -2032,7 +2030,7 @@ function PupilsContent() {
                       </View>
 
                       {/* Academic Information Column */}
-                      <View style={styles.academicInfoCol}>
+                      <View style={[styles.academicInfoCol, { width: listColumnWidths.academic }]}>
                         {/* Class and Status combined */}
                         {(columnSelection.class || columnSelection.status) && (
                           <Text style={styles.primaryText}>
@@ -2060,7 +2058,7 @@ function PupilsContent() {
                       </View>
 
                       {/* Personal Information Column */}
-                      <View style={styles.personalInfoCol}>
+                      <View style={[styles.personalInfoCol, { width: listColumnWidths.personal }]}>
                         {/* Age, Gender, and Religion combined on same line without labels */}
                         {(columnSelection.age || columnSelection.gender || effectiveColumnSelection.religion) && (
                           <Text style={styles.secondaryText}>
@@ -2082,7 +2080,7 @@ function PupilsContent() {
 
                       {/* Contact Information Column */}
                       {(effectiveColumnSelection.guardianContacts || effectiveColumnSelection.siblings) && (
-                        <View style={styles.contactInfoCol}>
+                        <View style={[styles.contactInfoCol, { width: listColumnWidths.contact }]}>
                           {/* Guardian Contacts */}
                           {effectiveColumnSelection.guardianContacts && pupil.guardians && pupil.guardians.length > 0 && (
                             <View>
@@ -2141,13 +2139,7 @@ function PupilsContent() {
               </View>
 
               {/* Footer */}
-              <Text
-                style={styles.footer}
-                fixed
-                render={({ pageNumber, totalPages }: any) =>
-                  `${settings.generalInfo.name} • Page ${pageNumber} of ${totalPages} • Generated: ${new Date().toLocaleDateString()}`
-                }
-              />
+              <ListDocumentFooter label={settings.generalInfo.name} />
             </Page>
           </Document>
         );
@@ -2219,6 +2211,7 @@ function PupilsContent() {
   const handleGenerateCompactPDF = async () => {
     try {
       const { Document, Page, Text, View, StyleSheet, Photo } = await import('@/lib/printing/monochrome-react-pdf');
+      const { ListDocumentHeader, ListDocumentFooter } = await import('@/lib/printing/list-document-react-pdf');
 
       const selectedColumnCount = Object.values(columnSelection).filter(Boolean).length;
       const autoLandscape =
@@ -2241,7 +2234,7 @@ function PupilsContent() {
         chipBg: '#eeeeee',
       };
 
-      const styles = StyleSheet.create({
+      const styles = StyleSheet.create(listDocumentStyles({
         page: {
           paddingTop: 18,
           paddingBottom: 22,
@@ -2358,7 +2351,7 @@ function PupilsContent() {
           fontSize: 6.5,
           color: palette.muted,
         },
-      });
+      }));
 
       const formatDateOfBirth = (value?: string) => {
         if (!value) return 'N/A';
@@ -2606,16 +2599,7 @@ function PupilsContent() {
       const pdfDoc = (
         <Document>
           <Page size="A4" orientation={orientation} style={styles.page} wrap>
-            <View style={styles.header}>
-              <Text style={styles.schoolName}>{settings.generalInfo.name}</Text>
-              <Text style={styles.title}>
-                {selectedClassId && selectedClassId !== 'all' && selectedClassId !== ''
-                  ? `${(classes.find(c => c.id === selectedClassId)?.name || classes.find(c => c.id === selectedClassId)?.code || '').toUpperCase()} PUPILS LIST`
-                  : 'PUPILS LIST'}
-              </Text>
-              {settings.generalInfo.motto && <Text style={styles.subText}>{settings.generalInfo.motto}</Text>}
-              <Text style={styles.metaValue}>{allFilteredPupils.length} pupils</Text>
-            </View>
+            <ListDocumentHeader schoolName={settings.generalInfo.name} title="Pupils List" context={selectedClassId && selectedClassId !== 'all' ? (classes.find(c => c.id === selectedClassId)?.name || 'All classes') : 'All classes'} date={new Date().toLocaleDateString('en-GB')} count={String(allFilteredPupils.length) + ' PUPILS'} />
 
             <View style={styles.table}>
               <View style={{ ...styles.row, ...styles.headerRow }} fixed>
@@ -2660,13 +2644,7 @@ function PupilsContent() {
               ))}
             </View>
 
-            <Text
-              style={styles.footer}
-              fixed
-              render={({ pageNumber, totalPages }: any) =>
-                `${settings.generalInfo.name} | Page ${pageNumber} of ${totalPages} | Generated ${new Date().toLocaleDateString('en-GB')}`
-              }
-            />
+            <ListDocumentFooter label={settings.generalInfo.name} />
           </Page>
         </Document>
       );

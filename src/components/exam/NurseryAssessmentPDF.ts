@@ -1,3 +1,4 @@
+import { drawListDocumentHeader, drawListDocumentFooters, listTableStyles } from '@/lib/printing/list-document-jspdf';
 import { applyMonochromePDF } from '@/lib/printing/monochrome-jspdf';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -77,28 +78,20 @@ export const generateNurseryAssessmentPDF = ({
   const schoolName = schoolSettings?.generalInfo?.name || 'School Name';
   const className = classSnap.code || classSnap.name;
 
-  doc.setFillColor(15, 63, 133);
-  doc.rect(0, 0, pageWidth, 30, 'F');
+  const registerHeader = { schoolName, title: examDetails.name,
+    context: classSnap.name,
+    date: `${new Date(examDetails.startDate).toLocaleDateString('en-GB')} - ${new Date(examDetails.endDate).toLocaleDateString('en-GB')}`,
+    count: `${processedResults.length} PUPILS`, margin };
+  let currentY = drawListDocumentHeader(doc, registerHeader);
+    const headerPages = new Set<number>([1]);
+    const drawContinuationHeader = () => {
+      const page = doc.getCurrentPageInfo().pageNumber;
+      if (headerPages.has(page)) return;
+      headerPages.add(page);
+      drawListDocumentHeader(doc, { ...registerHeader, compact: true });
+    };
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(17);
-  doc.text(schoolName, pageWidth / 2, 10, { align: 'center' });
 
-  doc.setFontSize(12);
-  doc.text('NURSERY ASSESSMENT REPORT', pageWidth / 2, 17, { align: 'center' });
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.text(
-    `${examDetails.name} | ${className} | ${formatDate(examDetails.startDate)} - ${formatDate(examDetails.endDate)}`,
-    pageWidth / 2,
-    24,
-    { align: 'center' }
-  );
-
-  let currentY = 35;
-  doc.setTextColor(15, 63, 133);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.text('ASSESSMENT SCALE', margin, currentY);
@@ -152,34 +145,13 @@ export const generateNurseryAssessmentPDF = ({
     body,
     startY: currentY,
     theme: 'grid',
-    margin: { top: 5, left: margin, right: margin, bottom: 14 },
+    margin: { top: 33, left: margin, right: margin, bottom: 18 },
     rowPageBreak: 'avoid',
     horizontalPageBreak: requestedOptions.blankAssessment ? 48 + visibleSubjects.length * 12 > availableLegendWidth + 0.1 : true,
     horizontalPageBreakRepeat: showNumber ? [0, 1] : [0],
-    headStyles: {
-      fillColor: [219, 234, 254],
-      textColor: [15, 63, 133],
-      fontStyle: 'bold',
-      fontSize: 7.5,
-      halign: 'center',
-      valign: 'middle',
-      lineColor: [15, 63, 133],
-      lineWidth: 0.35,
-    },
-    bodyStyles: {
-      textColor: [31, 41, 55],
-      fontSize: 7.5,
-      halign: 'center',
-      valign: 'middle',
-      lineColor: [148, 163, 184],
-      lineWidth: 0.25,
-      cellPadding: 1.6,
-      ...(requestedOptions.blankAssessment ? { minCellHeight: 8 } : {}),
-      overflow: 'linebreak',
-    },
-    alternateRowStyles: {
-      fillColor: [248, 250, 252],
-    },
+    ...listTableStyles,
+    headStyles: { ...listTableStyles.headStyles, halign: 'center' },
+    bodyStyles: { fontSize: 7.5, halign: 'center', cellPadding: 1.6, ...(requestedOptions.blankAssessment ? { minCellHeight: 8 } : {}) },
     columnStyles: {
       ...(showNumber ? { 0: { cellWidth: 10, halign: 'center' as const } } : {}),
       [nameColumn]: { cellWidth: printOptions.showPin ? 43 : 48, halign: 'left', fontStyle: 'bold' },
@@ -194,26 +166,9 @@ export const generateNurseryAssessmentPDF = ({
       }
     },
 
-    didDrawPage: (data) => {
-      if (requestedOptions.blankAssessment) return;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Page ${data.pageNumber}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
-      doc.text('Nursery commentary assessment', margin, pageHeight - 7);
-    },
+    didDrawPage: drawContinuationHeader,
   });
-
-  if (requestedOptions.blankAssessment) {
-    drawMajorSubjectChecklist(doc, subjectSnaps, (doc as any).lastAutoTable.finalY + 8, margin);
-    for (let page = 1; page <= doc.getNumberOfPages(); page++) {
-      doc.setPage(page);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Page ${page} of ${doc.getNumberOfPages()}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
-      doc.text('Nursery commentary assessment', margin, pageHeight - 7);
-    }
-  }
+  if (requestedOptions.blankAssessment) drawMajorSubjectChecklist(doc, subjectSnaps, (doc as any).lastAutoTable.finalY + 5, margin, drawContinuationHeader);
+  drawListDocumentFooters(doc, 'Nursery commentary assessment', margin);
   return doc.output('blob');
 };

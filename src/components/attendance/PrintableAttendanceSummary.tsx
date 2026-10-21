@@ -1,4 +1,6 @@
 "use client";
+import { LIST_DOCUMENT_CSS, listDocumentHeaderHTML } from '@/lib/printing/list-document-html';
+
 import { MONOCHROME_PRINT_CSS } from '@/lib/printing/monochrome';
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
@@ -110,13 +112,11 @@ export function PrintableAttendanceSummary({
       @page { size: A4 portrait; margin: 12mm; }
     }
   ${MONOCHROME_PRINT_CSS}
+${LIST_DOCUMENT_CSS}
 </style>
 </head>
 <body>
-  <h1>${schoolName}</h1>
-  <h2>Attendance Summary Report</h2>
-  <p class="meta"><strong>Class:</strong> ${className} &nbsp;|&nbsp; <strong>Period:</strong> ${period}</p>
-  
+  ${listDocumentHeaderHTML({ schoolName, title: 'Attendance Summary Report', context: className, date: period, count: filteredPupils.length + ' PUPILS' })}
   <div class="day-summary">
     <div><strong>Total Days:</strong> <span>${totalDays}</span></div>
     <div><strong>School Days:</strong> <span style="color:#166534;font-weight:bold">${schoolDays}</span></div>

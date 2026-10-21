@@ -1,4 +1,6 @@
 "use client";
+import { LIST_DOCUMENT_CSS, listDocumentHeaderHTML } from '@/lib/printing/list-document-html';
+
 import { MONOCHROME_PRINT_CSS } from '@/lib/printing/monochrome';
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
@@ -188,20 +190,12 @@ export function PrintableAttendanceDetailed({
       @page { size: A4 landscape; margin: 8mm; }
     }
   ${MONOCHROME_PRINT_CSS}
+${LIST_DOCUMENT_CSS}
+@page { size: A4 landscape; margin: 10mm; }
 </style>
 </head>
-<body>
-  <div class="header">
-    <div>
-      <h1>${schoolName}</h1>
-      <p>Daily Attendance Register</p>
-    </div>
-    <div class="meta">
-      <p><strong>Class:</strong> ${className} &nbsp;|&nbsp; <strong>Year:</strong> ${new Date(config.startDate).getFullYear()}</p>
-      <p><strong>Period:</strong> ${startFmt} – ${endFmt}</p>
-    </div>
-  </div>
-  
+<body class="list-attendance-detailed" style="--list-day-font: ${dayFontPt}pt">
+  ${listDocumentHeaderHTML({ schoolName, title: 'Daily Attendance Register', context: className, date: startFmt + ' - ' + endFmt, count: filteredPupils.length + ' PUPILS' })}
   <div class="day-summary">
     <div><strong>Range:</strong> <span>${totalDays} days</span></div>
     <div><strong>School Days:</strong> <span style="color:#166534;font-weight:bold">${schoolDays} days</span></div>

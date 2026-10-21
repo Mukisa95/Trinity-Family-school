@@ -63,6 +63,10 @@ for (const [subjects, pupils] of [[4, 12], [6, 12], [6, 70], [12, 12]]) {
     if (subjects > 4) assert.ok(pages.at(-1)!.includes('Choose four major subjects'));
     assert.equal(JSON.stringify(data.gradingScale), originalScale);
     if (pupils === 70) assert.ok(pages.length > 1);
+    for (const page of pages) {
+      assert.ok(page.includes('NURSERY AND PRIMARY SCHOOL'), 'Continuation pages must retain their school context');
+      assert.equal((page.match(/TRINITY FAMILY/g) || []).length, 1, 'Draw the masthead only once on each page');
+    }
   });
 }
 

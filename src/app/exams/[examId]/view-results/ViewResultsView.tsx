@@ -5245,6 +5245,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
           </>
         }
       >
+        {showPromotionRankingOptions && <PromotionRankingOptions config={promotionRankingConfig} onChange={setPromotionRankingConfig} />}
         <div className="py-1">
             {selectedFullReportTemplate === 'full2' && (
               <FullReport2PaletteSelector palette={fullReport2Palette} onPaletteChange={setFullReport2Palette} />
@@ -5582,7 +5583,6 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
             </Table>
           </div>
 
-          {showPromotionRankingOptions && <PromotionRankingOptions config={promotionRankingConfig} onChange={setPromotionRankingConfig} />}
       </ReportCreationDialogFrame>
 
       {/* Comparison exams — final selection step of the shared report-creation flow */}
