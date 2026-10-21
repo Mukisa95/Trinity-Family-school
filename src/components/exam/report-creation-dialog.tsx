@@ -27,6 +27,7 @@ type ReportKind = "assessment" | "mini" | "full" | "bespoke";
 type ReportCreationDialogProps = {
   open: boolean;
   onClose: () => void;
+  onCancel?: () => void;
   onPrintAssessment: () => void;
   onPrintMini: () => void;
   onPrintFull: () => void;
@@ -77,7 +78,7 @@ export function ReportCreationDialogFrame({
       }}
     >
       <DialogContent className={cn(
-        "w-[calc(100vw-2rem)] !max-w-none gap-0 overflow-hidden !rounded-[32px] !border-slate-200 !bg-white !p-0 !text-slate-950 shadow-[0_32px_90px_rgba(15,23,42,0.24)] sm:!w-[min(50rem,calc(100vw-3rem))] dark:!border-slate-200 dark:!bg-white dark:!text-slate-950",
+        "w-[calc(100vw-2rem)] !max-w-none gap-0 overflow-hidden !rounded-[32px] !border-slate-200 !bg-white !p-0 !text-slate-950 shadow-[0_32px_90px_rgba(15,23,42,0.24)] sm:!w-[min(50rem,calc(100vw-3rem))] dark:!border-slate-700 dark:!bg-slate-950 dark:!text-slate-100",
         maxWidthClassName,
       )}>
         <DialogHeader className="border-b border-slate-100 px-5 py-4 sm:px-6 dark:border-slate-700">
@@ -148,6 +149,7 @@ export function ReportCreationDialogFrame({
 export function ReportCreationDialog({
   open,
   onClose,
+  onCancel,
   onPrintAssessment,
   onPrintMini,
   onPrintFull,
@@ -229,7 +231,7 @@ export function ReportCreationDialog({
   return (
     <ReportCreationDialogFrame
       open={open}
-      onClose={onClose}
+      onClose={onCancel || onClose}
       scope={scope}
       step={0}
       title="Create pupil reports"
@@ -239,7 +241,7 @@ export function ReportCreationDialog({
           <Button
             type="button"
             variant="ghost"
-            onClick={onClose}
+            onClick={onCancel || onClose}
             className="min-h-11 rounded-full px-4 font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-100"
           >
             Cancel

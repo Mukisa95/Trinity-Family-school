@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
 import type { Event } from '@/types';
+import { ExamEventClasses } from '@/components/events/ui/exam-event-classes';
 
 function getEventRelativeStatus(event: any) {
     const today = new Date();
@@ -182,6 +183,7 @@ export function TermScheduleCard() {
                                     >
                                         <div className="flex flex-col overflow-hidden flex-1 mr-2">
                                             <h4 className="text-[13px] font-semibold text-slate-800 truncate group-hover:text-brand-alt-ink-600 transition-colors leading-tight dark:text-slate-100 dark:group-hover:text-brand-alt-ink-400">{event.title}</h4>
+                                            {event.isExamEvent && <ExamEventClasses event={event} className="text-[11px]" />}
                                             <p className="text-[11px] text-slate-500 flex items-center gap-1 font-medium mt-0.5 dark:text-slate-400">
                                                 <CalendarIcon className="w-[10px] h-[10px]" />
                                                 {format(new Date(event.startDate), 'MMM d, yyyy')}

@@ -6,11 +6,12 @@ const http = require('node:http');
 const ts = require('typescript');
 const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const root = path.resolve(__dirname, '..');
-const output = path.join(root, 'output/exam-set-selector-qa');
+const gridMode = process.env.EXAM_LAYOUT === 'grid';
+const output = path.join(root, gridMode ? 'output/exam-grid-menus-qa' : 'output/exam-set-selector-qa');
 fs.mkdirSync(output, {recursive:true});
 const source = fs.readFileSync(path.join(root, 'src/app/exams/page.tsx'), 'utf8');
 const ast = ts.createSourceFile('exams.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-const marker = source.indexOf('Group exams by batch - Table Version');
+const marker = source.indexOf(gridMode ? 'Group exams by batch - Modern Collapsible Design' : 'Group exams by batch - Table Version');
 let batch;
 function visit(n) {
   if (batch) return;
@@ -22,13 +23,16 @@ assert.ok(batch, 'Actual table batch renderer must be present');
 const icons = ast.statements.find(n=>ts.isImportDeclaration(n) && n.moduleSpecifier.text==='lucide-react').getText(ast);
 const fixture = `
 import * as React from 'react';import {createRoot} from 'react-dom/client';
+import {format} from 'date-fns';
 ${icons}
+import {ExamMoreMenu} from '@/components/exam/exam-more-menu';
 import {Button} from '@/components/ui/button';import {Badge} from '@/components/ui/badge';
 import {Table,TableBody,TableCell,TableRow} from '@/components/ui/table';
 const Link=({children,...props})=><a {...props}>{children}</a>;
 const ExamSignatureDisplay=()=>null;
 const getExamStatus=()=>({text:'Ended',color:'text-emerald-600',icon:CheckCircle});
 const formatDateRange=(a,b)=>a+' – '+b;
+const safeParseDateString=value=>value?new Date(value):null;
 const allClasses=Array.from({length:7},(_,i)=>({id:'p'+(i+1),code:'P.'+(i+1),name:'PRIMARY '+(i+1)}));
 const initialExams=[...allClasses.slice(0,6).map(c=>({id:'mid-'+c.id,classId:c.id,batchId:'mid',baseName:'MID TERM',name:'MID TERM',examTypeId:'et_mid',examTypeName:'Mid term',examNature:'Class based',startDate:'2026-10-19',endDate:'2026-10-21'})),...[1,2,3,4].map(n=>({id:'set-'+n,classId:'p7',baseName:'PRE-PLE',name:'PRE-PLE - SIPRO '+n+' - SET '+n,examTypeId:'et_cat',academicYearId:'2026',termId:'t3',examNature:'Class based',startDate:'2026-10-15',endDate:'2026-10-16'})),{id:'steam',classId:'p7',baseName:'STEAM A',name:'STEAM A - SURE KEY - SET 1',examTypeId:'et_cat',academicYearId:'2026',termId:'t3',examNature:'Class based',startDate:'2026-09-17',endDate:'2026-09-18'}];
 function Fixture(){
@@ -46,17 +50,17 @@ return <main className="bg-blue-50 p-3 text-foreground sm:p-6 dark:bg-slate-950"
 </main>;}createRoot(document.getElementById('app')).render(<Fixture/>);`;
 async function main(){
   if(process.env.SKIP_BUILD!=='1'){
-    await require('esbuild').build({absWorkingDir:root,stdin:{contents:fixture,loader:'tsx',resolveDir:root},bundle:true,jsx:'automatic',platform:'browser',outfile:path.join(output,'fixture.js'),alias:{'@':path.join(root,'src')},define:{'process.env.NODE_ENV':'"production"'}});
+    await require('esbuild').build({absWorkingDir:root,stdin:{contents:fixture,loader:'tsx',resolveDir:root},bundle:true,jsx:'automatic',platform:'browser',outfile:path.join(output,'fixture.js'),alias:{'@':path.join(root,'src')},define:{'process.env.NODE_ENV':'"production"','process.env':'{}'},plugins:[{name:'next-link',setup(b){b.onResolve({filter:/^next\/link$/},()=>({path:'next-link',namespace:'stub'}));b.onLoad({filter:/.*/,namespace:'stub'},()=>({contents:"import React from 'react';export default function Link(p){return <a {...p}/>;}",loader:'tsx',resolveDir:root}));}}]});
     const config=ts.transpileModule(fs.readFileSync(path.join(root,'tailwind.config.ts'),'utf8'),{compilerOptions:{module:1}}).outputText;
     const mod={exports:{}};new Function('require','module','exports',config)(require,mod,mod.exports);
     const css=fs.readFileSync(path.join(root,'src/app/globals.css'),'utf8').replace(/^@import[^;]+;/,'')+'\n'+fs.readFileSync(path.join(root,'src/app/theme.css'),'utf8')+'\n'+(fs.existsSync(path.join(root,'src/app/brand-theme.css'))?fs.readFileSync(path.join(root,'src/app/brand-theme.css'),'utf8'):'');
-    const built=await require('postcss')([require('tailwindcss')({...mod.exports.default,content:[path.join(root,'src/components/ui/{table,button,badge}.tsx'),{raw:fixture,extension:'tsx'}]})]).process(css,{from:path.join(root,'src/app/globals.css')});
+    const built=await require('postcss')([require('tailwindcss')({...mod.exports.default,content:[path.join(root,'src/components/ui/{table,button,badge,dropdown-menu}.tsx'),path.join(root,'src/components/exam/exam-more-menu.tsx'),{raw:fixture,extension:'tsx'}]})]).process(css,{from:path.join(root,'src/app/globals.css')});
     fs.writeFileSync(path.join(output,'fixture.css'),built.css);
   }
   const server=http.createServer((req,res)=>{if(['/fixture.js','/fixture.css'].includes(req.url)){res.setHeader('Content-Type',req.url.endsWith('.js')?'text/javascript':'text/css');res.end(fs.readFileSync(path.join(output,req.url.slice(1))));}else{res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/fixture.css"></head><body style="font-family:Arial"><div id="app"></div><script src="/fixture.js"></script></body></html>');}});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const browser=await chromium.launch({headless:true,channel:'msedge'}),page=await browser.newPage({viewport:{width:1366,height:900}}),errors=[];
-  page.on('pageerror',e=>errors.push(e.message));
+  page.on('pageerror',e=>{errors.push(e.message);console.error('Browser error:',e.message);});
   const cat=()=>page.locator('main .max-w-6xl > div').filter({has:page.getByRole('heading',{name:'PRE-PLE',exact:true})});
   const desktop=()=>cat().locator('div.hidden.overflow-hidden');
   const mobile=()=>cat().locator('div.space-y-2.p-2\\.5');
@@ -64,6 +68,21 @@ async function main(){
   const selector=()=>current().getByRole('group',{name:'Choose continuous assessment set'});
   const action=name=>current().locator('[title="'+name+'"]');
   try{
+    if(gridMode){
+      for(const theme of ['light','dark'])for(const width of [320,375,768,1366]){
+        await page.setViewportSize({width,height:900});await page.goto('http://127.0.0.1:'+server.address().port);await page.evaluate(t=>document.documentElement.classList.toggle('dark',t==='dark'),theme);
+        await cat().getByTitle('Show actions for SET 2',{exact:true}).click();
+        const menus=cat().getByTitle('More',{exact:true});assert.equal(await menus.count(),2);
+        await menus.last().click();assert.equal(await page.getByRole('menuitem',{name:'Edit snapshot data',exact:true}).getAttribute('href'),'/exams/set-2/edit-snapshot');await page.getByRole('menuitem',{name:'Delete set',exact:true}).click();assert.deepEqual(await page.evaluate(()=>window.lastDelete.ids),['set-2']);
+        await menus.first().click();assert.equal(await page.getByRole('menuitem',{name:'Edit snapshot data',exact:true}).count(),0);await page.getByRole('menuitem',{name:'Delete entire stack',exact:true}).click();assert.deepEqual(await page.evaluate(()=>window.lastDelete.ids),['set-1','set-2','set-3','set-4']);
+        assert.equal(await cat().getByTitle('Expand stack',{exact:true}).count(),1);await cat().getByTitle('Expand stack',{exact:true}).click();assert.equal(await cat().getByTitle('Collapse stack',{exact:true}).count(),1);assert.equal(await cat().getByTitle('More',{exact:true}).count(),5);
+        assert.equal(await cat().locator('[title="Edit Snapshot Data"],[title="Delete Exam"],[title="Delete Set"]').count(),0);
+        assert.equal(await cat().getByRole('heading',{name:'PRE-PLE',exact:true}).evaluate(el=>{while(el&&!el.classList.contains('bg-brand-secondary-surface-600'))el=el.parentElement;return el?getComputedStyle(el).backgroundImage:'missing'}),'none');
+        const regular=page.locator('main .max-w-6xl > div').filter({has:page.getByRole('heading',{name:'MID TERM',exact:true})});await regular.getByRole('button',{name:'P.3',exact:true}).click();await regular.getByTitle('More',{exact:true}).last().click();assert.equal(await page.getByRole('menuitem',{name:'Edit snapshot data',exact:true}).getAttribute('href'),'/exams/mid-p3/edit-snapshot');await page.getByRole('menuitem',{name:'Delete exam',exact:true}).click();assert.deepEqual(await page.evaluate(()=>window.lastDelete.ids),['mid-p3']);
+        await page.screenshot({path:path.join(output,width+'-'+theme+'.png'),fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      }
+      assert.deepEqual(errors,[]);console.log('PASS: grid exam headers, More menus, snapshot targets, set/stack deletion scope and one header expand control at four widths in light/dark.');return;
+    }
     for(const theme of ['light','dark']) for(const width of [320,375,639,640,768,1024,1366]){
       await page.setViewportSize({width,height:900});await page.goto('http://127.0.0.1:'+server.address().port);await page.evaluate(t=>document.documentElement.classList.toggle('dark',t==='dark'),theme);
       await selector().waitFor();assert.deepEqual(await selector().getByRole('button').allTextContents(),['SET 1','SET 2','SET 3','SET 4']);
@@ -71,13 +90,13 @@ async function main(){
       await selector().getByRole('button',{name:'SET 2',exact:true}).click();
       assert.equal(await action('Record Results').getAttribute('href'),'/exams/set-2/record-results?classId=p7');
       assert.equal(await action('View Results').getAttribute('href'),'/exams/set-2/view-results?classId=p7');
-      assert.equal(await action('Edit Snapshot Data').getAttribute('href'),'/exams/set-2/edit-snapshot');
+      await action('More').click();assert.equal(await page.getByRole('menuitem',{name:'Edit snapshot data',exact:true}).getAttribute('href'),'/exams/set-2/edit-snapshot');await page.keyboard.press('Escape');
       await action('Print Reports').click();assert.equal(await page.evaluate(()=>window.lastPrint),'set-2');
-      await action(width<640?'Delete Exam':'Delete Set').click();assert.deepEqual(await page.evaluate(()=>window.lastDelete.ids),['set-2']);
+      await action('More').click();await page.getByRole('menuitem',{name:width<640?'Delete exam':'Delete set',exact:true}).click();assert.deepEqual(await page.evaluate(()=>window.lastDelete.ids),['set-2']);
       await selector().getByRole('button',{name:'SET 3',exact:true}).focus();await page.keyboard.press('Enter');assert.equal(await action('Record Results').getAttribute('href'),'/exams/set-3/record-results?classId=p7');
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'Page overflow '+width);
       if(width===375||width===1366) await page.screenshot({path:path.join(output,(width<640?'mobile-':'desktop-')+theme+'.png'),fullPage:true});
-      if(width>=640){await desktop().getByRole('button',{name:'Expand assessment sets',exact:true}).click();assert.equal(await desktop().locator('tbody > tr').count(),4);await cat().getByRole('button',{name:'Collapse assessment sets',exact:true}).click();assert.equal(await desktop().locator('tbody > tr').count(),1);assert.equal(await selector().getByRole('button',{name:'SET 3',exact:true}).getAttribute('aria-pressed'),'true');}
+      if(width>=640){assert.equal(await desktop().getByRole('button',{name:'Expand assessment sets',exact:true}).count(),0);await cat().getByRole('button',{name:'Expand assessment sets',exact:true}).click();assert.equal(await desktop().locator('tbody > tr').count(),4);await cat().getByRole('button',{name:'Collapse assessment sets',exact:true}).click();assert.equal(await desktop().locator('tbody > tr').count(),1);assert.equal(await selector().getByRole('button',{name:'SET 3',exact:true}).getAttribute('aria-pressed'),'true');}
     }
     await page.setViewportSize({width:1366,height:900});await page.goto('http://127.0.0.1:'+server.address().port);await selector().getByRole('button',{name:'SET 2',exact:true}).click();await page.setViewportSize({width:375,height:900});assert.equal(await selector().getByRole('button',{name:'SET 2',exact:true}).getAttribute('aria-pressed'),'true');
     await page.locator('[data-remove]').click();assert.equal(await selector().getByRole('button',{name:'SET 4',exact:true}).getAttribute('aria-pressed'),'true');assert.equal(await action('Record Results').getAttribute('href'),'/exams/set-4/record-results?classId=p7');

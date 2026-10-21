@@ -1,0 +1,53 @@
+/* Actual snapshot editor and shared controls; synthetic saved exam and mutation boundaries. */
+const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),assert=require('node:assert/strict'),ts=require('typescript');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+const root=path.resolve(__dirname,'..'),out=path.join(root,'output/exam-snapshot-qa');fs.mkdirSync(out,{recursive:true});
+const data=`
+export const exam={id:'e',name:'PRE-PLE - SIPRO - SET 4',classId:'p7',academicYearId:'y',termId:'t',examNature:'Subject based',subjectIds:['eng','math'],startDate:'2026-10-15',endDate:'2026-10-16'};
+export const subjects=[{id:'eng',name:'English',code:'ENG',maxMarks:100},{id:'math',name:'Mathematics',code:'MATH',maxMarks:100},{id:'sci',name:'Science',code:'SCI',maxMarks:100}];
+export const staff=[{id:'t1',firstName:'Sarah',lastName:'Teacher',status:'active',department:['Teaching'],role:['TEACHER']},{id:'t2',firstName:'Daniel',lastName:'Teacher',status:'active',department:['Teaching'],role:['TEACHER']}];
+export const pupils=[{id:'a',firstName:'Alice',lastName:'Example',classId:'p7',admissionNumber:'001',status:'Active'},{id:'b',firstName:'Bob',lastName:'Example',classId:'p7',admissionNumber:'002',status:'Active'},{id:'c',firstName:'Cara',lastName:'Example',classId:'p7',admissionNumber:'003',status:'Active'},{id:'other',firstName:'Other',lastName:'Class',classId:'p6',admissionNumber:'900',status:'Active'}];
+export const classes=[{id:'p7',name:'Primary Seven',code:'P.7',subjectAssignments:[{subjectId:'eng',teacherId:'t1',assistantTeacherIds:['t2']},{subjectId:'math',teacherId:'t2'},{subjectId:'sci',teacherId:'t1'}]}];
+export const result={id:'r',examId:'e',academicYearId:'y',termId:'t',classSnapshot:{classId:'p7',name:'Primary Seven',code:'P.7',classTeacherId:'t1',classTeacherName:'Sarah Teacher'},pupilSnapshots:[{pupilId:'a',name:'EXAMPLE ALICE',admissionNumber:'001',classNameAtExam:'Primary Seven'},{pupilId:'b',name:'EXAMPLE BOB',admissionNumber:'002',classNameAtExam:'Primary Seven'}],subjectSnapshots:subjects.slice(0,2).map(s=>({subjectId:s.id,name:s.name,code:s.code,maxMarks:100,passingMarks:40,teacherId:s.id==='eng'?'t1':'t2'})),results:{a:{eng:{subjectId:'eng',marks:88,grade:'D2',aggregates:2},math:{subjectId:'math',marks:77,grade:'D2',aggregates:2}},b:{eng:{subjectId:'eng',marks:66,grade:'C3',aggregates:3}}},gradingScale:[{minMark:90,maxMark:100,grade:'D1',aggregates:1}]};
+`;
+fs.writeFileSync(path.join(out,'data.ts'),data);const imp=`import {exam,result,staff,pupils,classes,subjects} from '${path.join(out,'data.ts').replaceAll('\\','/')}';`;
+const stubs={
+ 'next/navigation':`export const useParams=()=>({examId:'e'});export const usePathname=()=>'/exams/e/edit-snapshot';export const useRouter=()=>({push:()=>{},replace:()=>{}});`,
+ 'next/link':`import React from 'react';export default function Link(p){return <a {...p}/>;}`,
+ '@/lib/contexts/navigation-context':`const goBack=href=>window.backTo=href;export const useNavigation=()=>({goBack});`,
+ '@/hooks/use-toast':`const toast=x=>window.toasts.push(x);export const useToast=()=>({toast});`,
+ '@/lib/hooks/use-exams':imp+`const resultMutation={mutateAsync:async input=>{window.saved=structuredClone(input)}};const examMutation={mutateAsync:async input=>window.savedExam=structuredClone(input)};export const useExam=()=>({data:exam,isLoading:!!window.loading});export const useExamResultByExamId=()=>({data:window.noData?null:result,isLoading:!!window.loading});export const useUpdateExamResult=()=>resultMutation;export const useUpdateExam=()=>examMutation;`,
+ '@/lib/hooks/use-exam-result-lease':`export const useExamResultLease=()=>({canSave:!window.locked,holder:window.locked?{lockedByName:'Another teacher'}:null,token:{fixture:'lease'}});`,
+ '@/lib/hooks/use-staff':imp+`export const useStaff=()=>({data:staff});`,
+ '@/lib/hooks/use-pupils':imp+`export const useActivePupils=()=>({data:pupils});`,
+ '@/lib/hooks/use-classes':imp+`export const useClasses=()=>({data:classes});`,
+ '@/lib/hooks/use-subjects':imp+`export const useSubjects=()=>({data:subjects});`,
+};
+const fixture=`import React from 'react';import {createRoot} from 'react-dom/client';import Editor from '@/app/exams/[examId]/edit-snapshot/EditSnapshotView';window.toasts=[];createRoot(document.getElementById('app')).render(<main className="px-3 md:px-6"><Editor/></main>);`;
+async function main(){
+ await require('esbuild').build({absWorkingDir:root,stdin:{contents:fixture,loader:'tsx',resolveDir:root},bundle:true,jsx:'automatic',platform:'browser',outfile:path.join(out,'fixture.js'),alias:{'@':path.join(root,'src')},define:{'process.env.NODE_ENV':'"production"','process.env':'{}'},plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>Object.hasOwn(stubs,a.path)?{path:a.path,namespace:'stub'}:undefined);b.onLoad({filter:/.*/,namespace:'stub'},a=>({contents:stubs[a.path],loader:'tsx',resolveDir:root}));}}]});
+ const mod={exports:{}};new Function('require','module','exports',ts.transpileModule(fs.readFileSync(path.join(root,'tailwind.config.ts'),'utf8'),{compilerOptions:{module:1}}).outputText)(require,mod,mod.exports);
+ const css=['globals.css','theme.css','brand-theme.css'].map(f=>fs.readFileSync(path.join(root,'src/app',f),'utf8')).join('\n').replace(/^@import[^;]+;/,'');
+ const built=await require('postcss')([require('tailwindcss')({...mod.exports.default,content:[path.join(root,'src/app/exams/[[]examId]/edit-snapshot/EditSnapshotView.tsx'),path.join(root,'src/components/common/{glass-page-top-bar,glass-navigation-surface,modern-date-picker}.tsx'),path.join(root,'src/components/ui/{card,button,tabs,dialog,select,input}.tsx'),{raw:fixture,extension:'tsx'}]})]).process(css,{from:path.join(root,'src/app/globals.css')});fs.writeFileSync(path.join(out,'fixture.css'),built.css);
+ const server=http.createServer((req,res)=>{if(['/fixture.js','/fixture.css'].includes(req.url)){res.setHeader('Content-Type',req.url.endsWith('.js')?'text/javascript':'text/css');res.end(fs.readFileSync(path.join(out,req.url.slice(1))));}else{res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/fixture.css"></head><body><div id="app"></div><script src="/fixture.js"></script></body></html>');}});await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
+ try{browser=await chromium.launch({headless:true,channel:'msedge'});const page=await browser.newPage(),errors=[];page.setDefaultTimeout(12000);page.on('pageerror',e=>{errors.push(e.message);console.error(e.message)});
+ for(const width of [320,375,768,1366])for(const dark of [false,true]){
+  await page.setViewportSize({width,height:900});await page.goto('http://127.0.0.1:'+server.address().port);await page.evaluate(d=>document.documentElement.classList.toggle('dark',d),dark);await page.getByRole('tab',{name:/Pupils/}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Remove EXAMPLE ALICE from snapshot'}).count(),1);
+  await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(out,width+'-'+(dark?'dark':'light')+'-pupils.png'),fullPage:true});
+  if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth))console.log(await page.evaluate(()=>[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1).slice(0,8).map(e=>({tag:e.tagName,class:e.className,width:e.getBoundingClientRect().width}))));
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  const search=page.getByRole('textbox',{name:'Search snapshot…',exact:true}).filter({visible:true});await search.focus();await search.fill('ALICE');await page.getByText('1 of 2 pupils',{exact:true}).waitFor();assert.equal(await page.getByRole('button',{name:'Remove EXAMPLE BOB from snapshot'}).count(),0);await search.fill('');await search.blur();
+  await page.getByRole('tab',{name:/Subjects/}).click();await page.getByLabel('Teacher for English',{exact:true}).click();await page.getByRole('option',{name:'Daniel Teacher',exact:true}).click();
+  await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(out,width+'-'+(dark?'dark':'light')+'-subjects.png'),fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  await page.getByTitle('Add subject to snapshot',{exact:true}).filter({visible:true}).click();await page.getByRole('dialog').getByLabel('Subject',{exact:true}).click();await page.getByRole('option',{name:'Science (SCI)',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Add subject',exact:true}).click();await page.getByLabel('Teacher for Science',{exact:true}).waitFor();
+  await page.getByRole('tab',{name:/Pupils/}).click();await page.getByRole('button',{name:'Remove EXAMPLE BOB from snapshot'}).click();
+  await page.getByTitle('Add pupil to snapshot',{exact:true}).filter({visible:true}).click();await page.getByRole('dialog').getByLabel('Pupil',{exact:true}).click();assert.equal(await page.getByRole('option',{name:/Other/}).count(),0);await page.getByRole('option',{name:/Cara/i}).click();await page.getByRole('dialog').getByRole('button',{name:'Add pupil',exact:true}).click();
+  assert.equal(await page.evaluate(()=>window.saved),undefined);await page.getByTitle('Save snapshot changes',{exact:true}).filter({visible:true}).click();await page.waitForFunction(()=>window.saved);
+  const saved=await page.evaluate(()=>window.saved);assert.deepEqual(saved.data.pupilSnapshots.map(p=>p.pupilId),['a','c']);assert.equal(saved.data.subjectSnapshots.find(s=>s.subjectId==='eng').teacherId,'t2');assert.equal(saved.data.results.a.eng.marks,88);assert.equal(saved.data.results.a.math.marks,77);assert.ok(saved.data.results.c.sci);assert.equal(saved.data.results.b,undefined);assert.deepEqual(saved.lease,{fixture:'lease'});assert.equal(await page.evaluate(()=>window.backTo),'/exams');
+ }
+ await page.goto('http://127.0.0.1:'+server.address().port);await page.evaluate(()=>window.locked=true);await page.getByRole('tab',{name:/Subjects/}).click();assert.equal(await page.getByTitle('Save snapshot changes',{exact:true}).filter({visible:true}).isDisabled(),true);assert.equal(await page.evaluate(()=>window.saved),undefined);
+ assert.deepEqual(errors,[]);console.log('Snapshot editor: 8 responsive/light-dark cases, search, teacher edits, add/remove membership, scoped pupil choices, preserved marks, lease and save checks passed.');
+ }catch(e){throw e;}finally{if(browser)await browser.close();await new Promise(r=>server.close(r));}
+}
+main().catch(e=>{console.error(e);process.exitCode=1;});

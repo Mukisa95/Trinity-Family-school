@@ -35,6 +35,8 @@ import { useDashboardDataRevisions } from './use-school-settings';
 import { dashboardRevisionKeys } from '@/lib/services/dashboard-cache-revisions.service';
 import { useAcademicYears } from './use-academic-years';
 import type { ExamLeaseOverride, ExamLeaseToken } from '@/lib/services/exam-lease.service';
+import { inheritStackGradingPolicy } from '@/lib/utils/stack-grading-scale';
+import { ExamStackGradingService, type SaveStackGradingInput } from '@/lib/services/exam-stack-grading.service';
 
 export const examKeys = {
   all: ['exams'] as const,
@@ -215,7 +217,7 @@ export function useCreateExam() {
     onSuccess: (examId, data) => {
       patchExamSnapshot(queryClient, scope, current => [
         ...current,
-        { ...data, id: examId, createdAt: new Date().toISOString() } as Exam,
+        { ...inheritStackGradingPolicy(data, current), id: examId, createdAt: new Date().toISOString() } as Exam,
       ]);
     },
   });
@@ -251,7 +253,7 @@ export function useCreateMultipleExams() {
       patchExamSnapshot(queryClient, scope, current => [
         ...current,
         ...data.map((exam, index) => ({
-          ...exam,
+          ...inheritStackGradingPolicy(exam, current),
           id: examIds[index],
           createdAt: new Date().toISOString(),
         }) as Exam),
@@ -641,6 +643,24 @@ export function useUpdateExamResult() {
           receipt.termId,
           receipt.patch,
         );
+      }
+    },
+  });
+}
+
+export function useSaveStackGradingScale() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationKey: ['exams', 'stack-grading'],
+    mutationFn: (input: SaveStackGradingInput) => ExamStackGradingService.save(input),
+    onSuccess: receipt => {
+      const scope = getExamCacheScope(user?.id, user?.role);
+      const changed = new Map(receipt.exams.map(exam => [exam.id, exam]));
+      patchExamSnapshot(queryClient, scope, current => current.map(exam => changed.get(exam.id) || exam));
+      const resultScope = getExamResultCacheScope(user?.id, user?.role);
+      for (const result of receipt.results) {
+        if (resultScope && result.academicYearId && result.termId) patchExamResultSnapshot(queryClient, resultScope, result.examId, result.academicYearId, result.termId, result, { seed: result });
       }
     },
   });

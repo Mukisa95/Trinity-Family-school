@@ -62,6 +62,7 @@ import {
   GlassPageTopBar,
 } from '@/components/common/glass-page-top-bar';
 import { ExamGradingScaleAction } from '@/components/exam/exam-grading-scale-action';
+import { BlankAssessmentPrintButton } from '@/components/exam/blank-assessment-print-button';
 import {
   isNurseryAssessment,
   isNurseryCommentary,
@@ -1278,6 +1279,7 @@ export default function RecordResultsView() {
             academicYearId: examDetails?.academicYearId,
             termId: examDetails?.termId,
             gradingScale: scaleToSave,
+            gradingScaleSource: 'independent',
             results: recalculatedResults,
             lastUpdatedAt: new Date().toISOString() 
         }
@@ -1946,6 +1948,14 @@ export default function RecordResultsView() {
                 isNursery={isNurseryExam}
                 canEdit={resultLease.canSave}
                 onEdit={() => setIsGradingModalOpen(true)}
+              />
+              <BlankAssessmentPrintButton
+                exam={examDetails}
+                className={scopedClassLabel}
+                pupils={pupilSnaps}
+                subjects={subjectSnaps}
+                gradingScale={gradingScaleItems}
+                isNursery={isNurseryExam}
               />
               <GlassActionButton
                 label={isSubmitting ? 'Saving' : resultLease.canOverride ? 'Override' : 'Save'}

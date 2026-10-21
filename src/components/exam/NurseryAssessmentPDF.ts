@@ -1,5 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { BLANK_ASSESSMENT_OPTIONS } from '@/lib/utils/assessment-print-options';
+import { drawMajorSubjectChecklist } from './assessment-print-layout';
 
 import { NURSERY_COMMENTARY_OPTIONS } from '@/lib/exam-assessment';
 
@@ -37,6 +39,7 @@ interface NurseryAssessmentPDFProps {
     };
   };
   printOptions: {
+    blankAssessment?: boolean;
     showPin: boolean;
     showIndexNumber: boolean;
     showLinNumber: boolean;
@@ -57,8 +60,9 @@ export const generateNurseryAssessmentPDF = ({
   subjectSnaps,
   processedResults,
   schoolSettings,
-  printOptions,
+  printOptions: requestedOptions,
 }: NurseryAssessmentPDFProps): Blob => {
+  const printOptions = requestedOptions.blankAssessment ? BLANK_ASSESSMENT_OPTIONS : requestedOptions;
   const doc = new jsPDF({
     orientation: printOptions.orientation || 'landscape',
     unit: 'mm',
@@ -115,14 +119,16 @@ export const generateNurseryAssessmentPDF = ({
   currentY += 11;
 
   const visibleSubjects = printOptions.showMarks ? subjectSnaps : [];
-  const headers: string[] = ['NO.', printOptions.showPin ? 'PUPIL / PIN' : 'PUPIL'];
+  const showNumber = !requestedOptions.blankAssessment;
+  const nameColumn = showNumber ? 1 : 0;
+  const headers: string[] = [...(showNumber ? ['NO.'] : []), printOptions.showPin ? 'PUPIL / PIN' : 'PUPIL'];
   if (printOptions.showIndexNumber) headers.push('INDEX NO.');
   if (printOptions.showLinNumber) headers.push('LIN');
   headers.push(...visibleSubjects.map(subject => subject.code));
 
   const body = processedResults.map((result, index) => {
     const row: Array<string | number> = [
-      index + 1,
+      ...(showNumber ? [index + 1] : []),
       printOptions.showPin
         ? `${result.pupilInfo.name}\n${result.pupilInfo.admissionNumber}`
         : result.pupilInfo.name,
@@ -146,8 +152,8 @@ export const generateNurseryAssessmentPDF = ({
     theme: 'grid',
     margin: { top: 5, left: margin, right: margin, bottom: 14 },
     rowPageBreak: 'avoid',
-    horizontalPageBreak: true,
-    horizontalPageBreakRepeat: [0, 1],
+    horizontalPageBreak: requestedOptions.blankAssessment ? 48 + visibleSubjects.length * 12 > availableLegendWidth + 0.1 : true,
+    horizontalPageBreakRepeat: showNumber ? [0, 1] : [0],
     headStyles: {
       fillColor: [219, 234, 254],
       textColor: [15, 63, 133],
@@ -166,25 +172,28 @@ export const generateNurseryAssessmentPDF = ({
       lineColor: [148, 163, 184],
       lineWidth: 0.25,
       cellPadding: 1.6,
+      ...(requestedOptions.blankAssessment ? { minCellHeight: 8 } : {}),
       overflow: 'linebreak',
     },
     alternateRowStyles: {
       fillColor: [248, 250, 252],
     },
     columnStyles: {
-      0: { cellWidth: 10, halign: 'center' },
-      1: { cellWidth: printOptions.showPin ? 43 : 48, halign: 'left', fontStyle: 'bold' },
+      ...(showNumber ? { 0: { cellWidth: 10, halign: 'center' as const } } : {}),
+      [nameColumn]: { cellWidth: printOptions.showPin ? 43 : 48, halign: 'left', fontStyle: 'bold' },
     },
     didParseCell: (data) => {
-      const fixedColumnCount = 2 + (printOptions.showIndexNumber ? 1 : 0) + (printOptions.showLinNumber ? 1 : 0);
+      const fixedColumnCount = nameColumn + 1 + (printOptions.showIndexNumber ? 1 : 0) + (printOptions.showLinNumber ? 1 : 0);
       if (data.column.index >= fixedColumnCount) {
-        data.cell.styles.minCellWidth = 24;
+        data.cell.styles.minCellWidth = requestedOptions.blankAssessment ? 12 : 24;
+        if (requestedOptions.blankAssessment) data.cell.styles.cellWidth = Math.max(12, (availableLegendWidth - 48) / visibleSubjects.length);
         data.cell.styles.fontStyle = 'bold';
         data.cell.styles.textColor = [6, 95, 70];
       }
     },
 
     didDrawPage: (data) => {
+      if (requestedOptions.blankAssessment) return;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
       doc.setTextColor(100, 116, 139);
@@ -193,5 +202,16 @@ export const generateNurseryAssessmentPDF = ({
     },
   });
 
+  if (requestedOptions.blankAssessment) {
+    drawMajorSubjectChecklist(doc, subjectSnaps, (doc as any).lastAutoTable.finalY + 8, margin);
+    for (let page = 1; page <= doc.getNumberOfPages(); page++) {
+      doc.setPage(page);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Page ${page} of ${doc.getNumberOfPages()}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
+      doc.text('Nursery commentary assessment', margin, pageHeight - 7);
+    }
+  }
   return doc.output('blob');
 };

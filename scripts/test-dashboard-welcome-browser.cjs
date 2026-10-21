@@ -21,14 +21,14 @@ return <FixtureAuthContext.Provider value={{user}}><FixtureCalendarContext.Provi
 const tree=<React.StrictMode><Fixture/></React.StrictMode>;`;
 async function build() {
   fs.mkdirSync(output, { recursive: true });
-  const plugin = { name:'synthetic-auth', setup(b){b.onResolve({filter:/^@\/lib\/contexts\/auth-context$/},()=>({path:'auth',namespace:'fixture'}));b.onResolve({filter:/^@\/lib\/hooks\/(use-events-fixed|use-uganda-holidays)$/},()=>({path:'calendar',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:args.path==='auth'?authMock:calendarMock,loader:'tsx',resolveDir:root}));} };
+  const plugin = { name:'synthetic-auth', setup(b){b.onResolve({filter:/^@\/lib\/contexts\/auth-context$/},()=>({path:'auth',namespace:'fixture'}));b.onResolve({filter:/^@\/lib\/hooks\/use-classes$/},()=>({path:'classes',namespace:'fixture'}));b.onResolve({filter:/^@\/lib\/hooks\/(use-events-fixed|use-uganda-holidays)$/},()=>({path:'calendar',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:args.path==='auth'?authMock:args.path==='classes'?`export const useClasses=()=>({data:Array.from({length:6},(_,i)=>({id:'p'+(i+1),code:'P.'+(i+1),name:'Primary '+(i+1)}))});`:calendarMock,loader:'tsx',resolveDir:root}));} };
   const shared = {absWorkingDir:root,stdin:{contents:'',resolveDir:root,loader:'tsx'},bundle:true,jsx:'automatic',alias:{'@':path.join(root,'src')},plugins:[plugin]};
   await esbuild.build({...shared,stdin:{...shared.stdin,contents:tree+`import {renderToString} from 'react-dom/server';module.exports=renderToString(tree);`},platform:'node',external:['react','react/*','react-dom','react-dom/*'],outfile:path.join(output,'server.cjs')});
   fs.writeFileSync(path.join(output,'markup.html'),require(path.join(output,'server.cjs')));
   for(const mode of ['production','development'])await esbuild.build({...shared,stdin:{...shared.stdin,contents:tree+`import {hydrateRoot} from 'react-dom/client';hydrateRoot(document.getElementById('app'),tree);`},platform:'browser',define:{'process.env.NODE_ENV':JSON.stringify(mode)},outfile:path.join(output,mode+'.js')});
   const mod={exports:{}};new Function('require','module','exports',ts.transpileModule(fs.readFileSync(path.join(root,'tailwind.config.ts'),'utf8'),{compilerOptions:{module:1}}).outputText)(require,mod,mod.exports);
   const css=['globals.css','theme.css','brand-theme.css'].map(f=>fs.readFileSync(path.join(root,'src/app',f),'utf8')).join('\n').replace(/^@import[^;]+;/,'');
-  const result=await require('postcss')([require('tailwindcss')({...mod.exports.default,content:[{raw:tree,extension:'tsx'},path.join(root,'src/components/dashboard/dashboard-welcome-header.tsx'),path.join(root,'src/components/ui/dialog.tsx')]})]).process(css,{from:path.join(root,'src/app/globals.css')});
+  const result=await require('postcss')([require('tailwindcss')({...mod.exports.default,content:[{raw:tree,extension:'tsx'},path.join(root,'src/components/dashboard/dashboard-welcome-header.tsx'),path.join(root,'src/components/events/ui/exam-event-classes.tsx'),path.join(root,'src/components/ui/dialog.tsx')]})]).process(css,{from:path.join(root,'src/app/globals.css')});
   fs.writeFileSync(path.join(output,'fixture.css'),result.css);
   assert.ok(fs.readFileSync(path.join(root,'src/app/page.tsx'),'utf8').includes('<DashboardWelcomeWithEvents schoolSettings={schoolSettings} enabled={canViewCalendarSchedule} />'),'Real dashboard mounts the tested header behind calendar permission');
 }
@@ -80,18 +80,21 @@ async function run(){
         document.documentElement.classList.toggle('dark',dark);
         const event=(id,title,startDate,endDate)=>({id,title,startDate,endDate,isAllDay:true,status:'Scheduled',isPublic:true});
         window.setWelcomeEvents([event('ongoing',longTitle,'2026-10-09','2026-10-12'),event('today','Parents visiting day','2026-10-10','2026-10-10'),...['Library tour','Staff planning meeting','Sports club'].map((title,i)=>({...event('later-'+i,title,'2026-10-11','2026-10-11'),description:'School calendar event',location:'Main campus'})),event('draft','Do not show this draft','2026-10-10','2026-10-10')].map(e=>e.id==='draft'?{...e,status:'Draft'}:e));
+        window.setWelcomeEvents(items=>items.map(e=>e.id==='ongoing'?{...e,isExamEvent:true,classIds:['p1','p2','p3','p4','p5','p6']}:e.id==='later-0'?{...e,isExamEvent:true,classIds:['p6']}:e));
       },{dark,longTitle});
       await page.waitForTimeout(200);const start=await snapshot(page);
       await page.clock.runFor(4999);assert.equal((await snapshot(page)).greeting,'true');
       await page.clock.runFor(1);await page.waitForTimeout(250);
       assert.equal(await page.locator('.dashboard-welcome-header').getAttribute('data-phase'),'briefing');
       assert.ok(await page.getByText(longTitle,{exact:true}).isVisible());
+      assert.equal(await page.locator('.dashboard-welcome-briefing [data-exam-classes]:visible').textContent(),'Classes: P.1, P.2, P.3, P.4, P.5, P.6');
       assert.ok(await page.getByText('It will end on Monday, 12 October.',{exact:true}).isVisible());
       assert.equal((await snapshot(page)).workspaceY,start.workspaceY,'Event slide reserves its space before the reveal');
       assert.ok((await snapshot(page)).scrollWidth<=width,'Briefing stays within viewport');
       const trigger=page.getByRole('button',{name:'You have 3 more events this week',exact:true});
       await trigger.click();const dialog=page.getByRole('dialog');assert.ok(await dialog.isVisible());
       assert.equal(await dialog.locator('li').count(),3);assert.equal(await dialog.getByText('Parents visiting day',{exact:true}).count(),0);
+      assert.equal(await dialog.locator('[data-exam-classes]').textContent(),'Classes: P.6');
       assert.equal(await page.getByText('Do not show this draft',{exact:true}).count(),0);
       const panel=await dialog.locator('div').first().boundingBox();assert.ok(panel.width<=width&&panel.x>=0,'Popup fits the phone/desktop');
       await page.screenshot({path:path.join(output,`events-${width}-${dark?'dark':'light'}-popup.png`)});

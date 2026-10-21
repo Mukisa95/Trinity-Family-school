@@ -1,5 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { BLANK_ASSESSMENT_OPTIONS } from '@/lib/utils/assessment-print-options';
+import { drawMajorSubjectChecklist } from './assessment-print-layout';
 
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
@@ -63,7 +65,7 @@ export interface SubjectSetAnalysisPDFProps {
   subjectCodes: string[];
 }
 
-interface ExamResultsPDFProps {
+export interface ExamResultsPDFProps {
   examDetails: {
     name: string;
     examTypeName: string;
@@ -103,6 +105,7 @@ interface ExamResultsPDFProps {
   };
   majorSubjects?: string[];
   printOptions?: {
+    blankAssessment?: boolean;
     showPin: boolean;
     showIndexNumber?: boolean;
     showLinNumber?: boolean;
@@ -851,7 +854,7 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
   const { examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, majorSubjects, printOptions, gradingScale } = props;
   
   // Default print options (all enabled)
-  const options = printOptions || {
+  const options: NonNullable<ExamResultsPDFProps['printOptions']> = printOptions?.blankAssessment ? BLANK_ASSESSMENT_OPTIONS : printOptions || {
     showPin: true,
     showIndexNumber: true,
     showLinNumber: true,
@@ -1294,20 +1297,20 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
     doc.rect(0, 0, pageWidth, 25, 'F');
     
     // School name - large, white, bold
-    doc.setFontSize(22);
+    doc.setFontSize(options.orientation === 'portrait' ? 16 : 22);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(255, 255, 255);
-    doc.text(schoolSettings?.generalInfo?.name || 'School Name', pageWidth / 2, 10, { align: 'center' });
+    doc.text(schoolSettings?.generalInfo?.name || 'School Name', pageWidth / 2, 10, { align: 'center', maxWidth: pageWidth - margin * 2 });
     
     // Exam name - medium, white
-    doc.setFontSize(16);
+    doc.setFontSize(options.orientation === 'portrait' ? 12 : 16);
     doc.setFont('helvetica', 'normal');
-    doc.text(examDetails.name, pageWidth / 2, 18, { align: 'center' });
+    doc.text(examDetails.name, pageWidth / 2, 18, { align: 'center', maxWidth: pageWidth - margin * 2 });
     
     // Exam details - small, light blue
     // Hide class name and dates for PLE (when gradingScale is empty)
     if (!gradingScale || gradingScale.length > 0) {
-      doc.setFontSize(10);
+      doc.setFontSize(options.orientation === 'portrait' ? 8 : 10);
       doc.setTextColor(200, 220, 255);
       const detailsText = `${examDetails.examTypeName} | ${classSnap.name} | ${new Date(examDetails.startDate).toLocaleDateString()} - ${new Date(examDetails.endDate).toLocaleDateString()}`;
       doc.text(detailsText, pageWidth / 2, 23, { align: 'center' });
@@ -1411,7 +1414,7 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
       currentY += 6;
       
       // Display grading scale in a row with rounded rectangles
-      const sorted = gradingScale.sort((a, b) => b.minMark - a.minMark);
+      const sorted = [...gradingScale].sort((a, b) => b.minMark - a.minMark);
       let scaleX = margin;
       sorted.forEach((scale) => {
         doc.setFontSize(8);
@@ -1438,7 +1441,10 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
     const showLinNumber = options.showLinNumber !== false;
     const visibleSubjectSnaps = options.showMarks ? subjectSnaps : [];
     const subjectCount = visibleSubjectSnaps.length;
-    const posWidth = 12;
+    const showPosition = !printOptions?.blankAssessment;
+    const nameColumn = showPosition ? 1 : 0;
+    const firstSubjectColumn = nameColumn + 1 + (showIndexNumber ? 1 : 0) + (showLinNumber ? 1 : 0);
+    const posWidth = showPosition ? 12 : 0;
     const studentWidth = options.showPin ? 50 : 60; // Keep name width stable across orientation changes
     const indexWidth = showIndexNumber ? 30 : 0; // Index Number column - increased to prevent wrapping
     const linWidth = showLinNumber ? 30 : 0; // LIN column - increased to prevent wrapping
@@ -1456,7 +1462,9 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
     
     // Distribute available space evenly among subject columns
     // Use all available space, but ensure minimum width for readability
-    const subjectWidth = subjectCount > 0 ? Math.max(minSubjectWidth, availableForSubjects / subjectCount) : 0;
+    const subjectWidth = subjectCount > 0
+      ? (printOptions?.blankAssessment ? Math.max(10, availableForSubjects / subjectCount) : Math.max(minSubjectWidth, availableForSubjects / subjectCount))
+      : 0;
 
     // Determine major subjects
     const determinedMajorSubjects = majorSubjects && majorSubjects.length > 0 
@@ -1465,8 +1473,8 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
 
     // Prepare headers - ensure all fit on one line
     const headers: string[] = [
-      'POS',
-      options.showPin ? 'Student Details' : 'Student Name',
+      ...(showPosition ? ['POS'] : []),
+      printOptions?.blankAssessment ? 'Pupil Name' : options.showPin ? 'Student Details' : 'Student Name',
     ];
     if (showIndexNumber) headers.push('Index No');
     if (showLinNumber) headers.push('LIN');
@@ -1479,7 +1487,7 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
     // Prepare data
     const data = processedResults.map(result => {
       const row: (string | number)[] = [
-        result.position.toString(),
+        ...(showPosition ? [result.position.toString()] : []),
         options.showPin 
           ? `${result.pupilInfo.name}\n${result.pupilInfo.admissionNumber}`
           : result.pupilInfo.name,
@@ -1532,7 +1540,8 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
         fontStyle: 'bold',
         halign: 'center',
         lineWidth: 0.5,
-        lineColor: [0, 0, 0]
+        lineColor: [0, 0, 0],
+        ...(printOptions?.blankAssessment ? { fontSize: 7.5, cellPadding: 1 } : {}),
       },
       bodyStyles: {
         fontSize: 8,
@@ -1547,23 +1556,21 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
       },
       styles: {
         lineWidth: 0.5,
-        lineColor: [0, 0, 0]
+        lineColor: [0, 0, 0],
+        ...(printOptions?.blankAssessment ? { minCellHeight: 8, cellPadding: 1.8, overflow: 'linebreak' as const } : {}),
       },
       tableLineWidth: 0.5,
       tableLineColor: [0, 0, 0],
       columnStyles: (() => {
         const styles: Record<number, any> = {
-          0: { // POS
-            cellWidth: posWidth,
-            halign: 'center'
-          },
-          1: { // Student Name
+          ...(showPosition ? { 0: { cellWidth: posWidth, halign: 'center' } } : {}),
+          [nameColumn]: { // Student Name
             cellWidth: studentWidth,
             halign: 'left'
           }
         };
 
-        let colIndex = 2;
+        let colIndex = nameColumn + 1;
         if (showIndexNumber) {
           styles[colIndex] = {
             cellWidth: indexWidth,
@@ -1616,7 +1623,7 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
         data.cell.styles.lineColor = [0, 0, 0];
         
         // Apply to subject columns only (between student details and total marks)
-        const subjectStartCol = 2 + (showIndexNumber ? 1 : 0) + (showLinNumber ? 1 : 0);
+        const subjectStartCol = firstSubjectColumn;
         const subjectEndCol = subjectStartCol + visibleSubjectSnaps.length;
         if (col >= subjectStartCol && col < subjectEndCol) {
           data.cell.styles.cellWidth = subjectWidth;
@@ -1624,7 +1631,7 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
           // Apply different styling for major vs non-major subjects
           const subjectIndex = col - subjectStartCol;
           const subject = visibleSubjectSnaps[subjectIndex];
-          const isMajor = determinedMajorSubjects.includes(subject.code);
+          const isMajor = !printOptions?.blankAssessment && determinedMajorSubjects.includes(subject.code);
           
           if (isMajor) {
             // Major subjects: slightly blue background
@@ -1637,12 +1644,18 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
       },
       margin: { 
         top: 5,
+        bottom: 18,
         left: margin, 
         right: margin 
       },
       pageBreak: 'auto',
       rowPageBreak: 'avoid',
+      ...(printOptions?.blankAssessment ? {
+        horizontalPageBreak: fixedColumnsWidth + subjectWidth * subjectCount > availableWidth + 0.1,
+        horizontalPageBreakRepeat: [nameColumn],
+      } : {}),
       didDrawPage: function(data: any) {
+        if (printOptions?.blankAssessment) return;
         // Get total number of pages
         const totalPages = doc.getNumberOfPages();
         
@@ -1671,6 +1684,17 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
         );
       }
     });
+
+    if (printOptions?.blankAssessment) {
+      drawMajorSubjectChecklist(doc, subjectSnaps, (doc as any).lastAutoTable.finalY + 8, margin);
+      for (let page = 1; page <= doc.getNumberOfPages(); page++) {
+        doc.setPage(page);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(107, 114, 128);
+        doc.text(`Page ${page} of ${doc.getNumberOfPages()}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
+      }
+    }
 
     // Return blob
     const blob = doc.output('blob');

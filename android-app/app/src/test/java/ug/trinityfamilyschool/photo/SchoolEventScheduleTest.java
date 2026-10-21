@@ -5,6 +5,20 @@ import java.time.*;
 import java.util.*;
 import static org.junit.Assert.*;
 public class SchoolEventScheduleTest {
+    @Test public void examClassesSurviveSavedDataAndReachAllSurfaceFrames() throws Exception {
+        JSONObject value=event("batch").put("isExamEvent",true).put("classIds",new JSONArray(List.of("p1","p2","p3","p4","p5","p6")));
+        JSONArray classes=new JSONArray(); for(int i=1;i<=6;i++) classes.put(new JSONObject().put("id","p"+i).put("code","P."+i).put("name","Primary "+i));
+        JSONObject datasets=data(value).put("classes",new JSONObject().put("data",classes));
+        SchoolEventSchedule.Event exam=SchoolEventSchedule.events(datasets,zone).get(0);
+        assertEquals("Classes: P.1, P.2, P.3, P.4, P.5, P.6",exam.classes);
+        assertEquals(exam.classes,SchoolEventSchedule.frame(exam,Instant.ofEpochMilli(exam.start).atZone(zone)).eventClasses);
+        value.put("classNames",new JSONArray(List.of("Saved One","Saved Two","Saved Three","Saved Four","Saved Five","Saved Six")));
+        assertEquals("Classes: Saved One, Saved Two, Saved Three, Saved Four, Saved Five, Saved Six",SchoolEventSchedule.events(data(value),zone).get(0).classes);
+        value.remove("classIds"); value.put("classNames",new JSONArray(List.of("P.7")));
+        assertEquals("Classes: P.7",SchoolEventSchedule.events(data(value),zone).get(0).classes);
+        value.remove("classNames");assertEquals("Classes not specified",SchoolEventSchedule.events(data(value),zone).get(0).classes);
+        value.put("isExamEvent",false);assertEquals("",SchoolEventSchedule.events(data(value),zone).get(0).classes);
+    }
     private final ZoneId zone=ZoneId.of("Africa/Kampala");
     private long at(String date) { return LocalDateTime.parse(date).atZone(zone).toInstant().toEpochMilli(); }
     private JSONObject event(String id) throws Exception { return new JSONObject().put("id",id).put("title","School gathering").put("status","Scheduled").put("startDate","2026-10-16").put("endDate","2026-10-17").put("startTime","09:00").put("endTime","15:00"); }

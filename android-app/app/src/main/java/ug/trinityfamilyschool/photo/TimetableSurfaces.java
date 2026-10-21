@@ -172,13 +172,18 @@ final class TimetableSurfaces {
         AppearancePalette palette = AppAppearance.palette(context);
         AppAppearance.background(small, R.id.mini_profiles, palette, R.drawable.widget_background, R.drawable.widget_background_light, R.drawable.widget_background_dark);
         small.removeAllViews(R.id.mini_profiles);
-        for (int i = 0; i < Math.min(2, frame.profiles.size()); i++) small.addView(R.id.mini_profiles, collapsedProfile(context, frame.profiles.get(i)));
+        // Give an exam in the compact preview enough space for every class.
+        // The expanded notification retains the full feed alongside its dates.
+        TimetableSchedule.Frame previewExam=null;
+        for(int i=0;i<Math.min(2,frame.profiles.size());i++) if(!frame.profiles.get(i).eventClasses.isEmpty()) { previewExam=frame.profiles.get(i);break; }
+        if(previewExam!=null) small.addView(R.id.mini_profiles,collapsedProfile(context,previewExam));
+        else for (int i = 0; i < Math.min(2, frame.profiles.size()); i++) small.addView(R.id.mini_profiles, collapsedProfile(context, frame.profiles.get(i)));
         boolean progress = prefs(context).getBoolean("progress", true);
         NotificationCompat.Builder card = new NotificationCompat.Builder(context, "timetable").setSmallIcon(R.drawable.school_icon).setContentTitle("Timetables & events")
             .setContentText(frame.title + " · " + frame.time).setCustomContentView(small)
             .setContentIntent(open(context, contentId)).setOngoing(true).setOnlyAlertOnce(true).setSilent(true)
             .setDeleteIntent(action(context, "HIDE", 73)).setVisibility(NotificationCompat.VISIBILITY_PUBLIC).setShowWhen(false);
-        if (frame.profiles.size() > 2) {
+        if (frame.profiles.size() > 2 || frame.profiles.stream().anyMatch(row -> !row.eventClasses.isEmpty())) {
             RemoteViews big = new RemoteViews(context.getPackageName(), R.layout.timetable_notification); big.removeAllViews(R.id.notification_profiles);
             AppAppearance.background(big, R.id.notification_profiles, palette, R.drawable.widget_background, R.drawable.widget_background_light, R.drawable.widget_background_dark);
             for (int i=0;i<Math.min(6,frame.profiles.size());i++) big.addView(R.id.notification_profiles, profileView(context, frame.profiles.get(i), progress, AppWidgetManager.INVALID_APPWIDGET_ID, false, true));
@@ -250,16 +255,22 @@ final class TimetableSurfaces {
         AppearancePalette palette=AppAppearance.palette(context);
         AppAppearance.text(row,R.id.event_heading,palette,"#1F2937","#E2E8F0"); AppAppearance.text(row,R.id.event_title,palette,"#4F46E5","#A5B4FC");
         row.setTextViewText(R.id.event_heading,event.next+" · "+event.title); row.setTextViewText(R.id.event_title,event.time);
-        row.setViewVisibility(R.id.event_title,context.getResources().getConfiguration().fontScale>1.2f?View.GONE:View.VISIBLE);
-        row.setContentDescription(R.id.event_row,event.next+" · "+event.title+" · "+event.time+" · "+event.agenda);
+        // Classes take the compact second line; dates remain in the expanded card.
+        row.setViewVisibility(R.id.event_title,!event.eventClasses.isEmpty() || context.getResources().getConfiguration().fontScale>1.2f?View.GONE:View.VISIBLE);
+        AppAppearance.text(row,R.id.event_classes,palette,"#4F46E5","#A5B4FC");
+        row.setTextViewText(R.id.event_classes,event.eventClasses);
+        row.setViewVisibility(R.id.event_classes,event.eventClasses.isEmpty()?View.GONE:View.VISIBLE);
+        row.setContentDescription(R.id.event_row,event.next+" · "+event.title+" · "+event.eventClasses+" · "+event.time+" · "+event.agenda);
         row.setOnClickPendingIntent(R.id.event_row,openEvents(context)); return row;
     }
     static RemoteViews eventView(Context context, TimetableSchedule.Frame event, int scope, boolean notification) {
         RemoteViews row=new RemoteViews(context.getPackageName(),R.layout.school_event_row);
         AppearancePalette palette=AppAppearance.palette(context);
-        for(int id:new int[]{R.id.event_heading,R.id.event_title,R.id.event_time,R.id.event_location}) AppAppearance.text(row,id,palette,"#1F2937","#E2E8F0");
+        for(int id:new int[]{R.id.event_heading,R.id.event_title,R.id.event_classes,R.id.event_time,R.id.event_location}) AppAppearance.text(row,id,palette,"#1F2937","#E2E8F0");
         row.setTextViewText(R.id.event_heading,"Events · "+event.next); row.setTextViewText(R.id.event_title,event.title);
         row.setTextViewText(R.id.event_time,event.time); row.setTextViewText(R.id.event_location,event.agenda);
+        row.setTextViewText(R.id.event_classes,event.eventClasses);
+        row.setViewVisibility(R.id.event_classes,event.eventClasses.isEmpty()?View.GONE:View.VISIBLE);
         row.setViewVisibility(R.id.event_location,event.agenda.isEmpty()?View.GONE:View.VISIBLE);
         if(notification) row.setOnClickPendingIntent(R.id.event_row,openEvents(context));
         else row.setOnClickFillInIntent(R.id.event_row,new Intent().putExtra("operation","EVENT").putExtra("accountId",event.accountId).putExtra("eventId",event.eventId));

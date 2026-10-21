@@ -14,6 +14,7 @@ import { useUgandaHolidays } from '@/lib/hooks/use-uganda-holidays';
 import { useActiveAcademicYear } from '@/lib/hooks/use-academic-years';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
+import { ExamEventClasses } from '@/components/events/ui/exam-event-classes';
 
 const EVENT_TYPE_COLORS = {
     'Academic': '#3b82f6',
@@ -204,6 +205,7 @@ export function MonthCalendarCard() {
                                     <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: colorCode }} />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium text-slate-700 truncate dark:text-slate-200">{event.title}</p>
+                                        {event.isExamEvent && <ExamEventClasses event={event} />}
                                         <p className="text-xs text-slate-500 truncate dark:text-slate-400">
                                             {event.isAllDay ? 'All Day' : `${event.startTime || ''} ${event.endTime ? `- ${event.endTime}` : ''}`.trim()}
                                         </p>

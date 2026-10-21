@@ -131,7 +131,7 @@ export function bumpPhotosRevisionInBatch(batch: WriteBatch) {
 
 /** Publish exam-definition and optionally event revisions in one source batch. */
 export function bumpExamDefinitionRevisionsInBatch(
-  batch: WriteBatch,
+  batch: WriteBatch | Transaction,
   options?: { affectsEvents?: boolean },
 ) {
   (batch as WriteBatch).set(

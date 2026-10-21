@@ -21,6 +21,7 @@ import {
   bumpExamResultRevisionInBatch,
 } from './dashboard-cache-revisions.service';
 import { ExamLeaseService, type ExamLeaseOverride, type ExamLeaseToken } from './exam-lease.service';
+import { examStackKey, inheritStackGradingPolicy, regradeExamResults } from '@/lib/utils/stack-grading-scale';
 
 export class ExamsService {
   private static readonly COLLECTION_NAME = 'exams';
@@ -57,6 +58,10 @@ export class ExamsService {
     this.sharedReadyPromise = null;
     this.resolveSharedReady = null;
     this.rejectSharedReady = null;
+  }
+
+  static getSharedExamSnapshot(): Exam[] | null {
+    return this.sharedExams;
   }
 
   /** The central bootstrap is the only browser path allowed to refresh exams. */
@@ -260,11 +265,25 @@ export class ExamsService {
     }
   }
 
+  private static async inheritGradingPolicy(data: CreateExamData): Promise<CreateExamData> {
+    const key = examStackKey(data);
+    const peers = (this.sharedExams || []).filter(exam => examStackKey(exam) === key)
+      .sort((a, b) => (b.stackGradingPolicy?.updatedAt || '').localeCompare(a.stackGradingPolicy?.updatedAt || ''));
+    if (!peers.length) return data;
+    // A narrow authoritative read prevents an older open form from using a
+    // stale cached template when adding a later CAT set.
+    for (const peer of peers) {
+      const current = await getDoc(doc(db, this.COLLECTION_NAME, peer.id));
+      if (current.exists()) return inheritStackGradingPolicy(data, [{ ...current.data(), id: current.id } as Exam]);
+    }
+    return data;
+  }
+
   static async createExam(examData: CreateExamData): Promise<string> {
     try {
       const examsRef = collection(db, this.COLLECTION_NAME);
       const newExam = {
-        ...examData,
+        ...await this.inheritGradingPolicy(examData),
         createdAt: Timestamp.now()
       };
 
@@ -291,11 +310,16 @@ export class ExamsService {
       }
       const batch = writeBatch(db);
       const examIds: string[] = [];
+      const policies = new Map<string, Promise<CreateExamData>>();
 
       for (const examData of examsData) {
+        const key = examStackKey(examData);
+        if (!policies.has(key)) policies.set(key, this.inheritGradingPolicy(examData));
+        const inherited = await policies.get(key)!;
         const examRef = doc(collection(db, this.COLLECTION_NAME));
         const newExam = {
           ...examData,
+          ...(inherited.stackGradingPolicy ? { stackGradingPolicy: inherited.stackGradingPolicy } : {}),
           createdAt: Timestamp.now()
         };
 
@@ -468,8 +492,19 @@ export class ExamsService {
   static async createExamResult(resultData: Omit<ExamResult, 'id'>): Promise<ExamResult> {
     try {
       const period = await this.resolveResultPeriod(resultData.examId, resultData);
+      const definition = await getDoc(doc(db, this.COLLECTION_NAME, resultData.examId));
+      const exam = definition.exists() ? definition.data() as Exam : undefined;
+      const inherited = resultData.assessmentMode !== 'nursery_commentary' && exam?.assessmentMode !== 'nursery_commentary'
+        ? exam?.gradingScaleOverride?.length ? exam.gradingScaleOverride : exam?.stackGradingPolicy?.scale : undefined;
+      const gradingDefaults: Partial<ExamResult> = inherited?.length && !resultData.gradingScale?.length ? {
+        gradingScale: inherited,
+        gradingScaleSource: exam?.gradingScaleOverride?.length ? 'independent' : 'stack',
+        stackGradingScaleRevision: exam?.stackGradingPolicy?.revision || '',
+        results: regradeExamResults(resultData as ExamResult, inherited),
+      } : {};
       const newResult = {
         ...resultData,
+        ...gradingDefaults,
         ...period,
         recordedAt: resultData.recordedAt ? resultData.recordedAt : Timestamp.now(),
       };
@@ -509,12 +544,18 @@ export class ExamsService {
 
       // Clean undefined values before sending to Firebase
       const cleanedData = this.cleanUndefinedValues(updateData);
+      const publishIndependentScale = (writer: import('firebase/firestore').WriteBatch | import('firebase/firestore').Transaction) => {
+        if (resultData.gradingScaleSource !== 'independent' || !resultData.gradingScale?.length) return;
+        (writer as import('firebase/firestore').WriteBatch).update(doc(db, this.COLLECTION_NAME, resultData.examId!), { gradingScaleOverride: resultData.gradingScale });
+        bumpExamDefinitionRevisionsInBatch(writer, { affectsEvents: false });
+      };
 
       console.log('📝 Firestore updateExamResult - cleanedData.gradingScale:', cleanedData.gradingScale);
 
       if (options?.overrideLease) {
         await runTransaction(db, async transaction => {
           transaction.update(resultRef, cleanedData);
+          publishIndependentScale(transaction);
           bumpExamResultRevisionInBatch(transaction, period.academicYearId, period.termId);
           ExamLeaseService.claimForOverrideSave(resultData.examId!, options.overrideLease!, transaction);
         });
@@ -522,6 +563,7 @@ export class ExamsService {
         await runTransaction(db, async transaction => {
           await ExamLeaseService.verifyForSave(resultData.examId!, options.lease!, transaction);
           transaction.update(resultRef, cleanedData);
+          publishIndependentScale(transaction);
           bumpExamResultRevisionInBatch(transaction, period.academicYearId, period.termId);
           transaction.delete(ExamLeaseService.ref(resultData.examId!));
         });
@@ -532,6 +574,7 @@ export class ExamsService {
       } else {
         const batch = writeBatch(db);
         batch.update(resultRef, cleanedData);
+        publishIndependentScale(batch);
         bumpExamResultRevisionInBatch(batch, period.academicYearId, period.termId);
         await batch.commit();
       }

@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { CalendarDays, MapPin } from "lucide-react";
 import { useAuth } from "@/lib/contexts/auth-context";
 import type { Event, SchoolSettings } from "@/types";
+import { ExamEventClasses } from '@/components/events/ui/exam-event-classes';
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   DASHBOARD_BRIEFING_MS, DASHBOARD_GREETING_MS, formatBriefingEventDate,
@@ -142,6 +143,7 @@ export function DashboardWelcomeHeader({ schoolSettings, events = NO_EVENTS }: D
                   <CalendarDays className="h-4 w-4 shrink-0" aria-hidden="true" /> Today
                 </p>
                 <p className="mt-1 break-words text-base font-bold leading-snug tracking-tight text-foreground sm:text-lg md:text-xl">{event.title}</p>
+                {event.isExamEvent && <ExamEventClasses event={event} />}
                 {getEventEndNotice(event, now) && <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{getEventEndNotice(event, now)}</p>}
               </div>
             ))}
@@ -184,6 +186,7 @@ export function DashboardWelcomeHeader({ schoolSettings, events = NO_EVENTS }: D
               {briefing.laterThisWeek.map(event => (
                 <li key={event.id} className="rounded-xl border border-border bg-muted/30 p-3 sm:p-4">
                   <p className="break-words font-semibold text-foreground">{event.title}</p>
+                  {event.isExamEvent && <ExamEventClasses event={event} />}
                   <p className="mt-1 text-sm text-muted-foreground">{formatBriefingEventDate(event)}</p>
                   {event.location && <p className="mt-1 flex items-start gap-1.5 break-words text-sm text-muted-foreground"><MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />{event.location}</p>}
                   {event.description && <p className="mt-2 whitespace-pre-line break-words text-sm text-muted-foreground">{event.description}</p>}

@@ -2,6 +2,7 @@
 
 import { getExamTeacherIds, getSubjectTeacherId } from '@/lib/utils/teaching-assignments';
 import * as React from "react";
+import dynamic from 'next/dynamic';
 import ReactDOM from "react-dom";
 import { PlusCircle, Plus, MoreHorizontal, Edit, Trash2, BookOpen, CornerDownRight, Indent, FilePenLine, Eye, Calendar, Search, X, Filter, ChevronDown, ChevronUp, User, School, Type, CalendarIcon, InfoIcon, RefreshCw, GraduationCap, Users, Target, Clock, PlayCircle, CheckCircle, Camera, CalendarClock, Sparkles, Info, Loader2, Printer, Layers } from "lucide-react"; // Added more icons
 import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
@@ -44,7 +45,7 @@ import { ModernDatePicker } from "@/components/common/modern-date-picker";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useToast } from "@/hooks/use-toast";
-import type { Exam, ExamStatus, ExamNature, Class, Subject, AcademicYear, Term, ExamResult, ExamRecordPupilInfo, ExamRecordSubjectInfo, PupilSubjectResult, ExamClassInfoSnapshot, GradingScaleItem } from "@/types";
+import type { Exam, ExamStatus, ExamNature, Class, Subject, AcademicYear, Term, ExamResult, ExamRecordPupilInfo, ExamRecordSubjectInfo, PupilSubjectResult, ExamClassInfoSnapshot } from "@/types";
 import {
   sampleExamTypes
 } from "@/lib/sample-data";
@@ -52,7 +53,7 @@ import { useClasses } from "@/lib/hooks/use-classes";
 import { useActivePupils } from "@/lib/hooks/use-pupils";
 import { useSubjects } from "@/lib/hooks/use-subjects";
 import { useStaff } from "@/lib/hooks/use-staff";
-import { useExams, useExamsOptimized, useCreateExam, useCreateMultipleExams, useConsolidateExamBatch, useUpdateExam, useDeleteExam, useCreateExamResult, useUpdateExamResult } from "@/lib/hooks/use-exams";
+import { useExams, useExamsOptimized, useCreateExam, useCreateMultipleExams, useConsolidateExamBatch, useUpdateExam, useDeleteExam, useCreateExamResult, useSaveStackGradingScale } from "@/lib/hooks/use-exams";
 import { useAcademicYears, useActiveAcademicYear } from "@/lib/hooks/use-academic-years";
 import { useCreateExamFromEvent } from "@/lib/hooks/use-events-fixed";
 import { useActivePupilsOptimized } from "@/lib/hooks/use-pupils";
@@ -64,12 +65,20 @@ import { DigitalSignatureDisplay } from "@/components/common/digital-signature-d
 import { ExamSignatureDisplay } from "@/components/exam/ExamSignatureDisplay";
 import { formatPupilDisplayName } from "@/lib/utils/name-formatter";
 import { ExamsService } from "@/lib/services/exams.service";
-import { ExamLeaseService } from "@/lib/services/exam-lease.service";
+import { ExamStackGradingService } from "@/lib/services/exam-stack-grading.service";
+import { ExamMoreMenu } from "@/components/exam/exam-more-menu";
+import { StackGradingScaleDialog, type StackGradingTarget } from "@/components/exam/stack-grading-scale-dialog";
+
+// Reuse the results print controller and templates without navigating or rendering its page.
+const ExamPrintWorkspace = dynamic(() => import('./[examId]/view-results/ViewResultsView'), { ssr: false,
+  loading: () => <div role="status" className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-2xl bg-white p-4 shadow-xl dark:bg-slate-900">Loading print options…</div>,
+});
+import { examStackKey } from "@/lib/utils/stack-grading-scale";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { getAssessmentModeForClass, isNurseryClass } from "@/lib/exam-assessment";
 import { getActiveClassStreams, getPupilClassDisplay, snapshotExamPupilStreamIdentity } from "@/lib/utils/class-streams";
 
-import { DEFAULT_GRADING_SCALE, EXAM_NATURES, OTHER_EXAM_TYPE_ID } from "@/lib/constants"; // Ensure OTHER_EXAM_TYPE_ID is exported
+import { EXAM_NATURES, OTHER_EXAM_TYPE_ID } from "@/lib/constants"; // Ensure OTHER_EXAM_TYPE_ID is exported
 import { format, parseISO, isValid, startOfDay, getYear as getYearFromDateFns, isWithinInterval } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -141,29 +150,6 @@ const getExamBatchCompatibilityKey = (exam: Exam): string => [
   exam.examNature || '',
   exam.baseName || exam.name,
 ].join('::');
-
-const cloneDefaultGradingScale = (): GradingScaleItem[] =>
-  DEFAULT_GRADING_SCALE.map((item) => ({
-    minMark: item.minMark,
-    maxMark: item.maxMark,
-    grade: item.grade,
-    aggregates: item.aggregates,
-    comment: item.comment,
-  }));
-
-const normalizeGradingScale = (gradingScale?: GradingScaleItem[]): GradingScaleItem[] => {
-  if (!gradingScale || gradingScale.length === 0) {
-    return cloneDefaultGradingScale();
-  }
-
-  return gradingScale.map((item, index) => ({
-    minMark: Number(item.minMark ?? 0),
-    maxMark: Number(item.maxMark ?? 0),
-    grade: item.grade || DEFAULT_GRADING_SCALE[index]?.grade || '',
-    aggregates: Number(item.aggregates ?? DEFAULT_GRADING_SCALE[index]?.aggregates ?? 0),
-    comment: item.comment,
-  }));
-};
 
 // Exam status utility
 const getExamStatus = (startDate: string | undefined | null, endDate: string | undefined | null) => {
@@ -374,7 +360,7 @@ export default function ExamsPage() {
   const updateExamMutation = useUpdateExam();
   const deleteExamMutation = useDeleteExam();
   const createExamResultMutation = useCreateExamResult();
-  const updateExamResultMutation = useUpdateExamResult();
+  const saveStackGradingScaleMutation = useSaveStackGradingScale();
   const createExamFromEventMutation = useCreateExamFromEvent();
   const { user } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -426,10 +412,7 @@ export default function ExamsPage() {
   const [termId, setTermId] = React.useState<string | undefined>(undefined);
   const [creationDate, setCreationDate] = React.useState<string>("");
   const [availableTerms, setAvailableTerms] = React.useState<Term[]>([]);
-  const [stackGradingScaleDialogOpen, setStackGradingScaleDialogOpen] = React.useState(false);
-  const [stackGradingScaleTarget, setStackGradingScaleTarget] = React.useState<{ label: string; examIds: string[] } | null>(null);
-  const [stackGradingScaleDraft, setStackGradingScaleDraft] = React.useState<GradingScaleItem[]>(cloneDefaultGradingScale());
-  const [isSavingStackGradingScale, setIsSavingStackGradingScale] = React.useState(false);
+  const [stackGradingScaleTarget, setStackGradingScaleTarget] = React.useState<StackGradingTarget | null>(null);
 
   // 🚀 DYNAMIC YEAR LABELS
   const currentAcademicYearId = React.useMemo(() => {
@@ -1007,116 +990,16 @@ export default function ExamsPage() {
   }, []);
 
   const handleOpenStackGradingScaleDialog = React.useCallback(async (stackExams: Exam[], label: string) => {
+    if (!stackExams.length) return;
     try {
-      let initialScale = cloneDefaultGradingScale();
-
-      for (const exam of stackExams) {
-        const examResult = await ExamsService.getExamResultByExamId(exam.id);
-        if (examResult?.gradingScale && examResult.gradingScale.length > 0) {
-          initialScale = normalizeGradingScale(examResult.gradingScale);
-          break;
-        }
-      }
-
-      setStackGradingScaleTarget({
-        label,
-        examIds: stackExams.map(exam => exam.id),
-      });
-      setStackGradingScaleDraft(initialScale);
-      setStackGradingScaleDialogOpen(true);
+      const allExams = await ExamsService.getAllExams();
+      const key = examStackKey(stackExams[0]);
+      const members = allExams.filter(exam => examStackKey(exam) === key);
+      setStackGradingScaleTarget({ label, exams: members.length ? members : stackExams });
     } catch (error) {
-      console.error('Error loading stack grading scale:', error);
-      toast({
-        variant: "destructive",
-        title: "Unable to load grading scale",
-        description: "Please try again."
-      });
+      toast({ variant: 'destructive', title: 'Unable to open stack scale', description: error instanceof Error ? error.message : 'Please try again.' });
     }
   }, [toast]);
-
-  const handleSaveStackGradingScale = React.useCallback(async () => {
-    if (!stackGradingScaleTarget) return;
-    if (!user || (user.role !== 'Admin' && user.role !== 'Staff')) {
-      toast({ variant: 'destructive', title: 'Editing is unavailable', description: 'Only Staff or Admin can acquire result editing leases.' });
-      return;
-    }
-
-    const cleanedScale = stackGradingScaleDraft.map((item) => ({
-      minMark: Number(item.minMark),
-      maxMark: Number(item.maxMark),
-      grade: item.grade.trim(),
-      aggregates: Number(item.aggregates ?? 0),
-      comment: item.comment,
-    }));
-
-    const hasInvalidScale = cleanedScale.some((item) =>
-      Number.isNaN(item.minMark) ||
-      Number.isNaN(item.maxMark) ||
-      item.grade.length === 0 ||
-      item.minMark > item.maxMark
-    );
-
-    if (hasInvalidScale) {
-      toast({
-        variant: "destructive",
-        title: "Invalid grading scale",
-        description: "Each row needs a valid mark range and grade."
-      });
-      return;
-    }
-
-    setIsSavingStackGradingScale(true);
-
-    try {
-      await Promise.all(
-        stackGradingScaleTarget.examIds.map(async (examId) => {
-          const examResult = await ExamsService.getExamResultByExamId(examId);
-          if (!examResult) return;
-          const leaseId = typeof crypto !== 'undefined' && crypto.randomUUID
-            ? crypto.randomUUID()
-            : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-          const acquired = await ExamLeaseService.acquire(
-            examId,
-            { id: user.id, name: user.firstName || user.username },
-            leaseId,
-          );
-          if (!acquired.acquired) {
-            throw new Error(`Result for ${examId} is being edited by ${acquired.holder?.lockedByName || 'another user'}.`);
-          }
-          try {
-            await updateExamResultMutation.mutateAsync({
-              id: examResult.id,
-              lease: { lockedByUid: user.id, leaseId },
-              data: {
-                examId,
-                academicYearId: examResult.academicYearId,
-                termId: examResult.termId,
-                gradingScale: cleanedScale,
-              }
-            });
-          } finally {
-            await ExamLeaseService.release(examId, { lockedByUid: user.id, leaseId }).catch(() => undefined);
-          }
-        })
-      );
-
-      toast({
-        title: "Stack grading scale updated",
-        description: `Applied to ${stackGradingScaleTarget.examIds.length} class report${stackGradingScaleTarget.examIds.length === 1 ? '' : 's'}.`
-      });
-      setStackGradingScaleDialogOpen(false);
-      setStackGradingScaleTarget(null);
-    } catch (error) {
-      console.error('Error saving stack grading scale:', error);
-      toast({
-        variant: "destructive",
-        title: "Failed to save grading scale",
-        description: "Please try again."
-      });
-    } finally {
-      setIsSavingStackGradingScale(false);
-    }
-  }, [stackGradingScaleTarget, stackGradingScaleDraft, toast, updateExamResultMutation, user]);
 
   const handleSubmit = async () => {
     // For CAT exams, also require assessment name and exam name
@@ -1655,9 +1538,8 @@ export default function ExamsPage() {
     }
   };
 
-  const openExamPrintOptions = React.useCallback((exam: Exam) => {
-    router.push(`/exams/${exam.id}/view-results?classId=${exam.classId}&openPrint=1`);
-  }, [router]);
+  const [printExam, setPrintExam] = React.useState<Exam | null>(null);
+  const openExamPrintOptions = React.useCallback((exam: Exam) => setPrintExam(exam), []);
 
   // 🚀 OPTIMIZED: Progressive loading - show page as soon as core data is loaded
   const coreDataLoading = classesLoading || examsLoading || academicYearsLoading;
@@ -2201,7 +2083,7 @@ export default function ExamsPage() {
                     }
                   >
                     {showBatchHeader && (
-                      <div className={`px-3 py-2.5 ${isCATExam ? 'bg-gradient-to-r from-brand-secondary-surface-500 to-brand-alt-surface-600' : 'bg-gradient-to-r from-brand-surface-500 to-brand-alt-surface-600'}`}>
+                      <div className={`px-3 py-2.5 ${isCATExam ? 'bg-brand-secondary-surface-600' : 'bg-brand-surface-600'}`}>
                       <div className="flex min-w-0 items-center justify-between gap-1.5">
                         <div className="flex min-w-0 items-center gap-1.5">
                           <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-white animate-pulse dark:bg-slate-900"></div>
@@ -2242,19 +2124,11 @@ export default function ExamsPage() {
                             size="sm"
                             onClick={() => handleOpenStackGradingScaleDialog(exams, firstExam.baseName || firstExam.name)}
                             className="h-8 w-8 rounded-full border border-white/20 p-0 hover:bg-white/20 transition-colors sm:h-7 sm:w-7 dark:border-slate-700/20 dark:hover:bg-slate-900/20"
-                            title="Edit grading scale for this stack"
+                            title="View stack grading scale"
                           >
                             <GraduationCap className="h-3 w-3 text-white" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteExamStack(exams.map(exam => exam.id), firstExam.baseName || firstExam.name)}
-                            className="h-8 w-8 rounded-full border border-white/20 p-0 hover:bg-white/20 transition-colors sm:h-7 sm:w-7 dark:border-slate-700/20 dark:hover:bg-slate-900/20"
-                            title="Delete entire stack"
-                          >
-                            <Trash2 className="h-3 w-3 text-white" />
-                          </Button>
+                          <ExamMoreMenu examName={firstExam.baseName || firstExam.name} onDelete={() => handleDeleteExamStack(exams.map(exam => exam.id), firstExam.baseName || firstExam.name)} deleteLabel="Delete entire stack" className="h-8 border-white/20 text-white hover:bg-white/15 dark:border-white/20 dark:text-white dark:hover:bg-white/15" />
                           {/* + Add Set button — always visible for CAT exams */}
                           {isCATExam && (
                             <Button
@@ -2339,12 +2213,8 @@ export default function ExamsPage() {
                               <Button variant="outline" size="sm" asChild className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-emerald-700 shadow-none hover:border-emerald-200 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:border-emerald-800/60 dark:hover:bg-emerald-950/40" title="View Results">
                                 <Link href={`/exams/${mobileSelectedExam.id}/view-results?classId=${mobileSelectedExam.classId}`}><Eye className="h-4 w-4" /></Link>
                               </Button>
-                              <Button variant="outline" size="sm" asChild className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-brand-secondary-ink-700 shadow-none hover:border-brand-secondary-200 hover:bg-brand-secondary-surface-50 dark:text-brand-secondary-ink-300 dark:hover:border-brand-secondary-800/60 dark:hover:bg-brand-secondary-surface-950/40" title="Edit Snapshot Data">
-                                <Link href={`/exams/${mobileSelectedExam.id}/edit-snapshot`}><Camera className="h-4 w-4" /></Link>
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => handleDeleteExam(mobileSelectedExam.id)} className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-red-700 shadow-none hover:border-red-200 hover:bg-red-50 dark:text-red-300 dark:hover:border-red-800/60 dark:hover:bg-red-950/40" title="Delete Exam">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+
+                              <ExamMoreMenu examName={mobileSelectedExam.name} snapshotHref={`/exams/${mobileSelectedExam.id}/edit-snapshot`} onDelete={() => handleDeleteExam(mobileSelectedExam.id)} deleteLabel="Delete exam" className="h-8" />
                             </div>
                           </div>
                         );
@@ -2472,35 +2342,16 @@ export default function ExamsPage() {
                                                     </Link>
                                                   </Button>
 
-                                                  {/* Edit Snapshot button */}
-                                                  <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    asChild
-                                                    className="h-8 w-8 p-0 rounded-full border-2 border-brand-secondary-300 text-brand-secondary-ink-700 hover:bg-brand-secondary-surface-50 hover:border-brand-secondary-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-brand-secondary-800/60 dark:text-brand-secondary-ink-300 dark:hover:bg-brand-secondary-surface-950/40"
-                                                    title="Edit Snapshot Data"
-                                                  >
-                                                    <Link href={`/exams/${firstSetExam.id}/edit-snapshot`}>
-                                                      <Camera className="h-4 w-4" />
-                                                    </Link>
-                                                  </Button>
+
                                                 </>
                                               ) : null}
 
                                               {/* Delete Set button */}
-                                              <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => {
+                                              <ExamMoreMenu examName={firstSetExam.name} snapshotHref={`/exams/${firstSetExam.id}/edit-snapshot`} onDelete={() => {
                                                   // Delete all exams in this set
                                                   const examIds = setExams.map(exam => exam.id);
                                                   handleDeleteExamStack(examIds, `${firstSetExam.baseName || firstSetExam.name} ${setName}`);
-                                                }}
-                                                className="h-8 w-8 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                                                title="Delete Set"
-                                              >
-                                                <Trash2 className="h-4 w-4" />
-                                              </Button>
+                                                }} deleteLabel="Delete set" className="h-8" />
 
                                               {setExams.length > 1 && (
                                                 <Button
@@ -2512,19 +2363,7 @@ export default function ExamsPage() {
                                                   <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isSetExpanded ? 'rotate-180' : ''}`} />
                                                 </Button>
                                               )}
-                                              {!isExpanded && sortedSets.length > 1 && (
-                                                <Button
-                                                  variant="ghost"
-                                                  size="sm"
-                                                  onClick={() => setExpandedBatches(previous => ({ ...previous, [batchId]: true }))}
-                                                  className="h-8 px-2 text-xs text-brand-secondary-ink-600 hover:bg-brand-secondary-surface-50 hover:text-brand-secondary-ink-800 dark:text-brand-secondary-ink-300 dark:hover:bg-brand-secondary-surface-950/40"
-                                                  aria-label="Expand assessment sets"
-                                                  aria-expanded={false}
-                                                >
-                                                  <ChevronDown className="mr-1 h-3.5 w-3.5" />
-                                                  Expand
-                                                </Button>
-                                              )}
+
                                             </div>
                                           </TableCell>
                                         </TableRow>
@@ -2595,29 +2434,9 @@ export default function ExamsPage() {
                                                     </Link>
                                                   </Button>
 
-                                                  {/* Edit Snapshot button */}
-                                                  <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    asChild
-                                                    className="h-7 w-7 p-0 rounded-full border-2 border-brand-secondary-300 text-brand-secondary-ink-700 hover:bg-brand-secondary-surface-50 hover:border-brand-secondary-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-brand-secondary-800/60 dark:text-brand-secondary-ink-300 dark:hover:bg-brand-secondary-surface-950/40"
-                                                    title="Edit Snapshot Data"
-                                                  >
-                                                    <Link href={`/exams/${exam.id}/edit-snapshot`}>
-                                                      <Camera className="h-3 w-3" />
-                                                    </Link>
-                                                  </Button>
 
                                                   {/* Delete button for individual CAT exam */}
-                                                  <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleDeleteExam(exam.id)}
-                                                    className="h-7 w-7 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                                                    title="Delete Exam"
-                                                  >
-                                                    <Trash2 className="h-3 w-3" />
-                                                  </Button>
+                                                  <ExamMoreMenu examName={exam.name} snapshotHref={`/exams/${exam.id}/edit-snapshot`} onDelete={() => handleDeleteExam(exam.id)} deleteLabel="Delete exam" className="h-8" />
                                                 </div>
                                               </TableCell>
                                             </TableRow>
@@ -2764,41 +2583,11 @@ export default function ExamsPage() {
                                         </Link>
                                       </Button>
 
-                                      {/* Edit Snapshot button */}
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        asChild
-                                        className="h-7 w-7 p-0 rounded-full border-2 border-brand-secondary-300 text-brand-secondary-ink-700 hover:bg-brand-secondary-surface-50 hover:border-brand-secondary-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-brand-secondary-800/60 dark:text-brand-secondary-ink-300 dark:hover:bg-brand-secondary-surface-950/40"
-                                        title="Edit Snapshot Data"
-                                      >
-                                        <Link href={`/exams/${firstExam.id}/edit-snapshot`}>
-                                          <Camera className="h-3 w-3" />
-                                        </Link>
-                                      </Button>
 
-                                      {/* Delete button for regular exams */}
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleDeleteExam(firstExam.id)}
-                                        className="h-7 w-7 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                                        title="Delete Exam"
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
 
-                                      {/* Show collapse button when expanded and there are multiple classes */}
-                                      {exams.length > 1 && isExpanded && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => setExpandedBatches(prev => ({ ...prev, [batchId]: !isExpanded }))}
-                                          className="h-7 px-2 text-xs text-gray-600 hover:bg-gray-50 transition-colors ml-1 dark:text-slate-300 dark:hover:bg-slate-900"
-                                        >
-                                          <ChevronDown className="h-3 w-3 rotate-180" />
-                                        </Button>
-                                      )}
+                                      <ExamMoreMenu examName={firstExam.name} snapshotHref={`/exams/${firstExam.id}/edit-snapshot`} onDelete={() => handleDeleteExam(firstExam.id)} deleteLabel="Delete exam" className="h-8" />
+
+
                                     </div>
                                   ) : (
                                     // Multiple classes collapsed - show selected class actions plus stack controls
@@ -2837,35 +2626,9 @@ export default function ExamsPage() {
                                           <Eye className="h-3 w-3" />
                                         </Link>
                                       </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        asChild
-                                        className="h-7 w-7 p-0 rounded-full border-2 border-brand-secondary-300 text-brand-secondary-ink-700 hover:bg-brand-secondary-surface-50 hover:border-brand-secondary-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-brand-secondary-800/60 dark:text-brand-secondary-ink-300 dark:hover:bg-brand-secondary-surface-950/40"
-                                        title="Edit Snapshot Data"
-                                      >
-                                        <Link href={`/exams/${selectedCollapsedExam.id}/edit-snapshot`}>
-                                          <Camera className="h-3 w-3" />
-                                        </Link>
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleDeleteExam(selectedCollapsedExam.id)}
-                                        className="h-7 w-7 p-0 rounded-full border-2 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-400 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-400 dark:hover:bg-red-950/40"
-                                        title="Delete This Class Exam"
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setExpandedBatches(prev => ({ ...prev, [batchId]: !isExpanded }))}
-                                        className="h-7 px-2 text-xs text-brand-ink-600 hover:bg-brand-surface-50 transition-colors dark:text-brand-ink-400 dark:hover:bg-brand-surface-950/40"
-                                      >
-                                        <ChevronDown className="h-3 w-3 mr-1" />
-                                        Expand
-                                      </Button>
+
+                                      <ExamMoreMenu examName={selectedCollapsedExam.name} snapshotHref={`/exams/${selectedCollapsedExam.id}/edit-snapshot`} onDelete={() => handleDeleteExam(selectedCollapsedExam.id)} deleteLabel="Delete exam" className="h-8" />
+
                                     </div>
                                   )}
                                 </TableCell>
@@ -2935,18 +2698,6 @@ export default function ExamsPage() {
                                           </Link>
                                         </Button>
 
-                                        {/* Edit Snapshot button */}
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          asChild
-                                          className="h-7 w-7 p-0 rounded-full border-2 border-brand-secondary-300 text-brand-secondary-ink-700 hover:bg-brand-secondary-surface-50 hover:border-brand-secondary-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-brand-secondary-800/60 dark:text-brand-secondary-ink-300 dark:hover:bg-brand-secondary-surface-950/40"
-                                          title="Edit Snapshot Data"
-                                        >
-                                          <Link href={`/exams/${exam.id}/edit-snapshot`}>
-                                            <Camera className="h-3 w-3" />
-                                          </Link>
-                                        </Button>
 
                                         {/* Add Set button for CAT exams */}
                                         {exam.examTypeId === 'et_cat' && (
@@ -2961,16 +2712,8 @@ export default function ExamsPage() {
                                           </Button>
                                         )}
 
-                                        {/* Delete button for individual exam */}
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => handleDeleteExam(exam.id)}
-                                          className="h-7 w-7 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                                          title="Delete Exam"
-                                        >
-                                          <Trash2 className="h-3 w-3" />
-                                        </Button>
+
+                                        <ExamMoreMenu examName={exam.name} snapshotHref={`/exams/${exam.id}/edit-snapshot`} onDelete={() => handleDeleteExam(exam.id)} deleteLabel="Delete exam" className="h-8" />
                                       </div>
                                     </TableCell>
                                   </TableRow>
@@ -3069,7 +2812,7 @@ export default function ExamsPage() {
                     }
                   >
                     {showBatchHeader && (
-                      <div className={`relative px-4 py-3 ${isCATExam ? 'bg-gradient-to-br from-brand-secondary-surface-500 via-brand-secondary-surface-600 to-brand-alt-surface-700' : 'bg-gradient-to-br from-brand-surface-500 via-brand-surface-600 to-brand-alt-surface-700'}`}>
+                      <div className={`relative px-4 py-3 ${isCATExam ? 'bg-brand-secondary-surface-600' : 'bg-brand-surface-600'}`}>
                       <div className="relative flex items-center justify-between gap-3">
                         <div className="flex min-w-0 flex-1 items-center gap-2.5">
                             <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse dark:bg-slate-900"></div>
@@ -3168,19 +2911,11 @@ export default function ExamsPage() {
                             size="sm"
                             onClick={() => handleOpenStackGradingScaleDialog(exams, firstExam.baseName || firstExam.name)}
                             className="h-7 w-7 rounded-full border border-white/20 p-0 transition-colors hover:bg-white/20 dark:border-slate-700/20 dark:hover:bg-slate-900/20"
-                            title="Edit grading scale for this stack"
+                            title="View stack grading scale"
                           >
                             <GraduationCap className="h-3.5 w-3.5 text-white" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteExamStack(exams.map(exam => exam.id), firstExam.baseName || firstExam.name)}
-                            className="h-7 w-7 rounded-full border border-white/20 p-0 transition-colors hover:bg-white/20 dark:border-slate-700/20 dark:hover:bg-slate-900/20"
-                            title="Delete entire stack"
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-white" />
-                          </Button>
+                          <ExamMoreMenu examName={firstExam.baseName || firstExam.name} onDelete={() => handleDeleteExamStack(exams.map(exam => exam.id), firstExam.baseName || firstExam.name)} deleteLabel="Delete entire stack" className="h-8 border-white/20 text-white hover:bg-white/15 dark:border-white/20 dark:text-white dark:hover:bg-white/15" />
                           {/* + Add Set button — always visible for CAT exams */}
                           {isCATExam && (
                             <Button
@@ -3278,14 +3013,8 @@ export default function ExamsPage() {
                                   <Eye className="h-4 w-4" />
                                 </Link>
                               </Button>
-                              <Button variant="outline" size="sm" asChild className="h-9 w-9 rounded-full border-2 border-brand-secondary-300 p-0 text-brand-secondary-ink-700 shadow-sm transition-all duration-200 hover:border-brand-secondary-500 hover:bg-brand-secondary-surface-50 dark:border-brand-secondary-800/60 dark:text-brand-secondary-ink-300 dark:hover:bg-brand-secondary-surface-950/40">
-                                <Link href={`/exams/${firstExam.id}/edit-snapshot`}>
-                                  <Camera className="h-4 w-4" />
-                                </Link>
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => handleDeleteExam(firstExam.id)} className="h-9 w-9 rounded-full border-2 border-red-300 p-0 text-red-700 shadow-sm transition-all duration-200 hover:border-red-500 hover:bg-red-50 dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+
+                              <ExamMoreMenu examName={firstExam.name} snapshotHref={`/exams/${firstExam.id}/edit-snapshot`} onDelete={() => handleDeleteExam(firstExam.id)} deleteLabel="Delete exam" className="h-8" />
                             </div>
                           </div>
                         </div>
@@ -3414,18 +3143,10 @@ export default function ExamsPage() {
                                     </Link>
                                   </Button>
 
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
+                                  <ExamMoreMenu examName={firstSelectedSetExam.name} snapshotHref={`/exams/${firstSelectedSetExam.id}/edit-snapshot`} onDelete={() => {
                                       const examIds = selectedSetExams.map(e => e.id);
                                       handleDeleteExamStack(examIds, `${firstSelectedSetExam.baseName || firstSelectedSetExam.name} ${currentSelectedSetKey}`);
-                                    }}
-                                    className="h-9 w-9 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                                    title="Delete Set"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
+                                    }} deleteLabel="Delete set" className="h-8" />
                                 </div>
                               )}
                             </div>
@@ -3476,18 +3197,7 @@ export default function ExamsPage() {
                                   </Link>
                                 </Button>
 
-                                {/* Delete button */}
-                                {!showBatchHeader && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleDeleteExam(!isExpanded && exams.length > 1 ? selectedCollapsedExam.id : firstExam.id)}
-                                    className="h-9 w-9 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                                    title="Delete Exam"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                )}
+                                <ExamMoreMenu examName={(!isExpanded && exams.length > 1 ? selectedCollapsedExam : firstExam).name} snapshotHref={`/exams/${(!isExpanded && exams.length > 1 ? selectedCollapsedExam : firstExam).id}/edit-snapshot`} onDelete={() => handleDeleteExam(!isExpanded && exams.length > 1 ? selectedCollapsedExam.id : firstExam.id)} deleteLabel="Delete exam" className="h-8" />
 
                               </div>
                               </div>
@@ -3603,19 +3313,11 @@ export default function ExamsPage() {
                                               </Link>
                                             </Button>
 
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              onClick={() => {
+                                            <ExamMoreMenu examName={firstSetExam.name} snapshotHref={`/exams/${firstSetExam.id}/edit-snapshot`} onDelete={() => {
                                                 // Delete all exams in this set
                                                 const examIds = setExams.map(exam => exam.id);
                                                 handleDeleteExamStack(examIds, `${firstSetExam.baseName || firstSetExam.name} ${setName}`);
-                                              }}
-                                              className="h-7 w-7 p-0 rounded-full border border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                                              title="Delete Set"
-                                            >
-                                              <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
+                                              }} deleteLabel="Delete set" className="h-8" />
                                           </div>
                                         </div>
                                       </div>
@@ -3692,28 +3394,10 @@ export default function ExamsPage() {
                                             </Link>
                                           </Button>
 
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            asChild
-                                            className="h-8 w-8 p-0 rounded-full border-2 border-brand-secondary-300 text-brand-secondary-ink-700 hover:bg-brand-secondary-surface-50 hover:border-brand-secondary-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-brand-secondary-800/60 dark:text-brand-secondary-ink-300 dark:hover:bg-brand-secondary-surface-950/40"
-                                            title="Edit Snapshot Data"
-                                          >
-                                            <Link href={`/exams/${exam.id}/edit-snapshot`}>
-                                              <Camera className="h-4 w-4" />
-                                            </Link>
-                                          </Button>
+
 
                                           {/* Delete Exam button */}
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handleDeleteExam(exam.id)}
-                                            className="h-8 w-8 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                                            title="Delete Exam"
-                                          >
-                                            <Trash2 className="h-4 w-4" />
-                                          </Button>
+                                          <ExamMoreMenu examName={exam.name} snapshotHref={`/exams/${exam.id}/edit-snapshot`} onDelete={() => handleDeleteExam(exam.id)} deleteLabel="Delete exam" className="h-8" />
                                         </div>
                                       </div>
                                     </div>
@@ -4598,116 +4282,21 @@ export default function ExamsPage() {
           </ModernDialogContent>
         </ModernDialog>
 
-        <ModernDialog open={stackGradingScaleDialogOpen} onOpenChange={(open) => {
-          setStackGradingScaleDialogOpen(open);
-          if (!open) {
-            setStackGradingScaleTarget(null);
-            setStackGradingScaleDraft(cloneDefaultGradingScale());
-          }
-        }}>
-          <ModernDialogContent className="max-w-3xl">
-            <ModernDialogHeader>
-              <ModernDialogTitle>Stack Grading Scale</ModernDialogTitle>
-              <ModernDialogDescription>
-                {stackGradingScaleTarget
-                  ? `Update the grading scale for every class in "${stackGradingScaleTarget.label}".`
-                  : "Update the grading scale for this stack."}
-              </ModernDialogDescription>
-            </ModernDialogHeader>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
-                <p className="text-sm text-slate-600 dark:text-slate-300">Each row applies to every exam result in the selected stack.</p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setStackGradingScaleDraft(cloneDefaultGradingScale())}
-                >
-                  Reset Default
-                </Button>
-              </div>
-
-              <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                {stackGradingScaleDraft.map((scale, index) => (
-                  <div key={`stack-scale-${index}`} className="grid grid-cols-4 gap-3 rounded-lg border border-slate-200 p-3 dark:border-slate-700">
-                    <div>
-                      <Label className="text-xs text-slate-600 dark:text-slate-300">Min Mark</Label>
-                      <Input
-                        type="number"
-                        value={scale.minMark}
-                        onChange={(e) => {
-                          const value = Number(e.target.value);
-                          setStackGradingScaleDraft(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, minMark: Number.isNaN(value) ? 0 : value } : item));
-                        }}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-slate-600 dark:text-slate-300">Max Mark</Label>
-                      <Input
-                        type="number"
-                        value={scale.maxMark}
-                        onChange={(e) => {
-                          const value = Number(e.target.value);
-                          setStackGradingScaleDraft(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, maxMark: Number.isNaN(value) ? 0 : value } : item));
-                        }}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-slate-600 dark:text-slate-300">Grade</Label>
-                      <Input
-                        value={scale.grade}
-                        onChange={(e) => {
-                          const value = e.target.value.toUpperCase();
-                          setStackGradingScaleDraft(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, grade: value } : item));
-                        }}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-slate-600 dark:text-slate-300">Aggregates</Label>
-                      <Input
-                        type="number"
-                        value={scale.aggregates ?? 0}
-                        onChange={(e) => {
-                          const value = Number(e.target.value);
-                          setStackGradingScaleDraft(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, aggregates: Number.isNaN(value) ? 0 : value } : item));
-                        }}
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <ModernDialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setStackGradingScaleDialogOpen(false);
-                  setStackGradingScaleTarget(null);
-                  setStackGradingScaleDraft(cloneDefaultGradingScale());
-                }}
-                disabled={isSavingStackGradingScale}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleSaveStackGradingScale} disabled={isSavingStackGradingScale}>
-                {isSavingStackGradingScale ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Apply to Stack"
-                )}
-              </Button>
-            </ModernDialogFooter>
-          </ModernDialogContent>
-        </ModernDialog>
+        {printExam && <ExamPrintWorkspace key={printExam.id} printTarget={{
+          examId: printExam.id, classId: printExam.classId, onClose: () => setPrintExam(null),
+        }} />}
+        <StackGradingScaleDialog
+          target={stackGradingScaleTarget}
+          classes={allClasses}
+          canEdit={user?.role === 'Admin' || user?.role === 'Staff'}
+          onClose={() => setStackGradingScaleTarget(null)}
+          onLoad={ExamStackGradingService.load}
+          onSave={async input => {
+            if (!user || (user.role !== 'Admin' && user.role !== 'Staff')) throw new Error('Only Staff or Admin can edit grading scales.');
+            await saveStackGradingScaleMutation.mutateAsync({ ...input, actor: { id: user.id, name: user.firstName || user.username } });
+            toast({ title: input.mode === 'stack' ? 'Shared stack scale saved' : input.mode === 'inherit' ? 'Exam now follows the stack' : 'Independent exam scale saved' });
+          }}
+        />
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

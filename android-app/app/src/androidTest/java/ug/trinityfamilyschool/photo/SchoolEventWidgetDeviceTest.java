@@ -17,6 +17,33 @@ import static org.junit.Assert.*;
 /** Synthetic RemoteViews only; never reads/modifies school records or a launcher widget. */
 @RunWith(AndroidJUnit4.class)
 public class SchoolEventWidgetDeviceTest {
+    @Test public void examClassesWrapInWidgetAndBothNotificationViewsAtLargeFonts() throws Exception {
+        java.util.concurrent.atomic.AtomicReference<Throwable> failure=new java.util.concurrent.atomic.AtomicReference<>();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{try {
+            Context base=ApplicationProvider.getApplicationContext();
+            String classes="Classes: P.1, P.2, P.3, P.4, P.5, P.6";
+            TimetableSchedule.Frame row=new TimetableSchedule.Frame();row.eventId="synthetic-exam";row.title="MID TERM";row.next="Tomorrow";row.eventClasses=classes;row.time="Mon 19 Oct – Wed 21 Oct";
+            for(float font:new float[]{1f,1.5f,2f}) {
+                android.content.res.Configuration config=new android.content.res.Configuration(base.getResources().getConfiguration());config.fontScale=font;
+                Context context=base.createConfigurationContext(config);
+                for(int width:new int[]{177,355}) for(int surface=0;surface<3;surface++) {
+                    RemoteViews remote=surface==0?TimetableSurfaces.eventMiniView(context,row):TimetableSurfaces.eventView(context,row,987650,surface==1);
+                    View view=remote.apply(context,new FrameLayout(context));int pixels=Math.round(width*context.getResources().getDisplayMetrics().density);
+                    view.measure(View.MeasureSpec.makeMeasureSpec(pixels,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));view.layout(0,0,pixels,view.getMeasuredHeight());
+                    TextView label=view.findViewById(R.id.event_classes);assertEquals(View.VISIBLE,label.getVisibility());assertEquals(classes,label.getText().toString());
+                    assertNotNull(label.getLayout());for(int line=0;line<label.getLineCount();line++) assertEquals(0,label.getLayout().getEllipsisCount(line));
+                    assertTrue(label.getBottom()<=view.getHeight());
+                }
+            }
+            TimetableSchedule.Frame feed=new TimetableSchedule.Frame();feed.profiles.add(new TimetableSchedule.Frame());feed.profiles.add(row);
+            Notification notification=TimetableSurfaces.card(base,new JSONObject(),feed,987650);
+            View preview=notification.contentView.apply(base,new FrameLayout(base));assertEquals(1,((LinearLayout)preview.findViewById(R.id.mini_profiles)).getChildCount());
+            assertEquals(classes,((TextView)preview.findViewById(R.id.event_classes)).getText().toString());
+            View expanded=notification.bigContentView.apply(base,new FrameLayout(base));assertEquals(2,((LinearLayout)expanded.findViewById(R.id.notification_profiles)).getChildCount());
+            row.eventClasses="";View ordinary=TimetableSurfaces.eventMiniView(base,row).apply(base,new FrameLayout(base));assertEquals(View.GONE,ordinary.findViewById(R.id.event_classes).getVisibility());
+        }catch(Throwable error){failure.set(error);}});
+        if(failure.get()!=null) throw new AssertionError(failure.get());
+    }
     private JSONObject event(String id,LocalDate date) throws Exception { return new JSONObject().put("id",id).put("title","Sports day "+id).put("status","Scheduled").put("startDate",date.toString()).put("endDate",date.toString()).put("startTime","09:00").put("endTime","15:00").put("location","School field"); }
     @Test public void localReminderPostsOnceAndCancelledDataInvalidatesIt() throws Exception {
         Context context=ApplicationProvider.getApplicationContext(); org.junit.Assume.assumeTrue(LessonReminders.notificationsAllowed(context));

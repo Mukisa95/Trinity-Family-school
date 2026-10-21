@@ -1,0 +1,21 @@
+// A blank assessment is a paper entry sheet, never a partly filled results report.
+export const BLANK_ASSESSMENT_OPTIONS = {
+  blankAssessment: true,
+  showPin: false,
+  showIndexNumber: false,
+  showLinNumber: false,
+  showMarks: true,
+  showAgg: false,
+  showTotal: false,
+  showDiv: false,
+  orientation: 'portrait' as const,
+  fillMarks: false,
+  fillAgg: false,
+  fillTotal: false,
+  fillDiv: false,
+  showMajorSubjects: false,
+  showBestPupil: false,
+  showNeedsImprovement: false,
+  showAggregateAnalysis: false,
+  analysisOnly: false,
+};

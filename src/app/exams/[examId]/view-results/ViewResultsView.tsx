@@ -735,9 +735,10 @@ const PrintAssessmentOptionsDialog = ({
 
 interface ViewResultsViewProps {
   analysisMode?: boolean;
+  printTarget?: { examId: string; classId: string; onClose: () => void };
 }
 
-export default function ViewResultsView({ analysisMode = false }: ViewResultsViewProps) {
+export default function ViewResultsView({ analysisMode = false, printTarget }: ViewResultsViewProps) {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -748,14 +749,16 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
   const pdfViewer = usePDFViewer();
 
   // Keep results switching in-place rather than remounting this page through navigation.
-  const routeExamId = params.examId as string;
-  const routeClassId = searchParams.get('classId');
-  const routeStreamId = searchParams.get('streamId');
+  const printOnly = !!printTarget;
+  const [printStreamId, setPrintStreamId] = useState<string | null>(null);
+  const routeExamId = printTarget?.examId || params.examId as string;
+  const routeClassId = printTarget?.classId || searchParams.get('classId');
+  const routeStreamId = printOnly ? printStreamId : searchParams.get('streamId');
   const [examId, setExamId] = useState(routeExamId);
   const [classId, setClassId] = useState<string | null>(routeClassId);
   const [isSwitchingExam, setIsSwitchingExam] = useState(false);
   const switchStartedAtRef = useRef(0);
-  const shouldAutoOpenPrint = searchParams.get('openPrint') === '1';
+  const shouldAutoOpenPrint = !printOnly && searchParams.get('openPrint') === '1';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('position');
@@ -903,7 +906,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
   } = useExamResultByExamId(examId, selectedExam ?? undefined);
 
   // Results release hooks
-  const { data: releaseInfo } = useReleaseInfo(examId, classId || '');
+  const { data: releaseInfo } = useReleaseInfo(printOnly ? '' : examId, classId || '');
   const releaseResultsMutation = useReleaseResults();
   const revokeResultsMutation = useRevokeResults();
   const releaseAllMutation = useReleaseAllResults();
@@ -1073,12 +1076,24 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
   }, [examId, examStreams, routeStreamId]);
 
   const selectStreamScope = useCallback((streamId: string) => {
+    if (printOnly) {
+      setPrintStreamId(streamId);
+      setStreamChooserOpen(false);
+      return;
+    }
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set('streamId', streamId);
     if (classId || examDetails?.classId) nextParams.set('classId', classId || examDetails!.classId);
     router.replace(`/exams/${examId}/view-results?${nextParams.toString()}`);
     setStreamChooserOpen(false);
-  }, [classId, examDetails, examId, router, searchParams]);
+  }, [classId, examDetails, examId, router, searchParams, printOnly]);
+
+  useEffect(() => {
+    if (!printOnly || hasHandledAutoOpenPrint || !examDetails || !examResultData) return;
+    if (examStreams.length > 1 && !routeStreamId) return;
+    setHasHandledAutoOpenPrint(true);
+    setShowPrintModal(true);
+  }, [printOnly, hasHandledAutoOpenPrint, examDetails, examResultData, examStreams.length, routeStreamId]);
 
   // Clean subject names to remove any trailing '&' from database
   const subjectSnaps = useMemo(() => {
@@ -1396,6 +1411,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
   // Register print handler to open print modal
   const { registerPrintHandler } = usePrint();
   useEffect(() => {
+    if (printOnly) return;
     const unregister = registerPrintHandler(() => {
       // If individual print modal is open, trigger that
       if (selectedPupilForPrint) {
@@ -1406,11 +1422,11 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       }
     }, 50);
     return unregister;
-  }, [registerPrintHandler, selectedPupilForPrint]);
+  }, [registerPrintHandler, selectedPupilForPrint, printOnly]);
 
   // 🚀 OPTIMIZED: Pre-generate QR codes in background while user views results
   useEffect(() => {
-    if (isSwitchingExam || !examDetails || !classSnap || !processedResults.length) return;
+    if (printOnly || isSwitchingExam || !examDetails || !classSnap || !processedResults.length) return;
     const idleHandle = (window as any).requestIdleCallback
       ? (window as any).requestIdleCallback(() => {
           preGenerateQRCodesForBatch(processedResults, examDetails, classSnap).catch(() => {});
@@ -1426,7 +1442,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         clearTimeout(idleHandle);
       }
     };
-  }, [isSwitchingExam, examDetails, classSnap, processedResults]);
+  }, [isSwitchingExam, examDetails, classSnap, processedResults, printOnly]);
 
   // Results release handlers
   const handlePupilSelection = (pupilId: string, isChecked: boolean) => {
@@ -2359,7 +2375,8 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
 
       updateProgress(35, 'Processing exam results...');
 
-      const adaptedData = adaptExamDataForPDF(examDetails, classSnap, subjectSnaps, pdfTargetResults, majorSubjects);
+      const printClass = { ...classSnap, name: scopedClassLabel };
+      const adaptedData = adaptExamDataForPDF(examDetails, printClass, subjectSnaps, pdfTargetResults, majorSubjects);
 
       updateProgress(65, 'Generating PDF document...');
 
@@ -2372,7 +2389,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
           const blob = isNurseryExam
             ? generateNurseryAssessmentPDF({
                 examDetails,
-                classSnap,
+                classSnap: printClass,
                 subjectSnaps,
                 processedResults: pdfTargetResults,
                 schoolSettings,
@@ -2408,7 +2425,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         setShowPrintModal(false);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, toast, updateProgress, pdfViewer, isNurseryExam]);
+  }, [examDetails, classSnap, subjectSnaps, pdfTargetResults, scopedClassLabel, schoolSettings, examResultData, toast, updateProgress, pdfViewer, isNurseryExam]);
 
   const generateAnalysisPDF = useCallback(async (analysisSections: AnalysisPDFSections) => {
     if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
@@ -4092,6 +4109,32 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
     || (!examDetails && (isLoadingExams || isLoadingSelectedExam))
     || (isLoadingExamResult && !examResultData);
 
+  const printDataReady = !showLoadingSpinner && !examResultError && !!examDetails && !!examResultData && processedResults.length > 0;
+  const printFlowOpen = showPrintModal || showPrintAssessmentOptionsDialog || showTransTypeModal
+    || showReportConfigModal || showComparisonExamModal || showProgressiveExamModal
+    || showPromotionRankingModal || isGenerating || pdfViewer.isOpen || streamChooserOpen;
+  const printWorkspaceStatus = printOnly ? (
+    <Dialog open={!printFlowOpen || !printDataReady} onOpenChange={open => { if (!open) printTarget?.onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Print exam reports</DialogTitle>
+          <DialogDescription>{examDetails?.name || 'Preparing exam'}{classSnap ? ` · ${scopedClassLabel}` : ''}</DialogDescription>
+        </DialogHeader>
+        {showLoadingSpinner ? <p role="status" className="flex items-center gap-2 py-4"><Loader2 className="h-4 w-4 animate-spin" />Loading print data…</p>
+          : examResultError ? <p role="alert">Unable to load results. {(examResultError as Error).message}</p>
+          : !printDataReady ? <p>No pupil results are available for this exam. Open Record Results to prepare a blank assessment.</p>
+          : <p>Choose a report to create a PDF for {pupilSnaps.length} pupils.</p>}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => printTarget?.onClose()}>Close</Button>
+          {printDataReady && <Button onClick={() => setShowPrintModal(true)}>Choose report</Button>}
+          {printDataReady && examStreams.length > 1 && <Button variant="outline" onClick={() => setStreamChooserOpen(true)}>Change stream</Button>}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  ) : null;
+
+  if (printOnly && !printDataReady) return printWorkspaceStatus;
+
   // Loading state
   if (showLoadingSpinner) {
     return (
@@ -4201,8 +4244,8 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
 
   return (
     <div
-      className={`min-h-screen transition-[transform,opacity] duration-200 ease-out motion-reduce:transform-none motion-reduce:opacity-100 motion-reduce:transition-none ${isSwitchingExam ? 'pointer-events-none opacity-70' : 'opacity-100'}`}
-      style={{
+      className={printOnly ? 'contents' : `min-h-screen transition-[transform,opacity] duration-200 ease-out motion-reduce:transform-none motion-reduce:opacity-100 motion-reduce:transition-none ${isSwitchingExam ? 'pointer-events-none opacity-70' : 'opacity-100'}`}
+      style={printOnly ? undefined : {
         transform: isSwitchingExam
           ? 'perspective(1400px) rotateX(2deg)'
           : 'perspective(1400px) rotateX(0deg)',
@@ -4212,13 +4255,14 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       }}
       aria-busy={isSwitchingExam}
     >
+        {printWorkspaceStatus}
         <Dialog
           open={streamChooserOpen}
           onOpenChange={setStreamChooserOpen}
         >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Choose results to view</DialogTitle>
+              <DialogTitle>{printOnly ? 'Choose results to print' : 'Choose results to view'}</DialogTitle>
               <DialogDescription>
                 This exam includes more than one stream. Load one stream or combine all streams in the same results view.
               </DialogDescription>
@@ -4241,6 +4285,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
           </DialogContent>
         </Dialog>
 
+        {!printOnly && <>
         <GlassPageTopBar
           title={examDetails?.name || 'Loading...'}
           recordDetails={`${scopedClassLabel} | ${academicInfo.academicYearName} - ${academicInfo.termName} | ${examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : ''} - ${examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : ''}`}
@@ -5092,6 +5137,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         </div>
       </div>
 
+        </>}
       {/* Promotion Ranking Configuration Dialog (Term 3 only) */}
       <PromotionRankingDialog
         isOpen={showPromotionRankingModal}
@@ -5131,7 +5177,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       <ReportCreationDialogFrame
         open={showProgressiveExamModal}
         onClose={() => setShowProgressiveExamModal(false)}
-        scope={`${classSnap?.name || 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}
+        scope={`${classSnap ? scopedClassLabel : 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}
         step={2}
         title="Choose progressive assessment"
         description="Select an assessment to include in the Progressive Assessment Records section of the report."
@@ -5189,12 +5235,13 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       <ReportCreationDialog
         open={showPrintModal}
         onClose={() => setShowPrintModal(false)}
+        onCancel={printTarget?.onClose}
         onPrintAssessment={handleExportAssessment}
         onPrintMini={handleNurseryReport}
         onPrintFull={handleTransReport}
         onPrintBespoke={handleFullReport2}
         isNursery={isNurseryExam}
-        scope={`${classSnap?.name || 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}
+        scope={`${classSnap ? scopedClassLabel : 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}
         omitNurseryTeacherComment={omitNurseryTeacherComment}
         onOmitNurseryTeacherCommentChange={setOmitNurseryTeacherComment}
       />
@@ -5207,7 +5254,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
           setShowPrintAssessmentOptionsDialog(false);
           setShowPrintModal(true);
         }}
-        scope={`${classSnap?.name || 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}
+        scope={`${classSnap ? scopedClassLabel : 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}
         reportType={assessmentReportType}
         isNursery={isNurseryExam}
         onConfirm={(options) => {
@@ -5248,7 +5295,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         }}
         scope={`${selectedPupilForPrint
           ? `${processedResults.find(r => r.pupilInfo.pupilId === selectedPupilForPrint)?.pupilInfo?.name || 'Selected pupil'} · 1 pupil`
-          : `${classSnap?.name || 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}`}
+          : `${classSnap ? scopedClassLabel : 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}`}
         step={1}
         title="Choose a full-report format"
         description="Choose how academic performance should be shown before selecting report details."
@@ -5344,7 +5391,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         }}
         scope={`${selectedPupilForPrint
           ? `${processedResults.find(r => r.pupilInfo.pupilId === selectedPupilForPrint)?.pupilInfo?.name || 'Selected pupil'} · 1 pupil`
-          : `${classSnap?.name || 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}`}
+          : `${classSnap ? scopedClassLabel : 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}`}
         step={2}
         title="Configure full report"
         description="Choose which report elements appear and which information is filled in automatically."
@@ -5749,7 +5796,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         }}
         scope={`${selectedPupilForPrint
           ? `${processedResults.find(r => r.pupilInfo.pupilId === selectedPupilForPrint)?.pupilInfo?.name || 'Selected pupil'} · 1 pupil`
-          : `${classSnap?.name || 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}`}
+          : `${classSnap ? scopedClassLabel : 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}`}
         step={3}
         title="Choose comparison exams"
         description="Select up to two earlier exams from the same class, term, and academic year."

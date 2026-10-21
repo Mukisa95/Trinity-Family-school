@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useNavigation } from '@/lib/contexts/navigation-context';
-import { Camera, ArrowLeft, Save, Loader2, Plus, X, User, BookOpen, Calendar, UserCheck } from 'lucide-react';
+import { Save, Loader2, X, User, UserPlus, BookOpen, BookPlus, Calendar, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,7 +41,10 @@ import type { Exam, ExamResult, ExamRecordPupilInfo, ExamRecordSubjectInfo, Exam
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { getExamTeacherIds, getSubjectTeacherId } from '@/lib/utils/teaching-assignments';
 import { format, parseISO } from 'date-fns';
-import { PageHeader } from '@/components/common/page-header';
+import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from '@/components/common/glass-page-top-bar';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+
+const snapshotPanelClass = 'overflow-hidden rounded-3xl border border-brand-100/80 bg-white/80 shadow-[0_14px_38px_-28px_rgba(15,23,42,0.25)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/80';
 
 export default function EditSnapshotView() {
   const params = useParams();
@@ -65,6 +68,8 @@ export default function EditSnapshotView() {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('pupils');
   const [showAddPupilDialog, setShowAddPupilDialog] = useState(false);
   const [selectedPupilId, setSelectedPupilId] = useState<string>('');
   const [showAddSubjectDialog, setShowAddSubjectDialog] = useState(false);
@@ -384,344 +389,139 @@ export default function EditSnapshotView() {
     }
   };
 
+  const query = searchTerm.trim().toLocaleLowerCase();
+  const visiblePupils = editedPupilSnapshots.filter(pupil =>
+    !query || `${pupil.name} ${pupil.admissionNumber}`.toLocaleLowerCase().includes(query));
+  const visibleSubjects = editedSubjectSnapshots.filter(subject =>
+    !query || `${subject.name} ${subject.code} ${subject.teacherName || ''}`.toLocaleLowerCase().includes(query));
+
   if (examLoading || resultLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-link" />
+    return <div className="min-h-screen">
+      <GlassPageTopBar title="Edit snapshot" backHref="/exams" />
+      <div role="status" className="flex min-h-64 items-center justify-center gap-3 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />Loading exam snapshot…
       </div>
-    );
+    </div>;
   }
 
   if (!exam || !examResult) {
-    return (
-      <div className="container mx-auto p-6">
-        <PageHeader
-          title="Edit Snapshot Data"
-          description="Exam or exam result not found"
-        />
-      </div>
-    );
+    return <div className="min-h-screen">
+      <GlassPageTopBar title="Edit snapshot" backHref="/exams" />
+      <div className="mx-auto max-w-3xl p-4 sm:p-6"><Card className={snapshotPanelClass}>
+        <CardHeader><CardTitle>Snapshot unavailable</CardTitle><CardDescription>The exam or its saved snapshot could not be found.</CardDescription></CardHeader>
+        <CardContent><Button variant="outline" className="rounded-full" onClick={() => goBack('/exams')}>Back to exams</Button></CardContent>
+      </Card></div>
+    </div>;
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => goBack('/exams')}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <PageHeader
-            title="Edit Snapshot Data"
-            description={`Edit snapshot data for ${exam.name}`}
-          />
+    <div className="min-h-screen pb-28 sm:pb-8">
+      <GlassPageTopBar title="Edit snapshot" backHref="/exams"
+        recordDetails={`${exam.name} · ${editedClassSnapshot?.code || editedClassSnapshot?.name || examClass?.name || 'Exam class'}`}
+        meta={<span className="rounded-full border border-brand-200/70 bg-brand-surface-50/80 px-2.5 py-1 text-xs font-semibold text-brand-ink-700 dark:border-brand-800/60 dark:bg-brand-surface-950/60 dark:text-brand-ink-300">{editedPupilSnapshots.length} pupils · {editedSubjectSnapshots.length} subjects</span>}
+        actionsLeading={<GlassPageSearchInput placeholder="Search snapshot…" value={searchTerm} onChange={event => setSearchTerm(event.target.value)} />}
+        actions={<GlassActionDock>
+          <GlassActionButton label="Pupil" aria-label="Add pupil to snapshot" icon={<UserPlus className="h-4 w-4" />} tone="emerald" title="Add pupil to snapshot" onClick={() => setShowAddPupilDialog(true)} disabled={availablePupils.length === 0 || isSaving} />
+          <GlassActionButton label="Subject" aria-label="Add subject to snapshot" icon={<BookPlus className="h-4 w-4" />} tone="violet" title="Add subject to snapshot" onClick={() => setShowAddSubjectDialog(true)} disabled={availableSubjects.length === 0 || isSaving} />
+          <GlassActionButton label={isSaving ? 'Saving' : 'Save'} icon={isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} tone="blue" title="Save snapshot changes" onClick={() => { void handleSave(); }} disabled={isSaving || !resultLease.canSave} />
+        </GlassActionDock>}
+      />
+
+      <div className="mx-auto max-w-7xl space-y-5 px-3 pt-4 sm:px-6 lg:px-8">
+        {!resultLease.canSave && <div role="status" className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-100">
+          {resultLease.holder ? `${resultLease.holder.lockedByName} is editing this result. Saving will be available when the editing lock is released.` : 'Waiting for the editing lock before saving changes.'}
+        </div>}
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className={snapshotPanelClass}>
+            <CardHeader className="space-y-1 px-4 pb-4 pt-5 sm:px-5">
+              <CardTitle className="flex items-center gap-2.5 text-base"><span className="rounded-xl bg-brand-surface-50 p-2 text-brand-ink-700 dark:bg-brand-surface-950/60 dark:text-brand-ink-300"><Calendar className="h-4 w-4" /></span>Exam dates</CardTitle>
+              <CardDescription>Set the dates shown on this exam and its reports.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 px-4 pb-5 sm:grid-cols-2 sm:px-5">
+              <div className="min-w-0 space-y-2"><Label>Start date</Label><ModernDatePicker date={startDate ?? undefined} setDate={date => setStartDate(date ?? null)} placeholder="Select start date" /></div>
+              <div className="min-w-0 space-y-2"><Label>End date</Label><ModernDatePicker date={endDate ?? undefined} setDate={date => setEndDate(date ?? null)} placeholder="Select end date" /></div>
+            </CardContent>
+          </Card>
+
+          {editedClassSnapshot && <Card className={snapshotPanelClass}>
+            <CardHeader className="space-y-1 px-4 pb-4 pt-5 sm:px-5">
+              <CardTitle className="flex items-center gap-2.5 text-base"><span className="rounded-xl bg-emerald-50 p-2 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"><UserCheck className="h-4 w-4" /></span>Class teacher</CardTitle>
+              <CardDescription>{editedClassSnapshot.name} · {editedClassSnapshot.code}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2 px-4 pb-5 sm:px-5">
+              <Label htmlFor="snapshot-class-teacher">Teacher shown on reports</Label>
+              <Select value={editedClassSnapshot.classTeacherId || 'none'} onValueChange={value => handleClassTeacherChange(value === 'none' ? null : value)}>
+                <SelectTrigger id="snapshot-class-teacher" className="h-11 w-full rounded-2xl border-brand-100 bg-white/70 dark:border-slate-700 dark:bg-slate-950/40"><SelectValue placeholder="Select class teacher" /></SelectTrigger>
+                <SelectContent><SelectItem value="none">No class teacher</SelectItem>{teachingStaff.map(teacher => <SelectItem key={teacher.id} value={teacher.id}>{teacher.firstName} {teacher.lastName}{teacher.employeeId && ` (${teacher.employeeId})`}</SelectItem>)}</SelectContent>
+              </Select>
+              {editedClassSnapshot.classTeacherName && <p className="text-xs text-muted-foreground">Current teacher: {editedClassSnapshot.classTeacherName}</p>}
+            </CardContent>
+          </Card>}
         </div>
-        <Button
-          onClick={handleSave}
-          disabled={isSaving || !resultLease.canSave}
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Save Changes
-            </>
-          )}
-        </Button>
+
+        <Card className={snapshotPanelClass}>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <CardHeader className="gap-4 border-b border-brand-100/70 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 sm:px-5 dark:border-slate-700">
+              <div className="space-y-1"><CardTitle className="text-base">Exam snapshot</CardTitle><CardDescription>Manage the pupils, subjects and teachers saved for this exam.</CardDescription></div>
+              <TabsList aria-label="Snapshot sections" className="h-auto w-fit max-w-full shrink-0 rounded-full border border-brand-200/70 bg-brand-surface-50/70 p-1 dark:border-brand-800/60 dark:bg-slate-950/60">
+                <TabsTrigger value="pupils" className="gap-1.5 rounded-full px-3 py-2 text-xs data-[state=active]:bg-brand-surface-600 data-[state=active]:text-white"><User className="h-3.5 w-3.5" />Pupils <span className="opacity-75">{editedPupilSnapshots.length}</span></TabsTrigger>
+                <TabsTrigger value="subjects" className="gap-1.5 rounded-full px-3 py-2 text-xs data-[state=active]:bg-brand-surface-600 data-[state=active]:text-white"><BookOpen className="h-3.5 w-3.5" />Subjects <span className="opacity-75">{editedSubjectSnapshots.length}</span></TabsTrigger>
+              </TabsList>
+            </CardHeader>
+            <CardContent className="px-3 pb-4 pt-3 sm:px-5 sm:pb-5">
+              <TabsContent value="pupils" className="mt-0 space-y-3">
+                <p className="text-xs text-muted-foreground">{visiblePupils.length} of {editedPupilSnapshots.length} pupils</p>
+                <div className="grid gap-2 md:grid-cols-2">
+                  {visiblePupils.map(pupil => <div key={pupil.pupilId} className="flex min-w-0 items-center gap-3 rounded-2xl border border-brand-100/70 bg-white/70 p-3 dark:border-slate-700 dark:bg-slate-950/30">
+                    <span className="shrink-0 rounded-full bg-brand-surface-50 p-2.5 text-brand-ink-600 dark:bg-brand-surface-950/60 dark:text-brand-ink-300"><User className="h-4 w-4" /></span>
+                    <div className="min-w-0 flex-1"><p className="break-words text-sm font-semibold">{pupil.name}</p><p className="text-xs text-muted-foreground">{pupil.admissionNumber}</p></div>
+                    <Button variant="ghost" size="icon" onClick={() => handleRemovePupil(pupil.pupilId)} disabled={isSaving} aria-label={`Remove ${pupil.name} from snapshot`} className="h-10 w-10 shrink-0 rounded-full text-muted-foreground hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/40 dark:hover:text-red-300"><X className="h-4 w-4" /></Button>
+                  </div>)}
+                </div>
+                {!visiblePupils.length && <p className="py-10 text-center text-sm text-muted-foreground">{query ? 'No pupils match your search.' : 'No pupils in this snapshot. Use Add pupil to include pupils.'}</p>}
+              </TabsContent>
+              <TabsContent value="subjects" className="mt-0 space-y-3">
+                <p className="text-xs text-muted-foreground">{visibleSubjects.length} of {editedSubjectSnapshots.length} subjects</p>
+                <div className="grid gap-3 xl:grid-cols-2">
+                  {visibleSubjects.map(subject => <div key={subject.subjectId} className="min-w-0 space-y-3 rounded-2xl border border-brand-100/70 bg-white/70 p-3 dark:border-slate-700 dark:bg-slate-950/30">
+                    <div className="flex items-start gap-2.5"><span className="shrink-0 rounded-xl bg-brand-secondary-surface-50 p-2 text-brand-secondary-ink-700 dark:bg-brand-secondary-surface-950/50 dark:text-brand-secondary-ink-300"><BookOpen className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="break-words text-sm font-semibold">{subject.name}</p><p className="text-xs text-muted-foreground">{subject.code}</p></div>
+                      <Button variant="ghost" size="icon" onClick={() => handleRemoveSubject(subject.subjectId)} disabled={isSaving} aria-label={`Remove ${subject.name} from snapshot`} className="h-10 w-10 shrink-0 rounded-full text-muted-foreground hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/40 dark:hover:text-red-300"><X className="h-4 w-4" /></Button>
+                    </div>
+                    <Label htmlFor={`snapshot-teacher-${subject.subjectId}`} className="sr-only">Teacher for {subject.name}</Label>
+                    <Select value={subject.teacherId || 'none'} onValueChange={value => handleSubjectTeacherChange(subject.subjectId, value === 'none' ? null : value)}>
+                      <SelectTrigger id={`snapshot-teacher-${subject.subjectId}`} className="h-11 w-full rounded-xl border-brand-100 dark:border-slate-700"><SelectValue placeholder="Select teacher" /></SelectTrigger>
+                      <SelectContent><SelectItem value="none">No teacher</SelectItem>{staff.filter(teacher => getExamTeacherIds(examClass?.subjectAssignments, subject.teacherId).includes(teacher.id)).map(teacher => <SelectItem key={teacher.id} value={teacher.id}>{teacher.firstName} {teacher.lastName}{teacher.employeeId && ` (${teacher.employeeId})`}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>)}
+                </div>
+                {!visibleSubjects.length && <p className="py-10 text-center text-sm text-muted-foreground">{query ? 'No subjects match your search.' : 'No subjects in this snapshot. Use Add subject to include subjects.'}</p>}
+              </TabsContent>
+            </CardContent>
+          </Tabs>
+        </Card>
       </div>
 
-      {/* Exam Dates Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Exam Dates
-          </CardTitle>
-          <CardDescription>
-            Update the start and end dates for this exam
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Start Date</Label>
-              <ModernDatePicker
-                date={startDate ?? undefined}
-                setDate={date => setStartDate(date ?? null)}
-                placeholder="Select start date"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>End Date</Label>
-              <ModernDatePicker
-                date={endDate ?? undefined}
-                setDate={date => setEndDate(date ?? null)}
-                placeholder="Select end date"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Class Teacher Section */}
-      {editedClassSnapshot && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserCheck className="h-5 w-5" />
-              Class Teacher
-            </CardTitle>
-            <CardDescription>
-              Update the class teacher for this exam (used when generating PDF reports)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <p className="font-medium">Class: {editedClassSnapshot.name}</p>
-                <p className="text-sm text-muted-foreground">Code: {editedClassSnapshot.code}</p>
-              </div>
-              <Select
-                value={editedClassSnapshot.classTeacherId || 'none'}
-                onValueChange={(value) => handleClassTeacherChange(value === 'none' ? null : value)}
-              >
-                <SelectTrigger className="w-[250px]">
-                  <SelectValue placeholder="Select class teacher" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No Class Teacher</SelectItem>
-                  {teachingStaff.map((teacher) => (
-                    <SelectItem key={teacher.id} value={teacher.id}>
-                      {teacher.firstName} {teacher.lastName}
-                      {teacher.employeeId && ` (${teacher.employeeId})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {editedClassSnapshot.classTeacherName && (
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-sm">
-                  <span className="font-medium">Current Class Teacher: </span>
-                  <span className="text-muted-foreground">{editedClassSnapshot.classTeacherName}</span>
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Subject Teachers Section */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
-                Subjects in Snapshot
-              </CardTitle>
-              <CardDescription>
-                Manage subjects and primary subject teachers for this exam snapshot ({editedSubjectSnapshots.length} subjects)
-              </CardDescription>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAddSubjectDialog(true)}
-              disabled={availableSubjects.length === 0}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Subject
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {editedSubjectSnapshots.map((subject) => (
-            <div key={subject.subjectId} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg gap-3 hover:bg-muted/50">
-              <div className="flex-1">
-                <p className="font-medium">{subject.name}</p>
-                <p className="text-sm text-muted-foreground">Code: {subject.code}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Select
-                  value={subject.teacherId || 'none'}
-                  onValueChange={(value) => handleSubjectTeacherChange(subject.subjectId, value === 'none' ? null : value)}
-                >
-                  <SelectTrigger className="w-full sm:w-[250px]">
-                    <SelectValue placeholder="Select teacher" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Teacher</SelectItem>
-                    {staff.filter(teacher => getExamTeacherIds(examClass?.subjectAssignments, subject.teacherId).includes(teacher.id)).map((teacher) => (
-                      <SelectItem key={teacher.id} value={teacher.id}>
-                        {teacher.firstName} {teacher.lastName}
-                        {teacher.employeeId && ` (${teacher.employeeId})`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemoveSubject(subject.subjectId)}
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  title="Remove subject"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-          {editedSubjectSnapshots.length === 0 && (
-            <p className="text-center text-muted-foreground py-8">
-              No subjects in snapshot. Click "Add Subject" to add subjects.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Pupils Section */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Pupils in Snapshot
-              </CardTitle>
-              <CardDescription>
-                Manage pupils included in this exam snapshot ({editedPupilSnapshots.length} pupils)
-              </CardDescription>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAddPupilDialog(true)}
-              disabled={availablePupils.length === 0}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Pupil
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {editedPupilSnapshots.map((pupil) => (
-              <div
-                key={pupil.pupilId}
-                className="flex items-center justify-between p-2 border rounded-md hover:bg-muted/50 bg-background shadow-sm"
-              >
-                <p className="font-medium text-sm truncate pr-2" title={pupil.name}>{pupil.name}</p>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemovePupil(pupil.pupilId)}
-                  className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
-                  title="Remove pupil"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ))}
-            {editedPupilSnapshots.length === 0 && (
-              <p className="text-center text-muted-foreground py-8">
-                No pupils in snapshot. Click "Add Pupil" to add pupils.
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Add Pupil Dialog */}
       <Dialog open={showAddPupilDialog} onOpenChange={setShowAddPupilDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Pupil to Snapshot</DialogTitle>
-            <DialogDescription>
-              Select a pupil to add to this exam snapshot
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Select Pupil</Label>
-              <Select value={selectedPupilId} onValueChange={setSelectedPupilId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a pupil" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availablePupils.map((pupil) => (
-                    <SelectItem key={pupil.id} value={pupil.id}>
-                      {formatPupilDisplayName(pupil)} - {pupil.admissionNumber}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <DialogContent className="w-[calc(100vw-2rem)] rounded-3xl border-brand-100 sm:max-w-md dark:border-slate-700">
+          <DialogHeader><DialogTitle>Add pupil to snapshot</DialogTitle><DialogDescription>{exam.name} · {examClass?.name}</DialogDescription></DialogHeader>
+          <div className="space-y-2 py-2"><Label htmlFor="snapshot-add-pupil">Pupil</Label>
+            <Select value={selectedPupilId} onValueChange={setSelectedPupilId}><SelectTrigger id="snapshot-add-pupil" className="h-11 rounded-xl"><SelectValue placeholder="Choose a pupil" /></SelectTrigger>
+              <SelectContent>{availablePupils.map(pupil => <SelectItem key={pupil.id} value={pupil.id}>{formatPupilDisplayName(pupil)} - {pupil.admissionNumber}</SelectItem>)}</SelectContent>
+            </Select>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowAddPupilDialog(false);
-                setSelectedPupilId('');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleAddPupil} disabled={!selectedPupilId}>
-              Add Pupil
-            </Button>
-          </DialogFooter>
+          <DialogFooter><Button variant="outline" className="rounded-full" onClick={() => { setShowAddPupilDialog(false); setSelectedPupilId(''); }}>Cancel</Button><Button className="rounded-full" onClick={() => { handleAddPupil(); setActiveTab('pupils'); }} disabled={!selectedPupilId}>Add pupil</Button></DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Add Subject Dialog */}
       <Dialog open={showAddSubjectDialog} onOpenChange={setShowAddSubjectDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Subject to Snapshot</DialogTitle>
-            <DialogDescription>
-              Select a subject to add to this exam snapshot
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Select Subject</Label>
-              <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableSubjects.map((subject) => (
-                    <SelectItem key={subject.id} value={subject.id}>
-                      {subject.name} ({subject.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <DialogContent className="w-[calc(100vw-2rem)] rounded-3xl border-brand-100 sm:max-w-md dark:border-slate-700">
+          <DialogHeader><DialogTitle>Add subject to snapshot</DialogTitle><DialogDescription>{exam.name}</DialogDescription></DialogHeader>
+          <div className="space-y-2 py-2"><Label htmlFor="snapshot-add-subject">Subject</Label>
+            <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}><SelectTrigger id="snapshot-add-subject" className="h-11 rounded-xl"><SelectValue placeholder="Choose a subject" /></SelectTrigger>
+              <SelectContent>{availableSubjects.map(subject => <SelectItem key={subject.id} value={subject.id}>{subject.name} ({subject.code})</SelectItem>)}</SelectContent>
+            </Select>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowAddSubjectDialog(false);
-                setSelectedSubjectId('');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleAddSubject} disabled={!selectedSubjectId}>
-              Add Subject
-            </Button>
-          </DialogFooter>
+          <DialogFooter><Button variant="outline" className="rounded-full" onClick={() => { setShowAddSubjectDialog(false); setSelectedSubjectId(''); }}>Cancel</Button><Button className="rounded-full" onClick={() => { handleAddSubject(); setActiveTab('subjects'); }} disabled={!selectedSubjectId}>Add subject</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

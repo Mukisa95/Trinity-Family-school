@@ -616,6 +616,9 @@ export interface Exam {
   name: string;
   baseName?: string;
   batchId?: string;
+  /** Shared default copied across stack definitions, independent of result overrides. */
+  stackGradingPolicy?: ExamStackGradingPolicy;
+  gradingScaleOverride?: GradingScaleItem[] | null;
   examTypeId: string;
   examTypeName?: string;
   customExamTypeName?: string;
@@ -671,6 +674,13 @@ export interface GradingScaleItem {
   grade: string;
   aggregates?: number;
   comment?: string;
+}
+
+export interface ExamStackGradingPolicy {
+  key: string;
+  revision: string;
+  updatedAt: string;
+  scale: GradingScaleItem[];
 }
 
 export interface ExamRecordPupilInfo {
@@ -764,6 +774,8 @@ export interface ExamResult {
   recordedAt: string;
   recordedBy?: string;
   gradingScale?: GradingScaleItem[];
+  gradingScaleSource?: 'stack' | 'independent';
+  stackGradingScaleRevision?: string;
   lastUpdatedAt?: string;
   isReleasedToParents?: boolean; // Per-pupil release status
   releasedAt?: string; // When this specific result was released

@@ -14,6 +14,7 @@ import { liteRead, liteReadMetadata } from '@/lib/cache/lite-cache';
 import { projectOfflinePhotos } from './android-photo-projection';
 import { measureWorkspaceOperation } from '@/lib/startup/workspace-timing';
 import { projectAndroidRecords, yieldAndroidPreparation } from './android-preparation-work';
+import { getExamEventClassNames } from '@/lib/utils/exam-event-classes';
 
 type Cache<T> = { schema: number; revision: number; data: T };
 type SnapshotReuse = { previous: AndroidOfflineSnapshot; pupilsUnchanged: boolean };
@@ -78,7 +79,10 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
     if (events) {
       const ids = new Set(events.data.map(event => event.linkedExamId).filter(Boolean));
       const rows = [...events.data, ...(legacy?.data || []).filter(event => !ids.has(event.linkedExamId))];
-      const projected = rows.map(event => fields(event, ['id', 'title', 'description', 'type', 'priority', 'status', 'startDate', 'endDate', 'startTime', 'endTime', 'isAllDay', 'location', 'sendReminders', 'requiresApproval', 'approvalStatus', 'approvedBy', 'isExamEvent', 'academicYearId', 'termId', 'classIds', 'subjectIds', 'colorCode'])) as unknown as import('@/types').Event[];
+      const projected = rows.map(event => ({
+        ...fields(event, ['id', 'title', 'description', 'type', 'priority', 'status', 'startDate', 'endDate', 'startTime', 'endTime', 'isAllDay', 'location', 'sendReminders', 'requiresApproval', 'approvalStatus', 'approvedBy', 'isExamEvent', 'academicYearId', 'termId', 'classIds', 'subjectIds', 'colorCode']),
+        ...(event.isExamEvent ? { classNames: getExamEventClassNames(event, classes?.data) } : {}),
+      })) as unknown as import('@/types').Event[];
       result.datasets.events = {data: projected, revision: events.revision, preparedAt: new Date(Math.max(liteReadMetadata(getEventCacheKey(eventScope))?.writtenAt || 0, liteReadMetadata(getLegacyExamEventCacheKey(eventScope))?.writtenAt || 0)).toISOString()};
     }
   }
