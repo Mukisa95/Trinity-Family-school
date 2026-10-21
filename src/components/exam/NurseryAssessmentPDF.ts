@@ -83,13 +83,6 @@ export const generateNurseryAssessmentPDF = ({
     date: `${new Date(examDetails.startDate).toLocaleDateString('en-GB')} - ${new Date(examDetails.endDate).toLocaleDateString('en-GB')}`,
     count: `${processedResults.length} PUPILS`, margin };
   let currentY = drawListDocumentHeader(doc, registerHeader);
-    const headerPages = new Set<number>([1]);
-    const drawContinuationHeader = () => {
-      const page = doc.getCurrentPageInfo().pageNumber;
-      if (headerPages.has(page)) return;
-      headerPages.add(page);
-      drawListDocumentHeader(doc, { ...registerHeader, compact: true });
-    };
 
 
   doc.setFont('helvetica', 'bold');
@@ -107,7 +100,7 @@ export const generateNurseryAssessmentPDF = ({
     doc.setDrawColor(110, 231, 183);
     doc.roundedRect(x, currentY, legendWidth, 7, 1.2, 1.2, 'FD');
     doc.setTextColor(6, 95, 70);
-    doc.setFontSize(7.5);
+    doc.setFontSize(9.5);
     doc.text(option, x + legendWidth / 2, currentY + 4.6, { align: 'center', maxWidth: legendWidth - 2 });
   });
 
@@ -145,13 +138,13 @@ export const generateNurseryAssessmentPDF = ({
     body,
     startY: currentY,
     theme: 'grid',
-    margin: { top: 33, left: margin, right: margin, bottom: 18 },
+    margin: { top: 10, left: margin, right: margin, bottom: 22 },
     rowPageBreak: 'avoid',
     horizontalPageBreak: requestedOptions.blankAssessment ? 48 + visibleSubjects.length * 12 > availableLegendWidth + 0.1 : true,
     horizontalPageBreakRepeat: showNumber ? [0, 1] : [0],
     ...listTableStyles,
     headStyles: { ...listTableStyles.headStyles, halign: 'center' },
-    bodyStyles: { fontSize: 7.5, halign: 'center', cellPadding: 1.6, ...(requestedOptions.blankAssessment ? { minCellHeight: 8 } : {}) },
+    bodyStyles: { fontSize: 11.3, halign: 'center', cellPadding: 2, ...(requestedOptions.blankAssessment ? { minCellHeight: 8.3 } : {}) },
     columnStyles: {
       ...(showNumber ? { 0: { cellWidth: 10, halign: 'center' as const } } : {}),
       [nameColumn]: { cellWidth: printOptions.showPin ? 43 : 48, halign: 'left', fontStyle: 'bold' },
@@ -166,9 +159,8 @@ export const generateNurseryAssessmentPDF = ({
       }
     },
 
-    didDrawPage: drawContinuationHeader,
   });
-  if (requestedOptions.blankAssessment) drawMajorSubjectChecklist(doc, subjectSnaps, (doc as any).lastAutoTable.finalY + 5, margin, drawContinuationHeader);
-  drawListDocumentFooters(doc, 'Nursery commentary assessment', margin);
+  if (requestedOptions.blankAssessment) drawMajorSubjectChecklist(doc, subjectSnaps, (doc as any).lastAutoTable.finalY + 5, margin);
+  drawListDocumentFooters(doc, schoolName, margin);
   return doc.output('blob');
 };

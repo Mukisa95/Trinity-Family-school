@@ -213,8 +213,7 @@ export const generateDutyRotaPDF = async ({
       styles[index] = { cellWidth: col.width };
       return styles;
     }, {} as any),
-    margin: { top: 33, right: 10, bottom: 18, left: 10 },
-    didDrawPage: () => { if (doc.getCurrentPageInfo().pageNumber > 1) drawListDocumentHeader(doc, { ...registerHeader, compact: true }); },
+    margin: { top: 10, right: 10, bottom: 22, left: 10 },
     tableWidth: 'auto',
     theme: 'grid',
     pageBreak: 'auto',

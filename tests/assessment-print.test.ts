@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { PDFDocument } from 'pdf-lib';
-import { generateExamPDF } from '../src/components/exam/ExamResultsPDF';
+import { generateExamPDF, generateCrossAnalysisPDF, generateSubjectSetAnalysisPDF } from '../src/components/exam/ExamResultsPDF';
 import { generateNurseryAssessmentPDF } from '../src/components/exam/NurseryAssessmentPDF';
 import { BLANK_ASSESSMENT_OPTIONS } from '../src/lib/utils/assessment-print-options';
 
@@ -35,6 +35,13 @@ async function inspect(blob: Blob, name: string) {
   for (let n = 1; n <= parsed.numPages; n++) {
     const page = await parsed.getPage(n);
     const content = await page.getTextContent();
+    const margin = 72 / 2.54;
+    for (const item of content.items) {
+      if (!('str' in item) || !item.str.trim()) continue;
+      assert.ok(item.transform[4] >= margin - 1 && item.transform[4] + item.width <= page.view[2] - margin + 1
+        && item.transform[5] >= margin - 1 && item.transform[5] + item.height * .75 <= page.view[3] - margin + 2,
+      `${name}: text crosses the 1 cm boundary on page ${n}: ${item.str}`);
+    }
     pages.push(content.items.map(item => 'str' in item ? item.str : '').join(' '));
     positions.push(content.items.flatMap(item => 'str' in item ? [{ text: item.str, y: item.transform[5] }] : []));
   }
@@ -63,9 +70,11 @@ for (const [subjects, pupils] of [[4, 12], [6, 12], [6, 70], [12, 12]]) {
     if (subjects > 4) assert.ok(pages.at(-1)!.includes('Choose four major subjects'));
     assert.equal(JSON.stringify(data.gradingScale), originalScale);
     if (pupils === 70) assert.ok(pages.length > 1);
-    for (const page of pages) {
-      assert.ok(page.includes('NURSERY AND PRIMARY SCHOOL'), 'Continuation pages must retain their school context');
-      assert.equal((page.match(/TRINITY FAMILY/g) || []).length, 1, 'Draw the masthead only once on each page');
+    for (const [index, page] of pages.entries()) {
+      assert.equal(page.includes('PUPIL MARKS REGISTER'), index === 0, 'The register title belongs on the first page only');
+      assert.equal(page.includes('Grading Scale'), index === 0, 'The scale belongs on the first page only');
+      assert.ok(page.includes('Management System (c)'), 'Every page must identify the school management system');
+      assert.equal((page.match(/TRINITY FAMILY/g) || []).length, index === 0 ? 2 : 1, 'The masthead appears once; the school footer appears on every page');
     }
   });
 }
@@ -75,6 +84,16 @@ test('blank mode enforces empty portrait output even if other options request re
   data.printOptions = { ...BLANK_ASSESSMENT_OPTIONS, showPin: true, showAgg: true, fillMarks: true, showAggregateAnalysis: true };
   const { text } = await inspect(generateExamPDF(data), 'blank-enforced');
   assert.ok(!text.includes('SECRET') && !text.includes('PRIVATE') && !text.includes('AGGREGATE ANALYSIS'));
+});
+
+test('long exam titles wrap above the metadata and table within the page margins', async () => {
+  const data = fixture(6, 12);
+  data.examDetails.name = 'CONTINUOUS ASSESSMENT STACK - PRIMARY SEVEN PREPARATION AND REVISION - THIRD TERM - SET FOUR';
+  const { text, positions } = await inspect(generateExamPDF(data), 'long-assessment-title');
+  assert.ok(text.replace(/\s/g, '').includes(data.examDetails.name.replace(/\s/g, '')));
+  const firstPupil = positions[0].find(item => item.text.startsWith('PUPIL 001'))!;
+  const scale = positions[0].find(item => item.text === 'Grading Scale')!;
+  assert.ok(firstPupil.y < scale.y - 10);
 });
 
 for (const pupils of [12, 70]) test(`nursery blank assessment: ${pupils} pupils, commentary scale but no pupil commentary`, async () => {
@@ -92,7 +111,43 @@ test('regular results printing keeps its chosen landscape columns and marks', as
   const options = { ...BLANK_ASSESSMENT_OPTIONS, blankAssessment: false, orientation: 'landscape' as const, fillMarks: true, showPin: true, showIndexNumber: true, showLinNumber: true, showTotal: true, fillTotal: true };
   const { doc, text } = await inspect(generateExamPDF({ ...data, printOptions: options }), 'regular-results');
   assert.ok(doc.getPage(0).getWidth() > doc.getPage(0).getHeight());
-  assert.ok(text.includes('PRIVATE_PIN') && text.includes('PRIVATE_INDEX') && text.includes('PRIVATE_LIN'));
+  const unwrapped = text.replace(/\s/g, '');
+  assert.ok(unwrapped.includes('PRIVATE_PIN') && unwrapped.includes('PRIVATE_INDEX') && unwrapped.includes('PRIVATE_LIN'), 'Wrapping must retain every identifier without truncation');
   assert.ok(text.includes('98766') && text.includes('98767'));
   assert.ok(!text.includes('Choose four major subjects'));
+});
+
+test('analysis sections keep their titles when the temporary first page is removed', async () => {
+  const data = fixture(4, 2);
+  data.processedResults[0].division = 'I';
+  data.processedResults[1].division = 'II';
+  const { pages } = await inspect(generateExamPDF({ ...data, printOptions: {
+    ...BLANK_ASSESSMENT_OPTIONS, blankAssessment: false, analysisOnly: true,
+    showAggregateAnalysis: true, analysisSections: { aggregate: false, divisions: true, subjectGrades: false },
+  } }), 'analysis-sections');
+  assert.equal(pages.length, 2);
+  assert.ok(pages[0].includes('DIVISION I - PUPIL PERFORMANCE'));
+  assert.ok(pages[1].includes('DIVISION II - PUPIL PERFORMANCE'));
+  assert.ok(pages[0].includes('NURSERY AND PRIMARY SCHOOL'));
+  assert.ok(!pages[1].includes('NURSERY AND PRIMARY SCHOOL'));
+});
+
+test('cross-exam and subject-set lists retain every pupil without repeating their masthead', async () => {
+  const data = fixture(4, 70);
+  const pupils = data.processedResults.map((p, i) => ({ pupilId: p.pupilInfo.pupilId, name: p.pupilInfo.name, admissionNumber: `PIN${i}` }));
+  const exams = [0, 1].map(i => ({ id: `e${i}`, name: `SET ${i + 1}`, startDate: `2026-10-${15 + i}`,
+    pupils, subjects: [{ code: 'ENG', name: 'English' }],
+    results: Object.fromEntries(pupils.map((p, n) => [p.pupilId, { position: n + 1, totalMarks: 80, totalAggregates: 4, division: 'I', subjects: { ENG: { marks: 80, grade: 'D2' } } }])),
+  }));
+  const props = { schoolName: 'Trinity Family School', className: 'Primary Seven', academicYearName: '2026', exams };
+  for (const [name, blob] of [
+    ['cross-exam', generateCrossAnalysisPDF({ ...props, metrics: { aggregates: true, divisions: true, totalMarks: true, subjectMarks: true } })],
+    ['subject-sets', generateSubjectSetAnalysisPDF({ ...props, subjectCodes: ['ENG'] })],
+  ] as const) {
+    const { text, pages } = await inspect(blob, name);
+    for (const pupil of pupils) assert.ok(text.includes(pupil.name));
+    assert.ok(pages.length > 1);
+    assert.ok(pages[0].includes('NURSERY AND PRIMARY SCHOOL'));
+    for (const page of pages.slice(1)) assert.ok(!page.includes('NURSERY AND PRIMARY SCHOOL'));
+  }
 });

@@ -58,7 +58,7 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
   applyMonochromePDF(doc);
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 14;
+  const margin = 10;
   const contentWidth = pageWidth - margin * 2;
   const formatAmount = (amount: number) => new Intl.NumberFormat('en-UG', {
     style: 'currency',
@@ -74,17 +74,17 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
   const registerHeader = { schoolName, title: 'Fee Statement', context: pupilName,
     date: `${selectedAcademicYear?.name || 'All years'} / ${selectedTerm || 'All terms'}`,
     count: `${fees.length} FEE ITEMS`, margin };
-  drawListDocumentHeader(doc, registerHeader);
+  const infoY = drawListDocumentHeader(doc, registerHeader) + 3;
 
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(226, 232, 240);
-  doc.rect(margin, 49, contentWidth, 29, 'FD');
+  doc.rect(margin, infoY, contentWidth, 35, 'FD');
   doc.setTextColor(30, 41, 59);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text('PUPIL INFORMATION', margin + 5, 57);
+  doc.setFontSize(11.3);
+  doc.text('PUPIL INFORMATION', margin + 5, infoY + 8);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(9.5);
   const infoRows = [
     ['Name', pupilName],
     ['Admission no.', pupil.admissionNumber || 'N/A'],
@@ -97,7 +97,7 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
     const column = index % 3;
     const row = Math.floor(index / 3);
     const x = margin + 5 + column * (contentWidth / 3);
-    const y = 64 + row * 8;
+    const y = infoY + 17 + row * 10;
     doc.setTextColor(100, 116, 139);
     doc.text(label, x, y);
     doc.setTextColor(30, 41, 59);
@@ -106,7 +106,7 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
     doc.setFont('helvetica', 'normal');
   });
 
-  const summaryY = 85;
+  const summaryY = infoY + 40;
   const summaryCards: Array<{ label: string; value: string; color: [number, number, number] }> = [
     { label: 'TOTAL FEES', value: formatAmount(totalFees), color: [30, 64, 175] },
     { label: 'AMOUNT PAID', value: formatAmount(totalPaid), color: [5, 150, 105] },
@@ -119,7 +119,7 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
     doc.setDrawColor(226, 232, 240);
     doc.rect(x, summaryY, width, 18, 'FD');
     doc.setTextColor(100, 116, 139);
-    doc.setFontSize(7);
+    doc.setFontSize(9.5);
     doc.text(label, x + 4, summaryY + 6);
     doc.setTextColor(...color);
     doc.setFont('helvetica', 'bold');
@@ -129,8 +129,8 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
   });
 
   autoTable(doc, {
-    startY: 110,
-    margin: { top: 38, bottom: 20, left: margin, right: margin },
+    startY: summaryY + 25,
+    margin: { top: 10, bottom: 22, left: margin, right: margin },
     head: [['Fee item', 'Category', 'Amount', 'Paid', 'Balance', 'Status']],
     body: fees.map((fee) => {
       const paid = fee.paid || 0;
@@ -154,7 +154,7 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
   if (includePaymentHistory && payments.length > 0) {
     if (nextY > pageHeight - 40) {
       doc.addPage();
-      nextY = 38;
+      nextY = 14;
     }
     doc.setTextColor(30, 41, 59);
     doc.setFont('helvetica', 'bold');
@@ -162,7 +162,7 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
     doc.text('PAYMENT HISTORY', margin, nextY);
     autoTable(doc, {
       startY: nextY + 4,
-      margin: { top: 38, bottom: 20, left: margin, right: margin },
+      margin: { top: 10, bottom: 22, left: margin, right: margin },
       head: [['Date', 'Fee item', 'Amount', 'Method']],
       body: payments,
       ...listTableStyles,
@@ -172,22 +172,19 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
   }
 
   if (includeSignature) {
-    if (nextY > pageHeight - 16) {
+    if (nextY > pageHeight - 34) {
       doc.addPage();
-      nextY = 42;
+      nextY = 15;
     }
     doc.setDrawColor(148, 163, 184);
     doc.line(margin + 8, nextY, margin + 70, nextY);
     doc.line(pageWidth - margin - 70, nextY, pageWidth - margin - 8, nextY);
     doc.setTextColor(71, 85, 105);
-    doc.setFontSize(8);
+    doc.setFontSize(9.5);
     doc.text('Prepared by', margin + 39, nextY + 5, { align: 'center' });
     doc.text('Parent / guardian', pageWidth - margin - 39, nextY + 5, { align: 'center' });
   }
 
-  for (let page = 2; page <= doc.getNumberOfPages(); page++) {
-    doc.setPage(page); drawListDocumentHeader(doc, { ...registerHeader, compact: true });
-  }
   drawListDocumentFooters(doc, schoolName, margin);
 
   return doc.output('blob');
@@ -714,7 +711,7 @@ ${LIST_DOCUMENT_CSS}
         </div>
       ` : ''}
 
-      <div class="footer">
+      <div class="statement-notes">
         <div class="footer-title">${schoolSettings?.generalInfo?.name || 'SCHOOL NAME'}</div>
         <div class="footer-disclaimer">
           This is a computer-generated statement showing the fee status as of the generation date. 

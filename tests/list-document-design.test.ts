@@ -8,11 +8,12 @@ test('list styling preserves column layout and keeps accumulated header override
   const saved = structuredClone(original);
   const styled = listDocumentStyles(original);
   assert.deepEqual(original, saved);
+  assert.equal(styled.page.fontSize, 11.3);
   assert.equal(styled.tableColHeader.width, '30%');
-  assert.equal(styled.tableColHeader.backgroundColor, '#f1f1f1');
+  assert.equal(styled.tableColHeader.backgroundColor, '#222222');
   assert.equal(styled.tableColHeader.padding, 5);
   assert.equal(styled.tableRowAlt.minHeight, 22);
-  assert.equal(styled.tableRowAlt.backgroundColor, '#f8f8f8');
+  assert.equal(styled.tableRowAlt.backgroundColor, '#f1f2f3');
   assert.equal(styled.tableRowAlt.borderBottom, '0.3 solid #dddddd');
 });
 

@@ -176,9 +176,7 @@ const drawAnalysisPageHeader = (
   title: string,
   subtitle: string,
   schoolName: string,
-) => {
-  drawListDocumentHeader(doc, { schoolName, title, context: subtitle, compact: true });
-};
+) => drawListDocumentHeader(doc, { schoolName, title, context: subtitle, compact: true });
 
 const addDivisionAnalysisPages = (
   doc: jsPDF,
@@ -220,12 +218,12 @@ const addDivisionAnalysisPages = (
     const subtitle = `${examName} - ${className} - ${pupils.length} pupil${pupils.length === 1 ? '' : 's'}`;
 
     autoTable(doc, {
-      startY: 31,
+      startY: drawAnalysisPageHeader(doc, title, subtitle, schoolName),
       head: [headers],
       body,
       theme: 'grid',
       showHead: 'everyPage',
-      margin: { top: 31, right: 9, bottom: 14, left: 9 },
+      margin: { top: 10, right: 10, bottom: 22, left: 10 },
       rowPageBreak: 'avoid',
       headStyles: {
         fillColor: [241, 241, 241],
@@ -256,7 +254,6 @@ const addDivisionAnalysisPages = (
           data.cell.styles.fillColor = [239, 246, 255];
         }
       },
-      didDrawPage: () => drawAnalysisPageHeader(doc, title, subtitle, schoolName),
     });
   });
 };
@@ -309,7 +306,7 @@ const addGradeSubjectAnalysisPages = (
 
       doc.addPage();
       autoTable(doc, {
-        startY: 31,
+        startY: drawAnalysisPageHeader(doc, title, subtitle, schoolName),
         head: [[
           'RANK',
           ...subjectGroup.map(({ subject, pupils }) => `${subject.code}\n${pupils.length} pupil${pupils.length === 1 ? '' : 's'}`),
@@ -317,7 +314,7 @@ const addGradeSubjectAnalysisPages = (
         body,
         theme: 'grid',
         showHead: 'everyPage',
-        margin: { top: 31, right: 9, bottom: 14, left: 9 },
+        margin: { top: 10, right: 10, bottom: 22, left: 10 },
         rowPageBreak: 'avoid',
         headStyles: {
           fillColor: [241, 241, 241],
@@ -343,7 +340,6 @@ const addGradeSubjectAnalysisPages = (
           0: { cellWidth: rankWidth, halign: 'center', fontStyle: 'bold', fillColor: [238, 242, 255] },
           ...Object.fromEntries(subjectGroup.map((_, index) => [index + 1, { cellWidth: subjectWidth }])),
         },
-        didDrawPage: () => drawAnalysisPageHeader(doc, title, subtitle, schoolName),
       });
     }
   });
@@ -398,9 +394,7 @@ const drawCrossAnalysisHeader = (
   title: string,
   subtitle: string,
   schoolName?: string,
-) => {
-  drawListDocumentHeader(doc, { schoolName: schoolName || 'Trinity Family School', title, context: subtitle, compact: true, margin: 10 });
-};
+) => drawListDocumentHeader(doc, { schoolName: schoolName || 'Trinity Family School', title, context: subtitle, compact: true, margin: 10 });
 
 /**
  * Creates a cross-exam report. The first chronological exam establishes the
@@ -446,7 +440,7 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
   const pageWidth = doc.internal.pageSize.width;
   const pageHeight = doc.internal.pageSize.height;
   const outerMargin = 10;
-  const firstPageTableTop = 33;
+  const firstPageTableTop = drawCrossAnalysisHeader(doc, title, subtitle, props.schoolName);
   const footerStartY = pageHeight - 18;
   const pupilPanelWidth = 42;
   const cardGap = 1.5;
@@ -477,7 +471,7 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
   ];
   const getTableTop = () => (doc as any).internal.getCurrentPageInfo().pageNumber === 1
     ? firstPageTableTop
-    : 33;
+    : 10;
   let currentY = firstPageTableTop + columnHeaderHeight + 1.2;
 
   const drawPageHeader = () => drawCrossAnalysisHeader(doc, title, subtitle, props.schoolName);
@@ -752,12 +746,10 @@ export const generateSubjectSetAnalysisPDF = (props: SubjectSetAnalysisPDFProps)
   const showSetKey = exams.length > 1;
   doc.setFontSize(6.4);
   const keyLines = showSetKey ? doc.splitTextToSize(`KEY: ${setKey}`, pageWidth - 20) as string[] : [];
-  const tableStartY = 33 + keyLines.length * 3;
-  const drawHeader = () => {
-    drawListDocumentHeader(doc, { schoolName: props.schoolName || 'Trinity Family School', title,
-      context: `${props.className} - ${props.academicYearName}`, compact: true, margin: 10 });
-    if (showSetKey) { doc.setFontSize(6.4); doc.setTextColor(85); doc.text(keyLines, 10, 31); }
-  };
+  const headerEnd = drawListDocumentHeader(doc, { schoolName: props.schoolName || 'Trinity Family School', title,
+    context: `${props.className} - ${props.academicYearName}`, compact: true, margin: 10 });
+  if (showSetKey) { doc.setFontSize(6.4); doc.setTextColor(85); doc.text(keyLines, 10, headerEnd); }
+  const tableStartY = headerEnd + keyLines.length * 3;
 
   const groupedHeaders = [
     { content: 'PUPIL NAME', rowSpan: 2, styles: { valign: 'middle' as const } },
@@ -770,7 +762,7 @@ export const generateSubjectSetAnalysisPDF = (props: SubjectSetAnalysisPDFProps)
     body,
     theme: 'grid',
     showHead: 'everyPage',
-    margin: { top: tableStartY, right: 10, bottom: 14, left: 10 },
+    margin: { top: 10, right: 10, bottom: 22, left: 10 },
     rowPageBreak: 'avoid',
     headStyles: {
       fillColor: [241, 241, 241],
@@ -795,7 +787,6 @@ export const generateSubjectSetAnalysisPDF = (props: SubjectSetAnalysisPDFProps)
       0: { cellWidth: pupilColumnWidth, halign: 'left', fontStyle: 'bold' },
       ...Object.fromEntries(Array.from({ length: dataColumnCount }, (_, index) => [index + 1, { cellWidth: subjectColumnWidth }])),
     },
-    didDrawPage: drawHeader,
   });
 
   addAnalysisPageFooters(doc);
@@ -857,7 +848,7 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
 
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
-    const margin = 12;
+    const margin = 10;
     const analysisSections = options.analysisSections || {
       aggregate: true,
       divisions: true,
@@ -1232,15 +1223,7 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
       date: `${new Date(examDetails.startDate).toLocaleDateString('en-GB')} - ${new Date(examDetails.endDate).toLocaleDateString('en-GB')}`,
       count: `${processedResults.length} PUPILS`, margin,
     };
-    const resultsPage = doc.getNumberOfPages();
     const headerEnd = drawListDocumentHeader(doc, registerHeader);
-    const headerPages = new Set<number>([resultsPage]);
-    const drawContinuationHeader = () => {
-      const page = doc.getCurrentPageInfo().pageNumber;
-      if (headerPages.has(page)) return;
-      headerPages.add(page);
-      drawListDocumentHeader(doc, { ...registerHeader, compact: true });
-    };
 
 
     // Find best and worst pupils
@@ -1331,7 +1314,7 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
 
     // Compact scale tiles share the register's rules and typography.
     if (gradingScale && gradingScale.length > 0) {
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(85);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.setTextColor(85);
       doc.text('Grading Scale', margin, currentY);
       doc.setFont('helvetica', 'normal');
       doc.text('SCORE RANGE / GRADE', pageWidth - margin, currentY, { align: 'right' });
@@ -1344,12 +1327,12 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
         const y = currentY + Math.floor(i / columns) * 9;
         doc.setFillColor(248, 248, 248); doc.setDrawColor(221); doc.setLineWidth(.15);
         doc.rect(x, y, tileWidth, 7, 'FD');
-        doc.setFontSize(6.5); doc.setTextColor(85);
+        doc.setFontSize(9.5); doc.setTextColor(85);
         doc.text(`${scale.minMark}-${scale.maxMark}   ${scale.grade}`, x + tileWidth / 2, y + 4.6, { align: 'center' });
       });
       currentY += Math.ceil(sorted.length / columns) * 9 + 3;
     }
-    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(85);
+    doc.setFontSize(9.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(85);
     doc.text('PUPIL MARKS REGISTER', margin, currentY);
     doc.setFont('helvetica', 'normal');
     doc.text(`${processedResults.length} RECORDS`, pageWidth - margin, currentY, { align: 'right' });
@@ -1367,8 +1350,8 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
     const firstSubjectColumn = nameColumn + 1 + (showIndexNumber ? 1 : 0) + (showLinNumber ? 1 : 0);
     const posWidth = showPosition ? 12 : 0;
     const studentWidth = options.showPin ? 50 : 60; // Keep name width stable across orientation changes
-    const indexWidth = showIndexNumber ? 30 : 0; // Index Number column - increased to prevent wrapping
-    const linWidth = showLinNumber ? 30 : 0; // LIN column - increased to prevent wrapping
+    const indexWidth = showIndexNumber ? 34 : 0;
+    const linWidth = showLinNumber ? 34 : 0;
     let totalWidth = options.showTotal ? 18 : 0;
     let aggWidth = options.showAgg ? 15 : 0; // Reduced since we'll use "T. AGG"
     let divWidth = options.showDiv ? 15 : 0;
@@ -1452,7 +1435,7 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
       ...listTableStyles,
       head: [headers], body: data, startY: currentY,
       headStyles: { ...listTableStyles.headStyles, halign: 'center' },
-      bodyStyles: { fontSize: 8, halign: 'center', ...(printOptions?.blankAssessment ? { minCellHeight: 8 } : {}) },
+      bodyStyles: { fontSize: 11.3, halign: 'center', ...(printOptions?.blankAssessment ? { minCellHeight: 8.3 } : {}) },
       columnStyles: (() => {
         const styles: Record<number, any> = {
           ...(showPosition ? { 0: { cellWidth: posWidth, halign: 'center' } } : {}),
@@ -1467,7 +1450,7 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
           styles[colIndex] = {
             cellWidth: indexWidth,
             halign: 'center',
-            overflow: 'ellipsize',
+            overflow: 'linebreak',
             cellPadding: 2
           };
           colIndex++;
@@ -1477,7 +1460,7 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
           styles[colIndex] = {
             cellWidth: linWidth,
             halign: 'center',
-            overflow: 'ellipsize',
+            overflow: 'linebreak',
             cellPadding: 2
           };
           colIndex++;
@@ -1508,29 +1491,27 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
         return styles;
       })(),
       // Use row striping throughout; major subjects remain identified in the legend.
-      margin: { top: 33, bottom: 18, left: margin, right: margin },
+      margin: { top: 10, bottom: 22, left: margin, right: margin },
       pageBreak: 'auto',
       rowPageBreak: 'avoid',
       ...(printOptions?.blankAssessment ? {
         horizontalPageBreak: fixedColumnsWidth + subjectWidth * subjectCount > availableWidth + 0.1,
         horizontalPageBreakRepeat: [nameColumn],
       } : {}),
-      didDrawPage: drawContinuationHeader,
     });
 
     let keyY = (doc as any).lastAutoTable.finalY + 5;
-    if (keyY > pageHeight - 32) { doc.addPage(); drawContinuationHeader(); keyY = 33; }
+    if (keyY > pageHeight - 35) { doc.addPage(); keyY = 10; }
     autoTable(doc, {
       startY: keyY, body: [['SUBJECT KEY', subjectSnaps.map(subject => `${subject.code}  ${subject.name}`).join('     ')]],
-      theme: 'plain', margin: { top: 33, bottom: 18, left: margin, right: margin },
-      styles: { fontSize: 6.5, textColor: [85, 85, 85], cellPadding: 1, overflow: 'linebreak' },
+      theme: 'plain', margin: { top: 10, bottom: 22, left: margin, right: margin },
+      styles: { fontSize: 9.5, textColor: [85, 85, 85], cellPadding: 1, overflow: 'linebreak' },
       columnStyles: { 0: { cellWidth: 25, fontStyle: 'bold' } },
-      didDrawPage: drawContinuationHeader,
     });
     if (printOptions?.blankAssessment) {
-      drawMajorSubjectChecklist(doc, subjectSnaps, (doc as any).lastAutoTable.finalY + 5, margin, drawContinuationHeader);
+      drawMajorSubjectChecklist(doc, subjectSnaps, (doc as any).lastAutoTable.finalY + 5, margin);
     }
-    drawListDocumentFooters(doc, '', margin);
+    drawListDocumentFooters(doc, registerHeader.schoolName, margin);
 
     // Return blob
     const blob = doc.output('blob');

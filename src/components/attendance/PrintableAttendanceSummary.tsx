@@ -137,7 +137,7 @@ ${LIST_DOCUMENT_CSS}
     </thead>
     <tbody>${rows || '<tr><td colspan="7" style="font-style:italic;text-align:center;padding:16px">No pupils found.</td></tr>'}</tbody>
   </table>
-  <div class="footer">
+  <div class="attendance-notes">
     <div class="excluded-notes">
       <strong>Note:</strong> Excluded days breakdown:<br/>
       ${excludedBreakdownText}

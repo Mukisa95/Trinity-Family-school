@@ -191,7 +191,7 @@ export function PrintableAttendanceDetailed({
     }
   ${MONOCHROME_PRINT_CSS}
 ${LIST_DOCUMENT_CSS}
-@page { size: A4 landscape; margin: 10mm; }
+@page { size: A4 landscape; }
 </style>
 </head>
 <body class="list-attendance-detailed" style="--list-day-font: ${dayFontPt}pt">

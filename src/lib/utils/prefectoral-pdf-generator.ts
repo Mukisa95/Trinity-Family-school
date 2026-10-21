@@ -153,9 +153,8 @@ const generateListViewPDF = async (
       fillColor: [248, 250, 252],
     },
     columnStyles: columnWidths as any,
-    margin: { top: 33, right: 10, bottom: footerSpace, left: 10 },
+    margin: { top: 10, right: 10, bottom: 22, left: 10 },
     ...listTableStyles,
-    didDrawPage: () => { if (doc.getCurrentPageInfo().pageNumber > 1) drawListDocumentHeader(doc, { ...registerHeader, compact: true }); },
     tableWidth: 'auto',
     theme: 'grid',
     pageBreak: 'auto', // Allow page breaks if needed

@@ -23,9 +23,9 @@ export function drawMajorSubjectChecklist(
     head: [[{ content: 'Choose four major subjects', colSpan: columns }]],
     body: rows,
     ...listTableStyles,
-    margin: { top: 33, bottom: 18, left: margin, right: margin },
+    margin: { top: 10, bottom: 22, left: margin, right: margin },
     rowPageBreak: 'avoid',
-    styles: { ...listTableStyles.styles, fontSize: 7.5, cellPadding: { top: 2, right: 2, bottom: 2, left: 8 }, minCellHeight: 9 },
+    styles: { ...listTableStyles.styles, fontSize: 9.5, cellPadding: { top: 2, right: 2, bottom: 2, left: 8 }, minCellHeight: 9 },
     columnStyles: Object.fromEntries(Array.from({ length: columns }, (_, index) => [index, { cellWidth: (doc.internal.pageSize.width - margin * 2) / columns }])),
     didDrawCell: ({ section, cell }) => {
       if (section !== 'body' || !cell.raw) return;
