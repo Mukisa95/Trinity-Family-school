@@ -1758,9 +1758,9 @@ export default function RecordResultsView() {
               <AlertTriangle className="h-5 w-5 text-amber-700 dark:text-amber-300" aria-hidden="true" />
             </div>
             <div className="space-y-1.5">
-              <CardTitle className="text-xl text-slate-900 dark:text-slate-100">Marks are being recorded</CardTitle>
+              <CardTitle className="text-xl text-slate-900 dark:text-slate-100">{resultLease.isSameAccount ? 'Another session on your account is editing' : 'Marks are being recorded'}</CardTitle>
               <CardDescription className="text-sm leading-6 text-slate-600 dark:text-slate-300">
-                {editorName} is currently recording marks for this exam. You can continue entering marks. When you save, you will either wait for {editorName} or explicitly override the lock after a final warning.
+                {resultLease.isSameAccount ? 'Another tab or device signed in to your account still has this exam open. You can keep entering marks here. Close that session or wait for its lock to expire before saving, or explicitly override it after a final warning.' : <>{editorName} is currently recording marks for this exam. You can continue entering marks. When you save, you will either wait for {editorName} or explicitly override the lock after a final warning.</>}
               </CardDescription>
             </div>
           </CardHeader>
@@ -1768,7 +1768,7 @@ export default function RecordResultsView() {
             <Button variant="outline" onClick={() => router.push('/exams')} className="w-full sm:w-auto">
               Back to Exams
             </Button>
-            <Button
+            {!resultLease.isSameAccount && (<Button
               variant="outline"
               onClick={handleNotifyWhenReady}
               disabled={unlockNotificationStatus !== 'idle' || pushSubscription.isLoading}
@@ -1778,7 +1778,7 @@ export default function RecordResultsView() {
                 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 : <BellRing className="mr-2 h-4 w-4" />}
               {unlockNotificationStatus === 'requested' ? 'Notification requested' : 'Notify me when ready'}
-            </Button>
+            </Button>)}
             <Button
               onClick={() => setAcknowledgedBlockedLease(blockedLeaseKey)}
               className="w-full bg-amber-600 text-white hover:bg-amber-700 sm:w-auto"
@@ -1984,7 +1984,7 @@ export default function RecordResultsView() {
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" aria-hidden="true" />
           <div className="min-w-0 text-xs leading-5">
             <span className="font-bold">Editing lock active:</span>{' '}
-            {resultLease.holder?.lockedByName || 'Another editor'} may have unsaved marks. The Override button will show a final confirmation before taking control and saving this device's version.
+            {resultLease.isSameAccount ? 'Another session on your account' : resultLease.holder?.lockedByName || 'Another editor'} may have unsaved marks. The Override button will show a final confirmation before taking control and saving this device's version.
           </div>
         </div>
       )}

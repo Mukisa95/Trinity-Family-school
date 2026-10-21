@@ -95,6 +95,7 @@ import { generateModernBatchReportPDF, generateTransBatchReportPDF, preGenerateQ
 import { generateFullReport2PDF } from '@/components/exam/FullReport2PDF';
 import { generatePrimaryMiniReportPDF } from '@/components/exam/PrimaryMiniReportPDF';
 import { FullReport2PaletteSelector } from '@/components/exam/FullReport2PaletteSelector';
+import { PromotionRankingOptions } from '@/components/exam/promotion-ranking-options';
 import { ReportCreationDialog, ReportCreationDialogFrame } from '@/components/exam/report-creation-dialog';
 import { generateNurseryAssessmentPDF } from '@/components/exam/NurseryAssessmentPDF';
 import { generateNurseryMiniReportPDF } from '@/components/exam/NurseryMiniReportPDF';
@@ -129,7 +130,7 @@ import { DEFAULT_GRADING_SCALE } from '@/lib/constants';
 import { formatPupilDisplayName, formatPupilName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 import { cleanSubjectName } from '@/lib/utils/html-entities';
 import { formatTeacherNameWithTitle } from '@/lib/utils/teacher-formatter';
-import { calculatePromotionStatus, isTermThree } from '@/lib/utils/promotion-ranking';
+import { isTermThree, isValidPromotionRanking } from '@/lib/utils/promotion-ranking';
 import { getSchoolPayCode } from '@/lib/utils/schoolpay';
 import {
   GlassActionButton,
@@ -312,167 +313,7 @@ const prepareResultsWithLivePupilData = async <T extends { pupilInfo: any }>(res
 };
 
 // Promotion Ranking Configuration Dialog (for Term 3 only)
-const PromotionRankingDialog = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  config,
-  onConfigChange
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  config: {
-    enabled: boolean;
-    ranges: {
-      promoted: { min: number; max: number };
-      probation: { min: number; max: number };
-      repeat: { min: number; max: number };
-    };
-  };
-  onConfigChange: (config: any) => void;
-}) => {
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Term 3 Promotion Ranking</DialogTitle>
-          <DialogDescription>
-            Configure promotion ranking ranges based on total aggregates
-          </DialogDescription>
-        </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              checked={config.enabled}
-              onCheckedChange={(checked) => {
-                console.log('🔄 Checkbox changed, checked:', checked, 'enabled will be:', !!checked);
-                onConfigChange({ ...config, enabled: !!checked });
-              }}
-            />
-            <Label>Enable promotion ranking for this report</Label>
-          </div>
-
-          {config.enabled && (
-            <div className="space-y-3 border rounded-lg p-4 bg-gray-50 dark:bg-slate-900">
-              {/* Promoted Range */}
-              <div>
-                <Label className="text-green-700 font-semibold dark:text-green-300">PROMOTED</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input
-                    type="number"
-                    placeholder="Min"
-                    value={config.ranges.promoted.min}
-                    onChange={(e) => onConfigChange({
-                      ...config,
-                      ranges: {
-                        ...config.ranges,
-                        promoted: { ...config.ranges.promoted, min: parseInt(e.target.value) || 4 }
-                      }
-                    })}
-                    className="w-20"
-                  />
-                  <span className="self-center">to</span>
-                  <Input
-                    type="number"
-                    placeholder="Max"
-                    value={config.ranges.promoted.max}
-                    onChange={(e) => onConfigChange({
-                      ...config,
-                      ranges: {
-                        ...config.ranges,
-                        promoted: { ...config.ranges.promoted, max: parseInt(e.target.value) || 25 }
-                      }
-                    })}
-                    className="w-20"
-                  />
-                </div>
-              </div>
-
-              {/* Promoted on Probation Range */}
-              <div>
-                <Label className="text-orange-700 font-semibold dark:text-orange-300">PROMOTED ON PROBATION</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input
-                    type="number"
-                    placeholder="Min"
-                    value={config.ranges.probation.min}
-                    onChange={(e) => onConfigChange({
-                      ...config,
-                      ranges: {
-                        ...config.ranges,
-                        probation: { ...config.ranges.probation, min: parseInt(e.target.value) || 26 }
-                      }
-                    })}
-                    className="w-20"
-                  />
-                  <span className="self-center">to</span>
-                  <Input
-                    type="number"
-                    placeholder="Max"
-                    value={config.ranges.probation.max}
-                    onChange={(e) => onConfigChange({
-                      ...config,
-                      ranges: {
-                        ...config.ranges,
-                        probation: { ...config.ranges.probation, max: parseInt(e.target.value) || 30 }
-                      }
-                    })}
-                    className="w-20"
-                  />
-                </div>
-              </div>
-
-              {/* Advised to Repeat Range */}
-              <div>
-                <Label className="text-red-700 font-semibold dark:text-red-300">ADVISED TO REPEAT</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input
-                    type="number"
-                    placeholder="Min"
-                    value={config.ranges.repeat.min}
-                    onChange={(e) => onConfigChange({
-                      ...config,
-                      ranges: {
-                        ...config.ranges,
-                        repeat: { ...config.ranges.repeat, min: parseInt(e.target.value) || 31 }
-                      }
-                    })}
-                    className="w-20"
-                  />
-                  <span className="self-center">to</span>
-                  <Input
-                    type="number"
-                    placeholder="Max"
-                    value={config.ranges.repeat.max}
-                    onChange={(e) => onConfigChange({
-                      ...config,
-                      ranges: {
-                        ...config.ranges,
-                        repeat: { ...config.ranges.repeat, max: parseInt(e.target.value) || 36 }
-                      }
-                    })}
-                    className="w-20"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={onConfirm}>
-            Continue
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
 
 // Print Assessment Options Dialog Component
 const PrintAssessmentOptionsDialog = ({
@@ -868,9 +709,8 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
   });
 
   // Promotion ranking state (for Term 3 only)
-  const [showPromotionRankingModal, setShowPromotionRankingModal] = useState(false);
   const [promotionRankingConfig, setPromotionRankingConfig] = useState({
-    enabled: true, // Default to enabled (checkbox starts checked)
+    enabled: false,
     ranges: {
       promoted: { min: 4, max: 25 },
       probation: { min: 26, max: 30 },
@@ -1124,6 +964,10 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
       termName: term?.name || 'Unknown Term'
     };
   }, [academicYears]);
+
+  const showPromotionRankingOptions = !isNurseryExam && isTermThree(getAcademicYearAndTerm(examDetails?.academicYearId || '', examDetails?.termId || '').termName);
+  const fullReportPromotionConfig = useMemo(() => showPromotionRankingOptions && promotionRankingConfig.enabled ? promotionRankingConfig : undefined, [showPromotionRankingOptions, promotionRankingConfig]);
+  const fullReportConfig = useMemo(() => ({ ...reportConfig, promoted: { show: !!fullReportPromotionConfig, fill: !!fullReportPromotionConfig } }), [reportConfig, fullReportPromotionConfig]);
 
   // Process results data
   const processedResults = useMemo((): PupilResultData[] => {
@@ -1637,7 +1481,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
           endDate: nextTermDates.nextTermEnds
         } : undefined,
         classTeacherInfo: classTeacherInfo,
-        promotionRankingConfig: promotionRankingConfig.enabled ? promotionRankingConfig : undefined,
+
         onProgress: (progress: number, status: string) => {
           // Map internal progress (0-100) to our progress range (50-95)
           const mappedProgress = 50 + Math.round(progress * 0.45); // 50-95 range
@@ -1907,8 +1751,8 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
           endDate: nextTermEndsDate
         } : undefined,
         classTeacherInfo: classTeacherInfo,
-        promotionRankingConfig: promotionRankingConfig.enabled ? promotionRankingConfig : undefined,
-        reportConfig: reportConfig,
+        promotionRankingConfig: fullReportPromotionConfig,
+        reportConfig: fullReportConfig,
         customDates: {
           createdOn: createdOnDate,
           nextTermBegins: nextTermBeginsDate,
@@ -1962,7 +1806,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
         setSelectedPupilForPrint(null);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, academicYears, schoolSettings, examResultData, toast, getAcademicYearAndTerm, getNextTermDates, updateProgressForIndividual, pdfViewer, reportConfig, customDates, selectedFullReportTemplate, fullReport2Palette]);
+  }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, academicYears, schoolSettings, examResultData, toast, getAcademicYearAndTerm, getNextTermDates, updateProgressForIndividual, pdfViewer, reportConfig, customDates, selectedFullReportTemplate, fullReport2Palette, fullReportPromotionConfig, fullReportConfig]);
 
   // Generate individual TRANS report with progress assessment
   const generateIndividualTransReportWithProgress = useCallback(async (comparisonExamIds: string[], customNames: Record<string, string> = {}) => {
@@ -2172,8 +2016,8 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
           endDate: nextTermEndsDate
         } : undefined,
         classTeacherInfo: classTeacherInfo,
-        promotionRankingConfig: promotionRankingConfig.enabled ? promotionRankingConfig : undefined,
-        reportConfig: reportConfig,
+        promotionRankingConfig: fullReportPromotionConfig,
+        reportConfig: fullReportConfig,
         customDates: {
           createdOn: createdOnDate,
           nextTermBegins: nextTermBeginsDate,
@@ -2225,7 +2069,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
         setSelectedPupilForPrint(null);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, academicYears, schoolSettings, examResultData, toast, getAcademicYearAndTerm, getNextTermDates, updateProgressForIndividual, pdfViewer, reportConfig, customDates, selectedFullReportTemplate, fullReport2Palette]);
+  }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, academicYears, schoolSettings, examResultData, toast, getAcademicYearAndTerm, getNextTermDates, updateProgressForIndividual, pdfViewer, reportConfig, customDates, selectedFullReportTemplate, fullReport2Palette, fullReportPromotionConfig, fullReportConfig]);
 
   const handleExportCSV = useCallback(() => {
     if (!processedResults.length || !subjectSnaps.length) return;
@@ -2994,7 +2838,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
           endDate: nextTermDates.nextTermEnds
         } : undefined,
         classTeacherInfo: classTeacherInfo,
-        promotionRankingConfig: promotionRankingConfig.enabled ? promotionRankingConfig : undefined
+
       };
 
       updateProgress(85, 'Generating modern batch report PDF...');
@@ -3360,8 +3204,8 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
           endDate: nextTermEndsDate
         } : undefined,
         classTeacherInfo: classTeacherInfo,
-        promotionRankingConfig: promotionRankingConfig.enabled ? promotionRankingConfig : undefined,
-        reportConfig: reportConfig,
+        promotionRankingConfig: fullReportPromotionConfig,
+        reportConfig: fullReportConfig,
         customDates: {
           createdOn: createdOnDate,
           nextTermBegins: nextTermBeginsDate,
@@ -3421,10 +3265,11 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
         setTransReportType(null);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, selectedFullReportTemplate, fullReport2Palette]);
+  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, selectedFullReportTemplate, fullReport2Palette, fullReportPromotionConfig, fullReportConfig]);
 
   // Handle report configuration completion (defined after loadComparisonExams and generateTransReportWithGrading)
   const handleReportConfigComplete = useCallback(() => {
+    if (showPromotionRankingOptions && !isValidPromotionRanking(promotionRankingConfig)) return;
     setShowReportConfigModal(false);
 
     if (transReportType === 'progress') {
@@ -3439,7 +3284,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
         generateTransReportWithGrading();
       }
     }
-  }, [transReportType, loadComparisonExams, generateTransReportWithGrading, selectedPupilForPrint, generateIndividualTransReportWithGrading]);
+  }, [transReportType, loadComparisonExams, generateTransReportWithGrading, selectedPupilForPrint, generateIndividualTransReportWithGrading, showPromotionRankingOptions, promotionRankingConfig]);
 
   // Generate TRANS report with progress assessment
   const generateTransReportWithProgress = useCallback(async (comparisonExamIds: string[], customNames: Record<string, string> = {}) => {
@@ -3713,8 +3558,8 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
           endDate: nextTermEndsDate
         } : undefined,
         classTeacherInfo: classTeacherInfo,
-        promotionRankingConfig: promotionRankingConfig.enabled ? promotionRankingConfig : undefined,
-        reportConfig: reportConfig,
+        promotionRankingConfig: fullReportPromotionConfig,
+        reportConfig: fullReportConfig,
         customDates: {
           createdOn: createdOnDate,
           nextTermBegins: nextTermBeginsDate,
@@ -3776,7 +3621,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
         setTransReportType(null);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, selectedFullReportTemplate, fullReport2Palette]);
+  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, selectedFullReportTemplate, fullReport2Palette, fullReportPromotionConfig, fullReportConfig]);
 
   const generateDetailedAssessmentReport = useCallback(async () => {
     setIsGenerating(true);
@@ -4112,7 +3957,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
   const printDataReady = !showLoadingSpinner && !examResultError && !!examDetails && !!examResultData && processedResults.length > 0;
   const printFlowOpen = showPrintModal || showPrintAssessmentOptionsDialog || showTransTypeModal
     || showReportConfigModal || showComparisonExamModal || showProgressiveExamModal
-    || showPromotionRankingModal || isGenerating || pdfViewer.isOpen || streamChooserOpen;
+    || isGenerating || pdfViewer.isOpen || streamChooserOpen;
   const printWorkspaceStatus = printOnly ? (
     <Dialog open={!printFlowOpen || !printDataReady} onOpenChange={open => { if (!open) printTarget?.onClose(); }}>
       <DialogContent className="max-w-md">
@@ -4395,14 +4240,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
                 label="Print"
                 icon={<Printer className="h-4 w-4" />}
                 tone="blue"
-                onClick={() => {
-                  const isTerm3 = isTermThree(academicInfo.termName);
-                  if (isTerm3) {
-                    setShowPromotionRankingModal(true);
-                  } else {
-                    setShowPrintModal(true);
-                  }
-                }}
+                onClick={() => setShowPrintModal(true)}
               />
               {!isNurseryExam && (
                 <GlassActionButton
@@ -5138,20 +4976,6 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
       </div>
 
         </>}
-      {/* Promotion Ranking Configuration Dialog (Term 3 only) */}
-      <PromotionRankingDialog
-        isOpen={showPromotionRankingModal}
-        onClose={() => setShowPromotionRankingModal(false)}
-        config={promotionRankingConfig}
-        onConfigChange={setPromotionRankingConfig}
-        onConfirm={() => {
-          console.log('📊 Promotion Ranking Dialog - Continue clicked');
-          console.log('🔧 Current config:', promotionRankingConfig);
-          setShowPromotionRankingModal(false);
-          setShowPrintModal(true);
-        }}
-      />
-
       {/* Admin Password Modal */}
       <AdminPasswordModal
         isOpen={showReleaseModal}
@@ -5413,6 +5237,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
             <Button
               type="button"
               onClick={handleReportConfigComplete}
+              disabled={showPromotionRankingOptions && !isValidPromotionRanking(promotionRankingConfig)}
               className="min-h-11 rounded-full bg-brand-surface-600 px-6 font-semibold text-white hover:bg-brand-surface-700"
             >
               {transReportType === 'progress' ? 'Choose exams' : 'Create PDF'}
@@ -5596,33 +5421,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
                   </TableCell>
                   <TableCell className="text-center">-</TableCell>
                 </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Promoted</TableCell>
-                  <TableCell className="text-center">
-                    <Checkbox
-                      checked={reportConfig.promoted.show}
-                      onCheckedChange={(checked) => {
-                        setReportConfig(prev => ({
-                          ...prev,
-                          promoted: { ...prev.promoted, show: checked === true }
-                        }));
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Checkbox
-                      checked={reportConfig.promoted.fill}
-                      onCheckedChange={(checked) => {
-                        setReportConfig(prev => ({
-                          ...prev,
-                          promoted: { ...prev.promoted, fill: checked === true }
-                        }));
-                      }}
-                      disabled={!reportConfig.promoted.show}
-                    />
-                  </TableCell>
-                  <TableCell className="text-center">-</TableCell>
-                </TableRow>
+
                 <TableRow>
                   <TableCell className="font-medium">Created On</TableCell>
                   <TableCell className="text-center">
@@ -5783,6 +5582,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
             </Table>
           </div>
 
+          {showPromotionRankingOptions && <PromotionRankingOptions config={promotionRankingConfig} onChange={setPromotionRankingConfig} />}
       </ReportCreationDialogFrame>
 
       {/* Comparison exams — final selection step of the shared report-creation flow */}

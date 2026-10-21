@@ -1,9 +1,7 @@
 import { doc, runTransaction, Timestamp, type Transaction } from '@/lib/access/scoped-firestore';
 import { auth, db } from '@/lib/firebase';
 import type { ExamLease } from '@/types';
-
-const LEASE_MINUTES = 10;
-const CLOCK_SKEW_MS = 15_000;
+import { EXAM_LEASE_DURATION_MS, examLeaseDeadline, isExamLeaseExpired } from '@/lib/utils/exam-lease-policy';
 
 export type ExamLeaseToken = Pick<ExamLease, 'leaseId' | 'lockedByUid'>;
 export type ExamLeaseOverride = ExamLeaseToken & Pick<ExamLease, 'lockedByName'>;
@@ -21,6 +19,7 @@ function asIso(value: unknown): string {
 function normalizeLease(examId: string, data: Record<string, unknown>): ExamLease {
   return {
     examId,
+    ...(typeof data.clientId === 'string' ? { clientId: data.clientId } : {}),
     lockedByUid: String(data.lockedByUid ?? ''),
     lockedByName: String(data.lockedByName ?? 'Another editor'),
     leaseId: String(data.leaseId ?? ''),
@@ -31,12 +30,11 @@ function normalizeLease(examId: string, data: Record<string, unknown>): ExamLeas
 }
 
 function isExpired(lease: ExamLease, now = Date.now()): boolean {
-  const expiresAt = new Date(lease.expiresAt).getTime();
-  return !Number.isFinite(expiresAt) || expiresAt <= now - CLOCK_SKEW_MS;
+  return isExamLeaseExpired(lease, now);
 }
 
 function nextExpiry() {
-  return Timestamp.fromMillis(Date.now() + LEASE_MINUTES * 60_000);
+  return Timestamp.fromMillis(Date.now() + EXAM_LEASE_DURATION_MS);
 }
 
 export class ExamLeaseService {
@@ -48,6 +46,7 @@ export class ExamLeaseService {
     examId: string,
     user: { id: string; name: string },
     leaseId: string,
+    clientId?: string,
   ): Promise<ExamLeaseAttempt> {
     const ref = this.ref(examId);
     return runTransaction(db, async transaction => {
@@ -55,7 +54,8 @@ export class ExamLeaseService {
       const now = Timestamp.now();
       if (current.exists()) {
         const existing = normalizeLease(examId, current.data());
-        if (!isExpired(existing) && existing.leaseId !== leaseId) {
+        const samePage = clientId && existing.clientId === clientId && existing.lockedByUid === user.id;
+        if (!isExpired(existing) && (existing.leaseId !== leaseId || existing.lockedByUid !== user.id) && !samePage) {
           return { acquired: false, holder: existing };
         }
       }
@@ -66,6 +66,7 @@ export class ExamLeaseService {
         lockedByUid: user.id,
         lockedByName: user.name,
         leaseId,
+        ...(clientId ? { clientId } : {}),
         acquiredAt: current.exists() ? current.data().acquiredAt ?? now : now,
         renewedAt: now,
         expiresAt,
@@ -77,6 +78,7 @@ export class ExamLeaseService {
           lockedByUid: user.id,
           lockedByName: user.name,
           leaseId,
+          ...(clientId ? { clientId } : {}),
           acquiredAt: now.toDate().toISOString(),
           renewedAt: now.toDate().toISOString(),
           expiresAt: expiresAt.toDate().toISOString(),
@@ -157,6 +159,10 @@ export class ExamLeaseService {
 
   static isExpired(lease: ExamLease): boolean {
     return isExpired(lease);
+  }
+
+  static deadline(lease: ExamLease): number {
+    return examLeaseDeadline(lease);
   }
 
   static normalize(examId: string, data: Record<string, unknown>): ExamLease {

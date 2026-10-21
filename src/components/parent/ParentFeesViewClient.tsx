@@ -1,4 +1,5 @@
 'use client';
+import { MONOCHROME_PRINT_CSS } from '@/lib/printing/monochrome';
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect, useMemo } from 'react';
@@ -363,7 +364,8 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
               .text-green { color: #059669; }
               .text-red { color: #dc2626; }
               .font-bold { font-weight: bold; }
-            </style>
+            ${MONOCHROME_PRINT_CSS}
+</style>
           </head>
           <body>
             <div class="header">

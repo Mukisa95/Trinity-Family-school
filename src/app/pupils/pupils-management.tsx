@@ -1,5 +1,6 @@
 "use client";
 
+import { PhotoPrintOptions } from '@/components/common/photo-print-options';
 import { PupilsPageLoading } from '@/components/pupils/pupils-page-loading';
 import { PupilsPageHeader } from '@/components/pupils/pupils-page-header';
 import { PupilsSelectClassNotice } from '@/components/pupils/pupils-select-class-notice';
@@ -97,8 +98,8 @@ interface ColumnSelection {
 }
 
 interface PrintLayoutOptions {
+  colorPhotos: boolean;
   orientation: 'auto' | 'portrait' | 'landscape';
-  grayscale: boolean;
 }
 
 interface House {
@@ -341,8 +342,8 @@ function PupilsContent() {
     photo: false, // Restored missing field
   });
   const [printLayoutOptions, setPrintLayoutOptions] = useState<PrintLayoutOptions>({
+    colorPhotos: false,
     orientation: 'auto',
-    grayscale: true,
   });
 
   const [selectedPupilPhotoForDetails, setSelectedPupilPhotoForDetails] = useState<Pupil | null>(null);
@@ -1614,11 +1615,11 @@ function PupilsContent() {
   const handleGeneratePDF = async () => {
     try {
       // Dynamic import to avoid SSR issues
-      const { PDFDownloadLink, pdf, Document, Page, Text, View, StyleSheet, Image } = await import('@react-pdf/renderer');
+      const { PDFDownloadLink, pdf, Document, Page, Text, View, StyleSheet, Photo } = await import('@/lib/printing/monochrome-react-pdf');
 
       // Create PDF component inline to avoid import issues
       const createPDFComponent = (props: any) => {
-        const { pupils, classes, filters, sortField, sortOrder, settings, currentUser, columnSelection } = props;
+        const { pupils, classes, filters, sortField, sortOrder, settings, currentUser, columnSelection, colorPhotos = false } = props;
 
         // Smart orientation detection based on selected columns and data density
         const selectedColumns = Object.entries(columnSelection).filter(([_, selected]) => selected);
@@ -1994,7 +1995,7 @@ function PupilsContent() {
                       {effectiveColumnSelection.actualPhoto && (
                         <View style={{ width: '8%', padding: 6, paddingVertical: 4, borderRight: '1 solid #e2e8f0', alignItems: 'center', justifyContent: 'center' }}>
                           {pupil.photo ? (
-                            <Image
+                            <Photo color={colorPhotos}
                               style={{
                                 width: 25,
                                 height: 25,
@@ -2182,7 +2183,8 @@ function PupilsContent() {
         sortOrder,
         settings,
         currentUser,
-        columnSelection
+        columnSelection,
+        colorPhotos: printLayoutOptions.colorPhotos,
       });
 
       // Generate PDF and open in viewer
@@ -2216,7 +2218,7 @@ function PupilsContent() {
 
   const handleGenerateCompactPDF = async () => {
     try {
-      const { Document, Page, Text, View, StyleSheet, Image } = await import('@react-pdf/renderer');
+      const { Document, Page, Text, View, StyleSheet, Photo } = await import('@/lib/printing/monochrome-react-pdf');
 
       const selectedColumnCount = Object.values(columnSelection).filter(Boolean).length;
       const autoLandscape =
@@ -2229,26 +2231,15 @@ function PupilsContent() {
         printLayoutOptions.orientation === 'auto'
           ? (autoLandscape ? 'landscape' : 'portrait')
           : printLayoutOptions.orientation;
-      const grayscale = printLayoutOptions.grayscale;
-      const palette = grayscale
-        ? {
-            text: '#111111',
-            muted: '#555555',
-            border: '#999999',
-            headerBg: '#dddddd',
-            headerText: '#111111',
-            rowAlt: '#f3f3f3',
-            chipBg: '#eeeeee',
-          }
-        : {
-            text: '#0f172a',
-            muted: '#475569',
-            border: '#cbd5e1',
-            headerBg: '#e2e8f0',
-            headerText: '#0f172a',
-            rowAlt: '#f8fafc',
-            chipBg: '#eef2ff',
-          };
+      const palette = {
+        text: '#111111',
+        muted: '#555555',
+        border: '#999999',
+        headerBg: '#dddddd',
+        headerText: '#111111',
+        rowAlt: '#f3f3f3',
+        chipBg: '#eeeeee',
+      };
 
       const styles = StyleSheet.create({
         page: {
@@ -2420,7 +2411,7 @@ function PupilsContent() {
           weight: 8,
           align: 'center' as const,
           render: (pupil: Pupil) => (
-            pupilPhotosMap.get(pupil.id) ? <Image style={styles.photo} src={pupilPhotosMap.get(pupil.id)!} /> : <View style={styles.photoPlaceholder}><Text style={styles.compactText}>N/A</Text></View>
+            pupilPhotosMap.get(pupil.id) ? <Photo color={printLayoutOptions.colorPhotos} style={styles.photo} src={pupilPhotosMap.get(pupil.id)!} /> : <View style={styles.photoPlaceholder}><Text style={styles.compactText}>N/A</Text></View>
           ),
         },
         {
@@ -3428,7 +3419,7 @@ function PupilsContent() {
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel className="font-semibold text-xs text-muted-foreground">Export Options</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setIsColumnSelectionModalOpen(true)} className="cursor-pointer py-1.5 focus:bg-brand-alt-surface-50 dark:focus:bg-brand-alt-surface-950/40">
+                <DropdownMenuItem onClick={() => { setPrintLayoutOptions(prev => ({ ...prev, colorPhotos: false })); setIsColumnSelectionModalOpen(true); }} className="cursor-pointer py-1.5 focus:bg-brand-alt-surface-50 dark:focus:bg-brand-alt-surface-950/40">
                   <Printer size={14} className="mr-2 text-brand-alt-ink-600 dark:text-brand-alt-ink-400" weight="duotone" />
                   <span className="font-medium text-[11px] text-gray-700 dark:text-slate-200">Print List</span>
                 </DropdownMenuItem>
@@ -4762,25 +4753,9 @@ function PupilsContent() {
                   </button>
                 ))}
               </div>
-              <div className="ml-auto flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-600 whitespace-nowrap dark:text-slate-300">Grayscale</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={printLayoutOptions.grayscale}
-                  onClick={() => setPrintLayoutOptions(prev => ({ ...prev, grayscale: !prev.grayscale }))}
-                  className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                    printLayoutOptions.grayscale ? 'bg-brand-alt-surface-600' : 'bg-gray-300 dark:bg-slate-700'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200  dark:bg-slate-900 ${
-                      printLayoutOptions.grayscale ? 'translate-x-4' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
+
             </div>
+            <PhotoPrintOptions colorPhotos={printLayoutOptions.colorPhotos} onChange={colorPhotos => setPrintLayoutOptions(prev => ({ ...prev, colorPhotos }))} />
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-3">
                 <h4 className="font-medium text-sm text-gray-700 border-b border-gray-200 pb-1 dark:text-slate-200 dark:border-slate-700">Basic Info</h4>
@@ -5107,7 +5082,7 @@ function PupilsContent() {
                       : `${printLayoutOptions.orientation.charAt(0).toUpperCase()}${printLayoutOptions.orientation.slice(1)} (Manual)`}
                   </p>
                   <p className="text-brand-ink-700 mt-1 text-xs dark:text-brand-ink-300">
-                    Style: Compact table with smaller fonts{printLayoutOptions.grayscale ? ' in gray scale' : ''}.
+                    Style: Compact table with smaller fonts in black and white{printLayoutOptions.colorPhotos ? ', with colour photos' : ''}.
                   </p>
                   {Object.values(columnSelection).filter(Boolean).length === 0 && (
                     <p className="text-red-700 mt-2 text-xs dark:text-red-300">

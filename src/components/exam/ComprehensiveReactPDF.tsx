@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Document, Page, Text, View, StyleSheet, Image, Font, pdf } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image, Font, pdf } from '@/lib/printing/monochrome-react-pdf';
 import { DEFAULT_GRADING_SCALE } from '@/lib/constants';
 import { AggregateCommentPicker } from '@/lib/exam-report-commentary';
 

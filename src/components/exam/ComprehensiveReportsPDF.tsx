@@ -1,3 +1,4 @@
+import { applyMonochromePDF } from '@/lib/printing/monochrome-jspdf';
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PDFSignatureService } from '@/lib/services/pdf-signature.service';
@@ -113,6 +114,7 @@ export const generateComprehensiveReportsPDF = (props: ComprehensiveReportsProps
       unit: 'mm',
       format: 'a4'
     });
+  applyMonochromePDF(doc);
 
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;

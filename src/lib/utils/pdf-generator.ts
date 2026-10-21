@@ -1,3 +1,4 @@
+import { applyMonochromePDF } from '@/lib/printing/monochrome-jspdf';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -53,6 +54,7 @@ export const generateDutyRotaPDF = async ({
   }
 
   const doc = new jsPDF();
+  applyMonochromePDF(doc);
   
   // Add header with school name
   doc.setFontSize(16);

@@ -2,7 +2,7 @@
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet } from '@/lib/printing/monochrome-react-pdf';
 import { format } from 'date-fns';
 import { formatCurrency } from '../utils/format';
 import { PDFSignatureService } from '@/lib/services/pdf-signature.service';

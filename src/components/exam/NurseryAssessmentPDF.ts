@@ -1,3 +1,4 @@
+import { applyMonochromePDF } from '@/lib/printing/monochrome-jspdf';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { BLANK_ASSESSMENT_OPTIONS } from '@/lib/utils/assessment-print-options';
@@ -68,6 +69,7 @@ export const generateNurseryAssessmentPDF = ({
     unit: 'mm',
     format: 'a4',
   });
+  applyMonochromePDF(doc);
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();

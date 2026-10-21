@@ -1,6 +1,6 @@
 import React from 'react';
-import { pdf } from '@react-pdf/renderer';
-import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
+import { pdf } from '@/lib/printing/monochrome-react-pdf';
+import { Document, Page, View, Text, Image, Photo, StyleSheet } from '@/lib/printing/monochrome-react-pdf';
 import { DEFAULT_GRADING_SCALE } from '@/lib/constants';
 import { cleanSubjectName } from '@/lib/utils/html-entities';
 import { formatTermName, calculateAccurateAge } from '@/lib/utils/term-formatter';
@@ -36,6 +36,7 @@ interface Subject {
 }
 
 interface DetailedAssessmentProps {
+  colorPhotos?: boolean;
   examDetails: {
     name: string;
     examTypeName: string;
@@ -538,6 +539,7 @@ const styles = StyleSheet.create({
 
 // Individual Pupil Component
             const PupilAssessmentCard: React.FC<{
+              colorPhotos?: boolean;
               pupil: ExamResult;
               subjects: Subject[];
               majorSubjects?: string[];
@@ -547,7 +549,7 @@ const styles = StyleSheet.create({
               schoolInfo: any;
               examDetails: any;
               commentPicker: AggregateCommentPicker;
-            }> = ({ pupil, subjects, majorSubjects, schoolName, examTitle, className, schoolInfo, examDetails, commentPicker }) => {
+            }> = ({ colorPhotos = false, pupil, subjects, majorSubjects, schoolName, examTitle, className, schoolInfo, examDetails, commentPicker }) => {
               // Calculate age using ageAtExam if available, otherwise calculate from dateOfBirth
               const age = calculateAge(pupil.pupilInfo.dateOfBirth, examDetails.startDate, pupil.pupilInfo.ageAtExam);
 
@@ -589,7 +591,7 @@ const styles = StyleSheet.create({
         <View style={styles.photoSection}>
           {isRealPhoto(pupil.pupilInfo.photo) && (
             <View style={styles.photoFrame}>
-              <Image 
+              <Photo color={colorPhotos}
                 src={pupil.pupilInfo.photo} 
                 style={styles.pupilPhoto}
               />
@@ -830,6 +832,7 @@ export const generateDetailedAssessmentPDF = async (props: DetailedAssessmentPro
                   <View style={styles.pupilInnerBorder} />
                   <View style={styles.pupilContent}>
                               <PupilAssessmentCard
+                                colorPhotos={props.colorPhotos}
                                 pupil={result}
                                 subjects={processedSubjects}
                                 majorSubjects={majorSubjects}
@@ -848,6 +851,7 @@ export const generateDetailedAssessmentPDF = async (props: DetailedAssessmentPro
                     <View style={styles.pupilInnerBorder} />
                     <View style={styles.pupilContent}>
                                 <PupilAssessmentCard
+                                  colorPhotos={props.colorPhotos}
                                   pupil={nextResult}
                                   subjects={nextProcessedSubjects}
                                   majorSubjects={majorSubjects}

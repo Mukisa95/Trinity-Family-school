@@ -1,4 +1,5 @@
 "use client";
+import { PhotoPrintOptions } from '@/components/common/photo-print-options';
 import { authorizedFetch } from '@/lib/access/authorized-fetch';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -110,6 +111,9 @@ type DeferredSubjectAssignment = {
 };
 
 export default function RemarkReportPage() {
+  const [listPrintOpen, setListPrintOpen] = useState(false);
+  const [listColorPhotos, setListColorPhotos] = useState(false);
+  const [isPrintingList, setIsPrintingList] = useState(false);
   const [selectedClass, setSelectedClass] = useState<string>('');
   // Pupil -> term -> pending overall performance status.
   const [updatedPupils, setUpdatedPupils] = useState<
@@ -1100,6 +1104,7 @@ export default function RemarkReportPage() {
       return;
     }
 
+    setIsPrintingList(true);
     try {
       toast({
         title: "Generating PDF",
@@ -1109,6 +1114,7 @@ export default function RemarkReportPage() {
       // Generate PDF
       const pdfDoc = (
         <PupilPerformanceListPDF
+          colorPhotos={listColorPhotos}
           pupils={filteredPupils}
           pupilClass={selectedClassData}
           settings={schoolSettings}
@@ -1122,6 +1128,7 @@ export default function RemarkReportPage() {
       const title = 'Performance List';
 
       await pdfViewer.openPDF(pdfDoc, fileName, title);
+      setListPrintOpen(false);
 
       toast({
         title: "PDF Generated",
@@ -1134,6 +1141,8 @@ export default function RemarkReportPage() {
         description: "Failed to generate PDF. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsPrintingList(false);
     }
   };
 
@@ -1944,7 +1953,7 @@ export default function RemarkReportPage() {
                   />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={handlePrintList} className="cursor-pointer">
+                  <DropdownMenuItem onClick={() => { setListColorPhotos(false); setListPrintOpen(true); }} className="cursor-pointer">
                     <List className="mr-2 h-4 w-4" />
                     Print List
                   </DropdownMenuItem>
@@ -2775,6 +2784,20 @@ export default function RemarkReportPage() {
                 ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving comments…</>
                 : <><Save className="mr-2 h-4 w-4" />Save comments and continue</>}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={listPrintOpen} onOpenChange={open => { if (!isPrintingList) setListPrintOpen(open); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Print performance list</DialogTitle>
+            <DialogDescription>{selectedClassData?.name || 'Selected class'} · {filteredPupils.length} pupils</DialogDescription>
+          </DialogHeader>
+          <PhotoPrintOptions colorPhotos={listColorPhotos} onChange={setListColorPhotos} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setListPrintOpen(false)} disabled={isPrintingList}>Cancel</Button>
+            <Button onClick={handlePrintList} disabled={isPrintingList}>{isPrintingList ? 'Creating PDF…' : 'Create PDF'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

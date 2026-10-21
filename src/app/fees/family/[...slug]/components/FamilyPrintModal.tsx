@@ -1,3 +1,4 @@
+import { MONOCHROME_PRINT_CSS } from '@/lib/printing/monochrome';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -332,7 +333,8 @@ export function FamilyPrintModal({
             .summary-section, .family-info { box-shadow: none; }
             .pupils-table { box-shadow: none; }
           }
-        </style>
+        ${MONOCHROME_PRINT_CSS}
+</style>
       </head>
       <body>
         <div class="header">
@@ -730,7 +732,8 @@ export function FamilyPrintModal({
             .fees-table { box-shadow: none; }
             .pupil-section { page-break-inside: avoid; }
           }
-        </style>
+        ${MONOCHROME_PRINT_CSS}
+</style>
       </head>
       <body>
         <div class="header">

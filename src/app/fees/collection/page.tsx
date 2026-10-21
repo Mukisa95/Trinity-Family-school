@@ -759,7 +759,7 @@ export default function FeesCollectionPage() {
   const handleGeneratePDF = async () => {
     try {
       // Dynamic import to avoid SSR issues
-      const { PDFDownloadLink, pdf, Document, Page, Text, View, StyleSheet, Image } = await import('@react-pdf/renderer');
+      const { PDFDownloadLink, pdf, Document, Page, Text, View, StyleSheet, Image } = await import('@/lib/printing/monochrome-react-pdf');
 
       // Create PDF component inline to avoid import issues
       const createPDFComponent = (props: any) => {

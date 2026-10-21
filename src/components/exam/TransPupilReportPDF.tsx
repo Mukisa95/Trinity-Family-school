@@ -1,3 +1,4 @@
+import { isTermThree } from '@/lib/utils/promotion-ranking';
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
 import { cleanSubjectName } from '@/lib/utils/html-entities';
@@ -792,11 +793,11 @@ export const TransPupilReportCardPDF: React.FC<TransPupilReportCardProps> = (pro
   const displayCreatedOn = config.createdOn.useCustom && customDates?.createdOn
     ? formatDate(customDates.createdOn)
     : date;
-  
+
   const displayNextTermBegins = config.nextTermBegins.useCustom && customDates?.nextTermBegins
     ? formatDate(customDates.nextTermBegins)
     : nextTermBegins;
-  
+
   const displayNextTermEnds = config.nextTermEnds.useCustom && customDates?.nextTermEnds
     ? formatDate(customDates.nextTermEnds)
     : nextTermEnds;
@@ -1212,6 +1213,7 @@ export const TransPupilReportCardPDF: React.FC<TransPupilReportCardProps> = (pro
                                 textAlign: 'center',
                                 marginTop: 2,
                             }}>{division}</Text>
+                        {isTermThree(term) && config.promoted.show && config.promoted.fill && promotionRanking && <Text style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 1, fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#dc2626', textAlign: 'center' }}>{promotionRanking}</Text>}
                         </View>
                     </View>
                 </View>
@@ -1221,16 +1223,6 @@ export const TransPupilReportCardPDF: React.FC<TransPupilReportCardProps> = (pro
           <View style={[styles.gradeScaleContainer, dynamicStyles.sectionSpacing]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={styles.gradeScaleTitle}>Progress Assessment</Text>
-              {config.promoted.show && config.promoted.fill && promotionRanking && (
-                <Text style={{
-                  fontSize: 16,
-                  fontFamily: 'Helvetica-Bold',
-                  color: '#dc2626',
-                  textTransform: 'uppercase',
-                }}>
-                  {promotionRanking}
-                </Text>
-              )}
             </View>
             <View style={{
               borderWidth: 1,
@@ -1296,10 +1288,10 @@ export const TransPupilReportCardPDF: React.FC<TransPupilReportCardProps> = (pro
                 .filter((exam: any) => exam != null) // Filter out any null/undefined exams
                 .map((comparisonExam: any, index: number) => {
                   if (!comparisonExam) return null;
-                  
+
                   const subjects = comparisonExam.subjects || [];
                   const examName = comparisonExam.name || 'Unknown Exam';
-                  
+
                   return (
                     <View 
                       key={index}
@@ -1365,16 +1357,6 @@ export const TransPupilReportCardPDF: React.FC<TransPupilReportCardProps> = (pro
                 <View style={[styles.gradeScaleContainer, dynamicStyles.sectionSpacing]}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Text style={styles.gradeScaleTitle}>Grading Scale Used</Text>
-                      {config.promoted.show && config.promoted.fill && promotionRanking && (
-                        <Text style={{
-                          fontSize: 16,
-                          fontFamily: 'Helvetica-Bold',
-                          color: '#dc2626',
-                          textTransform: 'uppercase',
-                        }}>
-                          {promotionRanking}
-                        </Text>
-                      )}
                     </View>
                     <View style={[
                         styles.gradeScale,

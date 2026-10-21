@@ -136,7 +136,7 @@ assert(
   resultLease.includes('runTransaction') &&
     resultLease.includes('leaseId') &&
     resultLease.includes('lockedByUid') &&
-    resultHook.includes('RENEW_EVERY_MS') &&
+    resultHook.includes('EXAM_LEASE_RENEW_MS') &&
     resultHook.includes('onSnapshot') &&
     service.includes('verifyForSave') &&
     service.includes('transaction.delete(ExamLeaseService.ref'),

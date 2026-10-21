@@ -1,3 +1,4 @@
+import { applyMonochromePDF } from '@/lib/printing/monochrome-jspdf';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { ReportDocument, ReportTable } from './report-model';
@@ -11,6 +12,7 @@ const text=pdfText;
 export function generateSchoolReportPdf(report:ReportDocument):jsPDF {
   if(!report.sections.length)throw new Error('Choose at least one report section.');
   const doc=new jsPDF({unit:'mm',format:'a4',compress:true});
+  applyMonochromePDF(doc);
   doc.setProperties({title:text(report.title),subject:text(report.period.label),author:text(report.preparedBy),creator:'Trinity Live Reports'});
   let y=32;
   const ensure=(height:number)=>{if(y+height>274){doc.addPage();y=29;}};

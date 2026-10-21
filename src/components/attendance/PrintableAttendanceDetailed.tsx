@@ -1,4 +1,5 @@
 "use client";
+import { MONOCHROME_PRINT_CSS } from '@/lib/printing/monochrome';
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import * as React from "react";
@@ -186,7 +187,8 @@ export function PrintableAttendanceDetailed({
       body { padding: 5mm; }
       @page { size: A4 landscape; margin: 8mm; }
     }
-  </style>
+  ${MONOCHROME_PRINT_CSS}
+</style>
 </head>
 <body>
   <div class="header">

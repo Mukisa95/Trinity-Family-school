@@ -32,20 +32,11 @@ export function calculatePromotionStatus(
   config: PromotionRankingConfig,
   classCode?: string
 ): string | null {
-  console.log('🎓 calculatePromotionStatus called:', { 
-    totalAggregates, 
-    configEnabled: config.enabled, 
-    ranges: config.ranges,
-    classCode 
-  });
-  
   if (!config.enabled) {
-    console.log('❌ Promotion ranking disabled in config');
     return null;
   }
   
   if (!totalAggregates || totalAggregates === 0) {
-    console.log('❌ No total aggregates:', totalAggregates);
     return null;
   }
 
@@ -53,24 +44,20 @@ export function calculatePromotionStatus(
 
   // Check promoted range
   if (totalAggregates >= ranges.promoted.min && totalAggregates <= ranges.promoted.max) {
-    console.log('✅ PROMOTED:', totalAggregates, 'in range', ranges.promoted);
     return 'PROMOTED';
   }
 
   // Check promoted on probation range
   if (totalAggregates >= ranges.probation.min && totalAggregates <= ranges.probation.max) {
-    console.log('✅ PROMOTED ON PROBATION:', totalAggregates, 'in range', ranges.probation);
     return 'PROMOTED ON PROBATION';
   }
 
   // Check repeat range
   if (totalAggregates >= ranges.repeat.min && totalAggregates <= ranges.repeat.max) {
     const status = classCode ? `ADVISED TO REPEAT ${classCode}` : 'ADVISED TO REPEAT';
-    console.log('✅ ADVISED TO REPEAT:', totalAggregates, 'in range', ranges.repeat, 'status:', status);
     return status;
   }
 
-  console.log('⚠️ Total aggregates', totalAggregates, 'outside all ranges');
   return null;
 }
 
@@ -80,24 +67,23 @@ export function calculatePromotionStatus(
  * @returns True if Term 3
  */
 export function isTermThree(termName?: string): boolean {
-  if (!termName) {
-    console.log('❌ isTermThree: No termName provided');
-    return false;
-  }
-  
-  console.log('🔍 isTermThree checking:', termName);
-  
+  if (!termName) return false;
   const termLower = termName.toLowerCase().trim();
-  const isTerm3 = termLower.includes('term 3') || 
-                  termLower.includes('term three') || 
-                  termLower.includes('3 (three)') ||
-                  termLower === '3' ||
-                  termLower === 'three' ||
-                  termLower === '3 (three)' ||
-                  /term\s*3/i.test(termName) ||
-                  /\b3\b/.test(termName);
-  
-  console.log('✅ isTermThree result:', isTerm3);
-  return isTerm3;
+  return /\bterm\s*(?:3|three|iii)\b/.test(termLower)
+    || /^(?:3|three|iii)(?:\s*\(three\))?$/.test(termLower)
+    || /^third\s+term$/.test(termLower);
+}
+
+export function isValidPromotionRanking(config: PromotionRankingConfig): boolean {
+  if (!config.enabled) return true;
+  const bands = Object.values(config.ranges).sort((a, b) => a.min - b.min);
+  return bands.every((band, index) => Number.isInteger(band.min) && Number.isInteger(band.max)
+    && band.min >= 4 && band.max <= 36 && band.min <= band.max
+    && (!index || band.min > bands[index - 1].max));
+}
+
+export function reportPromotionRanking(termName: string | undefined, aggregates: number, config?: PromotionRankingConfig, classCode?: string): string | null {
+  return isTermThree(termName) && config?.enabled && isValidPromotionRanking(config)
+    ? calculatePromotionStatus(aggregates, config, classCode) : null;
 }
 

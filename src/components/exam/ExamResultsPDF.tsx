@@ -1,3 +1,4 @@
+import { applyMonochromePDF } from '@/lib/printing/monochrome-jspdf';
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { BLANK_ASSESSMENT_OPTIONS } from '@/lib/utils/assessment-print-options';
@@ -474,6 +475,7 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
 
   const orientation = exams.length <= 3 ? 'portrait' : 'landscape';
   const doc = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
+  applyMonochromePDF(doc);
   const title = 'CROSS EXAM ANALYSIS';
   const subtitle = `${props.className} - ${props.academicYearName} - ${exams.length} exams in date order`;
   const pageWidth = doc.internal.pageSize.width;
@@ -756,6 +758,7 @@ export const generateSubjectSetAnalysisPDF = (props: SubjectSetAnalysisPDFProps)
     return undefined;
   };
   const portraitProbe = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  applyMonochromePDF(portraitProbe);
   const portraitSubjectColumnWidth = (
     portraitProbe.internal.pageSize.width - 20 - pupilColumnWidth
   ) / dataColumnCount;
@@ -768,6 +771,7 @@ export const generateSubjectSetAnalysisPDF = (props: SubjectSetAnalysisPDFProps)
   );
   const orientation = portraitTableFontSize === undefined ? 'landscape' : 'portrait';
   const doc = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
+  applyMonochromePDF(doc);
   const pageWidth = doc.internal.pageSize.width;
   const subjectColumnWidth = (pageWidth - 20 - pupilColumnWidth) / dataColumnCount;
   const tableFontSize = orientation === 'portrait'
@@ -901,6 +905,7 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
       unit: 'mm',
       format: 'a4'
     });
+  applyMonochromePDF(doc);
 
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;

@@ -1,3 +1,4 @@
+import { applyMonochromePDF } from '@/lib/printing/monochrome-jspdf';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { PrefectoralPost, PostAssignment } from '@/types/duty-service';
@@ -40,6 +41,8 @@ export const generatePrefectoralPDF = async ({
     unit: 'mm',
     format: paperSize === 'A3' ? 'a3' : 'a4'
   });
+
+  if (viewType === 'list') applyMonochromePDF(doc);
 
   // Fetch school settings for school name
   const schoolSettings = await getCachedSchoolSettings();

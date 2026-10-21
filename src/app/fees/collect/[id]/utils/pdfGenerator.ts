@@ -1,3 +1,5 @@
+import { MONOCHROME_PRINT_CSS } from '@/lib/printing/monochrome';
+import { applyMonochromePDF } from '@/lib/printing/monochrome-jspdf';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import type { Pupil, AcademicYear, SchoolSettings } from '@/types';
 import type { PupilFee } from '../types';
@@ -51,6 +53,7 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
   ]);
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape', compress: true });
+  applyMonochromePDF(doc);
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 14;
@@ -599,7 +602,8 @@ export async function generateFeeStatementPDF(options: PDFGenerationOptions): Pr
           margin: 0.5in;
           size: A4;
         }
-      </style>
+      ${MONOCHROME_PRINT_CSS}
+</style>
     </head>
     <body>
       <!-- Header -->
@@ -936,7 +940,8 @@ export async function generatePaymentReceiptPDF(options: ReceiptOptions): Promis
           body { margin: 0; padding: 0; }
           .receipt-container { border: none; }
         }
-      </style>
+      ${MONOCHROME_PRINT_CSS}
+</style>
     </head>
     <body>
       <div class="receipt-container">
@@ -1180,7 +1185,8 @@ export async function generateFamilyFeeStatementPDF(
         @media print {
           body { margin: 0; }
         }
-      </style>
+      ${MONOCHROME_PRINT_CSS}
+</style>
     </head>
     <body>
       <div class="header">

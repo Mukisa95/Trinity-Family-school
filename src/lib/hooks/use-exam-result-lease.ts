@@ -4,8 +4,9 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import type { ExamLease } from '@/types';
 import { ExamLeaseService, type ExamLeaseAttempt, type ExamLeaseOverride, type ExamLeaseToken } from '@/lib/services/exam-lease.service';
 import { isAndroidOffline } from '@/lib/offline/android-app-shell';
+import { EXAM_LEASE_RENEW_MS, EXAM_LEASE_CLOCK_SKEW_MS } from '@/lib/utils/exam-lease-policy';
 
-const RENEW_EVERY_MS = 2 * 60_000;
+let pageClientId: string | undefined;
 
 function newLeaseId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
@@ -21,8 +22,10 @@ export function useExamResultLease(examId: string) {
   const canAttempt = isAuthenticated && !!user && (user.role === 'Admin' || user.role === 'Staff') && !!examId;
   const userId = user?.id;
   const userName = user?.firstName || user?.username || 'Authorised editor';
+  const userNameRef = useRef(userName);
+  userNameRef.current = userName;
   // A disposed acquisition must never release a newer effect's lock.
-  const leaseId = useMemo(newLeaseId, [examId, userId, userName]);
+  const leaseId = useMemo(newLeaseId, [examId, userId]);
 
   useEffect(() => {
     if (!canAttempt || !userId) {
@@ -32,22 +35,24 @@ export function useExamResultLease(examId: string) {
       return;
     }
     let disposed = false;
+    let suspended = false;
+    const clientId = pageClientId ||= newLeaseId();
     const token: ExamLeaseToken = { lockedByUid: userId, leaseId };
     let inFlight: Promise<ExamLeaseToken> | undefined;
     const attempt = async (): Promise<ExamLeaseToken> => {
-      if (disposed) throw new Error('The exam editor is no longer active.');
+      if (disposed || suspended) throw new Error('The exam editor is no longer active.');
       if (!navigator.onLine || isAndroidOffline()) { setStatus('offline'); throw new Error('Reconnect before saving.'); }
       let outcome: ExamLeaseAttempt;
       try {
-        outcome = await ExamLeaseService.acquire(examId, { id: userId, name: userName }, token.leaseId);
+        outcome = await ExamLeaseService.acquire(examId, { id: userId, name: userNameRef.current }, token.leaseId, clientId);
       } catch (error) {
         if (!disposed) setStatus('error');
         throw error;
       }
-      if (disposed) {
+      if (disposed || suspended) {
         // React may replay the effect with the same token. Its replacement
         // still owns that token, so only release an abandoned acquisition.
-        if (outcome.acquired && acquireRef.current?.leaseId !== token.leaseId) {
+        if (outcome.acquired && (suspended || acquireRef.current?.leaseId !== token.leaseId)) {
           void ExamLeaseService.release(examId, token).catch(() => undefined);
         }
         throw new Error('The exam editor is no longer active.');
@@ -69,17 +74,32 @@ export function useExamResultLease(examId: string) {
     };
     const owner = { acquire, leaseId };
     acquireRef.current = owner;
-    void acquire().catch(() => undefined);
+    if (document.visibilityState !== 'hidden') void acquire().catch(() => undefined);
 
-    const unsubscribe = onSnapshot(ExamLeaseService.ref(examId), snapshot => {
-      if (disposed) return;
-      if (!snapshot.exists()) {
+    const requestAcquire = () => {
+      if (document.visibilityState === 'hidden' || !navigator.onLine || isAndroidOffline()) return;
+      // A server release may arrive while an older transaction is finishing.
+      const pending = inFlight;
+      if (pending) void pending.catch(() => { if (!disposed && !suspended) void acquire().catch(() => undefined); });
+      else void acquire().catch(() => undefined);
+    };
+    const unsubscribe = onSnapshot(ExamLeaseService.ref(examId), { includeMetadataChanges: true }, snapshot => {
+      if (disposed || suspended || snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites) return;
+      const observed = snapshot.exists() ? ExamLeaseService.normalize(examId, snapshot.data()) : null;
+      if (!observed || ExamLeaseService.isExpired(observed)) {
         setLease(null);
+        setHolder(null);
         setStatus('loading');
-        void acquire().catch(() => undefined);
+        requestAcquire();
         return;
       }
-      const observed = ExamLeaseService.normalize(examId, snapshot.data());
+      if (observed.lockedByUid === token.lockedByUid && observed.clientId === clientId && observed.leaseId !== token.leaseId) {
+        setLease(null);
+        setHolder(null);
+        setStatus('loading');
+        requestAcquire();
+        return;
+      }
       if (observed.lockedByUid === token.lockedByUid && observed.leaseId === token.leaseId && !ExamLeaseService.isExpired(observed)) {
         setLease(observed);
         setHolder(null);
@@ -94,13 +114,25 @@ export function useExamResultLease(examId: string) {
     });
 
     const renew = () => {
-      if (document.visibilityState === 'hidden' || !navigator.onLine || isAndroidOffline()) return;
+      if (suspended || document.visibilityState === 'hidden' || !navigator.onLine || isAndroidOffline()) return;
       void acquire().catch(() => undefined);
     };
-    const interval = window.setInterval(renew, RENEW_EVERY_MS);
+    const interval = window.setInterval(renew, EXAM_LEASE_RENEW_MS);
     const onVisibility = () => { if (document.visibilityState === 'visible') renew(); };
+    const onPageHide = () => {
+      suspended = true;
+      setLease(null);
+      setHolder(null);
+      setStatus('loading');
+      void ExamLeaseService.release(examId, token).catch(() => undefined);
+    };
+    const onPageShow = () => { suspended = false; renew(); };
+    const onOffline = () => { setLease(null); setHolder(null); setStatus('offline'); };
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('online', renew);
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('pageshow', onPageShow);
     window.addEventListener('trinity-android-connectivity', renew);
 
     return () => {
@@ -110,10 +142,13 @@ export function useExamResultLease(examId: string) {
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('online', renew);
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('pageshow', onPageShow);
       window.removeEventListener('trinity-android-connectivity', renew);
       void ExamLeaseService.release(examId, token).catch(() => undefined);
     };
-  }, [canAttempt, examId, leaseId, userId, userName]);
+  }, [canAttempt, examId, leaseId, userId]);
 
   const ensureLease = useCallback(async () => {
     if (!acquireRef.current) throw new Error('Editing permission is unavailable. Your entries are still on this page.');
@@ -123,16 +158,20 @@ export function useExamResultLease(examId: string) {
   // A listener does not fire simply because time has elapsed, so schedule an
   // expiry transition locally and make the editor read-only before any save.
   useEffect(() => {
-    if (!lease) return;
-    const delay = Math.max(0, new Date(lease.expiresAt).getTime() - Date.now() + 15_000);
+    const observed = holder || lease;
+    if (!observed) return;
+    const deadline = ExamLeaseService.deadline(observed);
+    const delay = Number.isFinite(deadline) ? Math.max(0, deadline - Date.now() + EXAM_LEASE_CLOCK_SKEW_MS + 1) : 0;
     const timer = window.setTimeout(() => {
-      if (ExamLeaseService.isExpired(lease)) {
+      if (ExamLeaseService.isExpired(observed)) {
         setLease(null);
-        setStatus('blocked');
+        setHolder(null);
+        setStatus('loading');
+        if (document.visibilityState !== 'hidden' && navigator.onLine && !isAndroidOffline()) void acquireRef.current?.acquire().catch(() => undefined);
       }
     }, delay);
     return () => window.clearTimeout(timer);
-  }, [lease]);
+  }, [lease, holder]);
 
   const token = useMemo<ExamLeaseToken | undefined>(() =>
     status === 'held' && lease && lease.examId === examId && lease.lockedByUid === userId
@@ -144,7 +183,7 @@ export function useExamResultLease(examId: string) {
   // stop an authorised editor. Loading, offline, and listener/transaction
   // errors mean Firestore could not establish the answer; those states must
   // remain saveable instead of pretending that another editor is present.
-  const hasConfirmedOtherEditor = status === 'blocked' && holder !== null;
+  const hasConfirmedOtherEditor = status === 'blocked' && holder !== null && holder.examId === examId && !ExamLeaseService.isExpired(holder);
   const canSave = canAttempt && !hasConfirmedOtherEditor;
   const override = useMemo<ExamLeaseOverride | undefined>(() =>
     canAttempt && user
@@ -160,7 +199,8 @@ export function useExamResultLease(examId: string) {
     canEdit: !!token,
     canSave,
     status,
-    holder,
+    holder: hasConfirmedOtherEditor ? holder : null,
+    isSameAccount: hasConfirmedOtherEditor && holder.lockedByUid === userId,
     token,
     ensureLease,
     canOverride: canAttempt && hasConfirmedOtherEditor,

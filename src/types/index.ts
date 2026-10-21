@@ -1036,6 +1036,7 @@ export interface UniformHistory {
 }
 
 export interface ExamLease {
+  clientId?: string;
   examId: string;
   lockedByUid: string;
   lockedByName: string;

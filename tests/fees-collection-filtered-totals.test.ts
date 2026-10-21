@@ -95,7 +95,7 @@ function pageHarness() {
     '@/lib/hooks/use-pdf-viewer': { usePDFViewer: () => ({ openPDF: async (document: any) => { report = document; } }) },
     '@/hooks/use-toast': { toast() {} },
     '../collect/[id]/utils/feeProcessing': { isPupilValidForTerm: () => true },
-    '@react-pdf/renderer': { Document: 'pdf-document', Page: 'pdf-page', Text: 'pdf-text', View: 'pdf-view', StyleSheet: { create: (styles: unknown) => styles } },
+    '@/lib/printing/monochrome-react-pdf': { Document: 'pdf-document', Page: 'pdf-page', Text: 'pdf-text', View: 'pdf-view', StyleSheet: { create: (styles: unknown) => styles } },
   };
   const module = { exports: {} as { default: () => Element } };
   vm.runInNewContext(compiled, {

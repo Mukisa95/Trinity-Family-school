@@ -2,6 +2,7 @@ import { CircumferenceError, requireScopedClass } from '@/lib/server/circumferen
 import { randomUUID } from 'crypto';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server';
+import { isExamLeaseExpired } from '@/lib/utils/exam-lease-policy';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { requireAppUser } from '@/lib/server/app-auth';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
@@ -12,8 +13,6 @@ import {
 
 export const dynamic = 'force-dynamic';
 export const revalidate = false;
-
-const CLOCK_SKEW_MS = 15_000;
 
 type PendingUnlockRequest = {
   id: string;
@@ -28,21 +27,8 @@ function getExamId(value: unknown): string | null {
   return examId && examId.length <= 200 && !examId.includes('/') ? examId : null;
 }
 
-function toMillis(value: unknown): number {
-  if (typeof value === 'number') return value;
-  if (typeof value === 'string') return new Date(value).getTime();
-  if (value && typeof value === 'object' && 'toMillis' in value && typeof value.toMillis === 'function') {
-    return value.toMillis();
-  }
-  if (value && typeof value === 'object' && 'toDate' in value && typeof value.toDate === 'function') {
-    return value.toDate().getTime();
-  }
-  return Number.NaN;
-}
-
 function isActiveLock(lock: Record<string, unknown>): boolean {
-  const expiresAt = toMillis(lock.expiresAt);
-  return Number.isFinite(expiresAt) && expiresAt > Date.now() - CLOCK_SKEW_MS;
+  return !isExamLeaseExpired(lock);
 }
 
 function canRecordExamResults(user: Parameters<typeof GranularPermissionService.canPerformAction>[0]): boolean {

@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { DEFAULT_GRADING_SCALE } from '@/lib/constants';
 import { cleanSubjectName } from '@/lib/utils/html-entities';
 import { formatTermName, calculateAccurateAge } from '@/lib/utils/term-formatter';
+import { reportPromotionRanking, type PromotionRankingConfig } from '@/lib/utils/promotion-ranking';
 import { AggregateCommentPicker } from '@/lib/exam-report-commentary';
 
 type ReportPaletteName = 'blue' | 'purple' | 'orange';
@@ -81,6 +82,7 @@ interface FullReport2Props {
   nextTermInfo?: { startDate: string; endDate: string };
   classTeacherInfo?: { name: string };
   reportConfig?: ReportConfig;
+  promotionRankingConfig?: PromotionRankingConfig;
   customDates?: { createdOn?: string; nextTermBegins?: string; nextTermEnds?: string };
   onProgress?: (progress: number, status: string) => void;
 }
@@ -195,14 +197,14 @@ const styles = StyleSheet.create({
   remarkCell: { width: '27%' },
   initialsCell: { width: '10%', borderRightWidth: 0 },
 
-  summaryOuter: { height: 68, marginTop: 8, paddingVertical: 7 },
+  summaryOuter: { position: 'relative', height: 68, marginTop: 8, paddingVertical: 7 },
   summaryRow: { height: 54, flexDirection: 'row' },
   summaryCard: { flex: 1, position: 'relative', borderRadius: 7, overflow: 'hidden' },
   summaryGap: { marginRight: 7 },
   summaryCardImage: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'fill' },
   summaryValue: { position: 'absolute', left: '39%', right: 7, bottom: 5, fontFamily: 'Helvetica-Bold', fontSize: 16, color: '#ffffff', textAlign: 'center' },
   ungradedSummaryValue: { bottom: 11 },
-  promotion: { position: 'absolute', left: '39%', right: 7, bottom: 1.5, color: '#ffffff', fontSize: 3.8, textAlign: 'center' },
+  promotion: { position: 'absolute', left: '67.5%', right: 0, top: 62, color: '#dc2626', fontFamily: 'Helvetica-Bold', fontSize: 7, textAlign: 'center' },
 
   scaleSection: { height: 65, marginTop: 9 },
   scaleTitle: { height: 15, fontFamily: 'Helvetica-Bold', fontSize: 8.7, color: '#64748b', paddingTop: 1 },
@@ -358,11 +360,8 @@ const FullReport2Page = ({
   const createdOn = formatDate(props.customDates?.createdOn || props.examDetails.startDate);
   const nextTermBegins = formatDate(props.customDates?.nextTermBegins || props.nextTermInfo?.startDate);
   const nextTermEnds = formatDate(props.customDates?.nextTermEnds || props.nextTermInfo?.endDate);
-  const promotion = result.division === 'I' || result.division === 'II'
-    ? 'PROMOTED'
-    : result.division === 'III'
-      ? 'PROMOTED ON PROBATION'
-      : 'REPEAT';
+  const promotion = config.promoted.show && config.promoted.fill
+    ? reportPromotionRanking(props.examDetails.termName, result.totalAggregates, props.promotionRankingConfig, props.classSnap.code || props.classSnap.name) : null;
   const examName = normalizedExamName(props.examDetails.examTypeName, props.examDetails.name);
   const reportHeading = `${examName} REPORT`;
   const headingWidth = Math.min(350, Math.max(200, reportHeading.length * 8.3 + 88));
@@ -508,9 +507,9 @@ const FullReport2Page = ({
             <View style={styles.summaryCard}>
               <Image src={divisionAsset(result.division)} style={styles.summaryCardImage} />
               <Text style={divisionCode(result.division) === 'U' ? [styles.summaryValue, styles.ungradedSummaryValue] : styles.summaryValue}>{divisionLabel(result.division)}</Text>
-              {config.promoted.show && config.promoted.fill && <Text style={styles.promotion}>{promotion}</Text>}
             </View>
           </View>
+          {promotion && <Text style={styles.promotion}>{promotion}</Text>}
         </View>
 
         {props.isProgressReport ? (

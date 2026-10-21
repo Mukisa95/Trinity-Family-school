@@ -1,5 +1,5 @@
 import React from 'react';
-import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
+import { Page, Text, View, Document, StyleSheet, Photo } from '@/lib/printing/monochrome-react-pdf';
 import { Pupil, Class, SchoolSettings } from '@/types';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 
@@ -256,6 +256,7 @@ const getInitials = (firstName: string, lastName: string) => {
 };
 
 interface PupilPerformanceListPDFProps {
+  colorPhotos?: boolean;
   pupils: Pupil[];
   pupilClass: Class | null;
   settings: SchoolSettings | null;
@@ -264,6 +265,7 @@ interface PupilPerformanceListPDFProps {
 }
 
 const PupilPerformanceListPDF: React.FC<PupilPerformanceListPDFProps> = ({
+  colorPhotos = false,
   pupils,
   pupilClass,
   settings,
@@ -360,7 +362,7 @@ const PupilPerformanceListPDF: React.FC<PupilPerformanceListPDFProps> = ({
             >
               <View style={styles.colPhoto}>
                 {pupil.photo ? (
-                  <Image style={styles.pupilPhoto} src={pupil.photo} />
+                  <Photo color={colorPhotos} style={styles.pupilPhoto} src={pupil.photo} />
                 ) : (
                   <View style={styles.photoPlaceholder}>
                     <Text style={styles.placeholderInitial}>

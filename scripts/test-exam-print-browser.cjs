@@ -11,14 +11,15 @@ export const exam={id:'exam7',name:'PRE-PLE - SET 4',baseName:'PRE-PLE',classId:
 export const scale=[{minMark:90,maxMark:100,grade:'D1',aggregates:1},{minMark:0,maxMark:89,grade:'F9',aggregates:9}];
 export const result={id:'r',examId:exam.id,academicYearId:'y',termId:'t',classSnapshot:{classId:'p7',name:'Primary Seven',code:'P.7',streamScope:{streams}},pupilSnapshots:pupils,subjectSnapshots:subjects,gradingScale:scale,majorSubjects:['ENG','MATH','SCI','SST'],results:Object.fromEntries(pupils.map(p=>[p.pupilId,Object.fromEntries(subjects.map(s=>[s.subjectId,{marks:88,grade:'D2',aggregates:2}]))]))};
 export const classes=[{id:'p7',name:'Primary Seven',code:'P.7',streams}];
-export const years=[{id:'y',name:'2026',terms:[{id:'t',name:'TERM 2'}]}];
+export const years=[{id:'y',name:'2026',terms:[{id:'t',name:new URLSearchParams(location.search).get('term')||'TERM 2'}]}];
 export const settings={generalInfo:{name:'TRINITY FAMILY SCHOOL'}};
 `;
 fs.writeFileSync(path.join(out, 'data.ts'), fixtureData);
 const dataImport = `import {exam,result,classes,years,settings} from '${path.join(out, 'data.ts').replaceAll('\\', '/')}';`;
 const stubs = {
+  '@/lib/contexts/navigation-context': `export const useNavigation=()=>({goBack:()=>{}});`,
   '@/lib/access/authorized-fetch': `export const authorizedFetch=async()=>({ok:true,json:async()=>({})});`,
-  'next/navigation': `export const useParams=()=>({});export const usePathname=()=>'/exams';export const useSearchParams=()=>new URLSearchParams();const nav=(...a)=>{window.navigations.push(a);throw Error('Print navigated away')};export const useRouter=()=>({push:nav,replace:nav,back:nav});`,
+  'next/navigation': `export const useParams=()=>({examId:'exam7'});export const usePathname=()=>'/exams';import {useState,useEffect} from 'react';export const useSearchParams=()=>{const[q,setQ]=useState(location.search);useEffect(()=>{const changed=()=>setQ(location.search);window.addEventListener('fixture-route',changed);return()=>window.removeEventListener('fixture-route',changed)},[]);return new URLSearchParams(q)};const nav=(...a)=>{window.navigations.push(a);throw Error('Print navigated away')};const replace=url=>{if(new URLSearchParams(location.search).get('view')==='1'){const target=new URL(url,location.origin);target.searchParams.set('view','1');target.searchParams.set('term',new URLSearchParams(location.search).get('term')||'TERM 2');history.replaceState({},'',target);window.dispatchEvent(new Event('fixture-route'));}else nav(url)};export const useRouter=()=>({push:nav,replace,back:nav});`,
   'next/link': `import React from 'react';export default function Link(p){return <a {...p}/>;}`,
   '@/lib/hooks/use-exams': dataImport + `const exams=[exam];export const useExam=()=>({data:exam,isLoading:false});export const useExams=()=>({data:exams,isLoading:false});export const useExamResultByExamId=()=>({data:window.noResults||window.loading?null:result,error:window.loadError?Error('Results unavailable'):null,isLoading:!!window.loading});`,
   '@/lib/hooks/use-classes': dataImport + `export const useClasses=()=>({data:classes});`,
@@ -44,12 +45,12 @@ for (const node of ast.statements) {
   const id = node.moduleSpecifier.text;
   if (!id.startsWith('@/components/exam/') || !/PDF/.test(id) || /\/(ExamResultsPDF|NurseryAssessmentPDF)$/.test(id)) continue;
   const names = node.importClause?.namedBindings?.elements?.filter(e => !e.isTypeOnly).map(e => e.propertyName?.text || e.name.text) || [];
-  stubs[id] = names.map(name => `export const ${name}=(...args)=>{window.templates.push('${name}');return Promise.resolve(new Blob(['report']));};`).join('\n') + (node.importClause?.name ? '\nexport default function Report(){return null;}' : '');
+  stubs[id] = names.map(name => `export const ${name}=(...args)=>{window.templates.push({name:'${name}',data:args[0]});return Promise.resolve(new Blob(['report']));};`).join('\n') + (node.importClause?.name ? '\nexport default function Report(){return null;}' : '');
 }
 const fixture = `import React from 'react';import {createRoot} from 'react-dom/client';import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
 import View from '@/app/exams/[examId]/view-results/ViewResultsView';import {BlankAssessmentPrintButton} from '@/components/exam/blank-assessment-print-button';import {exam,pupils,subjects,scale} from './data';
 window.navigations=[];window.generated=[];window.templates=[];window.toasts=[];const client=new QueryClient({defaultOptions:{queries:{retry:false}}});
-function Fixture(){const[open,setOpen]=React.useState(false);return <QueryClientProvider client={client}><main><h1>Exam Management</h1><button onClick={()=>setOpen(true)}>Print exam</button><BlankAssessmentPrintButton exam={exam} pupils={pupils.slice(0,1)} subjects={subjects} gradingScale={scale} className="P.7 East" isNursery={false}/>{open&&<View printTarget={{examId:exam.id,classId:exam.classId,onClose:()=>setOpen(false)}}/>}</main></QueryClientProvider>};createRoot(document.getElementById('app')).render(<Fixture/>);`;
+function Fixture(){const[open,setOpen]=React.useState(false);if(new URLSearchParams(location.search).get('view')==='1')return <QueryClientProvider client={client}><main className="px-3 md:px-6"><View/></main></QueryClientProvider>;return <QueryClientProvider client={client}><main><h1>Exam Management</h1><button onClick={()=>setOpen(true)}>Print exam</button><BlankAssessmentPrintButton exam={exam} pupils={pupils.slice(0,1)} subjects={subjects} gradingScale={scale} className="P.7 East" isNursery={false}/>{open&&<View printTarget={{examId:exam.id,classId:exam.classId,onClose:()=>setOpen(false)}}/>}</main></QueryClientProvider>};createRoot(document.getElementById('app')).render(<Fixture/>);`;
 async function main() {
   const pdfText = async bytes => {
     const {getDocument}=await import('pdfjs-dist/legacy/build/pdf.mjs');const task=getDocument({data:Uint8Array.from(bytes),useSystemFonts:true});const pdf=await task.promise;let text='';
@@ -59,7 +60,7 @@ async function main() {
   await require('esbuild').build({absWorkingDir:root,stdin:{contents:fixture,loader:'tsx',resolveDir:out},bundle:true,jsx:'automatic',platform:'browser',outfile:path.join(out,'fixture.js'),alias:{'@':path.join(root,'src')},define:{'process.env.NODE_ENV':'"production"','process.env':'{}'},plugins:[{name:'boundaries',setup(build){build.onResolve({filter:/.*/},args=>Object.hasOwn(stubs,args.path)?{path:args.path,namespace:'fixture-stub'}:undefined);build.onLoad({filter:/.*/,namespace:'fixture-stub'},args=>({contents:stubs[args.path],loader:'tsx',resolveDir:root}));}}]});
   const mod={exports:{}};new Function('require','module','exports',ts.transpileModule(fs.readFileSync(path.join(root,'tailwind.config.ts'),'utf8'),{compilerOptions:{module:1}}).outputText)(require,mod,mod.exports);
   const css=['globals.css','theme.css','brand-theme.css'].map(f=>fs.readFileSync(path.join(root,'src/app',f),'utf8')).join('\n').replace(/^@import[^;]+;/,'');
-  const built=await require('postcss')([require('tailwindcss')({...mod.exports.default,content:[path.join(root,'src/app/exams/[[]examId]/view-results/ViewResultsView.tsx'),path.join(root,'src/components/exam/report-creation-dialog.tsx'),path.join(root,'src/components/ui/{button,input,dialog}.tsx'),{raw:fixture,extension:'tsx'}]})]).process(css,{from:path.join(root,'src/app/globals.css')});fs.writeFileSync(path.join(out,'fixture.css'),built.css);
+  const built=await require('postcss')([require('tailwindcss')({...mod.exports.default,content:[path.join(root,'src/app/exams/[[]examId]/view-results/ViewResultsView.tsx'),path.join(root,'src/components/exam/report-creation-dialog.tsx'),path.join(root,'src/components/exam/promotion-ranking-options.tsx'),path.join(root,'src/components/common/glass-page-top-bar.tsx'),path.join(root,'src/components/ui/glass-navigation-surface.tsx'),path.join(root,'src/components/ui/{button,input,dialog}.tsx'),{raw:fixture,extension:'tsx'}]})]).process(css,{from:path.join(root,'src/app/globals.css')});fs.writeFileSync(path.join(out,'fixture.css'),built.css);
   const server=http.createServer((req,res)=>{if(['/fixture.js','/fixture.css'].includes(req.url)){res.setHeader('Content-Type',req.url.endsWith('.js')?'text/javascript':'text/css');res.end(fs.readFileSync(path.join(out,req.url.slice(1))));}else{res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/fixture.css"></head><body><div id="app"></div><script src="/fixture.js"></script></body></html>');}});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));let browser;
   try {
@@ -90,6 +91,24 @@ async function main() {
     for(const report of ['Full report','Bespoke report']){
       await page.goto('http://127.0.0.1:'+server.address().port+'/exams');await page.getByRole('button',{name:'Print exam',exact:true}).click();await page.getByRole('button',{name:/All streams/}).click();
       await page.getByRole('radio',{name:report,exact:true}).click();await page.getByRole('button',{name:'Continue',exact:true}).click();await page.getByRole('heading',{name:'Choose a full-report format'}).waitFor();assert.deepEqual(await page.evaluate(()=>window.navigations),[]);
+    }
+
+    for(const view of [false,true])for(const term of ['TERM 2','TERM 3'])for(const report of ['Full report','Bespoke report']){
+      await page.setViewportSize({width:report==='Bespoke report'?375:1366,height:900});
+      await page.goto('http://127.0.0.1:'+server.address().port+'/exams?term='+encodeURIComponent(term)+(view?'&view=1':''));
+      if(view){await page.getByRole('button',{name:/All streams/}).click();await page.locator('button[title="Print"]').filter({visible:true}).click();}
+      else{await page.getByRole('button',{name:'Print exam',exact:true}).click();await page.getByRole('button',{name:/All streams/}).click();}
+      console.log('Promotion flow:',{view,term,report});await page.getByRole('heading',{name:'Create pupil reports'}).waitFor();assert.equal(await page.getByRole('heading',{name:'Term 3 Promotion Ranking',exact:true}).count(),0);
+      await page.getByRole('radio',{name:report,exact:true}).click();await page.getByRole('button',{name:'Continue',exact:true}).click();await page.getByRole('radio',{name:'Grading scale',exact:true}).click();await page.getByRole('button',{name:'Continue',exact:true}).click();await page.getByRole('heading',{name:'Configure full report'}).waitFor();
+      const ranking=page.getByRole('checkbox',{name:'Term 3 promotion ranking',exact:true});assert.equal(await ranking.count(),term==='TERM 3'?1:0);
+      if(term==='TERM 3'){assert.equal(await ranking.isChecked(),false);await ranking.check();await page.getByLabel('Promoted max',{exact:true}).fill('12');await page.getByLabel('Promoted on probation min',{exact:true}).fill('13');await page.screenshot({path:path.join(out,(view?'view':'management')+'-'+report.replaceAll(' ','-')+'-promotion.png'),fullPage:true});}
+      await page.getByRole('button',{name:'Create PDF',exact:true}).click();await page.waitForFunction(()=>window.templates.length>0);
+      const call=await page.evaluate(()=>window.templates.at(-1));assert.equal(call.name,report==='Full report'?'generateTransBatchReportPDF':'generateFullReport2PDF');assert.equal(call.data.reportConfig.promoted.show,term==='TERM 3');assert.equal(!!call.data.promotionRankingConfig,term==='TERM 3');if(term==='TERM 3')assert.equal(call.data.promotionRankingConfig.ranges.promoted.max,12);
+    }
+    for(const report of ['Assessment report','Mini report']){
+      await page.goto('http://127.0.0.1:'+server.address().port+'/exams?term=TERM%203');await page.getByRole('button',{name:'Print exam',exact:true}).click();await page.getByRole('button',{name:/All streams/}).click();await page.getByRole('radio',{name:report,exact:true}).click();await page.getByRole('button',{name:'Continue',exact:true}).click();
+      if(report==='Assessment report')await page.getByRole('heading',{name:'Configure assessment report'}).waitFor();else await page.waitForFunction(()=>window.templates.length>0);
+      assert.equal(await page.getByRole('checkbox',{name:'Term 3 promotion ranking',exact:true}).count(),0);
     }
     assert.deepEqual(errors,[]);console.log('Exam printing browser: '+widths.length*2+' responsive/light-dark cases, scoped result and blank PDFs, full-report choices, loading/error/empty states passed.');
   } finally {if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}

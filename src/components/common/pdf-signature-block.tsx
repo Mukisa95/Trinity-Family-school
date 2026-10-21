@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Text, View, StyleSheet } from '@/lib/printing/monochrome-react-pdf';
 import { PDFSignatureService } from '@/lib/services/pdf-signature.service';
 import type { RecordType, AuditTrailEntry } from '@/types/digital-signature';
 

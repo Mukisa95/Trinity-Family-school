@@ -1,6 +1,6 @@
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Photo } from '@/lib/printing/monochrome-react-pdf';
 
 // Define the column selection interface
 export interface ColumnSelection {
@@ -110,6 +110,7 @@ interface CurrentUser {
 }
 
 interface PupilsListPDFDocumentProps {
+  colorPhotos?: boolean;
   pupils: ActivePupil[];
   classes: Class[];
   filters: Filters;
@@ -337,6 +338,7 @@ const shouldUseLandscape = (columnSelection: ColumnSelection) => {
 };
 
 const PupilsListPDFDocument: React.FC<PupilsListPDFDocumentProps> = ({
+  colorPhotos = false,
   pupils,
   classes,
   filters,
@@ -474,7 +476,7 @@ const PupilsListPDFDocument: React.FC<PupilsListPDFDocumentProps> = ({
                   {columnSelection.photo && (
                     <View style={[styles.tableCol, { width: '8%', alignItems: 'center', justifyContent: 'center' }]}>
                       {pupil.photo ? (
-                        <Image style={styles.pupilPhoto} src={pupil.photo} />
+                        <Photo color={colorPhotos} style={styles.pupilPhoto} src={pupil.photo} />
                       ) : (
                         <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' }}>
                           <Text style={[styles.tableCellSmall, { fontSize: 8 }]}>No photo</Text>

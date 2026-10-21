@@ -6,7 +6,7 @@ import { TransPupilReportCardPDF } from './TransPupilReportPDF';
 import { DEFAULT_GRADING_SCALE } from '@/lib/constants';
 import { cleanSubjectName } from '@/lib/utils/html-entities';
 import { formatTermName, calculateAccurateAge } from '@/lib/utils/term-formatter';
-import { calculatePromotionStatus } from '@/lib/utils/promotion-ranking';
+import { reportPromotionRanking } from '@/lib/utils/promotion-ranking';
 import { AggregateCommentPicker } from '@/lib/exam-report-commentary';
 
 interface ExamResult {
@@ -56,6 +56,7 @@ interface ModernBatchReportProps {
     endDate: string;
   }>;
   classSnap: {
+    code?: string;
     name: string;
   };
   subjectSnaps: Subject[];
@@ -429,11 +430,7 @@ Date: ${new Date().toLocaleDateString()}`;
           classTeacherName: classTeacherInfo?.name,
           promotionStatus: result.division === 'I' || result.division === 'II' ? 'PROMOTED' : 
                           result.division === 'III' ? 'PROMOTED ON PROBATION' : 'REPEAT',
-          promotionRanking: promotionRankingConfig ? calculatePromotionStatus(
-            result.totalAggregates,
-            promotionRankingConfig,
-            classSnap.code
-          ) : null,
+          promotionRanking: null,
           examSnapshot: {
             academicYearId: examDetails.academicYearId || new Date().getFullYear().toString(),
             termId: examDetails.termId || 'TERM'
@@ -746,7 +743,7 @@ Date: ${new Date().toLocaleDateString()}`;
           schoolCountry: schoolInfo.country,
           gradingScale: isProgressReport ? undefined : actualGradingScale,
           isProgressReport: isProgressReport,
-          progressData: progressData,
+          progressData: progressData ?? undefined,
           totalMarks: result.totalMarks,
           totalAggregates: result.totalAggregates,
           division: result.division,
@@ -754,11 +751,7 @@ Date: ${new Date().toLocaleDateString()}`;
           classTeacherName: classTeacherInfo?.name,
           promotionStatus: result.division === 'I' || result.division === 'II' ? 'PROMOTED' : 
                           result.division === 'III' ? 'PROMOTED ON PROBATION' : 'REPEAT',
-          promotionRanking: promotionRankingConfig ? calculatePromotionStatus(
-            result.totalAggregates,
-            promotionRankingConfig,
-            classSnap.code
-          ) : null,
+          promotionRanking: reportPromotionRanking(examDetails.termName, result.totalAggregates, promotionRankingConfig, classSnap.code || classSnap.name),
           examSnapshot: {
             academicYearId: examDetails.academicYearId || new Date().getFullYear().toString(),
             termId: examDetails.termId || 'TERM'

@@ -4,13 +4,18 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
 import { webcrypto } from 'node:crypto';
+import { examLeaseDeadline, isExamLeaseExpired, EXAM_LEASE_DURATION_MS, EXAM_LEASE_RENEW_MS, EXAM_LEASE_CLOCK_SKEW_MS } from '../src/lib/utils/exam-lease-policy';
 
 const settle = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
 
 /** Render the real hook with deterministic effects and a transactional lock fixture. */
 function editorFixture(online = true) {
+  let clock = Date.now(), timerId = 0;
+  const timers = new Map<number, { fn: () => void; at: number }>();
+  const intervals = new Map<number, () => void>();
   const window = Object.assign(new EventTarget(), {
-    setInterval: () => 1, clearInterval() {}, setTimeout: () => 1, clearTimeout() {},
+    setInterval: (fn: () => void) => { const id = ++timerId; intervals.set(id, fn); return id; }, clearInterval: (id: number) => { intervals.delete(id); },
+    setTimeout: (fn: () => void, delay: number) => { const id = ++timerId; timers.set(id, { fn, at: clock + delay }); return id; }, clearTimeout: (id: number) => { timers.delete(id); },
   });
   const document = Object.assign(new EventTarget(), { visibilityState: 'visible' });
   const navigator = { onLine: online };
@@ -30,11 +35,12 @@ function editorFixture(online = true) {
   };
   const service = {
     ref: () => ({}), normalize: (_: string, data: unknown) => data,
-    isExpired: (lease: any) => new Date(lease.expiresAt).getTime() <= Date.now(),
-    acquire: async (requestedExam: string, user: { id: string; name: string }, leaseId: string) => {
+    deadline: examLeaseDeadline,
+    isExpired: (lease: any) => isExamLeaseExpired(lease, clock),
+    acquire: async (requestedExam: string, user: { id: string; name: string }, leaseId: string, clientId: string) => {
       acquisitions++; if (gate) await gate;
-      if (remote && remote.examId === requestedExam && remote.leaseId !== leaseId) return { acquired: false, holder: remote };
-      remote = { examId: requestedExam, lockedByUid: user.id, lockedByName: user.name, leaseId, expiresAt: new Date(Date.now() + 600_000).toISOString() };
+      if (remote && remote.examId === requestedExam && !isExamLeaseExpired(remote, clock) && remote.leaseId !== leaseId && !(remote.clientId === clientId && remote.lockedByUid === user.id)) return { acquired: false, holder: remote };
+      remote = { examId: requestedExam, lockedByUid: user.id, lockedByName: user.name, leaseId, clientId, renewedAt: new Date(clock).toISOString(), expiresAt: new Date(clock + EXAM_LEASE_DURATION_MS).toISOString() };
       return { acquired: true, lease: remote };
     },
     release: async (_: string, token: any) => { releases++; if (remote?.leaseId === token.leaseId) remote = null; },
@@ -43,7 +49,7 @@ function editorFixture(online = true) {
   vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/lib/hooks/use-exam-result-lease.ts', 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   }).outputText, {
-    module, exports: module.exports, window, document, navigator, crypto: webcrypto, console,
+    module, exports: module.exports, window, document, navigator, crypto: webcrypto, console, Date: class extends Date { static now() { return clock; } },
     require(name: string) {
       if (name === 'react') return {
         useState: (initial: unknown) => { const index = stateIndex++; if (!(index in state)) state[index] = initial; return [state[index], (value: unknown) => { state[index] = value; }]; },
@@ -56,7 +62,8 @@ function editorFixture(online = true) {
           });
         },
       };
-      if (name === 'firebase/firestore') return { onSnapshot: (_: unknown, listener: (snapshot: unknown) => void) => { observe = listener; return () => { if (observe === listener) observe = undefined; }; } };
+      if (name === '@/lib/access/scoped-firestore') return { onSnapshot: (_: unknown, _options: unknown, listener: (snapshot: unknown) => void) => { observe = listener; return () => { if (observe === listener) observe = undefined; }; } };
+      if (name === '@/lib/utils/exam-lease-policy') return { EXAM_LEASE_RENEW_MS, EXAM_LEASE_CLOCK_SKEW_MS };
       if (name === '@/lib/contexts/auth-context') return { useAuth: () => ({ user: identity, isAuthenticated: true }) };
       if (name === '@/lib/services/exam-lease.service') return { ExamLeaseService: service };
       if (name === '@/lib/offline/android-app-shell') return { isAndroidOffline: () => !navigator.onLine };
@@ -70,15 +77,20 @@ function editorFixture(online = true) {
     return result;
   };
   return {
-    render, window, navigator, get acquisitions() { return acquisitions; }, get releases() { return releases; },
+    render, window, navigator, document, get acquisitions() { return acquisitions; }, get releases() { return releases; },
     loseLock() { remote = null; },
-    block() { remote = { examId, lockedByUid: 'other-user', lockedByName: 'Another editor', leaseId: 'other-lease' }; },
+    block(sameAccount = false) { remote = { examId, lockedByUid: sameAccount ? identity.id : 'other-user', lockedByName: sameAccount ? 'Editor' : 'Another editor', leaseId: 'other-lease', renewedAt: new Date(clock).toISOString(), expiresAt: new Date(clock + EXAM_LEASE_DURATION_MS).toISOString() }; },
     delay(value: Promise<void>) { gate = value; },
     freshIdentity() { identity = { ...identity }; },
     switchExam(value: string) { examId = value; },
     replayEffects() { effects.forEach(effect => effect?.cleanup?.()); effects.forEach(effect => { if (effect) effect.cleanup = effect.fn(); }); },
     get hasRemote() { return remote !== null; },
-    notifyMissing() { observe?.({ exists: () => false }); },
+    notifyMissing() { observe?.({ exists: () => false, metadata: { fromCache: false, hasPendingWrites: false } }); },
+    notify(fromCache = false) { const value = remote; observe?.({ exists: () => !!value, data: () => value, metadata: { fromCache, hasPendingWrites: false } }); },
+    advance(ms: number) { clock += ms; for (const [id, timer] of timers) if (timer.at <= clock) { timers.delete(id); timer.fn(); } },
+    renew() { intervals.forEach(fn => fn()); },
+    rename() { identity = { ...identity, firstName: 'Renamed editor' }; },
+    previousPageToken() { remote = { ...remote, leaseId: 'previous-page-token' }; },
     dispose() { effects.forEach(effect => effect?.cleanup?.()); },
   };
 }
@@ -134,4 +146,54 @@ test('Strict Mode replay keeps a replacement lock and unmount releases a late ac
   abandoned.delay(new Promise<void>(resolve => { complete = resolve; }));
   abandoned.render(); abandoned.dispose(); complete(); await settle();
   assert.equal(abandoned.hasRemote, false);
+});
+
+test('a cached lock cannot announce an editor; a current server lock can', async () => {
+  const fixture = editorFixture(); fixture.render(); await settle(); fixture.render();
+  fixture.block(); fixture.notify(true);
+  assert.equal(fixture.render().holder, null);
+  fixture.notify(); const blocked = fixture.render();
+  assert.equal(blocked.canOverride, true); assert.equal(blocked.isSameAccount, false);
+});
+
+test('an expired holder clears without waiting for another Firestore snapshot', async () => {
+  const fixture = editorFixture(); fixture.block(); fixture.render(); await settle();
+  assert.equal(fixture.render().canOverride, true);
+  fixture.advance(EXAM_LEASE_DURATION_MS + EXAM_LEASE_CLOCK_SKEW_MS + 1); await settle();
+  const ready = fixture.render(); assert.equal(ready.holder, null); assert.equal(ready.canEdit, true);
+});
+
+test('another active session on the same account is identified accurately and cannot silently overwrite', async () => {
+  const fixture = editorFixture(); fixture.block(true); fixture.render(); await settle();
+  const blocked = fixture.render(); assert.equal(blocked.isSameAccount, true); assert.equal(blocked.canSave, false);
+  await assert.rejects(() => blocked.ensureLease(), /being edited/);
+});
+
+test('profile-name refresh does not rotate the editing token or announce the user as another editor', async () => {
+  const fixture = editorFixture(); fixture.render(); await settle(); const before = fixture.render().token;
+  fixture.rename(); fixture.render(); await settle(); const after = fixture.render();
+  assert.deepEqual(after.token, before); assert.equal(fixture.acquisitions, 1); assert.equal(after.holder, null);
+});
+
+test('a previous token from this page never flashes a self-conflict banner', async () => {
+  const fixture = editorFixture(); fixture.render(); await settle(); fixture.render();
+  fixture.previousPageToken(); fixture.notify();
+  assert.equal(fixture.render().holder, null); await settle(); assert.equal(fixture.render().canEdit, true);
+});
+
+test('hidden pages do not renew or reclaim expired locks; returning to the page reacquires', async () => {
+  const fixture = editorFixture(); fixture.render(); await settle(); fixture.render();
+  const count = fixture.acquisitions; fixture.document.visibilityState = 'hidden'; fixture.renew();
+  fixture.advance(EXAM_LEASE_DURATION_MS + EXAM_LEASE_CLOCK_SKEW_MS + 1); await settle();
+  assert.equal(fixture.render().canEdit, false); assert.equal(fixture.acquisitions, count);
+  fixture.document.visibilityState = 'visible'; fixture.document.dispatchEvent(new Event('visibilitychange')); await settle();
+  assert.equal(fixture.render().canEdit, true);
+});
+
+test('leaving the page releases the lock and page restoration reacquires it', async () => {
+  const fixture = editorFixture(); fixture.render(); await settle(); fixture.render();
+  fixture.window.dispatchEvent(new Event('pagehide')); await settle();
+  assert.equal(fixture.hasRemote, false); assert.equal(fixture.render().holder, null);
+  const count = fixture.acquisitions; fixture.renew(); await settle(); assert.equal(fixture.acquisitions, count);
+  fixture.window.dispatchEvent(new Event('pageshow')); await settle(); assert.equal(fixture.render().canEdit, true);
 });
