@@ -17,6 +17,7 @@ import CertificatePDFDocument from '@/components/certificates/PLECertificatePDF'
 import QRCode from 'qrcode';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { createPdfFileName } from '@/lib/printing/document-file-name';
 import { PDFViewer } from '@/components/pdf/pdf-viewer';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 
@@ -166,7 +167,7 @@ Division: ${pupilResult.division}`;
         />
       );
 
-      const fileName = `PLE_Certificate_${formatPupilDisplayName(pupilResult).replace(/[^a-zA-Z0-9]/g, '_')}_${pleRecord?.year || new Date().getFullYear()}.pdf`;
+      const fileName = createPdfFileName(formatPupilDisplayName(pupilResult), 'PLE Certificate', String(pleRecord?.year || new Date().getFullYear()));
       const title = 'PLE Certificate';
       await pdfViewer.runPDFJob(
         { fileName, title, initialMessage: `Rendering ${formatPupilDisplayName(pupilResult)}'s certificate…` },

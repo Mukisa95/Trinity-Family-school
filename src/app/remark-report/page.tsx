@@ -55,6 +55,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatPupilDisplayName, matchesPupilSearch } from '@/lib/utils/name-formatter';
+import { createPdfFileName } from '@/lib/printing/document-file-name';
 import { SubjectCommentType, SubjectStatus } from '@/types';
 import { SUBJECT_COMMENT_TYPES, SUBJECT_STATUS_OPTIONS } from '@/lib/constants/subject-comments';
 import {
@@ -1124,7 +1125,7 @@ export default function RemarkReportPage() {
       );
 
       // Generate PDF and open in viewer
-      const fileName = `Performance_List_${selectedClassData?.name || 'Class'}_${new Date().toISOString().split('T')[0]}.pdf`;
+      const fileName = createPdfFileName('Performance List', selectedClassData?.name || 'Class');
       const title = 'Performance List';
 
       await pdfViewer.openPDF(pdfDoc, fileName, title);
@@ -1430,7 +1431,7 @@ export default function RemarkReportPage() {
       const pdfBlob = combinedBlob;
 
       // Open in PDF viewer
-      const fileName = `Batch_Assessment_Reports_${selectedClassData.name}_${new Date().toISOString().split('T')[0]}.pdf`;
+      const fileName = createPdfFileName('Assessment Reports', selectedClassData.name);
       const title = 'Batch Assessment Reports';
 
       pdfViewer.openPDFFromBlob(pdfBlob, fileName, title);
@@ -1688,12 +1689,9 @@ export default function RemarkReportPage() {
       const individualPupilName = individualPupil
         ? formatPupilDisplayName(individualPupil)
         : 'the selected pupil';
-      const safePupilName = individualPupil
-        ? individualPupilName.replace(/[^a-zA-Z0-9]/g, '_')
-        : 'Pupil';
       const fileName = isIndividualPrint
-        ? `${reportStyle === 'playful' ? 'Playful_Report' : 'Assessment_Report'}_${safePupilName}_${new Date().toISOString().split('T')[0]}.pdf`
-        : `${reportStyle === 'playful' ? 'Batch_Playful_Reports' : 'Batch_Assessment_Reports'}_${selectedClassData.name}_${new Date().toISOString().split('T')[0]}.pdf`;
+        ? createPdfFileName(individualPupilName, reportStyle === 'playful' ? 'Playful Report' : 'Assessment Report')
+        : createPdfFileName(reportStyle === 'playful' ? 'Playful Reports' : 'Assessment Reports', selectedClassData.name);
       const title = isIndividualPrint
         ? (reportStyle === 'playful' ? 'Playful Pupil Report' : 'Pupil Assessment Report')
         : (reportStyle === 'playful' ? 'Batch Playful Reports' : 'Batch Assessment Reports');

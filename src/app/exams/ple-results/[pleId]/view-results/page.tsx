@@ -39,6 +39,7 @@ import {
 import { useSchoolSettings } from "@/lib/hooks/use-school-settings";
 import type { PLEPupilResult, PLERecord } from "@/lib/services/ple-results.service";
 import { formatPupilDisplayName, matchesPupilSearch } from '@/lib/utils/name-formatter';
+import { createPdfFileName, examResultsFileName } from '@/lib/printing/document-file-name';
 import { PDFViewer } from '@/components/pdf/pdf-viewer';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -459,7 +460,7 @@ export default function ViewPLEResultsPage({ params }: { params: Promise<{ pleId
       // PLE doesn't use grading scale - pass empty array to hide it
       const gradingScale: any[] = [];
 
-      const fileName = `PLE_Assessment_${pleRecord?.year || new Date().getFullYear()}.pdf`;
+      const fileName = examResultsFileName(`${pleRecord?.examName || 'PLE'} ${pleRecord?.year || new Date().getFullYear()}`, undefined, 'Results');
       const title = 'PLE Assessment Report';
       await pdfViewer.runPDFJob(
         { fileName, title, initialMessage: `Rendering results for ${validPupils.length} pupils…` },
@@ -626,7 +627,7 @@ Division: ${pupil.division}`;
         />
       );
 
-      const fileName = `PLE_Batch_Certificates_${pleRecord?.year || new Date().getFullYear()}.pdf`;
+      const fileName = createPdfFileName('PLE Certificates', pleRecord?.examName || 'PLE', String(pleRecord?.year || new Date().getFullYear()));
       await pdfViewer.runPDFJob(
         { fileName, title: 'PLE Batch Certificates', initialMessage: `Rendering ${validPupils.length} certificates…` },
         async ({ updateProgress }) => {
@@ -739,7 +740,7 @@ Division: ${pupil.division}`;
         />
       );
 
-      const fileName = `PLE_Certificate_${formatPupilDisplayName(pupil).replace(/[^a-zA-Z0-9]/g, '_')}_${pleRecord?.year || new Date().getFullYear()}.pdf`;
+      const fileName = createPdfFileName(formatPupilDisplayName(pupil), 'PLE Certificate', String(pleRecord?.year || new Date().getFullYear()));
       const title = 'PLE Certificate';
       await pdfViewer.runPDFJob(
         { fileName, title, initialMessage: `Rendering ${formatPupilDisplayName(pupil)}'s certificate…` },

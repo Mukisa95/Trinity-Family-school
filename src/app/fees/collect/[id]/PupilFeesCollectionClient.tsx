@@ -5,6 +5,7 @@ import { usePageDataTiming } from '@/lib/hooks/use-page-data-timing';
 import { measureWorkspaceRequest } from '@/lib/startup/workspace-timing';
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { createPdfFileName } from '@/lib/printing/document-file-name';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
@@ -1826,11 +1827,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   const handlePrint = (selectedFees: any[]) => {
     if (!pupil || selectedFees.length === 0) return;
 
-    const safePupilName = formatPupilDisplayName(pupil).replace(/\s+/g, '_')
-      .trim()
-      .replace(/[^a-zA-Z0-9]+/g, '_')
-      .replace(/^_|_$/g, '') || 'pupil';
-    const fileName = `${safePupilName}_fee_statement.pdf`;
+    const fileName = createPdfFileName(formatPupilDisplayName(pupil), 'Fee Statement');
 
     void pdfViewer.runPDFJob(
       {
@@ -2162,8 +2159,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         </Document>
       );
 
-      const safeName = formatPupilDisplayName(pupil).replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_');
-      const fileName = `${safeName}_Payment_ID.pdf`;
+      const fileName = createPdfFileName(formatPupilDisplayName(pupil), 'Payment ID');
       await pdfViewer.runPDFJob(
         { fileName, title: 'Payment ID Card', initialMessage: 'Rendering payment ID card…' },
         async ({ updateProgress }) => {

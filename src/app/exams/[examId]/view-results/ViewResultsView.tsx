@@ -128,6 +128,7 @@ import { Label } from "@/components/ui/label";
 import { ExamsService } from '@/lib/services/exams.service';
 import { DEFAULT_GRADING_SCALE } from '@/lib/constants';
 import { formatPupilDisplayName, formatPupilName, matchesPupilSearch } from '@/lib/utils/name-formatter';
+import { createPdfFileName, examBatchFileName, examResultsFileName, individualExamReportFileName } from '@/lib/printing/document-file-name';
 import { cleanSubjectName } from '@/lib/utils/html-entities';
 import { formatTeacherNameWithTitle } from '@/lib/utils/teacher-formatter';
 import { isTermThree, isValidPromotionRanking } from '@/lib/utils/promotion-ranking';
@@ -1490,7 +1491,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
       };
 
       const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_Report.pdf`;
+      const fileName = individualExamReportFileName(pupilName, examDetails.name);
       const title = 'Individual Pupil Report';
       await pdfViewer.runPDFJob(
         { fileName, title, initialMessage: 'Generating the individual pupil report…' },
@@ -1562,7 +1563,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
       );
 
       const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_Mini_Report.pdf`;
+      const fileName = individualExamReportFileName(pupilName, examDetails.name, 'Mini Report');
       updateProgressForIndividual(65, 'Generating one half-page Mini Report...');
       await pdfViewer.runPDFJob(
         { fileName, title: 'Individual Pupil Mini Report', initialMessage: 'Generating the pupil Mini Report…' },
@@ -1766,7 +1767,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
       };
 
       const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Report'}.pdf`;
+      const fileName = individualExamReportFileName(pupilName, examDetails.name, selectedFullReportTemplate === 'full2' ? 'Bespoke Report' : 'TRANS Report');
       const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Bespoke Report' : 'Individual Pupil TRANS Report';
       await pdfViewer.runPDFJob(
         { fileName, title, initialMessage: 'Generating the individual full report…' },
@@ -2028,7 +2029,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
       updateProgressForIndividual(70, 'Generating TRANS progress report PDF...');
 
       const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Progress_Report'}.pdf`;
+      const fileName = individualExamReportFileName(pupilName, examDetails.name, selectedFullReportTemplate === 'full2' ? 'Bespoke Progress Report' : 'TRANS Progress Report');
       const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Bespoke Report' : 'Individual Pupil TRANS Progress Report';
       await pdfViewer.runPDFJob(
         { fileName, title, initialMessage: 'Generating the individual progress report…' },
@@ -2224,7 +2225,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
 
       updateProgress(65, 'Generating PDF document...');
 
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${isNurseryExam ? 'nursery_assessment' : 'results'}.pdf`;
+      const fileName = examResultsFileName(examDetails.name, scopedClassLabel, isNurseryExam ? 'Nursery Results' : 'Results');
       const title = isNurseryExam ? 'Nursery Assessment Report' : 'Exam Results';
       await pdfViewer.runPDFJob(
         { fileName, title, initialMessage: 'Rendering assessment pages…' },
@@ -2305,8 +2306,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
             aggregates: item.aggregates || 9,
           }));
       const adaptedData = adaptExamDataForPDF(examDetails, classSnap, subjectSnaps, processedResults, majorSubjects);
-      const classFileName = (classSnap.name || classSnap.code || 'class').replace(/\s+/g, '_');
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${classFileName}_performance_analysis.pdf`;
+      const fileName = examBatchFileName(examDetails.name, 'Performance Analysis', classSnap.name || classSnap.code || 'Class');
       await pdfViewer.runPDFJob(
         { fileName, title: 'Performance Analysis PDF', initialMessage: 'Rendering selected analysis sections…' },
         async ({ updateProgress: updateWorkspaceProgress }) => {
@@ -2493,7 +2493,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
       });
 
       setGenerationStatus('Creating cross analysis PDF...');
-      const fileName = `${scopedClassLabel.replace(/\s+/g, '_')}_cross_exam_analysis.pdf`;
+      const fileName = createPdfFileName('Cross-Exam Analysis', scopedClassLabel);
       await pdfViewer.runPDFJob(
         { fileName, title: 'Cross Exam Analysis PDF', initialMessage: 'Comparing selected exams…' },
         async ({ updateProgress: updateWorkspaceProgress }) => {
@@ -2627,7 +2627,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
       });
 
       setGenerationStatus('Creating subject analysis PDF...');
-      const fileName = `${scopedClassLabel.replace(/\s+/g, '_')}_subject_set_analysis.pdf`;
+      const fileName = createPdfFileName('Subject Set Analysis', scopedClassLabel);
       await pdfViewer.runPDFJob(
         { fileName, title: 'Subject Set Analysis PDF', initialMessage: 'Preparing selected subjects…' },
         async ({ updateProgress: updateWorkspaceProgress }) => {
@@ -2843,7 +2843,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
 
       updateProgress(85, 'Generating modern batch report PDF...');
 
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_Modern_Batch_Reports.pdf`;
+      const fileName = examBatchFileName(examDetails.name, 'Reports');
       const title = 'Modern Batch Reports';
       await pdfViewer.runPDFJob(
         { fileName, title, initialMessage: 'Rendering modern pupil reports…' },
@@ -3224,7 +3224,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
           updateProgress(mappedProgress, status);
         }
       };
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Batch_Reports'}.pdf`;
+      const fileName = examBatchFileName(examDetails.name, selectedFullReportTemplate === 'full2' ? 'Bespoke Reports' : 'TRANS Reports');
       const title = selectedFullReportTemplate === 'full2' ? 'Bespoke Report' : 'TRANS Batch Reports';
       await pdfViewer.runPDFJob(
         { fileName, title, initialMessage: 'Rendering full pupil reports…' },
@@ -3578,7 +3578,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
           updateProgress(mappedProgress, status);
         }
       };
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Progress_Reports'}.pdf`;
+      const fileName = examBatchFileName(examDetails.name, selectedFullReportTemplate === 'full2' ? 'Bespoke Progress Reports' : 'TRANS Progress Reports');
       const title = selectedFullReportTemplate === 'full2' ? 'Bespoke Report' : 'TRANS Progress Reports';
       await pdfViewer.runPDFJob(
         { fileName, title, initialMessage: 'Rendering pupil progress reports…' },
@@ -3738,7 +3738,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
         examDetails?.termId || ''
       );
 
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_primary_mini_reports.pdf`;
+      const fileName = examBatchFileName(examDetails.name, 'Primary Mini Reports');
       const title = 'Primary Mini Reports';
       await pdfViewer.runPDFJob(
         { fileName, title, initialMessage: 'Rendering primary mini reports…' },
@@ -3829,7 +3829,7 @@ export default function ViewResultsView({ analysisMode = false, printTarget }: V
       );
 
       updateProgress(65, 'Designing playful nursery mini reports...');
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_nursery_mini_reports.pdf`;
+      const fileName = examBatchFileName(examDetails.name, 'Nursery Mini Reports');
       await pdfViewer.runPDFJob(
         { fileName, title: 'Nursery Mini Reports', initialMessage: 'Rendering nursery mini reports…' },
         async ({ updateProgress: updateWorkspaceProgress }) => generateNurseryMiniReportPDF({

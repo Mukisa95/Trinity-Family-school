@@ -1,4 +1,5 @@
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { createPdfFileName } from '@/lib/printing/document-file-name';
 import React, { useState } from 'react';
 import { CurrencyCircleDollar, Receipt, IdentificationCard, Printer, ChatCircle, ArrowCounterClockwise, TShirt, CaretDown, CaretUp, Package } from '@phosphor-icons/react';
 import jsPDF from 'jspdf';
@@ -290,7 +291,7 @@ export function FeeCard({
 
   const handlePrintReceipt = async (payment: PaymentRecord) => {
     const receiptNumber = payment.id.slice(-8).toUpperCase();
-    const fileName = `receipt-${receiptNumber}-${formatPupilDisplayName(pupil).replace(/[^a-zA-Z0-9]+/g, '_')}.pdf`;
+    const fileName = createPdfFileName(formatPupilDisplayName(pupil), 'Receipt', receiptNumber);
     await pdfViewer.runPDFJob(
       { fileName, title: `Receipt ${receiptNumber}`, initialMessage: 'Rendering payment receipt…' },
       async ({ updateProgress }) => {

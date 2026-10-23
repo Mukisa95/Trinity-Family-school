@@ -1,6 +1,7 @@
 "use client";
 
 import { formatPupilDisplayName, matchesPupilSearch } from '@/lib/utils/name-formatter';
+import { createPdfFileName } from '@/lib/printing/document-file-name';
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -228,9 +229,7 @@ function NewPupilContent() {
     document.body.appendChild(pdfContainer);
 
     try {
-      const safeFirstName = firstName || 'Pupil';
-      const safeLastName = lastName || '';
-      const fileName = `Pupil_Registration_${safeFirstName}_${safeLastName}.pdf`;
+      const fileName = createPdfFileName(formatPupilDisplayName({ firstName, lastName, otherNames }), 'Registration Form');
       await pdfViewer.runPDFJob(
         { fileName, title: 'Pupil Registration Form', initialMessage: 'Capturing registration details…' },
         async ({ updateProgress }) => {

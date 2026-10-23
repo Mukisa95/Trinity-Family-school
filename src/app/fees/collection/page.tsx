@@ -2,6 +2,7 @@
 import { listDocumentStyles } from '@/lib/printing/list-document-theme';
 
 import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { createPdfFileName } from '@/lib/printing/document-file-name';
 import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
 import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
 import { GlassPageRouteSkeleton } from "@/components/common/glass-page-loading";
@@ -1205,9 +1206,7 @@ export default function FeesCollectionPage() {
         : null;
       const classLabel = selClass ? (selClass.code || selClass.name || '') : '';
       const reportTitle = classLabel ? `${classLabel} Fees Collection Report` : 'Fees Collection Report';
-      const fileName = classLabel
-        ? `${classLabel.replace(/\s+/g, '_')}_fees-collection-${new Date().toISOString().split('T')[0]}.pdf`
-        : `fees-collection-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      const fileName = createPdfFileName('Fees Collection Report', classLabel || undefined);
       const title = reportTitle;
 
       await pdfViewer.openPDF(pdfDoc, fileName, title);

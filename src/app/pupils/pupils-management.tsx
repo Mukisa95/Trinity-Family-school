@@ -61,6 +61,7 @@ import { PupilTableRowSkeleton } from '@/components/pupils/PupilTableRowSkeleton
 import { usePermissions } from "@/lib/hooks/use-permissions";
 import dynamic from 'next/dynamic';
 import { formatPupilDisplayName, sortPupilsByName, matchesPupilSearch } from '@/lib/utils/name-formatter';
+import { createPdfFileName } from '@/lib/printing/document-file-name';
 import { useTermStatus } from '@/lib/hooks/use-term-status';
 import { RecessStatusBanner } from '@/components/common/recess-status-banner';
 import type { ExportConfig } from '@/components/pupils/ExportConfigModal';
@@ -2184,9 +2185,7 @@ function PupilsContent() {
         ? (classes.find(c => c.id === selectedClassId)?.name || classes.find(c => c.id === selectedClassId)?.code || '')
         : '';
       const listHeading = selectedClassName ? `${selectedClassName} Pupils List` : 'Pupils List';
-      const fileName = selectedClassName
-        ? `${selectedClassName.replace(/\s+/g, '_')}_pupils-list-${new Date().toISOString().split('T')[0]}.pdf`
-        : `pupils-list-${new Date().toISOString().split('T')[0]}.pdf`;
+      const fileName = createPdfFileName('Pupils List', selectedClassName || undefined);
       const title = listHeading;
 
       await pdfViewer.openPDF(pdfDoc, fileName, title);
@@ -2653,9 +2652,7 @@ function PupilsContent() {
         ? (classes.find(c => c.id === selectedClassId)?.name || classes.find(c => c.id === selectedClassId)?.code || '')
         : '';
       const listHeadingC = selectedClassNameC ? `${selectedClassNameC} Pupils List` : 'Pupils List';
-      const fileName = selectedClassNameC
-        ? `${selectedClassNameC.replace(/\s+/g, '_')}_pupils-list-${new Date().toISOString().split('T')[0]}.pdf`
-        : `pupils-list-${new Date().toISOString().split('T')[0]}.pdf`;
+      const fileName = createPdfFileName('Pupils List', selectedClassNameC || undefined);
       await pdfViewer.openPDF(pdfDoc, fileName, listHeadingC);
       setIsColumnSelectionModalOpen(false);
 
@@ -2679,7 +2676,7 @@ function PupilsContent() {
     try {
       await pdfViewer.runPDFJob(
         {
-          fileName: 'pupil-registration-form.pdf',
+          fileName: createPdfFileName('Pupil Registration Form'),
           title: 'Pupil Registration Form',
           initialMessage: 'Preparing pupil registration form…',
         },
@@ -3026,7 +3023,7 @@ function PupilsContent() {
         </Document>
       );
 
-      const fileName = `pupils-payment-slips-${new Date().toISOString().split('T')[0]}.pdf`;
+      const fileName = createPdfFileName('Pupils Payment Slips');
       await pdfViewer.runPDFJob(
         {
           fileName,

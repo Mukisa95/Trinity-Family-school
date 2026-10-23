@@ -13,6 +13,7 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
+import { createPdfFileName } from '@/lib/printing/document-file-name';
 import { useAndroidOfflineStatus } from '@/lib/hooks/use-android-offline-status';
 import { getEffectiveTermForDataDisplay } from '@/lib/utils/term-status-utils';
 import { buildReportSection } from '@/lib/reports/report-analysis';
@@ -54,7 +55,7 @@ export default function ReportsPage(){
     const document:ReportDocument={title:chosen.length===1?`${chosen[0].title} report`:'School management report',schoolName:school?.generalInfo?.name||'School reports',period,generatedAt:new Date().toISOString(),preparedBy:[user.firstName,user.lastName].filter(Boolean).join(' ')||user.username||'Authorized user',sections:reports,includeDetails:details,notes:offline?['Generated while offline. Saved records may be incomplete; verify transaction coverage when connected.']:[]};
     try{
       setBuilder(false);
-      await pdfViewer.runPDFJob({fileName:`school-report-${year?.name.replace(/[^a-zA-Z0-9-]/g,'-')}-${termId?(year?.terms.find(term=>term.id===termId)?.name||'term').replace(/[^a-zA-Z0-9-]/g,'-'):'full-year'}-${new Date().toISOString().slice(0,10)}.pdf`,title:document.title,initialMessage:'Organizing selected report sections…'},async({signal,updateProgress})=>{
+      await pdfViewer.runPDFJob({fileName:createPdfFileName(document.title, year?.name, termId ? year?.terms.find(term=>term.id===termId)?.name || 'Term' : 'Full Year'),title:document.title,initialMessage:'Organizing selected report sections…'},async({signal,updateProgress})=>{
         updateProgress(15,'Preparing report layout…');const {generateSchoolReportPdf}=await import('@/lib/reports/report-pdf');
         if(signal.aborted||actorRef.current!==expectedActor)throw new Error('The report session changed. Open Reports again.');
         updateProgress(40,'Building analysis, contents and tables…');await new Promise<void>(resolve=>setTimeout(resolve,0));

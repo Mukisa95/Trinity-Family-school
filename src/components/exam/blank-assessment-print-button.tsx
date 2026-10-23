@@ -10,6 +10,7 @@ import { SchoolSettingsService } from '@/lib/services/school-settings.service';
 import { useToast } from '@/hooks/use-toast';
 import type { ExamRecordPupilInfo, ExamRecordSubjectInfo, GradingScaleItem } from '@/types';
 import { BLANK_ASSESSMENT_OPTIONS } from '@/lib/utils/assessment-print-options';
+import { examResultsFileName } from '@/lib/printing/document-file-name';
 
 type Props = {
   exam: { name: string; examTypeName?: string; startDate: string; endDate: string };
@@ -31,7 +32,7 @@ export function BlankAssessmentPrintButton({ exam, className, pupils, subjects, 
     setBusy(true);
     try {
       await viewer.runPDFJob({
-        fileName: `${exam.name.replace(/[^a-z0-9_-]+/gi, '_')}_blank_assessment.pdf`,
+        fileName: examResultsFileName(exam.name, className, 'Blank Results Register'),
         title: 'Blank assessment',
         initialMessage: 'Preparing blank assessment…',
       }, async ({ updateProgress }) => {

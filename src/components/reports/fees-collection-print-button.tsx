@@ -12,6 +12,7 @@ import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 import { useAndroidOfflineStatus } from '@/lib/hooks/use-android-offline-status';
 import { canPrintFeesCollectionReport,reportPeriod } from '@/lib/reports/report-model';
 import { reportAccessScope } from '@/lib/reports/report-sources';
+import { createPdfFileName } from '@/lib/printing/document-file-name';
 import type { AcademicYear } from '@/types';
 
 const PDFViewer=lazy(()=>import('@/components/pdf/pdf-viewer').then(module=>({default:module.PDFViewer})));
@@ -34,8 +35,7 @@ export function FeesCollectionPrintButton({year,termId,years}:{year?:AcademicYea
     const assertCurrent=()=>{if(!mounted.current||currentScope.current!==expectedScope)throw new DOMException('The reporting period or account changed. Print the selected period again.','AbortError');};
     busy.current=true;setGenerating(true);setError('');
     try{
-      const safeName=`${period.year.name}-${year?.terms.find(term=>term.id===termId)?.name||'term'}`.replace(/[^a-zA-Z0-9-]/g,'-');
-      await viewer.runPDFJob({fileName:`fees-collection-${safeName}-${new Date().toISOString().slice(0,10)}.pdf`,title:`Fees collection report / ${period.label}`,initialMessage:'Fetching fee collection records…'},async({signal,updateProgress})=>{
+      await viewer.runPDFJob({fileName:createPdfFileName('Fees Collection Report', period.year.name, year?.terms.find(term=>term.id===termId)?.name || 'Term'),title:`Fees collection report / ${period.label}`,initialMessage:'Fetching fee collection records…'},async({signal,updateProgress})=>{
         assertCurrent();
         const {loadFeesCollectionReport}=await import('@/lib/reports/fees-collection-report');
         const report=await loadFeesCollectionReport(context,{schoolName:school?.generalInfo?.name||'School reports',offline,signal,assertCurrent,onProgress:updateProgress});

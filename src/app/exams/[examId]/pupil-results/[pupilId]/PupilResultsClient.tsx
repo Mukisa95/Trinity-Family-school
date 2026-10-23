@@ -2,6 +2,7 @@
 import { authorizedFetch } from '@/lib/access/authorized-fetch';
 
 import { formatPupilName } from '@/lib/utils/name-formatter';
+import { individualExamReportFileName } from '@/lib/printing/document-file-name';
 import { usePupils } from '@/lib/hooks/use-pupils';
 import { useClasses } from '@/lib/hooks/use-classes';
 import { getExamPupilDisplaySnapshot } from '@/lib/utils/class-streams';
@@ -713,7 +714,7 @@ export default function PupilResultsClient() {
         }
       };
 
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilDetails.name.replace(/\s+/g, '_')}_Report.pdf`;
+      const fileName = individualExamReportFileName(pupilDetails.name, examDetails.name);
       const title = 'Individual Pupil Report';
       await pdfViewer.runPDFJob(
         { fileName, title, initialMessage: 'Generating the individual pupil report…' },
@@ -779,7 +780,7 @@ export default function PupilResultsClient() {
         examDetails.termId || '',
       );
 
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilDetails.name.replace(/\s+/g, '_')}_Mini_Report.pdf`;
+      const fileName = individualExamReportFileName(pupilDetails.name, examDetails.name, 'Mini Report');
       updateProgress(65, 'Generating one half-page Mini Report...');
       await pdfViewer.runPDFJob(
         { fileName, title: 'Individual Pupil Mini Report', initialMessage: 'Generating the pupil Mini Report…' },
@@ -1026,7 +1027,7 @@ export default function PupilResultsClient() {
         }
       };
 
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilDetails.name.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Report'}.pdf`;
+      const fileName = individualExamReportFileName(pupilDetails.name, examDetails.name, selectedFullReportTemplate === 'full2' ? 'Bespoke Report' : 'TRANS Report');
       const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Bespoke Report' : 'Individual Pupil TRANS Report';
       await pdfViewer.runPDFJob(
         { fileName, title, initialMessage: 'Generating the individual full report…' },
@@ -1317,7 +1318,7 @@ export default function PupilResultsClient() {
 
       updateProgress(70, 'Generating TRANS progress report PDF...');
 
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilDetails.name.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Progress_Report'}.pdf`;
+      const fileName = individualExamReportFileName(pupilDetails.name, examDetails.name, selectedFullReportTemplate === 'full2' ? 'Bespoke Progress Report' : 'TRANS Progress Report');
       const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Bespoke Report' : 'Individual Pupil TRANS Progress Report';
       await pdfViewer.runPDFJob(
         { fileName, title, initialMessage: 'Generating the individual progress report…' },
