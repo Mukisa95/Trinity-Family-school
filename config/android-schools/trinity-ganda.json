@@ -4,9 +4,9 @@
   "applicationId": "ug.trinityfamilyganda.live",
   "websiteOrigin": "https://trinityfamilyganda.vercel.app",
   "firebaseProjectId": "trinity-family-ganda",
-  "versionCode": 32,
-  "versionName": "1.30",
-  "releaseNotes": "Save PDFs and exported documents in Trinity Files. Pinch and pan PDF pages, fit the phone width, and use a compact minimized preview. Continue PDF creation in the background with Android progress and completion notifications.",
+  "versionCode": 33,
+  "versionName": "1.31",
+  "releaseNotes": "PDF creation opens the preview without downloading. Save to Trinity Files only when Download is tapped. Keeps background creation, PDF-ready notifications, pinch zoom, panning and the compact preview card.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {

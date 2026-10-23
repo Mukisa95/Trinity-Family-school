@@ -2,6 +2,7 @@ export interface NativeDocumentFiles {
   start(job: { jobId: string; title: string; fileName: string }): Promise<void>;
   progress(jobId: string, progress: number, message?: string): void;
   complete(jobId: string, blob: Blob, fileName: string): Promise<{ saved: boolean }>;
+  preview?(jobId: string, blob: Blob, fileName: string): Promise<{ saved: boolean }>;
   cancel(jobId: string, message?: string): Promise<void>;
   save(blob: Blob, fileName: string): Promise<{ saved: boolean }>;
 }

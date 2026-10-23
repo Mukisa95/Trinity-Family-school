@@ -6,12 +6,12 @@ function fixture(options={}) {
   const bridge={postMessage(raw){
     const input=JSON.parse(raw);calls.push(input);let result={id:input.id,ok:true};
     if(input.action==='prepare'&&options.cancelFolder)result={...result,ok:false,error:'Folder selection cancelled'};
-    if(input.action==='begin')files.set(input.fileId,{bytes:[],expected:input.bytes});
+    if(input.action==='begin')files.set(input.fileId,{bytes:[],expected:input.bytes,previewOnly:input.previewOnly});
     if(input.action==='chunk'){
       if(options.failChunk)result={...result,ok:false,error:'Storage unavailable'};
       else files.get(input.fileId).bytes.push(Buffer.from(input.data,'base64'));
     }
-    if(input.action==='commit'){const file=files.get(input.fileId);assert.equal(Buffer.concat(file.bytes).length,file.expected);result.saved=true;}
+    if(input.action==='commit'){const file=files.get(input.fileId);assert.equal(Buffer.concat(file.bytes).length,file.expected);result.saved=!file.previewOnly;result.preview=!!file.previewOnly;}
     if(input.action==='reuse')result.saved=true;
     queueMicrotask(()=>bridge.onmessage({data:JSON.stringify(result)}));
   }};
@@ -35,9 +35,26 @@ test('rapid repeat download taps share one transfer',async()=>{
   const f=fixture(),blob=new Blob(['%PDF-1.7 example']);await Promise.all([f.api.save(blob,'a.pdf'),f.api.save(blob,'a.pdf')]);
   assert.equal(f.calls.filter(c=>c.action==='begin').length,1);
 });
-test('cancelled folder selection cannot start or upload a document',async()=>{
-  const f=fixture({cancelFolder:true});await assert.rejects(f.api.start({jobId:crypto.randomUUID(),title:'Example',fileName:'a.pdf'}),/cancelled/);
+test('cancelled folder selection prevents an explicit download without blocking preview creation',async()=>{
+  const f=fixture({cancelFolder:true});await assert.rejects(f.api.save(new Blob(['%PDF-1.7']),'a.pdf'),/cancelled/);
   assert.deepEqual(f.calls.map(c=>c.action),['prepare']);
+});
+
+test('creation prepares a private preview without requesting a folder or saving publicly',async()=>{
+  const f=fixture({cancelFolder:true}),jobId=crypto.randomUUID(),blob=new Blob(['%PDF-1.7 preview']);
+  await f.api.start({jobId,title:'Preview',fileName:'a.pdf'});
+  const result=await f.api.preview(jobId,blob,'a.pdf');
+  assert.equal(result.saved,false);assert.equal(result.preview,true);
+  assert.equal(f.calls.some(call=>call.action==='prepare'||call.action==='reuse'),false);
+  assert.equal(f.calls.find(call=>call.action==='begin').previewOnly,true);
+});
+
+test('only Download requests a folder and publishes the already-prepared preview',async()=>{
+  const f=fixture(),jobId=crypto.randomUUID(),blob=new Blob(['%PDF-1.7 preview']);
+  await f.api.start({jobId,fileName:'a.pdf'});await f.api.preview(jobId,blob,'a.pdf');
+  const before=f.calls.length;assert.equal((await f.api.save(blob,'a.pdf')).saved,true);
+  assert.deepEqual(f.calls.slice(before).map(call=>call.action),['prepare','reuse']);
+  assert.equal(f.calls.filter(call=>call.action==='begin').length,1);
 });
 test('a failed chunk stops the transfer and releases its native work',async()=>{
   const f=fixture({failChunk:true});await assert.rejects(f.api.save(new Blob(['%PDF-1.7']),'a.pdf'),/Storage unavailable/);

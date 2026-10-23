@@ -69,25 +69,26 @@ public class DocumentFilesDeviceTest {
     }
     private void completeAfterDelay(String id,String name) throws Exception {
         String data=android.util.Base64.encodeToString(expectedPDF,android.util.Base64.NO_WRAP);
-        evaluate("setTimeout(async()=>{try{const bytes=Uint8Array.from(atob('"+data+"'),c=>c.charCodeAt(0));const blob=new Blob([bytes],{type:'application/pdf'});await trinityFiles.complete('"+id+"',blob,'"+name+"');window.testState='complete';}catch(error){window.testError=error.message;}},2500)");
+        evaluate("setTimeout(async()=>{try{const bytes=Uint8Array.from(atob('"+data+"'),c=>c.charCodeAt(0));window.testBlob=new Blob([bytes],{type:'application/pdf'});await trinityFiles.preview('"+id+"',testBlob,'"+name+"');window.testState='complete';}catch(error){window.testError=error.message;}},2500)");
     }
-    private void assertSaved(String id) throws Exception {
+    private void assertPreview(String id) throws Exception {
         DocumentWork work=DocumentWork.get(context);long deadline=System.currentTimeMillis()+30000;
         while(System.currentTimeMillis()<deadline&&work.jobs.containsKey(id))Thread.sleep(200);
         assertFalse("Background job did not complete",work.jobs.containsKey(id));
-        String uri=work.store.metadata(id).optString("uri");assertFalse("Document was not saved to SAF",uri.isEmpty());
-        try(java.io.InputStream input=context.getContentResolver().openInputStream(Uri.parse(uri))){
+        assertTrue("Creating a PDF must not save it publicly",work.store.metadata(id).optString("uri").isEmpty());
+        Uri uri=work.store.readable(id);assertNotNull("Private notification preview is missing",uri);
+        try(java.io.InputStream input=context.getContentResolver().openInputStream(uri)){
             java.io.ByteArrayOutputStream output=new java.io.ByteArrayOutputStream();byte[] buffer=new byte[4096];int count;
             while((count=input.read(buffer))!=-1)output.write(buffer,0,count);
             assertArrayEquals(expectedPDF,output.toByteArray());
         }
-        try(android.os.ParcelFileDescriptor file=context.getContentResolver().openFileDescriptor(Uri.parse(uri),"r");android.graphics.pdf.PdfRenderer renderer=new android.graphics.pdf.PdfRenderer(file)){assertEquals(1,renderer.getPageCount());}
+        try(android.os.ParcelFileDescriptor file=context.getContentResolver().openFileDescriptor(uri,"r");android.graphics.pdf.PdfRenderer renderer=new android.graphics.pdf.PdfRenderer(file)){assertEquals(1,renderer.getPageCount());}
         boolean notified=false;
         for(android.service.notification.StatusBarNotification item:((NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE)).getActiveNotifications())
-            if(DocumentWork.CHANNEL.equals(item.getNotification().getChannelId())&&"Saved in Trinity Files".contentEquals(item.getNotification().extras.getCharSequence("android.text",""))){assertNotNull(item.getNotification().contentIntent);notified=true;}
+            if(DocumentWork.CHANNEL.equals(item.getNotification().getChannelId())&&"PDF ready. Tap to open.".contentEquals(item.getNotification().extras.getCharSequence("android.text",""))){assertNotNull(item.getNotification().contentIntent);notified=true;}
         assertTrue("Android completion notification was not posted",notified);
     }
-    @Test public void savesAndNotifiesAfterHomeAndActivityDestruction() throws Exception {
+    @Test public void previewsAndNotifiesInBackgroundThenSavesOnlyOnDownload() throws Exception {
         DocumentWork work=DocumentWork.get(context);List<String> ids=new ArrayList<>();
         String originalTree=work.store.prefs.getString("tree",null),originalFolder=work.store.prefs.getString("folder",null);
         android.graphics.pdf.PdfDocument document=new android.graphics.pdf.PdfDocument();
@@ -100,11 +101,17 @@ public class DocumentFilesDeviceTest {
                 fixture(scenario);String id=UUID.randomUUID().toString();ids.add(id);start(id,"Trinity QA home.pdf");
                 assertFalse(work.jobs.isEmpty());completeAfterDelay(id,"Trinity QA home.pdf");
                 InstrumentationRegistry.getInstrumentation().getUiAutomation().performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME);
-                assertSaved(id);
+                assertPreview(id);
+                assertEquals("Creation must not ask for a save folder",originalFolder,work.store.prefs.getString("folder",null));
+                scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED);
+                evaluate("window.testState='downloading';trinityFiles.save(testBlob,'Trinity QA home.pdf').then(()=>window.testState='saved').catch(error=>window.testError=error.message)");
+                long deadline=System.currentTimeMillis()+25000;
+                while(System.currentTimeMillis()<deadline&&!"\"saved\"".equals(evaluate("testState"))){clickText("Use this folder");Thread.sleep(250);clickText("Allow");Thread.sleep(250);}
+                waitFor("testState==='saved'");assertFalse("Download must publish the preview in Trinity Files",work.store.metadata(id).optString("uri").isEmpty());
             }
             try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
                 fixture(scenario);String id=UUID.randomUUID().toString();ids.add(id);start(id,"Trinity QA closed.pdf");completeAfterDelay(id,"Trinity QA closed.pdf");
-                scenario.close();assertSaved(id);
+                scenario.close();assertPreview(id);
             }
         } finally {
             InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{for(String id:ids)work.cancel(id,web);});

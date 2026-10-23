@@ -30,9 +30,9 @@ final class DocumentController {
     private boolean visible;
     private final boolean supported;
     private static final class Upload {
-        final String id, name, mime, jobId; final long expected; final File file; final OutputStream output;
+        final String id, name, mime, jobId; final long expected; final boolean previewOnly; final File file; final OutputStream output;
         int sequence; long written;
-        Upload(String id,String name,String jobId,long expected,File file) throws Exception { this.id=id;this.name=name;this.mime=DocumentPolicy.mime(name);this.jobId=jobId;this.expected=expected;this.file=file;output=new FileOutputStream(file); }
+        Upload(String id,String name,String jobId,long expected,boolean previewOnly,File file) throws Exception { this.id=id;this.name=name;this.mime=DocumentPolicy.mime(name);this.jobId=jobId;this.expected=expected;this.previewOnly=previewOnly;this.file=file;output=new FileOutputStream(file); }
     }
     DocumentController(Activity activity,WebView web) {
         this.web=web;this.activity=new WeakReference<>(activity);work=DocumentWork.get(activity);
@@ -62,7 +62,7 @@ final class DocumentController {
         if("notice".equals(action)){Activity screen=activity.get();if(screen!=null)android.widget.Toast.makeText(screen,input.optString("message","Unable to save the document."),android.widget.Toast.LENGTH_LONG).show();reply(response,id,null,null,revision);return;}
         if("start".equals(action)) {
             String name=DocumentPolicy.fileName(input.optString("fileName"));
-            work.start(jobId,input.optString("title",name),web);bindCleanup(jobId);reply(response,id,null,null,revision);return;
+            permission();work.start(jobId,input.optString("title",name),web);bindCleanup(jobId);reply(response,id,null,null,revision);return;
         }
         if("progress".equals(action)) {work.progress(jobId,web,input.optInt("progress"),input.optString("message","Creating document"));reply(response,id,null,null,revision);return;}
         if("cancel".equals(action)) {
@@ -107,7 +107,7 @@ final class DocumentController {
             if(total>DocumentPolicy.MAX_ACTIVE_BYTES)throw new IOException("Save fewer large documents at a time.");
             String name=DocumentPolicy.fileName(input.getString("fileName"));
             if(work.activeFiles.contains(id))throw new IOException("This file is already being saved.");
-            Upload upload=new Upload(id,name,job,bytes,work.store.part(id));uploads.put(id,upload);ownedFiles.add(id);work.activeFiles.add(id);work.activeBytes+=bytes;
+            Upload upload=new Upload(id,name,job,bytes,input.optBoolean("previewOnly"),work.store.part(id));uploads.put(id,upload);ownedFiles.add(id);work.activeFiles.add(id);work.activeBytes+=bytes;
             work.store.prune(work.activeFiles);return new JSONObject();
         }
         Upload upload=uploads.get(id);
@@ -125,6 +125,11 @@ final class DocumentController {
         if(!upload.file.renameTo(completed))throw new IOException("Unable to finish the document transfer.");
         removeUpload(id);
         if(!work.store.prefs.edit().putString("file-"+id,new JSONObject().put("fileName",upload.name).put("mime",upload.mime).toString()).commit())throw new IOException("Unable to remember this document. Check your phone's free space and try again.");
+        if(upload.previewOnly){
+            Uri preview=work.store.readable(id);
+            work.main.post(()->work.previewReady(upload.jobId,web,upload.mime,preview));
+            return new JSONObject().put("saved",false).put("preview",true);
+        }
         boolean saved;Uri uri;
         try{uri=work.store.save(id,upload.name,upload.mime,completed,()->work.owns(upload.jobId,web));saved=true;}catch(Exception error){uri=work.store.readable(id);saved=false;}
         final Uri resultUri=uri;final boolean resultSaved=saved;
@@ -174,5 +179,4 @@ final class DocumentController {
         });
         return true;
     }
-    void download(String url,String name) { if(!PhotoPolicy.trusted(web.getUrl()))return;installed();web.evaluateJavascript("window.trinityFiles?.downloadURL("+JSONObject.quote(url)+","+JSONObject.quote(name)+")",null); }
 }

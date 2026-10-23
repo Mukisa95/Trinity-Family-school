@@ -23,11 +23,11 @@
   const encode = blob => new Promise((resolve, reject) => {
     const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1]); reader.onerror = () => reject(new Error('Unable to read this document.')); reader.readAsDataURL(blob);
   });
-  async function upload(blob, fileName, jobId) {
+  async function upload(blob, fileName, jobId, previewOnly = false) {
     if (!(blob instanceof Blob) || !blob.size || blob.size > MAX) throw new Error('Choose a document smaller than 100 MB.');
     const fileId = jobId || crypto.randomUUID();
     try {
-      await request('begin', { fileId, fileName, bytes: blob.size, jobId: jobId || '' });
+      await request('begin', { fileId, fileName, bytes: blob.size, jobId: jobId || '', previewOnly });
       for (let offset = 0, sequence = 0; offset < blob.size; offset += CHUNK, sequence++) {
         const data = await encode(blob.slice(offset, offset + CHUNK));
         await request('chunk', { fileId, sequence, data });
@@ -39,13 +39,16 @@
     }
   }
   const api = {
-    async start(job) { await prepare(); await request('start', job); jobs.add(job.jobId); },
+    async start(job) { await request('start', job); jobs.add(job.jobId); },
     progress(jobId, progress, message) {
       const now = Date.now(); if (now - (progressTimes.get(jobId) || 0) < 400 && progress < 95) return;
       progressTimes.set(jobId, now);
       bridge.postMessage(JSON.stringify({ id: crypto.randomUUID(), action: 'progress', jobId, progress, message: message || 'Creating document' }));
     },
-    async complete(jobId, blob, fileName) { try { return await upload(blob, fileName, jobId); } finally { jobs.delete(jobId); progressTimes.delete(jobId); } },
+    // Creation may cache a private copy for its notification; only save() and
+    // downloadURL() may write to the user's Trinity Files directory.
+    async complete(jobId, blob, fileName) { try { return await upload(blob, fileName, jobId, true); } finally { jobs.delete(jobId); progressTimes.delete(jobId); } },
+    async preview(jobId, blob, fileName) { return api.complete(jobId, blob, fileName); },
     async cancel(jobId, error) { jobs.delete(jobId); progressTimes.delete(jobId); await request('cancel', { jobId, error: error || '' }); },
     async save(blob, fileName) {
       if (!(blob instanceof Blob) || !blob.size || blob.size > MAX) throw new Error('Choose a document smaller than 100 MB.');
@@ -66,6 +69,7 @@
         // Acquire blob URLs during the click: many exporters revoke them as
         // soon as their anchor returns, before Android's folder picker closes.
         const fetching = fetch(source.href, { credentials: 'same-origin' }).then(response => ({ response }), error => ({ error }));
+        await prepare();
         await api.start({ jobId, title: 'Saving ' + (fileName || 'document.pdf'), fileName: fileName || 'document.pdf' });
         const fetched = await fetching; if (fetched.error) throw fetched.error;
         const response = fetched.response;
@@ -81,7 +85,7 @@
           }
           blob = new Blob(chunks, { type: response.headers.get('content-type') || 'application/octet-stream' });
         } else blob = await response.blob();
-        const result = await api.complete(jobId, blob, fileName || 'document.pdf');
+        const result = await upload(blob, fileName || 'document.pdf', jobId);
         if (!result.saved) throw new Error('The document is ready but could not be saved in Trinity Files. Try again.');
       } catch (error) { await request('notice', { message: error.message || 'Unable to save the document.' }).catch(() => {}); }
       finally { await api.cancel(jobId).catch(() => {}); }

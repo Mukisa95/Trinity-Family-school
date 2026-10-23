@@ -198,9 +198,12 @@ public final class MainActivity extends FragmentActivity {
             }
         });
         web.setDownloadListener((url, userAgent, contentDisposition, mimeType, length) -> {
-            if (documents != null && documents.supported() && PhotoPolicy.trusted(web.getUrl()) && (PhotoPolicy.trusted(url) || url.startsWith("blob:" + PhotoPolicy.ORIGIN + "/") || url.startsWith("data:"))) {
+            if (documents != null && documents.supported()) {
                 String name = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimeType);
-                try { DocumentPolicy.fileName(name); documents.download(url, name); return; } catch (IllegalArgumentException ignored) { }
+                // WebView can report embedded PDF/print-frame loads here too.
+                // Explicit preview downloads and download links use trinityFiles;
+                // this callback must never turn a document load into a save.
+                try { DocumentPolicy.fileName(name); return; } catch (IllegalArgumentException ignored) { }
             }
             if (!PhotoPolicy.trusted(url)) return;
             try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }

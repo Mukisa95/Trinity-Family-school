@@ -66,6 +66,10 @@ final class DocumentWork {
     private void update() {
         if(service!=null && !jobs.isEmpty()) ((NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE)).notify(ONGOING,notification());
     }
+    void previewReady(String id, WebView owner, String mime, Uri uri) {
+        Job job=jobs.get(id);if(job==null||job.owner!=owner)return;
+        notifyResult(job.title,"PDF ready. Tap to open.",uri,mime);end(id);
+    }
     void finish(String id, WebView owner, String fileName, String mime, Uri uri, boolean saved) {
         Job job=jobs.get(id); if(job==null||job.owner!=owner)return;
         notifyResult(job.title,saved?"Saved in Trinity Files":"PDF ready. Tap to open; download again to save in Trinity Files.",uri,mime);

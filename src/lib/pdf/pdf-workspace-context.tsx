@@ -23,7 +23,6 @@ export interface PDFWorkspaceDocument {
   progress: number;
   message: string;
   error: string | null;
-  saveWarning?: string;
   createdAt: number;
 }
 
@@ -126,10 +125,12 @@ export function PDFWorkspaceProvider({ children }: { children: React.ReactNode }
       progress: 2,
       message: "Preparing PDF workspace…",
       error: null,
-      saveWarning: undefined,
     });
 
-    const native = nativeDocumentFiles();
+    const files = nativeDocumentFiles();
+    // Older APKs save complete() directly into Trinity Files. Never use that
+    // completion path for generation; their Download button still uses save().
+    const native = files?.preview ? files : undefined;
     const nativeJobId = createDocumentId();
     let nativeStarted = false;
     try {
@@ -159,7 +160,7 @@ export function PDFWorkspaceProvider({ children }: { children: React.ReactNode }
       if (!(blob instanceof Blob) || blob.size === 0) {
         throw new Error("The PDF generator returned an empty document.");
       }
-      const saved = nativeStarted ? await native?.complete(nativeJobId, blob, normaliseFileName(options?.fileName)) : undefined;
+      if (nativeStarted) await native?.preview?.(nativeJobId, blob, normaliseFileName(options?.fileName));
       if (controller.signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
 
       patchDocument(id, {
@@ -168,7 +169,6 @@ export function PDFWorkspaceProvider({ children }: { children: React.ReactNode }
         progress: 100,
         message: "PDF ready",
         error: null,
-        saveWarning: saved && !saved.saved ? 'The PDF is ready, but it was not saved in Trinity Files. Use Download to try again.' : undefined,
       });
       return blob;
     } catch (error) {

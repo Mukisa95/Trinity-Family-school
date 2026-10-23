@@ -44,9 +44,6 @@ function PDFDocumentSurface({
   fullscreenTargetRef: React.RefObject<HTMLElement | null>;
   onViewerActionsChange: (actions: PDFDocumentViewerActions | null) => void;
 }) {
-  const [saved, setSaved] = useState(false);
-  useEffect(() => setSaved(false), [document.id, document.saveWarning]);
-  const markSaved = React.useCallback(() => setSaved(true), []);
   if (document.status === "generating") {
     return (
       <div className="flex h-full min-h-0 items-center justify-center bg-slate-100 px-5 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
@@ -85,14 +82,12 @@ function PDFDocumentSurface({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {document.saveWarning && !saved && <p role="alert" className="shrink-0 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">{document.saveWarning}</p>}
       <div className="min-h-0 flex-1"><PDFDocumentViewer
       blob={document.blob}
       fileName={document.fileName}
       title={document.title}
       fullscreenTargetRef={fullscreenTargetRef}
       onActionsChange={onViewerActionsChange}
-      onSaved={markSaved}
     /></div></div>
   );
 }

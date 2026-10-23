@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { saveDocumentFile } from '@/lib/android/documents';
+import { nativeDocumentFiles, saveDocumentFile } from '@/lib/android/documents';
 import { usePDFGestures } from '@/lib/pdf/use-pdf-gestures';
 
 type FitMode = "custom" | "width" | "page";
@@ -406,6 +406,10 @@ export function PDFDocumentViewer({
   onActionsChange,
   onSaved,
 }: PDFDocumentViewerProps) {
+  const nativeFiles = nativeDocumentFiles();
+  // Older APKs turn embedded PDF loads into downloads. Do not preload their
+  // hidden print frame while the document is only being previewed.
+  const preloadPrintFrame = !nativeFiles || Boolean(nativeFiles.preview);
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -857,7 +861,7 @@ export function PDFDocumentViewer({
 
   return (
     <div ref={viewerRootRef} className="flex h-full min-h-0 flex-col bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
-      {objectUrl && <iframe ref={printFrameRef} src={objectUrl} title={`${title} print source`} className="pointer-events-none fixed h-0 w-0 border-0 opacity-0" aria-hidden="true" />}
+      {objectUrl && preloadPrintFrame && <iframe ref={printFrameRef} src={objectUrl} title={`${title} print source`} className="pointer-events-none fixed h-0 w-0 border-0 opacity-0" aria-hidden="true" />}
 
       <div className="flex shrink-0 flex-col border-b border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div className="flex min-h-14 flex-wrap items-center gap-1.5 px-2 py-1.5 sm:min-h-12 sm:px-3 lg:flex-nowrap lg:overflow-x-auto">

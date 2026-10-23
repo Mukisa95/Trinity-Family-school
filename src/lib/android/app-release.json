@@ -6,13 +6,13 @@
   "websiteOrigin": "https://trinityfamilyschool.vercel.app",
   "firebaseProjectId": "trinity-family-schools",
   "iconUrl": "/trinity-logo-192.png",
-  "versionCode": 32,
-  "versionName": "1.30",
+  "versionCode": 33,
+  "versionName": "1.31",
   "minAndroid": "8.0",
   "filename": "trinity-live.apk",
-  "bytes": 4742864,
-  "sha256": "e3d978d1eb0e38452c8ad6453b8e92d3c6a8714b78da174774bb0562015b76d5",
+  "bytes": 4743132,
+  "sha256": "5ea5efed131c31adddf665f399ba35cbafc81a3cbe8b2f8c3851633c3f07abbe",
   "signingCertificateSha256": "53:F5:25:7A:02:C4:B4:6C:33:47:E0:49:6F:67:36:55:1D:57:4F:44:91:56:44:D1:3C:02:79:22:BC:04:FC:08",
   "minSdk": 26,
-  "releaseNotes": "Save PDFs and exported documents in Trinity Files. Pinch and pan PDF pages, fit the phone width, and use a compact minimized preview. Continue PDF creation in the background with Android progress and completion notifications."
+  "releaseNotes": "PDF creation opens the preview without downloading. Save to Trinity Files only when Download is tapped. Keeps background creation, PDF-ready notifications, pinch zoom, panning and the compact preview card."
 }
