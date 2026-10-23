@@ -27,12 +27,40 @@ async function run() {
           const page = await browser.newPage({ viewport: { width: 390, height: 844 }, userAgent: iphone, hasTouch: true, isMobile: true, reducedMotion: 'reduce' });
           page.setDefaultTimeout(15000);
           const errors = []; page.on('pageerror', e => errors.push(e.message));
-          if (standalone) await page.addInitScript(() => { Object.defineProperty(navigator, 'standalone', { value: true }); document.addEventListener('DOMContentLoaded', () => document.documentElement.dataset.homeScreen = 'true'); });
+          if (standalone) await page.addInitScript(() => {
+            Object.defineProperty(navigator, 'standalone', { value: true });
+            Object.defineProperty(visualViewport, 'height', { configurable: true, value: 810 });
+            document.addEventListener('DOMContentLoaded', () => document.documentElement.dataset.homeScreen = 'true');
+          });
           await page.goto(url);
           await page.locator('[data-apple-mobile-workspace]').waitFor();
           const header = page.locator('.app-topbar'), glass = page.locator('.glass-page-topbar');
           const adminScroller = page.getByTestId('workspace-scroller');
           await page.waitForFunction(() => document.body.hasAttribute('data-scroll-locked'));
+          if (standalone) {
+            await page.locator('.glass-navigation-floating').waitFor();
+            for (const gap of [34, 62, 96]) {
+              await page.evaluate(gap => { Object.defineProperty(visualViewport, 'height', { configurable: true, value: innerHeight - gap }); visualViewport.dispatchEvent(new Event('resize')); }, gap);
+              await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+              assert.ok(Math.abs((await rect(page.locator('[data-apple-mobile-workspace]'))).bottom - 844) < 2, 'Home Screen launch must fill the layout viewport despite a short visual viewport');
+              assert.ok(await page.evaluate(() => !!document.elementFromPoint(1, innerHeight - 1)?.closest('[data-apple-mobile-workspace]')), 'The app paints the bottom edge instead of exposing a background strip');
+              const dock = await rect(page.locator('.glass-navigation-floating'));
+              assert.ok(dock.bottom > 820 && dock.bottom <= 844, 'The bottom dock must not be pushed up by the launch gap');
+            }
+            await page.screenshot({ path: path.join(output, `${engine}-installed-launch-fill.png`) });
+            await page.evaluate(() => {
+              const input = document.createElement('input'); input.id = 'viewport-keyboard-probe'; input.style.cssText = 'position:fixed;top:150px;font-size:16px'; document.body.appendChild(input); input.focus({ preventScroll: true });
+              Object.defineProperty(visualViewport, 'height', { configurable: true, value: innerHeight - 90 }); visualViewport.dispatchEvent(new Event('resize'));
+            });
+            await page.waitForFunction(() => Math.abs(document.querySelector('[data-apple-mobile-workspace]').getBoundingClientRect().height - visualViewport.height) < 2);
+            assert.ok((await rect(page.locator('.glass-navigation-floating'))).bottom <= 754, 'Even a small keyboard occlusion keeps focused input controls inside the visual viewport');
+            await page.evaluate(() => document.getElementById('viewport-keyboard-probe').remove());
+            await page.evaluate(() => { delete visualViewport.height; visualViewport.dispatchEvent(new Event('resize')); });
+          } else {
+            await page.evaluate(() => { Object.defineProperty(visualViewport, 'height', { configurable: true, value: innerHeight - 34 }); visualViewport.dispatchEvent(new Event('resize')); });
+            await page.waitForFunction(() => Math.abs(document.querySelector('[data-apple-mobile-workspace]').getBoundingClientRect().height - visualViewport.height) < 2);
+            await page.evaluate(() => { delete visualViewport.height; visualViewport.dispatchEvent(new Event('resize')); });
+          }
           if (await page.evaluate(() => CSS.supports('overscroll-behavior-y', 'none'))) {
             assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).overscrollBehaviorY), 'none');
             assert.equal(await adminScroller.evaluate(el => getComputedStyle(el).overscrollBehaviorY), 'none');
@@ -121,6 +149,12 @@ async function run() {
             assert.ok(Math.abs((await rect(glass)).top - (await rect(header)).bottom) < 2);
             await page.evaluate(() => { delete visualViewport.height; delete visualViewport.offsetTop; visualViewport.dispatchEvent(new Event('resize')); });
             await page.waitForFunction(() => Math.abs(document.querySelector('.app-topbar').getBoundingClientRect().top) < 2);
+            if (standalone) {
+              await page.evaluate(() => { Object.defineProperty(visualViewport, 'height', { configurable: true, value: innerHeight - 34 }); window.dispatchEvent(new Event('pageshow')); });
+              await page.waitForFunction(() => Math.abs(document.querySelector('[data-apple-mobile-workspace]').getBoundingClientRect().bottom - innerHeight) < 2 && [...document.querySelectorAll('.viewport-overlay')].filter(el => getComputedStyle(el).display !== 'none').every(el => Math.abs(el.getBoundingClientRect().bottom - innerHeight) < 2));
+              assert.ok((await rect(bottom)).bottom > 820, 'Resume after keyboard use keeps bottom controls at the full viewport edge');
+              await page.evaluate(() => { delete visualViewport.height; document.dispatchEvent(new Event('visibilitychange')); });
+            }
             if (parent) {
               await bottom.getByRole('button', { name: 'Settings', exact: true }).click();
               await page.getByRole('link', { name: 'App Settings', exact: true }).waitFor();
@@ -148,7 +182,7 @@ async function run() {
             await session.send('Emulation.setPageScaleFactor', { pageScaleFactor: 1 });
           }
           assert.deepEqual(errors, []);
-          reports.push({ engine, standalone, staff: true, parent: true, lightDark: true, portraitLandscape: true, keyboardViewport: true });
+          reports.push({ engine, standalone, staff: true, parent: true, lightDark: true, portraitLandscape: true, keyboardViewport: true, launchGap: standalone, resumeGap: standalone });
           await page.close();
         }
         const android = await browser.newPage({ viewport: { width: 390, height: 844 }, userAgent: 'Mozilla/5.0 (Linux; Android 15) Chrome/140.0 Mobile Safari/537.36', hasTouch: true, isMobile: true, reducedMotion: 'reduce' });
@@ -158,7 +192,7 @@ async function run() {
       } finally { await browser.close(); }
     }
     fs.writeFileSync(path.join(output, 'verification.json'), JSON.stringify({ reports, physicalIPhoneTest: false }, null, 2));
-    console.log('IOS_CHROME_OK: admin dashboard and pupil navigation, edge touch/drag stability, route scroll reset, independent overlays, staff/parent headers and bottom controls, Safari/Home Screen, light/dark, portrait/landscape, keyboard, print, native pinch and Android isolation.');
+    console.log('IOS_CHROME_OK: Home Screen launch/resume gaps, admin dashboard and pupil navigation, edge touch/drag stability, route scroll reset, independent overlays, staff/parent headers and bottom controls, Safari/Home Screen, light/dark, portrait/landscape, keyboard, print, native pinch and Android isolation.');
   } finally { await new Promise(resolve => server.close(resolve)); }
 }
 run().catch(error => { console.error(error); process.exitCode = 1; });

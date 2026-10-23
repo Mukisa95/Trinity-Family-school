@@ -93,7 +93,7 @@ async function run() {
       const browser = await (engine === 'webkit' ? webkit.launch({ headless: true }) : chromium.launch({ headless: true, channel: 'msedge' }));
       try {
         console.log('Checking ' + engine + ' PDF and sidebar');
-        const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+        const page = await browser.newPage({ viewport: { width: 390, height: 844 }, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 27_0 like Mac OS X) AppleWebKit/605.1.15 Version/27.0 Mobile/15E148 Safari/604.1', isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
         page.setDefaultTimeout(15000);
         const errors = [];
         page.on('pageerror', e => { errors.push(e.message); console.error(engine + ': ' + e.message); });
@@ -113,6 +113,9 @@ async function run() {
         assert.equal(await mini.evaluate(el => el.closest('.viewport-overlay').parentElement === document.body), true);
         const bottomGap = async () => mini.evaluate(el => visualViewport.height + visualViewport.offsetTop - el.getBoundingClientRect().bottom);
         const gap = await bottomGap();
+        await page.evaluate(() => { Object.defineProperty(visualViewport, 'height', { configurable: true, value: innerHeight - 34 }); visualViewport.dispatchEvent(new Event('resize')); });
+        await page.waitForFunction(() => Math.abs(document.querySelector('[aria-label="Minimized PDF workspace"]').getBoundingClientRect().bottom - (innerHeight - 12)) < 2);
+        await page.evaluate(() => { delete visualViewport.height; visualViewport.dispatchEvent(new Event('resize')); });
         await page.evaluate(() => window.scrollTo(0, 1100));
         await page.waitForFunction(() => window.scrollY > 1000);
         assert.ok(Math.abs(await bottomGap() - gap) < 2, 'Minimized PDF stays at the visible bottom while the document scrolls');
@@ -128,6 +131,9 @@ async function run() {
         await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Close sidebar');
         await page.waitForFunction(() => document.body.hasAttribute('data-scroll-locked'));
         assert.equal(await drawer.evaluate(el => el.closest('.viewport-overlay').parentElement === document.body), true);
+        await page.evaluate(() => { Object.defineProperty(visualViewport, 'height', { configurable: true, value: innerHeight - 34 }); visualViewport.dispatchEvent(new Event('resize')); });
+        await page.waitForFunction(() => Math.abs(document.querySelector('.app-mobile-sidebar').getBoundingClientRect().bottom - innerHeight) < 2);
+        await page.evaluate(() => { delete visualViewport.height; visualViewport.dispatchEvent(new Event('resize')); });
         const scrollY = await page.evaluate(() => window.scrollY);
         for (const size of [{ width: 390, height: 844 }, { width: 844, height: 390 }, { width: 320, height: 568 }]) {
           await page.setViewportSize(size);
