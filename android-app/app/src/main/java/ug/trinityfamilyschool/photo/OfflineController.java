@@ -134,7 +134,8 @@ final class OfflineController {
             if (activity.isDestroyed()) return;
             try {
                 JSONObject result = data == null ? new JSONObject() : data;
-                if (result.has("snapshot") && (!unlocked() || !OfflinePolicy.local(web.getUrl()))) {
+                if (result.has("snapshot") && (!unlocked() || !OfflinePolicy.local(web.getUrl()))
+                    || result.has("settings") && OfflinePolicy.local(web.getUrl()) && !unlocked()) {
                     result = new JSONObject(); result.put("id", id).put("success", false).put("error", "Access remains locked."); reply.postMessage(result.toString()); return;
                 }
                 result.put("id", id).put("success", success);
@@ -227,6 +228,29 @@ final class OfflineController {
             activity.runOnUiThread(() -> WidgetSettings.open(activity)); reply(reply, id, true, null, null); return;
         }
         if ("openLessonReminderSettings".equals(action)) { activity.startActivity(new Intent(activity, LessonReminderSettingsActivity.class)); reply(reply, id, true, null, null); return; }
+        if ("readAppSettings".equals(action) || "previewLessonReminders".equals(action) || "saveLessonReminders".equals(action)
+            || "saveCardSettings".equals(action) || "saveWidgetSettings".equals(action) || "testLessonReminders".equals(action)) {
+            if (local && !unlocked()) { reply(reply, id, false, "Unlock to continue.", null); return; }
+            io.execute(() -> {
+                try { reply(reply, id, true, null, IntegratedAppSettings.process(activity, store, action, input)); }
+                catch (Exception error) { reply(reply, id, false, error.getMessage(), null); }
+            }); return;
+        }
+        if ("openAccurateTimingSettings".equals(action) || "openLessonNotificationChannel".equals(action)) {
+            activity.runOnUiThread(() -> {
+                try {
+                    if ("openAccurateTimingSettings".equals(action)) {
+                        if (android.os.Build.VERSION.SDK_INT >= 31) activity.startActivity(new Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, android.net.Uri.parse("package:" + activity.getPackageName())));
+                    } else {
+                        String alert = input.optString("alert", "sound");
+                        if (!java.util.Arrays.asList("sound", "vibrate", "silent").contains(alert)) throw new IllegalArgumentException("Choose an alert style.");
+                        LessonReminders.channels(activity);
+                        activity.startActivity(new Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, activity.getPackageName()).putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, LessonReminders.channel(alert)));
+                    }
+                    reply(reply, id, true, null, null);
+                } catch (Exception error) { reply(reply, id, false, "Android settings could not open.", null); }
+            }); return;
+        }
         if ("selectTimetable".equals(action)) {
             if (local && !unlocked()) { reply(reply, id, false, "Unlock to continue.", null); return; }
             io.execute(() -> {

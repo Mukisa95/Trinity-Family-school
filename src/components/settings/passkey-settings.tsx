@@ -43,7 +43,7 @@ export function PasskeySettings({ setupMode = false, compact = false, onBusyChan
     try {
       await PasskeyService.enableNativeUnlock(password);
       setNativeEnabled(true); onRegistered?.();
-      setMessage('Device unlock is ready. Enable Require device unlock under Automatic privacy lock to use it when returning to the app, including offline.');
+      setMessage(compact ? 'Device unlock enabled.' : 'Device unlock is ready. Enable Require device unlock under Automatic privacy lock to use it when returning to the app, including offline.');
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not enable device unlock.'); }
     finally { setPassword(''); setBusy(false); }
   };

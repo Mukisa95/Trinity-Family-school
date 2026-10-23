@@ -6,20 +6,21 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { useAndroidNotifications } from '@/lib/hooks/use-android-notifications';
 import { useAppPlatform } from '@/lib/hooks/use-app-platform';
 import { useSettingsSidebar } from '@/lib/hooks/use-settings-sidebar';
-import { setAndroidEventPreference, checkAndroidAppUpdates, openAndroidLessonReminders, openAndroidTimetableSettings, openAndroidWidgetSettings, setAndroidTimetableNotification } from '@/lib/offline/android-notifications';
+import { checkAndroidAppUpdates } from '@/lib/offline/android-notifications';
 import { APP_SETTING_SECTIONS, APP_SETTINGS, filterAppSettings, type AppSettingSection } from '@/lib/app-settings';
 import { GlassPageTopBar, GlassPageSearchInput } from '@/components/common/glass-page-top-bar';
 import { SidebarContext } from '@/components/ui/sidebar';
 import { AutoLockSettings } from '@/components/settings/auto-lock-settings';
 import { PasskeySettings } from '@/components/settings/passkey-settings';
 import { LookAndFeelSettings } from '@/components/settings/look-and-feel-settings';
-import { SettingsDisclosure, SettingsRow, SettingsRows, SettingsToggle, settingsButtonClass } from '@/components/settings/settings-controls';
+import { SettingsRow, SettingsRows, settingsButtonClass } from '@/components/settings/settings-controls';
 import { AppStorageSettings } from './app-storage-settings';
 import { AppPushSettings } from './app-push-settings';
 import { AboutApp } from './about-app';
+import { AccountSummary } from './account-summary';
+import { LiveTrackingSettings, InlineLessonReminders, InlineWidgetSettings } from '@/components/settings/android-inline-settings';
 
 const icons = { appearance: Palette, account: User, security: Shield, tracking: Radio, push: Bell, lessons: CalendarClock, widgets: LayoutGrid, storage: HardDrive, about: Info };
-const MyProfile = lazy(() => import('./my-profile').then(module => ({ default: module.MyProfile })));
 const AccountSettings = lazy(() => import('./account-settings').then(module => ({ default: module.AccountSettings })));
 const ParentAccountSettings = lazy(() => import('./parent-account-settings').then(module => ({ default: module.ParentAccountSettings })));
 
@@ -35,7 +36,6 @@ export function AppSettings() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [detail, setDetail] = useState<'profile' | 'account' | null>(null);
   const pendingSetting = useRef<string | undefined>(undefined);
   const contentRef = useRef<HTMLDivElement>(null);
   const parent = user?.role === 'Parent';
@@ -48,9 +48,8 @@ export function AppSettings() {
 
   useEffect(() => {
     const readHash = () => {
-      setDetail(null);
       const hash = window.location.hash.slice(1);
-      const item = APP_SETTINGS.find(item => `setting-${item.id}` === hash);
+      const item = APP_SETTINGS.find(item => `setting-${item.id}` === hash || item.id === 'timetable' && ['setting-timetable-display', 'setting-live-events'].includes(hash));
       const group = APP_SETTING_SECTIONS.find(group => group.id === hash);
       if (item) { setSection(item.section); pendingSetting.current = item.id; }
       else if (group) setSection(group.id);
@@ -75,13 +74,9 @@ export function AppSettings() {
     target.focus({ preventScroll: true });
   }, [section, query, isAndroid]);
 
-  useEffect(() => {
-    if (detail) contentRef.current?.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
-  }, [detail]);
-
   const selectSection = (next: AppSettingSection, setting?: string) => {
     pendingSetting.current = setting;
-    setSection(next); setQuery(''); setError(''); setMessage(''); setDetail(null);
+    setSection(next); setQuery(''); setError(''); setMessage('');
     window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}#${setting ? `setting-${setting}` : next}`);
   };
   const moveTab = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -101,23 +96,17 @@ export function AppSettings() {
     finally { setBusy(false); }
   };
   const actionButton = (label: string, action: () => Promise<unknown>, name = label) => <button type="button" className={settingsButtonClass} aria-label={name} disabled={busy} onClick={() => void run(action)}>{label}<ChevronRight className="h-3.5 w-3.5" aria-hidden="true" /></button>;
-  const openDetail = (next: 'profile' | 'account', name: string) => <button type="button" onClick={() => setDetail(next)} className={settingsButtonClass} aria-label={name}>Open<ChevronRight className="h-3.5 w-3.5" aria-hidden="true" /></button>;
-  const toggle = (id: string, label: string, value: boolean | undefined, action: (value: boolean) => Promise<unknown>) => <SettingsRow label={label} htmlFor={`settings-${id}`}><SettingsToggle id={`settings-${id}`} value={value} disabled={busy || isChecking} onCheckedChange={enabled => void run(() => action(enabled))} /></SettingsRow>;
   const content = (id: string) => {
     switch (id) {
       case 'theme': return <LookAndFeelSettings compact />;
-      case 'profile': return <SettingsRow label="My profile">{openDetail('profile', 'View my profile')}</SettingsRow>;
-      case 'account': return <SettingsRow label={parent ? 'Password' : 'Username and password'}>{openDetail('account', 'Open account settings')}</SettingsRow>;
+      case 'profile': return <AccountSummary />;
+      case 'account': return <Suspense fallback={<p role="status" className="text-xs text-muted-foreground">Loading account...</p>}>{parent ? <ParentAccountSettings embedded /> : <AccountSettings embedded />}</Suspense>;
       case 'autolock': return <AutoLockSettings compact />;
-      case 'biometrics': return <SettingsDisclosure title="Biometrics and passkeys"><PasskeySettings compact /></SettingsDisclosure>;
-      case 'timetable': return toggle('live-timetable', 'Timetable notification', state?.notificationCard, async enabled => {
-        if (await setAndroidTimetableNotification(enabled) === 'settings') setMessage('Change the notification card in Android settings, then save.');
-      });
-      case 'live-events': return <>{toggle('live-events', 'Calendar events in the card', state?.liveEvents, enabled => setAndroidEventPreference('events', enabled))}{toggle('event-reminders', 'Event reminder alerts', state?.eventReminders, enabled => setAndroidEventPreference('eventReminders', enabled))}</>;
-      case 'timetable-display': return <SettingsRow label="Card display">{actionButton('Configure', openAndroidTimetableSettings, 'Configure timetable card')}</SettingsRow>;
+      case 'biometrics': return <section className="space-y-2" aria-label="Biometrics and passkeys"><h3 className="px-1 text-xs font-medium text-muted-foreground">Biometrics and passkeys</h3><PasskeySettings compact /></section>;
+      case 'timetable': return <LiveTrackingSettings key={user?.id} notificationCard={state?.notificationCard} />;
       case 'push': return <AppPushSettings android={isAndroid} state={state} checking={isChecking} />;
-      case 'lesson-reminders': return <SettingsRow label="Lesson reminders">{actionButton('Manage', openAndroidLessonReminders, 'Manage lesson reminders')}</SettingsRow>;
-      case 'widgets': return <SettingsRow label="Home screen widgets">{actionButton('Manage', openAndroidWidgetSettings, 'Manage home screen widgets')}</SettingsRow>;
+      case 'lesson-reminders': return <InlineLessonReminders key={user?.id} />;
+      case 'widgets': return <InlineWidgetSettings key={user?.id} />;
       case 'offline':
       case 'home-screen': return <AppStorageSettings />;
       case 'updates': return <SettingsRow label="App updates">{actionButton('Check', checkAndroidAppUpdates, 'Check for Android updates')}</SettingsRow>;
@@ -125,7 +114,6 @@ export function AppSettings() {
     }
   };
   const search = <GlassPageSearchInput aria-label="Search settings" placeholder="Search…" value={query} onChange={event => setQuery(event.currentTarget.value)} onKeyDown={event => { if (event.key === 'Escape') setQuery(''); }} />;
-  const plainRows = ['account', 'tracking', 'lessons', 'widgets'].includes(activeSection.id);
   const controls = items.map(item => <div key={item.id} id={`setting-${item.id}`} tabIndex={-1} className="scroll-mt-28 divide-y divide-border/60 outline-none focus-visible:rounded-xl focus-visible:ring-2 focus-visible:ring-ring">{content(item.id)}</div>);
 
   return <div className="min-h-full pb-6" data-app-settings>
@@ -146,17 +134,10 @@ export function AppSettings() {
           {!matches.length && <p className="py-4 text-sm text-muted-foreground">No settings found.</p>}
           <button type="button" className={settingsButtonClass} onClick={() => setQuery('')}>Clear search</button>
         </section> : <section id="settings-panel" role="tabpanel" aria-labelledby={`settings-tab-${activeSection.id}`} className="space-y-3" tabIndex={-1}>
-          <h2 tabIndex={-1} className="pb-1 pt-1 text-base font-semibold outline-none sm:text-lg">{activeSection.id === 'account' && detail ? detail === 'profile' ? 'My profile' : 'Account settings' : activeSection.title}</h2>
+          <h2 tabIndex={-1} className="pb-1 pt-1 text-base font-semibold outline-none sm:text-lg">{activeSection.title}</h2>
           {error && <p role="alert" className="text-xs leading-5 text-destructive">{error}</p>}
           {message && <p role="status" className="text-xs leading-5 text-muted-foreground">{message}</p>}
-          {activeSection.id === 'account' && detail ? <>
-            <button type="button" className={settingsButtonClass} onClick={() => setDetail(null)}>Back to my account</button>
-            <Suspense fallback={<p role="status" className="text-xs text-muted-foreground">Loading details…</p>}>
-              {detail === 'profile' ? <MyProfile embedded /> : parent ? <ParentAccountSettings embedded /> : <AccountSettings embedded />}
-            </Suspense>
-          </> : plainRows ? <SettingsRows>{controls}</SettingsRows> : <div className="space-y-3">{controls}</div>}
-          {activeSection.id === 'tracking' && !isChecking && typeof state?.notificationCard !== 'boolean' && <p className="text-xs leading-5 text-muted-foreground">Update the Android app for live status. Card display opens the existing controls.</p>}
-          {activeSection.id === 'tracking' && state?.permission === 'denied' && <p className="text-xs leading-5 text-muted-foreground">Allow Android notifications under Push notifications.</p>}
+          <div className="space-y-4">{controls}</div>
         </section>}
       </div>
     </div>

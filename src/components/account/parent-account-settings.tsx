@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { auth } from '@/lib/firebase';
 import { ParentOfflineReadinessCard } from '@/components/parent/parent-offline-readiness-card';
+import { SettingsRow, SettingsRows, settingsButtonClass } from '@/components/settings/settings-controls';
 import {
   updatePassword,
   reauthenticateWithCredential,
@@ -93,6 +94,16 @@ export function ParentAccountSettings({ embedded = false }: { embedded?: boolean
   const displayName = user
     ? `${(user as any).firstName || ''} ${(user as any).lastName || ''}`.trim() || user.username || 'Parent'
     : 'Parent';
+
+  if (embedded) return <form onSubmit={handlePasswordChange} className="space-y-3" aria-label="Change password">
+    <SettingsRows><SettingsRow label="Username"><span className="text-xs text-muted-foreground">{user?.username}</span></SettingsRow></SettingsRows>
+    <h3 className="px-1 text-xs font-medium text-muted-foreground">Password</h3>
+    <SettingsRows>{([['parent-current','Current password',currentPassword,setCurrentPassword,showCurrent,setShowCurrent],['parent-new','New password',newPassword,setNewPassword,showNew,setShowNew],['parent-confirm','Confirm new password',confirmPassword,setConfirmPassword,showConfirm,setShowConfirm]] as const).map(([id,label,value,setValue,visible,setVisible])=><SettingsRow key={id} label={label} htmlFor={id}>
+      <div className="relative min-w-0"><input id={id} type={visible?'text':'password'} autoComplete={id==='parent-current'?'current-password':'new-password'} value={value} onChange={event=>setValue(event.target.value)} required className="h-10 w-40 max-w-full rounded-full border border-input bg-background pl-3 pr-9 text-base sm:h-8 sm:w-52 sm:text-sm" /><button type="button" aria-label={`${visible?'Hide':'Show'} ${label.toLowerCase()}`} onClick={()=>setVisible(!visible)} className="absolute inset-y-0 right-0 flex w-9 items-center justify-center rounded-full text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{visible?<EyeOff className="h-3.5 w-3.5"/>:<Eye className="h-3.5 w-3.5"/>}</button></div>
+    </SettingsRow>)}</SettingsRows>
+    {message && <p role={message.type==='error'?'alert':'status'} className={`text-xs ${message.type==='error'?'text-destructive':'text-muted-foreground'}`}>{message.text}</p>}
+    <div className="flex justify-end"><button type="submit" className={settingsButtonClass} disabled={isUpdating || !currentPassword || !newPassword || !confirmPassword}>{isUpdating?'Saving…':'Update password'}</button></div>
+  </form>;
 
   return (
     <div className={embedded ? "space-y-4" : "min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-alt-surface-50 dark:from-brand-surface-950/40 dark:via-slate-900 dark:to-brand-alt-surface-950/40"}>

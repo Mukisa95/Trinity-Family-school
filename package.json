@@ -22,6 +22,7 @@
     "test:theme-palettes": "node --import tsx --test tests/device-colors.test.ts tests/pixel-terracotta-theme.test.ts",
     "test:look-and-feel-browser": "node scripts/test-look-and-feel-browser.cjs",
     "test:app-settings-browser": "node scripts/test-app-settings-browser.cjs",
+    "test:android-app-settings": "node --import tsx --test tests/android-app-settings.test.ts",
     "test:look-and-feel-navigation": "node scripts/test-look-and-feel-navigation.cjs",
     "test:payment-dialog-completion": "node --import tsx --test tests/payment-dialog-completion.test.ts",
     "test:payment-reversal-dialog-layout": "node --test tests/payment-reversal-dialog-layout.test.ts",

@@ -13,6 +13,7 @@ import { User, Eye, EyeOff, Save, KeyRound, Shield, AlertCircle } from "lucide-r
 import { useRouter } from "next/navigation";
 import { useUpdateUser } from "@/lib/hooks/use-users";
 import { Loader2 } from "lucide-react";
+import { SettingsRow, SettingsRows, settingsButtonClass } from '@/components/settings/settings-controls';
 
 
 export function AccountSettings({ embedded = false }: { embedded?: boolean }) {
@@ -199,6 +200,18 @@ export function AccountSettings({ embedded = false }: { embedded?: boolean }) {
     }
     return user.username;
   };
+
+  if (embedded) return <div className="space-y-4">
+    <SettingsRows><SettingsRow label="Username" htmlFor="username">
+      <input id="username" value={formData.username} onChange={event=>setFormData(previous=>({...previous,username:event.target.value}))} className="h-10 w-32 max-w-full rounded-full border border-input bg-background px-3 text-base sm:h-8 sm:w-44 sm:text-sm" />
+      <button type="button" className={settingsButtonClass} aria-label="Update username" disabled={isUpdatingUsername || formData.username === user.username} onClick={()=>void handleUpdateUsername()}>{isUpdatingUsername ? 'Saving…' : 'Save'}</button>
+    </SettingsRow></SettingsRows>
+    <section aria-label="Password" className="space-y-2"><h3 className="px-1 text-xs font-medium text-muted-foreground">Password</h3><SettingsRows>
+      {([['currentPassword','Current password',showCurrentPassword,setShowCurrentPassword],['newPassword','New password',showNewPassword,setShowNewPassword],['confirmPassword','Confirm new password',showConfirmPassword,setShowConfirmPassword]] as const).map(([key,label,show,setShow])=><SettingsRow key={key} label={label} htmlFor={`account-${key}`}>
+        <div className="relative min-w-0"><input id={`account-${key}`} type={show?'text':'password'} autoComplete={key==='currentPassword'?'current-password':'new-password'} value={formData[key]} onChange={event=>setFormData(previous=>({...previous,[key]:event.target.value}))} className="h-10 w-40 max-w-full rounded-full border border-input bg-background pl-3 pr-9 text-base sm:h-8 sm:w-52 sm:text-sm" /><button type="button" aria-label={`${show?'Hide':'Show'} ${label.toLowerCase()}`} onClick={()=>setShow(!show)} className="absolute inset-y-0 right-0 flex w-9 items-center justify-center rounded-full text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{show?<EyeOff className="h-3.5 w-3.5"/>:<Eye className="h-3.5 w-3.5"/>}</button></div>
+      </SettingsRow>)}
+    </SettingsRows><div className="flex justify-end"><button type="button" className={settingsButtonClass} disabled={isUpdatingPassword || !formData.currentPassword || !formData.newPassword || !formData.confirmPassword} onClick={()=>void handleUpdatePassword()}>{isUpdatingPassword?'Saving…':'Update password'}</button></div></section>
+  </div>;
 
   return (
     <div className={embedded ? "space-y-4" : "min-h-screen"}>

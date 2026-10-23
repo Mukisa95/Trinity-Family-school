@@ -4,9 +4,9 @@
   "applicationId": "ug.trinityfamilyschool.live",
   "websiteOrigin": "https://trinityfamilyschool.vercel.app",
   "firebaseProjectId": "trinity-family-schools",
-  "versionCode": 34,
-  "versionName": "1.32",
-  "releaseNotes": "Searchable App Settings with privacy lock, device unlock, notification and widget controls. Turn off live timetable and event cards, share the public download page by QR, and see the installed version. Preserves PDF preview, background creation and explicit downloads.",
+  "versionCode": 35,
+  "versionName": "1.33",
+  "releaseNotes": "Integrated App Settings: account details, biometrics, live card display, lesson reminders and individual widget controls. Compact themed forms, reminder previews and offline device preferences without separate configuration screens.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {

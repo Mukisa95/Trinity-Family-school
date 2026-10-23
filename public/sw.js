@@ -35,7 +35,7 @@ const PARENT_APP_SHELL_CACHE = `parent-app-shell-${SW_VERSION}`;
 const PARENT_APP_ROUTES = new Set(['/parent', '/parent/settings']);
 const ANDROID_APP_SHELL_CACHE = `android-app-shell-${SW_VERSION}`;
 const ANDROID_SHELL_IMAGES = new Set(['/images/D.B%20background.png', '/trinity-logo-192.png']);
-const ANDROID_APP_ROUTES = new Set(['/', '/pupils', '/pupil-detail', '/timetable', '/events', '/login', '/parent', '/parent/settings', '/settings/account']);
+const ANDROID_APP_ROUTES = new Set(['/', '/pupils', '/pupil-detail', '/timetable', '/events', '/login', '/parent', '/parent/settings', '/settings/account', '/settings/app']);
 
 async function androidShellMatch(request) {
   const names = (await caches.keys()).filter(name => name.startsWith('android-app-shell-')).sort().reverse();

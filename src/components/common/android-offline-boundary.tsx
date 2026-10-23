@@ -48,10 +48,13 @@ export function AndroidOfflineBoundary({ children }: { children: ReactNode }) {
     if (!offline || !hasAndroidOfflineBridge()) return;
     const prevent = (event: Event) => {
       const target = event.target instanceof Element ? event.target : null;
+      // These controls edit device preferences through the account-checked
+      // native bridge; they do not submit school record changes to the server.
+      if (target?.closest('[data-native-settings]')) return;
       const button = target?.closest('button, [role="menuitem"]');
       const label = button?.getAttribute('aria-label') || button?.textContent || '';
       // Existing editing controls keep their design; invocation is unavailable.
-      if (event.type === 'submit' || (button && /\b(edit|save|delete|remove|collect|pay|add|create|register|upload|capture|promote|transfer|withdraw|assign|generate|publish|send)\b/i.test(label))) {
+      if (event.type === 'submit' || (button && /\b(edit|update|save|delete|remove|collect|pay|add|create|register|upload|capture|promote|transfer|withdraw|assign|generate|publish|send)\b/i.test(label))) {
         event.preventDefault(); event.stopImmediatePropagation();
         toast({ title: 'Connection needed', description: 'Connect to make changes.' });
       }
