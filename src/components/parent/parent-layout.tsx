@@ -124,7 +124,7 @@ export function ParentLayout({ children }: ParentLayoutProps) {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="parent-workspace flex h-screen bg-gray-50 dark:bg-gray-900">
       <ParentOfflineDatasetPreparer
         accountId={visibleAccountId}
         familyId={familyId}
@@ -143,8 +143,8 @@ export function ParentLayout({ children }: ParentLayoutProps) {
       />
       
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        <div className="flex-1 overflow-y-auto pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-0">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div data-parent-workspace-scroll className="min-h-0 flex-1 overflow-y-auto pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-0">
           {renderContent()}
         </div>
         

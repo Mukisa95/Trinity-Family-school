@@ -464,10 +464,11 @@ export function PDFDocumentViewer({
 
     void (async () => {
       try {
-        const pdfjs = await import("pdfjs-dist");
+        // Safari and older WebViews need the polyfills in both legacy bundles.
+        const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
         if (!pdfjs.GlobalWorkerOptions.workerSrc) {
           pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-            "pdfjs-dist/build/pdf.worker.min.mjs",
+            "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
             import.meta.url,
           ).toString();
         }

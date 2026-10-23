@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ViewportPortal } from "@/components/common/viewport-portal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -93,6 +94,11 @@ function PDFDocumentSurface({
 }
 
 export function PDFWorkspace() {
+  const { documents, mode } = usePDFWorkspace();
+  return documents.length ? <ViewportPortal zIndex={90} className={mode === "minimized" ? "pdf-workspace-minimized-layer" : ""} lockScroll={mode === "expanded"} followZoom={mode !== "expanded"}><PDFWorkspaceContent /></ViewportPortal> : null;
+}
+
+function PDFWorkspaceContent() {
   const {
     documents,
     activeDocument,
@@ -157,7 +163,7 @@ export function PDFWorkspace() {
     return (
       <>
         {readyNoticeDocument && (
-          <aside role="status" aria-live="polite" className="pdf-workspace-solid-surface fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-3 z-[95] flex w-[min(320px,calc(100vw-24px))] items-center gap-2 rounded-2xl border border-emerald-300 p-2 shadow-lg dark:border-emerald-800">
+          <aside role="status" aria-live="polite" className="pdf-workspace-solid-surface fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-3 z-[95] flex w-[min(320px,calc(100%-24px))] items-center gap-2 rounded-2xl border border-emerald-300 p-2 shadow-lg dark:border-emerald-800">
             <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" aria-hidden="true" />
             <button type="button" onClick={() => expandWorkspace(readyNoticeDocument.id)} aria-label="View PDF" className="min-h-11 min-w-0 flex-1 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
               <span className="block text-xs font-semibold">Your PDF is ready</span><span className="block truncate text-xs text-slate-500 dark:text-slate-300">{readyNoticeDocument.title}</span>
@@ -165,7 +171,7 @@ export function PDFWorkspace() {
             <button type="button" onClick={() => setReadyNoticeId(null)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" aria-label={`Dismiss notification for ${readyNoticeDocument.title}`}><X className="h-4 w-4" /></button>
           </aside>
         )}
-        <aside className="pdf-workspace-solid-surface fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom))] right-3 z-[90] w-[min(320px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-slate-200 shadow-lg dark:border-slate-700" aria-label="Minimized PDF workspace">
+        <aside className="pdf-workspace-solid-surface fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom))] right-3 z-[90] w-[min(320px,calc(100%-24px))] overflow-hidden rounded-2xl border border-slate-200 shadow-lg dark:border-slate-700" aria-label="Minimized PDF workspace">
           <div className="flex items-center gap-1 px-2 py-1">
             <button type="button" onClick={() => expandWorkspace()} className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Restore PDF workspace">
               {generatingCount ? <Loader2 className="h-5 w-5 shrink-0 animate-spin text-brand-ink-600 motion-reduce:animate-none dark:text-brand-ink-300" /> : <FileText className="h-5 w-5 shrink-0 text-brand-ink-600 dark:text-brand-ink-300" />}

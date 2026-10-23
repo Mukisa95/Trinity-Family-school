@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import type { Pupil } from '@/types';
 import { cn } from '@/lib/utils';
 import { GlassNavigationSurface } from '@/components/common/glass-navigation-surface';
+import { ViewportPortal } from '@/components/common/viewport-portal';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -118,7 +119,7 @@ export function ParentBottomNavigation({
   };
 
   return (
-    <>
+    <ViewportPortal zIndex={50} followZoom={false} className="lg:hidden print:hidden">
       <nav aria-label="Parent navigation" className="glass-navigation-floating fixed inset-x-3 z-50 flex justify-center print:hidden">
         <GlassNavigationSurface label="Parent destinations">
             <ThemeToggle compact />
@@ -269,6 +270,6 @@ export function ParentBottomNavigation({
         )}
       </AnimatePresence>
 
-    </>
+    </ViewportPortal>
   );
 }

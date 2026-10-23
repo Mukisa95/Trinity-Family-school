@@ -39,6 +39,7 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { measureWorkspaceStep } from '@/lib/startup/workspace-timing';
 import { NavigationProvider } from '@/lib/contexts/navigation-context';
 import { NavigationContent } from './navigation-content';
+import { MobileWorkspaceFrame } from './mobile-workspace-frame';
 import { ParentLayout } from '@/components/parent/parent-layout';
 import EnhancedHeader from './enhanced-header';
 import AuthGuard from '@/components/common/AuthGuard';
@@ -424,13 +425,13 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   // PARENT INTERFACE
   if (user?.role === 'Parent') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-secondary-surface-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <MobileWorkspaceFrame routeKey={pathname} className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-secondary-surface-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <EnhancedHeader
           onMenuClick={() => { }}
           showMenuButton={false}
           loadSchoolSettings={false}
         />
-        <main className="flex-1 overflow-y-auto h-[calc(100vh-4rem)]">
+        <main className="parent-app-content flex-1 overflow-y-auto h-[calc(100vh-4rem)]">
           <NavigationContent>
           {isSessionStale && (
             <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
@@ -440,7 +441,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
           </AuthGuard>
           </NavigationContent>
         </main>
-      </div>
+      </MobileWorkspaceFrame>
     );
   }
 
@@ -451,7 +452,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   if (isMobile) {
     return (
       <>
-        <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-secondary-surface-50 dark:from-brand-surface-950/40 dark:via-slate-900 dark:to-brand-secondary-surface-950/40">
+        <MobileWorkspaceFrame routeKey={pathname} className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-secondary-surface-50 dark:from-brand-surface-950/40 dark:via-slate-900 dark:to-brand-secondary-surface-950/40">
           <EnhancedHeader
             onMenuClick={handleMobileMenuClick}
             showMenuButton={true}
@@ -481,7 +482,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
 
           <AutoNotificationPermission />
           <SchoolPayInboxPrompt />
-        </div>
+        </MobileWorkspaceFrame>
       </>
     );
   }

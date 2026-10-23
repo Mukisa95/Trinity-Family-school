@@ -26,7 +26,7 @@ async function build() {
   fs.writeFileSync(path.join(output, 'source.pdf'), Buffer.from(pdf.output('arraybuffer')));
   await esbuild.build({ absWorkingDir: root, stdin: { resolveDir: root, loader: 'tsx', contents: `
 import React,{useEffect,useState} from 'react';import {createRoot} from 'react-dom/client';
-import * as pdfjs from 'pdfjs-dist';pdfjs.GlobalWorkerOptions.workerSrc='/worker.mjs';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';pdfjs.GlobalWorkerOptions.workerSrc='/worker.mjs';
 import {ThemeProvider} from './src/components/providers/theme-provider';
 import {ThemeToggle} from './src/components/ui/theme-toggle';
 import {PDFWorkspaceProvider,usePDFWorkspace} from './src/lib/pdf/pdf-workspace-context';
@@ -43,7 +43,7 @@ createRoot(document.getElementById('app')).render(<ThemeProvider><PDFWorkspacePr
 async function run() {
   await build();
   const server = http.createServer((req, res) => {
-    const files = { '/fixture.js': ['text/javascript', path.join(output, 'fixture.js')], '/fixture.css': ['text/css', path.join(output, 'fixture.css')], '/source.pdf': ['application/pdf', path.join(output, 'source.pdf')], '/worker.mjs': ['text/javascript', path.join(root, 'node_modules/pdfjs-dist/build/pdf.worker.min.mjs')] };
+    const files = { '/fixture.js': ['text/javascript', path.join(output, 'fixture.js')], '/fixture.css': ['text/css', path.join(output, 'fixture.css')], '/source.pdf': ['application/pdf', path.join(output, 'source.pdf')], '/worker.mjs': ['text/javascript', path.join(root, 'node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs')] };
     if (files[req.url]) { res.setHeader('Content-Type', files[req.url][0]); res.end(fs.readFileSync(files[req.url][1])); }
     else { res.setHeader('Content-Type', 'text/html'); res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/fixture.css"></head><body><div id="app"></div><script type="module" src="/fixture.js"></script></body></html>'); }
   });

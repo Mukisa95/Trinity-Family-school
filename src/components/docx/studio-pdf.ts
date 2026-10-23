@@ -18,9 +18,9 @@ export function parsePdfPageRange(value: string, count: number): number[] {
 
 export async function openStudioPdf(file: File) {
   if (file.size === 0) throw new Error('This PDF is empty.');
-  const pdfjs = await import('pdfjs-dist');
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
   // PDF.js ships a nonempty relative default which is not a Next.js asset URL.
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/legacy/build/pdf.worker.min.mjs', import.meta.url).toString();
   const task = pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) });
   // The source is artwork, not an interactive form editor. Requesting a password
   // here would leave the import pending; users can supply an unlocked copy.

@@ -21,6 +21,7 @@ import { ArrowLeft, Search, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { GlassNavigationSurface } from "@/components/common/glass-navigation-surface";
+import { ViewportPortal } from "@/components/common/viewport-portal";
 import { SmartBackButton } from "@/components/common/SmartBackButton";
 import { ActionBarPopupContext, observeActionBarPopups } from "./action-popup-coordinator";
 
@@ -128,12 +129,12 @@ export function GlassPageTopBar({
     };
 
     updateFloatingState();
-    window.addEventListener("scroll", updateFloatingState, { passive: true });
+    window.addEventListener("scroll", updateFloatingState, { passive: true, capture: true });
     window.addEventListener("resize", updateFloatingState);
 
     return () => {
       cancelAnimationFrame(animationFrame);
-      window.removeEventListener("scroll", updateFloatingState);
+      window.removeEventListener("scroll", updateFloatingState, true);
       window.removeEventListener("resize", updateFloatingState);
     };
   }, [hasMobileUtilityControls, isSmallScreen, sticky]);
@@ -446,12 +447,12 @@ function getVisibleMobileActionChildren(children: ReactNode): ReactNode[] {
 
 export function GlassActionDock({ children, className, accessory }: GlassActionDockProps) {
   const isSmallScreen = useSmallScreen();
-  const floatingRef = useRef<HTMLDivElement>(null);
+  const [floatingRoot, setFloatingRoot] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
     // An accessory may also receive React-portalled controls (timetable Edit).
-    if (!isSmallScreen || !accessory || !floatingRef.current) return;
-    return observeActionBarPopups(floatingRef.current);
-  }, [isSmallScreen, Boolean(accessory)]);
+    if (!isSmallScreen || !accessory || !floatingRoot) return;
+    return observeActionBarPopups(floatingRoot);
+  }, [isSmallScreen, Boolean(accessory), floatingRoot]);
 
   const dock = (
     <GlassNavigationSurface compactOnDesktop className={cn("glass-action-island", className)}>
@@ -460,15 +461,14 @@ export function GlassActionDock({ children, className, accessory }: GlassActionD
   );
 
   if (isSmallScreen) {
-    return createPortal(
-      <ActionBarPopupContext.Provider value={true}><div ref={floatingRef} className="glass-navigation-floating pointer-events-none fixed inset-x-3 z-30 flex justify-center sm:hidden print:hidden">
+    return <ViewportPortal zIndex={30} followZoom={false} className="sm:hidden print:hidden">
+      <ActionBarPopupContext.Provider value={true}><div ref={setFloatingRoot} className="glass-navigation-floating pointer-events-none fixed inset-x-3 z-30 flex justify-center sm:hidden print:hidden">
         <div className={cn("pointer-events-auto max-w-full", accessory && "flex min-w-0 items-center gap-2")}>
           <div className="min-w-0">{dock}</div>
           {accessory}
         </div>
-      </div></ActionBarPopupContext.Provider>,
-      document.body
-    );
+      </div></ActionBarPopupContext.Provider>
+    </ViewportPortal>;
   }
 
   return (

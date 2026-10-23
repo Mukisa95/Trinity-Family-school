@@ -49,7 +49,8 @@ if (globals.lastIndexOf('.pdf-workspace-solid-surface') < globals.indexOf('[styl
   throw new Error('PDF workspace contract failed: the opaque PDF surface must override the themed glass-card rule');
 }
 requireText(workspace, '<PDFDocumentViewer', 'ready documents must use the application-owned PDF viewer');
-requireText(documentViewer, 'await import("pdfjs-dist")', 'the viewer must render PDFs through PDF.js');
+requireText(documentViewer, 'await import("pdfjs-dist/legacy/build/pdf.mjs")', 'Safari must receive the compatible PDF.js display bundle');
+requireText(documentViewer, 'pdfjs-dist/legacy/build/pdf.worker.min.mjs', 'the worker must match the compatible display bundle');
 requireText(documentViewer, 'aria-label="Page thumbnails"', 'the viewer must provide page thumbnail navigation');
 requireText(documentViewer, 'aria-label="Zoom out"', 'the viewer must provide zoom controls');
 requireText(documentViewer, 'aria-label="Fit page width"', 'the viewer must support fit-width mode');

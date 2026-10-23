@@ -18,6 +18,7 @@ import { SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/si
 import { SidebarUserFooter } from './sidebar-user-footer';
 import { SidebarNav } from './sidebar-nav';
 import { visibleSidebarItems } from './sidebar-navigation';
+import { ViewportPortal } from '@/components/common/viewport-portal';
 
 interface MobileSidebarProps {
   items: NavigationItem[];
@@ -46,10 +47,8 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
   useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!mounted || !isOpen) return;
-    const previousOverflow = document.body.style.overflow;
     const opener = document.activeElement as HTMLElement | null;
-    document.body.style.overflow = 'hidden';
-    closeButton.current?.focus({ preventScroll: true });
+    const focusFrame = requestAnimationFrame(() => closeButton.current?.focus({ preventScroll: true }));
     const keydown = (event: KeyboardEvent) => {
       // Portalled account menus handle their own Escape/focus lifecycle first.
       if (event.defaultPrevented) return;
@@ -64,18 +63,18 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
     };
     document.addEventListener('keydown', keydown);
     return () => {
+      cancelAnimationFrame(focusFrame);
       document.removeEventListener('keydown', keydown);
-      document.body.style.overflow = previousOverflow;
       if (opener?.isConnected) opener.focus({ preventScroll: true });
     };
   }, [isOpen, mounted]);
 
   if (!mounted || !isOpen) return null;
 
-  return <>
+  return <ViewportPortal zIndex={40} lockScroll>
     <div className="fixed inset-0 z-40 bg-black/50" onClick={onClose} aria-hidden="true" />
     <div ref={drawer} role="dialog" aria-modal="true" aria-label="School navigation"
-      className="app-mobile-sidebar fixed top-0 left-0 z-50 flex h-[100dvh] w-64 max-w-[85vw] flex-col bg-sidebar text-sidebar-foreground"
+      className="app-mobile-sidebar fixed top-0 left-0 z-50 flex h-full w-64 max-w-[85%] flex-col overflow-hidden overscroll-y-contain bg-sidebar text-sidebar-foreground"
       {...closeSwipe}>
       <SidebarHeader className="sidebar-school-header flex min-h-[56px] shrink-0 flex-row items-center gap-2.5 border-b border-gray-100 p-3 dark:border-slate-700">
         {!isLoadingSettings && currentSettings.generalInfo.logo && <Link href="/" aria-label="School home" onClick={event => {
@@ -94,12 +93,12 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
           <X size={16} aria-hidden="true" />
         </button>
       </SidebarHeader>
-      <SidebarContent className="mobile-sidebar-scroll">
+      <SidebarContent className="mobile-sidebar-scroll overscroll-y-contain touch-pan-y touch-pinch-zoom">
         <SidebarNav items={items} mobile onClose={onClose} onNavigate={startNavigation} onRouteIntent={warmRoute} />
       </SidebarContent>
       <SidebarFooter className="shrink-0 border-t border-gray-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-slate-700">
         <SidebarUserFooter onCloseSidebar={onClose} />
       </SidebarFooter>
     </div>
-  </>;
+  </ViewportPortal>;
 }

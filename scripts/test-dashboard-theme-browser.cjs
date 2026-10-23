@@ -47,7 +47,7 @@ function scheduleStyles() {
   const names = new Set(['SUBJECT_HUES_W', 'getSubjectHueW', 'getWeekCellStyle', 'WeekPeriodState']);
   return `import React from 'react';\n` + source.statements.filter(n => (ts.isFunctionDeclaration(n) || ts.isTypeAliasDeclaration(n)) ? names.has(n.name?.text) : ts.isVariableStatement(n) && n.declarationList.declarations.some(d => names.has(d.name.getText(source)))).map(n => n.getText(source)).join('\n') + '\nexport {getWeekCellStyle};';
 }
-async function build({ navigation = false, pageLayers = false, networkDetails = false } = {}) {
+async function build({ navigation = false, pageLayers = false, networkDetails = false, appleFrame = false, adminPages = false } = {}) {
   const headerSource = ts.createSourceFile('header.tsx', fs.readFileSync(path.join(root, 'src/components/layout/enhanced-header.tsx'), 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const iconNames = headerSource.statements.filter(n => ts.isImportDeclaration(n) && n.moduleSpecifier.text === '@phosphor-icons/react').flatMap(n => n.importClause.namedBindings.elements.map(e => e.name.text));
   const navigationMocks = {
@@ -98,6 +98,14 @@ createRoot(document.getElementById('app')).render(<><Fixture/><EventExamples/><E
     contents = contents.slice(0, start) + '<main className="p-6 pt-16"><h1>School workspace</h1>' + contents.slice(end);
     contents = contents.replace('<><Fixture/><EventExamples/><ExtraControls/></>', '<Fixture/>');
   }
+  let dashboardContent = '';
+  if (adminPages) {
+    const source = ts.createSourceFile('fixture.tsx', contents, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const findMain = node => ts.isJsxElement(node) && node.openingElement.tagName.getText(source) === 'main' ? node : ts.forEachChild(node, findMain);
+    const main = findMain(source);
+    assert.ok(main, 'Admin dashboard fixture must use the real dashboard widget markup');
+    dashboardContent = main.children.map(child => child.getText(source)).join('').replace(mobileNav, '');
+  }
   if (pageLayers) {
     contents = `import {GlassPageTopBar,GlassActionDock,GlassActionButton} from './src/components/common/glass-page-top-bar';
 import {GlassSummaryBar} from './src/components/common/glass-summary-bar';
@@ -113,6 +121,27 @@ return <div data-testid="page-stack" className="min-h-screen">{variant==='skelet
     contents = contents.slice(0,start) + '<main data-testid="workspace-scroller" className="min-h-0 md:flex-1 md:overflow-y-auto px-3 md:px-6 md:pt-[52px]"><LayeredPage/>' + contents.slice(end);
     contents = contents.replace('<div className="lg:hidden fixed top-2 right-2 z-50"><ThemeToggle/></div>', '');
     contents = contents.replace('SidebarInset className="min-w-0"','SidebarInset className="min-w-0 md:h-[100dvh] md:overflow-hidden"');
+  }
+  if (appleFrame) {
+    contents = contents.replace('<><Fixture/><EventExamples/><ExtraControls/></>', '<Fixture/>');
+    contents = `import {MobileWorkspaceFrame} from './src/components/layout/mobile-workspace-frame';import {NavigationContent} from './src/components/layout/navigation-content';import {ParentLayout} from './src/components/parent/parent-layout';\n` + contents;
+    contents = contents.replace('function Fixture(){const [mobileOpen', "function Fixture(){const [route,setRoute]=React.useState('/');window.setFrameRoute=setRoute;const [parent,setParent]=React.useState(false);window.setParentFrame=setParent;const [mobileOpen");
+    contents = contents.replace('SidebarInset className="min-w-0 md:h-[100dvh] md:overflow-hidden"', 'MobileWorkspaceFrame routeKey={route} className="min-h-screen"').replace('</SidebarInset>', '</MobileWorkspaceFrame>');
+    contents = contents.replace('<main data-testid="workspace-scroller" className="min-h-0 md:flex-1 md:overflow-y-auto px-3 md:px-6 md:pt-[52px]"><LayeredPage/>', '<main data-testid="workspace-scroller" className={parent?"parent-app-content px-3":"px-3"}><NavigationContent>{parent?<ParentLayout><LayeredPage/></ParentLayout>:<LayeredPage/>}</NavigationContent>');
+    Object.assign(fixtureMocks, {
+      'next/navigation': `export const usePathname=()=>'/parent/settings';export const useRouter=()=>({push:()=>{},prefetch:()=>{}});const params=new URLSearchParams();export const useSearchParams=()=>params;`,
+      '@/lib/hooks/use-pupils': `const empty=[];export const usePupils=()=>({data:empty});export const usePupil=()=>({data:null});export const usePupilsByFamily=()=>({data:empty,isLoading:false});export const useParentPupilScopeStatus=()=> 'ready';`,
+      '@/lib/hooks/use-parent-offline-family': `const empty=[];export const useParentOfflineFamily=()=>({familyMembers:empty});`,
+      './parent-sidebar': `export const ParentSidebar=()=>null;`,
+      './parent-dashboard': `export const ParentDashboard=()=>null;`,
+      './parent-about-school': `export const ParentAboutSchool=()=>null;`,
+      './parent-offline-dataset-preparer': `export const ParentOfflineDatasetPreparer=()=>null;`,
+    });
+  }
+  if (adminPages) {
+    contents = `function AdminDashboardContent(){return <div className="min-h-screen relative" data-admin-dashboard>${dashboardContent}</div>;}\n` + contents;
+    contents = contents.replace('function LayeredPage(){const [variant', "function LayeredPage(){const [adminPage,setAdminPage]=React.useState('pupil-detail');window.setAdminPage=setAdminPage;const [variant");
+    contents = contents.replace('return <div data-testid="page-stack"', "if(adminPage==='dashboard')return <AdminDashboardContent/>;return <div data-testid=\"page-stack\"");
   }
   await esbuild.build({ absWorkingDir: root, stdin: { resolveDir: root, contents, loader: 'tsx' }, bundle: true, jsx: 'automatic', platform: 'browser', alias: { '@': path.join(root, 'src') }, outfile: path.join(output, 'fixture.js'), define: { 'process.env.NODE_ENV': '"production"', 'process.env.__NEXT_IMAGE_OPTS': 'undefined', 'process.env': '{}' }, plugins: [{ name: 'synthetic-data', setup(b) {
     b.onResolve({ filter: /.*/ }, a => Object.hasOwn(fixtureMocks, a.path) || ['dashboard-widgets', 'schedule-styles'].includes(a.path) ? { path: a.path, namespace: 'fixture' } : undefined);
