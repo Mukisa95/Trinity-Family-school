@@ -438,8 +438,8 @@ const PupilsListPDFDocument: React.FC<PupilsListPDFDocumentProps> = ({
                       {pupil.photo ? (
                         <Photo color={colorPhotos} style={styles.pupilPhoto} src={pupil.photo} />
                       ) : (
-                        <View style={{ width: 30, height: 30, borderRadius: 1, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' }}>
-                          <Text style={[styles.tableCellSmall, { fontSize: 8 }]}>No photo</Text>
+                        <View style={{ width: styles.pupilPhoto.width, height: styles.pupilPhoto.height, borderRadius: 1, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' }}>
+                          <Text style={[styles.tableCellSmall, { fontSize: 6.4 }]}>No photo</Text>
                         </View>
                       )}
                     </View>
@@ -558,4 +558,4 @@ const PupilsListPDFDocument: React.FC<PupilsListPDFDocumentProps> = ({
   );
 };
 
-export default PupilsListPDFDocument; 
+export default PupilsListPDFDocument;

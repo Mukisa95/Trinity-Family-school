@@ -1,13 +1,13 @@
 import type jsPDF from 'jspdf';
 import type { UserOptions } from 'jspdf-autotable';
-import { listSchoolHeading, listDocumentCopyright } from './list-document-theme';
+import { listSchoolHeading, listDocumentCopyright, LIST_TABLE } from './list-document-theme';
 
 const documentTitles = new WeakMap<jsPDF, Set<string>>();
 
 export const listTableStyles: Pick<UserOptions, 'theme' | 'styles' | 'headStyles' | 'alternateRowStyles' | 'footStyles' | 'tableLineWidth' | 'tableLineColor'> = {
   theme: 'grid',
-  styles: { font: 'helvetica', fontSize: 11.3, cellPadding: 2, textColor: [34, 34, 34], lineColor: [221, 221, 221], lineWidth: .15, overflow: 'linebreak' },
-  headStyles: { fillColor: [34, 34, 34], textColor: [255, 255, 255], fontSize: 9.5, fontStyle: 'bold', lineColor: [102, 102, 102], lineWidth: .2 },
+  styles: { font: 'helvetica', fontSize: LIST_TABLE.bodyFontSize, cellPadding: LIST_TABLE.cellPaddingMm, textColor: [34, 34, 34], lineColor: [221, 221, 221], lineWidth: .15, overflow: 'linebreak' },
+  headStyles: { fillColor: [34, 34, 34], textColor: [255, 255, 255], fontSize: LIST_TABLE.detailFontSize, fontStyle: 'bold', lineColor: [102, 102, 102], lineWidth: .2 },
   alternateRowStyles: { fillColor: [241, 241, 241] },
   footStyles: { fillColor: [241, 241, 241], textColor: [34, 34, 34], fontStyle: 'bold' },
   tableLineWidth: .25, tableLineColor: [102, 102, 102],

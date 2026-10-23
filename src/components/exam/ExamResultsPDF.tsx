@@ -1,4 +1,5 @@
 import { drawListDocumentHeader, drawListDocumentFooters, listTableStyles } from '@/lib/printing/list-document-jspdf';
+import { LIST_TABLE } from '@/lib/printing/list-document-theme';
 import { applyMonochromePDF } from '@/lib/printing/monochrome-jspdf';
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -1435,7 +1436,7 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
       ...listTableStyles,
       head: [headers], body: data, startY: currentY,
       headStyles: { ...listTableStyles.headStyles, halign: 'center' },
-      bodyStyles: { fontSize: 11.3, halign: 'center', ...(printOptions?.blankAssessment ? { minCellHeight: 8.3 } : {}) },
+      bodyStyles: { fontSize: LIST_TABLE.bodyFontSize, halign: 'center', ...(printOptions?.blankAssessment ? { minCellHeight: LIST_TABLE.blankRowHeightMm } : {}) },
       columnStyles: (() => {
         const styles: Record<number, any> = {
           ...(showPosition ? { 0: { cellWidth: posWidth, halign: 'center' } } : {}),
@@ -1451,7 +1452,7 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
             cellWidth: indexWidth,
             halign: 'center',
             overflow: 'linebreak',
-            cellPadding: 2
+            cellPadding: LIST_TABLE.cellPaddingMm
           };
           colIndex++;
         }
@@ -1461,7 +1462,7 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
             cellWidth: linWidth,
             halign: 'center',
             overflow: 'linebreak',
-            cellPadding: 2
+            cellPadding: LIST_TABLE.cellPaddingMm
           };
           colIndex++;
         }

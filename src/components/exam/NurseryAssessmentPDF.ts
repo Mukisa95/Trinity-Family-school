@@ -1,4 +1,5 @@
 import { drawListDocumentHeader, drawListDocumentFooters, listTableStyles } from '@/lib/printing/list-document-jspdf';
+import { LIST_TABLE } from '@/lib/printing/list-document-theme';
 import { applyMonochromePDF } from '@/lib/printing/monochrome-jspdf';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -144,7 +145,7 @@ export const generateNurseryAssessmentPDF = ({
     horizontalPageBreakRepeat: showNumber ? [0, 1] : [0],
     ...listTableStyles,
     headStyles: { ...listTableStyles.headStyles, halign: 'center' },
-    bodyStyles: { fontSize: 11.3, halign: 'center', cellPadding: 2, ...(requestedOptions.blankAssessment ? { minCellHeight: 8.3 } : {}) },
+    bodyStyles: { fontSize: LIST_TABLE.bodyFontSize, halign: 'center', cellPadding: LIST_TABLE.cellPaddingMm, ...(requestedOptions.blankAssessment ? { minCellHeight: LIST_TABLE.blankRowHeightMm } : {}) },
     columnStyles: {
       ...(showNumber ? { 0: { cellWidth: 10, halign: 'center' as const } } : {}),
       [nameColumn]: { cellWidth: printOptions.showPin ? 43 : 48, halign: 'left', fontStyle: 'bold' },

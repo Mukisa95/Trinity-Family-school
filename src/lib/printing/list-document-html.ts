@@ -1,4 +1,4 @@
-import { listSchoolHeading, listDocumentCopyright } from './list-document-theme';
+import { listSchoolHeading, listDocumentCopyright, LIST_TABLE } from './list-document-theme';
 
 const escape = (value: string) => value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]!));
 
@@ -26,14 +26,16 @@ export const LIST_DOCUMENT_CSS = `
   .list-document-context span { flex: 1; }
   .list-document-context span:nth-child(2) { text-align: center; }
   .list-document-context span:last-child { text-align: right; }
-  table { width: 100%; border-collapse: collapse; border: .6pt solid #666 !important; border-radius: 0 !important; font-size: 11.3pt; }
+  table { width: 100%; border-collapse: collapse; border: .6pt solid #666 !important; border-radius: 0 !important; font-size: ${LIST_TABLE.bodyFontSize}pt; }
   thead { display: table-header-group; }
-  th { background: #222 !important; color: #fff !important; border: .3pt solid #ccc !important; border-bottom: .6pt solid #666 !important; font-size: 9.5pt !important; font-weight: 700; padding: 5pt !important; }
-  th * { color: #fff !important; }
-  td { border: .3pt solid #ddd !important; padding: 4pt 5pt !important; font-size: 11.3pt !important; }
+  :root table th { background: #222 !important; color: #fff !important; border: .3pt solid #ccc !important; border-bottom: .6pt solid #666 !important; font-size: ${LIST_TABLE.detailFontSize}pt !important; font-weight: 700; padding: 4pt !important; }
+  :root table th * { color: #fff !important; font-size: inherit !important; }
+  :root table td { border: .3pt solid #ddd !important; padding: 3.2pt 4pt !important; font-size: ${LIST_TABLE.bodyFontSize}pt !important; }
+  :root table td *, :root table td [class], :root table td [style] { font-size: inherit !important; }
+  :root table td .fee-type, :root table td .fee-type-badge, :root table td .status-badge { font-size: ${LIST_TABLE.detailFontSize}pt !important; }
   tbody tr:nth-child(even) > td { background: #f8f8f8 !important; }
   tr { break-inside: avoid; }
-  .list-attendance-detailed th, .list-attendance-detailed td { font-size: 9.5pt !important; padding: 3px 2px !important; }
+  :root .list-attendance-detailed th, :root .list-attendance-detailed td { font-size: ${LIST_TABLE.detailFontSize}pt !important; padding: 2.4px 1.6px !important; }
   .info-label, .info-value, .stat-label, .summary-label, .pupil-meta, .balance-details { font-size: 9.5pt !important; }
   .student-info, .family-info, .family-summary, .summary-section, .totals, .day-summary, .payment-summary { border: .3pt solid #ddd !important; border-radius: 0 !important; padding: 8pt; margin-bottom: 12pt; }
   .summary-card, .summary-item, .info-item, .stat-card { border-radius: 0 !important; box-shadow: none !important; }

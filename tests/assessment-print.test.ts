@@ -31,7 +31,7 @@ async function inspect(blob: Blob, name: string) {
   const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
   const loading = getDocument({ data: bytes.slice(), useSystemFonts: true });
   const parsed = await loading.promise;
-  const pages = [], positions: Array<Array<{ text: string; y: number }>> = [];
+  const pages = [], positions: Array<Array<{ text: string; y: number; fontSize: number }>> = [];
   for (let n = 1; n <= parsed.numPages; n++) {
     const page = await parsed.getPage(n);
     const content = await page.getTextContent();
@@ -43,7 +43,7 @@ async function inspect(blob: Blob, name: string) {
       `${name}: text crosses the 1 cm boundary on page ${n}: ${item.str}`);
     }
     pages.push(content.items.map(item => 'str' in item ? item.str : '').join(' '));
-    positions.push(content.items.flatMap(item => 'str' in item ? [{ text: item.str, y: item.transform[5] }] : []));
+    positions.push(content.items.flatMap(item => 'str' in item ? [{ text: item.str, y: item.transform[5], fontSize: item.height }] : []));
   }
   await loading.destroy();
   if (process.env.EXAM_PRINT_QA) {
@@ -84,6 +84,17 @@ test('blank mode enforces empty portrait output even if other options request re
   data.printOptions = { ...BLANK_ASSESSMENT_OPTIONS, showPin: true, showAgg: true, fillMarks: true, showAggregateAnalysis: true };
   const { text } = await inspect(generateExamPDF(data), 'blank-enforced');
   assert.ok(!text.includes('SECRET') && !text.includes('PRIVATE') && !text.includes('AGGREGATE ANALYSIS'));
+});
+
+test('assessment table density matches the approved 20 percent reduction', async () => {
+  const { positions } = await inspect(generateExamPDF(fixture(6, 70)), 'compact-assessment');
+  const rows = positions[0].filter(item => /^PUPIL \d{3}/.test(item.text));
+  assert.ok(Math.abs(rows[0].fontSize - 9.04) < .01);
+  assert.ok(Math.abs(rows[0].y - rows[1].y - 19.47) < .1, 'Reduce the row pitch, including padding, by 20 percent');
+  const heading = positions[0].find(item => item.text === 'PRE-PLE - SIPRO - SET 4')!;
+  assert.equal(heading.fontSize, 17, 'Document headings retain their approved size');
+  const footer = positions[0].find(item => item.text.includes('Management System'))!;
+  assert.equal(footer.fontSize, 8.5, 'The copyright footer retains its approved size');
 });
 
 test('long exam titles wrap above the metadata and table within the page margins', async () => {

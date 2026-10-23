@@ -5,6 +5,26 @@ export const LIST_DOCUMENT = {
   bodyFontSize: 11.3, detailFontSize: 9.5,
 } as const;
 
+/** Approved compact table density. Document headings, page width and footers stay unchanged. */
+export const LIST_TABLE = {
+  scale: .8, bodyFontSize: 9.04, detailFontSize: 7.6,
+  cellPaddingMm: 1.6, blankRowHeightMm: 6.64,
+} as const;
+
+const TABLE_STYLE_KEYS = new Set([
+  'headerRow', 'headerCell', 'headerCellText', 'headerText', 'cell', 'lastCell', 'altRow',
+  'studentInfoCol', 'academicInfoCol', 'personalInfoCol', 'contactInfoCol',
+  'primaryText', 'secondaryText', 'tertiaryText', 'accentText', 'combinedCell',
+  'guardianInfo', 'siblingInfo', 'compactText', 'cellText', 'nameText', 'idText',
+  'codeChip', 'emergencyTag', 'currencyText', 'summaryRow', 'placeholderInitial',
+  'photo', 'pupilPhoto', 'photoPlaceholder', 'photoContainer',
+]);
+const TABLE_SIZE_PROPERTIES = new Set([
+  'fontSize', 'height', 'minHeight', 'minPresenceAhead',
+  'padding', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'paddingHorizontal', 'paddingVertical',
+  'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'marginHorizontal', 'marginVertical',
+]);
+
 export function listDocumentCopyright(schoolName = 'Trinity Family School', year = new Date().getFullYear()) {
   return `${schoolName.trim() || 'Trinity Family School'} Management System (c) ${year}`;
 }
@@ -53,5 +73,20 @@ export function listDocumentStyles<T extends Record<string, any>>(input: T): T {
     color: LIST_DOCUMENT.ink, backgroundColor: 'transparent', borderWidth: '0pt', borderRadius: '0pt',
   });
   for (const key of ['pupilPhoto', 'photoPlaceholder']) merge(key, { borderRadius: 1 });
+  for (const key of Object.keys(result)) {
+    const isTable = TABLE_STYLE_KEYS.has(key) || /^table(?:Header|Col|Cell|Row)/.test(key)
+      || /^col(?:\d|[A-Z])/.test(key) || key.startsWith('status') || (key === 'row' && 'headerRow' in result);
+    if (!isTable) continue;
+    const style: Record<string, any> = { ...result[key] };
+    if (['tableHeader', 'tableColHeader', 'headerRow'].includes(key)) style.fontSize ??= LIST_DOCUMENT.detailFontSize;
+    else if (/^tableRow/.test(key) || ['row', 'cell', 'tableCol', 'summaryRow'].includes(key)) style.fontSize ??= LIST_DOCUMENT.bodyFontSize;
+    for (const property of Object.keys(style)) {
+      const isPhotoWidth = property === 'width' && ['photo', 'pupilPhoto', 'photoPlaceholder'].includes(key);
+      if ((TABLE_SIZE_PROPERTIES.has(property) || isPhotoWidth) && typeof style[property] === 'number') {
+        style[property] = Math.round(style[property] * LIST_TABLE.scale * 1000) / 1000;
+      }
+    }
+    result[key as keyof T] = style as T[keyof T];
+  }
   return result;
 }
