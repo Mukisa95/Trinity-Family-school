@@ -1,4 +1,5 @@
 import { enhancePhoto, type PersonMask, type PhotoFace, type PhotoRegion, type PhotoSettings } from './photo-processing';
+import { detectPhotoOnMain, segmentPhotoOnMain } from './photo-vision-main';
 
 export const PHOTO_TOOL_ASSETS = [
   '/photo-tools/v4/photo-worker.js', '/photo-tools/v1/vision.js', '/photo-tools/v1/face-detector.tflite',
@@ -43,6 +44,7 @@ export class PhotoToolsClient {
   private sequence = 0;
   private pending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>();
   private disposed = false;
+  private mainVision = false;
   private lastMask?: { source: string; area: PhotoRegion; result: Promise<PersonMask> };
   private request<T>(type: string, payload: object, transfer: Transferable[] = [], timeout = 15000): Promise<T> {
     if (this.disposed) return Promise.reject(new Error('Photo editor closed.'));
@@ -69,9 +71,19 @@ export class PhotoToolsClient {
   async detect(canvas: HTMLCanvasElement): Promise<PhotoFace[]> {
     await preparePhotoTools();
     if (this.disposed) throw new Error('Photo editor closed.');
-    const bitmap = await createImageBitmap(canvas);
-    try { return await this.request<PhotoFace[]>('detect', { bitmap }, [bitmap], 25000); }
-    catch (error) { bitmap.close(); throw error; }
+    if (this.mainVision || typeof Worker === 'undefined' || typeof createImageBitmap === 'undefined') {
+      this.mainVision = true; return detectPhotoOnMain(canvas);
+    }
+    let bitmap: ImageBitmap | undefined;
+    try {
+      bitmap = await createImageBitmap(canvas);
+      return await this.request<PhotoFace[]>('detect', { bitmap }, [bitmap], 25000);
+    } catch (error) {
+      bitmap?.close();
+      if (this.disposed || !/document|OffscreenCanvas|canvas.*not supported/i.test(error instanceof Error ? error.message : '')) throw error;
+      this.mainVision = true;
+      return detectPhotoOnMain(canvas);
+    }
   }
   segment(canvas: HTMLCanvasElement, key?: { source: string; area: PhotoRegion }): Promise<PersonMask> {
     const last = this.lastMask;
@@ -79,9 +91,19 @@ export class PhotoToolsClient {
     const result = (async () => {
       await prepareBackgroundTools();
       if (this.disposed) throw new Error('Photo editor closed.');
-      const bitmap = await createImageBitmap(canvas);
-      try { return await this.request<PersonMask>('segment', { bitmap }, [bitmap], 25000); }
-      catch (error) { bitmap.close(); throw error; }
+      if (this.mainVision || typeof Worker === 'undefined' || typeof createImageBitmap === 'undefined') {
+        this.mainVision = true; return segmentPhotoOnMain(canvas);
+      }
+      let bitmap: ImageBitmap | undefined;
+      try {
+        bitmap = await createImageBitmap(canvas);
+        return await this.request<PersonMask>('segment', { bitmap }, [bitmap], 25000);
+      } catch (error) {
+        bitmap?.close();
+        if (this.disposed || !/document|OffscreenCanvas|canvas.*not supported/i.test(error instanceof Error ? error.message : '')) throw error;
+        this.mainVision = true;
+        return segmentPhotoOnMain(canvas);
+      }
     })();
     if (key) {
       this.lastMask = { ...key, result };

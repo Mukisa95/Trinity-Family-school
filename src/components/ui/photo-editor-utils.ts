@@ -161,29 +161,51 @@ export async function encodePupilPhotoCanvas(canvas: HTMLCanvasElement): Promise
 
 export async function createEnhancedPupilPhoto(
   imageSrc: string, area: Area, settings: PhotoSettings, tools: PhotoToolsClient, face?: PhotoFace,
+  previewSize = PUPIL_PHOTO_OUTPUT_SIZE,
 ) {
+  const workingSize = Math.max(PUPIL_PHOTO_OUTPUT_SIZE, Math.min(1024,
+    Number.isFinite(previewSize) ? Math.floor(previewSize) : PUPIL_PHOTO_OUTPUT_SIZE,
+    Math.floor(area.width), Math.floor(area.height)));
   const canvas = await createSquareCropCanvas(imageSrc, area, {
-    outputSize: PUPIL_PHOTO_OUTPUT_SIZE, minimumSourceSize: PUPIL_PHOTO_OUTPUT_SIZE,
+    outputSize: workingSize, minimumSourceSize: PUPIL_PHOTO_OUTPUT_SIZE,
   });
-  const ctx = canvas.getContext("2d")!;
-  const original = await encodePupilPhotoCanvas(canvas);
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const scale = canvas.width / Math.min(area.width, area.height);
-  const region = face ? { x: (face.x - area.x) * scale, y: (face.y - area.y) * scale,
-    width: face.width * scale, height: face.height * scale } : undefined;
-  let mask: PersonMask | undefined;
-  if (settings.removeBackground) {
-    try {
-      mask = await tools.segment(canvas, { source: imageSrc, area });
-    } catch {
-      throw new Error("Background removal is unavailable. Connect and try again, or turn off Remove background to keep editing.");
+  const output = workingSize === PUPIL_PHOTO_OUTPUT_SIZE ? canvas : document.createElement('canvas');
+  if (output !== canvas) { output.width = PUPIL_PHOTO_OUTPUT_SIZE; output.height = PUPIL_PHOTO_OUTPUT_SIZE; }
+  const resizeOutput = () => {
+    if (output === canvas) return;
+    const context = output.getContext('2d')!;
+    context.imageSmoothingEnabled = true; context.imageSmoothingQuality = 'high';
+    context.drawImage(canvas, 0, 0, output.width, output.height);
+  };
+  try {
+    const ctx = canvas.getContext("2d")!;
+    resizeOutput();
+    const original = await encodePupilPhotoCanvas(output);
+    const previewOriginal = output === canvas ? original : await blobToDataUrl(await canvasToJpegBlob(canvas, 0.95));
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const scale = canvas.width / Math.min(area.width, area.height);
+    const region = face ? { x: (face.x - area.x) * scale, y: (face.y - area.y) * scale,
+      width: face.width * scale, height: face.height * scale } : undefined;
+    let mask: PersonMask | undefined;
+    if (settings.removeBackground) {
+      try {
+        mask = await tools.segment(canvas, { source: imageSrc, area });
+      } catch {
+        throw new Error("Background removal is unavailable. Connect and try again, or turn off Remove background to keep editing.");
+      }
     }
+    const result = await tools.enhance(imageData.data, canvas.width, canvas.height, settings, region, mask);
+    if (face && (face.x < area.x || face.y < area.y || face.x + face.width > area.x + area.width || face.y + face.height > area.y + area.height)) {
+      result.warnings.push({ code: "face-cut-off", message: "Part of the face is outside the crop. Reposition the photo before saving." });
+    }
+    imageData.data.set(result.pixels);
+    ctx.putImageData(imageData, 0, 0);
+    resizeOutput();
+    const photo = await encodePupilPhotoCanvas(output);
+    const previewPhoto = output === canvas ? photo : await blobToDataUrl(await canvasToJpegBlob(canvas, 0.95));
+    return { photo, original, previewPhoto, previewOriginal, warnings: result.warnings };
+  } finally {
+    canvas.width = 0; canvas.height = 0;
+    if (output !== canvas) { output.width = 0; output.height = 0; }
   }
-  const result = await tools.enhance(imageData.data, canvas.width, canvas.height, settings, region, mask);
-  if (face && (face.x < area.x || face.y < area.y || face.x + face.width > area.x + area.width || face.y + face.height > area.y + area.height)) {
-    result.warnings.push({ code: "face-cut-off", message: "Part of the face is outside the crop. Reposition the photo before saving." });
-  }
-  imageData.data.set(result.pixels);
-  ctx.putImageData(imageData, 0, 0);
-  return { photo: await encodePupilPhotoCanvas(canvas), original, warnings: result.warnings };
 }

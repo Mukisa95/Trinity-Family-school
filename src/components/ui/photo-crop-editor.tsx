@@ -9,6 +9,7 @@ import { PhotoZoomControl } from "./photo-zoom-control";
 import { RotateCcw, Check, X, Circle, Square, ArrowLeft, Crop, SlidersHorizontal, Palette, Eraser, Eye, AlertTriangle, Loader2 } from "lucide-react";
 import { createEnhancedPupilPhoto, createImage } from "./photo-editor-utils";
 import { PhotoToolsClient } from "@/lib/photo/photo-tools-client";
+import { isAppleMobile } from '@/lib/pwa/platform';
 import { DEFAULT_PHOTO_SETTINGS, PHOTO_FILTERS, findHeadTop, suggestFaceCrop, type PhotoFace, type PhotoSettings, type PassportFraming } from "@/lib/photo/photo-processing";
 
 type EditorPanel = "crop" | "enhance" | "filters" | "background";
@@ -115,7 +116,7 @@ export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = fa
     const timer = setTimeout(() => {
       const client = tools.current;
       if (!client) return;
-      void createEnhancedPupilPhoto(imageSrc, area, settings, client, face).then(result => {
+      void createEnhancedPupilPhoto(imageSrc, area, settings, client, face, isAppleMobile() ? 1024 : 500).then(result => {
         if (request === generation.current) { setPrepared({ ...result, source: imageSrc, area, settings, face }); setIsPreparing(false); }
       }).catch(cause => {
         if (request === generation.current) { setError(cause instanceof Error ? cause.message : "Unable to prepare photo."); setIsPreparing(false); }
@@ -190,11 +191,11 @@ export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = fa
             }} />
           {preview && cropSize && !interacting && <div className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden ${guide === "circle" ? "rounded-full" : "rounded-none"}`}
             style={{ width: cropSize.width, height: cropSize.height }}>
-            <img src={showOriginal ? preview.original : preview.photo} alt={showOriginal ? "Original crop preview" : "Enhanced crop preview"} className="h-full w-full" />
+            <img src={showOriginal ? preview.previewOriginal : preview.previewPhoto} alt={showOriginal ? "Original crop preview" : "Enhanced crop preview"} className="h-full w-full" />
             <div aria-hidden="true" className="absolute inset-0 grid grid-cols-3 grid-rows-3 border border-white/50">{Array.from({ length: 9 }, (_, index) => <span key={index} className="border border-white/20" />)}</div>
           </div>}
         </div> : <div className="flex h-full items-center justify-center p-4" aria-busy={isPreparing}>
-          {preview ? <img src={showOriginal ? preview.original : preview.photo} alt={showOriginal ? "Original cropped photo" : "Finished pupil photo"} className="max-h-full max-w-full rounded-xl object-contain shadow-2xl" /> : null}
+          {preview ? <img src={showOriginal ? preview.previewOriginal : preview.previewPhoto} alt={showOriginal ? "Original cropped photo" : "Finished pupil photo"} className="max-h-full max-w-full rounded-xl object-contain shadow-2xl" /> : null}
         </div>}
         <span role="status" className="pointer-events-none absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border border-white/10 bg-slate-950/90 px-3 py-1.5 text-xs text-slate-200">
           {busy && !interacting && <Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" />}
