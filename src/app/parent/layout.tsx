@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import AuthGuard from '@/components/common/AuthGuard';
 import { ParentLayout } from '@/components/parent/parent-layout';
 import { schoolWebAppManifest } from '@/lib/pwa/manifest';
 
@@ -14,5 +15,5 @@ export default function ParentRootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <ParentLayout>{children}</ParentLayout>;
+  return <AuthGuard><ParentLayout>{children}</ParentLayout></AuthGuard>;
 }

@@ -744,24 +744,12 @@ export function PDFDocumentViewer({
         });
         return;
       }
-      if (modifier && ["+", "="].includes(event.key)) {
-        event.preventDefault();
-        changeZoom(1);
-        return;
-      }
-      if (modifier && event.key === "-") {
-        event.preventDefault();
-        changeZoom(-1);
-        return;
-      }
-      if (modifier && event.key === "0") {
-        event.preventDefault();
-        setFitMode("page");
-      }
+      // Browser zoom shortcuts and trackpad pinches belong to the whole page.
+      // The viewer's explicit zoom buttons continue to change only the document.
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [changeZoom]);
+  }, []);
 
   const downloadPDF = useCallback(() => {
     setSaveError(null);
@@ -938,7 +926,7 @@ export function PDFDocumentViewer({
           </aside>
         )}
 
-        <main ref={viewportRef} style={{ touchAction: 'pan-x pan-y', overscrollBehavior: 'contain', overflowAnchor: 'none' }} className="min-h-0 min-w-0 flex-1 overflow-auto bg-[radial-gradient(circle_at_top,#ffffff_0%,#eef2f7_62%,#e2e8f0_100%)] dark:bg-[radial-gradient(circle_at_top,#1e293b_0%,#0f172a_62%,#020617_100%)] p-3 sm:p-6" aria-label={`Viewing ${title}, page ${pageNumber} of ${totalPages}`}>
+        <main ref={viewportRef} style={{ touchAction: 'manipulation', overscrollBehavior: 'contain', overflowAnchor: 'none' }} className="min-h-0 min-w-0 flex-1 overflow-auto bg-[radial-gradient(circle_at_top,#ffffff_0%,#eef2f7_62%,#e2e8f0_100%)] dark:bg-[radial-gradient(circle_at_top,#1e293b_0%,#0f172a_62%,#020617_100%)] p-3 sm:p-6" aria-label={`Viewing ${title}, page ${pageNumber} of ${totalPages}`}>
           {saveError && <p role="alert" className="sticky left-0 top-0 z-20 rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-100">{saveError}</p>}
           <div className="flex min-h-full w-max min-w-full flex-col items-center gap-3 sm:gap-6" aria-label="Continuous PDF pages">
             {Array.from({ length: totalPages }, (_, index) => index + 1).map((candidatePage) => (

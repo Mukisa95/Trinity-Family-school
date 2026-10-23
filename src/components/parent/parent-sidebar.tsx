@@ -1,6 +1,7 @@
 "use client";
 
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { SchoolAppDownloadLink } from '@/components/common/school-app-download';
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState } from 'react';
@@ -315,10 +316,10 @@ export function ParentSidebar({
         <Separator className="mx-4" />
 
         {/* User Section */}
-        <div className="p-4">
-                    <div className={cn(
-            "flex items-center space-x-3",
-            isCollapsed && "justify-center"
+        <div className={cn("flex items-center gap-2 p-4", isCollapsed && "flex-col")}>
+                    <Link href="/parent/settings" aria-label="App Settings" className={cn(
+            "flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            isCollapsed && "flex-col justify-center"
           )}>
                          <Avatar className="h-8 w-8">
                <AvatarImage src={undefined} alt={user?.username || 'Parent'} />
@@ -336,19 +337,19 @@ export function ParentSidebar({
                   </p>
         </div>
       )}
+    </Link>
       <ThemeToggle compact={isCollapsed} />
-    </div>
         </div>
 
         {/* Bottom Actions */}
         <div className="p-4 space-y-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/download" aria-label="Get the school app" title="Get the school app" className={cn("w-full min-h-11 p-3 justify-start text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800", isCollapsed && "justify-center")}>
+            <SchoolAppDownloadLink aria-label="Get the school app" title="Get the school app" className={cn("flex w-full min-h-11 items-center rounded-md p-3 justify-start text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800", isCollapsed && "justify-center")}>
               <Download className="h-4 w-4" aria-hidden="true" />
-              {!isCollapsed && <span className="ml-3 text-sm">Download app</span>}
-            </Link>
-          </Button>
-        <Button asChild
+              {!isCollapsed && <span className="ml-3 text-sm">Get the school app</span>}
+            </SchoolAppDownloadLink>
+        <Button
+          onClick={() => window.location.assign("/parent/settings")}
+          aria-label="App Settings"
           variant="ghost"
             size="sm"
             className={cn(
@@ -356,10 +357,8 @@ export function ParentSidebar({
               isCollapsed && "justify-center"
             )}
           >
-            <Link href="/parent/settings/look-and-feel" aria-label="Look and Feel" title="Look and Feel">
-              <Settings className="h-4 w-4" />
-              {!isCollapsed && <span className="ml-3 text-sm">Look and Feel</span>}
-            </Link>
+            <Settings className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3 text-sm">App Settings</span>}
         </Button>
 
           <Button

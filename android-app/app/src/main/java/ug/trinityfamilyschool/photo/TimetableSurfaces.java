@@ -32,6 +32,11 @@ final class TimetableSurfaces {
         return new JSONObject().put("progress", prefs(context).getBoolean(prefix(id) + "progress", true)).put("notificationCard", prefs(context).getBoolean("card", true));
     }
     static void select(Context context, OfflineStore store, JSONObject value, int widgetId) throws Exception {
+        // Hiding a card must work even when its cached timetable has expired.
+        if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID && value.has("notificationCard") && !value.optBoolean("notificationCard")
+            && !value.has("accountId") && !value.has("hiddenTables") && !value.has("progress")) {
+            hideCard(context); return;
+        }
         JSONObject envelope = store.timetableAvailable();
         if (envelope == null || !authorized(envelope)) throw new IllegalStateException("Open " + SchoolApp.NAME + " to load your timetables.");
         if (value.has("accountId") && !value.optString("accountId").equals(envelope.getJSONObject("session").optString("accountId"))) throw new IllegalStateException("Your account changed. Reopen timetable settings.");
@@ -71,7 +76,9 @@ final class TimetableSurfaces {
         if (!TimetableRefresh.hasWidgets(context) && !prefs(context).getBoolean("eventReminders",false)) TimetableRefresh.cancel(context); else TimetableRefresh.request(context);
     }
     static synchronized void clear(Context context) {
-        prefs(context).edit().clear().apply();
+        // Keep the explicit device choice through cache expiry, logout and reboot recovery.
+        boolean card = prefs(context).getBoolean("card", true);
+        prefs(context).edit().clear().putBoolean("card", card).apply();
         TimetableRefresh.cancel(context);
         EventReminders.clear(context);
         ((NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(CARD_ID);

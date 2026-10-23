@@ -24,7 +24,7 @@ export default async function AndroidDownloadPage() {
             </div>
             <p className="mt-6 text-base leading-relaxed text-slate-600 dark:text-slate-300">Use your existing school login. Keep your dashboard, timetables and pupil details available offline, with home-screen widgets and lesson reminders.</p>
             <a href="/api/android/download" download={release.filename} className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 py-3 font-semibold text-white hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"><Download className="h-5 w-5" aria-hidden="true" />Download {release.appName}</a>
-            <p className="mt-3 text-center text-sm text-slate-500 dark:text-slate-400">An Android app file (APK), ready for this school.</p>
+            <p className="mt-3 text-center text-sm text-slate-500 dark:text-slate-400">No sign-in required to download. Sign in after installing to access your school account.</p>
             <div className="mt-7 grid grid-cols-3 gap-2 border-y border-slate-100 py-4 text-center text-sm dark:border-slate-800">
               {[{ Icon: CalendarDays, label: 'Timetable widgets' }, { Icon: BellRing, label: 'Lesson reminders' }, { Icon: WifiOff, label: 'Offline access' }].map(({ Icon, label }) => <div key={label} className="flex flex-col items-center gap-2"><Icon className="h-5 w-5 text-emerald-700 dark:text-emerald-400" aria-hidden="true" /><span>{label}</span></div>)}
             </div>

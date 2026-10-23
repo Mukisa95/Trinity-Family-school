@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, CheckCircle, ShieldCheck, X } from 'lucide-react';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { usePushSubscribe } from '@/lib/hooks/use-push-subscribe';
-import { isIosDevice, isStandalonePwa } from '@/lib/push-subscription-client';
+import { isIosDevice, isStandalonePwa, isPushDisabled } from '@/lib/push-subscription-client';
 import { useAndroidNotifications } from '@/lib/hooks/use-android-notifications';
 import { NativePushRegistration } from './native-push-registration';
 
@@ -53,11 +53,14 @@ export function AutoNotificationPermission() {
   }, []);
 
   useEffect(() => {
-    setHasDismissedPrompt(user?.id ? hasRecentDismissal(user.id) : false);
+    const update = () => { const disabled = Boolean(user?.id && isPushDisabled(user.id)); setHasDismissedPrompt(user?.id ? disabled || hasRecentDismissal(user.id) : false); if (disabled) setShowPrompt(false); };
+    update();
+    window.addEventListener('trinity-push-subscription-change', update);
+    return () => window.removeEventListener('trinity-push-subscription-change', update);
   }, [user?.id]);
 
   useEffect(() => {
-    if (android.isChecking || android.isAndroid || !user?.id || !isSupported || permission !== 'granted' || isChecking || isLoading) return;
+    if (android.isChecking || android.isAndroid || !user?.id || isPushDisabled(user.id) || !isSupported || permission !== 'granted' || isChecking || isLoading) return;
 
     const reconcileAfterFailure = () => {
       if (!isSubscribed && navigator.onLine) void sync(user.id);

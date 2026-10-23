@@ -11,6 +11,7 @@ import { useSchoolSettings } from "@/lib/hooks/use-school-settings";
 import { usePhotos } from "@/lib/hooks/use-photos";
 import { sampleSchoolSettings } from "@/lib/sample-data";
 import Image from "next/image";
+import { SchoolAppDownloadLink } from '@/components/common/school-app-download';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REVEAL ANIMATION COMPONENT
@@ -1139,10 +1140,10 @@ export default function LoginPage() {
               <div className="ql-icon ic-gold">💰</div>
               <div className="ql-text"><strong>School Fees</strong><span>Fee structure</span></div>
             </a>
-            <a className="ql-item" href="/download">
+            <SchoolAppDownloadLink className="ql-item">
               <div className="ql-icon ic-blue"><Download size={22} aria-hidden="true" /></div>
               <div className="ql-text"><strong>Get the App</strong><span>iPhone &amp; Android · Offline access</span></div>
-            </a>
+            </SchoolAppDownloadLink>
             <a className="ql-item" href="#gallery">
               <div className="ql-icon ic-purple">🖼️</div>
               <div className="ql-text"><strong>Gallery</strong><span>School moments</span></div>

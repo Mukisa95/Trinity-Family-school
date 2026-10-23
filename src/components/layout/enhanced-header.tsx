@@ -958,7 +958,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 6, scale: 0.97 }}
                           transition={{ duration: 0.18 }}
-                          className="fixed bg-white rounded-xl shadow-xl border border-brand-100 z-[9999] overflow-y-auto touch-pan-y dark:bg-slate-900 dark:border-brand-800/60"
+                          className="fixed bg-white rounded-xl shadow-xl border border-brand-100 z-[9999] overflow-y-auto touch-pan-y touch-pinch-zoom dark:bg-slate-900 dark:border-brand-800/60"
                           style={{ top: '48px', left: '10vw', width: '80vw', maxHeight: '60vh' }}
                         >
                           {searchResults.map((pupil) => {

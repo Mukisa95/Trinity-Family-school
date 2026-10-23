@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
 import { createPortal } from "react-dom";
 import { useTimetablePeriods, useTimetableEntries, useTimetableProfiles } from "@/lib/hooks/use-timetable";
 import { useClasses } from "@/lib/hooks/use-classes";
@@ -680,6 +681,8 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
 
     React.useEffect(() => {
         const surface = pinchSurfaceRef.current;
+        // Web browsers own page pinch zoom. Preserve the existing native timetable gesture.
+        if (!hasAndroidOfflineBridge()) return;
         if (!surface) return;
 
         const touchDistance = (touches: TouchList) => {
@@ -941,7 +944,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
             {/* ── Content Area — two-finger pinch adjusts timetable scale on touch screens ── */}
             <div
                 ref={pinchSurfaceRef}
-                className="flex min-h-0 min-w-0 flex-1 touch-pan-x touch-pan-y flex-col"
+                className="flex min-h-0 min-w-0 flex-1 touch-pan-x touch-pan-y touch-pinch-zoom flex-col"
             >
                 {viewMode === "day" ? (
                     // Day View — full interactive TimetableGrid with editing capability

@@ -5,7 +5,8 @@ import { test } from 'node:test';
 const route = readFileSync('src/app/api/auth/passkey/route.ts', 'utf8');
 const login = readFileSync('src/app/login/page.tsx', 'utf8');
 const parentSettings = readFileSync('src/app/parent/settings/page.tsx', 'utf8');
-const accountSettings = readFileSync('src/app/settings/account/page.tsx', 'utf8');
+const staffSettings = readFileSync('src/app/settings/app/page.tsx', 'utf8');
+const appSettings = readFileSync('src/components/account/app-settings.tsx', 'utf8');
 const authGuard = readFileSync('src/components/common/AuthGuard.tsx', 'utf8');
 const sessionResumeModal = readFileSync('src/components/common/SessionResumeModal.tsx', 'utf8');
 const autoLockSettings = readFileSync('src/components/settings/auto-lock-settings.tsx', 'utf8');
@@ -26,13 +27,14 @@ test('device verification is required and enrollment requires the signed user pa
 
 test('all account roles receive enrollment settings and one shared login action', () => {
   assert.match(login, /loginWithPasskey/);
-  assert.match(parentSettings, /<PasskeySettings \/>/);
-  assert.match(accountSettings, /<PasskeySettings \/>/);
+  assert.match(parentSettings, /<AppSettings \/>/);
+  assert.match(staffSettings, /<AppSettings \/>/);
+  assert.match(appSettings, /<PasskeySettings \/>/);
 });
 
 test('the privacy lock can require local device verification without a network request', () => {
-  assert.match(parentSettings, /<AutoLockSettings \/>/);
-  assert.match(accountSettings, /deviceUnlockForAutoLock/);
+  assert.match(appSettings, /<AutoLockSettings \/>/);
+  assert.match(autoLockSettings, /deviceUnlockForAutoLock/);
   assert.match(autoLockSettings, /Require device unlock/);
   assert.match(authGuard, /unlockLocalSession\(user\.id\)/);
   assert.match(passkeyService, /userVerification:\s*'required'/);

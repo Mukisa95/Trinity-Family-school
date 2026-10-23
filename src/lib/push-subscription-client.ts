@@ -223,6 +223,7 @@ export function reconcilePushSubscription(userId: string): Promise<PushSyncResul
 
   const promise = (async (): Promise<PushSyncResult> => {
     if (!supportsWebPush()) return { active: false, reason: 'unsupported' };
+    if (isPushDisabled(userId)) return { active: false, reason: 'permission-required' };
     if (!navigator.onLine) return { active: false, reason: 'offline' };
     if (Notification.permission === 'denied') return { active: false, reason: 'permission-denied' };
     if (Notification.permission !== 'granted') return { active: false, reason: 'permission-required' };
@@ -251,6 +252,7 @@ export function reconcilePushSubscription(userId: string): Promise<PushSyncResul
 
 /** Request permission from a direct user action, then register the device. */
 export async function enablePushSubscription(userId: string): Promise<PushSyncResult> {
+  localStorage.removeItem(`trinity-push-disabled:${userId}`);
   if (!supportsWebPush()) return { active: false, reason: 'unsupported' };
 
   const permission = Notification.permission === 'default'
@@ -259,7 +261,23 @@ export async function enablePushSubscription(userId: string): Promise<PushSyncRe
 
   if (permission === 'denied') return { active: false, reason: 'permission-denied' };
   if (permission !== 'granted') return { active: false, reason: 'permission-required' };
-  return reconcilePushSubscription(userId);
+  const result = await reconcilePushSubscription(userId);
+  window.dispatchEvent(new CustomEvent('trinity-push-subscription-change', { detail: { active: result.active } }));
+  return result;
+}
+
+/** Explicit device preference survives foreground/login reconciliation. */
+export async function disablePushSubscription(userId: string): Promise<void> {
+  localStorage.setItem(`trinity-push-disabled:${userId}`, 'true');
+  // Finish any in-flight registration before removing its endpoint.
+  if (activeSync?.userId === userId) await activeSync.promise.catch(() => undefined);
+  await detachPushSubscriptionForLogout(userId);
+  window.dispatchEvent(new CustomEvent('trinity-push-subscription-change', { detail: { active: false } }));
+}
+
+export function isPushDisabled(userId: string): boolean {
+  try { return localStorage.getItem(`trinity-push-disabled:${userId}`) === 'true'; }
+  catch { return false; }
 }
 
 /**

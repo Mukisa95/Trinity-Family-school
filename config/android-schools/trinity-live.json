@@ -4,9 +4,9 @@
   "applicationId": "ug.trinityfamilyschool.live",
   "websiteOrigin": "https://trinityfamilyschool.vercel.app",
   "firebaseProjectId": "trinity-family-schools",
-  "versionCode": 33,
-  "versionName": "1.31",
-  "releaseNotes": "PDF creation opens the preview without downloading. Save to Trinity Files only when Download is tapped. Keeps background creation, PDF-ready notifications, pinch zoom, panning and the compact preview card.",
+  "versionCode": 34,
+  "versionName": "1.32",
+  "releaseNotes": "Searchable App Settings with privacy lock, device unlock, notification and widget controls. Turn off live timetable and event cards, share the public download page by QR, and see the installed version. Preserves PDF preview, background creation and explicit downloads.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {

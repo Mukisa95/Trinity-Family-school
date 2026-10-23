@@ -1,6 +1,6 @@
 "use client";
 
-import { ThemeToggle, ThemePreferenceMenu } from '@/components/ui/theme-toggle';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { useSidebar } from '@/components/ui/sidebar';
 import { APP_VERSION } from '@/lib/constants/version';
 import { cn } from '@/lib/utils';
-import { User, LogOut, ChevronLeft, ChevronRight, Download, Palette } from 'lucide-react';
+import { LogOut, ChevronLeft, ChevronRight, Download, Settings } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import LogoutMessage from '@/components/common/LogoutMessage';
 import { AnimatePresence } from 'framer-motion';
+import { AppDownloadDialog, useSchoolAppDownload } from '@/components/common/school-app-download';
 
 interface SidebarUserFooterProps {
   onCloseSidebar?: () => void;
@@ -28,6 +29,7 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
   const router = useRouter();
   const { user, logout } = useAuth();
   const [showLogoutMessage, setShowLogoutMessage] = useState(false);
+  const download = useSchoolAppDownload();
 
   // Safely check sidebar context
   let isCollapsed = false;
@@ -62,8 +64,8 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
 
   return (
     <>
-      <DropdownMenu>
-        <div className={cn("flex items-center gap-1 w-full", isCollapsed && "justify-center gap-0")}>
+      <DropdownMenu modal={false}>
+        <div className={cn("flex items-center gap-1 w-full", isCollapsed && "flex-col justify-center gap-1")}>
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
@@ -115,6 +117,7 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
         </div>
 
         <DropdownMenuContent
+          onCloseAutoFocus={event => { if (download.open) event.preventDefault(); }}
           side={isCollapsed ? "right" : "top"}
           align={isCollapsed ? "end" : "center"}
           sideOffset={isCollapsed ? 12 : 8}
@@ -138,12 +141,12 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
 
             <DropdownMenuItem asChild>
               <Link
-                href="/profile"
+                href={user?.role === 'Parent' ? '/parent/settings' : '/settings/app'}
                 onClick={handleItemClick}
                 className="flex items-center w-full px-3 py-2 text-xs text-gray-700 hover:bg-brand-surface-50/80 hover:text-brand-ink-700 rounded-md transition-all duration-200 cursor-pointer dark:text-slate-200 dark:hover:bg-brand-surface-950/80 dark:hover:text-brand-ink-300"
               >
-                <User className="mr-2 h-4 w-4 text-gray-400 dark:text-slate-400" />
-                My Profile
+                <Settings className="mr-2 h-4 w-4 text-gray-400 dark:text-slate-400" aria-hidden="true" />
+                App Settings
               </Link>
             </DropdownMenuItem>
 
@@ -158,21 +161,14 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
               </Link>
             </DropdownMenuItem>
 
-            <DropdownMenuItem asChild>
-              <Link href="/download" onClick={handleItemClick} className="flex min-h-11 items-center w-full px-3 py-2 text-xs text-gray-700 hover:bg-brand-surface-50 hover:text-brand-ink-700 rounded-md cursor-pointer dark:text-slate-200 dark:hover:bg-brand-surface-950/40 dark:hover:text-brand-ink-300">
+            {download.visible && <DropdownMenuItem asChild>
+              <Link href="/download" onClick={event => { download.onClick(event); if (!event.defaultPrevented) handleItemClick(); }} className="flex min-h-11 items-center w-full px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md cursor-pointer dark:text-slate-200 dark:hover:bg-blue-950/40 dark:hover:text-blue-300">
                 <Download className="mr-2 h-4 w-4 text-gray-400 dark:text-slate-400" aria-hidden="true" />
                 Get the school app
               </Link>
-            </DropdownMenuItem>
+            </DropdownMenuItem>}
 
-            <DropdownMenuSeparator className="my-1 bg-brand-surface-50 dark:bg-brand-surface-950/40" />
-            <ThemePreferenceMenu />
-            <DropdownMenuItem asChild>
-              <Link href="/settings/look-and-feel" onClick={handleItemClick} className="flex min-h-11 items-center gap-2 px-3 text-xs cursor-pointer">
-                <Palette className="h-4 w-4" aria-hidden="true" />Look and Feel
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="my-1 bg-blue-50 dark:bg-blue-950/40" />
 
             <DropdownMenuItem
               onClick={handleLogout}
@@ -184,6 +180,7 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
           </div>
         </DropdownMenuContent>
       </DropdownMenu>
+      <AppDownloadDialog open={download.open} onOpenChange={download.setOpen} />
 
       <AnimatePresence>
         {showLogoutMessage && (

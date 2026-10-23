@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import {
-  detachPushSubscriptionForLogout,
+  disablePushSubscription,
   enablePushSubscription,
   reconcilePushSubscription,
   supportsWebPush,
@@ -150,7 +150,7 @@ export function usePushSubscribe(): UsePushSubscribeResult {
     setIsLoading(true);
     setError(null);
     try {
-      await detachPushSubscriptionForLogout(userId);
+      await disablePushSubscription(userId);
       setIsSubscribed(false);
       window.dispatchEvent(new CustomEvent(PUSH_SUBSCRIPTION_CHANGE_EVENT, { detail: { active: false } }));
       return true;

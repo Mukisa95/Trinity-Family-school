@@ -857,7 +857,7 @@ const ROUTE_PAGE_ALIASES: RoutePagePermission[] = [
   { moduleId: 'bulk_sms', pageId: 'send', pattern: /^\/sms-templates$/ },
   { moduleId: 'notifications', pageId: 'list', pattern: /^\/push-notifications$/ },
   { moduleId: 'events', pageId: 'calendar', pattern: /^\/events\/[^/]+\/(attendance|view-attendance)$/ },
-  { moduleId: 'settings', pageId: 'school', pattern: /^\/(settings\/(account|general)|about-trinity|nameorder)$/ },
+  { moduleId: 'settings', pageId: 'school', pattern: /^\/(settings\/general|about-trinity|nameorder)$/ },
   { moduleId: 'settings', pageId: 'school', pattern: /^\/photos$/ },
 ];
 

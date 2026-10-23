@@ -6,13 +6,13 @@
   "websiteOrigin": "https://trinityfamilyschool.vercel.app",
   "firebaseProjectId": "trinity-family-schools",
   "iconUrl": "/trinity-logo-192.png",
-  "versionCode": 33,
-  "versionName": "1.31",
+  "versionCode": 34,
+  "versionName": "1.32",
   "minAndroid": "8.0",
   "filename": "trinity-live.apk",
-  "bytes": 4743132,
-  "sha256": "5ea5efed131c31adddf665f399ba35cbafc81a3cbe8b2f8c3851633c3f07abbe",
+  "bytes": 4744012,
+  "sha256": "531d42ee524ffee505da28f7db2644ba27cbe777a5470aaa030c1221e66c57ef",
   "signingCertificateSha256": "53:F5:25:7A:02:C4:B4:6C:33:47:E0:49:6F:67:36:55:1D:57:4F:44:91:56:44:D1:3C:02:79:22:BC:04:FC:08",
   "minSdk": 26,
-  "releaseNotes": "PDF creation opens the preview without downloading. Save to Trinity Files only when Download is tapped. Keeps background creation, PDF-ready notifications, pinch zoom, panning and the compact preview card."
+  "releaseNotes": "Searchable App Settings with privacy lock, device unlock, notification and widget controls. Turn off live timetable and event cards, share the public download page by QR, and see the installed version. Preserves PDF preview, background creation and explicit downloads."
 }

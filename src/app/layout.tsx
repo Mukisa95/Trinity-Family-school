@@ -33,7 +33,7 @@ import { OperationalAuditProvider } from '@/components/providers/operational-aud
 const geistSans = GeistSans;
 const geistMono = GeistMono;
 
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' };
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, userScalable: true, viewportFit: 'cover' };
 
 const siteUrl = 'https://trinityfamilyschool.vercel.app';
 const schoolName = 'Trinity Family Nursery & Primary School';

@@ -1,8 +1,9 @@
 "use client";
+import { hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 
 interface Anchor { page: HTMLElement; x: number; y: number; screenX: number; screenY: number }
-/** Only the PDF viewport handles pinch/ctrl-wheel; normal single-finger scrolling stays native. */
+/** Android handles PDF gestures locally. Web browsers retain page pinch zoom. */
 export function usePDFGestures(viewport: React.RefObject<HTMLDivElement | null>, scale: number, changeScale: (scale: number) => void, active: boolean) {
   const latest = useRef({ scale, changeScale }); latest.current = { scale, changeScale };
   const anchor = useRef<Anchor | null>(null);
@@ -27,7 +28,7 @@ export function usePDFGestures(viewport: React.RefObject<HTMLDivElement | null>,
     root.scrollTop += page.top + point.y * page.height - bounds.top - point.screenY;
   }, [scale, viewport]);
   useEffect(() => {
-    const root = viewport.current; if (!root) return;
+    const root = viewport.current; if (!root || !active || !hasAndroidOfflineBridge()) return;
     let pinch: { distance: number; scale: number; x: number; y: number } | null = null;
     let pan: { x: number; y: number } | null = null;
     let frame = 0, pending: { scale: number; x: number; y: number } | null = null;

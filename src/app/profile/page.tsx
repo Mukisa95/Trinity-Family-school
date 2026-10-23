@@ -108,7 +108,7 @@ export default function ProfilePage() {
         backHref="/dashboard"
         backLabel="Back to dashboard"
         meta={<AccountStatus active={user.isActive} />}
-        actions={<GlassActionDock><GlassActionButton label="Settings" tone="blue" icon={<Settings className="h-4 w-4" />} onClick={() => router.push('/settings/account')} aria-label="Account Settings" /></GlassActionDock>}
+        actions={<GlassActionDock><GlassActionButton label="Settings" tone="blue" icon={<Settings className="h-4 w-4" />} onClick={() => router.push('/settings/app')} aria-label="App Settings" /></GlassActionDock>}
       />
       <div className="mx-auto max-w-6xl space-y-4 px-3 pb-28 sm:px-4 sm:pb-6">
         <AccountIdentity user={user} />
@@ -148,9 +148,9 @@ export default function ProfilePage() {
                 <AccountField label="Last login">{formatSafeDate(user.lastLogin, 'dd MMM yyyy, HH:mm', 'No login recorded')}</AccountField>
               </dl>
             </AccountSection>
-            <AccountSection title="Account settings" icon={<Settings className="h-4 w-4" />}>
-              <p className="text-sm text-muted-foreground">Manage your username, password and automatic lock preferences.</p>
-              <Link href="/settings/account" className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Settings className="h-4 w-4" />Account Settings</Link>
+            <AccountSection title="App settings" icon={<Settings className="h-4 w-4" />}>
+              <p className="text-sm text-muted-foreground">Manage appearance, your account, security and notification preferences.</p>
+              <Link href="/settings/app" className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Settings className="h-4 w-4" />App Settings</Link>
             </AccountSection>
           </aside>
         </div>

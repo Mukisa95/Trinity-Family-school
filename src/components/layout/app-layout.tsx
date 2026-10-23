@@ -34,7 +34,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 import { sampleSchoolSettings } from '@/lib/sample-data';
 import { cn } from '@/lib/utils';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
-import { useTouchSwipe } from '@/lib/hooks/use-touch-swipe';
+import { usePageSwipe } from '@/lib/hooks/use-page-swipe';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { measureWorkspaceStep } from '@/lib/startup/workspace-timing';
 import { NavigationProvider } from '@/lib/contexts/navigation-context';
@@ -233,10 +233,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(0);
 
-  const sidebarSwipe = useTouchSwipe({
-    direction: 'right', startMaxX: 80, enabled: windowWidth < 768,
-    onSwipe: () => setIsMobileSidebarOpen(true),
-  });
+  const sidebarSwipe = usePageSwipe(({ distanceX, startX }) => { if (distanceX < -80 && startX < 80 && windowWidth < 768) setIsMobileSidebarOpen(true); });
 
   // Swipe hint state
   const [showSwipeHint, setShowSwipeHint] = useState(false);

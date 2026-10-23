@@ -606,7 +606,7 @@ export function TimetableGrid({
 
             <div
                 ref={scrollContainerRef}
-                className="overflow-x-auto overflow-y-auto overscroll-x-contain flex-1 min-h-[500px] min-w-0 max-w-full h-full w-full border border-gray-200 rounded-xl bg-white shadow-sm custom-scrollbar relative touch-pan-x touch-pan-y dark:border-slate-700 dark:bg-slate-900"
+                className="overflow-x-auto overflow-y-auto overscroll-x-contain flex-1 min-h-[500px] min-w-0 max-w-full h-full w-full border border-gray-200 rounded-xl bg-white shadow-sm custom-scrollbar relative touch-pan-x touch-pan-y touch-pinch-zoom dark:border-slate-700 dark:bg-slate-900"
             >
                 <table
                     ref={tableRef}

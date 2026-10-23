@@ -172,7 +172,7 @@ export function ParentBottomNavigation({
                 <div className="w-8 h-8 rounded-full bg-brand-surface-100 dark:bg-brand-surface-900/40 flex items-center justify-center flex-shrink-0">
                   <User className="w-4 h-4 text-brand-ink-600 dark:text-brand-ink-400" />
                 </div>
-                <span className="font-medium">User Settings</span>
+                <span className="font-medium">App Settings</span>
               </a>
               <Link href="/parent/settings/look-and-feel" onClick={() => setIsSettingsOpen(false)} className="flex min-h-11 items-center gap-3 px-4 py-3 text-sm text-link hover:bg-accent">
                 <Settings className="h-5 w-5" aria-hidden="true" />Look and Feel

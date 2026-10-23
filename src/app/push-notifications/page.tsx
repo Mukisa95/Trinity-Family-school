@@ -179,7 +179,7 @@ function ComposeNotificationDialog({
           </div>
 
           <form onSubmit={send} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <div className="min-h-0 flex-1 touch-pan-y space-y-5 overflow-y-auto overscroll-contain px-5 py-5 sm:px-7">
+            <div className="min-h-0 flex-1 touch-pan-y touch-pinch-zoom space-y-5 overflow-y-auto overscroll-contain px-5 py-5 sm:px-7">
               <label className="block">
                 <span className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">Subject</span>
                 <input

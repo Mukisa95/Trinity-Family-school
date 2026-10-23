@@ -12,7 +12,7 @@ import { useNavigation } from '@/lib/contexts/navigation-context';
 import { useNavigationPrefetch } from '@/lib/hooks/use-navigation-prefetch';
 import { workspaceCacheAccessScope } from '@/lib/startup/workspace-cache-access';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
-import { useTouchSwipe } from '@/lib/hooks/use-touch-swipe';
+import { usePageSwipe } from '@/lib/hooks/use-page-swipe';
 import { sampleSchoolSettings } from '@/lib/sample-data';
 import { SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar';
 import { SidebarUserFooter } from './sidebar-user-footer';
@@ -36,7 +36,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
   const closeButton = useRef<HTMLButtonElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
-  const closeSwipe = useTouchSwipe({ direction: 'left', onSwipe: onClose, enabled: isOpen });
+  const closeSwipe = usePageSwipe(({ distanceX }) => { if (isOpen && distanceX > 80) onClose(); });
   const filteredItems = visibleSidebarItems(items, user);
   const permittedRoutes = filteredItems.flatMap(item => isNavItem(item)
     ? item.disabled ? [] : [item.href]

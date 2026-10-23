@@ -176,7 +176,11 @@ final class OfflineController {
         if ("diagnostics".equals(action)) { showDiagnostics(); reply(reply, id, true, null, null); return; }
         if ("notificationStatus".equals(action)) {
             try { reply(reply, id, true, null, NativePush.status(activity).put("appName", SchoolApp.NAME)
-                .put("notificationPermission", LessonReminders.notificationsAllowed(activity) ? "granted" : "denied")); }
+                .put("notificationPermission", LessonReminders.notificationsAllowed(activity) ? "granted" : "denied")
+                .put("notificationCard", TimetableSurfaces.prefs(activity).getBoolean("card", true))
+                .put("liveEvents", TimetableSurfaces.prefs(activity).getBoolean("events", false))
+                .put("eventReminders", TimetableSurfaces.prefs(activity).getBoolean("eventReminders", false))
+                .put("appVersion", BuildConfig.VERSION_NAME).put("appBuild", BuildConfig.VERSION_CODE)); }
             catch (Exception ignored) { reply(reply, id, false, "Android notification status is unavailable.", null); }
             return;
         }
@@ -219,6 +223,9 @@ final class OfflineController {
             reply(reply, id, true, null, null); return;
         }
         if ("openTimetableSettings".equals(action)) { activity.startActivity(new Intent(activity, TimetableSettingsActivity.class)); reply(reply, id, true, null, null); return; }
+        if ("openWidgetSettings".equals(action)) {
+            activity.runOnUiThread(() -> WidgetSettings.open(activity)); reply(reply, id, true, null, null); return;
+        }
         if ("openLessonReminderSettings".equals(action)) { activity.startActivity(new Intent(activity, LessonReminderSettingsActivity.class)); reply(reply, id, true, null, null); return; }
         if ("selectTimetable".equals(action)) {
             if (local && !unlocked()) { reply(reply, id, false, "Unlock to continue.", null); return; }

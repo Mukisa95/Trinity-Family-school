@@ -2,25 +2,21 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/contexts/auth-context";
-import { AndroidNotificationStatus } from '@/components/notifications/android-notification-status';
-import { HomeScreenSettings } from '@/components/pwa/home-screen-settings';
+import Link from 'next/link';
 import { GlassActionButton, GlassActionDock, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import { AccountIdentity, AccountSection, AccountStatus } from "@/components/account/account-profile";
-import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { User, Lock, Eye, EyeOff, Save, KeyRound, Shield, AlertCircle, Check } from "lucide-react";
+import { User, Eye, EyeOff, Save, KeyRound, Shield, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUpdateUser } from "@/lib/hooks/use-users";
 import { Loader2 } from "lucide-react";
 
-import { PasskeySettings } from '@/components/settings/passkey-settings';
-import { PASSKEYS_CHANGED_EVENT, PasskeyService } from '@/lib/services/passkey.service';
 
 export default function AccountSettingsPage() {
-  const { user, refreshUser, autoLockEnabled, setAutoLockEnabled, autoLockAction, setAutoLockAction, deviceUnlockForAutoLock, setDeviceUnlockForAutoLock } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const updateUserMutation = useUpdateUser();
@@ -39,29 +35,6 @@ export default function AccountSettingsPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isUpdatingUsername, setIsUpdatingUsername] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
-  const [showLockModal, setShowLockModal] = useState(false);
-  const [localDeviceUnlockAvailable, setLocalDeviceUnlockAvailable] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const check = async () => {
-      if (!user) return setLocalDeviceUnlockAvailable(false);
-      const supported = await PasskeyService.localSupported().catch(() => false);
-      setLocalDeviceUnlockAvailable(supported && PasskeyService.hasLocalUnlock(user.id));
-    };
-    void check();
-    window.addEventListener(PASSKEYS_CHANGED_EVENT, check);
-    window.addEventListener('focus', check);
-    return () => {
-      window.removeEventListener(PASSKEYS_CHANGED_EVENT, check);
-      window.removeEventListener('focus', check);
-    };
-  }, [user]);
-
-  useEffect(() => {
-    if (deviceUnlockForAutoLock && autoLockAction === 'signout') {
-      setDeviceUnlockForAutoLock(false);
-    }
-  }, [autoLockAction, deviceUnlockForAutoLock, localDeviceUnlockAvailable, setDeviceUnlockForAutoLock]);
 
   // Handle navigation in useEffect to avoid state updates during render
   React.useEffect(() => {
@@ -227,40 +200,9 @@ export default function AccountSettingsPage() {
     return user.username;
   };
 
-  const handleLockOnCloseAndSavePreference = () => {
-    setAutoLockAction('lock-on-close');
-    setShowLockModal(false);
-    toast({
-      title: "Auto Lock Preference Set",
-      description: "Your account will be locked when you close the browser window."
-    });
-  };
-
-  const handleLockOnLeaveAndSavePreference = () => {
-    setAutoLockAction('lock-on-leave');
-    setShowLockModal(false);
-    toast({
-      title: "Auto Lock Preference Set",
-      description: "Your account will be locked when you leave the window or switch tabs."
-    });
-  };
-
-  const handleSignOutAndSavePreference = async () => {
-    setAutoLockAction('signout');
-    setShowLockModal(false);
-    toast({
-      title: "Auto Lock Preference Set",
-      description: "You will be signed out when you close the browser window."
-    });
-  };
-
-  const lockPreferenceLabel = autoLockAction === 'lock-on-close' ? 'Locks on close'
-    : autoLockAction === 'lock-on-leave' ? 'Locks on leave'
-    : autoLockAction === 'signout' ? 'Signs out on close' : 'Not set';
-
   return (
     <div className="min-h-screen">
-      <GlassPageTopBar title="Account Settings" recordDetails={`@${user.username} · ${user.role}`} backHref="/settings" backLabel="Back to settings"
+      <GlassPageTopBar title="Account Settings" recordDetails={`@${user.username} · ${user.role}`} backHref="/settings/app" backLabel="Back to settings"
         meta={<AccountStatus active={user.isActive} />}
         actions={<GlassActionDock><GlassActionButton label="Profile" tone="blue" icon={<User className="h-4 w-4" />} onClick={() => router.push('/profile')} aria-label="View my profile" /></GlassActionDock>}
       />
@@ -268,7 +210,6 @@ export default function AccountSettingsPage() {
         <AccountIdentity user={user} />
         <div className="grid items-start gap-4 lg:grid-cols-3">
           <div className="min-w-0 space-y-4 lg:col-span-2">
-            <PasskeySettings />
             <AccountSection title="Username settings" icon={<User className="h-4 w-4" />} description="Change the username you use to sign in.">
               <div className="space-y-4">
                 <div className="grid gap-2">
@@ -323,23 +264,8 @@ export default function AccountSettingsPage() {
             </AccountSection>
           </div>
           <aside className="min-w-0 space-y-4">
-            <AccountSection title="Auto lock settings" icon={<Lock className="h-4 w-4" />}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0"><Label htmlFor="account-auto-lock" className="text-sm font-medium">Auto Lock</Label><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Automatically lock or sign out when closing or leaving the browser.</p></div>
-                <button id="account-auto-lock" role="switch" aria-checked={autoLockEnabled} aria-label="Auto Lock" onClick={() => setAutoLockEnabled(!autoLockEnabled)} type="button" className="flex h-11 w-12 shrink-0 items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <span className={`inline-flex h-6 w-11 items-center rounded-full p-0.5 transition-colors motion-reduce:transition-none ${autoLockEnabled ? 'bg-primary' : 'bg-input'}`}><span className={`h-5 w-5 rounded-full bg-background shadow-sm transition-transform motion-reduce:transition-none ${autoLockEnabled ? 'translate-x-5' : 'translate-x-0'}`} /></span>
-                </button>
-              </div>
-              {autoLockEnabled && <div className="mt-4 space-y-3 border-t border-border/60 pt-3">
-                <div><p className="text-xs font-medium text-muted-foreground">Current preference</p><p className="mt-1 text-sm">{lockPreferenceLabel}</p></div>
-                <Button onClick={() => setShowLockModal(true)} variant="outline" className="min-h-11 w-full rounded-lg"><Shield className="h-4 w-4" />{autoLockAction ? 'Change Preference' : 'Set Preference'}</Button>
-              </div>}
-              {autoLockEnabled && autoLockAction !== 'signout' && <div className="mt-4 flex items-start justify-between gap-3 border-t border-border/60 pt-3">
-                <div className="min-w-0"><Label htmlFor="account-device-unlock" className="text-sm font-medium">Require device unlock</Label><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{localDeviceUnlockAvailable ? 'Use fingerprint, face unlock, or the device PIN. The privacy lock also opens offline.' : 'Enable biometric / device unlock in the device unlock settings first.'}</p></div>
-                <button id="account-device-unlock" type="button" role="switch" aria-checked={deviceUnlockForAutoLock} aria-label="Require device unlock" disabled={!localDeviceUnlockAvailable} onClick={() => setDeviceUnlockForAutoLock(!deviceUnlockForAutoLock)} className="flex h-11 w-12 shrink-0 items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40">
-                  <span className={`inline-flex h-6 w-11 items-center rounded-full p-0.5 transition-colors motion-reduce:transition-none ${deviceUnlockForAutoLock ? 'bg-primary' : 'bg-input'}`}><span className={`h-5 w-5 rounded-full bg-background shadow-sm transition-transform motion-reduce:transition-none ${deviceUnlockForAutoLock ? 'translate-x-5' : 'translate-x-0'}`} /></span>
-                </button>
-              </div>}
+            <AccountSection title="App security" icon={<Shield className="h-4 w-4" />} description="Manage auto lock and biometrics in App Settings.">
+              <Button asChild variant="outline" className="min-h-11"><Link href="/settings/app#security">Open security settings</Link></Button>
             </AccountSection>
             <AccountSection title="Security tips" icon={<AlertCircle className="h-4 w-4" />}>
               <ul className="list-disc space-y-2 pl-4 text-sm leading-relaxed text-muted-foreground">
@@ -351,27 +277,9 @@ export default function AccountSettingsPage() {
             </AccountSection>
           </aside>
         </div>
-        <AndroidNotificationStatus />
-        <HomeScreenSettings />
+
       </div>
-      <Dialog open={showLockModal} onOpenChange={setShowLockModal}>
-        <DialogContent className="max-w-md border-border/70 bg-card dark:bg-card">
-          <DialogTitle className="pr-6 text-lg">Set Auto Lock Preference</DialogTitle>
-          <DialogDescription>Choose what happens when you close or leave the browser window.</DialogDescription>
-          <div className="space-y-2">
-            {[
-              { value: 'lock-on-close', label: 'Lock on Close', description: 'Lock when you close the browser window.', onClick: handleLockOnCloseAndSavePreference },
-              { value: 'lock-on-leave', label: 'Lock on Leave', description: 'Lock when you switch tabs or leave the window.', onClick: handleLockOnLeaveAndSavePreference },
-              { value: 'signout', label: 'Sign Out on Close', description: 'Sign out when you close the browser window.', onClick: handleSignOutAndSavePreference }
-            ].map(option => <button key={option.value} type="button" onClick={option.onClick} aria-pressed={autoLockAction === option.value} className={`flex min-h-11 w-full items-center gap-3 rounded-lg border p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${autoLockAction === option.value ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'}`}>
-              <Lock className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-              <span className="min-w-0 flex-1"><span className="block text-sm font-medium">{option.label}</span><span className="mt-1 block text-xs text-muted-foreground">{option.description}</span></span>
-              {autoLockAction === option.value && <Check className="h-4 w-4 shrink-0 text-primary" aria-label="Current preference" />}
-            </button>)}
-          </div>
-          <DialogClose asChild><Button variant="outline" className="min-h-11 rounded-lg">Cancel</Button></DialogClose>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }

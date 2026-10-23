@@ -2447,13 +2447,13 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
       overflow-y: auto !important;
     }
 
-    /* Swipe gesture improvements */
+    /* Keep browser page pinch zoom available alongside sidebar swipes. */
     main {
       -webkit-user-select: none;
       -moz-user-select: none;
       -ms-user-select: none;
       user-select: none;
-      touch-action: pan-y;
+      touch-action: manipulation;
     }
 
     /* Prevent text selection during swipes */
