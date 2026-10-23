@@ -1,5 +1,5 @@
-import { LookAndFeelSettings } from "@/components/settings/look-and-feel-settings";
+import { redirect } from 'next/navigation';
 
 export default function ParentLookAndFeelPage() {
-  return <LookAndFeelSettings sticky={false} />;
+  redirect('/parent/settings#appearance');
 }

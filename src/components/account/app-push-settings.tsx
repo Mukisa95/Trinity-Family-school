@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { connectNativePush, disableNativePush, testNativePush } from '@/lib/native-push-client';
 import { disablePushSubscription, enablePushSubscription, getConfirmedBrowserPushSubscription, supportsWebPush } from '@/lib/push-subscription-client';
 import { openAndroidNotificationSettings, type AndroidNotificationState } from '@/lib/offline/android-notifications';
-import { Button } from '@/components/ui/button';
+import { SettingsRow, SettingsRows, SettingsToggle, settingsButtonClass } from '@/components/settings/settings-controls';
 
 export function AppPushSettings({ android, state, checking }: { android: boolean; state: AndroidNotificationState | null; checking: boolean }) {
   const { user } = useAuth();
@@ -25,7 +25,7 @@ export function AppPushSettings({ android, state, checking }: { android: boolean
     update(); window.addEventListener('focus', update);
     return () => { disposed = true; window.removeEventListener('focus', update); };
   }, [android, user?.id]);
-  const connected = android ? Boolean(state?.remotePush && state.pushAccountId === user?.id) : browserState?.connected;
+  const connected = android ? Boolean(state?.remotePush && state.pushEnabled && state.pushAccountId === user?.id) : browserState?.connected;
   const permission = android ? state?.permission : browserState?.permission;
   const run = async (action: () => Promise<unknown>, confirmation?: string) => {
     setBusy(true); setError(''); setMessage('');
@@ -41,16 +41,17 @@ export function AppPushSettings({ android, state, checking }: { android: boolean
     if (!result.active) throw new Error(result.reason === 'permission-denied' ? 'Allow notifications in your browser’s site settings, then try again.' : 'Notifications were not enabled. Check your browser permission and internet connection.');
   };
   const loading = android ? checking : !browserState;
+  const unavailable = browserState?.supported === false && !android;
+  const hint = loading ? 'Checking…' : android && !state ? 'Reopen or update the app for status.' : unavailable ? 'Unavailable in this browser.' : permission === 'denied' ? `Blocked in ${android ? 'Android' : 'browser'} settings.` : undefined;
   return <div className="space-y-3">
-    <p className="text-sm font-medium" role="status">{loading ? 'Checking notifications…' : android && !state ? 'Notification status unavailable. Update or reopen the Android app.' : connected ? 'School alerts are connected.' : 'School alerts are off on this device.'}</p>
-    {permission === 'denied' && <p className="text-sm text-muted-foreground">Notifications are blocked in {android ? 'Android' : 'your browser'} settings. Allow them there to receive alerts.</p>}
-    {browserState?.supported === false && !android ? <p className="text-sm text-muted-foreground">This browser does not support push notifications. On iPhone or iPad, add the app to your home screen and open it there.</p> : <div className="flex flex-wrap gap-2">
-      <Button variant="outline" className="min-h-11" disabled={busy || loading || !user || (android && !state)} onClick={() => void run(toggle)}>{busy ? 'Working…' : connected ? 'Turn off school alerts' : 'Enable school alerts'}</Button>
-      {android && <Button variant="outline" className="min-h-11" disabled={busy} onClick={() => void run(openAndroidNotificationSettings)}>Android notification permissions</Button>}
-      {android && connected && user && <Button variant="outline" className="min-h-11" disabled={busy || permission !== 'granted'} onClick={() => void run(() => testNativePush(user.id), 'Test sent. Check your phone’s notifications.')}>Send push test</Button>}
-    </div>}
-    <p className="text-xs leading-5 text-muted-foreground">This affects alerts sent to this device. Live timetable cards and lesson reminders have their own controls.</p>
-    {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-    {message && <p role="status" className="text-sm">{message}</p>}
+    <SettingsRows>
+      <SettingsRow label="School alerts" htmlFor="settings-school-alerts" hint={hint}>
+        <SettingsToggle id="settings-school-alerts" value={loading || unavailable || (android && !state) ? undefined : connected === true} disabled={busy || !user} onCheckedChange={() => void run(toggle)} />
+      </SettingsRow>
+      {android && <SettingsRow label="Android permissions"><button type="button" className={settingsButtonClass} disabled={busy} onClick={() => void run(openAndroidNotificationSettings)}>Open settings</button></SettingsRow>}
+      {android && connected && user && <SettingsRow label="Test notification"><button type="button" className={settingsButtonClass} disabled={busy || permission !== 'granted'} onClick={() => void run(() => testNativePush(user.id), 'Test sent.')}>Send test</button></SettingsRow>}
+    </SettingsRows>
+    {error && <p role="alert" className="text-xs leading-5 text-destructive">{error}</p>}
+    {message && <p role="status" className="text-xs text-muted-foreground">{message}</p>}
   </div>;
 }

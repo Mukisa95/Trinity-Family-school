@@ -11,8 +11,9 @@ import { hasBrowserOfflineWorkspace, isAppleMobile } from '@/lib/pwa/platform';
 import { useHomeScreenWorkspace } from '@/lib/pwa/use-workspace';
 import { createAppDiagnosticReport } from '@/lib/utils/app-diagnostics';
 import { HomeScreenInstallGuide } from './install-guide';
+import { SettingsDisclosure, SettingsRow, SettingsRows, settingsButtonClass } from '@/components/settings/settings-controls';
 
-function InstalledSettings() {
+function InstalledSettings({ compact = false }: { compact?: boolean }) {
   const { user, isLocked } = useAuth();
   const { workspace, error: storageError } = useHomeScreenWorkspace();
   const push = usePushSubscribe();
@@ -52,6 +53,17 @@ function InstalledSettings() {
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'school-problem-report.json'; anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 30_000);
   };
+  if (compact) return <div className="space-y-3">
+    <SettingsRows>
+      <SettingsRow label="Saved workspace"><button type="button" className={settingsButtonClass} disabled={offline} onClick={() => { window.dispatchEvent(new Event('trinity-pwa-prepare')); setMessage('Preparing saved pages…'); }}>Prepare</button></SettingsRow>
+      <SettingsRow label="Saved storage" hint={storageError || storage || undefined}><button type="button" className={settingsButtonClass} disabled={working || !navigator.storage?.persist} onClick={protectStorage}>Protect</button></SettingsRow>
+      <SettingsRow label="Problem report"><button type="button" className={settingsButtonClass} onClick={() => void shareReport()}>Share</button></SettingsRow>
+    </SettingsRows>
+    {workspace && <SettingsDisclosure title="Saved pages"><SettingsRows>{workspace.sections.map(section => <SettingsRow key={section.path} label={<Link href={section.path} className="underline underline-offset-4">{section.label}</Link>}><span className="text-xs text-muted-foreground">{section.saved ? 'Saved' : 'Not saved'}</span></SettingsRow>)}</SettingsRows></SettingsDisclosure>}
+    {report && <div className="space-y-2"><label htmlFor="pwa-problem-report" className="text-xs">Problem report</label><textarea id="pwa-problem-report" readOnly value={report} className="h-28 w-full rounded-xl border bg-background p-3 text-base" /><button type="button" className={settingsButtonClass} onClick={saveReport}>Save report</button></div>}
+    {message && <p role="status" className="text-xs leading-5 text-muted-foreground">{message}</p>}
+  </div>;
+
   return <section aria-labelledby="home-screen-settings-title" className="space-y-5 rounded-2xl border bg-card p-5 text-card-foreground sm:p-6">
     <div className="flex items-center gap-3"><Smartphone className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" /><h2 id="home-screen-settings-title" className="text-lg font-semibold">Home Screen app</h2></div>
     <p className="text-sm text-muted-foreground">Your saved pages use the same school account and privacy lock. Offline viewing is read-only.</p>
@@ -85,9 +97,9 @@ function InstalledSettings() {
   </section>;
 }
 
-export function HomeScreenSettings() {
+export function HomeScreenSettings({ compact = false }: { compact?: boolean }) {
   const { user } = useAuth();
   const [mode, setMode] = useState<'hidden' | 'install' | 'app'>('hidden');
   useEffect(() => { if (!window.TrinityOffline && isAppleMobile()) setMode(hasBrowserOfflineWorkspace() ? 'app' : 'install'); }, []);
-  return mode === 'app' ? <InstalledSettings /> : mode === 'install' ? <HomeScreenInstallGuide always settingsPath={user?.role === 'Parent' ? '/parent/settings' : '/settings/account'} /> : null;
+  return mode === 'app' ? <InstalledSettings compact={compact} /> : mode === 'install' ? compact ? <SettingsRow label="Home screen app"><Link href="/download" className={settingsButtonClass}>Install</Link></SettingsRow> : <HomeScreenInstallGuide always settingsPath={user?.role === 'Parent' ? '/parent/settings' : '/settings/account'} /> : null;
 }

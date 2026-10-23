@@ -6,11 +6,13 @@ import { PasskeyService } from '@/lib/services/passkey.service';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { hasNativeDeviceUnlock, nativeDeviceUnlockAvailable } from '@/lib/android/device-unlock';
 import { hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
+import { Switch } from '@/components/ui/switch';
+import { SettingsRow, SettingsRows, settingsButtonClass, settingsSwitchClass } from './settings-controls';
 
 type Passkey = Awaited<ReturnType<typeof PasskeyService.list>>[number];
 
-export function PasskeySettings({ setupMode = false, onBusyChange, onRegistered }: {
-  setupMode?: boolean; onBusyChange?: (busy: boolean) => void; onRegistered?: () => void;
+export function PasskeySettings({ setupMode = false, compact = false, onBusyChange, onRegistered }: {
+  setupMode?: boolean; compact?: boolean; onBusyChange?: (busy: boolean) => void; onRegistered?: () => void;
 }) {
   const { user, setDeviceUnlockForAutoLock } = useAuth();
   const [native, setNative] = useState(false);
@@ -120,6 +122,25 @@ export function PasskeySettings({ setupMode = false, onBusyChange, onRegistered 
       setMessage(error instanceof Error ? error.message : 'Could not remove device unlock.');
     } finally { setBusy(false); }
   };
+
+  if (compact) return <div className="space-y-3">
+    {checking && <p role="status" className="text-xs text-muted-foreground">Checking devices…</p>}
+    {listError && !checking && <div className="flex items-center justify-between gap-3"><span role="status" className="text-xs text-muted-foreground">Could not check registered devices.</span><button type="button" className={settingsButtonClass} disabled={busy} onClick={() => void refreshPasskeys()}>Retry</button></div>}
+    {(native || supported === true) && <SettingsRows>
+      <SettingsRow label="Current password" htmlFor="passkey-current-password">
+        <input id="passkey-current-password" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} disabled={busy} className="h-10 w-32 max-w-full rounded-full border border-input bg-background px-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8 sm:w-44 sm:text-sm" />
+      </SettingsRow>
+      {native && <SettingsRow label="Android privacy unlock" htmlFor="settings-native-unlock" hint={nativeSupported === false ? 'Set a phone screen lock first.' : !nativeEnabled && !password ? 'Enter your password to enable.' : undefined}>
+        <Switch id="settings-native-unlock" className={settingsSwitchClass} checked={nativeEnabled} disabled={busy || nativeSupported !== true || (!nativeEnabled && !password)} onCheckedChange={enabled => { if (enabled) void enableNative(); else disableNative(); }} />
+      </SettingsRow>}
+      {supported === true && <SettingsRow label="Sign-in passkey"><button type="button" className={settingsButtonClass} disabled={busy || checking || !password} onClick={() => void register()}>{busy ? 'Working…' : 'Add passkey'}</button></SettingsRow>}
+      {passkeys.map(key => <SettingsRow key={key.id} label={key.name} hint={key.createdAt ? new Date(key.createdAt).toLocaleDateString() : undefined}>
+        {!setupMode && <button type="button" className={settingsButtonClass} aria-label={`Remove ${key.name}`} disabled={busy || !password} onClick={() => void remove(key.id)}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" /></button>}
+      </SettingsRow>)}
+    </SettingsRows>}
+    {supported === false && !native && <p className="text-xs text-muted-foreground">{android ? 'Update the Android app for device unlock.' : 'Device unlock is unavailable in this browser.'}</p>}
+    {message && <p role="status" className="text-xs leading-5 text-muted-foreground">{message}</p>}
+  </div>;
 
   return (
     <section className="rounded-2xl border border-border bg-card p-4 space-y-3 text-card-foreground">

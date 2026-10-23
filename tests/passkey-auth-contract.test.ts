@@ -29,11 +29,11 @@ test('all account roles receive enrollment settings and one shared login action'
   assert.match(login, /loginWithPasskey/);
   assert.match(parentSettings, /<AppSettings \/>/);
   assert.match(staffSettings, /<AppSettings \/>/);
-  assert.match(appSettings, /<PasskeySettings \/>/);
+  assert.match(appSettings, /<PasskeySettings compact \/>/);
 });
 
 test('the privacy lock can require local device verification without a network request', () => {
-  assert.match(appSettings, /<AutoLockSettings \/>/);
+  assert.match(appSettings, /<AutoLockSettings compact \/>/);
   assert.match(autoLockSettings, /deviceUnlockForAutoLock/);
   assert.match(autoLockSettings, /Require device unlock/);
   assert.match(authGuard, /unlockLocalSession\(user\.id\)/);

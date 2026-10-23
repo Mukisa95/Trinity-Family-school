@@ -5,14 +5,13 @@ export const APP_SETTING_SECTIONS: { id: AppSettingSection; title: string; descr
   { id: 'security', title: 'Security', description: 'Auto lock and device verification.' },
   { id: 'tracking', title: 'Live tracking', description: 'Control timetables and calendar events in your phone’s notification area.' },
   { id: 'push', title: 'Push notifications', description: 'School alerts, calendar events and announcements on this device.' },
-  { id: 'lessons', title: 'Lesson push notifications', description: 'Choose which lessons send reminders, and when.' },
-  { id: 'widgets', title: 'Widget settings', description: 'Manage the timetable widgets on your Android home screen.' },
-  { id: 'storage', title: 'Offline and storage', description: 'Manage saved school information.' },
+  { id: 'lessons', title: 'Lesson reminders', description: 'Choose which lessons send reminders, and when.' },
+  { id: 'widgets', title: 'Widgets', description: 'Manage the timetable widgets on your Android home screen.' },
+  { id: 'storage', title: 'Storage', description: 'Manage saved school information.' },
   { id: 'about', title: 'About app', description: 'Version details, updates and sharing.' },
 ];
 export const APP_SETTINGS = [
-  { id: 'theme', section: 'appearance', title: 'Theme', description: 'Light, dark, or follow your device setting.', keywords: 'appearance look feel colour color display night mode' },
-  { id: 'look-and-feel', section: 'appearance', title: 'Look and feel options', description: 'Choose colours, typography, surfaces and motion.', keywords: 'appearance palette display animations font' },
+  { id: 'theme', section: 'appearance', title: 'Look and feel', description: 'Appearance, colours, backgrounds and visual effects.', keywords: 'theme light dark system device night mode colour color palette background wallpaper brightness illustration dimming motion animations performance reduced effects' },
   { id: 'profile', section: 'account', title: 'My profile', description: 'View your personal details and account information.', keywords: 'name email role user' },
   { id: 'account', section: 'account', title: 'Account settings', description: 'Manage your username and password.', keywords: 'login sign in credentials' },
   { id: 'autolock', section: 'security', title: 'Auto lock', description: 'Choose whether to lock when you close the app or leave it.', keywords: 'autolock privacy lock leave background signout sign out' },
@@ -24,7 +23,7 @@ export const APP_SETTINGS = [
   { id: 'lesson-reminders', section: 'lessons', title: 'Lesson reminder settings', description: 'Turn reminders on or off. Filter by timetable, class, subject, teacher and lesson; choose advance, start and end alerts.', keywords: 'lesson push notifications periods schedule sound vibration', androidOnly: true },
   { id: 'widgets', section: 'widgets', title: 'Home screen widgets', description: 'Choose an installed widget to change its timetables and progress display, or see how to add one.', keywords: 'android launcher resize home screen widget settings', androidOnly: true },
   { id: 'offline', section: 'storage', title: 'Offline access', description: 'Prepare or remove saved school information for use without internet.', keywords: 'download cache data storage network' },
-  { id: 'home-screen', section: 'storage', title: 'Home screen app', description: 'Installation, saved workspace and diagnostics for supported browsers.', keywords: 'iphone ios ipad pwa installed storage diagnostic' },
+  { id: 'home-screen', section: 'storage', title: 'Home screen app', description: 'Installation, saved workspace and diagnostics for supported browsers.', keywords: 'iphone ios ipad pwa installed storage diagnostic offline cache prepare saved pages' },
   { id: 'updates', section: 'about', title: 'Check app updates', description: 'Check for a newer version of this school’s Android app.', keywords: 'version upgrade download install', androidOnly: true },
   { id: 'about-app', section: 'about', title: 'App details', description: 'About this app and a QR code to share its public download page.', keywords: 'changelog version release help about share qr code download build website' },
 ] as const;

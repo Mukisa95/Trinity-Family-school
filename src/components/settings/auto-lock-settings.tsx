@@ -4,8 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { Fingerprint, Lock, LogOut, Smartphone } from 'lucide-react';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { PASSKEYS_CHANGED_EVENT, PasskeyService } from '@/lib/services/passkey.service';
+import { Switch } from '@/components/ui/switch';
+import { SettingsRow, SettingsRows, SettingsSelect, settingsButtonClass, settingsSwitchClass } from './settings-controls';
 
-export function AutoLockSettings() {
+export function AutoLockSettings({ compact = false }: { compact?: boolean }) {
   const {
     user,
     autoLockEnabled,
@@ -55,6 +57,25 @@ export function AutoLockSettings() {
     { value: 'lock-on-leave' as const, label: 'When app is left', icon: Smartphone },
     { value: 'signout' as const, label: 'Sign out on close', icon: LogOut },
   ];
+
+  if (compact) return <div className="space-y-3">
+    <SettingsRows>
+      <SettingsRow label="Auto lock" htmlFor="settings-auto-lock">
+        <Switch id="settings-auto-lock" className={settingsSwitchClass} checked={autoLockEnabled} onCheckedChange={toggleAutoLock} />
+      </SettingsRow>
+      {autoLockEnabled && <>
+        <SettingsRow label="When to lock" htmlFor="settings-lock-action">
+          <SettingsSelect id="settings-lock-action" value={autoLockAction || 'lock-on-close'} onChange={event => setAutoLockAction(event.currentTarget.value as typeof actions[number]['value'])}>
+            {actions.map(action => <option key={action.value} value={action.value}>{action.label}</option>)}
+          </SettingsSelect>
+        </SettingsRow>
+        {autoLockAction !== 'signout' && <SettingsRow label="Require device unlock" htmlFor="settings-require-unlock" hint={deviceUnlockAvailable === false ? 'Set up device unlock below first.' : deviceUnlockAvailable === null ? 'Checking device…' : undefined}>
+          <Switch id="settings-require-unlock" className={settingsSwitchClass} checked={deviceUnlockForAutoLock} disabled={deviceUnlockAvailable !== true} onCheckedChange={setDeviceUnlockForAutoLock} />
+        </SettingsRow>}
+      </>}
+    </SettingsRows>
+    {autoLockEnabled && <button type="button" className={settingsButtonClass} onClick={lockAccount}>Lock now</button>}
+  </div>;
 
   return (
     <section className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">

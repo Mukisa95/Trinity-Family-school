@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { hasAndroidOfflineBridge } from "@/lib/offline/android-bridge";
 import { cn } from "@/lib/utils";
 import { DEFAULT_LOOK_AND_FEEL, THEME_PRESETS } from "@/lib/theme/appearance-settings";
+import { SettingsRow, SettingsRows, SettingsSelect, settingsButtonClass, settingsSwitchClass } from './settings-controls';
 
 const modes = [
   { id: "system", name: "Follow device", icon: Monitor },
@@ -22,7 +23,7 @@ const choice = "min-h-12 rounded-xl border p-3 text-left transition-colors durat
 const selected = "border-brand-500 bg-brand-surface-50 text-brand-ink-800 dark:bg-brand-surface-950/50";
 const unselected = "border-border bg-card text-card-foreground hover:bg-accent";
 
-export function LookAndFeelSettings({ sticky = true }: { sticky?: boolean }) {
+export function LookAndFeelSettings({ sticky = true, compact = false }: { sticky?: boolean; compact?: boolean }) {
   const { ready, changing, preference, lookAndFeel, storageAvailable, deviceColorsSupported, changeTheme, changeLookAndFeel } = useAppearance();
   const { preference: effects, reducedEffects, changePreference } = usePerformanceMode();
   const disabled = !ready || changing;
@@ -32,6 +33,40 @@ export function LookAndFeelSettings({ sticky = true }: { sticky?: boolean }) {
     await changeLookAndFeel(DEFAULT_LOOK_AND_FEEL, origin);
     await changeTheme("system", origin);
   };
+
+  if (compact) return <div className="space-y-3">
+    <SettingsRows>
+      <SettingsRow label="Appearance" htmlFor="settings-appearance">
+        <SettingsSelect id="settings-appearance" value={preference} disabled={disabled} onChange={event => void changeTheme(event.currentTarget.value as ThemePreference, event.currentTarget)}>
+          {modes.map(mode => <option key={mode.id} value={mode.id}>{mode.id === 'system' ? 'Device' : mode.name}</option>)}
+        </SettingsSelect>
+      </SettingsRow>
+      {ready && hasAndroidOfflineBridge() && <SettingsRow label="Use device colours" htmlFor="settings-device-colors" hint={!deviceColorsSupported ? 'Requires Android 12+ and an updated app.' : undefined}>
+        <Switch id="settings-device-colors" className={settingsSwitchClass} checked={usingDeviceColors} disabled={disabled || !deviceColorsSupported} onCheckedChange={deviceColors => void changeLookAndFeel({ deviceColors })} />
+      </SettingsRow>}
+      <SettingsRow label="Colour theme" htmlFor="settings-colour-theme">
+        <SettingsSelect id="settings-colour-theme" value={lookAndFeel.preset} disabled={disabled || usingDeviceColors} onChange={event => void changeLookAndFeel({ preset: event.currentTarget.value as typeof lookAndFeel.preset, deviceColors: false }, event.currentTarget)}>
+          {THEME_PRESETS.map(preset => <option key={preset.id} value={preset.id}>{preset.name}</option>)}
+        </SettingsSelect>
+      </SettingsRow>
+      <SettingsRow label="Background" htmlFor="settings-background">
+        <SettingsSelect id="settings-background" value={lookAndFeel.background} disabled={disabled} onChange={event => void changeLookAndFeel({ background: event.currentTarget.value as 'illustration' | 'plain' }, event.currentTarget)}>
+          <option value="illustration">Illustration</option><option value="plain">Plain</option>
+        </SettingsSelect>
+      </SettingsRow>
+      {lookAndFeel.background === 'illustration' && <SettingsRow label="Night brightness" htmlFor="settings-night-brightness">
+        <input id="settings-night-brightness" type="range" min="30" max="80" value={100 - lookAndFeel.dimming} disabled={disabled} onChange={event => void changeLookAndFeel({ dimming: 100 - Number(event.currentTarget.value) })} className="h-10 w-20 cursor-pointer accent-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring sm:w-28" />
+        <span className="w-8 text-right text-xs tabular-nums text-muted-foreground">{100 - lookAndFeel.dimming}%</span>
+      </SettingsRow>}
+      <SettingsRow label="Visual effects" htmlFor="settings-effects">
+        <SettingsSelect id="settings-effects" value={effects} disabled={!ready} onChange={event => changePreference(event.currentTarget.value as EffectsPreference)}>
+          <option value="automatic">Automatic</option><option value="full">Full</option><option value="reduced">Reduced</option>
+        </SettingsSelect>
+      </SettingsRow>
+    </SettingsRows>
+    {!storageAvailable && <p role="status" className="text-xs text-muted-foreground">Changes cannot be saved on this browser.</p>}
+    <button type="button" className={settingsButtonClass} disabled={disabled} onClick={event => void reset(event.currentTarget)}><RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />Restore defaults</button>
+  </div>;
 
   return <div className="mx-auto w-full max-w-5xl space-y-6 pb-8">
     <GlassPageTopBar title="Look and Feel" recordDetails="Saved on this device" leading={<Palette className="h-6 w-6 text-link" aria-hidden="true" />} sticky={sticky} />

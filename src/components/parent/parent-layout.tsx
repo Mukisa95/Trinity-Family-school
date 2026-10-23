@@ -11,6 +11,7 @@ import { ParentDashboard } from './parent-dashboard';
 import { ParentAboutSchool } from './parent-about-school';
 import { ParentOfflineDatasetPreparer } from './parent-offline-dataset-preparer';
 import type { Pupil } from '@/types';
+import { useSettingsSidebar } from '@/lib/hooks/use-settings-sidebar';
 
 interface ParentLayoutProps {
   children?: React.ReactNode;
@@ -24,6 +25,7 @@ export function ParentLayout({ children }: ParentLayoutProps) {
   const [currentView, setCurrentView] = useState<'dashboard' | 'home' | 'notifications'>('dashboard');
   const [currentPupilId, setCurrentPupilId] = useState<string | undefined>(user?.pupilId);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  useSettingsSidebar(pathname === '/parent/settings', !isSidebarCollapsed, open => setIsSidebarCollapsed(!open));
   const parentScopeStatus = useParentPupilScopeStatus(user?.id);
   const visibleAccountId = user?.role === 'Parent' && !['repairing', 'error'].includes(parentScopeStatus)
     ? user.id : undefined;
@@ -64,14 +66,14 @@ export function ParentLayout({ children }: ParentLayoutProps) {
 
   const handleViewChange = (view: 'dashboard' | 'home' | 'notifications') => {
     setCurrentView(view);
-    if (pathname === '/parent/settings/look-and-feel') router.push(view === 'home' ? '/parent?view=home' : '/parent');
+    if (pathname.startsWith('/parent/settings')) router.push(view === 'home' ? '/parent?view=home' : '/parent');
   };
 
   const handlePupilChange = (pupilId: string) => {
     setCurrentPupilId(pupilId);
     // When switching pupils, always go back to dashboard view
     setCurrentView('dashboard');
-    if (pathname === '/parent/settings/look-and-feel') router.push('/parent');
+    if (pathname.startsWith('/parent/settings')) router.push('/parent');
   };
 
   // Update view when route changes
