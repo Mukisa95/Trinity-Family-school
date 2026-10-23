@@ -30,6 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import { nativeDocumentFiles, saveDocumentFile } from '@/lib/android/documents';
 import { usePDFGestures } from '@/lib/pdf/use-pdf-gestures';
+import { isAppleMobile } from '@/lib/pwa/platform';
 
 type FitMode = "custom" | "width" | "page";
 
@@ -145,7 +146,8 @@ function PDFPageCanvas({
 
         // Pinch zoom must not allocate several full-resolution phone-sized
         // canvases per page. CSS geometry remains independent of raster density.
-        const outputScale = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(4_000_000 / Math.max(1, viewport.width * viewport.height)), 4096 / Math.max(viewport.width, viewport.height));
+        const pixelBudget = isAppleMobile() ? 2_000_000 : 4_000_000;
+        const outputScale = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(pixelBudget / Math.max(1, viewport.width * viewport.height)), 4096 / Math.max(viewport.width, viewport.height));
         canvas.width = Math.max(1, Math.floor(viewport.width * outputScale));
         canvas.height = Math.max(1, Math.floor(viewport.height * outputScale));
         canvas.style.width = `${Math.floor(viewport.width)}px`;
@@ -173,6 +175,14 @@ function PDFPageCanvas({
       renderTask?.cancel();
     };
   }, [onPageSize, pageNumber, pdf, rotation, scale]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    return () => {
+      // Release detached page buffers immediately rather than waiting for Safari GC.
+      if (canvas) { canvas.width = 0; canvas.height = 0; }
+    };
+  }, []);
 
   return (
     <div className={cn("relative flex items-center justify-center", className)}>
@@ -257,7 +267,7 @@ function ContinuousPDFPage({
       setVisible(entry.isIntersecting);
     }, {
       root: viewportElement,
-      rootMargin: "1200px 0px",
+      rootMargin: isAppleMobile() ? "240px 0px" : "1200px 0px",
       threshold: 0,
     });
     observer.observe(host);
@@ -375,6 +385,11 @@ function PDFThumbnail({
     };
   }, [pageNumber, pdf, visible]);
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    return () => { if (canvas) { canvas.width = 0; canvas.height = 0; } };
+  }, [visible]);
+
   return (
     <button
       ref={hostRef}
@@ -409,7 +424,9 @@ export function PDFDocumentViewer({
   const nativeFiles = nativeDocumentFiles();
   // Older APKs turn embedded PDF loads into downloads. Do not preload their
   // hidden print frame while the document is only being previewed.
-  const preloadPrintFrame = !nativeFiles || Boolean(nativeFiles.preview);
+  // Avoid keeping a second, native PDF renderer alive during iOS preview.
+  const preloadPrintFrame = !isAppleMobile() && (!nativeFiles || Boolean(nativeFiles.preview));
+  const [printRequested, setPrintRequested] = useState(false);
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -438,6 +455,8 @@ export function PDFDocumentViewer({
   const pageElementsRef = useRef(new Map<number, HTMLElement>());
   const { ref: viewportRef, size: viewportSize } = useElementSize<HTMLDivElement>(Boolean(pdf));
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
+
+  useEffect(() => setPrintRequested(false), [blob]);
 
   useEffect(() => {
     const nextObjectUrl = URL.createObjectURL(blob);
@@ -780,8 +799,22 @@ export function PDFDocumentViewer({
     if (frameWindow) {
       frameWindow.focus();
       frameWindow.print();
+    } else if (isAppleMobile()) {
+      setPrintRequested(true);
     }
   }, []);
+
+  const printWhenReady = useCallback(() => {
+    const frameWindow = printFrameRef.current?.contentWindow;
+    if (!printRequested || !frameWindow) return;
+    frameWindow.addEventListener('afterprint', () => {
+      window.focus();
+      viewerRootRef.current?.focus({ preventScroll: true });
+      setPrintRequested(false);
+    }, { once: true });
+    frameWindow.focus();
+    frameWindow.print();
+  }, [printRequested]);
 
   const openExternally = useCallback(() => {
     if (objectUrl) window.open(objectUrl, "_blank", "noopener,noreferrer");
@@ -849,8 +882,8 @@ export function PDFDocumentViewer({
   }
 
   return (
-    <div ref={viewerRootRef} className="flex h-full min-h-0 flex-col bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
-      {objectUrl && preloadPrintFrame && <iframe ref={printFrameRef} src={objectUrl} title={`${title} print source`} className="pointer-events-none fixed h-0 w-0 border-0 opacity-0" aria-hidden="true" />}
+    <div ref={viewerRootRef} tabIndex={-1} className="flex h-full min-h-0 flex-col bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+      {objectUrl && (preloadPrintFrame || printRequested) && <iframe ref={printFrameRef} src={objectUrl} onLoad={printWhenReady} title={`${title} print source`} className="pointer-events-none fixed h-0 w-0 border-0 opacity-0" aria-hidden="true" />}
 
       <div className="flex shrink-0 flex-col border-b border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div className="flex min-h-14 flex-wrap items-center gap-1.5 px-2 py-1.5 sm:min-h-12 sm:px-3 lg:flex-nowrap lg:overflow-x-auto">

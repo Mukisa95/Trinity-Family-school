@@ -10,8 +10,9 @@ export function ViewportPortal({ children, zIndex, lockScroll = false, followZoo
   const viewport = useVisualViewport(followZoom);
 
   if (!viewport) return null;
+  // Anchor fixed children without explicitly promoting the whole overlay to a GPU layer.
   return createPortal(<RemoveScroll enabled={lockScroll} allowPinchZoom noRelative className={`viewport-overlay ${className}`}
-    style={{ position: 'fixed', ...viewport, zIndex, transform: 'translateZ(0)', pointerEvents: 'none' }}>
+    style={{ position: 'fixed', ...viewport, zIndex, contain: 'layout', pointerEvents: 'none' }}>
     {children}
   </RemoveScroll>, document.body);
 }

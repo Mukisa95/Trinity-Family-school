@@ -58,7 +58,7 @@ requireText(documentViewer, 'aria-label="Fit whole page"', 'the viewer must supp
 requireText(documentViewer, 'useState<FitMode>("custom")', 'the viewer must open at the explicit 100 percent zoom mode');
 requireText(documentViewer, 'aria-label="Continuous PDF pages"', 'the main viewer must expose every page in a continuous scroll');
 requireText(documentViewer, 'synchronizePageFromScroll', 'scrolling must synchronize the current page and thumbnail navigation');
-requireText(documentViewer, 'rootMargin: "1200px 0px"', 'continuous pages must render lazily to bound canvas memory');
+requireText(documentViewer, 'rootMargin: isAppleMobile() ? "240px 0px" : "1200px 0px"', 'continuous pages must render lazily with a smaller iOS preload window');
 requireText(documentViewer, 'placeholder="Search this PDF"', 'the viewer must provide full-document search');
 requireText(documentViewer, 'pageNumber} of ${totalPages}', 'the viewer must expose the current and total page count');
 requireText(documentViewer, 'convertToViewportPoint', 'search results must resolve to positions on the rendered PDF');

@@ -15,6 +15,7 @@ async function build() {
   pdf.setFillColor(30, 90, 170).rect(20, 20, 170, 60, 'F');
   pdf.setTextColor(255).text('iPhone compatibility test', 30, 45);
   pdf.addPage().setTextColor(20).text('Second page', 20, 30);
+  for (let number = 3; number <= 24; number++) pdf.addPage().text(`Long report page ${number}`, 20, 30);
   fs.writeFileSync(path.join(output, 'source.pdf'), Buffer.from(pdf.output('arraybuffer')));
   const mocks = {
     'next/navigation': `export const usePathname=()=>'/';export const useRouter=()=>({push:()=>{},prefetch:()=>{}});`,
@@ -108,6 +109,68 @@ async function run() {
         await page.waitForFunction(() => { const canvas = document.querySelector('[data-pdf-page="1"] canvas'); return canvas?.width > 0 && !document.querySelector('[aria-label="Rendering PDF page"]'); });
         assert.ok(await canvas.evaluate(canvas => { const context = canvas.getContext('2d'), pixel = context.getImageData(Math.floor(canvas.width / 2), Math.floor(canvas.height / 8), 1, 1).data; return pixel[2] > pixel[0] + 40 && pixel[2] < 230; }));
         assert.equal(await page.getByRole('alert').count(), 0);
+        assert.equal(await page.locator('iframe[title="iPhone test PDF print source"]').count(), 0, 'iPhone preview must not preload a second native PDF renderer');
+        const layer = page.locator('.viewport-overlay');
+        assert.equal(await layer.evaluate(el => getComputedStyle(el).transform), 'none', 'The viewport layer must not force a GPU surface for the long report');
+        assert.equal(await layer.evaluate(el => getComputedStyle(el).contain), 'layout');
+        await page.waitForFunction(() => !document.querySelector('[aria-label="Rendering PDF page"]'));
+        const buffers = () => page.evaluate(() => [...document.querySelectorAll('[data-pdf-page] canvas')].map(canvas => ({ width: canvas.width, height: canvas.height })));
+        assert.ok((await buffers()).length <= 4, 'Only nearby iPhone report pages should allocate canvases');
+        const originalPixels = await canvas.evaluate(canvas => ({ width: canvas.width, height: canvas.height, sample: [...canvas.getContext('2d').getImageData(40, 40, 1, 1).data] }));
+        if (engine === 'chromium') {
+          const session = await page.context().newCDPSession(page);
+          for (const factor of [2.5, 3, 2.2]) {
+            for (let step = 0; step <= 10; step++) {
+              const distance = 45 * (1 + (factor - 1) * step / 10);
+              await session.send('Input.dispatchTouchEvent', { type: step === 0 ? 'touchStart' : 'touchMove', touchPoints: [{ x: 195 - distance, y: 400, id: 1, radiusX: 4, radiusY: 4 }, { x: 195 + distance, y: 400, id: 2, radiusX: 4, radiusY: 4 }] });
+              await page.waitForTimeout(20);
+            }
+            await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+            await page.waitForFunction(() => visualViewport.scale > 1.1);
+            assert.deepEqual(await canvas.evaluate(canvas => ({ width: canvas.width, height: canvas.height, sample: [...canvas.getContext('2d').getImageData(40, 40, 1, 1).data] })), originalPixels, 'Page pinch must keep the existing PDF raster');
+            await session.send('Emulation.setPageScaleFactor', { pageScaleFactor: 1 });
+          }
+          await session.detach();
+        } else {
+          for (const scale of [1.4, 2, 1.3, 1]) {
+            await page.evaluate(scale => { Object.defineProperties(visualViewport, { scale: { configurable: true, value: scale }, width: { configurable: true, value: innerWidth / scale }, height: { configurable: true, value: innerHeight / scale } }); visualViewport.dispatchEvent(new Event('resize')); }, scale);
+            await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+            assert.deepEqual(await canvas.evaluate(canvas => ({ width: canvas.width, height: canvas.height, sample: [...canvas.getContext('2d').getImageData(40, 40, 1, 1).data] })), originalPixels);
+          }
+          await page.evaluate(() => { for (const key of ['scale', 'width', 'height']) delete visualViewport[key]; visualViewport.dispatchEvent(new Event('resize')); });
+        }
+        await canvas.evaluate(canvas => { window.departedCanvas = canvas; });
+        const viewer = page.getByRole('main');
+        await viewer.evaluate(el => { el.style.scrollBehavior = 'auto'; el.scrollTop = el.scrollHeight / 2; });
+        await page.waitForFunction(() => window.departedCanvas.width === 0 && window.departedCanvas.height === 0);
+        assert.ok((await buffers()).length <= 4, 'Scrolling a long iPhone PDF must release offscreen page buffers');
+        await viewer.evaluate(el => { el.scrollTop = 0; });
+        await canvas.waitFor();
+        await page.waitForFunction(() => !document.querySelector('[aria-label="Rendering PDF page"]'));
+        await page.getByRole('button', { name: 'Show zoom controls', exact: true }).click();
+        await page.getByRole('button', { name: 'Reset zoom to 100 percent' }).click();
+        await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+        await page.waitForFunction(() => !document.querySelector('[aria-label="Rendering PDF page"]'));
+        assert.ok((await buffers()).every(buffer => buffer.width * buffer.height <= 2_000_000), 'High PDF zoom stays within the iPhone raster budget');
+        await page.getByRole('button', { name: 'Fit page width' }).click();
+        await page.getByRole('button', { name: 'Hide zoom controls', exact: true }).click();
+        // Exercise the real print callback with a tiny stand-in for the OS print
+        // dialog, while retaining and hashing the original PDF source URL.
+        await page.evaluate(() => {
+          window.printCalls = 0;
+          const observer = new MutationObserver(() => {
+            const frame = document.querySelector('iframe[title="iPhone test PDF print source"]');
+            if (!frame) return;
+            observer.disconnect(); window.printSource = frame.src;
+            frame.srcdoc = '<script>window.print=()=>{parent.printCalls++;dispatchEvent(new Event("afterprint"))}</script>';
+          });
+          observer.observe(document.body, { childList: true, subtree: true });
+        });
+        await page.getByRole('button', { name: 'More PDF actions', exact: true }).click();
+        await page.getByRole('menuitem', { name: 'Print PDF', exact: true }).click();
+        await page.waitForFunction(() => window.printCalls === 1 && !document.querySelector('iframe[title="iPhone test PDF print source"]'));
+        const printed = await page.evaluate(async () => [...new Uint8Array(await (await fetch(window.printSource)).arrayBuffer())]);
+        assert.deepEqual(Buffer.from(printed), fs.readFileSync(path.join(output, 'source.pdf')), 'On-demand printing retains the original PDF bytes');
         await page.getByRole('button', { name: 'Minimize PDF workspace', exact: true }).click();
         const mini = page.getByLabel('Minimized PDF workspace');
         assert.equal(await mini.evaluate(el => el.closest('.viewport-overlay').parentElement === document.body), true);
@@ -154,6 +217,7 @@ async function run() {
         }
         await drawer.getByRole('button', { name: 'Test account' }).click();
         await page.getByRole('menu').waitFor();
+        await page.waitForFunction(() => document.activeElement?.closest('[role="menu"]'));
         await page.keyboard.press('Escape');
         await page.getByRole('menu').waitFor({ state: 'hidden' });
         assert.ok(await drawer.isVisible());
@@ -175,12 +239,12 @@ async function run() {
           visualViewport.dispatchEvent(new Event('resize'));
         });
         assert.deepEqual(errors, []);
-        results.push({ engine, reproduced, compatiblePdfRendered: true, minimizedDock: true, drawerScrollContainment: true, pinchAllowed: true, standalone: true });
+        results.push({ engine, reproduced, compatiblePdfRendered: true, minimizedDock: true, drawerScrollContainment: true, pinchAllowed: true, standalone: true, reportPages: 24, repeatedPagePinch: true, printOnDemand: true, releasedPageBuffers: true });
       } finally { await browser.close(); }
     }
     assert.ok(workerRequests >= 4, 'Both browser engines load real workers');
     fs.writeFileSync(path.join(output, 'verification.json'), JSON.stringify({ results, workerRequests, physicalIPhoneTest: false }, null, 2));
-    console.log('IOS_PDF_SIDEBAR_OK: reproduced missing method, real compatible PDF rendering, standalone portrait/landscape, stable minimized dock, bounded drawer touch/wheel scrolling, account popup and pinch access.');
+    console.log('IOS_PDF_SIDEBAR_OK: compatible 24-page PDF, repeated native Chromium pinch and WebKit viewport zoom, bounded/released page buffers, on-demand original-byte printing, stable minimized dock and drawer, account popup and pinch access.');
   } finally { await new Promise(resolve => server.close(resolve)); }
 }
 run().catch(error => { console.error(error); process.exitCode = 1; });
