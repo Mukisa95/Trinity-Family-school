@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { saveDocumentFile } from '@/lib/android/documents';
+import { usePDFGestures } from '@/lib/pdf/use-pdf-gestures';
 
 type FitMode = "custom" | "width" | "page";
 
@@ -37,6 +39,7 @@ interface PDFDocumentViewerProps {
   title: string;
   fullscreenTargetRef?: React.RefObject<HTMLElement | null>;
   onActionsChange?: (actions: PDFDocumentViewerActions | null) => void;
+  onSaved?: () => void;
 }
 
 interface SearchHit {
@@ -59,7 +62,7 @@ interface PageSize {
   height: number;
 }
 
-const MIN_ZOOM = 25;
+const MIN_ZOOM = 5;
 const MAX_ZOOM = 300;
 const ZOOM_STEP = 10;
 const MIN_FIT_SCALE = 0.05;
@@ -140,7 +143,9 @@ function PDFPageCanvas({
         const context = canvas.getContext("2d", { alpha: false });
         if (!context) throw new Error("Unable to prepare the PDF canvas.");
 
-        const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+        // Pinch zoom must not allocate several full-resolution phone-sized
+        // canvases per page. CSS geometry remains independent of raster density.
+        const outputScale = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(4_000_000 / Math.max(1, viewport.width * viewport.height)), 4096 / Math.max(viewport.width, viewport.height));
         canvas.width = Math.max(1, Math.floor(viewport.width * outputScale));
         canvas.height = Math.max(1, Math.floor(viewport.height * outputScale));
         canvas.style.width = `${Math.floor(viewport.width)}px`;
@@ -399,6 +404,7 @@ export function PDFDocumentViewer({
   title,
   fullscreenTargetRef,
   onActionsChange,
+  onSaved,
 }: PDFDocumentViewerProps) {
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [loading, setLoading] = useState(true);
@@ -418,6 +424,7 @@ export function PDFDocumentViewer({
   const [searchOpen, setSearchOpen] = useState(false);
   const [zoomMenuOpen, setZoomMenuOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const printFrameRef = useRef<HTMLIFrameElement>(null);
   const viewerRootRef = useRef<HTMLDivElement>(null);
@@ -447,7 +454,7 @@ export function PDFDocumentViewer({
     setPageInput("1");
     pageNumberRef.current = 1;
     setZoom(100);
-    setFitMode("custom");
+    setFitMode(window.matchMedia('(max-width: 767px), (pointer: coarse)').matches ? 'width' : 'custom');
     setPageSizes({ 1: { width: 595, height: 842 } });
     pageElementsRef.current.clear();
 
@@ -600,8 +607,9 @@ export function PDFDocumentViewer({
   const getScaleForPage = useCallback((size: PageSize) => {
     if (fitMode === "custom") return clamp(zoom, MIN_ZOOM, MAX_ZOOM) / 100;
     if (viewportSize.width <= 0 || viewportSize.height <= 0) return 1;
-    const availableWidth = Math.max(viewportSize.width - VIEWPORT_PADDING * 2, 1);
-    const availableHeight = Math.max(viewportSize.height - VIEWPORT_PADDING * 2, 1);
+    const padding = window.matchMedia('(min-width: 640px)').matches ? 24 : 12;
+    const availableWidth = Math.max(viewportSize.width - padding * 2, 1);
+    const availableHeight = Math.max(viewportSize.height - padding * 2, 1);
     if (fitMode === "width") return clamp(availableWidth / size.width, MIN_FIT_SCALE, 3);
     return clamp(
       Math.min(availableWidth / size.width, availableHeight / size.height),
@@ -616,6 +624,9 @@ export function PDFDocumentViewer({
   );
 
   const displayedZoom = Math.round(computedScale * 100);
+  const zoomAt = usePDFGestures(viewportRef, computedScale, useCallback((scale: number) => {
+    setZoom(scale * 100); setFitMode('custom');
+  }, []), Boolean(pdf));
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -626,12 +637,11 @@ export function PDFDocumentViewer({
       viewport.scrollTop = Math.max(0, pageElement.offsetTop - VIEWPORT_PADDING);
     });
     return () => window.cancelAnimationFrame(animationFrame);
-  }, [fitMode, pdf, viewportRef, viewportSize.height, viewportSize.width, zoom]);
+  }, [pdf, viewportRef, viewportSize.height, viewportSize.width]);
 
   const changeZoom = useCallback((direction: 1 | -1) => {
-    setZoom(clamp(displayedZoom + direction * ZOOM_STEP, MIN_ZOOM, MAX_ZOOM));
-    setFitMode("custom");
-  }, [displayedZoom]);
+    zoomAt(clamp(displayedZoom + direction * ZOOM_STEP, MIN_ZOOM, MAX_ZOOM) / 100);
+  }, [displayedZoom, zoomAt]);
 
   const runSearch = useCallback(async (query: string) => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -750,14 +760,9 @@ export function PDFDocumentViewer({
   }, [changeZoom]);
 
   const downloadPDF = useCallback(() => {
-    if (!objectUrl) return;
-    const link = window.document.createElement("a");
-    link.href = objectUrl;
-    link.download = fileName;
-    window.document.body.appendChild(link);
-    link.click();
-    link.remove();
-  }, [fileName, objectUrl]);
+    setSaveError(null);
+    void saveDocumentFile(blob, fileName).then(() => onSaved?.()).catch(error => setSaveError(error instanceof Error ? error.message : 'Unable to save the PDF.'));
+  }, [fileName, blob, onSaved]);
 
   const downloadCurrentPageImage = useCallback(async () => {
     if (!pdf) return;
@@ -771,14 +776,9 @@ export function PDFDocumentViewer({
     await page.render({ canvas, canvasContext: context, viewport, background: "#ffffff" }).promise;
     canvas.toBlob((imageBlob) => {
       if (!imageBlob) return;
-      const imageUrl = URL.createObjectURL(imageBlob);
-      const link = window.document.createElement("a");
-      link.href = imageUrl;
-      link.download = `${fileName.replace(/\.pdf$/i, "")}-page-${pageNumber}.png`;
-      window.document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(imageUrl), 0);
+      setSaveError(null);
+      void saveDocumentFile(imageBlob, `${fileName.replace(/\.pdf$/i, "")}-page-${pageNumber}.png`)
+        .catch(error => setSaveError(error instanceof Error ? error.message : 'Unable to save the page image.'));
     }, "image/png");
   }, [fileName, pageNumber, pdf]);
 
@@ -934,7 +934,8 @@ export function PDFDocumentViewer({
           </aside>
         )}
 
-        <main ref={viewportRef} className="min-h-0 min-w-0 flex-1 overflow-auto bg-[radial-gradient(circle_at_top,#ffffff_0%,#eef2f7_62%,#e2e8f0_100%)] dark:bg-[radial-gradient(circle_at_top,#1e293b_0%,#0f172a_62%,#020617_100%)] p-3 sm:p-6" aria-label={`Viewing ${title}, page ${pageNumber} of ${totalPages}`}>
+        <main ref={viewportRef} style={{ touchAction: 'pan-x pan-y', overscrollBehavior: 'contain', overflowAnchor: 'none' }} className="min-h-0 min-w-0 flex-1 overflow-auto bg-[radial-gradient(circle_at_top,#ffffff_0%,#eef2f7_62%,#e2e8f0_100%)] dark:bg-[radial-gradient(circle_at_top,#1e293b_0%,#0f172a_62%,#020617_100%)] p-3 sm:p-6" aria-label={`Viewing ${title}, page ${pageNumber} of ${totalPages}`}>
+          {saveError && <p role="alert" className="sticky left-0 top-0 z-20 rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-100">{saveError}</p>}
           <div className="flex min-h-full w-max min-w-full flex-col items-center gap-3 sm:gap-6" aria-label="Continuous PDF pages">
             {Array.from({ length: totalPages }, (_, index) => index + 1).map((candidatePage) => (
               <ContinuousPDFPage

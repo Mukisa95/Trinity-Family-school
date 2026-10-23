@@ -4,10 +4,12 @@ import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { nativeDocumentFiles } from '@/lib/android/documents';
 
 export type PDFWorkspaceDocumentStatus = "generating" | "ready" | "error";
 export type PDFWorkspaceMode = "expanded" | "minimized";
@@ -21,6 +23,7 @@ export interface PDFWorkspaceDocument {
   progress: number;
   message: string;
   error: string | null;
+  saveWarning?: string;
   createdAt: number;
 }
 
@@ -65,9 +68,10 @@ const waitForWorkspacePaint = () => new Promise<void>((resolve) => {
     return;
   }
 
-  window.requestAnimationFrame(() => {
-    window.setTimeout(resolve, 0);
-  });
+  // Background WebViews suspend animation frames. Leaving immediately must not
+  // strand a job before rendering starts.
+  const timeout = window.setTimeout(resolve, 40);
+  window.requestAnimationFrame(() => { window.clearTimeout(timeout); window.setTimeout(resolve, 0); });
 });
 
 const createDocumentId = () => {
@@ -87,7 +91,20 @@ export function PDFWorkspaceProvider({ children }: { children: React.ReactNode }
   const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
   const [mode, setMode] = useState<PDFWorkspaceMode>("expanded");
   const generatorsRef = useRef(new Map<string, PDFGenerator>());
+  const jobOptionsRef = useRef(new Map<string, PDFJobOptions>());
   const controllersRef = useRef(new Map<string, AbortController>());
+  const nativeJobsRef = useRef(new Map<string, { documentId: string; controller: AbortController }>());
+  useEffect(() => {
+    const stopped = (event: Event) => {
+      const run = nativeJobsRef.current.get((event as CustomEvent<string>).detail); if (!run) return;
+      const { documentId: id, controller } = run;
+      if (controllersRef.current.get(id) !== controller) return;
+      controller.abort();
+      setDocuments(current => current.map(document => document.id === id ? { ...document, status: 'error', progress: 0, message: 'Creation stopped', error: 'Background document creation stopped. Please try again.' } : document));
+    };
+    window.addEventListener('trinity-document-cancel', stopped);
+    return () => { window.removeEventListener('trinity-document-cancel', stopped); controllersRef.current.forEach(controller => controller.abort()); nativeJobsRef.current.forEach((_, id) => { void nativeDocumentFiles()?.cancel(id).catch(() => {}); }); };
+  }, []);
 
   const patchDocument = useCallback((
     id: string,
@@ -109,12 +126,21 @@ export function PDFWorkspaceProvider({ children }: { children: React.ReactNode }
       progress: 2,
       message: "Preparing PDF workspace…",
       error: null,
+      saveWarning: undefined,
     });
 
-    // Allow the loading workspace to paint before a renderer starts heavy work.
-    await waitForWorkspacePaint();
-
+    const native = nativeDocumentFiles();
+    const nativeJobId = createDocumentId();
+    let nativeStarted = false;
     try {
+      const options = jobOptionsRef.current.get(id);
+      if (native && options) {
+        nativeJobsRef.current.set(nativeJobId, { documentId: id, controller });
+        await native.start({ jobId: nativeJobId, title: options.title || 'PDF document', fileName: normaliseFileName(options.fileName) });
+        nativeStarted = true;
+      }
+      if (controller.signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+      await waitForWorkspacePaint();
       const blob = await generator({
         signal: controller.signal,
         updateProgress: (progress, message) => {
@@ -123,6 +149,7 @@ export function PDFWorkspaceProvider({ children }: { children: React.ReactNode }
             progress: Math.max(0, Math.min(99, Math.round(progress))),
             ...(message ? { message } : {}),
           });
+          if (nativeStarted) native?.progress(nativeJobId, progress, message);
         },
       });
 
@@ -132,6 +159,8 @@ export function PDFWorkspaceProvider({ children }: { children: React.ReactNode }
       if (!(blob instanceof Blob) || blob.size === 0) {
         throw new Error("The PDF generator returned an empty document.");
       }
+      const saved = nativeStarted ? await native?.complete(nativeJobId, blob, normaliseFileName(options?.fileName)) : undefined;
+      if (controller.signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
 
       patchDocument(id, {
         status: "ready",
@@ -139,11 +168,13 @@ export function PDFWorkspaceProvider({ children }: { children: React.ReactNode }
         progress: 100,
         message: "PDF ready",
         error: null,
+        saveWarning: saved && !saved.saved ? 'The PDF is ready, but it was not saved in Trinity Files. Use Download to try again.' : undefined,
       });
       return blob;
     } catch (error) {
       if (controller.signal.aborted) throw error;
       const message = error instanceof Error ? error.message : "PDF generation failed.";
+      if (nativeStarted) void native?.cancel(nativeJobId, message).catch(() => {});
       patchDocument(id, {
         status: "error",
         blob: null,
@@ -153,6 +184,8 @@ export function PDFWorkspaceProvider({ children }: { children: React.ReactNode }
       });
       throw error;
     } finally {
+      if (nativeStarted) void native?.cancel(nativeJobId).catch(() => {});
+      nativeJobsRef.current.delete(nativeJobId);
       if (controllersRef.current.get(id) === controller) {
         controllersRef.current.delete(id);
       }
@@ -165,6 +198,7 @@ export function PDFWorkspaceProvider({ children }: { children: React.ReactNode }
     const title = options.title?.trim() || fileName.replace(/\.pdf$/i, "");
 
     generatorsRef.current.set(id, generator);
+    jobOptionsRef.current.set(id, { ...options, fileName, title });
     setDocuments((current) => [
       ...current,
       {
@@ -218,8 +252,10 @@ export function PDFWorkspaceProvider({ children }: { children: React.ReactNode }
 
   const closeDocument = useCallback((id: string) => {
     controllersRef.current.get(id)?.abort();
+    nativeJobsRef.current.forEach((run, nativeId) => { if (run.documentId === id) void nativeDocumentFiles()?.cancel(nativeId).catch(() => {}); });
     controllersRef.current.delete(id);
     generatorsRef.current.delete(id);
+    jobOptionsRef.current.delete(id);
     setDocuments((current) => {
       const index = current.findIndex((document) => document.id === id);
       const next = current.filter((document) => document.id !== id);
@@ -247,8 +283,10 @@ export function PDFWorkspaceProvider({ children }: { children: React.ReactNode }
 
   const closeAllDocuments = useCallback(() => {
     controllersRef.current.forEach((controller) => controller.abort());
+    nativeJobsRef.current.forEach((_, nativeId) => { void nativeDocumentFiles()?.cancel(nativeId).catch(() => {}); });
     controllersRef.current.clear();
     generatorsRef.current.clear();
+    jobOptionsRef.current.clear();
     setDocuments([]);
     setActiveDocumentId(null);
   }, []);

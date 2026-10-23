@@ -4,9 +4,9 @@
   "applicationId": "ug.trinityfamilyganda.live",
   "websiteOrigin": "https://trinityfamilyganda.vercel.app",
   "firebaseProjectId": "trinity-family-ganda",
-  "versionCode": 31,
-  "versionName": "1.29",
-  "releaseNotes": "Tracked lessons keep class/subject codes and time on one line when space permits, arrange into two columns when they fit, and avoid duplicating live timetable progress. Preserves saved selections, card order and phone time format.",
+  "versionCode": 32,
+  "versionName": "1.30",
+  "releaseNotes": "Save PDFs and exported documents in Trinity Files. Pinch and pan PDF pages, fit the phone width, and use a compact minimized preview. Continue PDF creation in the background with Android progress and completion notifications.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {

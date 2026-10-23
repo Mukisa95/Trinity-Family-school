@@ -50,6 +50,7 @@ import java.util.concurrent.Executors;
 public final class MainActivity extends FragmentActivity {
     private static final int CAMERA_RESULT = 40, FILE_RESULT = 41;
     private WebView web;
+    private DocumentController documents;
     private OfflineController offline;
     private AppUpdater updater;
     private DeviceUnlock deviceUnlock;
@@ -82,7 +83,7 @@ public final class MainActivity extends FragmentActivity {
         if (old != null) for (File file : old) if (System.currentTimeMillis() - file.lastModified() > 86_400_000L) file.delete();
         android.widget.LinearLayout frame = new android.widget.LinearLayout(this);
         frame.setOrientation(android.widget.LinearLayout.VERTICAL);
-        web = new WebView(this);
+        web = new WebView(new android.content.MutableContextWrapper(this));
         web.setBackgroundColor(StartupSurface.BACKGROUND);
         searchKeyboardArmed = "search".equals(getIntent().getStringExtra(AppShortcuts.EXTRA));
         android.widget.FrameLayout browserFrame = new android.widget.FrameLayout(this);
@@ -98,6 +99,7 @@ public final class MainActivity extends FragmentActivity {
         settings.setJavaScriptEnabled(true); settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(false); settings.setAllowContentAccess(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        documents = new DocumentController(this, web);
         // WebKit 1.12.1 exposes this feature but omits it from its lint StringDef.
         @android.annotation.SuppressLint("WrongConstant")
         boolean supportsWebAuthentication = WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION);
@@ -107,6 +109,7 @@ public final class MainActivity extends FragmentActivity {
         web.setWebViewClient(new WebViewClient() {
             @Override public void onPageCommitVisible(WebView view, String url) { revealStartupDocument(); }
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
+                if (documents != null) documents.pageChanged();
                 view.removeCallbacks(pendingLoadError);
                 pageLoad.begin(url);
                 dismissLoadError();
@@ -131,6 +134,7 @@ public final class MainActivity extends FragmentActivity {
                 if (request.isForMainFrame()) diagnostics.record("web_http_" + response.getStatusCode(), 0);
             }
             @Override public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+                if (documents != null) documents.pageChanged();
                 view.removeCallbacks(pendingLoadError);
                 diagnostics.record(detail.didCrash() ? "web_renderer_crashed" : "web_renderer_killed", 0);
                 if (deviceUnlock != null) { deviceUnlock.destroy(); deviceUnlock = null; }
@@ -145,6 +149,7 @@ public final class MainActivity extends FragmentActivity {
                 return true;
             }
             @Override public void onPageFinished(WebView view, String url) {
+                if (documents != null) documents.installed();
                 if (offline == null) return;
                 diagnostics.record("web_navigation_finished", 0);
                 revealStartupDocument();
@@ -193,6 +198,10 @@ public final class MainActivity extends FragmentActivity {
             }
         });
         web.setDownloadListener((url, userAgent, contentDisposition, mimeType, length) -> {
+            if (documents != null && documents.supported() && PhotoPolicy.trusted(web.getUrl()) && (PhotoPolicy.trusted(url) || url.startsWith("blob:" + PhotoPolicy.ORIGIN + "/") || url.startsWith("data:"))) {
+                String name = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimeType);
+                try { DocumentPolicy.fileName(name); documents.download(url, name); return; } catch (IllegalArgumentException ignored) { }
+            }
             if (!PhotoPolicy.trusted(url)) return;
             try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
             catch (Exception ignored) { android.widget.Toast.makeText(this, "Open the school website in your browser to download the app.", android.widget.Toast.LENGTH_LONG).show(); }
@@ -268,6 +277,7 @@ public final class MainActivity extends FragmentActivity {
 
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
+        if (request == DocumentController.FOLDER_RESULT) { if (documents != null) documents.folderResult(result, data); return; }
         if (request == FILE_RESULT && fileCallback != null) {
             fileCallback.onReceiveValue(PhotoPolicy.trusted(web.getUrl()) ? WebChromeClient.FileChooserParams.parseResult(result, data) : null);
             fileCallback = null;
@@ -491,9 +501,13 @@ public final class MainActivity extends FragmentActivity {
         }
         loadErrorShown = false;
     }
-    @Override protected void onPause() { if (diagnostics != null) diagnostics.pause(); if (updater != null) updater.pause(); if (offline != null) offline.pause(); super.onPause(); }
-    @Override protected void onResume() { super.onResume(); if (diagnostics != null) diagnostics.resume(); if (offline != null) offline.resume(); if (updater != null) updater.resume(); }
+    @Override protected void onPause() { if (documents != null) documents.visible(false); if (diagnostics != null) diagnostics.pause(); if (updater != null) updater.pause(); if (offline != null) offline.pause(); super.onPause(); }
+    @Override protected void onResume() { super.onResume(); if (documents != null) documents.visible(true); if (diagnostics != null) diagnostics.resume(); if (offline != null) offline.resume(); if (updater != null) updater.resume(); }
     @Override protected void onDestroy() {
+        boolean keepDocumentPage = documents != null && documents.detach();
+        if (keepDocumentPage && WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+            for (String bridge : new String[]{"TrinityPhoto", "TrinityOffline", "TrinityDeviceUnlock"}) WebViewCompat.removeWebMessageListener(web, bridge);
+        }
         if (startupSurface != null) startupSurface.destroy();
         if (web != null) web.removeCallbacks(pendingLoadError);
         if (loadErrorDialog != null) { loadErrorDialog.dismiss(); loadErrorDialog = null; }
@@ -504,7 +518,7 @@ public final class MainActivity extends FragmentActivity {
         if (fileCallback != null) fileCallback.onReceiveValue(null);
         clearCapture(true); io.shutdownNow();
         for (File file : available.values()) file.delete(); available.clear(); expires.clear();
-        if (web != null) web.destroy();
+        if (web != null && !keepDocumentPage) web.destroy();
         super.onDestroy();
     }
 }

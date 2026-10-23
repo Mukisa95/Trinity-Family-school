@@ -1,4 +1,5 @@
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <cache-path name="photos" path="photo-exchange/" />
     <cache-path name="updates" path="app-updates/" />
+    <files-path name="trinity_documents" path="trinity-documents/" />
 </paths>

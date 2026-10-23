@@ -44,6 +44,9 @@ function PDFDocumentSurface({
   fullscreenTargetRef: React.RefObject<HTMLElement | null>;
   onViewerActionsChange: (actions: PDFDocumentViewerActions | null) => void;
 }) {
+  const [saved, setSaved] = useState(false);
+  useEffect(() => setSaved(false), [document.id, document.saveWarning]);
+  const markSaved = React.useCallback(() => setSaved(true), []);
   if (document.status === "generating") {
     return (
       <div className="flex h-full min-h-0 items-center justify-center bg-slate-100 px-5 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
@@ -53,6 +56,7 @@ function PDFDocumentSurface({
           </div>
           <h2 className="text-lg font-semibold sm:text-xl">Creating {document.title}</h2>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{document.message}</p>
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Generation continues if this window is minimized.</p>
           <Progress value={document.progress} className="mt-6 h-2 bg-slate-100 dark:bg-slate-900" />
           <div className="mt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
 
@@ -76,17 +80,20 @@ function PDFDocumentSurface({
   }
 
   if (!document.blob) {
-    return <div className="flex h-full items-center justify-center bg-slate-100 text-sm text-slate-600 dark:bg-slate-900 dark:text-slate-300">Loading PDF preview…</div>;
+    return <div className="flex h-full items-center justify-center bg-slate-100 text-sm text-slate-600 dark:bg-slate-900 dark:text-slate-300">Loading PDF preview...</div>;
   }
 
   return (
-    <PDFDocumentViewer
+    <div className="flex h-full min-h-0 flex-col">
+      {document.saveWarning && !saved && <p role="alert" className="shrink-0 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">{document.saveWarning}</p>}
+      <div className="min-h-0 flex-1"><PDFDocumentViewer
       blob={document.blob}
       fileName={document.fileName}
       title={document.title}
       fullscreenTargetRef={fullscreenTargetRef}
       onActionsChange={onViewerActionsChange}
-    />
+      onSaved={markSaved}
+    /></div></div>
   );
 }
 
@@ -150,101 +157,30 @@ export function PDFWorkspace() {
   if (documents.length === 0 || !activeDocument) return null;
 
   if (mode === "minimized") {
+    const creating = documents.filter(document => document.status === 'generating');
+    const progress = creating.reduce((total, document) => total + document.progress, 0) / Math.max(creating.length, 1);
     return (
       <>
         {readyNoticeDocument && (
-          <aside
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-            className="pdf-workspace-solid-surface fixed bottom-[11.75rem] right-3 z-[95] isolate w-[min(380px,calc(100vw-24px))] overflow-hidden rounded-[24px] border-2 border-emerald-300 shadow-[0_24px_70px_-20px_rgba(5,150,105,0.55)] dark:border-emerald-800/60"
-          >
-            <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-brand-alt-surface-500" />
-            <div className="flex items-start gap-3 p-4">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-                <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-slate-950 dark:text-slate-100">Your PDF is ready</p>
-                <p className="mt-1 truncate text-xs text-slate-600 dark:text-slate-300">{readyNoticeDocument.title}</p>
-                <button
-                  type="button"
-                  onClick={() => expandWorkspace(readyNoticeDocument.id)}
-                  className="mt-3 inline-flex min-h-11 cursor-pointer items-center rounded-full bg-emerald-600 px-4 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-                >
-                  View PDF
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={() => setReadyNoticeId(null)}
-                className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100"
-                aria-label={`Dismiss notification for ${readyNoticeDocument.title}`}
-              >
-                <X className="h-4 w-4" aria-hidden="true" />
-              </button>
-            </div>
+          <aside role="status" aria-live="polite" className="pdf-workspace-solid-surface fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-3 z-[95] flex w-[min(320px,calc(100vw-24px))] items-center gap-2 rounded-2xl border border-emerald-300 p-2 shadow-lg dark:border-emerald-800">
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" aria-hidden="true" />
+            <button type="button" onClick={() => expandWorkspace(readyNoticeDocument.id)} aria-label="View PDF" className="min-h-11 min-w-0 flex-1 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+              <span className="block text-xs font-semibold">Your PDF is ready</span><span className="block truncate text-xs text-slate-500 dark:text-slate-300">{readyNoticeDocument.title}</span>
+            </button>
+            <button type="button" onClick={() => setReadyNoticeId(null)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" aria-label={`Dismiss notification for ${readyNoticeDocument.title}`}><X className="h-4 w-4" /></button>
           </aside>
         )}
-
-        <aside
-          className="pdf-workspace-solid-surface fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom))] right-3 z-[90] w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-[24px] border border-slate-200 shadow-[0_22px_70px_-20px_rgba(15,23,42,0.42)] dark:border-slate-700"
-          aria-label="Minimized PDF workspace"
-        >
-          <div className="flex items-center gap-2 border-b border-slate-200 px-3 py-2.5 dark:border-slate-700">
-            <button
-              type="button"
-              onClick={() => expandWorkspace()}
-              className="flex min-w-0 flex-1 items-center gap-2 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-alt-500"
-            >
-              <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-alt-surface-600 text-white shadow-sm">
-                <FileText className="h-4 w-4" aria-hidden="true" />
-                {generatingCount > 0 && (
-                  <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-white bg-amber-400 dark:border-slate-700" />
-                )}
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold text-slate-900 dark:text-slate-100">PDF workspace</span>
-                <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
-                  {generatingCount > 0 ? `${generatingCount} creating in background` : `${documents.length} document${documents.length === 1 ? "" : "s"} ready`}
-                </span>
-              </span>
+        <aside className="pdf-workspace-solid-surface fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom))] right-3 z-[90] w-[min(320px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-slate-200 shadow-lg dark:border-slate-700" aria-label="Minimized PDF workspace">
+          <div className="flex items-center gap-1 px-2 py-1">
+            <button type="button" onClick={() => expandWorkspace()} className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Restore PDF workspace">
+              {generatingCount ? <Loader2 className="h-5 w-5 shrink-0 animate-spin text-brand-ink-600 motion-reduce:animate-none dark:text-brand-ink-300" /> : <FileText className="h-5 w-5 shrink-0 text-brand-ink-600 dark:text-brand-ink-300" />}
+              <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-slate-900 dark:text-slate-100">{activeDocument.title}</span><span className="block truncate text-[11px] text-slate-500 dark:text-slate-300">{generatingCount ? `${generatingCount} creating · ${Math.round(progress)}%` : activeDocument.status === 'error' ? 'Creation failed · Tap to retry' : 'PDF ready · Tap to open'}</span></span>
+              <Expand className="h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
             </button>
-            <Button type="button" size="icon" variant="ghost" onClick={() => expandWorkspace()} aria-label="Restore PDF workspace" className="h-9 w-9">
-              <Expand className="h-4 w-4" aria-hidden="true" />
-            </Button>
+            {documents.length > 1 && <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" className="h-11 min-w-11 px-2" aria-label="Choose PDF document">{documents.length}</Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="z-[100] max-h-64 max-w-[calc(100vw-24px)] overflow-y-auto">{documents.map(document => <DropdownMenuItem key={document.id} onSelect={() => expandWorkspace(document.id)} className="min-h-11 max-w-72"><span className="truncate">{document.title}</span></DropdownMenuItem>)}</DropdownMenuContent></DropdownMenu>}
           </div>
-          <div className="flex max-h-28 gap-2 overflow-x-auto p-2" role="tablist" aria-label="Open PDF documents">
-            {documents.map((document) => (
-              <button
-                key={document.id}
-                type="button"
-                role="tab"
-                aria-selected={document.id === activeDocumentId}
-                onClick={() => expandWorkspace(document.id)}
-                className={`min-w-[150px] rounded-xl border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-alt-500 ${
-                  document.id === activeDocumentId
-                    ? "border-brand-300 bg-brand-surface-50 dark:border-brand-800/60 dark:bg-brand-surface-950/40"
-                    : "border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-900"
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  {document.status === "generating" ? (
-                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-amber-500 motion-reduce:animate-none dark:text-amber-400" />
-                  ) : document.status === "error" ? (
-                    <AlertCircle className="h-3.5 w-3.5 shrink-0 text-rose-500 dark:text-rose-400" />
-                  ) : (
-                    <FileText className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                  )}
-                  <span className="truncate text-xs font-medium text-slate-800 dark:text-slate-100">{document.title}</span>
-                </span>
-                {document.status === "generating" && <Progress value={document.progress} className="mt-2 h-1" />}
-              </button>
-            ))}
-          </div>
-          <div className="sr-only" aria-live="polite">
-            {generatingCount > 0 ? `${generatingCount} PDF documents are being created.` : "All PDF documents are ready."}
-          </div>
+          {generatingCount > 0 && <Progress value={progress} className="h-0.5 rounded-none" />}
+          <div className="sr-only" aria-live="polite">{generatingCount ? `${generatingCount} PDF documents are being created.` : 'All PDF documents are ready.'}</div>
         </aside>
       </>
     );

@@ -86,7 +86,7 @@ requireText(documentViewer, 'data-theme-surface="paper"', 'page and thumbnail pa
 requireText(theme, 'background: white !important', 'paper must override themed glass backgrounds');
 requireText(documentViewer, 'background: "#ffffff"', 'PDF.js must always render on white paper');
 requireText(documentViewer, 'src={objectUrl}', 'printing must use the original PDF object URL');
-requireText(documentViewer, 'link.href = objectUrl', 'PDF downloads must use the original document');
+requireText(documentViewer, 'saveDocumentFile(blob, fileName)', 'PDF downloads must use the original document');
 if (/["\s](?:dark:)?(?:invert(?:[-\s"]|$)|filter(?:[-\s"]|$)|mix-blend-)/.test(documentViewer)) {
   throw new Error('PDF workspace contract failed: appearance must not recolour document pixels');
 }

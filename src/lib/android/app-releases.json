@@ -7,15 +7,15 @@
     "websiteOrigin": "https://trinityfamilyganda.vercel.app",
     "firebaseProjectId": "trinity-family-ganda",
     "iconUrl": "/trinity-logo-192.png",
-    "versionCode": 31,
-    "versionName": "1.29",
+    "versionCode": 32,
+    "versionName": "1.30",
     "minAndroid": "8.0",
     "filename": "trinity-ganda.apk",
-    "bytes": 4724281,
-    "sha256": "a3f664634c23a81b5ee4643bc8315a769db74163b681341fd67e5edcd8439927",
+    "bytes": 4742948,
+    "sha256": "6fac2063b366f461554ae3d40ca3e84b3095c92ca74ae98653897414eef390bc",
     "signingCertificateSha256": "5D:13:68:CC:38:C1:49:45:87:B5:3E:0D:70:5A:2A:28:4B:16:DF:FF:0C:2A:43:8C:4D:F2:C6:C7:58:B0:B3:3F",
     "minSdk": 26,
-    "releaseNotes": "Tracked lessons keep class/subject codes and time on one line when space permits, arrange into two columns when they fit, and avoid duplicating live timetable progress. Preserves saved selections, card order and phone time format."
+    "releaseNotes": "Save PDFs and exported documents in Trinity Files. Pinch and pan PDF pages, fit the phone width, and use a compact minimized preview. Continue PDF creation in the background with Android progress and completion notifications."
   },
   {
     "schema": 1,
@@ -25,14 +25,14 @@
     "websiteOrigin": "https://trinityfamilyschool.vercel.app",
     "firebaseProjectId": "trinity-family-schools",
     "iconUrl": "/trinity-logo-192.png",
-    "versionCode": 31,
-    "versionName": "1.29",
+    "versionCode": 32,
+    "versionName": "1.30",
     "minAndroid": "8.0",
     "filename": "trinity-live.apk",
-    "bytes": 4724273,
-    "sha256": "eec75f327525bc8078cd7947000e716994e2c779228ce0a011bb77a58e671c27",
+    "bytes": 4742864,
+    "sha256": "e3d978d1eb0e38452c8ad6453b8e92d3c6a8714b78da174774bb0562015b76d5",
     "signingCertificateSha256": "53:F5:25:7A:02:C4:B4:6C:33:47:E0:49:6F:67:36:55:1D:57:4F:44:91:56:44:D1:3C:02:79:22:BC:04:FC:08",
     "minSdk": 26,
-    "releaseNotes": "Tracked lessons keep class/subject codes and time on one line when space permits, arrange into two columns when they fit, and avoid duplicating live timetable progress. Preserves saved selections, card order and phone time format."
+    "releaseNotes": "Save PDFs and exported documents in Trinity Files. Pinch and pan PDF pages, fit the phone width, and use a compact minimized preview. Continue PDF creation in the background with Android progress and completion notifications."
   }
 ]
