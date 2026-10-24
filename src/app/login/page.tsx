@@ -1578,6 +1578,10 @@ export default function LoginPage() {
                     <input
                       type="text"
                       placeholder="Username"
+                      autoComplete="username"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       required
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}

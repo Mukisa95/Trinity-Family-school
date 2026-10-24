@@ -1285,8 +1285,13 @@ export default function UsersPage() {
                     <Label htmlFor="username" className={accountValidation.getFieldError('username') ? 'text-red-700 dark:text-red-300' : undefined}>Username <span className="text-red-600 dark:text-red-400">*</span></Label>
                     <Input
                       id="username"
+                      type="text"
+                      autoComplete="username"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       value={staffFormData.username}
-                      onChange={(e) => { setStaffFormData(prev => ({ ...prev, username: e.target.value.toUpperCase() })); accountValidation.handleFieldChange('username'); }}
+                      onChange={(e) => { setStaffFormData(prev => ({ ...prev, username: e.target.value })); accountValidation.handleFieldChange('username'); }}
                       placeholder="Enter username"
                       {...accountValidation.getFieldProps('username')}
                     />
@@ -1551,6 +1556,10 @@ export default function UsersPage() {
                 <Input
                   type="text"
                   placeholder="Enter username"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   value={editFormData.newUsername || ''}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, newUsername: e.target.value }))}
                 />

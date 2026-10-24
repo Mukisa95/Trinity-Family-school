@@ -206,9 +206,16 @@ async function run() {
         await accountPage.getByLabel('Current password',{exact:true}).fill('test-password');
         assert.equal(await accountPage.getByRole('button',{name:'Update password',exact:true}).count(),1);
       } else {
-        await accountPage.getByRole('textbox',{name:'Username',exact:true}).fill('changed-test-name');
-        await accountPage.getByRole('button',{name:'Update username',exact:true}).click();
-        assert.ok((await accountPage.evaluate(()=>window.fixtureActions)).some(action=>action?.updates?.username==='changed-test-name'));
+        const username=accountPage.getByRole('textbox',{name:'Username',exact:true});
+        assert.equal(await username.getAttribute('autocapitalize'),'none');
+        assert.equal(await username.getAttribute('autocorrect'),'off');
+        assert.equal(await username.getAttribute('spellcheck'),'false');
+        for(const value of ['teacher27','Teacher42_Amina','20261024','Namútébi.7']) {
+          await username.fill('');await username.pressSequentially(value);
+          assert.equal(await username.inputValue(),value);
+          await accountPage.getByRole('button',{name:'Update username',exact:true}).click();
+          assert.ok((await accountPage.evaluate(()=>window.fixtureActions)).some(action=>action?.updates?.username===value));
+        }
       }
       assert.equal(accountPage.url(),settingsURL);assert.equal(navigations,0);assert.equal(await accountPage.evaluate(()=>window.settingsDocumentToken),'still-alive');
       await tab(accountPage,'Storage').click();await accountPage.getByText('Site storage',{exact:true}).waitFor();

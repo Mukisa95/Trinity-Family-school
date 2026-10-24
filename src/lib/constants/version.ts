@@ -1,4 +1,4 @@
-export const APP_VERSION = '6';
+export const APP_VERSION = '6.5';
 
 export interface ChangelogEntry {
   date: string;
@@ -9,6 +9,49 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    date: '2026-10-24',
+    version: '6.5',
+    improvements: [
+      "Android school apps: added signed Trinity Live and Trinity Ganda downloads, in-app updates, native push notifications, app shortcuts, and secure offline access.",
+      "iPhone Home Screen app: added installation support and secure access to prepared offline school data.",
+      "App Settings: brought appearance, profile, account, security, live tracking, push notifications, lesson reminders, widgets, storage, and app details into searchable section tabs with compact controls.",
+      "Appearance: unified light and dark themes, colour presets, shared glass headers, search bars, and navigation; added optional Android Material You colours.",
+      "Live tracking: added direct controls for the timetable notification, visible timetables, lesson progress, event cards, and event reminder alerts.",
+      "Lesson reminders: added timetable, class, subject, teacher, and period filters, reminder previews, selected days, quiet hours, sound, vibration, and snooze controls in App Settings.",
+      "Home widgets: added individual widget settings for tracked lessons and subjects, visible cards, progress, events, and card order.",
+      "App sharing: added a public download page that needs no sign-in, a desktop QR code, and version information and a sharing QR code inside the installed app.",
+      "Timetables: added consolidated and separate stream layouts with day and lesson overrides, selectable live cards, class selection for printing, and narrower class columns in day and week views.",
+      "Calendar and events: redesigned term and year planning, added audience reminders and dashboard briefings, and grouped batch exams into one calendar event with class details.",
+      "Exams: improved report access, grading defaults for future assessment sets, individual grading overrides, snapshot editing, blank assessment printing, and management controls.",
+      "Reports and documents: added selectable school reports and consistent, compact layouts for collection reports, lists, previews, printouts, and PDF downloads.",
+      "Pupil photos: improved camera capture, JPEG portrait processing, face-guided framing, manual cropping, enhancement previews, and consistent photo treatment across documents.",
+      "Photo Studio: added PDF artwork, layer groups, selections, feather controls, local editing, and a persistent workspace.",
+      "Pupils and staff: standardised pupil name display and search, improved sibling navigation and daily history groups, and expanded staff profiles, teaching assignments, and term-based MOFUS.",
+      "Fees and SchoolPay: improved term allocation and excess-payment transfers, added fee promises and custom reminders, and made pupil fee Notes optional.",
+      "Bulk SMS: added personalised fields and conditional message sections, with fee totals that follow the selected pupil filters.",
+    ],
+    bugFixes: [
+      "Stopped username fields from forcing capital letters; usernames retain the typed case and accept numbers.",
+      "Fixed iPhone PDF compatibility errors and reduced memory pressure when pinching an open PDF.",
+      "Kept minimised PDF previews, sidebars, top bars, glass headers, and bottom navigation anchored correctly on iPhone; corrected the persistent bottom gap in the Home Screen app.",
+      "Improved iPhone camera capture quality before photos reach the crop editor.",
+      "Fixed App Settings links that restarted the app, restored storage information, and showed account and biometric controls directly in their sections.",
+      "Fixed Android timetable and widget refresh after sleep, missed alarms, frozen countdowns, and shortcut session recovery.",
+      "Improved PDF saving on Android: documents download only when requested, use consistent filenames, and keep preview and printed output aligned.",
+      "Fixed stale class-stream labels, preserved streamed lesson details, and corrected clipped timetable PDF labels and merged cells.",
+      "Fixed exam editing locks, grading inheritance, class navigation, and report layout issues.",
+      "Corrected previous-balance binding, legacy academic dates in fee Notes, uniform refresh loops, and filtered fee totals; improved payment-draft recovery.",
+      "Fixed saved-session startup and offline route recovery, reduced repeated cache resets, and removed misleading background-sync warnings.",
+    ],
+    updates: [
+      "Added Circumference access limits for staff by class, section, and gender, with matching restrictions on school data and prepared offline content.",
+      "Improved cache-first loading, change-driven data refresh, and first-time workspace setup progress to reduce repeated reads and unnecessary downloads.",
+      "Enabled browser page pinch zoom on touchscreens and desktop touchpads while retaining the installed Android app gesture support.",
+      "Kept Android-only settings hidden in browsers and on iPhone; device settings remain editable offline while school-record changes still require a connection.",
+      "Updated the shared web experience to version 6.5. The Android packages retain their separate version numbering, with version 1.33 providing the integrated native settings.",
+    ],
+  },
   {
     date: '2026-09-25',
     version: '6',

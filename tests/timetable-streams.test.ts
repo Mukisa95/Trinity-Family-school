@@ -183,8 +183,8 @@ test('printable break labels resize with the number of visible days', () => {
 });
 
 test('screen class column expands only for visible stream sub-rows', () => {
-  assert.equal(getTimetableClassColumnWidth(false), 64);
-  assert.equal(getTimetableClassColumnWidth(true), 104);
+  assert.equal(getTimetableClassColumnWidth(false), 40);
+  assert.equal(getTimetableClassColumnWidth(true), 64);
 });
 
 test('screen timetable views use dynamic class widths and floating mobile header selectors', () => {

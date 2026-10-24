@@ -16,8 +16,9 @@ export type TimetableClassRow = {
   streamCount: number;
 };
 
-export const COMPACT_TIMETABLE_CLASS_COLUMN_WIDTH = 64;
-export const STREAMED_TIMETABLE_CLASS_COLUMN_WIDTH = 104;
+// Four-character class codes, plus a narrow stream label strip when needed.
+export const COMPACT_TIMETABLE_CLASS_COLUMN_WIDTH = 40;
+export const STREAMED_TIMETABLE_CLASS_COLUMN_WIDTH = 64;
 
 export function getTimetableClassColumnWidth(hasVisibleStreamRows: boolean): number {
   return hasVisibleStreamRows

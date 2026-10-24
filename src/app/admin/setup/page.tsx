@@ -157,6 +157,10 @@ export default function AdminSetupPage() {
                 <Input
                   id="username"
                   type="text"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   placeholder="Enter admin username"
                   value={formData.username}
                   onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
@@ -222,4 +226,4 @@ export default function AdminSetupPage() {
       </div>
     </div>
   );
-} 
+}

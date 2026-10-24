@@ -203,7 +203,7 @@ export function AccountSettings({ embedded = false }: { embedded?: boolean }) {
 
   if (embedded) return <div className="space-y-4">
     <SettingsRows><SettingsRow label="Username" htmlFor="username">
-      <input id="username" value={formData.username} onChange={event=>setFormData(previous=>({...previous,username:event.target.value}))} className="h-10 w-32 max-w-full rounded-full border border-input bg-background px-3 text-base sm:h-8 sm:w-44 sm:text-sm" />
+      <input id="username" type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={formData.username} onChange={event=>setFormData(previous=>({...previous,username:event.target.value}))} className="h-10 w-32 max-w-full rounded-full border border-input bg-background px-3 text-base sm:h-8 sm:w-44 sm:text-sm" />
       <button type="button" className={settingsButtonClass} aria-label="Update username" disabled={isUpdatingUsername || formData.username === user.username} onClick={()=>void handleUpdateUsername()}>{isUpdatingUsername ? 'Saving…' : 'Save'}</button>
     </SettingsRow></SettingsRows>
     <section aria-label="Password" className="space-y-2"><h3 className="px-1 text-xs font-medium text-muted-foreground">Password</h3><SettingsRows>
@@ -227,7 +227,7 @@ export function AccountSettings({ embedded = false }: { embedded?: boolean }) {
               <div className="space-y-4">
                 <div className="grid gap-2">
                   <Label htmlFor="username">Username</Label>
-                  <Input id="username" type="text" value={formData.username} onChange={e => setFormData(prev => ({ ...prev, username: e.target.value }))} placeholder="Enter your username" className="h-11" />
+                  <Input id="username" type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={formData.username} onChange={e => setFormData(prev => ({ ...prev, username: e.target.value }))} placeholder="Enter your username" className="h-11" />
                 </div>
                 <div className="flex justify-end border-t border-border/60 pt-3">
                   <Button onClick={handleUpdateUsername} disabled={isUpdatingUsername || formData.username === user.username} className="min-h-11 w-full rounded-lg sm:w-auto">

@@ -239,6 +239,10 @@ export function LinkedUserAccountDialog({
                 onChange={event => setUsername(event.target.value)}
                 disabled={Boolean(account) ? !canUpdate : !canCreate}
                 autoComplete="username"
+                type="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
               />
             </div>
 

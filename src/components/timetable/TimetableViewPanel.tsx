@@ -271,7 +271,7 @@ function WeekGridView({
                             {/* Class column — sticky left-[48px], hidden when a specific class is selected */}
                             {showClassCol && (
                                 <th
-                                    className="sticky left-[48px] top-0 z-40 border-r border-b border-gray-200 bg-slate-50 p-2 text-center text-xs font-semibold text-gray-500 shadow-[1px_1px_0_0_#e5e7eb] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
+                                    className="sticky left-[48px] top-0 z-40 border-r border-b border-gray-200 bg-slate-50 px-1 py-2 text-center text-[9px] font-semibold text-gray-500 shadow-[1px_1px_0_0_#e5e7eb] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
                                     style={{ width: classColumnWidth, minWidth: classColumnWidth, maxWidth: classColumnWidth }}
                                 >
                                     CLASS
@@ -386,9 +386,9 @@ function WeekGridView({
                                                     {row.stream ? (
                                                         <div
                                                             className="grid h-full"
-                                                            style={{ minHeight: row.streamCount * 38, gridTemplateColumns: 'minmax(54px, 1fr) minmax(34px, 0.7fr)' }}
+                                                            style={{ minHeight: row.streamCount * 38, gridTemplateColumns: 'minmax(0, 1fr) 24px' }}
                                                         >
-                                                            <div className="flex items-center justify-center border-r border-brand-alt-100 px-1 text-center dark:border-brand-alt-800/60">
+                                                            <div className="flex min-w-0 items-center justify-center border-r border-brand-alt-100 px-1 text-center dark:border-brand-alt-800/60">
                                                                 <span className="block max-w-full truncate" title={cls.name}>{cls.code || cls.name}</span>
                                                             </div>
                                                             <div className="flex min-w-0 flex-col bg-brand-alt-surface-50/60 dark:bg-brand-alt-surface-950/60">

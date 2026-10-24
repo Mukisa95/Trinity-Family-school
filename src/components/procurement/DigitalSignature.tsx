@@ -121,6 +121,9 @@ export function DigitalSignature({ onSignatureComplete, onCancel, disabled }: Di
           <Input
             id="signature-username"
             type="text"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             onKeyPress={handleKeyPress}

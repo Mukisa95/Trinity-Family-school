@@ -177,6 +177,9 @@ export default function SessionResumeModal({
               <input
                 type="text"
                 id="switch-username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 value={switchUsername}
                 onChange={event => setSwitchUsername(event.target.value)}
                 className="w-full rounded-full border border-slate-300 px-4 py-2.5 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-600 dark:border-slate-700"

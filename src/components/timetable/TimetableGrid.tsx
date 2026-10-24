@@ -616,7 +616,7 @@ export function TimetableGrid({
                     <thead>
                         <tr className="bg-slate-50 border-b border-gray-200 dark:bg-slate-900 dark:border-slate-700">
                             <th
-                                className="sticky left-0 top-0 z-40 border-r bg-slate-50 p-1.5 text-[10px] font-semibold text-gray-600 shadow-[1px_1px_0_0_#e5e7eb] dark:bg-slate-900 dark:text-slate-300"
+                                className="sticky left-0 top-0 z-40 border-r bg-slate-50 px-1 py-1.5 text-center text-[9px] font-semibold text-gray-600 shadow-[1px_1px_0_0_#e5e7eb] dark:bg-slate-900 dark:text-slate-300"
                                 style={{ width: classColumnWidth, minWidth: classColumnWidth, maxWidth: classColumnWidth }}
                             >
                                 CLASS
@@ -790,8 +790,8 @@ export function TimetableGrid({
                                         className="sticky left-0 z-10 whitespace-nowrap border-r bg-white px-1 py-1 text-[10px] font-bold leading-tight text-gray-800 shadow-[1px_0_0_0_#f3f4f6] dark:bg-slate-900 dark:text-slate-100"
                                         style={{ width: classColumnWidth, minWidth: classColumnWidth, maxWidth: classColumnWidth }}
                                     >
-                                        <div className="flex min-h-[34px] items-center justify-center gap-1">
-                                            <span className="min-w-0 truncate">{cls.code || cls.name}</span>
+                                        <div className={`flex min-h-[34px] items-center justify-center gap-1 ${isEditing && activeStreams.length > 1 ? 'flex-col' : ''}`}>
+                                            <span className="max-w-full min-w-0 truncate" title={cls.name}>{cls.code || cls.name}</span>
                                             {activeStreams.length > 1 && (
                                                 <StreamLayoutControl
                                                     classItem={cls}
@@ -1161,9 +1161,9 @@ function StreamedClassRows({
                             >
                                 <div
                                     className="grid"
-                                    style={{ minHeight: streams.length * 42, gridTemplateColumns: 'minmax(54px, 1fr) minmax(34px, 0.7fr)' }}
+                                    style={{ minHeight: streams.length * 42, gridTemplateColumns: 'minmax(0, 1fr) 24px' }}
                                 >
-                                    <div className="relative flex items-center justify-center border-r border-brand-alt-100 px-1 text-center dark:border-brand-alt-800/60">
+                                    <div className="relative flex min-w-0 items-center justify-center border-r border-brand-alt-100 px-1 text-center dark:border-brand-alt-800/60">
                                         <span className="min-w-0 truncate text-[10px] font-black leading-tight text-gray-800 dark:text-slate-100" title={classItem.name}>
                                             {classItem.code || classItem.name}
                                         </span>
