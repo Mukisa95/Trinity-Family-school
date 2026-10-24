@@ -10,6 +10,9 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  updateDoc,
+  collection,
+  getDocs,
   setDoc,
 } from 'firebase/firestore';
 
@@ -448,4 +451,31 @@ test('pupil cache deltas are restricted to staff and administrators', async () =
   await assertSucceeds(getDoc(doc(adminDb, 'pupilCacheChanges', '0000000000000001')));
   await assertFails(getDoc(doc(parentDb, 'pupilCacheChanges', '0000000000000001')));
   await assertFails(setDoc(doc(parentDb, 'pupilCacheChanges', 'forged'), change));
+});
+
+test('staff clocking authority collections are inaccessible to every browser role', async () => {
+  const collections = ['staffClockingSettings', 'staffClockingSchedules', 'staffClockingQrSessions', 'staffClockingEvents', 'staffClockingDailyRecords', 'staffClockingExemptions', 'staffClockingCorrections', 'staffClockingNotifications', 'staffClockingOperations'];
+  await testEnv.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'system_users', 'clocking-staff'), { role: 'Staff', isActive: true });
+    for (const path of collections) {
+      await setDoc(doc(context.firestore(), path, 'existing'), { staffId: 'staff-one' });
+      await setDoc(doc(context.firestore(), path, 'existing', 'private', 'note'), { note: 'restricted' });
+    }
+  });
+  for (const db of [
+    testEnv.unauthenticatedContext().firestore(),
+    testEnv.authenticatedContext('active-admin', { appUser: true, isActive: true, role: 'Admin' }).firestore(),
+    testEnv.authenticatedContext('clocking-staff', { appUser: true, isActive: true, role: 'Staff' }).firestore(),
+    testEnv.authenticatedContext('active-parent', { appUser: true, isActive: true, role: 'Parent', familyId: 'family-1' }).firestore(),
+  ]) {
+    for (const path of collections) {
+      await assertFails(getDoc(doc(db, path, 'existing')));
+      await assertFails(getDocs(collection(db, path)));
+      await assertFails(setDoc(doc(db, path, 'forged'), { staffId: 'staff-one' }));
+      await assertFails(updateDoc(doc(db, path, 'existing'), { staffId: 'forged' }));
+      await assertFails(deleteDoc(doc(db, path, 'existing')));
+      await assertFails(getDoc(doc(db, path, 'existing', 'private', 'note')));
+      await assertFails(setDoc(doc(db, path, 'existing', 'private', 'note'), { note: 'forged' }));
+    }
+  }
 });

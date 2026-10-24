@@ -1,5 +1,5 @@
 import type { NavigationItem } from '@/types';
-import { LayoutDashboard, Users, UserSquare, BookOpen, Presentation, Settings, GraduationCap, ArrowRightLeft, Info, CalendarDays, FileText, CheckSquare, DollarSign, Shirt, Package, CreditCard, Receipt, MessageSquare, Mail, ShoppingCart, Calendar, History, TrendingUp, MessageCircle, Shield, Tag, Bed, Warehouse, TableProperties, Zap, Bell, Gauge, Sprout, ServerCog, Files, WalletCards, ClipboardList, LockKeyhole, Activity, Images, Palette } from 'lucide-react';
+import { LayoutDashboard, Users, UserSquare, BookOpen, Presentation, Settings, GraduationCap, ArrowRightLeft, Info, CalendarDays, FileText, CheckSquare, DollarSign, Shirt, Package, CreditCard, Receipt, MessageSquare, Mail, ShoppingCart, Calendar, History, TrendingUp, MessageCircle, Shield, Tag, Bed, Warehouse, TableProperties, Zap, Bell, Gauge, Sprout, ServerCog, Files, WalletCards, ClipboardList, LockKeyhole, Activity, Images, Palette, QrCode, ScanLine, FileClock } from 'lucide-react';
 import { DEV_CONTROL_PATHS } from './dev-control';
 
 export const navItems: NavigationItem[] = [
@@ -74,6 +74,16 @@ export const navItems: NavigationItem[] = [
     href: '/staff',
     icon: GraduationCap,
     section: 'Academics',
+  },
+  {
+    title: 'Staff Clocking',
+    icon: ScanLine,
+    section: 'Academics',
+    items: [
+      { title: 'Record', href: '/staff-clocking/record', icon: QrCode },
+      { title: 'Clock', href: '/staff-clocking/clock', icon: ScanLine },
+      { title: 'Clock Records', href: '/staff-clocking/records', icon: FileClock },
+    ],
   },
   {
     title: 'Classes',

@@ -79,6 +79,7 @@ const PERMISSION_SECTIONS: PermissionSection[] = [
         ],
       },
       { id: "staff", title: "Staff", scopes: [{ id: "staff", title: "Staff", description: "Staff records and management.", moduleId: "staff" }] },
+      { id: "staff-clocking", title: "Staff Clocking", scopes: [{ id: "staff-clocking", title: "Staff Clocking", description: "Clocking display, staff self-service, records and review permissions.", moduleId: "staff_clocking" }] },
       {
         id: "classes",
         title: "Classes",

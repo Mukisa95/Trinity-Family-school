@@ -26,6 +26,8 @@ export class GranularPermissionService {
     if (user.role === 'Admin') return true;
     if (user.role === 'Parent') return false; // Parents use a different system
     
+    if (moduleId === 'staff_clocking' && pageId === 'clock' && user.role === 'Staff' && user.staffId) return true;
+
     // Check granular permissions first
     if (user.granularPermissions) {
       const modulePerms = user.granularPermissions.find(m => m.moduleId === moduleId);
@@ -43,6 +45,7 @@ export class GranularPermissionService {
     // Payroll is deliberately explicit-only. Salary information must never be
     // inherited from an ordinary Staff or Fees legacy module grant.
     if (moduleId === 'payroll') return false;
+    if (moduleId === 'staff_clocking') return false;
 
     // Requesting or releasing stock is deliberately explicit-only. Legacy
     // Inventory access must not quietly give somebody authority to release
@@ -67,6 +70,8 @@ export class GranularPermissionService {
     if (user.role === 'Admin') return true;
     if (user.role === 'Parent') return false;
     
+    if (moduleId === 'staff_clocking' && pageId === 'clock' && user.role === 'Staff' && user.staffId && ['view_own_clock', 'clock_self', 'request_exemption', 'request_correction'].includes(actionId)) return true;
+
     // Check granular permissions
     if (user.granularPermissions) {
       const modulePerms = user.granularPermissions.find(m => m.moduleId === moduleId);
@@ -81,6 +86,7 @@ export class GranularPermissionService {
     
     if (moduleId === 'reports' && pageId === 'docx') return false;
     if (moduleId === 'payroll') return false;
+    if (moduleId === 'staff_clocking') return false;
     if (moduleId === 'item_requests') return false;
 
     // Fallback to legacy permissions with mapping

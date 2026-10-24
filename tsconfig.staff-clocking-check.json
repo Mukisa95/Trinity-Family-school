@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "incremental": false },
+  "include": [
+    "next-env.d.ts",
+    "src/app/staff-clocking/**/*.tsx",
+    "src/app/api/staff-clocking/**/*.ts",
+    "src/app/api/cron/finalize-staff-clocking/**/*.ts",
+    "src/components/staff-clocking/**/*.tsx",
+    "src/lib/staff-clocking/**/*.ts",
+    "src/lib/server/staff-clocking/**/*.ts",
+    "src/lib/hooks/use-staff-clocking.ts"
+  ],
+  "exclude": ["node_modules", "output", "out", ".next"]
+}

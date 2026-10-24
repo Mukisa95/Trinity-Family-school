@@ -449,6 +449,45 @@ service cloud.firestore {
     // application flow while denying anonymous users and arbitrary Firebase
     // anonymous accounts. Collection-level role restrictions are introduced
     // only after this canary proves all current workflows.
+    // Clocking configuration, schedules, events and daily records are
+    // server-owned. A browser must never create a clock event, alter policy,
+    // or query another staff member's history through the Firebase SDK.
+    match /staffClockingSettings/{documentPath=**} {
+      allow read, write: if false;
+    }
+
+    match /staffClockingSchedules/{documentPath=**} {
+      allow read, write: if false;
+    }
+
+    match /staffClockingQrSessions/{documentPath=**} {
+      allow read, write: if false;
+    }
+
+    match /staffClockingEvents/{documentPath=**} {
+      allow read, write: if false;
+    }
+
+    match /staffClockingDailyRecords/{documentPath=**} {
+      allow read, write: if false;
+    }
+
+    match /staffClockingExemptions/{documentPath=**} {
+      allow read, write: if false;
+    }
+
+    match /staffClockingCorrections/{documentPath=**} {
+      allow read, write: if false;
+    }
+
+    match /staffClockingNotifications/{documentPath=**} {
+      allow read, write: if false;
+    }
+
+    match /staffClockingOperations/{documentPath=**} {
+      allow read, write: if false;
+    }
+
     match /{collection}/{documentPath=**} {
       allow read, write: if collection != 'authCredentials'
         && collection != 'system_users'
@@ -500,6 +539,15 @@ service cloud.firestore {
         && collection != 'schoolPayReconciliationState'
         && collection != 'schoolPaySyncLogs'
         && collection != 'schoolPayPaymentMappings'
+        && collection != 'staffClockingSettings'
+        && collection != 'staffClockingSchedules'
+        && collection != 'staffClockingQrSessions'
+        && collection != 'staffClockingEvents'
+        && collection != 'staffClockingDailyRecords'
+        && collection != 'staffClockingExemptions'
+        && collection != 'staffClockingCorrections'
+        && collection != 'staffClockingNotifications'
+        && collection != 'staffClockingOperations'
         && collection != 'staffSalaryProfiles'
         && collection != 'staffSalaryComponents'
         && collection != 'staffSalaryPayments'

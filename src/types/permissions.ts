@@ -243,6 +243,44 @@ export const MODULE_ACTIONS = {
       }
     ]
   },
+  staff_clocking: {
+    pages: [
+      {
+        page: 'record',
+        path: '/staff-clocking/record',
+        name: 'Record Staff Clocking',
+        actions: [
+          { id: 'view_record', name: 'View clock recording', description: 'Can open the staff clocking QR display' },
+          { id: 'display_qr', name: 'Display secure QR', description: 'Can start a secure staff clocking QR session' },
+          { id: 'manage_schedules', name: 'Manage schedules', description: 'Can manage staff clocking schedules and enrolment' },
+          { id: 'manage_calendar', name: 'Manage clocking calendar', description: 'Can manage clocking closures and approved exceptions' },
+          { id: 'manual_clock', name: 'Record manual clocking', description: 'Can create an audited manual clocking event' }
+        ]
+      },
+      {
+        page: 'clock',
+        path: '/staff-clocking/clock',
+        name: 'My Staff Clock',
+        actions: [
+          { id: 'view_own_clock', name: 'View own clock', description: 'Can view the signed-in staff member clocking status' },
+          { id: 'clock_self', name: 'Clock self', description: 'Can submit a secure self clock-in or clock-out' },
+          { id: 'request_exemption', name: 'Request exemption', description: 'Can request a clocking exemption for self' },
+          { id: 'request_correction', name: 'Request correction', description: 'Can request a correction for own clocking record' }
+        ]
+      },
+      {
+        page: 'records',
+        path: '/staff-clocking/records',
+        name: 'Staff Clock Records',
+        actions: [
+          { id: 'view_records', name: 'View clock records', description: 'Can view authorised staff clock records' },
+          { id: 'review_exemptions', name: 'Review exemptions', description: 'Can review staff clocking exemptions' },
+          { id: 'review_corrections', name: 'Review corrections', description: 'Can review staff clocking correction requests' },
+          { id: 'export_records', name: 'Export clock records', description: 'Can export authorised staff clock records' }
+        ]
+      }
+    ]
+  },
   payroll: {
     pages: [
       {
@@ -834,6 +872,7 @@ export type RoutePagePermission = {
 };
 
 const ROUTE_PAGE_ALIASES: RoutePagePermission[] = [
+  { moduleId: 'staff_clocking', pageId: 'clock', pattern: /^\/staff-clocking$/ },
   { moduleId: 'account', pageId: 'history_log', pattern: /^\/history-log\/system-audit$/ },
   { moduleId: 'pupils', pageId: 'detail', pattern: /^\/pupil-detail$/ },
   { moduleId: 'pupils', pageId: 'detail', pattern: /^\/pupils\/[^/]+$/ },

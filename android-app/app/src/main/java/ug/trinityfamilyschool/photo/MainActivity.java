@@ -1,6 +1,8 @@
 package ug.trinityfamilyschool.photo;
 
 import android.app.Activity;
+import android.webkit.PermissionRequest;
+import android.Manifest;
 import android.content.ClipData;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -48,7 +50,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public final class MainActivity extends FragmentActivity {
-    private static final int CAMERA_RESULT = 40, FILE_RESULT = 41;
+    private static final int CAMERA_RESULT = 40, FILE_RESULT = 41, WEB_CAMERA_PERMISSION = 42, NATIVE_CAMERA_PERMISSION = 43;
     private WebView web;
     private DocumentController documents;
     private OfflineController offline;
@@ -73,6 +75,9 @@ public final class MainActivity extends FragmentActivity {
     private Uri captureUri;
     private String captureId;
     private JavaScriptReplyProxy captureReply;
+    private PermissionRequest pendingWebCameraPermission;
+    private String pendingNativeCaptureId, pendingNativeCameraId;
+    private JavaScriptReplyProxy pendingNativeCaptureReply;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -109,6 +114,10 @@ public final class MainActivity extends FragmentActivity {
         web.setWebViewClient(new WebViewClient() {
             @Override public void onPageCommitVisible(WebView view, String url) { revealStartupDocument(); }
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
+                if (pendingWebCameraPermission != null) {
+                    pendingWebCameraPermission.deny(); pendingWebCameraPermission = null;
+                }
+                pendingNativeCaptureId = null; pendingNativeCameraId = null; pendingNativeCaptureReply = null;
                 if (documents != null) documents.pageChanged();
                 view.removeCallbacks(pendingLoadError);
                 pageLoad.begin(url);
@@ -188,6 +197,22 @@ public final class MainActivity extends FragmentActivity {
             });
         }
         web.setWebChromeClient(new WebChromeClient() {
+            @Override public void onPermissionRequest(PermissionRequest request) {
+                if (!PhotoPolicy.trusted(web.getUrl()) || !PhotoPolicy.trusted(request.getOrigin().toString()) || !hasVideoCapture(request)) {
+                    request.deny();
+                    return;
+                }
+                if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                    request.grant(new String[] { PermissionRequest.RESOURCE_VIDEO_CAPTURE });
+                    return;
+                }
+                if (pendingWebCameraPermission != null) pendingWebCameraPermission.deny();
+                pendingWebCameraPermission = request;
+                requestPermissions(new String[] { Manifest.permission.CAMERA }, WEB_CAMERA_PERMISSION);
+            }
+            @Override public void onPermissionRequestCanceled(PermissionRequest request) {
+                if (pendingWebCameraPermission == request) pendingWebCameraPermission = null;
+            }
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (!PhotoPolicy.trusted(view.getUrl())) { callback.onReceiveValue(null); return true; }
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
@@ -231,6 +256,33 @@ public final class MainActivity extends FragmentActivity {
         updater = new AppUpdater(this);
     }
 
+    private static boolean hasVideoCapture(PermissionRequest request) {
+        for (String resource : request.getResources()) if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) return true;
+        return false;
+    }
+
+    private void handleClockingCameraPermissionResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode == NATIVE_CAMERA_PERMISSION) {
+            String id = pendingNativeCaptureId, cameraId = pendingNativeCameraId;
+            JavaScriptReplyProxy reply = pendingNativeCaptureReply;
+            pendingNativeCaptureId = null; pendingNativeCameraId = null; pendingNativeCaptureReply = null;
+            if (id != null && reply != null && web != null && PhotoPolicy.trusted(web.getUrl())) {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) capture(id, cameraId, reply);
+                else respond(reply, id, false, "Camera permission was denied. Enable it in Android settings or upload a photo.", null);
+            }
+            return;
+        }
+        if (requestCode != WEB_CAMERA_PERMISSION) return;
+        PermissionRequest request = pendingWebCameraPermission;
+        pendingWebCameraPermission = null;
+        boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+        if (request != null && granted && web != null && PhotoPolicy.trusted(web.getUrl()) && PhotoPolicy.trusted(request.getOrigin().toString())) {
+            request.grant(new String[] { PermissionRequest.RESOURCE_VIDEO_CAPTURE });
+        } else if (request != null) {
+            request.deny();
+        }
+    }
+
     private Map<String, ResolveInfo> cameras() {
         PackageManager pm = getPackageManager();
         Set<String> packages = new HashSet<>();
@@ -257,7 +309,14 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void capture(String id, String cameraId, JavaScriptReplyProxy reply) {
-        if (captureId != null || fileCallback != null) { respond(reply, id, false, "Another photo action is already open.", null); return; }
+        if (captureId != null || fileCallback != null || pendingNativeCaptureId != null) { respond(reply, id, false, "Another photo action is already open.", null); return; }
+        // Declaring CAMERA for WebView scanning also makes ACTION_IMAGE_CAPTURE
+        // require the runtime grant. Preserve the existing full-size photo flow.
+        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            pendingNativeCaptureId = id; pendingNativeCameraId = cameraId; pendingNativeCaptureReply = reply;
+            requestPermissions(new String[] { Manifest.permission.CAMERA }, NATIVE_CAMERA_PERMISSION);
+            return;
+        }
         try {
             Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
             if (!cameraId.isEmpty()) {
@@ -429,6 +488,7 @@ public final class MainActivity extends FragmentActivity {
     }
     @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(request, permissions, results);
+        handleClockingCameraPermissionResult(request, permissions, results);
         if (request == 73) new Thread(() -> TimetableUpdates.refresh(this, new OfflineStore(this))).start();
     }
     public void checkForAppUpdates() { if (updater != null) updater.check(true); }
@@ -507,6 +567,8 @@ public final class MainActivity extends FragmentActivity {
     @Override protected void onPause() { if (documents != null) documents.visible(false); if (diagnostics != null) diagnostics.pause(); if (updater != null) updater.pause(); if (offline != null) offline.pause(); super.onPause(); }
     @Override protected void onResume() { super.onResume(); if (documents != null) documents.visible(true); if (diagnostics != null) diagnostics.resume(); if (offline != null) offline.resume(); if (updater != null) updater.resume(); }
     @Override protected void onDestroy() {
+        if (pendingWebCameraPermission != null) { pendingWebCameraPermission.deny(); pendingWebCameraPermission = null; }
+        pendingNativeCaptureId = null; pendingNativeCameraId = null; pendingNativeCaptureReply = null;
         boolean keepDocumentPage = documents != null && documents.detach();
         if (keepDocumentPage && WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             for (String bridge : new String[]{"TrinityPhoto", "TrinityOffline", "TrinityDeviceUnlock"}) WebViewCompat.removeWebMessageListener(web, bridge);

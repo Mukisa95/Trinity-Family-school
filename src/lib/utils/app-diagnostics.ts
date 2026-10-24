@@ -1,7 +1,7 @@
 // Deliberately accept only codes and numbers, never user records, credentials,
 // query strings, console messages, or arbitrary exception text.
 export type DiagnosticEvent = { at: string; code: string; durationMs?: number };
-declare global { interface Window { trinityNativeDiagnostics?: boolean; trinityAppMounted?: boolean } }
+declare global { interface Window { trinityNativeDiagnostics?: boolean; trinityAndroidConnected?: boolean; trinityAppMounted?: boolean } }
 const KEY = 'trinity_reliability_v1';
 let events: DiagnosticEvent[] | undefined;
 let timer: ReturnType<typeof setTimeout> | undefined;
