@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { AlarmClock, ArrowLeft, BookOpenCheck, CalendarClock, CalendarDays, CheckCircle2, ChevronRight, Clock3, Coins, FileClock, History, Loader2, QrCode, ScanLine, Settings2, ShieldCheck, ShieldEllipsis, Trash2, UserCheck, UserRoundCheck, UserRoundX, Users, UsersRound } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -270,6 +270,7 @@ function ManagePanel({ bootstrap, canManage, canManageCalendar, canDisplayQr, is
   const closures = useStaffClockingClosures(canManageCalendar);
   const createClosure = useCreateStaffClockingClosure();
   const [activePanel, setActivePanel] = useState<'school-days' | 'special-days' | 'holidays' | 'grace' | 'penalties' | 'staff-groups' | 'advanced' | null>(null);
+  const activePanelRef = useRef<HTMLDivElement>(null);
   const feature = bootstrap?.feature;
   const normalSchedules = schedules.data?.filter((schedule) => schedule.kind === 'recurring') || [];
   const specialSchedules = schedules.data?.filter((schedule) => schedule.kind === 'date_override') || [];
@@ -286,6 +287,7 @@ function ManagePanel({ bootstrap, canManage, canManageCalendar, canDisplayQr, is
     'staff-groups': 'Use existing staff departments, roles and individual schedules instead of duplicate group records.',
     advanced: 'Feature access, QR display permissions, and the revision-controlled clocking configuration.',
   } as const;
+  useEffect(() => { if (activePanel) activePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [activePanel]);
   return (
     <section className="space-y-5" aria-label="Manage staff clocking">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -303,9 +305,7 @@ function ManagePanel({ bootstrap, canManage, canManageCalendar, canDisplayQr, is
         <ManageDashboardCard icon={ShieldEllipsis} tone="blue" title="Advanced Settings" description="QR security, staff access and configuration revision." className="md:col-span-2 xl:col-span-3" onClick={() => setActivePanel('advanced')} />
       </div>
 
-      <ManageOverview defaultSchedule={defaultSchedule} specialSchedules={specialSchedules} closures={closures.data || []} />
-
-      {activePanel && <Card className="border-primary/20 shadow-md"><CardHeader className="border-b border-border/70 bg-muted/20"><div className="flex flex-wrap items-start justify-between gap-3"><div><Button type="button" variant="ghost" size="sm" className="-ml-2 mb-2" onClick={() => setActivePanel(null)}><ArrowLeft className="h-4 w-4" />Manage Clocking</Button><CardTitle className="text-xl">{panelTitle[activePanel]}</CardTitle><CardDescription className="mt-1">{panelDescription[activePanel]}</CardDescription></div><Badge variant="secondary">Changes affect future scans only</Badge></div></CardHeader><CardContent className="space-y-4 p-4 sm:p-6">
+      {activePanel && <div ref={activePanelRef} tabIndex={-1} className="scroll-mt-4 focus:outline-none"><Card className="border-primary/20 shadow-md"><CardHeader className="border-b border-border/70 bg-muted/20"><div className="flex flex-wrap items-start justify-between gap-3"><div><Button type="button" variant="ghost" size="sm" className="-ml-2 mb-2" onClick={() => setActivePanel(null)}><ArrowLeft className="h-4 w-4" />Manage Clocking</Button><CardTitle className="text-xl">{panelTitle[activePanel]}</CardTitle><CardDescription className="mt-1">{panelDescription[activePanel]}</CardDescription></div><Badge variant="secondary">Changes affect future scans only</Badge></div></CardHeader><CardContent className="space-y-4 p-4 sm:p-6">
         {!canManage && activePanel !== 'holidays' ? <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-sm"><p className="font-semibold">Schedule-management permission is required</p><p className="mt-1 text-muted-foreground">Ask an administrator to grant Manage schedules before changing clocking rules.</p></div> : <>
           {activePanel === 'school-days' && <ScheduleManager schedules={normalSchedules} isLoading={schedules.isPending} staff={staff.data || []} createPending={createSchedule.isPending} updatePending={updateSchedule.isPending} deletePending={deleteSchedule.isPending} createError={createSchedule.error?.message} onCreate={(schedule) => createSchedule.mutate(schedule)} onUpdate={(id, schedule) => updateSchedule.mutate({ id, schedule })} onDelete={(id) => deleteSchedule.mutate(id)} />}
           {activePanel === 'special-days' && <SpecialDaysPanel schedules={specialSchedules} isLoading={schedules.isPending} staff={staff.data || []} createPending={createSchedule.isPending} updatePending={updateSchedule.isPending} deletePending={deleteSchedule.isPending} createError={createSchedule.error?.message} onCreate={(schedule) => createSchedule.mutate(schedule)} onUpdate={(id, schedule) => updateSchedule.mutate({ id, schedule })} onDelete={(id) => deleteSchedule.mutate(id)} />}
@@ -315,7 +315,9 @@ function ManagePanel({ bootstrap, canManage, canManageCalendar, canDisplayQr, is
           {activePanel === 'staff-groups' && <div className="space-y-4">{feature && <EnrollmentPanel feature={feature} staff={staff.data || []} saving={isSaving} onSave={(accessMode, enrolledStaffIds) => onSettingsChange({ enabled: feature.enabled, accessMode, enrolledStaffIds })} />}<ScheduleManager schedules={normalSchedules.filter((schedule) => schedule.scope !== 'school')} isLoading={schedules.isPending} staff={staff.data || []} createPending={createSchedule.isPending} updatePending={updateSchedule.isPending} deletePending={deleteSchedule.isPending} createError={createSchedule.error?.message} onCreate={(schedule) => createSchedule.mutate(schedule)} onUpdate={(id, schedule) => updateSchedule.mutate({ id, schedule })} onDelete={(id) => deleteSchedule.mutate(id)} groupOnly /></div>}
           {activePanel === 'advanced' && <div className="space-y-4">{!canDisplayQr && <div className="rounded-xl border border-dashed border-border bg-muted/35 p-5 text-sm"><p className="font-semibold">QR display permission is not assigned</p><p className="mt-1 text-muted-foreground">An authorised timekeeper can display the secure school QR from Record.</p></div>}{feature && <div className="rounded-xl border border-border/80 bg-background/70 p-4"><div className="flex items-center justify-between gap-4"><div><p className="text-sm font-semibold">Enable Staff Clocking</p><p className="mt-1 text-sm text-muted-foreground">Publishing is revision-controlled. Scanning remains unavailable until an active schedule exists.</p></div><Switch checked={feature.enabled} onCheckedChange={(enabled) => onSettingsChange({ enabled, accessMode: feature.accessMode, enrolledStaffIds: feature.enrolledStaffIds })} disabled={isSaving} aria-label="Enable Staff Clocking" /></div>{isSaving && <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" />Saving feature setting…</p>}</div>}<StatusCard icon={ShieldEllipsis} title="Security and audit boundary" description="QR signing keys and token validation remain server-controlled. Every schedule, closure, exemption and review action is recorded in the audit history." /></div>}
         </>}
-      </CardContent></Card>}
+      </CardContent></Card></div>}
+
+      <ManageOverview defaultSchedule={defaultSchedule} specialSchedules={specialSchedules} closures={closures.data || []} />
     </section>
   );
 }
