@@ -23,7 +23,7 @@ async function main() {
   await fs.writeFile(path.join(output, 'browser-test-bundle.js'), bundle);
   const server = http.createServer((req, res) => {
     if (req.url === '/bundle.js') { res.setHeader('Content-Type', 'text/javascript'); res.end(bundle); }
-    else { res.setHeader('Content-Type', 'text/html'); res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1" /></head><body><div id="root"></div><script src="/bundle.js"></script></body></html>'); }
+    else { res.setHeader('Content-Type', 'text/html'); res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1" /><style>.hidden{display:none}</style></head><body><div id="root"></div><script src="/bundle.js"></script></body></html>'); }
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   let browser;
@@ -52,7 +52,40 @@ async function main() {
 
     await page.goto(`${origin}/scanner`);
     await page.evaluate(() => {
+      window.__cameraRequests = 0;
+      window.TrinityOffline = { postMessage(message) {
+        const { id } = JSON.parse(message);
+        queueMicrotask(() => this.onmessage({ data: JSON.stringify({ id, success: true, lowRam: false }) }));
+      } };
+      navigator.mediaDevices.getUserMedia = async () => { window.__cameraRequests++; throw new Error('Old APK must not request camera'); };
+    });
+    await page.getByRole('button', { name: 'Scan school QR', exact: true }).click();
+    await page.getByRole('status').filter({ hasText: 'Install the latest school app update' }).waitFor();
+    await page.getByRole('link', { name: 'Get the latest school app' }).waitFor();
+    assert.equal(await page.evaluate(() => window.__cameraRequests), 0);
+    console.log('PASS older APK receives update guidance before requesting unsupported camera access');
+
+    await page.goto(`${origin}/scanner`);
+    await page.evaluate(() => {
+      window.TrinityOffline = { postMessage(message) {
+        const { id } = JSON.parse(message);
+        queueMicrotask(() => this.onmessage({ data: JSON.stringify({ id, success: true, webCameraCapture: true }) }));
+      } };
+      navigator.mediaDevices.getUserMedia = async () => { throw new DOMException('Permission denied', 'NotAllowedError'); };
+    });
+    await page.getByRole('button', { name: 'Scan school QR', exact: true }).click();
+    await page.getByRole('status').filter({ hasText: 'Open Android Settings' }).waitFor();
+    assert.ok(await page.getByRole('status').evaluate(status => status.compareDocumentPosition(document.querySelector('form')) & Node.DOCUMENT_POSITION_FOLLOWING));
+    await page.getByRole('button', { name: 'Scan school QR', exact: true }).waitFor({ state: 'visible' });
+    console.log('PASS Android camera denial explains recovery beside the scan controls');
+
+    await page.goto(`${origin}/scanner`);
+    await page.evaluate(() => {
       window.__tracksStopped = 0;
+      window.TrinityOffline = { postMessage(message) {
+        const { id } = JSON.parse(message);
+        queueMicrotask(() => this.onmessage({ data: JSON.stringify({ id, success: true, webCameraCapture: true }) }));
+      } };
       navigator.mediaDevices.getUserMedia = async () => {
         const canvas = document.createElement('canvas'); canvas.width = canvas.height = 300;
         canvas.getContext('2d').fillRect(0, 0, 300, 300);
@@ -66,7 +99,7 @@ async function main() {
     await page.getByRole('status').filter({ hasText: 'Clock in recorded' }).waitFor();
     assert.ok(await page.evaluate(() => window.__tracksStopped > 0));
     assert.equal(calls.filter(call => call.path === '/api/staff-clocking/clock').length, 1);
-    console.log('PASS camera decode submits once and releases tracks');
+    console.log('PASS updated Android camera capability starts decoding, submits once and releases tracks');
 
     await page.goto(`${origin}/scanner`);
     await page.evaluate(() => {
@@ -75,6 +108,8 @@ async function main() {
       window.BarcodeDetector = class { async detect() { return []; } };
     });
     await page.getByRole('button', { name: 'Scan school QR', exact: true }).click();
+    await page.getByRole('button', { name: 'Opening camera…', exact: true }).waitFor();
+    assert.ok(await page.locator('video').isVisible(), 'The camera video must be visible before play resolves');
     await page.getByRole('button', { name: 'Stop camera' }).click();
     await page.evaluate(() => window.__resolveCamera());
     await page.waitForFunction(() => window.__tracksStopped > 0);

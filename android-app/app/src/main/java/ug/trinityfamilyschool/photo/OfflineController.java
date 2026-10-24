@@ -205,7 +205,8 @@ final class OfflineController {
         if ("deviceCapabilities".equals(action)) {
             try {
                 android.app.ActivityManager manager = (android.app.ActivityManager) activity.getSystemService(android.content.Context.ACTIVITY_SERVICE);
-                reply(reply, id, true, null, new JSONObject().put("lowRam", manager != null && manager.isLowRamDevice()));
+                reply(reply, id, true, null, new JSONObject().put("lowRam", manager != null && manager.isLowRamDevice())
+                    .put("webCameraCapture", true));
             } catch (Exception unavailable) { reply(reply, id, false, "Device capabilities are unavailable.", null); }
             return;
         }

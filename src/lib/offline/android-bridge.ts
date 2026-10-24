@@ -1,6 +1,6 @@
 import { measureWorkspaceStep } from '@/lib/startup/workspace-timing';
 
-type Reply = { id: string; success: boolean; error?: string; palette?: unknown; lowRam?: boolean; session?: import('./android-contracts').AndroidOfflineSession };
+type Reply = { id: string; success: boolean; error?: string; palette?: unknown; lowRam?: boolean; webCameraCapture?: boolean; session?: import('./android-contracts').AndroidOfflineSession };
 type Bridge = { postMessage: (message: string) => void; onmessage?: (event: { data: string }) => void };
 declare global { interface Window { TrinityOffline?: Bridge } }
 const pending = new Map<string, { resolve: (reply: Reply) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>();

@@ -1,6 +1,6 @@
 # Staff Clocking local validation — 24 October 2026
 
-All work and fixtures stayed local. No application deployment, Firebase deployment, live staff-data mutation, push notification, Git commit or Git push was performed.
+The initial validation below preceded release `f22c63c4`. Those fixtures stayed local and did not mutate live staff data or send notifications. After explicit release authorization, that commit was pushed to `main`, both Vercel deployments completed, production clocking rules/indexes were applied, and the main website's QR signing secret was configured. Live page and unauthenticated API/cron checks passed. The APKs in that release remained Android 1.33; native camera source changes were not yet packaged.
 
 ## Results
 
@@ -52,3 +52,15 @@ The emulator requires Java 21 or newer. This run used a temporary JRE under the 
 - The full cache-first revision/bundle repository in the original plan is not implemented by the current in-memory React Query cache. Calendar/staff mutation authority and the complete audit/revocation workflow still need integration work.
 
 These limits supersede earlier statements that only testing or a school policy remained. Passing the listed tests establishes the tested flows, not completion of every item in the original blueprint.
+
+## Android QR camera follow-up
+
+The reported failure occurs in the Android APK. The distributed 1.33 APK manifest was inspected with `aapt2`: it does not declare `android.permission.CAMERA`. Publishing new Java source with a website release cannot change an already installed APK, so Android live scanning requires a new signed package.
+
+- Android 1.34 / build 36 packages the existing origin-restricted WebView camera handler, runtime permission request, navigation/cancellation cleanup and native pupil-photo permission compatibility. Each school retains its package, origin, data and permanent signing identity.
+- The native capabilities reply now advertises `webCameraCapture`. Older APKs receive an explicit update explanation and `/download` link before the website attempts unsupported camera access.
+- Camera startup shows progress, renders the video before awaiting playback, and places actionable Android/browser permission errors beside the scan controls.
+- Six browser scenarios passed with actual React components, synthetic video and mocked API/native bridge: QR refresh/revocation, old-APK update detection, Android permission denial, updated-APK camera capability and decoding, pending permission cancellation, and real QR-image decoding through the fallback. The fixture applies the `hidden` CSS rule and checks that video is visible during startup.
+- Signed 1.34 release builds and all 112 Android unit tests passed for each school. Release lint finished with zero errors and 111 warnings per school. The manifest marks rear-camera hardware optional; `aapt2` confirms CAMERA permission in the prepared APK. Both permanent signing certificates match the existing release registry. Download/update metadata and APK bytes/hashes were prepared locally through `publish-android-apk.cjs`; it did not publish to either website.
+- Focused TypeScript passed. Download/update and school-isolation checks passed with local endpoints; these do not exercise a signed-in production clocking account.
+- No Android device is connected. Browser fixtures and signed build results do not establish physical WebView camera or permission-dialog behavior.

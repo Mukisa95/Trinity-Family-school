@@ -6,13 +6,13 @@
   "websiteOrigin": "https://trinityfamilyschool.vercel.app",
   "firebaseProjectId": "trinity-family-schools",
   "iconUrl": "/trinity-logo-192.png",
-  "versionCode": 35,
-  "versionName": "1.33",
+  "versionCode": 36,
+  "versionName": "1.34",
   "minAndroid": "8.0",
   "filename": "trinity-live.apk",
-  "bytes": 4746904,
-  "sha256": "445561f75eb93741a2b90b28c43a0284c51d80b70124e83a41654522d2a41994",
+  "bytes": 4747956,
+  "sha256": "3a1f9d6b1d290177429791f2a7d3df8fc7bcbff9ba6437e567474bc7ab55b1e5",
   "signingCertificateSha256": "53:F5:25:7A:02:C4:B4:6C:33:47:E0:49:6F:67:36:55:1D:57:4F:44:91:56:44:D1:3C:02:79:22:BC:04:FC:08",
   "minSdk": 26,
-  "releaseNotes": "Integrated App Settings: account details, biometrics, live card display, lesson reminders and individual widget controls. Compact themed forms, reminder previews and offline device preferences without separate configuration screens."
+  "releaseNotes": "Staff clocking QR camera support: Android camera permission, secure school-only live scanning, and clear permission and app-update guidance."
 }
