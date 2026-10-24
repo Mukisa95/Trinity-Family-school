@@ -14,6 +14,7 @@ export const STAFF_CLOCKING_QUERY_KEYS = {
   staff: () => [...STAFF_CLOCKING_QUERY_KEYS.all, 'staff'] as const,
   closures: () => [...STAFF_CLOCKING_QUERY_KEYS.all, 'closures'] as const,
   notifications: () => [...STAFF_CLOCKING_QUERY_KEYS.all, 'notifications'] as const,
+  myDashboard: () => [...STAFF_CLOCKING_QUERY_KEYS.all, 'my-dashboard'] as const,
 };
 
 function useClockingScope() {
@@ -110,6 +111,7 @@ export function useCreateStaffClockingClosure() { const client = useQueryClient(
 export function useFinalizeStaffClockingDate() { const client = useQueryClient(); return useMutation({ mutationFn: (localDate: string) => requestStaffClocking('/api/staff-clocking/finalize', { method: 'POST', body: JSON.stringify({ localDate }) }), onSuccess: () => void client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.records() }) }); }
 export function useExportStaffClockingRecords() { return useMutation({ mutationFn: async (filters: { from?: string; to?: string; staffId?: string; query?: string }) => { const token = await auth.currentUser?.getIdToken(); if (!token) throw new Error('Your session is not ready. Please refresh and try again.'); const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => Boolean(value)) as Array<[string, string]>); const response = await fetch(`/api/staff-clocking/export?${params}`, { headers: { Authorization: `Bearer ${token}` } }); if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.error || 'Unable to export clock records.'); } const link = document.createElement('a'); link.href = URL.createObjectURL(await response.blob()); link.download = 'staff-clocking-records.csv'; link.click(); URL.revokeObjectURL(link.href); } }); }
 export function useOwnStaffClockingNotifications(enabled: boolean) { const scope = useClockingScope(); return useQuery({ queryKey: [...STAFF_CLOCKING_QUERY_KEYS.notifications(), ...scope], queryFn: async () => (await requestStaffClocking<{ notifications: Array<{ id: string; title: string; body: string; createdAt?: string }> }>('/api/staff-clocking/notifications')).notifications, enabled, staleTime: 30_000 }); }
+export function useOwnStaffClockingDashboard(enabled: boolean) { const scope = useClockingScope(); return useQuery({ queryKey: [...STAFF_CLOCKING_QUERY_KEYS.myDashboard(), ...scope], queryFn: () => requestStaffClocking<{ staff: { id: string; name: string; group?: string }; localDate: string; record?: StaffClockingDailyRecord; history: StaffClockingDailyRecord[]; schedule: { kind: string; clockInBy?: string; clockOutBy?: string; graceMinutes?: number; sourceScope?: string; reason?: string }; calendar?: { isClosed: boolean; label?: string } }>('/api/staff-clocking/my-dashboard'), enabled, staleTime: 15_000, refetchOnWindowFocus: false }); }
 
 export function useCreateStaffClockingQrSession() {
   return useMutation({
@@ -125,7 +127,7 @@ export function useSubmitStaffClockingScan() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (input: { token: string; operationId: string }) => requestStaffClocking('/api/staff-clocking/clock', { method: 'POST', body: JSON.stringify(input) }),
-    onSuccess: () => void client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.bootstrap() }),
+    onSuccess: () => void Promise.all([client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.bootstrap() }), client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.myDashboard() })]),
   });
 }
 
@@ -135,6 +137,18 @@ export function useCreateStaffClockingRequest(kind: 'exemption' | 'correction') 
     mutationFn: (input: { localDate: string; reason: string; proposedClockInTime?: string; proposedClockOutTime?: string }) =>
       requestStaffClocking(`/api/staff-clocking/${kind}s`, { method: 'POST', body: JSON.stringify(input) }),
     onSuccess: () => void client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.requests(kind) }),
+  });
+}
+
+export function useCreateManagedStaffClockingExemption() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { staffId: string; localDate: string; reason: string }) =>
+      requestStaffClocking('/api/staff-clocking/manager-exemptions', { method: 'POST', body: JSON.stringify(input) }),
+    onSuccess: () => void Promise.all([
+      client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.records() }),
+      client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.requests('exemption') }),
+    ]),
   });
 }
 

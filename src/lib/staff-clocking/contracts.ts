@@ -96,6 +96,8 @@ export interface StaffClockingSchedule {
   startsOn?: string;
   endsOn?: string;
   clockInBy: string;
+  /** Optional expected departure shown to managers; it does not close an open shift automatically. */
+  clockOutBy?: string;
   graceMinutes: number;
   /** Resolves deliberately ordered group policies before their schedule IDs. */
   priority?: number;

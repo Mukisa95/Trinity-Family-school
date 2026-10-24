@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { Camera, CircleAlert, Loader2, ScanLine, ShieldCheck, Square } from 'lucide-react';
+import { Camera, CircleAlert, Flashlight, Loader2, ScanLine, ShieldCheck, Square, SwitchCamera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,12 +34,17 @@ export function StaffClockingQrScanner({ available }: { available: boolean }) {
   const [message, setMessage] = useState<string>();
   const [needsAppUpdate, setNeedsAppUpdate] = useState(false);
   const [manualToken, setManualToken] = useState('');
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const [torchAvailable, setTorchAvailable] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
 
   const stopCamera = () => {
     generationRef.current += 1;
     scanningRef.current = false;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = undefined;
+    setTorchAvailable(false);
+    setTorchOn(false);
     setCameraActive(false);
     setCameraStarting(false);
   };
@@ -62,6 +67,7 @@ export function StaffClockingQrScanner({ available }: { available: boolean }) {
     submit.mutate(input, {
       onSuccess: (result) => {
         pendingRef.current = undefined;
+        navigator.vibrate?.(35);
         const value = result as { duplicate?: boolean; event?: { type?: string; arrivalStatus?: string } };
         const event = value.event;
         setMessage(value.duplicate ? 'This clocking request was already saved.' : event?.type === 'clock_out'
@@ -73,7 +79,7 @@ export function StaffClockingQrScanner({ available }: { available: boolean }) {
     });
   };
 
-  const startCamera = async () => {
+  const startCamera = async (lens = facingMode) => {
     if (!available || cameraStarting || scanningRef.current) return;
     const generation = ++generationRef.current;
     setCameraStarting(true);
@@ -91,9 +97,12 @@ export function StaffClockingQrScanner({ available }: { available: boolean }) {
         }
       }
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera scanning needs a secure connection and camera permission.');
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: lens } }, audio: false });
       if (generation !== generationRef.current) { stream.getTracks().forEach(track => track.stop()); return; }
       streamRef.current = stream;
+      const videoTrack = stream.getVideoTracks()[0] as (MediaStreamTrack & { getCapabilities?: () => { torch?: boolean } }) | undefined;
+      const capabilities = videoTrack?.getCapabilities?.() as { torch?: boolean } | undefined;
+      setTorchAvailable(capabilities?.torch === true);
       const video = videoRef.current;
       if (!video) throw new Error('The camera preview could not start.');
       video.srcObject = stream;
@@ -164,6 +173,19 @@ export function StaffClockingQrScanner({ available }: { available: boolean }) {
     recordToken(manualToken.trim());
   };
 
+  const switchCamera = () => {
+    const next = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(next);
+    stopCamera();
+    void startCamera(next);
+  };
+
+  const toggleTorch = async () => {
+    const track = streamRef.current?.getVideoTracks()[0] as (MediaStreamTrack & { applyConstraints: (constraints: MediaTrackConstraints & { advanced?: Array<{ torch?: boolean }> }) => Promise<void> }) | undefined;
+    if (!track) return;
+    try { await track.applyConstraints({ advanced: [{ torch: !torchOn }] }); setTorchOn(current => !current); } catch { setMessage('The flashlight is not available on this camera.'); }
+  };
+
   return (
     <div className="space-y-4">
       <div className="relative overflow-hidden rounded-xl border border-border bg-black" aria-busy={cameraStarting}>
@@ -177,11 +199,12 @@ export function StaffClockingQrScanner({ available }: { available: boolean }) {
         )}
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="lg" className="min-h-12" onClick={startCamera} disabled={!available || cameraStarting || cameraActive || submit.isPending}>
+        <Button type="button" size="lg" className="min-h-12" onClick={() => void startCamera()} disabled={!available || cameraStarting || cameraActive || submit.isPending}>
           {submit.isPending || cameraStarting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanLine className="h-4 w-4" />}
           {cameraStarting ? 'Opening camera…' : cameraActive ? 'Scanning QR' : 'Scan school QR'}
         </Button>
         {(cameraActive || cameraStarting) && <Button type="button" variant="outline" className="min-h-12" onClick={stopCamera}><Square className="h-4 w-4" /> Stop camera</Button>}
+        {cameraActive && <><Button type="button" variant="outline" size="icon" className="min-h-12 min-w-12" onClick={switchCamera} aria-label="Switch camera"><SwitchCamera className="h-4 w-4" /></Button>{torchAvailable && <Button type="button" variant={torchOn ? 'default' : 'outline'} size="icon" className="min-h-12 min-w-12" onClick={() => void toggleTorch()} aria-label={torchOn ? 'Turn flashlight off' : 'Turn flashlight on'}><Flashlight className="h-4 w-4" /></Button>}</>}
         {submit.isError && pendingRef.current && <Button type="button" variant="outline" className="min-h-12" onClick={() => recordToken(pendingRef.current!.token)} disabled={submit.isPending}>Retry last request</Button>}
       </div>
       {message && <div role="status" className="flex gap-2 rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm"><CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-primary" />{message}</div>}

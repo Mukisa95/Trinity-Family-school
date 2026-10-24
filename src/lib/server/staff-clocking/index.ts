@@ -59,6 +59,7 @@ export const staffClockingScheduleSchema = z.object({
   startsOn: localDate.optional(),
   endsOn: localDate.optional(),
   clockInBy: localTime,
+  clockOutBy: localTime.optional(),
   graceMinutes: z.number().int().min(0).max(180),
   priority: z.number().int().min(-100).max(100).optional().default(0),
   isActive: z.boolean().default(true),
@@ -77,6 +78,9 @@ export const staffClockingScheduleSchema = z.object({
   }
   if (value.startsOn && value.endsOn && value.endsOn < value.startsOn) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['endsOn'], message: 'The end date must be on or after the start date.' });
+  }
+  if (value.clockOutBy && localTimeToSeconds(value.clockOutBy) <= localTimeToSeconds(value.clockInBy)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['clockOutBy'], message: 'Expected departure must be later than expected arrival on the same day.' });
   }
 });
 
@@ -99,6 +103,11 @@ const selfServiceRequestSchema = z.object({
   if (value.proposedClockInTime && value.proposedClockOutTime && localTimeToSeconds(value.proposedClockOutTime) <= localTimeToSeconds(value.proposedClockInTime)) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['proposedClockOutTime'], message: 'Clock-out must be later than clock-in on the same day.' });
   }
+});
+const managerExemptionSchema = z.object({
+  staffId: documentId,
+  localDate,
+  reason: z.string().trim().min(8, 'Give a short reason of at least eight characters.').max(1_000),
 });
 export const staffClockingReviewSchema = z.object({ approved: z.boolean(), reviewNote: z.string().trim().max(1_000).optional() });
 const recordFilterSchema = z.object({
@@ -390,7 +399,7 @@ export async function listStaffClockingDailyRecords(db: Firestore, actor: Authen
 }
 
 export async function getStaffClockingStaffCandidates(db: Firestore, actor: AuthenticatedAppUser) {
-  requireStaffClockingAccess(actor, 'record', 'manage_schedules');
+  if (!canAccess(actor, 'record', 'manage_schedules') && !canAccess(actor, 'record', 'manage_calendar')) throw new Error('PERMISSION_DENIED');
   const snapshot = await db.collection('staff').get();
   return snapshot.docs
     .filter(item => String(item.data().status || 'active').toLowerCase() === 'active')
@@ -466,6 +475,36 @@ export async function listOwnStaffClockingNotifications(db: Firestore, actor: Au
   return snapshot.docs.map(item => ({ id: item.id, ...toIso(item.data()) })).sort((left: any, right: any) => String(right.createdAt || '').localeCompare(String(left.createdAt || ''))).slice(0, 10);
 }
 
+/** A staff-scoped, server-resolved snapshot for the personal Clock page. */
+export async function getOwnStaffClockingDashboard(db: Firestore, actor: AuthenticatedAppUser) {
+  requireStaffClockingAccess(actor, 'clock', 'view_own_clock');
+  const staffId = actor.user.staffId;
+  if (!staffId) throw new Error('CLOCKING_STAFF_LINK_REQUIRED');
+  const now = kampalaClock();
+  const [staffSnapshot, recordsSnapshot, schedulesSnapshot, calendarDay] = await Promise.all([
+    db.collection('staff').doc(staffId).get(),
+    db.collection(STAFF_CLOCKING_COLLECTIONS.dailyRecords).where('staffId', '==', staffId).get(),
+    db.collection(STAFF_CLOCKING_COLLECTIONS.schedules).get(),
+    resolveCalendarClosure(db, now.localDate),
+  ]);
+  if (!staffSnapshot.exists || String(staffSnapshot.data()?.status || 'active').toLowerCase() !== 'active') throw new Error('CLOCKING_STAFF_INACTIVE');
+  const staff = staffSnapshot.data() || {};
+  const groups = [...new Set([...(Array.isArray(staff.department) ? staff.department : [staff.department]), ...(Array.isArray(staff.role) ? staff.role : [staff.role])].filter((value): value is string => typeof value === 'string' && value.length > 0))];
+  const schedules = schedulesSnapshot.docs.map(item => serializeSchedule(item.id, item.data()));
+  const resolution = resolveStaffClockingSchedule({ staffId, groupIds: groups, localDate: now.localDate, schedules, calendarDay });
+  const records = recordsSnapshot.docs.map(item => ({ id: item.id, ...toIso(item.data()) } as StaffClockingDailyRecord)).sort((left, right) => right.localDate.localeCompare(left.localDate));
+  const today = records.find(record => record.localDate === now.localDate);
+  const appliedSchedule = resolution.sourceScheduleId ? schedules.find(schedule => schedule.id === resolution.sourceScheduleId) : undefined;
+  return {
+    staff: { id: staffId, name: [staff.firstName, staff.lastName].filter((value): value is string => typeof value === 'string' && value.trim().length > 0).join(' ').trim() || 'Staff member', group: groups[0] || undefined },
+    localDate: now.localDate,
+    record: today,
+    history: records.filter(record => record.localDate !== now.localDate).slice(0, 5),
+    schedule: resolution.kind === 'scheduled' ? { kind: resolution.kind, clockInBy: resolution.clockInBy, clockOutBy: appliedSchedule?.clockOutBy, graceMinutes: resolution.graceMinutes, sourceScope: resolution.sourceScope } : { kind: resolution.kind, reason: resolution.reason },
+    calendar: calendarDay ? { isClosed: calendarDay.isClosed, label: calendarDay.label } : undefined,
+  };
+}
+
 export async function createStaffClockingSelfServiceRequest(db: Firestore, actor: AuthenticatedAppUser, kind: 'exemption' | 'correction', input: unknown) {
   requireStaffClockingAccess(actor, 'clock', kind === 'exemption' ? 'request_exemption' : 'request_correction');
   const staffId = actor.user.staffId;
@@ -488,6 +527,31 @@ export async function createStaffClockingSelfServiceRequest(db: Firestore, actor
     uid: actorData.id, un: actorData.name, m: { staffId, localDate: payload.localDate }, ts: Timestamp.now(),
   });
   return { id: ref.id, ...toIso(record) };
+}
+
+/** Records a manager-authorised one-day absence without rewriting scan history. */
+export async function createManagedStaffClockingExemption(db: Firestore, actor: AuthenticatedAppUser, input: unknown) {
+  requireStaffClockingAccess(actor, 'record', 'manage_calendar');
+  const payload = managerExemptionSchema.parse(input);
+  const staff = await db.collection('staff').doc(payload.staffId).get();
+  if (!staff.exists || String(staff.data()?.status || 'active').toLowerCase() !== 'active') throw new Error('CLOCKING_STAFF_INACTIVE');
+  const manager = actorLabel(actor);
+  const exemptionRef = db.collection(STAFF_CLOCKING_COLLECTIONS.exemptions).doc();
+  const staffData = staff.data() || {};
+  const staffName = [staffData.firstName, staffData.lastName].filter((value): value is string => typeof value === 'string' && value.trim().length > 0).join(' ').trim();
+  const exemption = { kind: 'exemption', status: 'approved', staffId: payload.staffId, localDate: payload.localDate, reason: payload.reason, createdAt: Timestamp.now(), createdBy: manager, reviewedAt: Timestamp.now(), reviewedBy: manager, source: 'manager_recorded' };
+  await db.runTransaction(async transaction => {
+    const dailyRef = db.collection(STAFF_CLOCKING_COLLECTIONS.dailyRecords).doc(dailyRecordId(payload.staffId, payload.localDate));
+    const existing = await transaction.get(dailyRef);
+    transaction.create(exemptionRef, exemption);
+    transaction.set(dailyRef, {
+      ...(existing.exists ? existing.data() : {}), staffId: payload.staffId, ...(staffName ? { staffName } : {}), localDate: payload.localDate,
+      status: existing.data()?.status || 'open', exemptionId: exemptionRef.id, exemptionStatus: 'approved', reviewStatus: 'exempted', updatedAt: Timestamp.now(),
+    }, { merge: false });
+    transaction.create(db.collection(STAFF_CLOCKING_COLLECTIONS.events).doc(`manager_exemption_${exemptionRef.id}`), { type: 'exemption_approved', staffId: payload.staffId, localDate: payload.localDate, exemptionId: exemptionRef.id, occurredAt: Timestamp.now(), reviewedBy: manager });
+    transaction.create(db.collection(STAFF_CLOCKING_COLLECTIONS.history).doc(), { a: 'create', e: 'staff_clocking_exemption', rid: exemptionRef.id, rl: 'Staff clocking exemption recorded', uid: manager.id, un: manager.name, m: { staffId: payload.staffId, localDate: payload.localDate }, ts: Timestamp.now() });
+  });
+  return { id: exemptionRef.id, ...toIso(exemption) };
 }
 
 export async function reviewStaffClockingSelfServiceRequest(db: Firestore, actor: AuthenticatedAppUser, kind: 'exemption' | 'correction', id: string, approved: boolean, reviewNote?: string) {

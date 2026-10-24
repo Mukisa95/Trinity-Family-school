@@ -873,6 +873,7 @@ export type RoutePagePermission = {
 
 const ROUTE_PAGE_ALIASES: RoutePagePermission[] = [
   { moduleId: 'staff_clocking', pageId: 'clock', pattern: /^\/staff-clocking$/ },
+  { moduleId: 'staff_clocking', pageId: 'record', pattern: /^\/staff-clocking\/manage$/ },
   { moduleId: 'account', pageId: 'history_log', pattern: /^\/history-log\/system-audit$/ },
   { moduleId: 'pupils', pageId: 'detail', pattern: /^\/pupil-detail$/ },
   { moduleId: 'pupils', pageId: 'detail', pattern: /^\/pupils\/[^/]+$/ },
