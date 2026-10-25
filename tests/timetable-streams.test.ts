@@ -130,6 +130,18 @@ test('marked timetable editor stays inside the viewport and has a clear exit pat
   assert.match(grid, /if \(isMarkedEditorOpen\) \{\s*cancelMarking\(\);/);
 });
 
+test('shared activities fill their merged timetable rows and scale their labels', () => {
+  const dayGrid = readFileSync('src/components/timetable/TimetableGrid.tsx', 'utf8');
+  const weekGrid = readFileSync('src/components/timetable/TimetableViewPanel.tsx', 'utf8');
+
+  for (const source of [dayGrid, weekGrid]) {
+    assert.match(source, /\[container-type:size\]/);
+    assert.match(source, /absolute inset-1 flex min-h-0 flex-col/);
+    assert.match(source, /fontSize: 'clamp\(0\.75rem, min\(4\.5cqw, 24cqh\), 2rem\)'/);
+    assert.match(source, /All Classes/);
+  }
+});
+
 test('dashboard lessons identify stream entries with a compact initial', () => {
   assert.equal(getTimetableStreamInitial({ streamId: 'east', streamCode: 'E' }, schoolClass), 'E');
   assert.equal(getTimetableStreamInitial({ streamId: 'west' }, schoolClass), 'W');

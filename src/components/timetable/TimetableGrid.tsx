@@ -899,12 +899,12 @@ export function TimetableGrid({
                                                     const actTeacher = staffList.find(s => s.id === sharedAct.teacherId);
                                                     const innerContent = (
                                                         <div
-                                                            className={`flex flex-col items-center justify-center h-full gap-0.5 px-1 py-1 mx-0.5 my-0.5 rounded border transition-all ${isEditing ? 'cursor-pointer hover:bg-brand-secondary-surface-200 dark:hover:bg-brand-secondary-surface-900/40' : ''}`}
+                                                            className={`absolute inset-1 flex min-h-0 flex-col items-center justify-center gap-1 overflow-hidden rounded border px-2 py-1.5 text-center transition-all ${isEditing ? 'cursor-pointer hover:bg-brand-secondary-surface-200 dark:hover:bg-brand-secondary-surface-900/40' : ''}`}
                                                             style={{ background: 'hsl(270,50%,var(--schedule-upcoming-bg-lightness,87%))', borderColor: 'hsl(270,45%,var(--schedule-upcoming-border-lightness,75%))', color: 'hsl(270,60%,var(--schedule-upcoming-text-lightness,28%))' }}
                                                         >
-                                                            <span className="text-[9px] font-black uppercase tracking-wide leading-tight text-center">{sharedAct.activityName}</span>
-                                                            {actTeacher && <span className="text-[8px] opacity-70 leading-tight">{actTeacher.firstName[0]}. {actTeacher.lastName?.split(' ')[0]}</span>}
-                                                            <span className="text-[7px] opacity-50 leading-none">All Classes</span>
+                                                            <span className="max-w-full break-words font-black uppercase tracking-wide" style={{ fontSize: 'clamp(0.75rem, min(4.5cqw, 24cqh), 2rem)', lineHeight: 1.05 }}>{sharedAct.activityName}</span>
+                                                            {actTeacher && <span className="max-w-full break-words opacity-70" style={{ fontSize: 'clamp(0.6rem, min(2.8cqw, 11cqh), 0.85rem)', lineHeight: 1.15 }}>{actTeacher.firstName[0]}. {actTeacher.lastName?.split(' ')[0]}</span>}
+                                                            <span className="max-w-full opacity-50" style={{ fontSize: 'clamp(0.55rem, min(2.3cqw, 9cqh), 0.75rem)', lineHeight: 1.1 }}>All Classes</span>
                                                         </div>
                                                     );
 
@@ -915,7 +915,7 @@ export function TimetableGrid({
                                                             key={period.id}
                                                             rowSpan={sharedAct.rowSpan}
                                                             colSpan={sharedAct.colSpan || 1}
-                                                            className="border-r align-middle text-center p-0 relative"
+                                                            className="relative border-r p-0 text-center align-middle [container-type:size]"
                                                             style={{ minWidth: periodWidth(period) }}
                                                         >
                                                             {isEditing ? (
