@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { AlarmClock, ArrowLeft, BookOpenCheck, CalendarClock, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Coins, Download, Loader2, QrCode, ScanLine, Settings2, ShieldCheck, ShieldEllipsis, Trash2, UserCheck, UserRoundCheck, UserRoundX, Users, UsersRound } from 'lucide-react';
+import { AlarmClock, ArrowLeft, BookOpenCheck, CalendarClock, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Coins, Download, Loader2, QrCode, ScanLine, ShieldCheck, ShieldEllipsis, Trash2, Users, UsersRound } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { GlassPageTopBar } from '@/components/common/glass-page-top-bar';
+import { GlassActionButton, GlassActionDock, GlassPageTopBar } from '@/components/common/glass-page-top-bar';
+import { GlassSummaryBar } from '@/components/common/glass-summary-bar';
 import { usePermissions } from '@/lib/hooks/use-permissions';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { useCreateManagedStaffClockingExemption, useCreateStaffClockingClosure, useCreateStaffClockingRequest, useCreateStaffClockingSchedule, useDeleteStaffClockingSchedule, useExportStaffClockingRecords, useFinalizeStaffClockingDate, useOwnStaffClockingDashboard, useOwnStaffClockingNotifications, useReviewStaffClockingRequest, useStaffClockingBootstrap, useStaffClockingClosures, useStaffClockingDailyRecords, useStaffClockingReviewRequests, useStaffClockingSchedules, useStaffClockingStaffCandidates, useUpdateStaffClockingSchedule, useUpdateStaffClockingSettings } from '@/lib/hooks/use-staff-clocking';
@@ -53,6 +54,12 @@ export function StaffClockingWorkspace({ section }: { section: StaffClockingSect
       : section === 'clock'
         ? { title: 'My Clock', details: 'Staff attendance and time tracking' }
         : { title: 'Clock Records', details: 'Authorised attendance review and corrections' };
+  const recordActions = (
+    <GlassActionDock>
+      {canManage && <GlassActionButton label="Manage" href="/staff-clocking/manage" tone="blue" icon={<CalendarClock className="h-4 w-4" />} />}
+      {canManageCalendar && <ManagerExemptionDialog presentation="action" />}
+    </GlassActionDock>
+  );
 
   return (
     <div className="min-h-full">
@@ -68,7 +75,7 @@ export function StaffClockingWorkspace({ section }: { section: StaffClockingSect
             {bootstrap.isPending ? 'Checking setup' : bootstrap.data?.feature.enabled ? 'Enabled' : 'Not enabled'}
           </Badge>
         }
-        actions={section === 'record' ? <div className="flex items-center gap-2"><Button asChild size="sm" variant="outline" className="sm:hidden"><Link href="/staff-clocking/manage">Manage</Link></Button>{canManageCalendar && <ManagerExemptionDialog compact />}</div> : undefined}
+        actions={section === 'record' ? recordActions : undefined}
       />
 
       <main className="mx-auto max-w-7xl space-y-4 px-4 pb-28 sm:px-6 sm:pb-8 lg:px-8">
@@ -176,14 +183,10 @@ function RecordDashboard({ bootstrap, canManage, canManageCalendar, canDisplayQr
     const start = String(item.startDate || ''); const end = String(item.endDate || start);
     return start <= today && end >= today;
   }), [closures.data, today]);
-  const status = !bootstrap?.feature.enabled ? 'Clocking not enabled' : closure ? 'Special school day' : bootstrap.hasActiveSchedule ? 'Clocking active' : 'Schedule setup needed';
-  const statusClass = bootstrap?.feature.enabled && bootstrap.hasActiveSchedule && !closure ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300';
   const summary = records.data?.summary;
 
   return (
     <section className="space-y-4" aria-label="Staff clocking record dashboard">
-      <div className="flex justify-end"><Badge variant="outline" className={cn('min-h-9 rounded-full px-3 text-sm', statusClass)}><span className="mr-2 h-2.5 w-2.5 rounded-full bg-current" />{status}</Badge></div>
-
       <div className="grid gap-4 xl:grid-cols-2">
         <Card className="overflow-hidden border-blue-200/70 bg-gradient-to-br from-blue-50/80 via-card to-indigo-50/60 dark:border-blue-900/70 dark:from-blue-950/30 dark:via-card dark:to-indigo-950/20">
           <CardHeader className="pb-3"><div className="flex items-start justify-between gap-4"><div><CardTitle className="flex items-center gap-2"><QrCode className="h-5 w-5 text-primary" />School Clocking QR</CardTitle><CardDescription className="mt-1">Staff should scan this code using their Clock page.</CardDescription></div>{canDisplayQr && <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">Connected</Badge>}</div></CardHeader>
@@ -196,28 +199,29 @@ function RecordDashboard({ bootstrap, canManage, canManageCalendar, canDisplayQr
         </div>
       </div>
 
-      <div className="hidden gap-4 md:grid md:grid-cols-2">
-        <Link href="/staff-clocking/manage" className="group rounded-2xl border border-blue-200/80 bg-gradient-to-r from-blue-50 to-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-blue-900/70 dark:from-blue-950/25"><div className="flex items-center gap-4"><div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm"><CalendarClock className="h-6 w-6" /></div><div className="min-w-0 flex-1"><p className="font-semibold">Manage</p><p className="text-sm text-muted-foreground">Schedules, rules &amp; staff access</p></div><ChevronRight className="h-5 w-5 text-primary transition-transform group-hover:translate-x-1" /></div></Link>
-        {canManageCalendar ? <ManagerExemptionDialog /> : <Link href="/staff-clocking/records" className="group rounded-2xl border border-violet-200/80 bg-gradient-to-r from-violet-50 to-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-400 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-violet-900/70 dark:from-violet-950/25"><div className="flex items-center gap-4"><div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-600 text-white shadow-sm"><BookOpenCheck className="h-6 w-6" /></div><div className="min-w-0 flex-1"><p className="font-semibold">Exempt</p><p className="text-sm text-muted-foreground">Review leave &amp; absence requests</p></div><ChevronRight className="h-5 w-5 text-violet-600 transition-transform group-hover:translate-x-1" /></div></Link>}
-      </div>
-
-      <Card><CardHeader className="pb-3"><div className="flex items-center justify-between gap-3"><CardTitle className="flex items-center gap-2 text-base"><Users className="h-5 w-5 text-primary" />Today&apos;s clocking overview</CardTitle>{canReviewRecords && <Link href={`/staff-clocking/records?from=${today}&to=${today}`} className="text-sm font-semibold text-primary hover:underline">View detailed report</Link>}</div></CardHeader><CardContent>{!canReviewRecords ? <p className="text-sm text-muted-foreground">Clock-record totals are only visible to authorised record reviewers.</p> : records.isPending ? <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Updating today&apos;s totals…</p> : records.isError ? <p role="alert" className="text-sm text-destructive">{records.error.message}</p> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-5"><OverviewMetric label="Clocked" value={summary?.total || 0} icon={Users} tone="blue" /><OverviewMetric label="Complete" value={summary?.complete || 0} icon={UserCheck} tone="green" /><OverviewMetric label="Open" value={summary?.open || 0} icon={Clock3} tone="amber" /><OverviewMetric label="Late" value={summary?.late || 0} icon={UserRoundX} tone="red" /><OverviewMetric label="Exempt" value={summary?.exempted || 0} icon={UserRoundCheck} tone="violet" /></div>}</CardContent></Card>
+      <GlassSummaryBar
+        left={<div className="flex items-center gap-2"><Users className="h-4 w-4 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" /><span className="text-xs font-black uppercase tracking-wider text-brand-alt-ink-900 sm:text-sm dark:text-brand-alt-ink-200">Today&apos;s Clocking</span>{canReviewRecords && <Link href={`/staff-clocking/records?from=${today}&to=${today}`} className="text-xs font-semibold text-primary hover:underline sm:text-sm">View report</Link>}</div>}
+        right={!canReviewRecords ? <span className="text-xs text-muted-foreground">Totals are visible to authorised record reviewers.</span> : records.isPending ? <span className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" />Updating totals…</span> : records.isError ? <span role="alert" className="text-xs text-destructive">{records.error.message}</span> : <><ClockingSummaryStat label="Clocked" value={summary?.total || 0} tone="blue" /><ClockingSummaryStat label="Complete" value={summary?.complete || 0} tone="green" /><ClockingSummaryStat label="Open" value={summary?.open || 0} tone="amber" /><ClockingSummaryStat label="Late" value={summary?.late || 0} tone="red" /><ClockingSummaryStat label="Exempt" value={summary?.exempted || 0} tone="violet" /></>}
+      />
     </section>
   );
 }
 
 function ScheduleRow({ label, value }: { label: string; value: string }) { return <div className="flex items-center justify-between gap-4"><span className="text-muted-foreground">{label}</span><span className="text-right font-medium">{value}</span></div>; }
 
-function OverviewMetric({ label, value, icon: Icon, tone }: { label: string; value: number; icon: typeof Users; tone: 'blue' | 'green' | 'amber' | 'red' | 'violet' }) {
-  const styles = { blue: 'bg-blue-50 text-blue-700 dark:bg-blue-950/35 dark:text-blue-300', green: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/35 dark:text-emerald-300', amber: 'bg-amber-50 text-amber-700 dark:bg-amber-950/35 dark:text-amber-300', red: 'bg-rose-50 text-rose-700 dark:bg-rose-950/35 dark:text-rose-300', violet: 'bg-violet-50 text-violet-700 dark:bg-violet-950/35 dark:text-violet-300' };
-  return <div className={cn('rounded-xl p-3', styles[tone])}><Icon className="h-4 w-4" /><p className="mt-2 text-xs font-medium opacity-80">{label}</p><p className="text-2xl font-bold">{value}</p></div>;
+function ClockingSummaryStat({ label, value, tone }: { label: string; value: number; tone: 'blue' | 'green' | 'amber' | 'red' | 'violet' }) {
+  const styles = { blue: 'border-blue-100 bg-blue-50/80 text-blue-700 dark:border-blue-900/30 dark:bg-blue-950/20 dark:text-blue-300', green: 'border-emerald-100 bg-emerald-50/80 text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300', amber: 'border-amber-100 bg-amber-50/80 text-amber-700 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300', red: 'border-rose-100 bg-rose-50/80 text-rose-700 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300', violet: 'border-violet-100 bg-violet-50/80 text-violet-700 dark:border-violet-900/30 dark:bg-violet-950/20 dark:text-violet-300' };
+  return <div className={cn('flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] sm:text-xs', styles[tone])}><span className="font-bold">{value}</span><span className="font-medium">{label}</span></div>;
 }
 
-function ManagerExemptionDialog({ compact = false }: { compact?: boolean }) {
+function ManagerExemptionDialog({ presentation = 'card' }: { presentation?: 'card' | 'action' }) {
   const [open, setOpen] = useState(false); const [staffId, setStaffId] = useState(''); const [localDate, setLocalDate] = useState(() => schoolDateKey()); const [reason, setReason] = useState('');
   const staff = useStaffClockingStaffCandidates(true); const createExemption = useCreateManagedStaffClockingExemption();
   const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); createExemption.mutate({ staffId, localDate, reason }, { onSuccess: () => { setReason(''); setOpen(false); } }); };
-  return <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild>{compact ? <Button type="button" size="sm" variant="outline" className="sm:hidden">Exempt</Button> : <button type="button" className="group w-full rounded-2xl border border-violet-200/80 bg-gradient-to-r from-violet-50 to-card p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-400 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-violet-900/70 dark:from-violet-950/25"><span className="flex items-center gap-4"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-600 text-white shadow-sm"><BookOpenCheck className="h-6 w-6" /></span><span className="min-w-0 flex-1"><span className="block font-semibold">Exempt</span><span className="block text-sm text-muted-foreground">Leave &amp; absence</span></span><ChevronRight className="h-5 w-5 text-violet-600 transition-transform group-hover:translate-x-1" /></span></button>}</DialogTrigger><DialogContent><DialogHeader><DialogTitle>Record exemption</DialogTitle><DialogDescription>Apply an authorised full-day exemption. Existing clock events remain untouched and the action is written to the audit history.</DialogDescription></DialogHeader><form className="space-y-4" onSubmit={submit}><div className="space-y-2"><Label htmlFor="manager-exemption-staff">Staff member</Label><select id="manager-exemption-staff" value={staffId} onChange={(event) => setStaffId(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" required><option value="">Choose staff</option>{staff.data?.map(member => <option value={member.id} key={member.id}>{member.name}</option>)}</select></div><div className="space-y-2"><Label htmlFor="manager-exemption-date">Work date</Label><Input id="manager-exemption-date" type="date" value={localDate} onChange={(event) => setLocalDate(event.target.value)} required /></div><div className="space-y-2"><Label htmlFor="manager-exemption-reason">Reason</Label><Input id="manager-exemption-reason" value={reason} onChange={(event) => setReason(event.target.value)} minLength={8} placeholder="e.g. Approved medical leave" required /></div>{createExemption.error && <p role="alert" className="text-sm text-destructive">{createExemption.error.message}</p>}<DialogFooter><Button type="submit" disabled={createExemption.isPending || staff.isPending}>{createExemption.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Record exemption</Button></DialogFooter></form></DialogContent></Dialog>;
+  const trigger = presentation === 'action'
+    ? <GlassActionButton label="Exempt" tone="violet" icon={<BookOpenCheck className="h-4 w-4" />} />
+    : <button type="button" className="group w-full rounded-2xl border border-violet-200/80 bg-gradient-to-r from-violet-50 to-card p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-400 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-violet-900/70 dark:from-violet-950/25"><span className="flex items-center gap-4"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-600 text-white shadow-sm"><BookOpenCheck className="h-6 w-6" /></span><span className="min-w-0 flex-1"><span className="block font-semibold">Exempt</span><span className="block text-sm text-muted-foreground">Leave &amp; absence</span></span><ChevronRight className="h-5 w-5 text-violet-600 transition-transform group-hover:translate-x-1" /></span></button>;
+  return <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild>{trigger}</DialogTrigger><DialogContent><DialogHeader><DialogTitle>Record exemption</DialogTitle><DialogDescription>Apply an authorised full-day exemption. Existing clock events remain untouched and the action is written to the audit history.</DialogDescription></DialogHeader><form className="space-y-4" onSubmit={submit}><div className="space-y-2"><Label htmlFor="manager-exemption-staff">Staff member</Label><select id="manager-exemption-staff" value={staffId} onChange={(event) => setStaffId(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" required><option value="">Choose staff</option>{staff.data?.map(member => <option value={member.id} key={member.id}>{member.name}</option>)}</select></div><div className="space-y-2"><Label htmlFor="manager-exemption-date">Work date</Label><Input id="manager-exemption-date" type="date" value={localDate} onChange={(event) => setLocalDate(event.target.value)} required /></div><div className="space-y-2"><Label htmlFor="manager-exemption-reason">Reason</Label><Input id="manager-exemption-reason" value={reason} onChange={(event) => setReason(event.target.value)} minLength={8} placeholder="e.g. Approved medical leave" required /></div>{createExemption.error && <p role="alert" className="text-sm text-destructive">{createExemption.error.message}</p>}<DialogFooter><Button type="submit" disabled={createExemption.isPending || staff.isPending}>{createExemption.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Record exemption</Button></DialogFooter></form></DialogContent></Dialog>;
 }
 
 function ManagePanel({ bootstrap, canManage, canManageCalendar, canDisplayQr, isSaving, onSettingsChange }: {
@@ -256,8 +260,6 @@ function ManagePanel({ bootstrap, canManage, canManageCalendar, canDisplayQr, is
   useEffect(() => { if (activePanel) activePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [activePanel]);
   return (
     <section className="space-y-5" aria-label="Manage staff clocking">
-      <div className="flex justify-end"><Card className="min-w-[18rem] border-blue-200/80 bg-blue-50/70 dark:border-blue-900/70 dark:bg-blue-950/20"><CardContent className="p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">Current configuration</p><p className="mt-1 text-sm text-muted-foreground">{defaultSchedule ? `${defaultSchedule.weekdays?.length || 0} working days · ETA ${formatScheduleTime(defaultSchedule.clockInBy)}${defaultSchedule.clockOutBy ? ` · ETD ${formatScheduleTime(defaultSchedule.clockOutBy)}` : ''}` : 'No school schedule yet'}</p><p className="mt-1 text-xs text-muted-foreground">Grace: {defaultSchedule ? `${defaultSchedule.graceMinutes} minutes` : '—'} · Revision {feature?.revision ?? '—'}</p></div><Badge variant="outline" className={feature?.enabled ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-amber-200 bg-amber-50 text-amber-800'}>{feature?.enabled ? 'Active' : 'Inactive'}</Badge></div></CardContent></Card></div>
-
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <ManageDashboardCard icon={CalendarDays} tone="blue" title="School Days" description="Regular working days and expected arrival times." onClick={() => setActivePanel('school-days')} />
         <ManageDashboardCard icon={CalendarClock} tone="violet" title="Special Days" description="Date-specific working arrangements." onClick={() => setActivePanel('special-days')} />
