@@ -8,6 +8,11 @@
 
 export const STAFF_CLOCKING_TIME_ZONE = 'Africa/Kampala' as const;
 
+export const STAFF_CLOCKING_REVISION_KEYS = [
+  'staffClockingConfig', 'staffClockingRecords', 'staffClockingRequests', 'staffClockingNotifications',
+] as const;
+export type StaffClockingRevisionKey = typeof STAFF_CLOCKING_REVISION_KEYS[number];
+
 export type StaffClockingScope = 'school' | 'group' | 'staff';
 export type StaffClockingScheduleKind = 'recurring' | 'date_override';
 export type StaffClockingResolutionKind = 'scheduled' | 'non_working_day' | 'conflict';

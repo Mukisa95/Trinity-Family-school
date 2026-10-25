@@ -18,6 +18,7 @@ import {
   type DashboardRevisionDocumentKind,
 } from '@/lib/services/dashboard-revision-documents';
 import { DOMAIN_REVISION_KEYS } from '@/lib/cache/domain-revisions';
+import { STAFF_CLOCKING_REVISION_KEYS } from '@/lib/staff-clocking/contracts';
 
 export type DashboardDataRevisions = NonNullable<SchoolSettings['dataRevisions']>;
 
@@ -285,6 +286,14 @@ function mergeDashboardRevisions(
   DOMAIN_REVISION_KEYS.forEach(key => {
     const value = maxRevision(operational[key], legacy?.[key]);
     if (value !== undefined) result[key] = value;
+  });
+  // Wait for both sources (and the compatibility source, when enabled).
+  // Otherwise a reload can briefly compare a saved staff revision with zero
+  // before the reference listener arrives and unnecessarily read the data.
+  const clockingRevisionsReady = modern.reference !== undefined && modern.operational !== undefined
+    && (reference.legacyCompatibility === false || legacy !== undefined);
+  if (clockingRevisionsReady) STAFF_CLOCKING_REVISION_KEYS.forEach(key => {
+    result[key] = maxRevision(operational[key], legacy?.[key]) || 0;
   });
   const timetableRevisions = mergeRevisionMap(
     timetable.timetable as Record<string, number> | undefined,

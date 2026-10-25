@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'crypto';
-import { Timestamp, type Firestore, type Query, type QueryDocumentSnapshot, type Transaction } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp, type Firestore, type Query, type QueryDocumentSnapshot, type Transaction, type WriteBatch } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import type {
   StaffClockingBootstrap,
@@ -10,7 +10,7 @@ import type {
   StaffClockingFeatureSettings,
   StaffClockingSchedule,
 } from '@/lib/staff-clocking/contracts';
-import { STAFF_CLOCKING_TIME_ZONE } from '@/lib/staff-clocking/contracts';
+import { STAFF_CLOCKING_TIME_ZONE, type StaffClockingRevisionKey } from '@/lib/staff-clocking/contracts';
 import { classifyStaffClockIn, resolveStaffClockingSchedule } from '@/lib/staff-clocking/schedule-resolver';
 import { isIsoLocalDate, localTimeToSeconds } from '@/lib/staff-clocking/dates';
 import { isUgandaPublicHoliday } from '@/lib/utils/uganda-holidays';
@@ -32,6 +32,13 @@ export const STAFF_CLOCKING_COLLECTIONS = {
 const SETTINGS_ID = 'default';
 const QR_TOKEN_LIFETIME_MS = 60_000;
 const QR_SESSION_LIFETIME_MS = 10 * 60_000;
+
+function bumpClockingRevisions(db: Firestore, writer: Transaction | WriteBatch, ...keys: Array<StaffClockingRevisionKey | 'events'>) {
+  // The existing shared listener watches this tiny document. Publish atomically
+  // with the source write so other tabs/devices never miss a successful change.
+  (writer as Transaction).set(db.collection('settings').doc('data-revisions-operational'),
+    Object.fromEntries(keys.map(key => [key, FieldValue.increment(1)])), { merge: true });
+}
 const localDate = z.string().refine(isIsoLocalDate, 'Use a valid YYYY-MM-DD date.');
 const localTime = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/, 'Use a 24-hour time such as 08:00 or 08:00:00.');
 const documentId = z.string().trim().min(1).max(120).regex(/^[A-Za-z0-9_-]+$/, 'Use only letters, numbers, underscores, or hyphens.');
@@ -343,6 +350,7 @@ export async function updateStaffClockingSettings(db: Firestore, actor: Authenti
       updatedBy: actorData,
     };
     transaction.set(settingsRef, next, { merge: false });
+    bumpClockingRevisions(db, transaction, 'staffClockingConfig');
     transaction.set(db.collection(STAFF_CLOCKING_COLLECTIONS.history).doc(), {
       a: 'update', e: 'staff_clocking_settings', rid: SETTINGS_ID, rl: 'Staff clocking settings updated',
       uid: actorData.id, un: actorData.name, m: { module: 'staff_clocking', enabled: payload.enabled, accessMode: payload.accessMode }, ts: Timestamp.now(),
@@ -371,7 +379,10 @@ export async function createStaffClockingSchedule(db: Firestore, actor: Authenti
   const actorData = actorLabel(actor);
   const ref = db.collection(STAFF_CLOCKING_COLLECTIONS.schedules).doc();
   const record = omitUndefined({ ...payload, weekdays: payload.weekdays ? [...new Set(payload.weekdays)].sort() : undefined, createdAt: Timestamp.now(), updatedAt: Timestamp.now(), createdBy: actorData, updatedBy: actorData });
-  await ref.set(record);
+  const batch = db.batch();
+  batch.set(ref, record);
+  bumpClockingRevisions(db, batch, 'staffClockingConfig');
+  await batch.commit();
   return serializeSchedule(ref.id, record);
 }
 
@@ -388,6 +399,7 @@ export async function updateStaffClockingSchedule(db: Firestore, actor: Authenti
     if (!existing.exists) throw new Error('CLOCKING_SCHEDULE_NOT_FOUND');
     const next = { ...record, createdAt: existing.data()?.createdAt || Timestamp.now(), createdBy: existing.data()?.createdBy || actorData };
     transaction.set(ref, next, { merge: false });
+    bumpClockingRevisions(db, transaction, 'staffClockingConfig');
     return serializeSchedule(scheduleId, next);
   });
   return result;
@@ -401,6 +413,7 @@ export async function deleteStaffClockingSchedule(db: Firestore, actor: Authenti
     const existing = await transaction.get(ref);
     if (!existing.exists) throw new Error('CLOCKING_SCHEDULE_NOT_FOUND');
     transaction.delete(ref);
+    bumpClockingRevisions(db, transaction, 'staffClockingConfig');
   });
 }
 
@@ -448,8 +461,11 @@ export async function createStaffClockingClosure(db: Firestore, actor: Authentic
   const who = actorLabel(actor);
   const ref = db.collection('events').doc();
   const event = { title: payload.title, description: payload.description || '', type: 'Holiday', priority: 'High', status: 'Scheduled', startDate: payload.startDate, endDate: payload.endDate || payload.startDate, isAllDay: true, targetAudience: ['All Staff'], isExamEvent: false, isRecurringInstance: false, recurrence: { frequency: 'None' }, reminders: [], notificationsSent: [], sendReminders: false, colorCode: '#dc2626', requiresApproval: false, requiresAttendance: false, isPublic: false, customFields: { staffClockingEffect: 'school_closure' }, createdBy: who.id, createdByName: who.name, createdAt: Timestamp.now(), updatedAt: Timestamp.now() };
-  await ref.create(event);
-  await db.collection(STAFF_CLOCKING_COLLECTIONS.history).doc().create({ a: 'create', e: 'staff_clocking_closure', rid: ref.id, rl: `Staff clocking closure created: ${payload.title}`, uid: who.id, un: who.name, m: { startDate: payload.startDate, endDate: payload.endDate || payload.startDate }, ts: Timestamp.now() });
+  const batch = db.batch();
+  batch.create(ref, event);
+  batch.create(db.collection(STAFF_CLOCKING_COLLECTIONS.history).doc(), { a: 'create', e: 'staff_clocking_closure', rid: ref.id, rl: `Staff clocking closure created: ${payload.title}`, uid: who.id, un: who.name, m: { startDate: payload.startDate, endDate: payload.endDate || payload.startDate }, ts: Timestamp.now() });
+  bumpClockingRevisions(db, batch, 'events');
+  await batch.commit();
   return { id: ref.id, ...toIso(event) };
 }
 
@@ -477,6 +493,7 @@ export async function finalizeOpenStaffClockingDate(db: Firestore, workDate: str
         transaction.update(document.ref, { status: 'missing_clock_out', finalizationStatus: 'finalized', finalizedAt: Timestamp.now(), finalizedBy, updatedAt: Timestamp.now() });
         count += 1;
       }
+      if (count) bumpClockingRevisions(db, transaction, 'staffClockingRecords');
       return count;
     });
   }
@@ -548,11 +565,14 @@ export async function createStaffClockingSelfServiceRequest(db: Firestore, actor
     proposedClockInTime: payload.proposedClockInTime, proposedClockOutTime: payload.proposedClockOutTime,
     createdAt: Timestamp.now(), createdBy: actorData,
   });
-  await ref.create(record);
-  await db.collection(STAFF_CLOCKING_COLLECTIONS.history).doc().set({
+  const batch = db.batch();
+  batch.create(ref, record);
+  batch.set(db.collection(STAFF_CLOCKING_COLLECTIONS.history).doc(), {
     a: 'create', e: `staff_clocking_${kind}`, rid: ref.id, rl: `Staff clocking ${kind} requested`,
     uid: actorData.id, un: actorData.name, m: { staffId, localDate: payload.localDate }, ts: Timestamp.now(),
   });
+  bumpClockingRevisions(db, batch, 'staffClockingRequests');
+  await batch.commit();
   return { id: ref.id, ...toIso(record) };
 }
 
@@ -571,6 +591,7 @@ export async function createManagedStaffClockingExemption(db: Firestore, actor: 
     const dailyRef = db.collection(STAFF_CLOCKING_COLLECTIONS.dailyRecords).doc(dailyRecordId(payload.staffId, payload.localDate));
     const existing = await transaction.get(dailyRef);
     transaction.create(exemptionRef, exemption);
+    bumpClockingRevisions(db, transaction, 'staffClockingRequests', 'staffClockingRecords');
     transaction.set(dailyRef, {
       ...(existing.exists ? existing.data() : {}), staffId: payload.staffId, ...(staffName ? { staffName } : {}), localDate: payload.localDate,
       status: existing.data()?.status || 'open', exemptionId: exemptionRef.id, exemptionStatus: 'approved', reviewStatus: 'exempted', updatedAt: Timestamp.now(),
@@ -628,6 +649,7 @@ export async function reviewStaffClockingSelfServiceRequest(db: Firestore, actor
       ...(kind === 'correction' ? { proposedClockInTime: data.proposedClockInTime, proposedClockOutTime: data.proposedClockOutTime || null } : {}),
     });
     transaction.update(ref, omitUndefined({ status: approved ? 'approved' : 'rejected', reviewedAt: Timestamp.now(), reviewedBy: reviewer, reviewNote: reviewNote?.trim() || undefined }));
+    bumpClockingRevisions(db, transaction, 'staffClockingRequests', 'staffClockingNotifications', ...(approved ? ['staffClockingRecords' as const] : []));
     transaction.set(db.collection(STAFF_CLOCKING_COLLECTIONS.notifications).doc(), {
       accountId: data.accountId, staffId: data.staffId, type: `${kind}_${approved ? 'approved' : 'rejected'}`,
       title: `Clocking ${kind} ${approved ? 'approved' : 'rejected'}`,
@@ -757,6 +779,7 @@ export async function recordStaffClockingScan(db: Firestore, actor: Authenticate
       : { ...prior, clockOutAt: Timestamp.fromDate(now), clockOutTime: localTime, status: 'complete', updatedAt: Timestamp.fromDate(now) };
     transaction.create(eventRef, event);
     transaction.set(dailyRef, record, { merge: false });
+    bumpClockingRevisions(db, transaction, 'staffClockingRecords');
     return { duplicate: false, event: toIso(event), record: toIso(record) };
   });
 }

@@ -36,7 +36,7 @@ before(async () => {
 });
 
 beforeEach(async () => {
-  for (const collection of ['system_users', 'staff', 'events', 'historyLogs', ...Object.values(engine.STAFF_CLOCKING_COLLECTIONS)]) {
+  for (const collection of ['system_users', 'staff', 'events', 'settings', 'historyLogs', ...Object.values(engine.STAFF_CLOCKING_COLLECTIONS)]) {
     const snapshot = await db.collection(collection).get();
     for (let offset = 0; offset < snapshot.size; offset += 400) {
       const batch = db.batch(); snapshot.docs.slice(offset, offset + 400).forEach(document => batch.delete(document.ref)); await batch.commit();
@@ -67,12 +67,32 @@ test('accepted scan writes one event and an authoritative daily record', async (
   assert.equal(result.event.type, 'clock_in');
   assert.equal(result.record.staffId, 'staff-one');
   assert.equal((await db.collection('staffClockingEvents').get()).size, 1);
+  assert.equal((await db.collection('settings').doc('data-revisions-operational').get()).data().staffClockingRecords, 1);
 });
 test('concurrent retries commit one event and return the same result', async () => {
   const input = await scanInput();
   const results = await Promise.all([engine.recordStaffClockingScan(db, staff, input), engine.recordStaffClockingScan(db, staff, input)]);
   assert.equal(results.filter(result => result.duplicate).length, 1);
   assert.equal((await db.collection('staffClockingEvents').get()).size, 1);
+  assert.equal((await db.collection('settings').doc('data-revisions-operational').get()).data().staffClockingRecords, 1, 'Duplicate scans must not publish a false change');
+});
+
+test('configuration changes atomically publish revisions without invalidating attendance', async () => {
+  const payload = { scope: 'school', kind: 'recurring', weekdays: [1, 2, 3, 4, 5], clockInBy: '08:00', graceMinutes: 10, isActive: true };
+  const revision = async () => (await db.collection('settings').doc('data-revisions-operational').get()).data();
+  const schedule = await engine.createStaffClockingSchedule(db, manager, payload);
+  assert.deepEqual(await revision(), { staffClockingConfig: 1 });
+  await engine.updateStaffClockingSchedule(db, manager, schedule.id, { ...payload, graceMinutes: 15 });
+  assert.deepEqual(await revision(), { staffClockingConfig: 2 });
+  await engine.deleteStaffClockingSchedule(db, manager, schedule.id);
+  assert.deepEqual(await revision(), { staffClockingConfig: 3 });
+  await assert.rejects(engine.deleteStaffClockingSchedule(db, manager, schedule.id), /CLOCKING_SCHEDULE_NOT_FOUND/);
+  assert.deepEqual(await revision(), { staffClockingConfig: 3 });
+});
+
+test('manager exemptions publish attendance and request changes together', async () => {
+  await engine.createManagedStaffClockingExemption(db, manager, { staffId: 'staff-one', localDate: day, reason: 'Approved medical leave' });
+  assert.deepEqual((await db.collection('settings').doc('data-revisions-operational').get()).data(), { staffClockingRecords: 1, staffClockingRequests: 1 });
 });
 test('missing QR secret cannot leave an unusable display-session document', async () => {
   const secret = process.env.STAFF_CLOCKING_QR_SECRET;
@@ -172,7 +192,9 @@ test('finalization is idempotent, skips completed/exempt days and rejects unfini
     await db.collection('staffClockingDailyRecords').doc(id).set({ localDate: date, status: 'open', clockInAt: Timestamp.now(), ...extra });
   }
   assert.equal((await engine.finalizeOpenStaffClockingDate(db, date)).finalized, 1);
+  assert.equal((await db.collection('settings').doc('data-revisions-operational').get()).data().staffClockingRecords, 1);
   assert.equal((await engine.finalizeOpenStaffClockingDate(db, date)).finalized, 0);
+  assert.equal((await db.collection('settings').doc('data-revisions-operational').get()).data().staffClockingRecords, 1, 'An unchanged date must not invalidate caches');
   await assert.rejects(engine.finalizeOpenStaffClockingDate(db, day), /CLOCKING_FINALIZATION_DATE_NOT_FINISHED/);
 });
 test('disabled feature pauses finalization without changing recorded history', async () => {

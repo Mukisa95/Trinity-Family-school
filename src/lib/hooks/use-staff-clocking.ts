@@ -1,8 +1,12 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
+import { useDashboardDataRevisions } from './use-school-settings';
+import { loadStaffClockingCache } from '@/lib/cache/staff-clocking-cache';
+import type { SchoolSettings } from '@/types';
 import type { StaffClockingBootstrap, StaffClockingDailyRecord, StaffClockingFeatureSettings, StaffClockingReportSummary, StaffClockingReviewRequest, StaffClockingSchedule, StaffClockingStaffCandidate } from '@/lib/staff-clocking/contracts';
 
 export const STAFF_CLOCKING_QUERY_KEYS = {
@@ -19,7 +23,42 @@ export const STAFF_CLOCKING_QUERY_KEYS = {
 
 function useClockingScope() {
   const { user } = useAuth();
-  return [user?.id || 'signed-out', user?.staffId || '', user?.role || '', JSON.stringify(user?.granularPermissions?.find(item => item.moduleId === 'staff_clocking') || null)];
+  return [process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools', user?.id || 'signed-out', user?.staffId || '', user?.role || '', JSON.stringify(user?.granularPermissions?.find(item => item.moduleId === 'staff_clocking') || null)];
+}
+
+type RevisionName = keyof NonNullable<SchoolSettings['dataRevisions']>;
+
+function useClockingQuery<T>(key: readonly unknown[], fetchData: () => Promise<T>, enabled: boolean, dependencies: RevisionName[], daily = false) {
+  const scope = useClockingScope();
+  const { isAuthenticated } = useAuth();
+  // All consumers share the existing dashboard revision listener; this does
+  // not create a separate listener for each clocking collection or page.
+  const revisions = useDashboardDataRevisions({ enabled: enabled && isAuthenticated });
+  const schoolDay = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Kampala', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const [day, setDay] = useState(schoolDay);
+  useEffect(() => {
+    if (!daily || !enabled) return;
+    const tick = () => setDay(schoolDay());
+    tick();
+    const timer = setInterval(tick, 30_000);
+    window.addEventListener('focus', tick);
+    return () => { clearInterval(timer); window.removeEventListener('focus', tick); };
+  }, [daily, enabled]);
+  const revision = JSON.stringify(dependencies.map(name => revisions.data?.[name] ?? 0));
+  const cacheKey = JSON.stringify(['staff-clocking-cache-v1', ...scope, key, daily ? day : '']);
+  return useQuery({
+    queryKey: [...key, ...scope, daily ? day : '', revision],
+    queryFn: () => loadStaffClockingCache(cacheKey, revision, fetchData),
+    enabled: enabled && isAuthenticated && revisions.data?.staffClockingConfig !== undefined,
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
+    networkMode: 'offlineFirst',
+    // A failed cold load may retry when reopened; successful snapshots never
+    // expire just because the page was mounted again.
+    refetchOnMount: (query) => query.state.data === undefined,
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
+  });
 }
 
 async function requestStaffClocking<T>(path: string, init?: RequestInit): Promise<T> {
@@ -38,80 +77,58 @@ async function requestStaffClocking<T>(path: string, init?: RequestInit): Promis
 }
 
 export function useStaffClockingBootstrap(enabled = true) {
-  const scope = useClockingScope();
-  return useQuery({
-    queryKey: [...STAFF_CLOCKING_QUERY_KEYS.bootstrap(), ...scope],
-    queryFn: () => requestStaffClocking<StaffClockingBootstrap>('/api/staff-clocking/bootstrap'),
-    enabled,
-    staleTime: 30_000,
-    refetchOnWindowFocus: false,
-  });
+  return useClockingQuery(STAFF_CLOCKING_QUERY_KEYS.bootstrap(), () => requestStaffClocking<StaffClockingBootstrap>('/api/staff-clocking/bootstrap'), enabled, ['staffClockingConfig', 'staff']);
 }
 
 export function useUpdateStaffClockingSettings() {
-  const client = useQueryClient();
   return useMutation({
     mutationFn: (settings: Pick<StaffClockingFeatureSettings, 'enabled' | 'accessMode' | 'enrolledStaffIds'>) =>
       requestStaffClocking<StaffClockingFeatureSettings>('/api/staff-clocking/settings', { method: 'PUT', body: JSON.stringify(settings) }),
-    onSuccess: () => void client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.bootstrap() }),
   });
 }
 
 export function useStaffClockingSchedules(enabled = true) {
-  const scope = useClockingScope();
-  return useQuery({
-    queryKey: [...STAFF_CLOCKING_QUERY_KEYS.schedules(), ...scope],
-    queryFn: async () => (await requestStaffClocking<{ schedules: StaffClockingSchedule[] }>('/api/staff-clocking/schedules')).schedules,
-    enabled,
-    staleTime: 30_000,
-    refetchOnWindowFocus: false,
-  });
+  return useClockingQuery(STAFF_CLOCKING_QUERY_KEYS.schedules(), async () => (await requestStaffClocking<{ schedules: StaffClockingSchedule[] }>('/api/staff-clocking/schedules')).schedules, enabled, ['staffClockingConfig']);
 }
 
 export function useCreateStaffClockingSchedule() {
-  const client = useQueryClient();
   return useMutation({
     mutationFn: (schedule: Omit<StaffClockingSchedule, 'id'>) =>
       requestStaffClocking<StaffClockingSchedule>('/api/staff-clocking/schedules', { method: 'POST', body: JSON.stringify(schedule) }),
-    onSuccess: () => void client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.schedules() }),
   });
 }
 
 export function useDeleteStaffClockingSchedule() {
-  const client = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => requestStaffClocking(`/api/staff-clocking/schedules/${id}`, { method: 'DELETE' }),
-    onSuccess: () => void client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.schedules() }),
   });
 }
 
 export function useUpdateStaffClockingSchedule() {
-  const client = useQueryClient();
   return useMutation({
     mutationFn: ({ id, schedule }: { id: string; schedule: Omit<StaffClockingSchedule, 'id'> }) => requestStaffClocking(`/api/staff-clocking/schedules/${id}`, { method: 'PUT', body: JSON.stringify(schedule) }),
-    onSuccess: () => void client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.schedules() }),
   });
 }
 
 export function useStaffClockingDailyRecords(filters: { from?: string; to?: string; staffId?: string; query?: string } = {}, enabled = true) {
-  const scope = useClockingScope();
-  const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => Boolean(value)) as Array<[string, string]>);
-  return useQuery({
-    queryKey: [...STAFF_CLOCKING_QUERY_KEYS.records(), ...scope, filters],
-    queryFn: () => requestStaffClocking<{ records: StaffClockingDailyRecord[]; summary: StaffClockingReportSummary }>(`/api/staff-clocking/records?${params.toString()}`),
-    enabled,
-    staleTime: 15_000,
-    refetchOnWindowFocus: false,
-  });
+  // Search the already authorised period locally; typing never re-reads it.
+  const { query = '', ...period } = filters;
+  const params = new URLSearchParams(Object.entries(period).filter(([, value]) => Boolean(value)).sort(([left], [right]) => left.localeCompare(right)) as Array<[string, string]>);
+  const result = useClockingQuery([...STAFF_CLOCKING_QUERY_KEYS.records(), params.toString()], () => requestStaffClocking<{ records: StaffClockingDailyRecord[]; summary: StaffClockingReportSummary }>(`/api/staff-clocking/records?${params}`), enabled, ['staffClockingRecords']);
+  if (!query.trim() || !result.data) return result;
+  const search = query.trim().toLowerCase();
+  const records = result.data.records.filter(record => `${record.staffName || ''} ${record.staffId}`.toLowerCase().includes(search));
+  const summary = records.reduce<StaffClockingReportSummary>((totals, record) => ({ total: totals.total + 1, complete: totals.complete + Number(record.status === 'complete'), open: totals.open + Number(record.status === 'open'), late: totals.late + Number(record.arrivalStatus === 'late'), exempted: totals.exempted + Number(record.reviewStatus === 'exempted'), corrected: totals.corrected + Number(record.reviewStatus === 'corrected') }), { total: 0, complete: 0, open: 0, late: 0, exempted: 0, corrected: 0 });
+  return { ...result, data: { records, summary } };
 }
 
-export function useStaffClockingStaffCandidates(enabled: boolean) { const scope = useClockingScope(); return useQuery({ queryKey: [...STAFF_CLOCKING_QUERY_KEYS.staff(), ...scope], queryFn: async () => (await requestStaffClocking<{ staff: StaffClockingStaffCandidate[] }>('/api/staff-clocking/staff')).staff, enabled, staleTime: 60_000 }); }
-export function useStaffClockingClosures(enabled: boolean) { const scope = useClockingScope(); return useQuery({ queryKey: [...STAFF_CLOCKING_QUERY_KEYS.closures(), ...scope], queryFn: async () => (await requestStaffClocking<{ closures: Array<Record<string, unknown>> }>('/api/staff-clocking/closures')).closures, enabled, staleTime: 30_000 }); }
-export function useCreateStaffClockingClosure() { const client = useQueryClient(); return useMutation({ mutationFn: (input: { title: string; startDate: string; endDate?: string; description?: string }) => requestStaffClocking('/api/staff-clocking/closures', { method: 'POST', body: JSON.stringify(input) }), onSuccess: () => void client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.closures() }) }); }
-export function useFinalizeStaffClockingDate() { const client = useQueryClient(); return useMutation({ mutationFn: (localDate: string) => requestStaffClocking('/api/staff-clocking/finalize', { method: 'POST', body: JSON.stringify({ localDate }) }), onSuccess: () => void client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.records() }) }); }
+export function useStaffClockingStaffCandidates(enabled: boolean) { return useClockingQuery(STAFF_CLOCKING_QUERY_KEYS.staff(), async () => (await requestStaffClocking<{ staff: StaffClockingStaffCandidate[] }>('/api/staff-clocking/staff')).staff, enabled, ['staff']); }
+export function useStaffClockingClosures(enabled: boolean) { return useClockingQuery(STAFF_CLOCKING_QUERY_KEYS.closures(), async () => (await requestStaffClocking<{ closures: Array<Record<string, unknown>> }>('/api/staff-clocking/closures')).closures, enabled, ['events']); }
+export function useCreateStaffClockingClosure() { return useMutation({ mutationFn: (input: { title: string; startDate: string; endDate?: string; description?: string }) => requestStaffClocking('/api/staff-clocking/closures', { method: 'POST', body: JSON.stringify(input) }) }); }
+export function useFinalizeStaffClockingDate() { return useMutation({ mutationFn: (localDate: string) => requestStaffClocking('/api/staff-clocking/finalize', { method: 'POST', body: JSON.stringify({ localDate }) }) }); }
 export function useExportStaffClockingRecords() { return useMutation({ mutationFn: async (filters: { from?: string; to?: string; staffId?: string; query?: string }) => { const token = await auth.currentUser?.getIdToken(); if (!token) throw new Error('Your session is not ready. Please refresh and try again.'); const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => Boolean(value)) as Array<[string, string]>); const response = await fetch(`/api/staff-clocking/export?${params}`, { headers: { Authorization: `Bearer ${token}` } }); if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.error || 'Unable to export clock records.'); } const link = document.createElement('a'); link.href = URL.createObjectURL(await response.blob()); link.download = 'staff-clocking-records.csv'; link.click(); URL.revokeObjectURL(link.href); } }); }
-export function useOwnStaffClockingNotifications(enabled: boolean) { const scope = useClockingScope(); return useQuery({ queryKey: [...STAFF_CLOCKING_QUERY_KEYS.notifications(), ...scope], queryFn: async () => (await requestStaffClocking<{ notifications: Array<{ id: string; title: string; body: string; createdAt?: string }> }>('/api/staff-clocking/notifications')).notifications, enabled, staleTime: 30_000 }); }
-export function useOwnStaffClockingDashboard(enabled: boolean) { const scope = useClockingScope(); return useQuery({ queryKey: [...STAFF_CLOCKING_QUERY_KEYS.myDashboard(), ...scope], queryFn: () => requestStaffClocking<{ staff: { id: string; name: string; group?: string }; localDate: string; record?: StaffClockingDailyRecord; history: StaffClockingDailyRecord[]; schedule: { kind: string; clockInBy?: string; clockOutBy?: string; graceMinutes?: number; sourceScope?: string; reason?: string }; calendar?: { isClosed: boolean; label?: string } }>('/api/staff-clocking/my-dashboard'), enabled, staleTime: 15_000, refetchOnWindowFocus: false }); }
+export function useOwnStaffClockingNotifications(enabled: boolean) { return useClockingQuery(STAFF_CLOCKING_QUERY_KEYS.notifications(), async () => (await requestStaffClocking<{ notifications: Array<{ id: string; title: string; body: string; createdAt?: string }> }>('/api/staff-clocking/notifications')).notifications, enabled, ['staffClockingNotifications']); }
+export function useOwnStaffClockingDashboard(enabled: boolean) { return useClockingQuery(STAFF_CLOCKING_QUERY_KEYS.myDashboard(), () => requestStaffClocking<{ staff: { id: string; name: string; group?: string }; localDate: string; record?: StaffClockingDailyRecord; history: StaffClockingDailyRecord[]; schedule: { kind: string; clockInBy?: string; clockOutBy?: string; graceMinutes?: number; sourceScope?: string; reason?: string }; calendar?: { isClosed: boolean; label?: string } }>('/api/staff-clocking/my-dashboard'), enabled, ['staffClockingConfig', 'staffClockingRecords', 'staff', 'events'], true); }
 
 export function useCreateStaffClockingQrSession() {
   return useMutation({
@@ -124,53 +141,32 @@ export function useRevokeStaffClockingQrSession() {
 }
 
 export function useSubmitStaffClockingScan() {
-  const client = useQueryClient();
   return useMutation({
     mutationFn: (input: { token: string; operationId: string }) => requestStaffClocking('/api/staff-clocking/clock', { method: 'POST', body: JSON.stringify(input) }),
-    onSuccess: () => void Promise.all([client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.bootstrap() }), client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.myDashboard() })]),
   });
 }
 
 export function useCreateStaffClockingRequest(kind: 'exemption' | 'correction') {
-  const client = useQueryClient();
   return useMutation({
     mutationFn: (input: { localDate: string; reason: string; proposedClockInTime?: string; proposedClockOutTime?: string }) =>
       requestStaffClocking(`/api/staff-clocking/${kind}s`, { method: 'POST', body: JSON.stringify(input) }),
-    onSuccess: () => void client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.requests(kind) }),
   });
 }
 
 export function useCreateManagedStaffClockingExemption() {
-  const client = useQueryClient();
   return useMutation({
     mutationFn: (input: { staffId: string; localDate: string; reason: string }) =>
       requestStaffClocking('/api/staff-clocking/manager-exemptions', { method: 'POST', body: JSON.stringify(input) }),
-    onSuccess: () => void Promise.all([
-      client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.records() }),
-      client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.requests('exemption') }),
-    ]),
   });
 }
 
 export function useStaffClockingReviewRequests(kind: 'exemption' | 'correction', enabled: boolean) {
-  const scope = useClockingScope();
-  return useQuery({
-    queryKey: [...STAFF_CLOCKING_QUERY_KEYS.requests(kind), ...scope],
-    queryFn: async () => (await requestStaffClocking<{ requests: StaffClockingReviewRequest[] }>(`/api/staff-clocking/requests/${kind}`)).requests,
-    enabled,
-    staleTime: 15_000,
-    refetchOnWindowFocus: false,
-  });
+  return useClockingQuery(STAFF_CLOCKING_QUERY_KEYS.requests(kind), async () => (await requestStaffClocking<{ requests: StaffClockingReviewRequest[] }>(`/api/staff-clocking/requests/${kind}`)).requests, enabled, ['staffClockingRequests']);
 }
 
 export function useReviewStaffClockingRequest(kind: 'exemption' | 'correction') {
-  const client = useQueryClient();
   return useMutation({
     mutationFn: ({ id, approved, reviewNote }: { id: string; approved: boolean; reviewNote?: string }) =>
       requestStaffClocking(`/api/staff-clocking/requests/${kind}/${id}/review`, { method: 'POST', body: JSON.stringify({ approved, reviewNote }) }),
-    onSuccess: () => void Promise.all([
-      client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.requests(kind) }),
-      client.invalidateQueries({ queryKey: STAFF_CLOCKING_QUERY_KEYS.records() }),
-    ]),
   });
 }
