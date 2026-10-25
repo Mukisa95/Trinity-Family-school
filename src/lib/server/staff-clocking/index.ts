@@ -52,7 +52,9 @@ export const staffClockingSettingsSchema = z.object({
 
 export const staffClockingScheduleSchema = z.object({
   scope: z.enum(['school', 'group', 'staff']),
-  subjectId: documentId.optional(),
+  // Staff schedules use a staff document ID. Group schedules deliberately use
+  // the stored department or role label, which may contain spaces.
+  subjectId: z.string().trim().min(1).max(120).optional(),
   kind: z.enum(['recurring', 'date_override']),
   workDate: localDate.optional(),
   weekdays: z.array(z.number().int().min(0).max(6)).max(7).optional(),
@@ -69,6 +71,9 @@ export const staffClockingScheduleSchema = z.object({
   }
   if (value.scope !== 'school' && !value.subjectId) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['subjectId'], message: 'Group and staff schedules need a subject ID.' });
+  }
+  if (value.scope === 'staff' && value.subjectId && !documentId.safeParse(value.subjectId).success) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['subjectId'], message: 'Staff schedules need a valid staff ID.' });
   }
   if (value.kind === 'date_override' && !value.workDate) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['workDate'], message: 'A date override needs a work date.' });
@@ -245,6 +250,26 @@ function normalizeSettings(data?: Record<string, unknown>): StaffClockingFeature
   };
 }
 
+function staffGroupLabels(staff: Record<string, unknown>): string[] {
+  const asLabels = (value: unknown) => (Array.isArray(value) ? value : [value])
+    .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    .map((item) => item.trim());
+  return [...new Set([...asLabels(staff.department), ...asLabels(staff.role)])];
+}
+
+async function assertScheduleAudienceExists(db: Firestore, schedule: { scope: 'school' | 'group' | 'staff'; subjectId?: string }) {
+  if (schedule.scope === 'school') return;
+  if (!schedule.subjectId) throw new Error('CLOCKING_SCHEDULE_AUDIENCE_REQUIRED');
+  if (schedule.scope === 'staff') {
+    const staff = await db.collection('staff').doc(schedule.subjectId).get();
+    if (!staff.exists || String(staff.data()?.status || 'active').toLowerCase() !== 'active') throw new Error('CLOCKING_SCHEDULE_STAFF_NOT_FOUND');
+    return;
+  }
+  const staff = await db.collection('staff').get();
+  const exists = staff.docs.some((item) => String(item.data().status || 'active').toLowerCase() === 'active' && staffGroupLabels(item.data()).includes(schedule.subjectId!));
+  if (!exists) throw new Error('CLOCKING_SCHEDULE_GROUP_NOT_FOUND');
+}
+
 function canAccess(actor: AuthenticatedAppUser, page: 'record' | 'clock' | 'records', action?: string) {
   return GranularPermissionService.canAccessPage(actor.user, 'staff_clocking', page)
     && (!action || GranularPermissionService.canPerformAction(actor.user, 'staff_clocking', page, action));
@@ -342,6 +367,7 @@ export async function listStaffClockingSchedules(db: Firestore, actor: Authentic
 export async function createStaffClockingSchedule(db: Firestore, actor: AuthenticatedAppUser, input: unknown) {
   requireStaffClockingAccess(actor, 'record', 'manage_schedules');
   const payload = staffClockingScheduleSchema.parse(input);
+  await assertScheduleAudienceExists(db, payload);
   const actorData = actorLabel(actor);
   const ref = db.collection(STAFF_CLOCKING_COLLECTIONS.schedules).doc();
   const record = omitUndefined({ ...payload, weekdays: payload.weekdays ? [...new Set(payload.weekdays)].sort() : undefined, createdAt: Timestamp.now(), updatedAt: Timestamp.now(), createdBy: actorData, updatedBy: actorData });
@@ -353,6 +379,7 @@ export async function updateStaffClockingSchedule(db: Firestore, actor: Authenti
   requireStaffClockingAccess(actor, 'record', 'manage_schedules');
   const scheduleId = documentId.parse(id);
   const payload = staffClockingScheduleSchema.parse(input);
+  await assertScheduleAudienceExists(db, payload);
   const ref = db.collection(STAFF_CLOCKING_COLLECTIONS.schedules).doc(scheduleId);
   const actorData = actorLabel(actor);
   const record = omitUndefined({ ...payload, weekdays: payload.weekdays ? [...new Set(payload.weekdays)].sort() : undefined, updatedAt: Timestamp.now(), updatedBy: actorData });
@@ -403,7 +430,7 @@ export async function getStaffClockingStaffCandidates(db: Firestore, actor: Auth
   const snapshot = await db.collection('staff').get();
   return snapshot.docs
     .filter(item => String(item.data().status || 'active').toLowerCase() === 'active')
-    .map(item => ({ id: item.id, name: [item.data().firstName, item.data().lastName].filter(Boolean).join(' ').trim() || item.id, employeeId: item.data().employeeId, department: Array.isArray(item.data().department) ? item.data().department.filter((v: unknown): v is string => typeof v === 'string') : [], role: Array.isArray(item.data().role) ? item.data().role.filter((v: unknown): v is string => typeof v === 'string') : [] }))
+    .map(item => ({ id: item.id, name: [item.data().firstName, item.data().lastName].filter(Boolean).join(' ').trim() || item.id, employeeId: item.data().employeeId, department: (Array.isArray(item.data().department) ? item.data().department : [item.data().department]).filter((v: unknown): v is string => typeof v === 'string' && v.trim().length > 0).map((value: string) => value.trim()), role: (Array.isArray(item.data().role) ? item.data().role : [item.data().role]).filter((v: unknown): v is string => typeof v === 'string' && v.trim().length > 0).map((value: string) => value.trim()) }))
     .sort((left, right) => left.name.localeCompare(right.name));
 }
 
