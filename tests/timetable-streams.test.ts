@@ -300,6 +300,22 @@ test('the PDF action opens class selection before mounting the printable timetab
   assert.match(dialog, /disabled=\{selectedCount === 0\}/);
 });
 
+test('PDF class selection controls grayscale treatments and the school badge watermark', () => {
+  const dialog = readFileSync('src/components/timetable/TimetablePrintClassDialog.tsx', 'utf8');
+  const panel = readFileSync('src/components/timetable/TimetableViewPanel.tsx', 'utf8');
+  const printable = readFileSync('src/components/timetable/PrintableTimetable.tsx', 'utf8');
+
+  assert.match(dialog, /Gray co-curricular activities/);
+  assert.match(dialog, /Gray breaks/);
+  assert.match(dialog, /School badge watermark/);
+  assert.match(dialog, /onPrint\(orderedSelection, printOptions\)/);
+  assert.match(panel, /setPrintOptions\(options\)/);
+  assert.match(panel, /printOptions=\{printOptions\}/);
+  assert.match(printable, /appearance\.showSchoolBadgeWatermark && logoUrl/);
+  assert.match(printable, /isBreak && appearance\.grayscaleBreaks/);
+  assert.match(printable, /entry\?\.entryType === "activity" && appearance\.grayscaleActivities/);
+});
+
 test('timetable live-feed cards stay compact and form two columns on wide screens', () => {
   const tracker = readFileSync('src/components/timetable/LiveTracker.tsx', 'utf8');
   const page = readFileSync('src/app/timetable/page.tsx', 'utf8');

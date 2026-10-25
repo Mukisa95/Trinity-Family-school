@@ -8,6 +8,7 @@ import { usePDFViewer } from "@/lib/hooks/use-pdf-viewer";
 import { buildTimetableClassRowsForDay } from "@/lib/utils/timetable-streams";
 import { buildTimetablePrintDayCells, isTimetablePrintBreak } from "@/lib/utils/timetable-print-layout";
 import { TimetablePrintLabel } from "@/components/timetable/TimetablePrintLabel";
+import type { TimetablePrintOptions } from "@/components/timetable/TimetablePrintClassDialog";
 
 const DAYS = [
     { id: 1, label: "MON" },
@@ -34,6 +35,7 @@ interface PrintableTimetableProps {
     academicYearId: string;
     profile?: Pick<TimetableProfile, "streamLayouts">;
     timeFormat?: "12h" | "24h";
+    printOptions?: TimetablePrintOptions;
     onClose: () => void;
 }
 
@@ -58,12 +60,18 @@ export function PrintableTimetable({
     academicYearId,
     profile,
     timeFormat,
+    printOptions,
     onClose,
 }: PrintableTimetableProps) {
     const { data: schoolSettings } = useSchoolSettings();
     const pdfViewer = usePDFViewer();
     const captureRef = React.useRef<HTMLDivElement>(null);
     const [status, setStatus] = React.useState<"idle" | "generating" | "done" | "error">("idle");
+    const appearance = {
+        grayscaleActivities: printOptions?.grayscaleActivities ?? true,
+        grayscaleBreaks: printOptions?.grayscaleBreaks ?? true,
+        showSchoolBadgeWatermark: printOptions?.showSchoolBadgeWatermark ?? true,
+    };
 
     // ── Scale preview to fit the screen ───────────────────────────────────────
     const [scale, setScale] = React.useState(1);
@@ -236,7 +244,7 @@ export function PrintableTimetable({
             }}
         >
             {/* Watermark logo - properly aligned, grayscale, prominent */}
-            {logoUrl && (
+            {appearance.showSchoolBadgeWatermark && logoUrl && (
                 <div style={{
                     position: "absolute",
                     inset: 0,
@@ -307,7 +315,7 @@ export function PrintableTimetable({
                                         textAlign: "center",
                                         verticalAlign: "middle",
                                         whiteSpace: "nowrap",
-                                        background: isBreak ? "#e8e8e8" : "#fff",
+                                        background: isBreak && appearance.grayscaleBreaks ? "#e8e8e8" : "#fff",
                                     }}
                                 >
                                     <TimetablePrintLabel text={isBreak ? fmtShort(p.startTime) : fmt(p.startTime)} />
@@ -335,7 +343,7 @@ export function PrintableTimetable({
                                         textAlign: "center",
                                         verticalAlign: "middle",
                                         whiteSpace: "nowrap",
-                                        background: isBreak ? "#e8e8e8" : "#fff",
+                                        background: isBreak && appearance.grayscaleBreaks ? "#e8e8e8" : "#fff",
                                     }}
                                 >
                                     <TimetablePrintLabel text={isBreak ? fmtShort(p.endTime) : fmt(p.endTime)} />
@@ -421,7 +429,7 @@ export function PrintableTimetable({
                                                 if (isTimetablePrintBreak(tp)) {
                                                     if (dayIdx !== 0 || rowIdx !== 0) return null;
                                                     return (
-                                                        <td key={tp.id} rowSpan={totalRows} data-printable-break-cell="true" style={{ borderTop: bdBold, borderBottom: bdBold, borderLeft: bd, borderRight: bd, background: "#e8e8e8", padding: 0, position: "relative" }}>
+                                                        <td key={tp.id} rowSpan={totalRows} data-printable-break-cell="true" style={{ borderTop: bdBold, borderBottom: bdBold, borderLeft: bd, borderRight: bd, background: appearance.grayscaleBreaks ? "#e8e8e8" : "#fff", padding: 0, position: "relative" }}>
                                                             <div data-printable-break-label="true" style={{ position: "absolute", inset: 0 }}>
                                                                 <TimetablePrintLabel text={tp.customLabel || tp.type} direction="vertical" weight={900} />
                                                             </div>
@@ -443,7 +451,7 @@ export function PrintableTimetable({
                                                         colSpan={cell.colSpan}
                                                         data-printable-lesson-cell="true"
                                                         data-period-column={templatePeriodIndex}
-                                                        style={{ borderTop: "none", borderBottom: rowBorder(dayRows, rowIdx + cell.rowSpan - 1), borderLeft: bd, borderRight: bd, background: entry?.entryType === "activity" ? "#e8e8e8" : undefined, padding: 0, position: "relative" }}
+                                                        style={{ borderTop: "none", borderBottom: rowBorder(dayRows, rowIdx + cell.rowSpan - 1), borderLeft: bd, borderRight: bd, background: entry?.entryType === "activity" && appearance.grayscaleActivities ? "#e8e8e8" : undefined, padding: 0, position: "relative" }}
                                                     >
                                                         {label && <TimetablePrintLabel text={label} weight={entry?.entryType === "activity" ? 700 : 600} />}
                                                     </td>

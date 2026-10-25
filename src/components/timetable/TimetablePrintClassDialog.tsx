@@ -14,12 +14,18 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 
+export type TimetablePrintOptions = {
+    grayscaleActivities: boolean;
+    grayscaleBreaks: boolean;
+    showSchoolBadgeWatermark: boolean;
+};
+
 interface TimetablePrintClassDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     classes: Class[];
     timetableName?: string;
-    onPrint: (classIds: string[]) => void;
+    onPrint: (classIds: string[], options: TimetablePrintOptions) => void;
 }
 
 export function TimetablePrintClassDialog({
@@ -30,10 +36,22 @@ export function TimetablePrintClassDialog({
     onPrint,
 }: TimetablePrintClassDialogProps) {
     const [selectedClassIds, setSelectedClassIds] = React.useState<Set<string>>(new Set());
+    const [printOptions, setPrintOptions] = React.useState<TimetablePrintOptions>({
+        grayscaleActivities: true,
+        grayscaleBreaks: true,
+        showSchoolBadgeWatermark: true,
+    });
     const classIdsKey = React.useMemo(() => classes.map(classItem => classItem.id).join("|"), [classes]);
 
     React.useEffect(() => {
-        if (open) setSelectedClassIds(new Set(classes.map(classItem => classItem.id)));
+        if (open) {
+            setSelectedClassIds(new Set(classes.map(classItem => classItem.id)));
+            setPrintOptions({
+                grayscaleActivities: true,
+                grayscaleBreaks: true,
+                showSchoolBadgeWatermark: true,
+            });
+        }
     }, [classIdsKey, classes, open]);
 
     const selectedCount = selectedClassIds.size;
@@ -54,12 +72,12 @@ export function TimetablePrintClassDialog({
             .map(classItem => classItem.id);
         if (orderedSelection.length === 0) return;
         onOpenChange(false);
-        onPrint(orderedSelection);
+        onPrint(orderedSelection, printOptions);
     };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-xl gap-0 overflow-hidden p-0">
+            <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-xl gap-0 overflow-y-auto p-0">
                 <DialogHeader className="border-b border-slate-200/80 bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-5 py-5 pr-14 sm:px-6">
                     <div className="flex items-start gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
@@ -142,6 +160,38 @@ export function TimetablePrintClassDialog({
                         </div>
                     )}
                 </div>
+
+                <fieldset className="border-t border-slate-200 bg-slate-50/70 px-5 py-4 sm:px-6">
+                    <legend className="px-0 text-sm font-bold text-slate-800">PDF appearance</legend>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">Turn off any visual treatment you do not want in this copy.</p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                        {([
+                            ["grayscaleActivities", "Gray co-curricular activities", "Keep activity cells white."],
+                            ["grayscaleBreaks", "Gray breaks", "Keep break columns white."],
+                            ["showSchoolBadgeWatermark", "School badge watermark", "Remove the faded badge."],
+                        ] as const).map(([key, title, description]) => {
+                            const checkboxId = `print-timetable-option-${key}`;
+                            return (
+                                <label key={key} htmlFor={checkboxId} className={`flex min-h-16 cursor-pointer items-start gap-2.5 rounded-xl border px-3 py-2.5 transition-colors ${printOptions[key]
+                                    ? "border-blue-200 bg-white shadow-sm"
+                                    : "border-slate-200 bg-slate-50 text-slate-500"
+                                }`}>
+                                    <Checkbox
+                                        id={checkboxId}
+                                        checked={printOptions[key]}
+                                        onCheckedChange={value => setPrintOptions(current => ({ ...current, [key]: value === true }))}
+                                        aria-label={title}
+                                        className="mt-0.5 h-4 w-4 rounded"
+                                    />
+                                    <span className="min-w-0">
+                                        <span className="block text-xs font-bold text-slate-800">{title}</span>
+                                        <span className="mt-0.5 block text-[11px] leading-4 text-slate-500">{description}</span>
+                                    </span>
+                                </label>
+                            );
+                        })}
+                    </div>
+                </fieldset>
 
                 <DialogFooter className="mt-0 flex-row justify-end space-x-2 border-t border-slate-200 bg-slate-50/80 px-5 py-4 sm:px-6">
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

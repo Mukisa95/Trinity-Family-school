@@ -15,7 +15,7 @@ import { getTimetablePeriodWidth } from "@/lib/utils/timetable-density";
 import { format, parse } from "date-fns";
 import { TimetableGrid } from "@/components/timetable/TimetableGrid";
 import { PrintableTimetable } from "@/components/timetable/PrintableTimetable";
-import { TimetablePrintClassDialog } from "@/components/timetable/TimetablePrintClassDialog";
+import { TimetablePrintClassDialog, type TimetablePrintOptions } from "@/components/timetable/TimetablePrintClassDialog";
 import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff, TimetableProfile } from "@/types";
 import { buildTimetableClassRowsForDay, entryCoversTimetablePeriod, getTimetableClassColumnWidth, getTimetableEntryRenderSegment, getTimetableStreamMode } from "@/lib/utils/timetable-streams";
 import { filterTimetablePrintData } from "@/lib/utils/timetable-print";
@@ -628,6 +628,11 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
     const isPrintSelectorOpen = printSelectorOpen ?? internalPrintSelectorOpen;
     const setIsPrintSelectorOpen = onPrintSelectorOpenChange ?? setInternalPrintSelectorOpen;
     const [printClassIds, setPrintClassIds] = React.useState<string[]>([]);
+    const [printOptions, setPrintOptions] = React.useState<TimetablePrintOptions>({
+        grayscaleActivities: true,
+        grayscaleBreaks: true,
+        showSchoolBadgeWatermark: true,
+    });
     const [isPrinting, setIsPrinting] = React.useState(false);
 
     const { data: periods = [], isLoading: pl } = useTimetablePeriods(yearId, termId, profileId);
@@ -829,8 +834,9 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                 onOpenChange={setIsPrintSelectorOpen}
                 classes={profileClasses}
                 timetableName={profileName || currentProfile?.name}
-                onPrint={classIds => {
+                onPrint={(classIds, options) => {
                     setPrintClassIds(classIds);
+                    setPrintOptions(options);
                     setIsPrinting(true);
                 }}
             />
@@ -845,6 +851,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                     academicYearId={yearId}
                     profile={currentProfile}
                     timeFormat={currentProfile?.timeFormat}
+                    printOptions={printOptions}
                     onClose={() => setIsPrinting(false)}
                 />
             )}
