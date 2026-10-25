@@ -1,7 +1,7 @@
 import type { GeneratedPeriod, TimetableEntry, TimetableProfile } from '@/types';
 import {
-    findTimetableEntryForRow,
-    getTimetableRenderedPeriodSpan,
+    entryCoversTimetablePeriod,
+    getTimetableEntryRenderSegment,
     getTimetableStreamMode,
     type TimetableClassRow,
 } from '@/lib/utils/timetable-streams';
@@ -26,6 +26,8 @@ export function buildTimetablePrintDayCells(
     profile?: Pick<TimetableProfile, 'streamLayouts'>,
 ): TimetablePrintCell[][] {
     const covered = rows.map(() => templatePeriods.map(isTimetablePrintBreak));
+    const dayPeriods = periods.filter(period => period.dayOfWeek === dayId)
+        .sort((a, b) => a.startTime.localeCompare(b.startTime));
     return rows.map((row, rowIndex) => {
         const cells: TimetablePrintCell[] = [];
         templatePeriods.forEach((template, periodIndex) => {
@@ -33,13 +35,18 @@ export function buildTimetablePrintDayCells(
             const period = periods.find(candidate => candidate.dayOfWeek === dayId
                 && candidate.type === template.type && candidate.periodNumber === template.periodNumber);
             const mode = getTimetableStreamMode(profile, row.classItem.id, dayId, period?.id);
-            const groupEntry = period && entries.find(candidate => candidate.periodId === period.id
+            const groupEntry = period && entries.find(candidate => entryCoversTimetablePeriod(candidate, period.id, dayPeriods)
                 && !candidate.streamId && candidate.entryType === 'activity'
                 && candidate.linkedClassIds?.length
                 && [candidate.classId, ...candidate.linkedClassIds].includes(row.classItem.id));
-            const entry = groupEntry || (period && findTimetableEntryForRow(
-                entries, row.classItem.id, period.id, mode, mode === 'separate' ? row.stream?.id : undefined,
-            ));
+            const entry = groupEntry || (period && entries.find(candidate => candidate.classId === row.classItem.id
+                && (mode === 'separate' ? candidate.streamId === row.stream?.id : !candidate.streamId)
+                && entryCoversTimetablePeriod(candidate, period.id, dayPeriods)));
+            const dayPeriodIndex = period ? dayPeriods.findIndex(candidate => candidate.id === period.id) : -1;
+            const segment = entry && dayPeriodIndex >= 0
+                ? getTimetableEntryRenderSegment(entry, dayPeriods, dayPeriodIndex)
+                : { shouldRender: true, span: 1 };
+            if (entry && !segment.shouldRender) return;
             let rowSpan = row.stream && mode === 'consolidated' ? row.streamCount - row.streamIndex : 1;
             if (groupEntry) {
                 const groupIds = [groupEntry.classId, ...(groupEntry.linkedClassIds || [])];
@@ -48,7 +55,7 @@ export function buildTimetablePrintDayCells(
                 while (rowIndex + rowSpan < rows.length && groupIds.includes(rows[rowIndex + rowSpan].classItem.id)) rowSpan++;
             }
             rowSpan = Math.min(rowSpan, rows.length - rowIndex);
-            let colSpan = getTimetableRenderedPeriodSpan(templatePeriods, periodIndex, entry?.periodSpan);
+            let colSpan = entry ? segment.span : 1;
             for (let offset = 1; offset < colSpan; offset++) {
                 if (covered.slice(rowIndex, rowIndex + rowSpan).some(slots => slots[periodIndex + offset])) {
                     colSpan = offset;

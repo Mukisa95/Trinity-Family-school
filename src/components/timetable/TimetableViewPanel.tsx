@@ -17,7 +17,7 @@ import { TimetableGrid } from "@/components/timetable/TimetableGrid";
 import { PrintableTimetable } from "@/components/timetable/PrintableTimetable";
 import { TimetablePrintClassDialog } from "@/components/timetable/TimetablePrintClassDialog";
 import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff, TimetableProfile } from "@/types";
-import { buildTimetableClassRowsForDay, findTimetableEntryForRow, getTimetableClassColumnWidth, getTimetableStreamMode } from "@/lib/utils/timetable-streams";
+import { buildTimetableClassRowsForDay, entryCoversTimetablePeriod, getTimetableClassColumnWidth, getTimetableEntryRenderSegment, getTimetableStreamMode } from "@/lib/utils/timetable-streams";
 import { filterTimetablePrintData } from "@/lib/utils/timetable-print";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -162,7 +162,9 @@ function WeekGridView({
             p.periodNumber === templatePeriod.periodNumber
         );
         if (!dayPeriod) return undefined;
-        return entries.find(e => e.classId === classId && e.periodId === dayPeriod.id);
+        const dayPeriods = periods.filter(period => period.dayOfWeek === dayId)
+            .sort((a, b) => a.startTime.localeCompare(b.startTime));
+        return entries.find(e => e.classId === classId && !e.streamId && entryCoversTimetablePeriod(e, dayPeriod.id, dayPeriods));
     };
 
     const getDayPeriod = (dayId: number, templatePeriod: GeneratedPeriod): GeneratedPeriod | undefined => periods.find(period => (
@@ -450,15 +452,20 @@ function WeekGridView({
                                                     const groupClassIds = [groupEntry.classId, ...(groupEntry.linkedClassIds || [])];
                                                     const isInGroup = groupClassIds.includes(cls.id);
                                                     if (isInGroup) {
+                                                        const groupDayPeriod = getDayPeriod(day.id, templatePeriod);
+                                                        const groupDayPeriods = periods.filter(period => period.dayOfWeek === day.id)
+                                                            .sort((a, b) => a.startTime.localeCompare(b.startTime));
+                                                        const groupSegment = groupDayPeriod
+                                                            ? getTimetableEntryRenderSegment(groupEntry, groupDayPeriods, groupDayPeriods.findIndex(period => period.id === groupDayPeriod.id))
+                                                            : { shouldRender: true, span: 1 };
+                                                        if (!groupSegment.shouldRender) return null;
                                                         const firstGroupRowIdx = dayRows.findIndex(candidate => groupClassIds.includes(candidate.classItem.id));
                                                         if (rowIdx === firstGroupRowIdx) {
                                                             const groupRowSpan = dayRows.filter(candidate => groupClassIds.includes(candidate.classItem.id)).length;
                                                             const actTeacher = staffList.find(s => s.id === groupEntry.teacherId);
-                                                            if (groupEntry.periodSpan && groupEntry.periodSpan > 1) {
-                                                                skipCells = groupEntry.periodSpan - 1;
-                                                            }
+                                                            if (groupSegment.span > 1) skipCells = groupSegment.span - 1;
                                                             return (
-                                                                <td key={templatePeriod.id} ref={isActivePeriodForToday ? activeColRef : null} rowSpan={groupRowSpan} colSpan={groupEntry.periodSpan || 1} className="border-r border-gray-100 text-center align-middle p-0 dark:border-slate-700">
+                                                                <td key={templatePeriod.id} ref={isActivePeriodForToday ? activeColRef : null} rowSpan={groupRowSpan} colSpan={groupSegment.span} className="border-r border-gray-100 text-center align-middle p-0 dark:border-slate-700">
                                                                     <div
                                                                         className="flex flex-col items-center justify-center h-full gap-0.5 px-1 py-1 mx-0.5 my-0.5 rounded border"
                                                                         style={{ background: 'hsl(270,50%,var(--schedule-upcoming-bg-lightness,87%))', borderColor: 'hsl(270,45%,var(--schedule-upcoming-border-lightness,75%))', color: 'hsl(270,60%,var(--schedule-upcoming-text-lightness,28%))' }}
@@ -480,7 +487,11 @@ function WeekGridView({
                                                 if (row.stream && mode === 'consolidated' && row.streamIndex > 0) return null;
 
                                                 const scopedStream = mode === 'separate' ? row.stream : undefined;
-                                                const entry = findTimetableEntryForRow(entries, cls.id, dayPeriod.id, mode, scopedStream?.id);
+                                                const dayPeriods = periods.filter(period => period.dayOfWeek === day.id)
+                                                    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+                                                const entry = entries.find(candidate => candidate.classId === cls.id
+                                                    && (mode === 'separate' ? candidate.streamId === scopedStream?.id : !candidate.streamId)
+                                                    && entryCoversTimetablePeriod(candidate, dayPeriod.id, dayPeriods));
                                                 const rowSpan = row.stream && mode === 'consolidated' ? row.streamCount : undefined;
                                                 const subject = entry ? subjects.find(s => s.id === entry.subjectId) : null;
                                                 const teacher = entry ? staffList.find(s => s.id === entry.teacherId) : null;
@@ -496,15 +507,17 @@ function WeekGridView({
                                                         : activeTimeStr >= templatePeriod.endTime ? 'past' : 'upcoming')
                                                     : 'upcoming';
 
-                                                if (entry && entry.periodSpan && entry.periodSpan > 1) {
-                                                    skipCells = entry.periodSpan - 1;
-                                                }
+                                                const segment = entry
+                                                    ? getTimetableEntryRenderSegment(entry, dayPeriods, dayPeriods.findIndex(period => period.id === dayPeriod.id))
+                                                    : { shouldRender: true, span: 1 };
+                                                if (entry && !segment.shouldRender) return null;
+                                                if (entry && segment.span > 1) skipCells = segment.span - 1;
 
                                                 if (entry && entry.entryType === 'activity') {
                                                     const actTeacher = staffList.find(s => s.id === entry.teacherId);
                                                     const isActiveActivity = periodState === 'active';
                                                     return (
-                                                        <td key={templatePeriod.id} ref={isActivePeriodForToday && rowIdx === 0 ? activeColRef : null} rowSpan={rowSpan} colSpan={entry?.periodSpan || 1} className="border-r border-gray-100 text-center align-middle relative h-[38px] p-0 dark:border-slate-700">
+                                                        <td key={templatePeriod.id} ref={isActivePeriodForToday && rowIdx === 0 ? activeColRef : null} rowSpan={rowSpan} colSpan={segment.span} className="border-r border-gray-100 text-center align-middle relative h-[38px] p-0 dark:border-slate-700">
                                                             <div
                                                                 className="absolute inset-0 m-px rounded border flex flex-col items-center justify-center"
                                                                 style={isActiveActivity
@@ -528,7 +541,7 @@ function WeekGridView({
                                                         key={templatePeriod.id}
                                                         ref={isActivePeriodForToday && rowIdx === 0 ? activeColRef : null}
                                                         rowSpan={rowSpan}
-                                                        colSpan={entry?.periodSpan || 1}
+                                                        colSpan={entry ? segment.span : 1}
                                                         className="border-r border-gray-100 text-center align-middle relative h-[38px] p-0 dark:border-slate-700"
                                                     >
                                                         {entry && subject ? (() => {
