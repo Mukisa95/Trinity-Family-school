@@ -20,6 +20,8 @@ export function FittedTimetableActivityLabel({ text, className = "" }: FittedTim
     React.useLayoutEffect(() => {
         const box = boxRef.current;
         if (!box || !text) return;
+        const context = document.createElement("canvas").getContext("2d");
+        if (!context) return;
         let active = true;
         const update = () => {
             if (!active) return;
@@ -27,10 +29,9 @@ export function FittedTimetableActivityLabel({ text, className = "" }: FittedTim
             const height = box.clientHeight;
             if (!width || !height) return;
 
-            const canvas = document.createElement("canvas");
-            const context = canvas.getContext("2d");
-            if (!context) return;
-            context.font = "900 100px Arial, Helvetica, sans-serif";
+            const style = getComputedStyle(box);
+            const displayText = style.textTransform === "uppercase" ? text.toUpperCase() : text;
+            context.font = `${style.fontWeight} 100px ${style.fontFamily}`;
             const measure = (line: string) => {
                 const metrics = context.measureText(line || " ");
                 return {
@@ -38,7 +39,7 @@ export function FittedTimetableActivityLabel({ text, className = "" }: FittedTim
                     height: (metrics.actualBoundingBoxAscent || 72) + (metrics.actualBoundingBoxDescent || 0),
                 };
             };
-            const next = layoutTimetablePrintText(text, width, height, measure);
+            const next = layoutTimetablePrintText(displayText, width, height, measure);
             setLayout(current => (
                 current.fontSize === next.fontSize && current.lines.join("\n") === next.lines.join("\n")
                     ? current
@@ -57,11 +58,16 @@ export function FittedTimetableActivityLabel({ text, className = "" }: FittedTim
     }, [text]);
 
     return (
-        <div ref={boxRef} className={`flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center overflow-hidden ${className}`}>
+        <div
+            ref={boxRef}
+            data-timetable-activity-label="true"
+            className={`flex min-h-0 w-full min-w-0 flex-1 flex-col items-center justify-center self-stretch overflow-hidden ${className}`}
+            style={{ letterSpacing: 'normal' }}
+        >
             {layout.lines.map((line, index) => (
                 <span
                     key={`${line}-${index}`}
-                    className="block max-w-full whitespace-nowrap"
+                    className="block max-w-full shrink-0 whitespace-nowrap"
                     style={{ fontSize: layout.fontSize, lineHeight: 1.1 }}
                 >
                     {line}

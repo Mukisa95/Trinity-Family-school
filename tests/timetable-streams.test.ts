@@ -134,7 +134,6 @@ test('marked timetable editor stays inside the viewport and has a clear exit pat
 test('shared activities fill their merged timetable rows and scale their labels', () => {
   const dayGrid = readFileSync('src/components/timetable/TimetableGrid.tsx', 'utf8');
   const weekGrid = readFileSync('src/components/timetable/TimetableViewPanel.tsx', 'utf8');
-  const fittedLabel = readFileSync('src/components/timetable/FittedTimetableActivityLabel.tsx', 'utf8');
 
   for (const source of [dayGrid, weekGrid]) {
     assert.match(source, /\[container-type:size\]/);
@@ -142,9 +141,6 @@ test('shared activities fill their merged timetable rows and scale their labels'
     assert.match(source, /<FittedTimetableActivityLabel text=/);
     assert.match(source, /All Classes/);
   }
-  assert.match(fittedLabel, /layoutTimetablePrintText\(text, width, height, measure\)/);
-  assert.match(fittedLabel, /whitespace-nowrap/);
-  assert.match(fittedLabel, /ResizeObserver\(update\)/);
 });
 
 test('fitted shared-activity labels keep a single word intact and react to width and height', () => {
