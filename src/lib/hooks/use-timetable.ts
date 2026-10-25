@@ -4,6 +4,7 @@ import { collection, getDocs, getDocsFromServer, query, where } from '@/lib/acce
 import { db } from '../firebase';
 import { TimetableService, getPeriodsCollectionPath, getEntriesCollectionPath, getTimetablesCollectionPath } from '../services/timetable.service';
 import type { TimetableProfile, GeneratedPeriod, TimetableEntry } from '@/types';
+import type { TimetableSelectionEdit } from '@/lib/utils/timetable-selection';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useDashboardDataRevisions } from './use-school-settings';
 import { liteReadMemoized, liteWrite } from '@/lib/cache/lite-cache';
@@ -469,6 +470,20 @@ export function useCloneTimetable() {
         ),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: timetableKeys.allProfiles(variables.dstYearId, variables.dstTermId), refetchType: 'none' });
+        },
+    });
+}
+
+export function useEditTimetableSelection() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (args: { yearId: string; termId: string; timetableId: string; edit: TimetableSelectionEdit; fingerprint: string }) =>
+            TimetableService.editSelectedCells(args.yearId, args.termId, args.timetableId, args.edit, args.fingerprint),
+        onSuccess: (entries, args) => {
+            queryClient.setQueriesData({ queryKey: timetableKeys.entries(args.yearId, args.termId, args.timetableId) }, entries);
+            for (const query of queryClient.getQueryCache().findAll({ queryKey: ['timetable', 'entries', 'class', args.yearId, args.termId, args.timetableId] })) {
+                queryClient.setQueryData(query.queryKey, entries.filter(entry => entry.classId === query.queryKey[6]));
+            }
         },
     });
 }

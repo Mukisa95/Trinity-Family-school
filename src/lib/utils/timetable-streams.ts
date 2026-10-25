@@ -178,8 +178,7 @@ export function getTimetableEntryRenderSegment(
   if (!period || !entryCoversTimetablePeriod(entry, period.id, periods)) return { shouldRender: true, span: 1 };
   const selected = new Set(getTimetableEntryPeriodIds(entry, periods));
   const previous = periods[periodIndex - 1];
-  if (previous && !isTimetableBreak(previous) && selected.has(previous.id)) return { shouldRender: false, span: 0 };
-
+  if ((entry.mergePeriods || !entry.periodIds?.length) && previous && !isTimetableBreak(previous) && selected.has(previous.id)) return { shouldRender: false, span: 0 };
   if (!entry.mergePeriods) {
     return {
       shouldRender: true,

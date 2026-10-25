@@ -13,6 +13,8 @@ import { GlassActionButton } from "@/components/common/glass-page-top-bar";
 import { useTimetableDensity } from "@/lib/hooks/use-timetable-density";
 import { getTimetablePeriodWidth } from "@/lib/utils/timetable-density";
 import { format, parse } from "date-fns";
+import { Button } from '@/components/ui/button';
+import { TimetableSelectionEditor, TimetableWeekEditHeading } from './TimetableSelectionEditor';
 import { TimetableGrid } from "@/components/timetable/TimetableGrid";
 import { PrintableTimetable } from "@/components/timetable/PrintableTimetable";
 import { FittedTimetableActivityLabel } from "@/components/timetable/FittedTimetableActivityLabel";
@@ -673,7 +675,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
     );
 
     // Reset filterId when filterMode changes
-    React.useEffect(() => { setFilterId(""); }, [filterMode]);
+    const changeFilterMode = (mode: FilterMode) => { setFilterMode(mode); setFilterId(""); };
 
     const FILTER_OPTIONS = [
         { id: "all" as FilterMode, label: "All Classes", mobileLabel: "Classes" },
@@ -751,11 +753,17 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
     const [isEditing, setIsEditing] = React.useState(false);
     const [selectedDay, setSelectedDay] = React.useState<number>(new Date().getDay() || 7);
     const [isFabOpen, setIsFabOpen] = React.useState(false);
+    React.useEffect(() => {
+        if (periods.length && !periods.some(period => period.dayOfWeek === selectedDay)) {
+            setSelectedDay(Math.min(...periods.map(period => period.dayOfWeek)));
+        }
+    }, [periods, selectedDay]);
 
     // Close FAB when disabling edit mode
     React.useEffect(() => {
         if (!isEditing) setIsFabOpen(false);
-    }, [isEditing]);
+        else if (filterMode !== 'all' && filterMode !== 'class') { setFilterMode('all'); setFilterId(''); }
+    }, [isEditing, filterMode]);
 
     const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -776,12 +784,12 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                 mobileControlTargets.view,
             )}
 
-            {mobileControlTargets?.filter && createPortal(
+            {!isEditing && mobileControlTargets?.filter && createPortal(
                 <TimetableDockSelect
                     icon={<ListFilter />}
                     label={FILTER_OPTIONS.find(option => option.id === filterMode)?.mobileLabel || "Classes"}
                     value={filterMode}
-                    onChange={event => setFilterMode(event.target.value as FilterMode)}
+                    onChange={event => changeFilterMode(event.target.value as FilterMode)}
                     aria-label="Filter timetable by classes, class, teacher, or subject"
                 >
                     {FILTER_OPTIONS.map(option => (
@@ -791,7 +799,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                 mobileControlTargets.filter,
             )}
 
-            {mobileControlTargets?.filterValue && filterMode !== "all" && createPortal(
+            {!isEditing && mobileControlTargets?.filterValue && filterMode !== "all" && createPortal(
                 <TimetableDockSelect
                     icon={filterMode === "teacher" ? <UserRound /> : filterMode === "subject" ? <BookOpen /> : <Users />}
                     label={filterMode === "class"
@@ -824,7 +832,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                     aria-pressed={isEditing}
                     icon={isEditing ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
                     tone={isEditing ? "emerald" : "blue"}
-                    onClick={() => { setViewMode("day"); setIsEditing(!isEditing); }}
+                    onClick={() => setIsEditing(!isEditing)}
                     className="sm:hidden"
                 />,
                 mobileControlTargets.edit,
@@ -858,11 +866,11 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
             )}
 
             {/* ── Unified Control Toolbar ── */}
-            <div className={`flex-shrink-0 bg-gray-50/80 p-1.5 sm:p-2 rounded-full sm:rounded-xl border border-gray-100 overflow-hidden  dark:bg-slate-900/80 dark:border-slate-700 ${viewMode === "week" ? "hidden sm:flex" : "flex"}`}>
+            <div style={isEditing && viewMode === 'week' ? { display: 'none' } : undefined} className={`flex-shrink-0 bg-gray-50/80 p-1.5 sm:p-2 rounded-full sm:rounded-xl border border-gray-100 overflow-hidden  dark:bg-slate-900/80 dark:border-slate-700 ${viewMode === "week" ? "hidden sm:flex" : "flex"}`}>
                 <div className="flex w-full min-w-0 flex-row items-center gap-2 overflow-x-auto pb-0.5 hide-scrollbar custom-scrollbar-mobile">
 
                     {/* Unified Pill: View Mode + Filters */}
-                    <div className="hidden min-w-0 flex-nowrap items-center divide-x divide-gray-200 rounded-full border border-gray-200 bg-white p-0.5 shadow-sm sm:flex sm:flex-shrink-0 dark:divide-slate-700 dark:border-slate-700 dark:bg-slate-900">
+                    <div style={isEditing ? { display: 'none' } : undefined} className="hidden min-w-0 flex-nowrap items-center divide-x divide-gray-200 rounded-full border border-gray-200 bg-white p-0.5 shadow-sm sm:flex sm:flex-shrink-0 dark:divide-slate-700 dark:border-slate-700 dark:bg-slate-900">
                         {/* View Mode Toggle */}
                         <div className="flex items-center px-1">
                             <div className="flex items-center">
@@ -891,7 +899,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                         <div className="flex items-center gap-1 px-1.5 min-w-0">
                             <select
                                 value={filterMode}
-                                onChange={e => setFilterMode(e.target.value as FilterMode)}
+                                onChange={e => changeFilterMode(e.target.value as FilterMode)}
                                 aria-label="Filter timetable"
                                 className="h-8 cursor-pointer appearance-none bg-transparent px-1 text-xs font-medium text-gray-700 focus:outline-none dark:text-slate-200"
                             >
@@ -962,12 +970,32 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                 </div>
             </div>
 
+            {!mobileControlTargets?.edit && <div className="flex shrink-0 justify-end">
+                <Button size="sm" variant={isEditing ? "default" : "outline"} onClick={() => setIsEditing(!isEditing)}>{isEditing ? "Done editing" : "Edit timetable"}</Button>
+            </div>}
+
             {/* ── Content Area — two-finger pinch adjusts timetable scale on touch screens ── */}
             <div
                 ref={pinchSurfaceRef}
                 className="flex min-h-0 min-w-0 flex-1 touch-pan-x touch-pan-y touch-pinch-zoom flex-col"
             >
-                {viewMode === "day" ? (
+                <TimetableSelectionEditor key={`${yearId}:${termId}:${profileId}`} enabled={isEditing}
+                    data={{ yearId, profile: currentProfile, classes, staff: staffList, periods, entries }} subjects={subjects}
+                    termId={termId} profileId={profileId} classFilter={filterMode === "class" ? filterId : ""}
+                    onClassFilter={id => { setFilterMode(id ? "class" : "all"); setFilterId(id); }}
+                    viewMode={viewMode} onViewMode={setViewMode} selectedDay={selectedDay}>
+                {viewMode === "week" && isEditing ? (
+                    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-4" data-week-editor>
+                        {[...new Set(periods.map(period => period.dayOfWeek))].sort().map(day => (
+                            <section key={day} aria-label={`Edit ${DAYS[day - 1] || 'Sunday'}`}>
+                                <TimetableWeekEditHeading day={day} label={DAYS[day - 1] || 'Sunday'} />
+                                <TimetableGrid yearId={yearId} termId={termId} profileId={profileId}
+                                    hideToolbar fitContent externalZoom={zoom} externalIsEditing={isEditing}
+                                    externalSelectedDay={day} filterMode={filterMode} filterId={filterId} />
+                            </section>
+                        ))}
+                    </div>
+                ) : viewMode === "day" ? (
                     // Day View — full interactive TimetableGrid with editing capability
                     <div className="flex-1 min-h-0 min-w-0 overflow-hidden -mx-3 sm:-mx-5 px-3 sm:px-5 flex flex-col">
                         <TimetableGrid
@@ -1001,10 +1029,11 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                         externalZoom={zoom}
                     />
                 )}
+                </TimetableSelectionEditor>
             </div>
 
             {/* ── Floating Quick Actions (Day View) ── */}
-            {viewMode === "day" && (
+            {(viewMode === "day" || viewMode === "week") && (
                 <div className="pointer-events-none absolute bottom-6 right-6 z-50 hidden flex-col items-end gap-2 sm:flex">
                     {/* Expanded Actions */}
                     {isFabOpen && <div className="pointer-events-auto flex flex-col items-end gap-2">

@@ -13,7 +13,7 @@ const mocks = {
         export const useTimetablePeriods=()=>({data:window.periods});
         export const useTimetableEntries=()=>({data:window.entries});
         const mutation=()=>({mutateAsync:async()=>{throw Error('Unexpected mutation')}});
-        export const useSaveTimetableEntries=mutation,useDeleteTimetableEntry=mutation,useSaveTimetablePeriods=mutation,useSetTimetableClassStreamMode=mutation,useSetTimetableClassStreamOrder=mutation;`,
+        export const useEditTimetableSelection=mutation,useSaveTimetableEntries=mutation,useDeleteTimetableEntry=mutation,useSaveTimetablePeriods=mutation,useSetTimetableClassStreamMode=mutation,useSetTimetableClassStreamOrder=mutation;`,
     '@/lib/hooks/use-classes': 'export const useClasses=()=>({data:window.classes});',
     '@/lib/hooks/use-subjects': 'export const useSubjects=()=>({data:[]});',
     '@/lib/hooks/use-staff': 'export const useStaff=()=>({data:[]});',

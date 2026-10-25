@@ -10,7 +10,7 @@ const mocks = {
         export const useTimetablePeriods=()=>({data:window.periods});
         export const useTimetableEntries=()=>({data:window.entries});
         const forbidden=()=>({mutateAsync:async()=>{throw Error('Lesson mutation must not be called')}});
-        export const useSaveTimetableEntries=forbidden,useDeleteTimetableEntry=forbidden,useSaveTimetablePeriods=forbidden,useSetTimetableClassStreamMode=forbidden;
+        export const useEditTimetableSelection=forbidden,useSaveTimetableEntries=forbidden,useDeleteTimetableEntry=forbidden,useSaveTimetablePeriods=forbidden,useSetTimetableClassStreamMode=forbidden;
         export const useSetTimetableClassStreamOrder=()=>({isPending:false,mutateAsync:async(args)=>{
             if(window.failSave)throw Error('Synthetic save failure');
             window.saves.push(args);window.profile={...window.profile,streamLayouts:{...window.profile.streamLayouts,p7:{...window.profile.streamLayouts.p7,streamOrder:args.streamIds}}};

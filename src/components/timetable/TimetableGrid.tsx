@@ -3,6 +3,7 @@
 import { getSubjectTeacherIds, getSubjectTeacherRoleLabel } from '@/lib/utils/teaching-assignments';
 import * as React from "react";
 import { useTimetablePeriods, useTimetableEntries, useSaveTimetableEntries, useDeleteTimetableEntry, useTimetableProfiles, useSaveTimetablePeriods, useSetTimetableClassStreamMode, useSetTimetableClassStreamOrder } from "@/lib/hooks/use-timetable";
+import { TimetableSelectionContext } from './TimetableSelectionEditor';
 import { StreamOrderEditor } from './StreamOrderEditor';
 import { FittedTimetableActivityLabel } from './FittedTimetableActivityLabel';
 import { useClasses } from "@/lib/hooks/use-classes";
@@ -121,6 +122,7 @@ interface TimetableGridProps {
     externalSelectedDay?: number;
     setExternalSelectedDay?: (d: number) => void;
     hideToolbar?: boolean;
+    fitContent?: boolean;
     filterMode?: string;
     filterId?: string;
 }
@@ -132,9 +134,10 @@ export function TimetableGrid({
     externalZoom, setExternalZoom,
     externalIsEditing, setExternalIsEditing,
     externalSelectedDay, setExternalSelectedDay,
-    hideToolbar, filterMode, filterId
+    hideToolbar, fitContent, filterMode, filterId
 }: TimetableGridProps) {
     const { toast } = useToast();
+    const sharedSelection = React.useContext(TimetableSelectionContext);
     // Data Fetching
     const { data: profiles = [] } = useTimetableProfiles(yearId, termId);
     const profile = profiles.find(p => p.id === profileId);
@@ -146,10 +149,9 @@ export function TimetableGrid({
     const { data: staffList = [] } = useStaff();
 
     const classesToRender = React.useMemo(() => {
-        if (!profile || !profile.classIds || profile.classIds.length === 0) return [...classes].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         // Filter to profile's classes then sort by the class 'order' field (set at class creation)
         let filtered = classes
-            .filter(c => profile.classIds.includes(c.id))
+            .filter(c => !profile?.classIds?.length || profile.classIds.includes(c.id))
             .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
         if (filterMode && filterId) {
@@ -195,9 +197,19 @@ export function TimetableGrid({
 
     type CellTarget = { classId: string; periodId: string; streamId?: string };
     const [activeCell, setActiveCell] = React.useState<CellTarget | null>(null);
-    const [markedCells, setMarkedCells] = React.useState<CellTarget[]>([]);
-    const [markingRow, setMarkingRow] = React.useState<Pick<CellTarget, 'classId' | 'streamId'> | null>(null);
+    const [localMarkedCells, setMarkedCells] = React.useState<CellTarget[]>([]);
+    const [localMarkingRow, setMarkingRow] = React.useState<Pick<CellTarget, 'classId' | 'streamId'> | null>(null);
+    const markedCells = sharedSelection?.cells ?? localMarkedCells;
+    const isMarking = sharedSelection ? sharedSelection.marking : !!localMarkingRow;
     const [isMarkedEditorOpen, setIsMarkedEditorOpen] = React.useState(false);
+    React.useEffect(() => {
+        if (sharedSelection?.marking || !isEditing) {
+            setActiveCell(null);
+            setIsMarkedEditorOpen(false);
+            setMarkingRow(null);
+            setMarkedCells([]);
+        }
+    }, [sharedSelection?.marking, isEditing]);
     const [editingPeriod, setEditingPeriod] = React.useState<{ id: string, newStartTime: string, newEndTime: string } | null>(null);
     const [currentTime, setCurrentTime] = React.useState(new Date());
     const compact = useTimetableDensity();
@@ -249,12 +261,12 @@ export function TimetableGrid({
 
     React.useEffect(() => {
         const msUntilNextMinute = (60 - new Date().getSeconds()) * 1000 - new Date().getMilliseconds();
+        let interval: ReturnType<typeof setInterval> | undefined;
         const sync = setTimeout(() => {
             setCurrentTime(new Date());
-            const interval = setInterval(() => setCurrentTime(new Date()), 60000);
-            return () => clearInterval(interval);
+            interval = setInterval(() => setCurrentTime(new Date()), 60000);
         }, msUntilNextMinute);
-        return () => clearTimeout(sync);
+        return () => { clearTimeout(sync); if (interval) clearInterval(interval); };
     }, []);
 
     const isLoading = periodsLoading || entriesLoading || classesLoading;
@@ -264,17 +276,19 @@ export function TimetableGrid({
         return periods.filter(p => p.dayOfWeek === selectedDay).sort((a, b) => a.startTime.localeCompare(b.startTime));
     }, [periods, selectedDay]);
     const toggleMarkedCell = React.useCallback((target: CellTarget) => {
-        if (!markingRow || markingRow.classId !== target.classId || markingRow.streamId !== target.streamId) return;
+        if (sharedSelection) { sharedSelection.toggle(target); return; }
+        if (!localMarkingRow || localMarkingRow.classId !== target.classId || localMarkingRow.streamId !== target.streamId) return;
         setMarkedCells(current => current.some(cell => cell.periodId === target.periodId)
             ? current.filter(cell => cell.periodId !== target.periodId)
             : [...current, target]);
-    }, [markingRow]);
+    }, [localMarkingRow, sharedSelection]);
     const beginMarking = React.useCallback((target: CellTarget) => {
         setActiveCell(null);
         setIsMarkedEditorOpen(false);
+        if (sharedSelection) { sharedSelection.begin(target); return; }
         setMarkingRow({ classId: target.classId, streamId: target.streamId });
         setMarkedCells([target]);
-    }, []);
+    }, [sharedSelection]);
     const cancelMarking = React.useCallback(() => {
         setIsMarkedEditorOpen(false);
         setActiveCell(null);
@@ -619,8 +633,8 @@ export function TimetableGrid({
 
     // We removed the explicit isLoading branch to allow the grid to snap-in instantly
     return (
-        <div className="flex flex-col gap-3 min-w-0 max-w-full h-full flex-1 overflow-hidden">
-            {isEditing && markingRow && (
+        <div className={`flex flex-col gap-3 min-w-0 max-w-full ${fitContent ? 'h-auto' : 'h-full flex-1 overflow-hidden'}`}>
+            {isEditing && isMarking && !sharedSelection && (
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-alt-200 bg-brand-alt-surface-50 px-3 py-2 shadow-sm dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/40">
                     <p className="text-xs font-semibold text-brand-alt-ink-900 dark:text-brand-alt-ink-100">
                         Marking {markedCells.length} lesson{markedCells.length === 1 ? '' : 's'} — tap lesson cells to add or remove them.
@@ -674,7 +688,7 @@ export function TimetableGrid({
 
             <div
                 ref={scrollContainerRef}
-                className="overflow-x-auto overflow-y-auto overscroll-x-contain flex-1 min-h-[500px] min-w-0 max-w-full h-full w-full border border-gray-200 rounded-xl bg-white shadow-sm custom-scrollbar relative touch-pan-x touch-pan-y touch-pinch-zoom dark:border-slate-700 dark:bg-slate-900"
+                className={`overflow-x-auto overscroll-x-contain min-w-0 max-w-full w-full border border-gray-200 rounded-xl bg-white shadow-sm custom-scrollbar relative touch-pan-x touch-pan-y touch-pinch-zoom dark:border-slate-700 dark:bg-slate-900 ${fitContent ? 'overflow-y-hidden' : 'overflow-y-auto flex-1 min-h-0 h-full'}`}
             >
                 <table
                     ref={tableRef}
@@ -839,7 +853,7 @@ export function TimetableGrid({
                                         isEditing={isEditing}
                                         activeCell={activeCell}
                                         setActiveCell={setActiveCell}
-                                        markingRow={markingRow}
+                                        isMarking={isMarking}
                                         markedCells={markedCells}
                                         isMarkedEditorOpen={isMarkedEditorOpen}
                                         onToggleMarked={toggleMarkedCell}
@@ -885,7 +899,7 @@ export function TimetableGrid({
                                         if (skipCells > 0) { skipCells--; return null; }
 
                                         // Grouped activity — only the first rendered class in the group renders the merged cell
-                                        const sharedAct = sharedActivityMap.get(period.id);
+                                        const sharedAct = isMarking ? undefined : sharedActivityMap.get(period.id);
                                         if (sharedAct) {
                                             const isInGroup = sharedAct.groupClassIds.includes(cls.id);
                                             if (!isInGroup) {
@@ -921,9 +935,9 @@ export function TimetableGrid({
                                                         >
                                                             {isEditing ? (
                                                                 <Popover
-                                                                    open={(!markingRow || isMarkedEditorOpen) && activeCell?.classId === cls.id && activeCell?.periodId === period.id}
+                                                                    open={(!isMarking || isMarkedEditorOpen) && activeCell?.classId === cls.id && activeCell?.periodId === period.id}
                                                                     onOpenChange={(isOpen) => {
-                                                                        if (isOpen && markingRow && !isMarkedEditorOpen) { toggleMarkedCell({ classId: cls.id, periodId: period.id }); return; }
+                                                                        if (isOpen && isMarking && !isMarkedEditorOpen) { toggleMarkedCell({ classId: cls.id, periodId: period.id }); return; }
                                                                         if (isOpen) setActiveCell({ classId: cls.id, periodId: period.id });
                                                                         else dismissCellEditor();
                                                                     }}
@@ -962,7 +976,7 @@ export function TimetableGrid({
                                             }
                                         }
 
-                                        const isBreak = period.type === 'break' || period.type === 'lunch';
+                                        const isBreak = period.type === 'break' || period.type === 'lunch' || period.type === 'assembly';
 
                                         const todayDayOfWeek = currentTime.getDay() || 7;
                                         const activeStr = format(currentTime, "HH:mm");
@@ -985,7 +999,7 @@ export function TimetableGrid({
                                         const entry = entries.find(e => e.classId === cls.id && !e.streamId && entryCoversTimetablePeriod(e, period.id, dayPeriods));
                                         const entrySubject = entry ? subjects.find(s => s.id === entry.subjectId) : null;
                                         const entryTeacher = entry ? staffList.find(s => s.id === entry.teacherId) : null;
-                                        const segment = entry ? getTimetableEntryRenderSegment(entry, dayPeriods, periodIndex) : { shouldRender: true, span: 1 };
+                                        const segment = entry && !isMarking ? getTimetableEntryRenderSegment(entry, dayPeriods, periodIndex) : { shouldRender: true, span: 1 };
 
                                         if (entry && !segment.shouldRender) return null;
                                         if (entry && segment.span > 1) skipCells = segment.span - 1;
@@ -1011,6 +1025,11 @@ export function TimetableGrid({
 
                                         const cellContent = (
                                             <div
+                                                role={isEditing ? 'button' : undefined}
+                                                tabIndex={isEditing ? 0 : undefined}
+                                                aria-label={isEditing ? `${cls.name}, ${DAYS[selectedDay - 1]}, lesson ${period.periodNumber}` : undefined}
+                                                aria-pressed={isEditing && isMarking ? markedCells.some(cell => cell.classId === cls.id && cell.periodId === period.id && !cell.streamId) : undefined}
+                                                onKeyDown={event => { if (isEditing && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); event.currentTarget.click(); } }}
                                                 style={!isSplit && entry && entry.entryType !== 'activity' ? cellStyle : {}}
                                                 className={`absolute inset-0 m-px rounded border ${!isSplit ? 'p-1' : 'p-0 overflow-hidden border-transparent'} transition-all flex flex-col items-center justify-center text-center
                                                     ${isEditing ? 'cursor-pointer' : 'cursor-default'}
@@ -1087,12 +1106,12 @@ export function TimetableGrid({
                                         );
 
                                         return (
-                                            <td key={period.id} colSpan={entry ? segment.span : 1} className={`p-0 border-r relative group h-[42px] ${isCurrentActivePeriod ? 'bg-amber-50/40 dark:bg-amber-950/40' : ''}`}>
+                                            <td key={period.id} data-edit-cell={`${cls.id}:${period.id}`} colSpan={entry ? segment.span : 1} className={`p-0 border-r relative group h-[42px] ${isCurrentActivePeriod ? 'bg-amber-50/40 dark:bg-amber-950/40' : ''}`}>
                                                 {isEditing ? (
                                                     <Popover
-                                                        open={(!markingRow || isMarkedEditorOpen) && activeCell?.classId === cls.id && activeCell?.periodId === period.id}
+                                                        open={(!isMarking || isMarkedEditorOpen) && activeCell?.classId === cls.id && activeCell?.periodId === period.id}
                                                         onOpenChange={(isOpen) => {
-                                                            if (isOpen && markingRow && !isMarkedEditorOpen) { toggleMarkedCell({ classId: cls.id, periodId: period.id }); return; }
+                                                            if (isOpen && isMarking && !isMarkedEditorOpen) { toggleMarkedCell({ classId: cls.id, periodId: period.id }); return; }
                                                             if (isOpen) setActiveCell({ classId: cls.id, periodId: period.id });
                                                             else dismissCellEditor();
                                                         }}
@@ -1209,7 +1228,7 @@ function StreamedClassRows({
     isEditing,
     activeCell,
     setActiveCell,
-    markingRow,
+    isMarking,
     markedCells,
     isMarkedEditorOpen,
     onToggleMarked,
@@ -1238,7 +1257,7 @@ function StreamedClassRows({
     isEditing: boolean;
     activeCell: { classId: string; periodId: string; streamId?: string } | null;
     setActiveCell: React.Dispatch<React.SetStateAction<{ classId: string; periodId: string; streamId?: string } | null>>;
-    markingRow: { classId: string; streamId?: string } | null;
+    isMarking: boolean;
     markedCells: { classId: string; periodId: string; streamId?: string }[];
     isMarkedEditorOpen: boolean;
     onToggleMarked: (target: { classId: string; periodId: string; streamId?: string }) => void;
@@ -1305,7 +1324,7 @@ function StreamedClassRows({
                         {periods.map((period, periodIndex) => {
                             if (skipCells > 0) { skipCells--; return null; }
                             const isFirstStream = streamIndex === 0;
-                            const isBreak = period.type === 'break' || period.type === 'lunch';
+                            const isBreak = period.type === 'break' || period.type === 'lunch' || period.type === 'assembly';
                             if (isBreak) {
                                 if (!isFirstStream) return null;
                                 return (
@@ -1331,7 +1350,7 @@ function StreamedClassRows({
                                 ? staffList.find(item => item.id === entry.optionalTeacherId)
                                 : undefined;
                             const isSplitSubject = Boolean(entry && entry.entryType !== 'activity' && optionalSubject);
-                            const segment = entry ? getTimetableEntryRenderSegment(entry, periods, periodIndex) : { shouldRender: true, span: 1 };
+                            const segment = entry && !isMarking ? getTimetableEntryRenderSegment(entry, periods, periodIndex) : { shouldRender: true, span: 1 };
                             if (entry && !segment.shouldRender) return null;
                             if (entry && segment.span > 1) skipCells = segment.span - 1;
 
@@ -1353,6 +1372,11 @@ function StreamedClassRows({
                                 && activeCell.streamId === scopedStream?.id;
                             const content = (
                                 <div
+                                    role={isEditing ? 'button' : undefined}
+                                    tabIndex={isEditing ? 0 : undefined}
+                                    aria-label={isEditing ? `${classItem.name}${scopedStream ? ` ${scopedStream.name}` : ''}, ${DAYS[selectedDay - 1]}, lesson ${period.periodNumber}` : undefined}
+                                    aria-pressed={isEditing && isMarking ? markedCells.some(cell => cell.classId === classItem.id && cell.periodId === period.id && cell.streamId === scopedStream?.id) : undefined}
+                                    onKeyDown={event => { if (isEditing && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); event.currentTarget.click(); } }}
                                     style={isSplitSubject ? undefined : cellStyle}
                                     className={`absolute inset-0 m-px flex flex-col items-center justify-center rounded border text-center transition-colors ${isSplitSubject ? 'overflow-hidden border-transparent p-0' : 'p-1'} ${
                                         entry ? 'border-transparent' : isEditing ? 'border-dashed border-brand-alt-200 hover:bg-brand-alt-surface-50 dark:border-brand-alt-800/60 dark:hover:bg-brand-alt-surface-950/40' : 'border-transparent'
@@ -1394,9 +1418,9 @@ function StreamedClassRows({
                                 <td key={period.id} rowSpan={rowSpan} colSpan={entry ? segment.span : 1} className="group relative h-[42px] border-r p-0 align-middle">
                                     {isEditing ? (
                                         <Popover
-                                            open={(!markingRow || isMarkedEditorOpen) && isOpen}
+                                            open={(!isMarking || isMarkedEditorOpen) && isOpen}
                                             onOpenChange={open => {
-                                                if (open && markingRow && !isMarkedEditorOpen) { onToggleMarked({ classId: classItem.id, periodId: period.id, streamId: scopedStream?.id }); return; }
+                                                if (open && isMarking && !isMarkedEditorOpen) { onToggleMarked({ classId: classItem.id, periodId: period.id, streamId: scopedStream?.id }); return; }
                                                 if (open) setActiveCell({ classId: classItem.id, periodId: period.id, streamId: scopedStream?.id });
                                                 else onDismissEditor();
                                             }}

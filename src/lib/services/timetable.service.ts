@@ -2,6 +2,7 @@ import {
     collection,
     doc,
     getDocs,
+    getDocsFromServer,
     getDoc,
     getDocFromServer,
     addDoc,
@@ -15,9 +16,11 @@ import {
     runTransaction,
 } from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
-import type { TimetableProfile, GeneratedPeriod, TimetableEntry, ClassStream, Class } from '@/types';
+import type { TimetableProfile, GeneratedPeriod, TimetableEntry, ClassStream, Class, Staff } from '@/types';
+import { planTimetableSelectionEdit, timetableSelectionFingerprint, type TimetableSelectionEdit } from '@/lib/utils/timetable-selection';
 import { getActiveClassStreams } from '@/lib/utils/class-streams';
 import { bumpTimetableRevisionInBatch } from './dashboard-cache-revisions.service';
+import { dashboardRevisionDocumentRef } from './dashboard-revision-documents';
 
 // Path constructor for academic term scoped timetables
 // academicYears/${yearId}/terms/${termId}/timetables
@@ -447,6 +450,61 @@ export class TimetableService {
             console.error('Error checking teacher availability:', error);
             throw error;
         }
+    }
+
+    static async editSelectedCells(yearId: string, termId: string, timetableId: string, edit: TimetableSelectionEdit, expectedFingerprint: string): Promise<TimetableEntry[]> {
+        const entriesRef = collection(db, getEntriesCollectionPath(yearId, termId, timetableId));
+        const revisionRef = dashboardRevisionDocumentRef('timetable');
+        const initialRevision = await getDocFromServer(revisionRef);
+        const [entrySnapshot, periodSnapshot, profileSnapshot, classSnapshots, staffSnapshot] = await Promise.all([
+            getDocsFromServer(entriesRef),
+            getDocsFromServer(collection(db, getPeriodsCollectionPath(yearId, termId, timetableId))),
+            getDocFromServer(doc(db, getTimetablesCollectionPath(yearId, termId), timetableId)),
+            getDocsFromServer(collection(db, 'classes')),
+            getDocsFromServer(collection(db, 'staff')),
+        ]);
+        if (!profileSnapshot.exists()) throw new Error('This timetable is no longer available.');
+        const entries = entrySnapshot.docs.map(snapshot => {
+            const value = snapshot.data();
+            return { ...value, id: snapshot.id, createdAt: value.createdAt?.toDate?.()?.toISOString() || value.createdAt } as TimetableEntry;
+        });
+        const plan = planTimetableSelectionEdit(edit, {
+            yearId,
+            profile: { ...profileSnapshot.data(), id: profileSnapshot.id } as TimetableProfile,
+            periods: periodSnapshot.docs.map(d => ({ ...d.data(), id: d.id }) as GeneratedPeriod),
+            entries,
+            classes: classSnapshots.docs.map(d => ({ ...d.data(), id: d.id }) as Class),
+            staff: staffSnapshot.docs.map(d => ({ ...d.data(), id: d.id }) as Staff),
+        });
+        if (timetableSelectionFingerprint(plan) !== expectedFingerprint) {
+            throw new Error('The timetable or teacher assignments changed. Refresh the timetable and review your selection again.');
+        }
+        if (plan.removals.length + plan.writes.length > 498) {
+            throw new Error('This selection is too large to save together. Select fewer classes or days.');
+        }
+        const saved = await runTransaction(db, async transaction => {
+            const [revision, currentProfile, currentClasses] = await Promise.all([
+                transaction.get(revisionRef),
+                transaction.get(profileSnapshot.ref),
+                Promise.all(classSnapshots.docs.filter(d => edit.cells.some(c => c.classId === d.id)).map(d => transaction.get(d.ref))),
+            ]);
+            if (JSON.stringify(revision.data()) !== JSON.stringify(initialRevision.data()) ||
+                JSON.stringify(currentProfile.data()) !== JSON.stringify(profileSnapshot.data()) ||
+                currentClasses.some(d => JSON.stringify(d.data()) !== JSON.stringify(classSnapshots.docs.find(c => c.id === d.id)?.data()))) {
+                throw new Error('The timetable or class assignments changed while saving. Review the latest timetable and try again.');
+            }
+            for (const id of plan.removals) transaction.delete(doc(entriesRef, id));
+            const created = plan.writes.map(entry => {
+                const ref = doc(entriesRef);
+                const value = this.cleanUndefinedValues({ ...entry, createdAt: entry.createdAt || new Date().toISOString(), updatedAt: Timestamp.now() });
+                transaction.set(ref, value);
+                return { ...value, id: ref.id } as TimetableEntry;
+            });
+            bumpTimetableRevisionInBatch(transaction, yearId, termId);
+            return created;
+        });
+        const removed = new Set(plan.removals);
+        return [...entries.filter(entry => !removed.has(entry.id)), ...saved];
     }
 
     static async saveEntriesBatch(
