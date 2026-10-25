@@ -148,7 +148,10 @@ export class TimetableService {
             }
 
             const batch = writeBatch(db);
-            batch.update(profileRef, { ...profileData, updatedAt: new Date().toISOString() });
+            batch.update(profileRef, this.cleanUndefinedValues({
+                ...profileData,
+                updatedAt: new Date().toISOString(),
+            }));
 
             const existingByDay = new Map<number, typeof existingPeriods.docs>();
             existingPeriods.docs.forEach(periodDoc => {
