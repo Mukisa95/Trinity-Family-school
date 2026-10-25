@@ -13,6 +13,11 @@ const nextConfig = {
     // explicitly enabled. Separate compiler lifetimes reduce build RAM usage.
     webpackBuildWorker: true,
     webpackMemoryOptimizations: true,
+    // The shared header uses this icon barrel. Compile only the imported icons
+    // instead of traversing the package's thousands of unused icon modules.
+    optimizePackageImports: ['@phosphor-icons/react'],
+    // Limit page-generation workers, including on machines with many cores.
+    cpus: 1,
   },
   /* config options here */
   typescript: {
@@ -97,7 +102,21 @@ const nextConfig = {
     '@firebase/firestore',
     '@firebase/storage',
   ],
-  webpack: (config, { isServer, webpack }) => {
+  webpack: (config, { dev, isServer, webpack }) => {
+    if (!dev) {
+      // Webpack defaults to 100 modules in flight. Keep transient compiler
+      // allocations bounded on the 8 GB production build machine.
+      config.parallelism = 16;
+      if (config.cache && config.cache.type === 'filesystem') {
+        // Preserve the disk cache without retaining a second, unbounded copy
+        // in RAM. Release oversized buffers restored from previous builds.
+        config.cache = {
+          ...config.cache,
+          maxMemoryGenerations: 0,
+          allowCollectingMemory: true,
+        };
+      }
+    }
     const projectNodeModules = path.resolve(__dirname, 'node_modules');
     config.resolve.modules = [
       projectNodeModules,
