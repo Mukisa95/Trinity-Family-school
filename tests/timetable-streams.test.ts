@@ -16,6 +16,7 @@ import {
   getOrderedTimetableStreams,
 } from '../src/lib/utils/timetable-streams';
 import { filterTimetablePrintData } from '../src/lib/utils/timetable-print';
+import { layoutTimetablePrintText } from '../src/lib/utils/timetable-print-layout';
 
 const schoolClass = {
   id: 'p1', name: 'Primary 1', code: 'P1', level: 'Lower Primary', order: 1,
@@ -133,13 +134,28 @@ test('marked timetable editor stays inside the viewport and has a clear exit pat
 test('shared activities fill their merged timetable rows and scale their labels', () => {
   const dayGrid = readFileSync('src/components/timetable/TimetableGrid.tsx', 'utf8');
   const weekGrid = readFileSync('src/components/timetable/TimetableViewPanel.tsx', 'utf8');
+  const fittedLabel = readFileSync('src/components/timetable/FittedTimetableActivityLabel.tsx', 'utf8');
 
   for (const source of [dayGrid, weekGrid]) {
     assert.match(source, /\[container-type:size\]/);
     assert.match(source, /absolute inset-1 flex min-h-0 flex-col/);
-    assert.match(source, /fontSize: 'clamp\(0\.75rem, min\(4\.5cqw, 24cqh\), 2rem\)'/);
+    assert.match(source, /<FittedTimetableActivityLabel text=/);
     assert.match(source, /All Classes/);
   }
+  assert.match(fittedLabel, /layoutTimetablePrintText\(text, width, height, measure\)/);
+  assert.match(fittedLabel, /whitespace-nowrap/);
+  assert.match(fittedLabel, /ResizeObserver\(update\)/);
+});
+
+test('fitted shared-activity labels keep a single word intact and react to width and height', () => {
+  const measure = (text: string) => ({ width: text.length * 60, height: 100 });
+  const compact = layoutTimetablePrintText('WEEKLY', 80, 300, measure);
+  const wide = layoutTimetablePrintText('WEEKLY', 400, 300, measure);
+  const short = layoutTimetablePrintText('WEEKLY', 400, 70, measure);
+
+  assert.deepEqual(compact.lines, ['WEEKLY']);
+  assert.ok(wide.fontSize > compact.fontSize);
+  assert.ok(wide.fontSize > short.fontSize);
 });
 
 test('dashboard lessons identify stream entries with a compact initial', () => {

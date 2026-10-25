@@ -15,6 +15,7 @@ import { getTimetablePeriodWidth } from "@/lib/utils/timetable-density";
 import { format, parse } from "date-fns";
 import { TimetableGrid } from "@/components/timetable/TimetableGrid";
 import { PrintableTimetable } from "@/components/timetable/PrintableTimetable";
+import { FittedTimetableActivityLabel } from "@/components/timetable/FittedTimetableActivityLabel";
 import { TimetablePrintClassDialog, type TimetablePrintOptions } from "@/components/timetable/TimetablePrintClassDialog";
 import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff, TimetableProfile } from "@/types";
 import { buildTimetableClassRowsForDay, entryCoversTimetablePeriod, getTimetableClassColumnWidth, getTimetableEntryRenderSegment, getTimetableStreamMode } from "@/lib/utils/timetable-streams";
@@ -470,7 +471,7 @@ function WeekGridView({
                                                                         className="absolute inset-1 flex min-h-0 flex-col items-center justify-center gap-1 overflow-hidden rounded border px-2 py-1.5 text-center"
                                                                         style={{ background: 'hsl(270,50%,var(--schedule-upcoming-bg-lightness,87%))', borderColor: 'hsl(270,45%,var(--schedule-upcoming-border-lightness,75%))', color: 'hsl(270,60%,var(--schedule-upcoming-text-lightness,28%))' }}
                                                                     >
-                                                                        <span className="max-w-full break-words font-black uppercase tracking-wide" style={{ fontSize: 'clamp(0.75rem, min(4.5cqw, 24cqh), 2rem)', lineHeight: 1.05 }}>{groupEntry.activityName || 'ACT'}</span>
+                                                                        <FittedTimetableActivityLabel text={groupEntry.activityName || 'ACT'} className="font-black uppercase tracking-wide" />
                                                                         {actTeacher && <span className="max-w-full break-words opacity-70" style={{ fontSize: 'clamp(0.6rem, min(2.8cqw, 11cqh), 0.85rem)', lineHeight: 1.15 }}>{actTeacher.firstName[0]}. {actTeacher.lastName?.split(' ')[0]}</span>}
                                                                         <span className="max-w-full opacity-50" style={{ fontSize: 'clamp(0.55rem, min(2.3cqw, 9cqh), 0.75rem)', lineHeight: 1.1 }}>All Classes</span>
                                                                     </div>

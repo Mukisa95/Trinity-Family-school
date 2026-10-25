@@ -4,6 +4,7 @@ import { getSubjectTeacherIds, getSubjectTeacherRoleLabel } from '@/lib/utils/te
 import * as React from "react";
 import { useTimetablePeriods, useTimetableEntries, useSaveTimetableEntries, useDeleteTimetableEntry, useTimetableProfiles, useSaveTimetablePeriods, useSetTimetableClassStreamMode, useSetTimetableClassStreamOrder } from "@/lib/hooks/use-timetable";
 import { StreamOrderEditor } from './StreamOrderEditor';
+import { FittedTimetableActivityLabel } from './FittedTimetableActivityLabel';
 import { useClasses } from "@/lib/hooks/use-classes";
 import { useSubjects } from "@/lib/hooks/use-subjects";
 import { useStaff } from "@/lib/hooks/use-staff";
@@ -902,7 +903,7 @@ export function TimetableGrid({
                                                             className={`absolute inset-1 flex min-h-0 flex-col items-center justify-center gap-1 overflow-hidden rounded border px-2 py-1.5 text-center transition-all ${isEditing ? 'cursor-pointer hover:bg-brand-secondary-surface-200 dark:hover:bg-brand-secondary-surface-900/40' : ''}`}
                                                             style={{ background: 'hsl(270,50%,var(--schedule-upcoming-bg-lightness,87%))', borderColor: 'hsl(270,45%,var(--schedule-upcoming-border-lightness,75%))', color: 'hsl(270,60%,var(--schedule-upcoming-text-lightness,28%))' }}
                                                         >
-                                                            <span className="max-w-full break-words font-black uppercase tracking-wide" style={{ fontSize: 'clamp(0.75rem, min(4.5cqw, 24cqh), 2rem)', lineHeight: 1.05 }}>{sharedAct.activityName}</span>
+                                                            <FittedTimetableActivityLabel text={sharedAct.activityName} className="font-black uppercase tracking-wide" />
                                                             {actTeacher && <span className="max-w-full break-words opacity-70" style={{ fontSize: 'clamp(0.6rem, min(2.8cqw, 11cqh), 0.85rem)', lineHeight: 1.15 }}>{actTeacher.firstName[0]}. {actTeacher.lastName?.split(' ')[0]}</span>}
                                                             <span className="max-w-full opacity-50" style={{ fontSize: 'clamp(0.55rem, min(2.3cqw, 9cqh), 0.75rem)', lineHeight: 1.1 }}>All Classes</span>
                                                         </div>
