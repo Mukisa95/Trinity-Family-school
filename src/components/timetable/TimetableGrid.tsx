@@ -196,6 +196,7 @@ export function TimetableGrid({
     const [activeCell, setActiveCell] = React.useState<CellTarget | null>(null);
     const [markedCells, setMarkedCells] = React.useState<CellTarget[]>([]);
     const [markingRow, setMarkingRow] = React.useState<Pick<CellTarget, 'classId' | 'streamId'> | null>(null);
+    const [isMarkedEditorOpen, setIsMarkedEditorOpen] = React.useState(false);
     const [editingPeriod, setEditingPeriod] = React.useState<{ id: string, newStartTime: string, newEndTime: string } | null>(null);
     const [currentTime, setCurrentTime] = React.useState(new Date());
     const compact = useTimetableDensity();
@@ -269,12 +270,26 @@ export function TimetableGrid({
     }, [markingRow]);
     const beginMarking = React.useCallback((target: CellTarget) => {
         setActiveCell(null);
+        setIsMarkedEditorOpen(false);
         setMarkingRow({ classId: target.classId, streamId: target.streamId });
         setMarkedCells([target]);
     }, []);
     const cancelMarking = React.useCallback(() => {
+        setIsMarkedEditorOpen(false);
+        setActiveCell(null);
         setMarkingRow(null);
         setMarkedCells([]);
+    }, []);
+    const dismissCellEditor = React.useCallback(() => {
+        if (isMarkedEditorOpen) {
+            cancelMarking();
+            return;
+        }
+        setActiveCell(null);
+    }, [cancelMarking, isMarkedEditorOpen]);
+    const returnToMarkedCells = React.useCallback(() => {
+        setActiveCell(null);
+        setIsMarkedEditorOpen(false);
     }, []);
     const hasVisibleStreamRows = React.useMemo(
         () => classesToRender.some(cls => classUsesStreamRowsForDay(cls, profile, yearId, selectedDay, dayPeriods)),
@@ -355,6 +370,8 @@ export function TimetableGrid({
                 });
             }
             setActiveCell(null);
+            setIsMarkedEditorOpen(false);
+            setMarkingRow(null);
             setMarkedCells([]);
         } catch (e) {
             toast({ variant: "destructive", title: "Error", description: "Failed to save assignment" });
@@ -372,6 +389,8 @@ export function TimetableGrid({
             }
         }
         setActiveCell(null);
+        setIsMarkedEditorOpen(false);
+        setMarkingRow(null);
         setMarkedCells([]);
     };
 
@@ -404,6 +423,8 @@ export function TimetableGrid({
                 sourceEntryId,
             });
             setActiveCell(null);
+            setIsMarkedEditorOpen(false);
+            setMarkingRow(null);
             setMarkedCells([]);
             toast({
                 title: mode === 'separate' ? 'Streams separated' : 'Streams consolidated',
@@ -484,6 +505,8 @@ export function TimetableGrid({
             }
 
             setActiveCell(null);
+            setIsMarkedEditorOpen(false);
+            setMarkingRow(null);
             setMarkedCells([]);
             toast({
                 title: "Activity Saved",
@@ -528,6 +551,8 @@ export function TimetableGrid({
                 entries: [existing ? { id: existing.id, ...payload } : payload],
             });
             setActiveCell(null);
+            setIsMarkedEditorOpen(false);
+            setMarkingRow(null);
             setMarkedCells([]);
             toast({ title: 'Activity saved', description: `${activityName} was assigned to ${stream.name}.` });
         } catch {
@@ -600,12 +625,12 @@ export function TimetableGrid({
                         Marking {markedCells.length} lesson{markedCells.length === 1 ? '' : 's'} — tap lesson cells to add or remove them.
                     </p>
                     <div className="flex items-center gap-2">
-                        <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={cancelMarking}>Cancel</Button>
+                        <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={cancelMarking}>Clear selection</Button>
                         <Button type="button" size="sm" className="h-8 text-xs" disabled={!markedCells.length} onClick={() => {
                             const first = markedCells[0];
-                            setMarkingRow(null);
                             setActiveCell(first);
-                        }}>Mark {markedCells.length} &amp; edit</Button>
+                            setIsMarkedEditorOpen(true);
+                        }}>Edit {markedCells.length} marked</Button>
                     </div>
                 </div>
             )}
@@ -815,8 +840,12 @@ export function TimetableGrid({
                                         setActiveCell={setActiveCell}
                                         markingRow={markingRow}
                                         markedCells={markedCells}
+                                        isMarkedEditorOpen={isMarkedEditorOpen}
                                         onToggleMarked={toggleMarkedCell}
                                         onBeginMarking={beginMarking}
+                                        onDismissEditor={dismissCellEditor}
+                                        onReturnToMarks={returnToMarkedCells}
+                                        onClearMarkedSelection={cancelMarking}
                                         onAssign={(stream, periodId, subjectId, teacherId, span, optSubId, optTId, selectedIds, merge) => handleAssignSubject(cls.id, periodId, subjectId, teacherId, span, optSubId, optTId, stream, selectedIds, merge)}
                                         onAssignActivity={(stream, periodId, name, teacherId, linkedIds, span, selectedIds, merge) => stream
                                             ? handleAssignStreamActivity(cls.id, periodId, stream, name, teacherId, span, selectedIds, merge)
@@ -891,17 +920,17 @@ export function TimetableGrid({
                                                         >
                                                             {isEditing ? (
                                                                 <Popover
-                                                                    open={!markingRow && activeCell?.classId === cls.id && activeCell?.periodId === period.id}
+                                                                    open={(!markingRow || isMarkedEditorOpen) && activeCell?.classId === cls.id && activeCell?.periodId === period.id}
                                                                     onOpenChange={(isOpen) => {
-                                                                        if (isOpen && markingRow) { toggleMarkedCell({ classId: cls.id, periodId: period.id }); return; }
+                                                                        if (isOpen && markingRow && !isMarkedEditorOpen) { toggleMarkedCell({ classId: cls.id, periodId: period.id }); return; }
                                                                         if (isOpen) setActiveCell({ classId: cls.id, periodId: period.id });
-                                                                        else setActiveCell(null);
+                                                                        else dismissCellEditor();
                                                                     }}
                                                                 >
                                                                     <PopoverTrigger asChild>
                                                                         {innerContent}
                                                                     </PopoverTrigger>
-                                                                    <PopoverContent className="w-80 p-0 shadow-xl border border-gray-200 dark:border-slate-700" align="start">
+                                                                    <PopoverContent className="w-[min(20rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain border border-gray-200 p-0 shadow-xl dark:border-slate-700" style={{ maxHeight: 'min(42rem, var(--radix-popover-content-available-height))' }} align="start">
                                                                         <AssignmentPopup
                                                                             classItem={cls}
                                                                             period={period}
@@ -912,10 +941,13 @@ export function TimetableGrid({
                                                                             onAssign={(subjectId, teacherId, span, optSubId, optTId, selectedIds, merge) => handleAssignSubject(cls.id, period.id, subjectId, teacherId, span, optSubId, optTId, undefined, selectedIds, merge)}
                                                                             onAssignActivity={(name, teacherId, linkedIds, span, selectedIds, merge) => handleAssignActivity(cls.id, period.id, name, teacherId, linkedIds, span, selectedIds, merge)}
                                                                             onClear={() => handleClearCell(cls.id, period.id)}
-                                                                            onClose={() => setActiveCell(null)}
+                                                                            onClose={dismissCellEditor}
                                                                             onStartMark={() => beginMarking({ classId: cls.id, periodId: period.id })}
-                                                                            selectedPeriodIds={markedCells.length ? markedCells.filter(cell => cell.classId === cls.id && !cell.streamId).map(cell => cell.periodId) : cellEntry ? getTimetableEntryPeriodIds(cellEntry, dayPeriods) : undefined}
-                                                                            openEditor={markedCells.length > 0}
+                                                                            selectedPeriodIds={isMarkedEditorOpen ? markedCells.filter(cell => cell.classId === cls.id && !cell.streamId).map(cell => cell.periodId) : cellEntry ? getTimetableEntryPeriodIds(cellEntry, dayPeriods) : undefined}
+                                                                            openEditor={isMarkedEditorOpen}
+                                                                            markedSelection={isMarkedEditorOpen}
+                                                                            onReturnToMarks={returnToMarkedCells}
+                                                                            onClearMarkedSelection={cancelMarking}
                                                                         />
                                                                     </PopoverContent>
                                                                 </Popover>
@@ -1057,17 +1089,17 @@ export function TimetableGrid({
                                             <td key={period.id} colSpan={entry ? segment.span : 1} className={`p-0 border-r relative group h-[42px] ${isCurrentActivePeriod ? 'bg-amber-50/40 dark:bg-amber-950/40' : ''}`}>
                                                 {isEditing ? (
                                                     <Popover
-                                                        open={!markingRow && activeCell?.classId === cls.id && activeCell?.periodId === period.id}
+                                                        open={(!markingRow || isMarkedEditorOpen) && activeCell?.classId === cls.id && activeCell?.periodId === period.id}
                                                         onOpenChange={(isOpen) => {
-                                                            if (isOpen && markingRow) { toggleMarkedCell({ classId: cls.id, periodId: period.id }); return; }
+                                                            if (isOpen && markingRow && !isMarkedEditorOpen) { toggleMarkedCell({ classId: cls.id, periodId: period.id }); return; }
                                                             if (isOpen) setActiveCell({ classId: cls.id, periodId: period.id });
-                                                            else setActiveCell(null);
+                                                            else dismissCellEditor();
                                                         }}
                                                     >
                                                         <PopoverTrigger asChild>
                                                             {cellContent}
                                                         </PopoverTrigger>
-                                                        <PopoverContent className="w-80 p-0 shadow-xl border border-gray-200 dark:border-slate-700" align="start">
+                                                        <PopoverContent className="w-[min(20rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain border border-gray-200 p-0 shadow-xl dark:border-slate-700" style={{ maxHeight: 'min(42rem, var(--radix-popover-content-available-height))' }} align="start">
                                                             <AssignmentPopup
                                                                 classItem={cls}
                                                                 period={period}
@@ -1078,10 +1110,13 @@ export function TimetableGrid({
                                                                 onAssign={(subjectId, teacherId, span, optSubId, optTId, selectedIds, merge) => handleAssignSubject(cls.id, period.id, subjectId, teacherId, span, optSubId, optTId, undefined, selectedIds, merge)}
                                                                 onAssignActivity={(name, teacherId, linkedIds, span, selectedIds, merge) => handleAssignActivity(cls.id, period.id, name, teacherId, linkedIds, span, selectedIds, merge)}
                                                                 onClear={() => handleClearCell(cls.id, period.id)}
-                                                                onClose={() => setActiveCell(null)}
+                                                                onClose={dismissCellEditor}
                                                                 onStartMark={() => beginMarking({ classId: cls.id, periodId: period.id })}
-                                                                selectedPeriodIds={markedCells.length ? markedCells.filter(cell => cell.classId === cls.id && !cell.streamId).map(cell => cell.periodId) : entry ? getTimetableEntryPeriodIds(entry, dayPeriods) : undefined}
-                                                                openEditor={markedCells.length > 0}
+                                                                selectedPeriodIds={isMarkedEditorOpen ? markedCells.filter(cell => cell.classId === cls.id && !cell.streamId).map(cell => cell.periodId) : entry ? getTimetableEntryPeriodIds(entry, dayPeriods) : undefined}
+                                                                openEditor={isMarkedEditorOpen}
+                                                                markedSelection={isMarkedEditorOpen}
+                                                                onReturnToMarks={returnToMarkedCells}
+                                                                onClearMarkedSelection={cancelMarking}
                                                             />
                                                         </PopoverContent>
                                                     </Popover>
@@ -1175,8 +1210,12 @@ function StreamedClassRows({
     setActiveCell,
     markingRow,
     markedCells,
+    isMarkedEditorOpen,
     onToggleMarked,
     onBeginMarking,
+    onDismissEditor,
+    onReturnToMarks,
+    onClearMarkedSelection,
     onAssign,
     onAssignActivity,
     onClear,
@@ -1200,8 +1239,12 @@ function StreamedClassRows({
     setActiveCell: React.Dispatch<React.SetStateAction<{ classId: string; periodId: string; streamId?: string } | null>>;
     markingRow: { classId: string; streamId?: string } | null;
     markedCells: { classId: string; periodId: string; streamId?: string }[];
+    isMarkedEditorOpen: boolean;
     onToggleMarked: (target: { classId: string; periodId: string; streamId?: string }) => void;
     onBeginMarking: (target: { classId: string; periodId: string; streamId?: string }) => void;
+    onDismissEditor: () => void;
+    onReturnToMarks: () => void;
+    onClearMarkedSelection: () => void;
     onAssign: (stream: ClassStream | undefined, periodId: string, subId: string, teacherId: string, span: number, optSubId?: string, optTeacherId?: string, selectedIds?: string[], merge?: boolean) => void;
     onAssignActivity: (stream: ClassStream | undefined, periodId: string, name: string, teacherId: string, linkedIds: string[], span: number, selectedIds?: string[], merge?: boolean) => void;
     onClear: (streamId: string | undefined, periodId: string) => void;
@@ -1350,14 +1393,15 @@ function StreamedClassRows({
                                 <td key={period.id} rowSpan={rowSpan} colSpan={entry ? segment.span : 1} className="group relative h-[42px] border-r p-0 align-middle">
                                     {isEditing ? (
                                         <Popover
-                                            open={!markingRow && isOpen}
+                                            open={(!markingRow || isMarkedEditorOpen) && isOpen}
                                             onOpenChange={open => {
-                                                if (open && markingRow) { onToggleMarked({ classId: classItem.id, periodId: period.id, streamId: scopedStream?.id }); return; }
-                                                setActiveCell(open ? { classId: classItem.id, periodId: period.id, streamId: scopedStream?.id } : null);
+                                                if (open && markingRow && !isMarkedEditorOpen) { onToggleMarked({ classId: classItem.id, periodId: period.id, streamId: scopedStream?.id }); return; }
+                                                if (open) setActiveCell({ classId: classItem.id, periodId: period.id, streamId: scopedStream?.id });
+                                                else onDismissEditor();
                                             }}
                                         >
                                             <PopoverTrigger asChild>{content}</PopoverTrigger>
-                                            <PopoverContent className="w-80 border border-gray-200 p-0 shadow-xl dark:border-slate-700" align="start">
+                                            <PopoverContent className="w-[min(20rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain border border-gray-200 p-0 shadow-xl dark:border-slate-700" style={{ maxHeight: 'min(42rem, var(--radix-popover-content-available-height))' }} align="start">
                                                 <AssignmentPopup
                                                     classItem={classItem}
                                                     streamName={scopedStream?.name}
@@ -1370,10 +1414,13 @@ function StreamedClassRows({
                                                     onAssign={(subId, teacherId, span, optSubId, optTeacherId, selectedIds, merge) => onAssign(scopedStream, period.id, subId, teacherId, span, optSubId, optTeacherId, selectedIds, merge)}
                                                     onAssignActivity={(name, teacherId, linkedIds, span, selectedIds, merge) => onAssignActivity(scopedStream, period.id, name, teacherId, linkedIds, span, selectedIds, merge)}
                                                     onClear={() => onClear(scopedStream?.id, period.id)}
-                                                    onClose={() => setActiveCell(null)}
+                                                    onClose={onDismissEditor}
                                                     onStartMark={() => onBeginMarking({ classId: classItem.id, periodId: period.id, streamId: scopedStream?.id })}
-                                                    selectedPeriodIds={markedCells.length ? markedCells.filter(cell => cell.classId === classItem.id && cell.streamId === scopedStream?.id).map(cell => cell.periodId) : entry ? getTimetableEntryPeriodIds(entry, periods) : undefined}
-                                                    openEditor={markedCells.length > 0}
+                                                    selectedPeriodIds={isMarkedEditorOpen ? markedCells.filter(cell => cell.classId === classItem.id && cell.streamId === scopedStream?.id).map(cell => cell.periodId) : entry ? getTimetableEntryPeriodIds(entry, periods) : undefined}
+                                                    openEditor={isMarkedEditorOpen}
+                                                    markedSelection={isMarkedEditorOpen}
+                                                    onReturnToMarks={onReturnToMarks}
+                                                    onClearMarkedSelection={onClearMarkedSelection}
                                                     onStreamModeChange={target => onSetMode(target, 'period', period.id, entry?.id)}
                                                     streamModePending={streamModePending}
                                                 />
@@ -1393,7 +1440,7 @@ function StreamedClassRows({
 // Sub-component for assignment popup
 function AssignmentPopup({
     classItem, streamName, streamMode, period, currentEntry, subjects, staffList, allClasses,
-    onAssign, onAssignActivity, onClear, onClose, onStartMark, selectedPeriodIds, openEditor = false, onStreamModeChange, streamModePending
+    onAssign, onAssignActivity, onClear, onClose, onStartMark, selectedPeriodIds, openEditor = false, markedSelection = false, onReturnToMarks, onClearMarkedSelection, onStreamModeChange, streamModePending
 }: {
     classItem: Class; period: GeneratedPeriod; currentEntry?: TimetableEntry;
     streamName?: string;
@@ -1406,6 +1453,9 @@ function AssignmentPopup({
     onStartMark: () => void;
     selectedPeriodIds?: string[];
     openEditor?: boolean;
+    markedSelection?: boolean;
+    onReturnToMarks?: () => void;
+    onClearMarkedSelection?: () => void;
     onStreamModeChange?: (mode: TimetableStreamMode) => void;
     streamModePending?: boolean;
 }) {
@@ -1440,7 +1490,7 @@ function AssignmentPopup({
 
     if (!showEditor) {
         return (
-            <div className="w-80 space-y-2 bg-white p-3 dark:bg-slate-900">
+            <div className="w-full space-y-2 bg-white p-3 dark:bg-slate-900">
                 <p className="text-xs font-bold text-slate-900 dark:text-slate-100">Choose how to edit this timetable</p>
                 <p className="text-[11px] leading-4 text-slate-500 dark:text-slate-400">Mark lets you choose multiple lesson cells first. Select opens this one lesson immediately.</p>
                 <div className="grid grid-cols-2 gap-2 pt-1">
@@ -1470,6 +1520,18 @@ function AssignmentPopup({
                     Lesson {period.periodNumber}
                 </Badge>
             </div>
+
+            {markedSelection && (
+                <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-brand-alt-100 bg-brand-alt-surface-50 px-3 py-2 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/40">
+                    <span className="text-[11px] font-semibold text-brand-alt-ink-800 dark:text-brand-alt-ink-200">
+                        Editing {effectivePeriodIds.length} marked lesson{effectivePeriodIds.length === 1 ? '' : 's'}
+                    </span>
+                    <div className="flex items-center gap-1">
+                        <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-[10px]" onClick={onReturnToMarks}>Back to marks</Button>
+                        <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-[10px] text-destructive hover:text-destructive" onClick={onClearMarkedSelection}>Clear</Button>
+                    </div>
+                </div>
+            )}
 
             {onStreamModeChange && streamMode && (
                 <div className="flex items-center justify-between gap-2 border-b border-brand-alt-100 bg-brand-alt-surface-50 px-3 py-2 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/40">

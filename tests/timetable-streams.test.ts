@@ -118,6 +118,18 @@ test('marked timetable periods merge each lesson run without covering a break', 
   assert.deepEqual(getTimetableEntryRenderSegment({ ...entry, mergePeriods: false }, day, 0), { shouldRender: true, span: 1 });
 });
 
+test('marked timetable editor stays inside the viewport and has a clear exit path', () => {
+  const grid = readFileSync('src/components/timetable/TimetableGrid.tsx', 'utf8');
+
+  assert.match(grid, /const \[isMarkedEditorOpen, setIsMarkedEditorOpen\] = React\.useState\(false\)/);
+  assert.match(grid, /Clear selection/);
+  assert.match(grid, /Back to marks/);
+  assert.match(grid, /onClearMarkedSelection=\{cancelMarking\}/);
+  assert.match(grid, /maxHeight: 'min\(42rem, var\(--radix-popover-content-available-height\)\)'/);
+  assert.match(grid, /overflow-y-auto overscroll-contain/);
+  assert.match(grid, /if \(isMarkedEditorOpen\) \{\s*cancelMarking\(\);/);
+});
+
 test('dashboard lessons identify stream entries with a compact initial', () => {
   assert.equal(getTimetableStreamInitial({ streamId: 'east', streamCode: 'E' }, schoolClass), 'E');
   assert.equal(getTimetableStreamInitial({ streamId: 'west' }, schoolClass), 'W');
