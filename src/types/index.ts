@@ -2435,6 +2435,13 @@ export interface TimetableEntry {
   streamCode?: string;
   periodId: string; // References GeneratedPeriod
   periodSpan?: number; // E.g. 2 for a Double Period
+  /**
+   * Explicit lesson cells covered by one assignment. Unlike periodSpan this can
+   * cross a break without treating the break itself as part of the lesson.
+   */
+  periodIds?: string[];
+  /** Render adjacent marked lessons as one block, stopping and resuming at breaks. */
+  mergePeriods?: boolean;
   /** 'subject' = normal lesson, 'activity' = co-curricular / group activity */
   entryType?: 'subject' | 'activity';
   subjectId: string;

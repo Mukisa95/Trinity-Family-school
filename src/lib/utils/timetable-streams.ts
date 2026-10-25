@@ -120,6 +120,61 @@ export function getTimetableRenderedPeriodSpan(
   return renderedSpan;
 }
 
+function isTimetableBreak(period: GeneratedPeriod | undefined): boolean {
+  return period?.type === 'break' || period?.type === 'lunch' || period?.type === 'assembly';
+}
+
+/**
+ * Returns the cells owned by an entry. Older entries keep their periodSpan
+ * behaviour; newer marked entries name every selected lesson explicitly.
+ */
+export function getTimetableEntryPeriodIds(entry: TimetableEntry, periods: GeneratedPeriod[]): string[] {
+  if (entry.periodIds?.length) return entry.periodIds;
+  const startIndex = periods.findIndex(period => period.id === entry.periodId);
+  if (startIndex < 0) return [entry.periodId];
+  const span = getTimetableRenderedPeriodSpan(periods, startIndex, entry.periodSpan);
+  return periods.slice(startIndex, startIndex + span).map(period => period.id);
+}
+
+export function entryCoversTimetablePeriod(
+  entry: TimetableEntry,
+  periodId: string,
+  periods: GeneratedPeriod[],
+): boolean {
+  return getTimetableEntryPeriodIds(entry, periods).includes(periodId);
+}
+
+/**
+ * A table cannot span over a break column. This returns a separate render run
+ * on either side of a break, preserving one logical marked assignment.
+ */
+export function getTimetableEntryRenderSegment(
+  entry: TimetableEntry,
+  periods: GeneratedPeriod[],
+  periodIndex: number,
+): { shouldRender: boolean; span: number } {
+  const period = periods[periodIndex];
+  if (!period || !entryCoversTimetablePeriod(entry, period.id, periods)) return { shouldRender: true, span: 1 };
+  const selected = new Set(getTimetableEntryPeriodIds(entry, periods));
+  const previous = periods[periodIndex - 1];
+  if (previous && !isTimetableBreak(previous) && selected.has(previous.id)) return { shouldRender: false, span: 0 };
+
+  if (!entry.mergePeriods) {
+    return {
+      shouldRender: true,
+      span: entry.periodIds?.length ? 1 : getTimetableRenderedPeriodSpan(periods, periodIndex, entry.periodSpan),
+    };
+  }
+
+  let span = 1;
+  while (periodIndex + span < periods.length) {
+    const next = periods[periodIndex + span];
+    if (isTimetableBreak(next) || !selected.has(next.id)) break;
+    span += 1;
+  }
+  return { shouldRender: true, span };
+}
+
 export function getTimetableBreakLabelFontSize(dayCount: number, columnWidth = 64): number {
   const visibleDayCount = Math.max(1, Math.min(7, dayCount || 1));
   const widthLimit = Math.round(columnWidth * 0.6);

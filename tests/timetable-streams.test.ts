@@ -9,6 +9,8 @@ import {
   getTimetableBreakLabelFontSize,
   getTimetableClassColumnWidth,
   getTimetableRenderedPeriodSpan,
+  entryCoversTimetablePeriod,
+  getTimetableEntryRenderSegment,
   getTimetableStreamInitial,
   getTimetableStreamMode,
 } from '../src/lib/utils/timetable-streams';
@@ -71,6 +73,25 @@ test('entry lookup keeps consolidated and stream lessons distinct', () => {
   assert.equal(findTimetableEntryForRow(entries, 'p1', 'mon-1', 'consolidated')?.id, 'all');
   assert.equal(findTimetableEntryForRow(entries, 'p1', 'tue-1', 'separate', 'east')?.id, 'east');
   assert.equal(findTimetableEntryForRow(entries, 'p1', 'tue-1', 'separate', 'west'), undefined);
+});
+
+test('marked timetable periods merge each lesson run without covering a break', () => {
+  const day = [
+    { id: 'l1', dayOfWeek: 1, periodNumber: 1, startTime: '08:00', endTime: '08:40', type: 'lesson' },
+    { id: 'l2', dayOfWeek: 1, periodNumber: 2, startTime: '08:40', endTime: '09:20', type: 'lesson' },
+    { id: 'break', dayOfWeek: 1, periodNumber: 3, startTime: '09:20', endTime: '09:40', type: 'break' },
+    { id: 'l3', dayOfWeek: 1, periodNumber: 4, startTime: '09:40', endTime: '10:20', type: 'lesson' },
+  ] satisfies GeneratedPeriod[];
+  const entry = {
+    id: 'all-day-activity', classId: 'p1', periodId: 'l1', subjectId: 'ACTIVITY', teacherId: 't1',
+    entryType: 'activity' as const, periodIds: ['l1', 'l2', 'l3'], mergePeriods: true, createdAt: '',
+  } satisfies TimetableEntry;
+
+  assert.equal(entryCoversTimetablePeriod(entry, 'l3', day), true);
+  assert.deepEqual(getTimetableEntryRenderSegment(entry, day, 0), { shouldRender: true, span: 2 });
+  assert.deepEqual(getTimetableEntryRenderSegment(entry, day, 1), { shouldRender: false, span: 0 });
+  assert.deepEqual(getTimetableEntryRenderSegment(entry, day, 3), { shouldRender: true, span: 1 });
+  assert.deepEqual(getTimetableEntryRenderSegment({ ...entry, mergePeriods: false }, day, 0), { shouldRender: true, span: 1 });
 });
 
 test('dashboard lessons identify stream entries with a compact initial', () => {

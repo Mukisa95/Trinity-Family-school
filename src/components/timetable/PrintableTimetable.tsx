@@ -7,9 +7,9 @@ import { useSchoolSettings } from "@/lib/hooks/use-school-settings";
 import { usePDFViewer } from "@/lib/hooks/use-pdf-viewer";
 import {
     buildTimetableClassRowsForDay,
-    findTimetableEntryForRow,
     getTimetableBreakLabelFontSize,
-    getTimetableRenderedPeriodSpan,
+    entryCoversTimetablePeriod,
+    getTimetableEntryRenderSegment,
     getTimetableStreamMode,
 } from "@/lib/utils/timetable-streams";
 
@@ -123,7 +123,10 @@ export function PrintableTimetable({
             (p) => p.dayOfWeek === dayId && p.type === tp.type && p.periodNumber === tp.periodNumber
         );
         if (!dayPeriod) return undefined;
-        return entries.find((e) => e.classId === classId && e.periodId === dayPeriod.id);
+        const dayPeriods = periods
+            .filter(period => period.dayOfWeek === dayId)
+            .sort((a, b) => parseTimeStr(a.startTime) - parseTimeStr(b.startTime));
+        return entries.find((e) => e.classId === classId && entryCoversTimetablePeriod(e, dayPeriod.id, dayPeriods));
     };
 
     // ── PDF generation ────────────────────────────────────────────────────────
@@ -548,7 +551,13 @@ export function PrintableTimetable({
                                                         const firstIdx = dayRows.findIndex(candidate => groupIds.includes(candidate.classItem.id));
                                                         if (rowIdx === firstIdx) {
                                                             const span = dayRows.filter(candidate => groupIds.includes(candidate.classItem.id)).length;
-                                                            const renderedPeriodSpan = getTimetableRenderedPeriodSpan(templatePeriods, templatePeriodIndex, groupEntry.periodSpan);
+                                                                const groupDayPeriods = periods.filter(period => period.dayOfWeek === day.id).sort((a, b) => parseTimeStr(a.startTime) - parseTimeStr(b.startTime));
+                                                                const groupDayPeriod = getDayPeriod(day.id, tp);
+                                                                const groupSegment = groupDayPeriod
+                                                                    ? getTimetableEntryRenderSegment(groupEntry, groupDayPeriods, groupDayPeriods.findIndex(period => period.id === groupDayPeriod.id))
+                                                                    : { shouldRender: true, span: 1 };
+                                                                if (!groupSegment.shouldRender) return null;
+                                                                const renderedPeriodSpan = groupSegment.span;
                                                             if (renderedPeriodSpan > 1) skipCells = renderedPeriodSpan - 1;
                                                             return (
                                                                 <td key={tp.id} rowSpan={span} colSpan={renderedPeriodSpan} style={{ borderTop: "none", borderBottom: rowBottomBorder, borderLeft: bd, borderRight: bd, background: "#e8e8e8", textAlign: "center", fontWeight: 700, verticalAlign: "middle", fontSize: lessonFs }}>
@@ -566,11 +575,19 @@ export function PrintableTimetable({
                                                 if (row.stream && mode === "consolidated" && row.streamIndex > 0) return null;
 
                                                 const scopedStream = mode === "separate" ? row.stream : undefined;
-                                                const entry = findTimetableEntryForRow(entries, cls.id, dayPeriod.id, mode, scopedStream?.id);
+                                                const dayPeriods = periods
+                                                    .filter(period => period.dayOfWeek === day.id)
+                                                    .sort((a, b) => parseTimeStr(a.startTime) - parseTimeStr(b.startTime));
+                                                const entry = entries.find(candidate => candidate.classId === cls.id
+                                                    && (mode === 'separate' ? candidate.streamId === scopedStream?.id : !candidate.streamId)
+                                                    && entryCoversTimetablePeriod(candidate, dayPeriod.id, dayPeriods));
                                                 const subject = entry ? subjects.find((subjectItem) => subjectItem.id === entry.subjectId) : null;
                                                 const rowSpan = row.stream && mode === "consolidated" ? row.streamCount : undefined;
                                                 const cellBottomBorder = rowSpan ? spanningBottomBorder : rowBottomBorder;
-                                                const renderedPeriodSpan = getTimetableRenderedPeriodSpan(templatePeriods, templatePeriodIndex, entry?.periodSpan);
+                                                const dayPeriodIndex = dayPeriods.findIndex(period => period.id === dayPeriod.id);
+                                                const segment = entry ? getTimetableEntryRenderSegment(entry, dayPeriods, dayPeriodIndex) : { shouldRender: true, span: 1 };
+                                                if (entry && !segment.shouldRender) return null;
+                                                const renderedPeriodSpan = entry ? segment.span : 1;
 
                                                 if (renderedPeriodSpan > 1) skipCells = renderedPeriodSpan - 1;
 

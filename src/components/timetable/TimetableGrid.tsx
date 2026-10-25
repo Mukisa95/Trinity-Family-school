@@ -15,7 +15,7 @@ import { parse, format, addMinutes, differenceInMinutes, isSameDay } from "date-
 import { useToast } from "@/hooks/use-toast";
 import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff, ClassStream, TimetableProfile } from "@/types";
 import { getActiveClassStreams } from "@/lib/utils/class-streams";
-import { classUsesStreamRowsForDay, findTimetableEntryForRow, getTimetableClassColumnWidth, getTimetableStreamMode, type TimetableStreamMode } from "@/lib/utils/timetable-streams";
+import { classUsesStreamRowsForDay, entryCoversTimetablePeriod, getTimetableClassColumnWidth, getTimetableEntryPeriodIds, getTimetableEntryRenderSegment, getTimetableStreamMode, type TimetableStreamMode } from "@/lib/utils/timetable-streams";
 
 const BASE_PX_PER_MIN = 1.8; // base: 60min = 108px — compact default
 
@@ -185,7 +185,10 @@ export function TimetableGrid({
         if (initialDay !== undefined && !setExternalSelectedDay) setInternalSelectedDay(initialDay);
     }, [initialDay, setExternalSelectedDay]);
 
-    const [activeCell, setActiveCell] = React.useState<{ classId: string; periodId: string; streamId?: string } | null>(null);
+    type CellTarget = { classId: string; periodId: string; streamId?: string };
+    const [activeCell, setActiveCell] = React.useState<CellTarget | null>(null);
+    const [markedCells, setMarkedCells] = React.useState<CellTarget[]>([]);
+    const [markingRow, setMarkingRow] = React.useState<Pick<CellTarget, 'classId' | 'streamId'> | null>(null);
     const [editingPeriod, setEditingPeriod] = React.useState<{ id: string, newStartTime: string, newEndTime: string } | null>(null);
     const [currentTime, setCurrentTime] = React.useState(new Date());
     const pxPerMin = BASE_PX_PER_MIN * zoom;
@@ -248,6 +251,24 @@ export function TimetableGrid({
     const dayPeriods = React.useMemo(() => {
         return periods.filter(p => p.dayOfWeek === selectedDay).sort((a, b) => a.startTime.localeCompare(b.startTime));
     }, [periods, selectedDay]);
+    const isMarked = React.useCallback((classId: string, periodId: string, streamId?: string) => (
+        markedCells.some(cell => cell.classId === classId && cell.periodId === periodId && cell.streamId === streamId)
+    ), [markedCells]);
+    const toggleMarkedCell = React.useCallback((target: CellTarget) => {
+        if (!markingRow || markingRow.classId !== target.classId || markingRow.streamId !== target.streamId) return;
+        setMarkedCells(current => current.some(cell => cell.periodId === target.periodId)
+            ? current.filter(cell => cell.periodId !== target.periodId)
+            : [...current, target]);
+    }, [markingRow]);
+    const beginMarking = React.useCallback((target: CellTarget) => {
+        setActiveCell(null);
+        setMarkingRow({ classId: target.classId, streamId: target.streamId });
+        setMarkedCells([target]);
+    }, []);
+    const cancelMarking = React.useCallback(() => {
+        setMarkingRow(null);
+        setMarkedCells([]);
+    }, []);
     const hasVisibleStreamRows = React.useMemo(
         () => classesToRender.some(cls => classUsesStreamRowsForDay(cls, profile, yearId, selectedDay, dayPeriods)),
         [classesToRender, dayPeriods, profile, selectedDay, yearId],
@@ -257,12 +278,10 @@ export function TimetableGrid({
     // A grouped activity entry has linkedClassIds pointing to its partner class entries.
     const sharedActivityMap = React.useMemo(() => {
         const map = new Map<string, { activityName: string; teacherId: string; groupClassIds: string[]; rowSpan: number; colSpan: number }>();
-        const processedPeriods = new Set<string>();
-        dayPeriods.forEach(period => {
-            if (processedPeriods.has(period.id)) return;
+        dayPeriods.forEach((period, periodIndex) => {
             // Find any activity entry for this period that has linkedClassIds
             const groupEntry = entries.find(e =>
-                e.periodId === period.id &&
+                entryCoversTimetablePeriod(e, period.id, dayPeriods) &&
                 e.entryType === 'activity' &&
                 e.linkedClassIds && e.linkedClassIds.length > 0
             );
@@ -277,17 +296,17 @@ export function TimetableGrid({
                     teacherId: groupEntry.teacherId || '',
                     groupClassIds,
                     rowSpan: renderedInGroup.length,
-                    colSpan: groupEntry.periodSpan || 1,
+                    colSpan: getTimetableEntryRenderSegment(groupEntry, dayPeriods, periodIndex).span,
                 });
             }
-            processedPeriods.add(period.id);
         });
         return map;
     }, [dayPeriods, classesToRender, entries]);
 
     const handleAssignSubject = async (
         classId: string, periodId: string, subjectId: string, teacherId: string, periodSpan: number = 1,
-        optionalSubjectId?: string, optionalTeacherId?: string, stream?: ClassStream
+        optionalSubjectId?: string, optionalTeacherId?: string, stream?: ClassStream,
+        selectedPeriodIds: string[] = [periodId], mergePeriods = false,
     ) => {
         // 1. Collision detection front-end check
         const existingConflict = entries.find(e =>
@@ -308,32 +327,35 @@ export function TimetableGrid({
         }
 
         // 2. See if there is an existing entry for this cell
-        const existingEntry = entries.find(e => e.classId === classId && e.periodId === periodId && e.streamId === stream?.id);
+        const existingEntry = entries.find(e => e.classId === classId && e.streamId === stream?.id && entryCoversTimetablePeriod(e, periodId, dayPeriods));
 
         try {
             if (existingEntry) {
                 // Update
-                if (existingEntry.subjectId === subjectId && existingEntry.teacherId === teacherId && existingEntry.periodSpan === periodSpan &&
-                    existingEntry.optionalSubjectId === optionalSubjectId && existingEntry.optionalTeacherId === optionalTeacherId) return; // No change
+                if (existingEntry.subjectId === subjectId && existingEntry.teacherId === teacherId &&
+                    existingEntry.optionalSubjectId === optionalSubjectId && existingEntry.optionalTeacherId === optionalTeacherId &&
+                    existingEntry.mergePeriods === mergePeriods &&
+                    JSON.stringify(existingEntry.periodIds || [existingEntry.periodId]) === JSON.stringify(selectedPeriodIds)) return; // No change
                 await saveMutation.mutateAsync({
                     yearId, termId, timetableId: profileId,
-                    entries: [{ id: existingEntry.id, classId, periodId, subjectId, teacherId, periodSpan, optionalSubjectId, optionalTeacherId, streamId: stream?.id, streamName: stream?.name, streamCode: stream?.code }]
+                    entries: [{ id: existingEntry.id, classId, periodId, subjectId, teacherId, periodSpan: 1, periodIds: selectedPeriodIds, mergePeriods, optionalSubjectId, optionalTeacherId, streamId: stream?.id, streamName: stream?.name, streamCode: stream?.code }]
                 });
             } else {
                 // Create
                 await saveMutation.mutateAsync({
                     yearId, termId, timetableId: profileId,
-                    entries: [{ classId, periodId, subjectId, teacherId, periodSpan, optionalSubjectId, optionalTeacherId, streamId: stream?.id, streamName: stream?.name, streamCode: stream?.code }]
+                    entries: [{ classId, periodId, subjectId, teacherId, periodSpan: 1, periodIds: selectedPeriodIds, mergePeriods, optionalSubjectId, optionalTeacherId, streamId: stream?.id, streamName: stream?.name, streamCode: stream?.code }]
                 });
             }
             setActiveCell(null);
+            setMarkedCells([]);
         } catch (e) {
             toast({ variant: "destructive", title: "Error", description: "Failed to save assignment" });
         }
     };
 
     const handleClearCell = async (classId: string, periodId: string, streamId?: string) => {
-        const existingEntry = entries.find(e => e.classId === classId && e.periodId === periodId && e.streamId === streamId);
+        const existingEntry = entries.find(e => e.classId === classId && e.streamId === streamId && entryCoversTimetablePeriod(e, periodId, dayPeriods));
         if (existingEntry) {
             try {
                 await deleteMutation.mutateAsync({ yearId, termId, timetableId: profileId, entryId: existingEntry.id });
@@ -343,6 +365,7 @@ export function TimetableGrid({
             }
         }
         setActiveCell(null);
+        setMarkedCells([]);
     };
 
     const handleSetStreamMode = async (
@@ -374,6 +397,7 @@ export function TimetableGrid({
                 sourceEntryId,
             });
             setActiveCell(null);
+            setMarkedCells([]);
             toast({
                 title: mode === 'separate' ? 'Streams separated' : 'Streams consolidated',
                 description: scope === 'period'
@@ -394,9 +418,9 @@ export function TimetableGrid({
     const handleAssignActivity = async (
         classId: string, periodId: string,
         activityName: string, teacherId: string,
-        linkedClassIds: string[] = [], periodSpan: number = 1
+        linkedClassIds: string[] = [], periodSpan: number = 1, selectedPeriodIds: string[] = [periodId], mergePeriods = false,
     ) => {
-        const existing = entries.find(e => e.classId === classId && e.periodId === periodId);
+        const existing = entries.find(e => e.classId === classId && entryCoversTimetablePeriod(e, periodId, dayPeriods));
 
         // Find if there are any classes that were previously linked but are now removed
         const previousLinkedClassIds = existing?.linkedClassIds || [];
@@ -409,7 +433,9 @@ export function TimetableGrid({
             entryType: 'activity' as const,
             activityName,
             linkedClassIds,
-            periodSpan,
+            periodSpan: 1,
+            periodIds: selectedPeriodIds,
+            mergePeriods,
         };
 
         const entriesToSave = [];
@@ -451,6 +477,7 @@ export function TimetableGrid({
             }
 
             setActiveCell(null);
+            setMarkedCells([]);
             toast({
                 title: "Activity Saved",
                 description: `"${activityName}" assigned${linkedClassIds.length > 0 ? ` across ${linkedClassIds.length + 1} classes` : ''}.`,
@@ -466,10 +493,10 @@ export function TimetableGrid({
         stream: ClassStream,
         activityName: string,
         teacherId: string,
-        periodSpan: number,
+        periodSpan: number, selectedPeriodIds: string[] = [periodId], mergePeriods = false,
     ) => {
         const existing = entries.find(entry => (
-            entry.classId === classId && entry.periodId === periodId && entry.streamId === stream.id
+            entry.classId === classId && entry.streamId === stream.id && entryCoversTimetablePeriod(entry, periodId, dayPeriods)
         ));
         const payload = {
             classId,
@@ -482,7 +509,9 @@ export function TimetableGrid({
             entryType: 'activity' as const,
             activityName,
             linkedClassIds: [],
-            periodSpan,
+            periodSpan: 1,
+            periodIds: selectedPeriodIds,
+            mergePeriods,
         };
         try {
             await saveMutation.mutateAsync({
@@ -557,6 +586,21 @@ export function TimetableGrid({
     // We removed the explicit isLoading branch to allow the grid to snap-in instantly
     return (
         <div className="flex flex-col gap-3 min-w-0 max-w-full h-full flex-1 overflow-hidden">
+            {isEditing && markingRow && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 shadow-sm dark:border-blue-800/60 dark:bg-blue-950/40">
+                    <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">
+                        Marking {markedCells.length} lesson{markedCells.length === 1 ? '' : 's'} — tap lesson cells to add or remove them.
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={cancelMarking}>Cancel</Button>
+                        <Button type="button" size="sm" className="h-8 text-xs" disabled={!markedCells.length} onClick={() => {
+                            const first = markedCells[0];
+                            setMarkingRow(null);
+                            setActiveCell(first);
+                        }}>Mark {markedCells.length} &amp; edit</Button>
+                    </div>
+                </div>
+            )}
             {/* Day Selector Tabs — hidden when toolbar is managed externally */}
             {!hideToolbar && initialDay === undefined && (
                 <div className="flex flex-wrap gap-1 mb-2 overflow-x-auto pb-1 custom-scrollbar">
@@ -570,7 +614,7 @@ export function TimetableGrid({
                                 variant={selectedDay === dayId ? "default" : "outline"}
                                 onClick={() => setSelectedDay(dayId)}
                                 size="sm"
-                                className={`rounded-xl text-xs px-3 sm:px-4 py-1 h-8 ${selectedDay === dayId ? "bg-indigo-600 hover:bg-indigo-700 shadow-sm" : "bg-white text-gray-600 hover:bg-indigo-50"}`}
+                                className={`rounded-xl text-xs px-3 sm:px-4 py-1 h-8 ${selectedDay === dayId ? "bg-indigo-600 hover:bg-indigo-700 shadow-sm" : "bg-white text-gray-600 hover:bg-indigo-50 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-indigo-950/40"}`}
                             >
                                 {dayName}
                             </Button>
@@ -578,16 +622,16 @@ export function TimetableGrid({
                     })}
                     <div className="flex-1" />
                     {/* Zoom control */}
-                    <div className="flex items-center gap-1 bg-white rounded-full px-2 py-1 border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-1 bg-white rounded-full px-2 py-1 border border-gray-200 shadow-sm dark:bg-slate-900 dark:border-slate-700">
                         <button
                             onClick={() => setZoom(Math.max(0.5, +(zoom - 0.25).toFixed(2)))}
-                            className="w-5 h-5 rounded-full bg-gray-50 border border-gray-200 text-gray-600 text-xs flex items-center justify-center hover:bg-gray-100"
+                            className="w-5 h-5 rounded-full bg-gray-50 border border-gray-200 text-gray-600 text-xs flex items-center justify-center hover:bg-gray-100 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
                             title="Zoom out"
                         >−</button>
-                        <span className="text-[10px] font-mono text-gray-500 w-8 text-center">{Math.round(zoom * 100)}%</span>
+                        <span className="text-[10px] font-mono text-gray-500 w-8 text-center dark:text-slate-400">{Math.round(zoom * 100)}%</span>
                         <button
                             onClick={() => setZoom(Math.min(2.5, +(zoom + 0.25).toFixed(2)))}
-                            className="w-5 h-5 rounded-full bg-gray-50 border border-gray-200 text-gray-600 text-xs flex items-center justify-center hover:bg-gray-100"
+                            className="w-5 h-5 rounded-full bg-gray-50 border border-gray-200 text-gray-600 text-xs flex items-center justify-center hover:bg-gray-100 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
                             title="Zoom in"
                         >+</button>
                     </div>
@@ -762,10 +806,14 @@ export function TimetableGrid({
                                         isEditing={isEditing}
                                         activeCell={activeCell}
                                         setActiveCell={setActiveCell}
-                                        onAssign={(stream, periodId, subjectId, teacherId, span, optSubId, optTId) => handleAssignSubject(cls.id, periodId, subjectId, teacherId, span, optSubId, optTId, stream)}
-                                        onAssignActivity={(stream, periodId, name, teacherId, linkedIds, span) => stream
-                                            ? handleAssignStreamActivity(cls.id, periodId, stream, name, teacherId, span)
-                                            : handleAssignActivity(cls.id, periodId, name, teacherId, linkedIds, span)}
+                                        markingRow={markingRow}
+                                        markedCells={markedCells}
+                                        onToggleMarked={toggleMarkedCell}
+                                        onBeginMarking={beginMarking}
+                                        onAssign={(stream, periodId, subjectId, teacherId, span, optSubId, optTId, selectedIds, merge) => handleAssignSubject(cls.id, periodId, subjectId, teacherId, span, optSubId, optTId, stream, selectedIds, merge)}
+                                        onAssignActivity={(stream, periodId, name, teacherId, linkedIds, span, selectedIds, merge) => stream
+                                            ? handleAssignStreamActivity(cls.id, periodId, stream, name, teacherId, span, selectedIds, merge)
+                                            : handleAssignActivity(cls.id, periodId, name, teacherId, linkedIds, span, selectedIds, merge)}
                                         onClear={(streamId, periodId) => handleClearCell(cls.id, periodId, streamId)}
                                         onSetMode={(mode, scope, periodId, sourceEntryId) => handleSetStreamMode(cls, mode, scope, periodId, sourceEntryId)}
                                         streamModePending={streamModeMutation.isPending}
@@ -793,7 +841,7 @@ export function TimetableGrid({
                                             )}
                                         </div>
                                     </td>
-                                    {dayPeriods.map(period => {
+                                    {dayPeriods.map((period, periodIndex) => {
                                         if (skipCells > 0) { skipCells--; return null; }
 
                                         // Grouped activity — only the first rendered class in the group renders the merged cell
@@ -833,8 +881,9 @@ export function TimetableGrid({
                                                         >
                                                             {isEditing ? (
                                                                 <Popover
-                                                                    open={activeCell?.classId === cls.id && activeCell?.periodId === period.id}
+                                                                    open={!markingRow && activeCell?.classId === cls.id && activeCell?.periodId === period.id}
                                                                     onOpenChange={(isOpen) => {
+                                                                        if (isOpen && markingRow) { toggleMarkedCell({ classId: cls.id, periodId: period.id }); return; }
                                                                         if (isOpen) setActiveCell({ classId: cls.id, periodId: period.id });
                                                                         else setActiveCell(null);
                                                                     }}
@@ -850,10 +899,13 @@ export function TimetableGrid({
                                                                             subjects={subjects}
                                                                             staffList={staffList}
                                                                             allClasses={classesToRender}
-                                                                            onAssign={(subjectId, teacherId, span, optSubId, optTId) => handleAssignSubject(cls.id, period.id, subjectId, teacherId, span, optSubId, optTId)}
-                                                                            onAssignActivity={(name, teacherId, linkedIds, span) => handleAssignActivity(cls.id, period.id, name, teacherId, linkedIds, span)}
+                                                                            onAssign={(subjectId, teacherId, span, optSubId, optTId, selectedIds, merge) => handleAssignSubject(cls.id, period.id, subjectId, teacherId, span, optSubId, optTId, undefined, selectedIds, merge)}
+                                                                            onAssignActivity={(name, teacherId, linkedIds, span, selectedIds, merge) => handleAssignActivity(cls.id, period.id, name, teacherId, linkedIds, span, selectedIds, merge)}
                                                                             onClear={() => handleClearCell(cls.id, period.id)}
                                                                             onClose={() => setActiveCell(null)}
+                                                                            onStartMark={() => beginMarking({ classId: cls.id, periodId: period.id })}
+                                                                            selectedPeriodIds={markedCells.length ? markedCells.filter(cell => cell.classId === cls.id && !cell.streamId).map(cell => cell.periodId) : cellEntry ? getTimetableEntryPeriodIds(cellEntry, dayPeriods) : undefined}
+                                                                            openEditor={markedCells.length > 0}
                                                                         />
                                                                     </PopoverContent>
                                                                 </Popover>
@@ -887,12 +939,15 @@ export function TimetableGrid({
                                         }
 
                                         // Find entry
-                                        const entry = entries.find(e => e.classId === cls.id && e.periodId === period.id);
+                                        const entry = entries.find(e => e.classId === cls.id && !e.streamId && entryCoversTimetablePeriod(e, period.id, dayPeriods));
                                         const entrySubject = entry ? subjects.find(s => s.id === entry.subjectId) : null;
                                         const entryTeacher = entry ? staffList.find(s => s.id === entry.teacherId) : null;
+                                        const segment = entry ? getTimetableEntryRenderSegment(entry, dayPeriods, periodIndex) : { shouldRender: true, span: 1 };
 
-                                        if (entry && entry.periodSpan && entry.periodSpan > 1) {
-                                            skipCells = entry.periodSpan - 1;
+                                        if (entry && !segment.shouldRender) return null;
+
+                                        if (entry && segment.span > 1) {
+                                            skipCells = segment.span - 1;
                                         }
 
                                         // Check Collision visually for this cell
@@ -918,7 +973,7 @@ export function TimetableGrid({
                                             <div
                                                 style={!isSplit && entry && entry.entryType !== 'activity' ? cellStyle : {}}
                                                 className={`absolute inset-0 m-px rounded border ${!isSplit ? 'p-1' : 'p-0 overflow-hidden border-transparent'} transition-all flex flex-col items-center justify-center text-center
-                                                    ${isEditing ? 'cursor-pointer' : 'cursor-default'}
+                                                    ${isEditing ? 'cursor-pointer' : 'cursor-default'} ${isMarked(cls.id, period.id) ? 'ring-2 ring-inset ring-blue-500 bg-blue-100/60 dark:bg-blue-950/60' : ''}
                                                     ${entry
                                                         ? (entry.entryType === 'activity'
                                                             ? `bg-purple-50/60 hover:bg-purple-100 border-purple-100 ${periodState === 'past' ? 'opacity-50' : ''}`
@@ -991,11 +1046,12 @@ export function TimetableGrid({
                                         );
 
                                         return (
-                                            <td key={period.id} colSpan={entry?.periodSpan || 1} className={`p-0 border-r relative group h-[42px] ${isCurrentActivePeriod ? 'bg-amber-50/40' : ''}`}>
+                                            <td key={period.id} colSpan={entry ? segment.span : 1} className={`p-0 border-r relative group h-[42px] ${isCurrentActivePeriod ? 'bg-amber-50/40 dark:bg-amber-950/40' : ''}`}>
                                                 {isEditing ? (
                                                     <Popover
-                                                        open={activeCell?.classId === cls.id && activeCell?.periodId === period.id}
+                                                        open={!markingRow && activeCell?.classId === cls.id && activeCell?.periodId === period.id}
                                                         onOpenChange={(isOpen) => {
+                                                            if (isOpen && markingRow) { toggleMarkedCell({ classId: cls.id, periodId: period.id }); return; }
                                                             if (isOpen) setActiveCell({ classId: cls.id, periodId: period.id });
                                                             else setActiveCell(null);
                                                         }}
@@ -1011,10 +1067,13 @@ export function TimetableGrid({
                                                                 subjects={subjects}
                                                                 staffList={staffList}
                                                                 allClasses={classesToRender}
-                                                                onAssign={(subjectId, teacherId, span, optSubId, optTId) => handleAssignSubject(cls.id, period.id, subjectId, teacherId, span, optSubId, optTId)}
-                                                                onAssignActivity={(name, teacherId, linkedIds, span) => handleAssignActivity(cls.id, period.id, name, teacherId, linkedIds, span)}
+                                                                onAssign={(subjectId, teacherId, span, optSubId, optTId, selectedIds, merge) => handleAssignSubject(cls.id, period.id, subjectId, teacherId, span, optSubId, optTId, undefined, selectedIds, merge)}
+                                                                onAssignActivity={(name, teacherId, linkedIds, span, selectedIds, merge) => handleAssignActivity(cls.id, period.id, name, teacherId, linkedIds, span, selectedIds, merge)}
                                                                 onClear={() => handleClearCell(cls.id, period.id)}
                                                                 onClose={() => setActiveCell(null)}
+                                                                onStartMark={() => beginMarking({ classId: cls.id, periodId: period.id })}
+                                                                selectedPeriodIds={markedCells.length ? markedCells.filter(cell => cell.classId === cls.id && !cell.streamId).map(cell => cell.periodId) : entry ? getTimetableEntryPeriodIds(entry, dayPeriods) : undefined}
+                                                                openEditor={markedCells.length > 0}
                                                             />
                                                         </PopoverContent>
                                                     </Popover>
@@ -1101,6 +1160,10 @@ function StreamedClassRows({
     isEditing,
     activeCell,
     setActiveCell,
+    markingRow,
+    markedCells,
+    onToggleMarked,
+    onBeginMarking,
     onAssign,
     onAssignActivity,
     onClear,
@@ -1121,8 +1184,12 @@ function StreamedClassRows({
     isEditing: boolean;
     activeCell: { classId: string; periodId: string; streamId?: string } | null;
     setActiveCell: React.Dispatch<React.SetStateAction<{ classId: string; periodId: string; streamId?: string } | null>>;
-    onAssign: (stream: ClassStream | undefined, periodId: string, subId: string, teacherId: string, span: number, optSubId?: string, optTeacherId?: string) => void;
-    onAssignActivity: (stream: ClassStream | undefined, periodId: string, name: string, teacherId: string, linkedIds: string[], span: number) => void;
+    markingRow: { classId: string; streamId?: string } | null;
+    markedCells: { classId: string; periodId: string; streamId?: string }[];
+    onToggleMarked: (target: { classId: string; periodId: string; streamId?: string }) => void;
+    onBeginMarking: (target: { classId: string; periodId: string; streamId?: string }) => void;
+    onAssign: (stream: ClassStream | undefined, periodId: string, subId: string, teacherId: string, span: number, optSubId?: string, optTeacherId?: string, selectedIds?: string[], merge?: boolean) => void;
+    onAssignActivity: (stream: ClassStream | undefined, periodId: string, name: string, teacherId: string, linkedIds: string[], span: number, selectedIds?: string[], merge?: boolean) => void;
     onClear: (streamId: string | undefined, periodId: string) => void;
     onSetMode: (mode: TimetableStreamMode, scope: 'timetable' | 'day' | 'period', periodId?: string, sourceEntryId?: string) => void;
     streamModePending: boolean;
@@ -1174,15 +1241,15 @@ function StreamedClassRows({
                                 </div>
                             </td>
                         )}
-                        {periods.map(period => {
+                        {periods.map((period, periodIndex) => {
                             if (skipCells > 0) { skipCells--; return null; }
                             const isFirstStream = streamIndex === 0;
                             const isBreak = period.type === 'break' || period.type === 'lunch';
                             if (isBreak) {
                                 if (!isFirstStream) return null;
                                 return (
-                                    <td key={period.id} rowSpan={streams.length} className="border-r bg-gray-100/80 p-0 text-center align-middle">
-                                        <span className="text-[8px] font-bold uppercase tracking-wider text-gray-400">{period.customLabel || period.type}</span>
+                                    <td key={period.id} rowSpan={streams.length} className="border-r bg-gray-100/80 p-0 text-center align-middle dark:bg-slate-900/80">
+                                        <span className="text-[8px] font-bold uppercase tracking-wider text-gray-400 dark:text-slate-400">{period.customLabel || period.type}</span>
                                     </td>
                                 );
                             }
@@ -1191,7 +1258,9 @@ function StreamedClassRows({
                             if (mode === 'consolidated' && !isFirstStream) return null;
 
                             const scopedStream = mode === 'separate' ? stream : undefined;
-                            const entry = findTimetableEntryForRow(entries, classItem.id, period.id, mode, scopedStream?.id);
+                            const entry = entries.find(candidate => candidate.classId === classItem.id
+                                && (mode === 'separate' ? candidate.streamId === scopedStream?.id : !candidate.streamId)
+                                && entryCoversTimetablePeriod(candidate, period.id, periods));
                             const subject = entry ? subjects.find(item => item.id === entry.subjectId) : undefined;
                             const teacher = entry ? staffList.find(item => item.id === entry.teacherId) : undefined;
                             const optionalSubject = entry?.optionalSubjectId
@@ -1201,7 +1270,9 @@ function StreamedClassRows({
                                 ? staffList.find(item => item.id === entry.optionalTeacherId)
                                 : undefined;
                             const isSplitSubject = Boolean(entry && entry.entryType !== 'activity' && optionalSubject);
-                            if (entry?.periodSpan && entry.periodSpan > 1) skipCells = entry.periodSpan - 1;
+                            const segment = entry ? getTimetableEntryRenderSegment(entry, periods, periodIndex) : { shouldRender: true, span: 1 };
+                            if (entry && !segment.shouldRender) return null;
+                            if (entry && segment.span > 1) skipCells = segment.span - 1;
 
                             const activeStr = format(currentTime, 'HH:mm');
                             const today = currentTime.getDay() || 7;
@@ -1223,8 +1294,8 @@ function StreamedClassRows({
                                 <div
                                     style={isSplitSubject ? undefined : cellStyle}
                                     className={`absolute inset-0 m-px flex flex-col items-center justify-center rounded border text-center transition-colors ${isSplitSubject ? 'overflow-hidden border-transparent p-0' : 'p-1'} ${
-                                        entry ? 'border-transparent' : isEditing ? 'border-dashed border-indigo-200 hover:bg-indigo-50' : 'border-transparent'
-                                    } ${isEditing ? 'cursor-pointer' : 'cursor-default'}`}
+                                        entry ? 'border-transparent' : isEditing ? 'border-dashed border-indigo-200 hover:bg-indigo-50 dark:border-indigo-800/60 dark:hover:bg-indigo-950/40' : 'border-transparent'
+                                    } ${isEditing ? 'cursor-pointer' : 'cursor-default'} ${markedCells.some(cell => cell.classId === classItem.id && cell.periodId === period.id && cell.streamId === scopedStream?.id) ? 'ring-2 ring-inset ring-blue-500 bg-blue-100/60 dark:bg-blue-950/60' : ''}`}
                                 >
                                     {entry ? entry.entryType === 'activity' ? (
                                         <>
@@ -1259,14 +1330,17 @@ function StreamedClassRows({
                                 </div>
                             );
                             return (
-                                <td key={period.id} rowSpan={rowSpan} colSpan={entry?.periodSpan || 1} className="group relative h-[42px] border-r p-0 align-middle">
+                                <td key={period.id} rowSpan={rowSpan} colSpan={entry ? segment.span : 1} className="group relative h-[42px] border-r p-0 align-middle">
                                     {isEditing ? (
                                         <Popover
-                                            open={isOpen}
-                                            onOpenChange={open => setActiveCell(open ? { classId: classItem.id, periodId: period.id, streamId: scopedStream?.id } : null)}
+                                            open={!markingRow && isOpen}
+                                            onOpenChange={open => {
+                                                if (open && markingRow) { onToggleMarked({ classId: classItem.id, periodId: period.id, streamId: scopedStream?.id }); return; }
+                                                setActiveCell(open ? { classId: classItem.id, periodId: period.id, streamId: scopedStream?.id } : null);
+                                            }}
                                         >
                                             <PopoverTrigger asChild>{content}</PopoverTrigger>
-                                            <PopoverContent className="w-80 border border-gray-200 p-0 shadow-xl" align="start">
+                                            <PopoverContent className="w-80 border border-gray-200 p-0 shadow-xl dark:border-slate-700" align="start">
                                                 <AssignmentPopup
                                                     classItem={classItem}
                                                     streamName={scopedStream?.name}
@@ -1276,10 +1350,13 @@ function StreamedClassRows({
                                                     subjects={subjects}
                                                     staffList={staffList}
                                                     allClasses={mode === 'separate' ? [] : allClasses}
-                                                    onAssign={(subId, teacherId, span, optSubId, optTeacherId) => onAssign(scopedStream, period.id, subId, teacherId, span, optSubId, optTeacherId)}
-                                                    onAssignActivity={(name, teacherId, linkedIds, span) => onAssignActivity(scopedStream, period.id, name, teacherId, linkedIds, span)}
+                                                    onAssign={(subId, teacherId, span, optSubId, optTeacherId, selectedIds, merge) => onAssign(scopedStream, period.id, subId, teacherId, span, optSubId, optTeacherId, selectedIds, merge)}
+                                                    onAssignActivity={(name, teacherId, linkedIds, span, selectedIds, merge) => onAssignActivity(scopedStream, period.id, name, teacherId, linkedIds, span, selectedIds, merge)}
                                                     onClear={() => onClear(scopedStream?.id, period.id)}
                                                     onClose={() => setActiveCell(null)}
+                                                    onStartMark={() => onBeginMarking({ classId: classItem.id, periodId: period.id, streamId: scopedStream?.id })}
+                                                    selectedPeriodIds={markedCells.length ? markedCells.filter(cell => cell.classId === classItem.id && cell.streamId === scopedStream?.id).map(cell => cell.periodId) : entry ? getTimetableEntryPeriodIds(entry, periods) : undefined}
+                                                    openEditor={markedCells.length > 0}
                                                     onStreamModeChange={target => onSetMode(target, 'period', period.id, entry?.id)}
                                                     streamModePending={streamModePending}
                                                 />
@@ -1299,21 +1376,28 @@ function StreamedClassRows({
 // Sub-component for assignment popup
 function AssignmentPopup({
     classItem, streamName, streamMode, period, currentEntry, subjects, staffList, allClasses,
-    onAssign, onAssignActivity, onClear, onClose, onStreamModeChange, streamModePending
+    onAssign, onAssignActivity, onClear, onClose, onStartMark, selectedPeriodIds, openEditor = false, onStreamModeChange, streamModePending
 }: {
     classItem: Class; period: GeneratedPeriod; currentEntry?: TimetableEntry;
     streamName?: string;
     streamMode?: TimetableStreamMode;
     subjects: Subject[]; staffList: Staff[]; allClasses: Class[];
-    onAssign: (subId: string, tId: string, span: number, optSubId?: string, optTId?: string) => void;
-    onAssignActivity: (name: string, teacherId: string, linkedClassIds: string[], span: number) => void;
+    onAssign: (subId: string, tId: string, span: number, optSubId?: string, optTId?: string, selectedPeriodIds?: string[], mergePeriods?: boolean) => void;
+    onAssignActivity: (name: string, teacherId: string, linkedClassIds: string[], span: number, selectedPeriodIds?: string[], mergePeriods?: boolean) => void;
     onClear: () => void;
     onClose: () => void;
+    onStartMark: () => void;
+    selectedPeriodIds?: string[];
+    openEditor?: boolean;
     onStreamModeChange?: (mode: TimetableStreamMode) => void;
     streamModePending?: boolean;
 }) {
     const assignments = classItem.subjectAssignments || [];
-    const [isDouble, setIsDouble] = React.useState(currentEntry?.periodSpan === 2);
+    const [showEditor, setShowEditor] = React.useState(openEditor);
+    const effectivePeriodIds = selectedPeriodIds?.length ? selectedPeriodIds : [period.id];
+    const [mergePeriods, setMergePeriods] = React.useState(
+        currentEntry?.mergePeriods ?? effectivePeriodIds.length > 1,
+    );
     const [tab, setTab] = React.useState<'subject' | 'activity'>(
         currentEntry?.entryType === 'activity' ? 'activity' : 'subject'
     );
@@ -1339,15 +1423,33 @@ function AssignmentPopup({
 
     const otherClasses = allClasses.filter(c => c.id !== classItem.id);
 
+    if (!showEditor) {
+        return (
+            <div className="w-80 p-3 space-y-2 bg-white dark:bg-slate-900">
+                <p className="text-xs font-bold text-slate-900 dark:text-slate-100">Choose how to edit this timetable</p>
+                <p className="text-[11px] leading-4 text-slate-500 dark:text-slate-400">Mark lets you choose multiple lesson cells first. Select opens this one lesson immediately.</p>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                    <Button type="button" className="h-auto min-h-16 flex-col gap-1" onClick={onStartMark}>
+                        <span className="font-bold">Mark</span><span className="text-[10px] font-normal opacity-90">Choose several lessons</span>
+                    </Button>
+                    <Button type="button" variant="outline" className="h-auto min-h-16 flex-col gap-1" onClick={() => setShowEditor(true)}>
+                        <span className="font-bold">Select</span><span className="text-[10px] font-normal text-muted-foreground">Edit this lesson</span>
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="flex flex-col bg-slate-50">
+        <div className="flex flex-col bg-slate-50 dark:bg-slate-900">
             {/* Header */}
-            <div className="p-3 border-b bg-white flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
+            <div className="p-3 border-b bg-white flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white dark:bg-slate-900 dark:from-blue-950/50 dark:to-slate-900">
                 <div>
-                    <h4 className="font-bold text-sm text-gray-800">{classItem.name}{streamName ? ` · ${streamName}` : ''}</h4>
-                    <span className="text-xs text-gray-500 block font-mono">
+                    <h4 className="font-bold text-sm text-gray-800 dark:text-slate-100">{classItem.name}{streamName ? ` · ${streamName}` : ''}</h4>
+                    <span className="text-xs text-gray-500 block font-mono dark:text-slate-400">
                         {period.startTime} - {period.endTime}
                     </span>
+                    {effectivePeriodIds.length > 1 && <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300">{effectivePeriodIds.length} marked lessons</span>}
                 </div>
                 <Badge variant="outline" className="text-[10px] uppercase font-semibold">
                     Lesson {period.periodNumber}
@@ -1497,7 +1599,7 @@ function AssignmentPopup({
 
                             <button
                                 disabled={!primarySubId || !primaryTId || (hasOptional && (!optSubId || !optTId))}
-                                onClick={() => onAssign(primarySubId!, primaryTId!, isDouble ? 2 : 1, hasOptional ? optSubId! : undefined, hasOptional ? optTId! : undefined)}
+                                onClick={() => onAssign(primarySubId!, primaryTId!, 1, hasOptional ? optSubId! : undefined, hasOptional ? optTId! : undefined, effectivePeriodIds, mergePeriods)}
                                 className="w-full mt-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-bold py-2 rounded-lg transition-all"
                             >
                                 Save Subject
@@ -1565,7 +1667,7 @@ function AssignmentPopup({
 
                     <button
                         disabled={!activityName.trim()}
-                        onClick={() => onAssignActivity(activityName.trim(), activityTeacherId, linkedClassIds, isDouble ? 2 : 1)}
+                        onClick={() => onAssignActivity(activityName.trim(), activityTeacherId, linkedClassIds, 1, effectivePeriodIds, mergePeriods)}
                         className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-xs font-bold py-2 rounded-lg transition-all"
                     >
                         Save Activity
@@ -1573,22 +1675,23 @@ function AssignmentPopup({
                 </div>
             )}
 
-            {/* Double period toggle (both tabs) */}
-            <div className="px-3 py-2 border-t bg-amber-50/50 flex items-center gap-2">
+            {effectivePeriodIds.length > 1 && (
+            <div className="px-3 py-2 border-t bg-amber-50/50 flex items-center gap-2 dark:bg-amber-950/50">
                 <input
                     type="checkbox"
-                    id="doublePeriodToggle"
-                    checked={isDouble}
-                    onChange={(e) => setIsDouble(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    id="mergeMarkedPeriodsToggle"
+                    checked={mergePeriods}
+                    onChange={(e) => setMergePeriods(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-slate-700 dark:text-blue-400"
                 />
-                <label htmlFor="doublePeriodToggle" className="text-xs font-semibold text-gray-700 cursor-pointer">
-                    Make Double Period <span className="text-gray-400 font-normal">(Spans 2 columns)</span>
+                <label htmlFor="mergeMarkedPeriodsToggle" className="text-xs font-semibold text-gray-700 cursor-pointer dark:text-slate-200">
+                    Merge consecutive lessons <span className="text-gray-400 font-normal dark:text-slate-400">(breaks stay visible)</span>
                 </label>
             </div>
+            )}
 
             {/* Footer */}
-            <div className="p-2 border-t bg-white flex justify-between gap-2">
+            <div className="p-2 border-t bg-white flex justify-between gap-2 dark:bg-slate-900">
                 {currentEntry ? (
                     <Button variant="destructive" size="sm" className="w-full text-xs h-8" onClick={onClear}>
                         Clear
