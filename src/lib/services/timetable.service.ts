@@ -17,9 +17,9 @@ import {
 } from '@/lib/access/scoped-firestore';
 import { db } from '../firebase';
 import type { TimetableProfile, GeneratedPeriod, TimetableEntry, ClassStream, Class, Staff } from '@/types';
-import { planTimetableSelectionEdit, timetableSelectionFingerprint, type TimetableSelectionEdit } from '@/lib/utils/timetable-selection';
+import { planTimetableSelectionEdit, timetableSelectionFingerprint, type SelectionData, type TimetableSelectionEdit } from '@/lib/utils/timetable-selection';
 import { getActiveClassStreams } from '@/lib/utils/class-streams';
-import { bumpTimetableRevisionInBatch } from './dashboard-cache-revisions.service';
+import { bumpTimetableRevisionInBatch, dashboardRevisionKeys } from './dashboard-cache-revisions.service';
 import { dashboardRevisionDocumentRef } from './dashboard-revision-documents';
 
 // Path constructor for academic term scoped timetables
@@ -456,6 +456,8 @@ export class TimetableService {
         const entriesRef = collection(db, getEntriesCollectionPath(yearId, termId, timetableId));
         const revisionRef = dashboardRevisionDocumentRef('timetable');
         const initialRevision = await getDocFromServer(revisionRef);
+        const revisionKey = dashboardRevisionKeys.timetable(yearId, termId);
+        const initialRevisionValue = Number(initialRevision.data()?.timetable?.[revisionKey] || 0);
         const [entrySnapshot, periodSnapshot, profileSnapshot, classSnapshots, staffSnapshot] = await Promise.all([
             getDocsFromServer(entriesRef),
             getDocsFromServer(collection(db, getPeriodsCollectionPath(yearId, termId, timetableId))),
@@ -468,14 +470,15 @@ export class TimetableService {
             const value = snapshot.data();
             return { ...value, id: snapshot.id, createdAt: value.createdAt?.toDate?.()?.toISOString() || value.createdAt } as TimetableEntry;
         });
-        const plan = planTimetableSelectionEdit(edit, {
+        const selectionData: SelectionData = {
             yearId,
             profile: { ...profileSnapshot.data(), id: profileSnapshot.id } as TimetableProfile,
             periods: periodSnapshot.docs.map(d => ({ ...d.data(), id: d.id }) as GeneratedPeriod),
             entries,
             classes: classSnapshots.docs.map(d => ({ ...d.data(), id: d.id }) as Class),
             staff: staffSnapshot.docs.map(d => ({ ...d.data(), id: d.id }) as Staff),
-        });
+        };
+        const plan = planTimetableSelectionEdit(edit, selectionData);
         if (timetableSelectionFingerprint(plan) !== expectedFingerprint) {
             throw new Error('The timetable or teacher assignments changed. Refresh the timetable and review your selection again.');
         }
@@ -488,11 +491,25 @@ export class TimetableService {
                 transaction.get(profileSnapshot.ref),
                 Promise.all(classSnapshots.docs.filter(d => edit.cells.some(c => c.classId === d.id)).map(d => transaction.get(d.ref))),
             ]);
-            if (JSON.stringify(revision.data()) !== JSON.stringify(initialRevision.data()) ||
-                JSON.stringify(currentProfile.data()) !== JSON.stringify(profileSnapshot.data()) ||
-                currentClasses.some(d => JSON.stringify(d.data()) !== JSON.stringify(classSnapshots.docs.find(c => c.id === d.id)?.data()))) {
-                throw new Error('The timetable or class assignments changed while saving. Review the latest timetable and try again.');
+            const changedWhileSaving = () => new Error('The timetable or class assignments changed while saving. Review the latest timetable and try again.');
+            if (Number(revision.data()?.timetable?.[revisionKey] || 0) !== initialRevisionValue) throw changedWhileSaving();
+
+            // Scoped reads can add IDs and project profile fields, while SDK
+            // transactions read the stored record. Compare the assignments
+            // they produce rather than JSON encodings of the whole documents.
+            let currentPlan: ReturnType<typeof planTimetableSelectionEdit>;
+            try {
+                if (!currentProfile.exists() || currentClasses.some(snapshot => !snapshot.exists())) throw changedWhileSaving();
+                const classesById = new Map(currentClasses.map(snapshot => [snapshot.id, { ...snapshot.data(), id: snapshot.id } as Class]));
+                currentPlan = planTimetableSelectionEdit(edit, {
+                    ...selectionData,
+                    profile: { ...currentProfile.data(), id: currentProfile.id } as TimetableProfile,
+                    classes: selectionData.classes.map(classItem => classesById.get(classItem.id) || classItem),
+                });
+            } catch {
+                throw changedWhileSaving();
             }
+            if (timetableSelectionFingerprint(currentPlan) !== timetableSelectionFingerprint(plan)) throw changedWhileSaving();
             for (const id of plan.removals) transaction.delete(doc(entriesRef, id));
             const created = plan.writes.map(entry => {
                 const ref = doc(entriesRef);

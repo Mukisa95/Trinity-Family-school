@@ -23,20 +23,20 @@ async function fixture() {
             update:(...args)=>state.writes.push(args),
         });
         export const collection=()=>{throw Error('Unexpected collection access')};
-        export const getDocs=collection,getDoc=collection,getDocFromServer=collection,addDoc=collection,query=collection,orderBy=collection,where=collection,writeBatch=collection,deleteField=collection;
+        export const getDocs=collection,getDocsFromServer=collection,getDoc=collection,getDocFromServer=collection,addDoc=collection,query=collection,orderBy=collection,where=collection,writeBatch=collection,deleteField=collection;
     `;
     const built = await build({
         entryPoints: [path.resolve('src/lib/services/timetable.service.ts')], bundle: true,
         platform: 'node', format: 'cjs', write: false, alias: { '@': path.resolve('src') },
         plugins: [{ name: 'boundaries', setup(build) {
-            build.onResolve({ filter: /firebase|dashboard-cache-revisions.service/ }, args => {
-                if (args.path === 'firebase/firestore') return { path: 'firestore', namespace: 'mock' };
-                if (args.path === '../firebase') return { path: 'firebase', namespace: 'mock' };
+            build.onResolve({ filter: /firebase|scoped-firestore|dashboard-cache-revisions.service/ }, args => {
+                if (args.path === 'firebase/firestore' || args.path === '@/lib/access/scoped-firestore') return { path: 'firestore', namespace: 'mock' };
+                if (args.path === '../firebase' || args.path === '@/lib/firebase') return { path: 'firebase', namespace: 'mock' };
                 if (args.path === './dashboard-cache-revisions.service') return { path: 'revision', namespace: 'mock' };
             });
             build.onLoad({ filter: /.*/, namespace: 'mock' }, args => ({ contents:
                 args.path === 'firestore' ? firestore : args.path === 'firebase' ? 'export const db={};' :
-                    'export const bumpTimetableRevisionInBatch=(transaction,year,term)=>state.bumps.push({transaction,year,term});',
+                    'export const dashboardRevisionKeys={timetable:(year,term)=>encodeURIComponent(year)+"__"+encodeURIComponent(term)};export const bumpTimetableRevisionInBatch=(transaction,year,term)=>state.bumps.push({transaction,year,term});',
             }));
         } }],
     });
