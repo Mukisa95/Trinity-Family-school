@@ -9,7 +9,7 @@
 export const STAFF_CLOCKING_TIME_ZONE = 'Africa/Kampala' as const;
 
 export const STAFF_CLOCKING_REVISION_KEYS = [
-  'staffClockingConfig', 'staffClockingRecords', 'staffClockingRequests', 'staffClockingNotifications',
+  'staffClockingConfig', 'staffClockingRecords', 'staffClockingRequests', 'staffClockingNotifications', 'staffClockingTimekeepers',
 ] as const;
 export type StaffClockingRevisionKey = typeof STAFF_CLOCKING_REVISION_KEYS[number];
 
@@ -53,6 +53,12 @@ export interface StaffClockingDailyRecord {
   secondsLate?: number;
   status: 'open' | 'complete' | 'missing_clock_out';
   clockInBy?: string;
+  clockOutBy?: string;
+  clockInAt?: string;
+  clockOutAt?: string;
+  scheduleScope?: string;
+  latenessExcused?: boolean;
+  scheduleSnapshot?: { clockInBy: string; clockOutBy?: string; graceMinutes: number; scope?: string; kind?: string; groups: string[] };
   graceMinutes?: number;
   updatedAt?: string;
   reviewStatus?: 'corrected' | 'exempted';
@@ -77,6 +83,28 @@ export interface StaffClockingStaffCandidate {
   employeeId?: string;
   department: string[];
   role: string[];
+}
+
+export interface StaffClockingPersonalRevisions {
+  dates?: Record<string, number>;
+  notifications?: number;
+  requests?: number;
+}
+
+export interface StaffClockingPersonalSchedule {
+  staff: { id: string; name: string; group?: string };
+  localDate: string;
+  schedule: { kind: string; clockInBy?: string; clockOutBy?: string; graceMinutes?: number; sourceScope?: string; reason?: string };
+  calendar?: { isClosed: boolean; label?: string };
+}
+
+export interface StaffClockingTimekeeper {
+  accountId: string;
+  staffId: string;
+  name: string;
+  username: string;
+  allowed: boolean;
+  revision: number;
 }
 
 export interface StaffClockingReportSummary {

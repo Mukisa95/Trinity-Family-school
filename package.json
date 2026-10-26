@@ -145,11 +145,13 @@
     "test:summary-theme-browser": "node scripts/test-summary-theme-browser.cjs",
     "test:device-surfaces-browser": "node scripts/test-device-surfaces-browser.cjs",
     "test:pupil-theme-browser": "node scripts/test-pupil-theme-browser.cjs",
-    "test:staff-clocking": "node --import tsx --test tests/staff-clocking-schedule.test.ts tests/staff-clocking-permissions.test.ts",
+    "test:staff-clocking": "node --import tsx --test tests/staff-clocking-schedule.test.ts tests/staff-clocking-permissions.test.ts tests/staff-clocking-details.test.ts",
     "test:staff-clocking:types": "tsc -p tsconfig.staff-clocking-check.json --pretty false",
     "test:staff-clocking:server": "firebase emulators:exec --only firestore --project demo-trinity-firestore-rules \"node scripts/run-staff-clocking-server-tests.cjs\"",
     "test:staff-clocking:browser": "node scripts/test-staff-clocking-browser.cjs",
-    "test:staff-clocking:cache": "node scripts/test-staff-clocking-cache.cjs"
+    "test:staff-clocking:cache": "node scripts/test-staff-clocking-cache.cjs",
+    "test:staff-clocking:timekeepers": "node scripts/test-staff-clocking-timekeepers.cjs",
+    "test:staff-clocking:details": "node scripts/test-staff-clocking-details.cjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

@@ -17,6 +17,8 @@ async function main() {
       builder.onResolve({ filter: /^@\/lib\/firebase$/ }, () => ({ path: 'firebase-fixture', namespace: 'fixture' }));
       builder.onResolve({ filter: /^@\/lib\/contexts\/auth-context$/ }, () => ({ path: 'auth-fixture', namespace: 'fixture' }));
       builder.onResolve({ filter: /use-school-settings$/ }, () => ({ path: 'revisions-fixture', namespace: 'fixture' }));
+      builder.onResolve({ filter: /use-staff-clocking-personal-revisions$/ }, () => ({ path: 'personal-revisions-fixture', namespace: 'fixture' }));
+      builder.onLoad({ filter: /^personal-revisions-fixture$/, namespace: 'fixture' }, () => ({ contents: 'export const useStaffClockingPersonalRevisions=()=>({data:{},error:null});' }));
       builder.onLoad({ filter: /.*/, namespace: 'fixture' }, args => ({ contents: args.path === 'auth-fixture' ? 'export const useAuth = () => ({ isAuthenticated: true, user: { id: "staff-fixture", role: "Staff", staffId: "staff-one" } });' : args.path === 'revisions-fixture' ? 'export const useDashboardDataRevisions = () => ({ data: { staffClockingConfig: 0, staffClockingRecords: 0 } });' : 'export const auth = { currentUser: { uid: "staff-fixture", getIdToken: async () => "local-fixture-only" } };' }));
     } }],
   });

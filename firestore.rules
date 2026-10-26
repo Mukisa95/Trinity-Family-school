@@ -452,6 +452,18 @@ service cloud.firestore {
     // Clocking configuration, schedules, events and daily records are
     // server-owned. A browser must never create a clock event, alter policy,
     // or query another staff member's history through the Firebase SDK.
+    // Linked staff watch their own counters; administrators can watch a
+    // selected staff profile. Attendance itself remains server-authorized.
+    // These documents contain no clock times, leave reasons or staff names.
+    match /staffClockingPersonalRevisions/{staffId} {
+      allow get: if isActiveApplicationUser()
+        && request.auth.token.role in ['Staff', 'Admin']
+        && get(/databases/$(database)/documents/system_users/$(request.auth.uid)).data.isActive == true
+        && (request.auth.token.role == 'Admin'
+          || get(/databases/$(database)/documents/system_users/$(request.auth.uid)).data.staffId == staffId);
+      allow list, write: if false;
+    }
+
     match /staffClockingSettings/{documentPath=**} {
       allow read, write: if false;
     }
@@ -485,6 +497,10 @@ service cloud.firestore {
     }
 
     match /staffClockingOperations/{documentPath=**} {
+      allow read, write: if false;
+    }
+
+    match /staffClockingExplanations/{documentPath=**} {
       allow read, write: if false;
     }
 
@@ -540,6 +556,8 @@ service cloud.firestore {
         && collection != 'schoolPaySyncLogs'
         && collection != 'schoolPayPaymentMappings'
         && collection != 'staffClockingSettings'
+        && collection != 'staffClockingPersonalRevisions'
+        && collection != 'staffClockingExplanations'
         && collection != 'staffClockingSchedules'
         && collection != 'staffClockingQrSessions'
         && collection != 'staffClockingEvents'

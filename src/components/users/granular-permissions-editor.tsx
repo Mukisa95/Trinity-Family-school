@@ -158,12 +158,21 @@ const PERMISSION_SECTIONS: PermissionSection[] = [
   },
 ];
 
+function effectivePagePermission(moduleId: string, page: PagePermission): PagePermission {
+  if (moduleId === 'staff_clocking' && page.pageId === 'record' && page.canAccess
+    && !page.actions.some(action => action.actionId === 'access_manage')
+    && page.actions.some(action => action.actionId === 'manage_schedules' && action.allowed)) {
+    return { ...page, actions: [...page.actions, { actionId: 'access_manage', allowed: true }] };
+  }
+  return page;
+}
+
 function clonePermissions(permissions: ModulePermissions[]) {
   return permissions.map((module) => ({
     ...module,
     pages: module.pages.map((page) => ({
       ...page,
-      actions: page.actions.map((action) => ({ ...action })),
+      actions: effectivePagePermission(module.moduleId, page).actions.map((action) => ({ ...action })),
     })),
   }));
 }
@@ -183,8 +192,10 @@ export function GranularPermissionsEditor({ permissions, onChange, modules }: Gr
 
   const getModulePermissions = (moduleId: string) => permissions.find((permission) => permission.moduleId === moduleId);
 
-  const getPagePermissions = (moduleId: string, pageId: string): PagePermission | undefined =>
-    getModulePermissions(moduleId)?.pages.find((page) => page.pageId === pageId);
+  const getPagePermissions = (moduleId: string, pageId: string): PagePermission | undefined => {
+    const page = getModulePermissions(moduleId)?.pages.find((item) => item.pageId === pageId);
+    return page ? effectivePagePermission(moduleId, page) : undefined;
+  };
 
   const getScopePages = (scope: PermissionScope) => {
     const module = MODULE_ACTIONS[scope.moduleId];

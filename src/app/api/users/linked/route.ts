@@ -9,6 +9,7 @@ import {
   sanitizeSystemUser,
 } from '@/lib/server/app-auth';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+import { signalClockingAccountChange } from '@/lib/server/staff-clocking/account-revisions';
 import { assignableCircumference } from '@/lib/server/circumference-accounts';
 import { CircumferenceError, requireScopedPupil } from '@/lib/server/circumference';
 
@@ -207,6 +208,7 @@ export async function POST(request: NextRequest) {
         updatedAt: now,
         createdBy: actor.user.id,
       });
+      if (target !== 'pupil') signalClockingAccountChange(db, transaction);
       transaction.create(db.collection('authCredentials').doc(userRef.id), {
         passwordHash: hashPasswordForServer(password),
         algorithm: 'scrypt-v1',

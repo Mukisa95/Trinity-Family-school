@@ -1,5 +1,10 @@
 {
   "indexes": [
+    { "collectionGroup": "staffClockingExemptions", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "staffId", "order": "ASCENDING" }, { "fieldPath": "localDate", "order": "DESCENDING" }] },
+    { "collectionGroup": "staffClockingCorrections", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "staffId", "order": "ASCENDING" }, { "fieldPath": "localDate", "order": "DESCENDING" }] },
+    { "collectionGroup": "staffClockingExplanations", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "staffId", "order": "ASCENDING" }, { "fieldPath": "localDate", "order": "DESCENDING" }] },
+    { "collectionGroup": "staffClockingEvents", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "staffId", "order": "ASCENDING" }, { "fieldPath": "localDate", "order": "DESCENDING" }, { "fieldPath": "occurredAt", "order": "DESCENDING" }] },
+    { "collectionGroup": "historyLogs", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "m.staffId", "order": "ASCENDING" }, { "fieldPath": "m.localDate", "order": "DESCENDING" }, { "fieldPath": "ts", "order": "DESCENDING" }] },
     {
       "collectionGroup": "staffClockingDailyRecords",
       "queryScope": "COLLECTION",

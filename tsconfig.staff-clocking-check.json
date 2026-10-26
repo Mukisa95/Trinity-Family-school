@@ -6,7 +6,9 @@
     "src/app/staff-clocking/**/*.tsx",
     "src/app/api/staff-clocking/**/*.ts",
     "src/app/api/cron/finalize-staff-clocking/**/*.ts",
+    "src/app/api/users/**/*.ts",
     "src/components/staff-clocking/**/*.tsx",
+    "src/components/users/granular-permissions-editor.tsx",
     "src/lib/staff-clocking/**/*.ts",
     "src/lib/server/staff-clocking/**/*.ts",
     "src/lib/hooks/use-staff-clocking.ts"

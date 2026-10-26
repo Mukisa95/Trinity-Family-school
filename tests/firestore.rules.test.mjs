@@ -453,8 +453,27 @@ test('pupil cache deltas are restricted to staff and administrators', async () =
   await assertFails(setDoc(doc(parentDb, 'pupilCacheChanges', 'forged'), change));
 });
 
+test('staff clocking personal revision counters are scoped to the linked active account or an active administrator', async () => {
+  await testEnv.withSecurityRulesDisabled(async context => {
+    const db = context.firestore();
+    await setDoc(doc(db, 'system_users', 'own-clock-user'), { role: 'Staff', isActive: true, staffId: 'staff-one' });
+    await setDoc(doc(db, 'system_users', 'other-clock-user'), { role: 'Staff', isActive: true, staffId: 'staff-two' });
+    await setDoc(doc(db, 'system_users', 'clock-admin'), { role: 'Admin', isActive: true });
+    await setDoc(doc(db, 'staffClockingPersonalRevisions', 'staff-one'), { dates: { '2026-10-26': 1 } });
+  });
+  const own = testEnv.authenticatedContext('own-clock-user', { appUser: true, isActive: true, role: 'Staff' }).firestore();
+  const other = testEnv.authenticatedContext('other-clock-user', { appUser: true, isActive: true, role: 'Staff' }).firestore();
+  const admin = testEnv.authenticatedContext('clock-admin', { appUser: true, isActive: true, role: 'Admin' }).firestore();
+  await assertSucceeds(getDoc(doc(own, 'staffClockingPersonalRevisions', 'staff-one')));
+  await assertFails(getDoc(doc(other, 'staffClockingPersonalRevisions', 'staff-one')));
+  await assertSucceeds(getDoc(doc(admin, 'staffClockingPersonalRevisions', 'staff-one')));
+  await assertFails(getDocs(collection(admin, 'staffClockingPersonalRevisions')));
+  await assertFails(getDocs(collection(own, 'staffClockingPersonalRevisions')));
+  await assertFails(setDoc(doc(own, 'staffClockingPersonalRevisions', 'staff-one'), { dates: {} }));
+});
+
 test('staff clocking authority collections are inaccessible to every browser role', async () => {
-  const collections = ['staffClockingSettings', 'staffClockingSchedules', 'staffClockingQrSessions', 'staffClockingEvents', 'staffClockingDailyRecords', 'staffClockingExemptions', 'staffClockingCorrections', 'staffClockingNotifications', 'staffClockingOperations'];
+  const collections = ['staffClockingSettings', 'staffClockingSchedules', 'staffClockingQrSessions', 'staffClockingEvents', 'staffClockingDailyRecords', 'staffClockingExemptions', 'staffClockingCorrections', 'staffClockingExplanations', 'staffClockingNotifications', 'staffClockingOperations'];
   await testEnv.withSecurityRulesDisabled(async context => {
     await setDoc(doc(context.firestore(), 'system_users', 'clocking-staff'), { role: 'Staff', isActive: true });
     for (const path of collections) {

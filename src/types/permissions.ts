@@ -252,6 +252,8 @@ export const MODULE_ACTIONS = {
         actions: [
           { id: 'view_record', name: 'View clock recording', description: 'Can open the staff clocking QR display' },
           { id: 'display_qr', name: 'Display secure QR', description: 'Can start a secure staff clocking QR session' },
+          { id: 'access_manage', name: 'Open Manage Clocking', description: 'Can open Manage from the Record page; editing still requires the relevant management permission' },
+          { id: 'manage_timekeepers', name: 'Manage timekeeper access', description: 'Can grant or remove Record Station access for active linked staff from Manage Clocking' },
           { id: 'manage_schedules', name: 'Manage schedules', description: 'Can manage staff clocking schedules and enrolment' },
           { id: 'manage_calendar', name: 'Manage clocking calendar', description: 'Can manage clocking closures and approved exceptions' },
           { id: 'manual_clock', name: 'Record manual clocking', description: 'Can create an audited manual clocking event' }
@@ -265,7 +267,8 @@ export const MODULE_ACTIONS = {
           { id: 'view_own_clock', name: 'View own clock', description: 'Can view the signed-in staff member clocking status' },
           { id: 'clock_self', name: 'Clock self', description: 'Can submit a secure self clock-in or clock-out' },
           { id: 'request_exemption', name: 'Request exemption', description: 'Can request a clocking exemption for self' },
-          { id: 'request_correction', name: 'Request correction', description: 'Can request a correction for own clocking record' }
+          { id: 'request_correction', name: 'Request correction', description: 'Can request a correction for own clocking record' },
+          { id: 'explain_lateness', name: 'Explain own lateness', description: 'Can submit an explanation without changing the original arrival time' }
         ]
       },
       {
@@ -276,7 +279,9 @@ export const MODULE_ACTIONS = {
           { id: 'view_records', name: 'View clock records', description: 'Can view authorised staff clock records' },
           { id: 'review_exemptions', name: 'Review exemptions', description: 'Can review staff clocking exemptions' },
           { id: 'review_corrections', name: 'Review corrections', description: 'Can review staff clocking correction requests' },
-          { id: 'export_records', name: 'Export clock records', description: 'Can export authorised staff clock records' }
+          { id: 'export_records', name: 'Export clock records', description: 'Can export authorised staff clock records' },
+          { id: 'view_audit', name: 'View clocking audit', description: 'Can inspect immutable staff clocking events and administrative changes' },
+          { id: 'review_explanations', name: 'Review lateness explanations', description: 'Can approve or reject reasons without replacing the original clocking time' }
         ]
       }
     ]
@@ -873,7 +878,8 @@ export type RoutePagePermission = {
 
 const ROUTE_PAGE_ALIASES: RoutePagePermission[] = [
   { moduleId: 'staff_clocking', pageId: 'clock', pattern: /^\/staff-clocking$/ },
-  { moduleId: 'staff_clocking', pageId: 'record', pattern: /^\/staff-clocking\/manage$/ },
+  { moduleId: 'staff_clocking', pageId: 'manage', pattern: /^\/staff-clocking\/manage$/ },
+  { moduleId: 'staff_clocking', pageId: 'detail', pattern: /^\/staff-clocking\/staff\/[^/]+$/ },
   { moduleId: 'account', pageId: 'history_log', pattern: /^\/history-log\/system-audit$/ },
   { moduleId: 'pupils', pageId: 'detail', pattern: /^\/pupil-detail$/ },
   { moduleId: 'pupils', pageId: 'detail', pattern: /^\/pupils\/[^/]+$/ },

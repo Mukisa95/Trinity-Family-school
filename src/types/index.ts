@@ -476,6 +476,7 @@ export interface SchoolSettings {
     staffClockingRecords?: number;
     staffClockingRequests?: number;
     staffClockingNotifications?: number;
+    staffClockingTimekeepers?: number;
     /** Full exam-definition collection revision. */
     exams?: number;
       /** Reserved for the later per-term exam-result cache rollout. */

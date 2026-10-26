@@ -6,12 +6,13 @@ import { auth } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useDashboardDataRevisions } from './use-school-settings';
 import { loadStaffClockingCache } from '@/lib/cache/staff-clocking-cache';
+import { useStaffClockingPersonalRevisions } from './use-staff-clocking-personal-revisions';
 import type { SchoolSettings } from '@/types';
-import type { StaffClockingBootstrap, StaffClockingDailyRecord, StaffClockingFeatureSettings, StaffClockingReportSummary, StaffClockingReviewRequest, StaffClockingSchedule, StaffClockingStaffCandidate } from '@/lib/staff-clocking/contracts';
+import type { StaffClockingBootstrap, StaffClockingDailyRecord, StaffClockingFeatureSettings, StaffClockingReportSummary, StaffClockingReviewRequest, StaffClockingSchedule, StaffClockingStaffCandidate, StaffClockingPersonalSchedule, StaffClockingTimekeeper } from '@/lib/staff-clocking/contracts';
 
 export const STAFF_CLOCKING_QUERY_KEYS = {
   all: ['staff-clocking'] as const,
-  bootstrap: () => [...STAFF_CLOCKING_QUERY_KEYS.all, 'bootstrap'] as const,
+  bootstrap: () => [...STAFF_CLOCKING_QUERY_KEYS.all, 'bootstrap', 'private-v2'] as const,
   schedules: () => [...STAFF_CLOCKING_QUERY_KEYS.all, 'schedules'] as const,
   records: () => [...STAFF_CLOCKING_QUERY_KEYS.all, 'records'] as const,
   requests: (kind: 'exemption' | 'correction') => [...STAFF_CLOCKING_QUERY_KEYS.all, 'requests', kind] as const,
@@ -28,28 +29,35 @@ function useClockingScope() {
 
 type RevisionName = keyof NonNullable<SchoolSettings['dataRevisions']>;
 
-function useClockingQuery<T>(key: readonly unknown[], fetchData: () => Promise<T>, enabled: boolean, dependencies: RevisionName[], daily = false) {
-  const scope = useClockingScope();
-  const { isAuthenticated } = useAuth();
-  // All consumers share the existing dashboard revision listener; this does
-  // not create a separate listener for each clocking collection or page.
-  const revisions = useDashboardDataRevisions({ enabled: enabled && isAuthenticated });
+export function useSchoolDay(enabled: boolean) {
   const schoolDay = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Kampala', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const [day, setDay] = useState(schoolDay);
   useEffect(() => {
-    if (!daily || !enabled) return;
+    if (!enabled) return;
     const tick = () => setDay(schoolDay());
     tick();
     const timer = setInterval(tick, 30_000);
     window.addEventListener('focus', tick);
     return () => { clearInterval(timer); window.removeEventListener('focus', tick); };
-  }, [daily, enabled]);
-  const revision = JSON.stringify(dependencies.map(name => revisions.data?.[name] ?? 0));
-  const cacheKey = JSON.stringify(['staff-clocking-cache-v1', ...scope, key, daily ? day : '']);
+  }, [enabled]);
+  return day;
+}
+
+function useClockingQuery<T>(key: readonly unknown[], fetchData: () => Promise<T>, enabled: boolean, dependencies: RevisionName[], daily: boolean | string = false, ownRevision?: string) {
+  const scope = useClockingScope();
+  const { isAuthenticated } = useAuth();
+  const personal = ownRevision !== undefined;
+  const revisions = useDashboardDataRevisions({ enabled: enabled && isAuthenticated && !personal });
+  const schoolDay = useSchoolDay(daily === true && enabled);
+  const day = typeof daily === 'string' ? daily : daily ? schoolDay : '';
+  const revision = personal ? ownRevision : JSON.stringify(dependencies.map(name => revisions.data?.[name] ?? 0));
+  const cacheKey = JSON.stringify(['staff-clocking-cache-v1', ...scope, key, day]);
+  const queryKey = [...key, ...scope, day, revision];
   return useQuery({
-    queryKey: [...key, ...scope, daily ? day : '', revision],
+    queryKey,
     queryFn: () => loadStaffClockingCache(cacheKey, revision, fetchData),
-    enabled: enabled && isAuthenticated && revisions.data?.staffClockingConfig !== undefined,
+    enabled: enabled && isAuthenticated && (personal || revisions.data?.staffClockingConfig !== undefined),
+    placeholderData: (previous, query) => JSON.stringify(query?.queryKey.slice(0, -1)) === JSON.stringify(queryKey.slice(0, -1)) ? previous : undefined,
     staleTime: Infinity,
     gcTime: 24 * 60 * 60 * 1000,
     networkMode: 'offlineFirst',
@@ -61,7 +69,7 @@ function useClockingQuery<T>(key: readonly unknown[], fetchData: () => Promise<T
   });
 }
 
-async function requestStaffClocking<T>(path: string, init?: RequestInit): Promise<T> {
+export async function requestStaffClocking<T>(path: string, init?: RequestInit): Promise<T> {
   const owner = auth.currentUser?.uid;
   const token = await auth.currentUser?.getIdToken();
   if (!token) throw new Error('Your session is not ready. Please refresh and try again.');
@@ -127,8 +135,34 @@ export function useStaffClockingClosures(enabled: boolean) { return useClockingQ
 export function useCreateStaffClockingClosure() { return useMutation({ mutationFn: (input: { title: string; startDate: string; endDate?: string; description?: string }) => requestStaffClocking('/api/staff-clocking/closures', { method: 'POST', body: JSON.stringify(input) }) }); }
 export function useFinalizeStaffClockingDate() { return useMutation({ mutationFn: (localDate: string) => requestStaffClocking('/api/staff-clocking/finalize', { method: 'POST', body: JSON.stringify({ localDate }) }) }); }
 export function useExportStaffClockingRecords() { return useMutation({ mutationFn: async (filters: { from?: string; to?: string; staffId?: string; query?: string }) => { const token = await auth.currentUser?.getIdToken(); if (!token) throw new Error('Your session is not ready. Please refresh and try again.'); const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => Boolean(value)) as Array<[string, string]>); const response = await fetch(`/api/staff-clocking/export?${params}`, { headers: { Authorization: `Bearer ${token}` } }); if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.error || 'Unable to export clock records.'); } const link = document.createElement('a'); link.href = URL.createObjectURL(await response.blob()); link.download = 'staff-clocking-records.csv'; link.click(); URL.revokeObjectURL(link.href); } }); }
-export function useOwnStaffClockingNotifications(enabled: boolean) { return useClockingQuery(STAFF_CLOCKING_QUERY_KEYS.notifications(), async () => (await requestStaffClocking<{ notifications: Array<{ id: string; title: string; body: string; createdAt?: string }> }>('/api/staff-clocking/notifications')).notifications, enabled, ['staffClockingNotifications']); }
-export function useOwnStaffClockingDashboard(enabled: boolean) { return useClockingQuery(STAFF_CLOCKING_QUERY_KEYS.myDashboard(), () => requestStaffClocking<{ staff: { id: string; name: string; group?: string }; localDate: string; record?: StaffClockingDailyRecord; history: StaffClockingDailyRecord[]; schedule: { kind: string; clockInBy?: string; clockOutBy?: string; graceMinutes?: number; sourceScope?: string; reason?: string }; calendar?: { isClosed: boolean; label?: string } }>('/api/staff-clocking/my-dashboard'), enabled, ['staffClockingConfig', 'staffClockingRecords', 'staff', 'events'], true); }
+export function useOwnStaffClockingNotifications(enabled: boolean) {
+  const revisions = useStaffClockingPersonalRevisions(enabled);
+  return useClockingQuery(STAFF_CLOCKING_QUERY_KEYS.notifications(), async () => (await requestStaffClocking<{ notifications: Array<{ id: string; title: string; body: string; createdAt?: string }> }>('/api/staff-clocking/notifications')).notifications, enabled && !!revisions.data, [], false, String(revisions.data?.notifications || 0));
+}
+
+export function useOwnStaffClockingDashboard(enabled: boolean) {
+  const revisions = useStaffClockingPersonalRevisions(enabled);
+  const day = useSchoolDay(enabled);
+  const dates = revisions.data?.dates || {};
+  const schedule = useClockingQuery([...STAFF_CLOCKING_QUERY_KEYS.myDashboard(), 'schedule'], () => requestStaffClocking<StaffClockingPersonalSchedule>('/api/staff-clocking/my-dashboard?part=schedule'), enabled, ['staffClockingConfig', 'staff', 'events'], day);
+  const status = useClockingQuery([...STAFF_CLOCKING_QUERY_KEYS.myDashboard(), 'status'], () => requestStaffClocking<{localDate: string; record?: StaffClockingDailyRecord}>('/api/staff-clocking/my-dashboard?part=status'), enabled && !!revisions.data, [], day, String(dates[day] || 0));
+  // A scan today cannot change the previous five days. Corrections to older
+  // dates and the next school day reconcile history independently.
+  const historyRevision = JSON.stringify(Object.entries(dates).filter(([date]) => date < day).sort(([a], [b]) => a.localeCompare(b)));
+  const history = useClockingQuery([...STAFF_CLOCKING_QUERY_KEYS.myDashboard(), 'history'], () => requestStaffClocking<{history: StaffClockingDailyRecord[]}>('/api/staff-clocking/my-dashboard?part=history'), enabled && !!revisions.data, [], day, historyRevision);
+  const error = revisions.error || schedule.error || status.error || history.error;
+  const data = schedule.data && status.data && history.data ? { ...schedule.data, ...status.data, ...history.data } : undefined;
+  if (error) return { data, isPending: false, isError: true as const, error };
+  return { data, isPending: schedule.isPending || status.isPending || history.isPending, isError: false as const, error: null };
+}
+
+export function useStaffClockingTimekeepers(enabled: boolean) {
+  return useClockingQuery([...STAFF_CLOCKING_QUERY_KEYS.all, 'timekeepers'], () => requestStaffClocking<StaffClockingTimekeeper[]>('/api/staff-clocking/timekeepers'), enabled, ['staffClockingTimekeepers', 'staff']);
+}
+
+export function useUpdateStaffClockingTimekeeper() {
+  return useMutation({ mutationFn: (input: { accountId: string; allowed: boolean; revision: number }) => requestStaffClocking('/api/staff-clocking/timekeepers', { method: 'PUT', body: JSON.stringify(input) }) });
+}
 
 export function useCreateStaffClockingQrSession() {
   return useMutation({

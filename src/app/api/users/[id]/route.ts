@@ -16,6 +16,7 @@ import {
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { assignableCircumference, circumferenceClaims } from '@/lib/server/circumference-accounts';
 import { CircumferenceError, requireScopedPupil } from '@/lib/server/circumference';
+import { signalClockingAccountChange } from '@/lib/server/staff-clocking/account-revisions';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -136,6 +137,10 @@ export async function PATCH(
     await Promise.all(parentPupilRefs.map(ref => requireScopedPupil(actor, ref.id)));
     const batch = db.batch();
     batch.update(userRef, { ...cleanUpdates, updatedAt: now });
+    if (existingData.role === 'Staff' && ['granularPermissions', 'modulePermissions', 'isActive', 'username'].some(field => field in cleanUpdates)) {
+      batch.update(userRef, { clockingStationAccessRevision: FieldValue.increment(1) });
+      signalClockingAccountChange(db, batch);
+    }
     parentPupilRefs.forEach(pupilRef => batch.update(pupilRef, {
       parentAccountId: id,
       parentAccountActive: cleanUpdates.isActive === true,
@@ -227,6 +232,7 @@ export async function DELETE(
     await Promise.all(parentPupilRefs.map(ref => requireScopedPupil(actor, ref.id)));
     const batch = db.batch();
     batch.delete(userRef);
+    if (existing.data()?.role === 'Staff') signalClockingAccountChange(db, batch);
     batch.delete(db.collection('authCredentials').doc(id));
     parentPupilRefs.forEach(pupilRef => batch.update(pupilRef, {
       parentAccountId: null,

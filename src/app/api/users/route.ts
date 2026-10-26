@@ -11,6 +11,7 @@ import {
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { assignableCircumference } from '@/lib/server/circumference-accounts';
 import { CircumferenceError } from '@/lib/server/circumference';
+import { signalClockingAccountChange } from '@/lib/server/staff-clocking/account-revisions';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -117,6 +118,7 @@ export async function POST(request: NextRequest) {
         updatedAt: now,
         createdBy: actor.user.id,
       });
+      if (profileInput.role === 'Staff') signalClockingAccountChange(db, transaction);
       if (password) {
         transaction.set(credentialRef, {
           passwordHash: hashPasswordForServer(password),

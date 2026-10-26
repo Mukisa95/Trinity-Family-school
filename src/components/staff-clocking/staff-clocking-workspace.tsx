@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, BookOpenCheck, CalendarClock, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Coins, Download, Loader2, QrCode, ScanLine, ShieldCheck, ShieldEllipsis, Trash2, Users } from 'lucide-react';
+import { ArrowLeft, BookOpenCheck, CalendarClock, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Coins, Download, FileClock, Loader2, QrCode, ScanLine, ShieldCheck, ShieldEllipsis, Trash2, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,9 +20,12 @@ import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { StaffClockingQrDisplay } from '@/components/staff-clocking/staff-clocking-qr-display';
 import { StaffClockingQrScanner } from '@/components/staff-clocking/staff-clocking-qr-scanner';
+import { StaffClockingTimekeepers } from '@/components/staff-clocking/staff-clocking-timekeepers';
+import { StaffClockingStaffLink, StaffClockingDetailLinksContext } from '@/components/staff-clocking/staff-clocking-staff-link';
+import { useAuth } from '@/lib/contexts/auth-context';
 
 type StaffClockingSection = 'record' | 'manage' | 'clock' | 'records';
-type ManagePanelKey = 'days' | 'holidays' | 'penalties' | 'advanced';
+type ManagePanelKey = 'days' | 'holidays' | 'penalties' | 'advanced' | 'timekeepers';
 
 function todayInSchoolTime(): string {
   return new Intl.DateTimeFormat('en-UG', {
@@ -35,10 +38,13 @@ function todayInSchoolTime(): string {
 }
 
 export function StaffClockingWorkspace({ section }: { section: StaffClockingSection }) {
+  const { user } = useAuth();
   const { canPerformAction } = usePermissions();
   const bootstrap = useStaffClockingBootstrap();
   const updateSettings = useUpdateStaffClockingSettings();
-  const canManage = canPerformAction('staff_clocking', 'record', 'manage_schedules');
+  const canOpenManage = canPerformAction('staff_clocking', 'record', 'access_manage');
+  const canManage = canOpenManage && canPerformAction('staff_clocking', 'record', 'manage_schedules');
+  const canManageTimekeepers = canOpenManage && canPerformAction('staff_clocking', 'record', 'manage_timekeepers');
   const canDisplayQr = canPerformAction('staff_clocking', 'record', 'display_qr');
   const canManageCalendar = canPerformAction('staff_clocking', 'record', 'manage_calendar');
   const canFinalize = canPerformAction('staff_clocking', 'record', 'manual_clock');
@@ -60,10 +66,11 @@ export function StaffClockingWorkspace({ section }: { section: StaffClockingSect
         : { title: 'Clock Records', details: 'Authorised attendance review and corrections' };
   const recordActions = (
     <GlassActionDock>
-      {canManage && <GlassActionButton label="Manage" href="/staff-clocking/manage" tone="blue" icon={<CalendarClock className="h-4 w-4" />} />}
+      {canOpenManage && <GlassActionButton label="Manage" href="/staff-clocking/manage" tone="blue" icon={<CalendarClock className="h-4 w-4" />} />}
       {canManageCalendar && <ManagerExemptionDialog presentation="action" />}
     </GlassActionDock>
   );
+  const clockActions = user?.staffId ? <GlassActionDock><GlassActionButton label="My Records" href={`/staff-clocking/staff/${encodeURIComponent(user.staffId)}`} icon={<FileClock className="h-4 w-4" />} /></GlassActionDock> : undefined;
   const recordsActions = (
     <GlassActionDock>
       <GlassActionButton label="Day" tone="blue" icon={<CalendarDays className="h-4 w-4" />} active={recordsView === 'daily'} onClick={() => setRecordsView('daily')} />
@@ -78,6 +85,7 @@ export function StaffClockingWorkspace({ section }: { section: StaffClockingSect
       <GlassActionButton label="Holidays" tone="rose" icon={<BookOpenCheck className="h-4 w-4" />} active={managePanel === 'holidays'} onClick={() => setManagePanel('holidays')} />
       <GlassActionButton label="Penalties" tone="orange" icon={<Coins className="h-4 w-4" />} active={managePanel === 'penalties'} onClick={() => setManagePanel('penalties')} />
       <GlassActionButton label="Settings" tone="purple" icon={<ShieldEllipsis className="h-4 w-4" />} active={managePanel === 'advanced'} onClick={() => setManagePanel('advanced')} />
+      {canManageTimekeepers && <GlassActionButton label="Timekeepers" tone="blue" icon={<Users className="h-4 w-4" />} active={managePanel === 'timekeepers'} onClick={() => setManagePanel('timekeepers')} />}
     </GlassActionDock>
   );
 
@@ -97,7 +105,7 @@ export function StaffClockingWorkspace({ section }: { section: StaffClockingSect
         }
         center={section === 'records' ? <GlassPageSearchInput value={recordsQuery} onChange={(event) => setRecordsQuery(event.target.value)} placeholder="Search staff by name or ID" aria-label="Search staff records" /> : undefined}
         actionsLeading={section === 'records' ? <GlassPageSearchInput value={recordsQuery} onChange={(event) => setRecordsQuery(event.target.value)} placeholder="Search staff by name or ID" aria-label="Search staff records" containerClassName="lg:hidden" /> : undefined}
-        actions={section === 'record' ? recordActions : section === 'manage' ? manageActions : section === 'records' ? recordsActions : undefined}
+        actions={section === 'record' ? recordActions : section === 'manage' ? manageActions : section === 'records' ? recordsActions : clockActions}
       />
 
       <main className="mx-auto max-w-7xl space-y-4 px-4 pb-28 sm:px-6 sm:pb-8 lg:px-8">
@@ -115,7 +123,8 @@ export function StaffClockingWorkspace({ section }: { section: StaffClockingSect
 
         {section === 'clock' && <ClockPanel bootstrap={bootstrap.data} isLoading={bootstrap.isPending} canRequestExemption={canRequestExemption} canRequestCorrection={canRequestCorrection} />}
         {section === 'record' && <RecordDashboard bootstrap={bootstrap.data} canManage={canManage} canManageCalendar={canManageCalendar} canDisplayQr={canDisplayQr} />}
-        {section === 'manage' && <ManagePanel activePanel={managePanel} onPanelChange={setManagePanel} bootstrap={bootstrap.data} canManage={canManage} canManageCalendar={canManageCalendar} canDisplayQr={canDisplayQr} isSaving={updateSettings.isPending} onSettingsChange={(settings) => {
+        {section === 'manage' && !canOpenManage && <Card><CardContent className="p-6"><p role="alert">You do not have permission to open Manage Clocking.</p></CardContent></Card>}
+        {section === 'manage' && canOpenManage && <ManagePanel activePanel={managePanel} onPanelChange={setManagePanel} bootstrap={bootstrap.data} canManage={canManage} canManageCalendar={canManageCalendar} canDisplayQr={canDisplayQr} isSaving={updateSettings.isPending} onSettingsChange={(settings) => {
           const feature = bootstrap.data?.feature;
           if (!feature) return;
           updateSettings.mutate({ ...feature, ...settings });
@@ -274,19 +283,21 @@ function ManagePanel({ activePanel, onPanelChange, bootstrap, canManage, canMana
   const specialSchedules = schedules.data?.filter((schedule) => schedule.kind === 'date_override') || [];
   const defaultSchedule = normalSchedules.find((schedule) => schedule.scope === 'school' && schedule.isActive);
   const panelTitle = {
-    days: 'Days', holidays: 'Public holidays', penalties: 'Penalty rules', advanced: 'Advanced settings',
+    days: 'Days', holidays: 'Public holidays', penalties: 'Penalty rules', advanced: 'Advanced settings', timekeepers: 'Timekeepers',
   } as const;
   const panelDescription = {
     days: 'Regular days, special arrangements, staff assignments and grace rules.',
     holidays: 'Calendar-linked non-working days and approved school closures.',
     penalties: 'Review-only policy information. Clocking does not deduct salary automatically.',
     advanced: 'Feature access, QR display permissions, and the revision-controlled clocking configuration.',
+    timekeepers: 'Assign staff who can operate the school Record Station.',
   } as const;
   useEffect(() => { if (activePanel) activePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [activePanel]);
   return (
     <section className="space-y-5" aria-label="Manage staff clocking">
       {activePanel && <div ref={activePanelRef} tabIndex={-1} className="scroll-mt-4 focus:outline-none"><Card className="border-primary/20 shadow-md"><CardHeader className="border-b border-border/70 bg-muted/20"><div className="flex flex-wrap items-start justify-between gap-3"><div><Button type="button" variant="ghost" size="sm" className="-ml-2 mb-2" onClick={() => onPanelChange(null)}><ArrowLeft className="h-4 w-4" />Manage Clocking</Button><CardTitle className="text-xl">{panelTitle[activePanel]}</CardTitle><CardDescription className="mt-1">{panelDescription[activePanel]}</CardDescription></div><Badge variant="secondary">Changes affect future scans only</Badge></div></CardHeader><CardContent className="space-y-4 p-4 sm:p-6">
-        {!canManage && activePanel !== 'holidays' ? <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-sm"><p className="font-semibold">Schedule-management permission is required</p><p className="mt-1 text-muted-foreground">Ask an administrator to grant Manage schedules before changing clocking rules.</p></div> : <>
+        {!canManage && activePanel !== 'holidays' && activePanel !== 'timekeepers' ? <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-sm"><p className="font-semibold">Schedule-management permission is required</p><p className="mt-1 text-muted-foreground">Ask an administrator to grant Manage schedules before changing clocking rules.</p></div> : <>
+          {activePanel === 'timekeepers' && <TimekeeperPermissionPanel />}
           {activePanel === 'days' && <div className="space-y-8"><section><div className="mb-4"><h3 className="font-semibold">Working schedules</h3><p className="mt-1 text-sm text-muted-foreground">One place for school-wide, department, role and individual recurring schedules. Choose the audience in the schedule dialog.</p></div><ScheduleManager schedules={normalSchedules} isLoading={schedules.isPending} staff={staff.data || []} createPending={createSchedule.isPending} updatePending={updateSchedule.isPending} deletePending={deleteSchedule.isPending} createError={createSchedule.error?.message} onCreate={(schedule) => createSchedule.mutate(schedule)} onUpdate={(id, schedule) => updateSchedule.mutate({ id, schedule })} onDelete={(id) => deleteSchedule.mutate(id)} /></section><section className="border-t pt-6"><div className="mb-4"><h3 className="font-semibold">Special day arrangements</h3><p className="mt-1 text-sm text-muted-foreground">Create date-specific working arrangements without changing the normal school week.</p></div><SpecialDaysPanel schedules={specialSchedules} isLoading={schedules.isPending} staff={staff.data || []} createPending={createSchedule.isPending} updatePending={updateSchedule.isPending} deletePending={deleteSchedule.isPending} createError={createSchedule.error?.message} onCreate={(schedule) => createSchedule.mutate(schedule)} onUpdate={(id, schedule) => updateSchedule.mutate({ id, schedule })} onDelete={(id) => deleteSchedule.mutate(id)} /></section></div>}
           {activePanel === 'holidays' && (canManageCalendar ? <ClosurePanel closures={closures.data || []} isLoading={closures.isPending} error={closures.error?.message} creating={createClosure.isPending} onCreate={(closure) => createClosure.mutate(closure)} /> : <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-sm"><p className="font-semibold">Calendar-management permission is required</p><p className="mt-1 text-muted-foreground">Holiday data stays in the existing Events &amp; Calendar module. Grant calendar permission to make an attendance decision.</p></div>)}
           {activePanel === 'penalties' && <PenaltyBoundary />}
@@ -297,6 +308,13 @@ function ManagePanel({ activePanel, onPanelChange, bootstrap, canManage, canMana
       <ManageOverview defaultSchedule={defaultSchedule} specialSchedules={specialSchedules} closures={closures.data || []} />
     </section>
   );
+}
+
+function TimekeeperPermissionPanel() {
+  const { canPerformAction } = usePermissions();
+  return canPerformAction('staff_clocking', 'record', 'manage_timekeepers')
+    ? <StaffClockingTimekeepers />
+    : <p role="alert" className="text-sm text-destructive">Timekeeper-management permission is required.</p>;
 }
 
 function ManageOverview({ defaultSchedule, specialSchedules, closures }: { defaultSchedule?: import('@/lib/staff-clocking/contracts').StaffClockingSchedule; specialSchedules: import('@/lib/staff-clocking/contracts').StaffClockingSchedule[]; closures: Array<Record<string, unknown>> }) {
@@ -484,7 +502,7 @@ function RecordsPanel({ view, query, canReviewRecords, canReviewExemptions, canR
   const canFinalize = canFinalizePermission && view === 'daily';
   const periodLabel = view === 'termly' && selectedTerm ? selectedTerm.label : reportLabel(nonTermView, range);
 
-  return <section className="space-y-4" aria-label="Clock records">
+  return <StaffClockingDetailLinksContext.Provider value={{ ...range, view }}><section className="space-y-4" aria-label="Clock records">
     <GlassSummaryBar
       left={<div className="flex items-center gap-2"><Users className="h-4 w-4 text-brand-alt-ink-500 dark:text-brand-alt-ink-400" /><span className="text-xs font-black uppercase tracking-wider text-brand-alt-ink-900 sm:text-sm dark:text-brand-alt-ink-200">Clock Records</span><span className="text-xs text-muted-foreground">{periodLabel}</span></div>}
       right={!canReviewRecords ? <span className="text-xs text-muted-foreground">Clock-record access is required.</span> : records.isPending ? <span className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" />Updating records…</span> : records.isError ? <span role="alert" className="text-xs text-destructive">{records.error.message}</span> : <><ClockingSummaryStat label="Clocked" value={summary?.total || 0} tone="blue" /><ClockingSummaryStat label="Complete" value={summary?.complete || 0} tone="green" /><ClockingSummaryStat label="Open" value={summary?.open || 0} tone="amber" /><ClockingSummaryStat label="Late" value={summary?.late || 0} tone="red" /><ClockingSummaryStat label="Exempt" value={summary?.exempted || 0} tone="violet" /></>}
@@ -496,7 +514,7 @@ function RecordsPanel({ view, query, canReviewRecords, canReviewExemptions, canR
       <Card className="overflow-hidden rounded-2xl border-brand-200/60 bg-card/90 shadow-sm dark:border-brand-800/60"><CardHeader className="border-b border-brand-100/80 pb-3 dark:border-brand-900/50"><CardTitle className="text-base">{view === 'daily' ? 'Daily Staff Attendance' : view === 'weekly' ? 'Weekly Staff Attendance' : view === 'monthly' ? 'Monthly Staff Punctuality' : 'Term Staff Attendance'}</CardTitle><CardDescription>{periodLabel} · Search staff from the shared glass bar and filter the attendance report here.</CardDescription></CardHeader><CardContent className="pt-4">{records.isPending ? <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading clock records…</p> : records.isError ? <p role="alert" className="text-sm text-destructive">{records.error.message}</p> : view === 'termly' && !selectedTerm ? <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6"><p className="font-semibold">Choose an academic term</p><p className="mt-1 text-sm text-muted-foreground">Term reporting becomes available after the school calendar is cached for this account.</p></div> : !visible.length ? <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6"><p className="font-semibold">No matching clocking records</p><p className="mt-1 text-sm text-muted-foreground">Try another reporting period or adjust the filters.</p></div> : view === 'daily' ? <DailyRecordsTable records={visible} onSelect={setSelectedRecord} /> : view === 'weekly' ? <WeeklyAttendanceMatrix records={visible} from={range.from} onSelect={setSelectedRecord} /> : <PunctualitySummary records={visible} />}</CardContent></Card>
       <div className="grid gap-4 xl:grid-cols-2">{canFinalize && <Card><CardHeader className="pb-3"><CardTitle className="text-base">Finalize a work day</CardTitle><CardDescription>Open records become “missing out”. This does not create absences for staff who never scanned.</CardDescription></CardHeader><CardContent><Button type="button" variant="outline" disabled={finalize.isPending} onClick={() => finalize.mutate(anchorDate)}>{finalize.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Finalize selected date</Button>{finalize.error && <p className="mt-2 text-sm text-destructive">{finalize.error.message}</p>}</CardContent></Card>}<div className="space-y-4"><ReviewQueue kind="exemption" enabled={canReviewExemptions} /><ReviewQueue kind="correction" enabled={canReviewCorrections} /></div></div>
     </>}
-  </section>;
+  </section></StaffClockingDetailLinksContext.Provider>;
 }
 
 function LegacyRecordsPanel({ canReviewRecords, canReviewExemptions, canReviewCorrections, canFinalize: canFinalizePermission }: { canReviewRecords: boolean; canReviewExemptions: boolean; canReviewCorrections: boolean; canFinalize: boolean }) {
@@ -532,12 +550,12 @@ function LegacyRecordsPanel({ canReviewRecords, canReviewExemptions, canReviewCo
 function RecordsViewButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) { return <Button type="button" size="sm" variant={active ? 'default' : 'ghost'} onClick={onClick}>{children}</Button>; }
 function RecordsMetric({ label, value, tone }: { label: string; value: number; tone: 'blue' | 'green' | 'red' | 'violet' }) { const styles = { blue: 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300', green: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300', red: 'bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300', violet: 'bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-300' }; return <div className={cn('rounded-xl p-4', styles[tone])}><p className="text-xs font-medium opacity-80">{label}</p><p className="mt-1 text-2xl font-bold">{value}</p></div>; }
 function DailyRecordsTable({ records, onSelect }: { records: StaffClockingDailyRecord[]; onSelect: (record: StaffClockingDailyRecord) => void }) {
-  return <div className="overflow-x-auto rounded-xl border border-border"><table className="w-full min-w-[46rem] text-left text-sm"><thead className="border-b bg-muted/50 text-xs text-muted-foreground"><tr><th className="px-4 py-3">Staff</th><th className="px-4 py-3">Date</th><th className="px-4 py-3">Clock in</th><th className="px-4 py-3">Clock out</th><th className="px-4 py-3">Status / reason</th><th className="px-4 py-3"><span className="sr-only">Details</span></th></tr></thead><tbody>{records.map((record) => <tr key={record.id} className="border-b last:border-0"><td className="px-4 py-3 font-medium">{record.staffName || record.staffId}</td><td className="px-4 py-3">{record.localDate}</td><td className="px-4 py-3">{formatScheduleTime(record.effectiveClockInTime || record.clockInTime)}</td><td className="px-4 py-3">{formatScheduleTime(record.effectiveClockOutTime || record.clockOutTime)}</td><td className="px-4 py-3"><RecordStatusBadge record={record} /></td><td className="px-4 py-3"><Button type="button" variant="ghost" size="sm" onClick={() => onSelect(record)}>Details</Button></td></tr>)}</tbody></table></div>;
+  return <div className="overflow-x-auto rounded-xl border border-border"><table className="w-full min-w-[46rem] text-left text-sm"><thead className="border-b bg-muted/50 text-xs text-muted-foreground"><tr><th className="px-4 py-3">Staff</th><th className="px-4 py-3">Date</th><th className="px-4 py-3">Clock in</th><th className="px-4 py-3">Clock out</th><th className="px-4 py-3">Status / reason</th><th className="px-4 py-3"><span className="sr-only">Details</span></th></tr></thead><tbody>{records.map((record) => <tr key={record.id} className="border-b last:border-0"><td className="px-4 py-3 font-medium"><StaffClockingStaffLink staffId={record.staffId} name={record.staffName || record.staffId} peers={records.map(item => item.staffId)} date={record.localDate} /></td><td className="px-4 py-3">{record.localDate}</td><td className="px-4 py-3">{formatScheduleTime(record.effectiveClockInTime || record.clockInTime)}</td><td className="px-4 py-3">{formatScheduleTime(record.effectiveClockOutTime || record.clockOutTime)}</td><td className="px-4 py-3"><RecordStatusBadge record={record} /></td><td className="px-4 py-3"><Button type="button" variant="ghost" size="sm" onClick={() => onSelect(record)}>Details</Button></td></tr>)}</tbody></table></div>;
 }
 
 function PunctualitySummary({ records }: { records: StaffClockingDailyRecord[] }) {
   const rows = buildPunctualityRows(records);
-  return <div className="overflow-x-auto rounded-xl border border-border"><table className="w-full min-w-[42rem] text-left text-sm"><thead className="border-b bg-muted/50 text-xs text-muted-foreground"><tr><th className="px-4 py-3">Staff name</th><th className="px-4 py-3">On time</th><th className="px-4 py-3">Grace</th><th className="px-4 py-3">Late</th><th className="px-4 py-3">Exempt</th><th className="px-4 py-3">Complete shifts</th></tr></thead><tbody>{rows.map((row) => <tr key={row.staffId} className="border-b last:border-0"><td className="px-4 py-3 font-medium">{row.name}</td><td className="px-4 py-3"><Badge variant="secondary">{row.onTime}</Badge></td><td className="px-4 py-3"><Badge variant="outline">{row.grace}</Badge></td><td className="px-4 py-3"><Badge variant={row.late ? 'destructive' : 'outline'}>{row.late}</Badge></td><td className="px-4 py-3">{row.exempt}</td><td className="px-4 py-3">{row.complete}</td></tr>)}</tbody></table></div>;
+  return <div className="overflow-x-auto rounded-xl border border-border"><table className="w-full min-w-[42rem] text-left text-sm"><thead className="border-b bg-muted/50 text-xs text-muted-foreground"><tr><th className="px-4 py-3">Staff name</th><th className="px-4 py-3">On time</th><th className="px-4 py-3">Grace</th><th className="px-4 py-3">Late</th><th className="px-4 py-3">Exempt</th><th className="px-4 py-3">Complete shifts</th></tr></thead><tbody>{rows.map((row) => <tr key={row.staffId} className="border-b last:border-0"><td className="px-4 py-3 font-medium"><StaffClockingStaffLink staffId={row.staffId} name={row.name} peers={rows.map(item => item.staffId)} /></td><td className="px-4 py-3"><Badge variant="secondary">{row.onTime}</Badge></td><td className="px-4 py-3"><Badge variant="outline">{row.grace}</Badge></td><td className="px-4 py-3"><Badge variant={row.late ? 'destructive' : 'outline'}>{row.late}</Badge></td><td className="px-4 py-3">{row.exempt}</td><td className="px-4 py-3">{row.complete}</td></tr>)}</tbody></table></div>;
 }
 
 type RecordsView = 'daily' | 'weekly' | 'monthly' | 'termly';
@@ -578,7 +596,7 @@ function WeeklyAttendanceMatrix({ records, from, onSelect }: { records: StaffClo
     return result;
   }, {});
   const staffRows = Object.entries(byStaff).sort(([, first], [, second]) => first.name.localeCompare(second.name));
-  return <div className="overflow-x-auto rounded-xl border border-border"><table className="w-full min-w-[62rem] text-left text-sm"><thead className="border-b bg-muted/50 text-xs text-muted-foreground"><tr><th className="px-4 py-3">Staff</th><th className="px-3 py-3">Clock</th>{days.map((day) => <th key={day} className="min-w-28 px-3 py-3 text-center">{new Intl.DateTimeFormat('en-UG', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${day}T12:00:00Z`))}</th>)}</tr></thead><tbody>{staffRows.flatMap(([staffId, row]) => [<tr key={`${staffId}-in`} className="border-b"><td rowSpan={2} className="px-4 py-3 align-middle font-medium">{row.name}</td><td className="px-3 py-2 text-xs font-medium text-muted-foreground">In</td>{days.map((day) => <WeeklyRecordCell key={day} record={row.records[day]} kind="in" onSelect={onSelect} />)}</tr>, <tr key={`${staffId}-out`} className="border-b last:border-0"><td className="px-3 py-2 text-xs font-medium text-muted-foreground">Out</td>{days.map((day) => <WeeklyRecordCell key={day} record={row.records[day]} kind="out" onSelect={onSelect} />)}</tr>])}</tbody></table></div>;
+  return <div className="overflow-x-auto rounded-xl border border-border"><table className="w-full min-w-[62rem] text-left text-sm"><thead className="border-b bg-muted/50 text-xs text-muted-foreground"><tr><th className="px-4 py-3">Staff</th><th className="px-3 py-3">Clock</th>{days.map((day) => <th key={day} className="min-w-28 px-3 py-3 text-center">{new Intl.DateTimeFormat('en-UG', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${day}T12:00:00Z`))}</th>)}</tr></thead><tbody>{staffRows.flatMap(([staffId, row]) => [<tr key={`${staffId}-in`} className="border-b"><td rowSpan={2} className="px-4 py-3 align-middle font-medium"><StaffClockingStaffLink staffId={staffId} name={row.name} peers={staffRows.map(([id]) => id)} date={from} /></td><td className="px-3 py-2 text-xs font-medium text-muted-foreground">In</td>{days.map((day) => <WeeklyRecordCell key={day} record={row.records[day]} kind="in" onSelect={onSelect} />)}</tr>, <tr key={`${staffId}-out`} className="border-b last:border-0"><td className="px-3 py-2 text-xs font-medium text-muted-foreground">Out</td>{days.map((day) => <WeeklyRecordCell key={day} record={row.records[day]} kind="out" onSelect={onSelect} />)}</tr>])}</tbody></table></div>;
 }
 
 function WeeklyRecordCell({ record, kind, onSelect }: { record?: StaffClockingDailyRecord; kind: 'in' | 'out'; onSelect: (record: StaffClockingDailyRecord) => void }) {

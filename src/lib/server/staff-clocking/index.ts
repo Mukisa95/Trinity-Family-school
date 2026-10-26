@@ -9,6 +9,8 @@ import type {
   StaffClockingReviewRequest,
   StaffClockingFeatureSettings,
   StaffClockingSchedule,
+  StaffClockingTimekeeper,
+  StaffClockingPersonalSchedule,
 } from '@/lib/staff-clocking/contracts';
 import { STAFF_CLOCKING_TIME_ZONE, type StaffClockingRevisionKey } from '@/lib/staff-clocking/contracts';
 import { classifyStaffClockIn, resolveStaffClockingSchedule } from '@/lib/staff-clocking/schedule-resolver';
@@ -27,17 +29,27 @@ export const STAFF_CLOCKING_COLLECTIONS = {
   corrections: 'staffClockingCorrections',
   notifications: 'staffClockingNotifications',
   history: 'historyLogs',
+  personalRevisions: 'staffClockingPersonalRevisions',
+  explanations: 'staffClockingExplanations',
 } as const;
 
 const SETTINGS_ID = 'default';
 const QR_TOKEN_LIFETIME_MS = 60_000;
 const QR_SESSION_LIFETIME_MS = 10 * 60_000;
 
-function bumpClockingRevisions(db: Firestore, writer: Transaction | WriteBatch, ...keys: Array<StaffClockingRevisionKey | 'events'>) {
+export function bumpClockingRevisions(db: Firestore, writer: Transaction | WriteBatch, ...keys: Array<StaffClockingRevisionKey | 'events'>) {
   // The existing shared listener watches this tiny document. Publish atomically
   // with the source write so other tabs/devices never miss a successful change.
   (writer as Transaction).set(db.collection('settings').doc('data-revisions-operational'),
     Object.fromEntries(keys.map(key => [key, FieldValue.increment(1)])), { merge: true });
+}
+
+export function bumpPersonalClockingRevision(db: Firestore, writer: Transaction | WriteBatch, staffId: string, workDate?: string, notifications = false, requests = false) {
+  (writer as Transaction).set(db.collection(STAFF_CLOCKING_COLLECTIONS.personalRevisions).doc(staffId), {
+    ...(workDate ? { dates: { [workDate]: FieldValue.increment(1) } } : {}),
+    ...(notifications ? { notifications: FieldValue.increment(1) } : {}),
+    ...(requests ? { requests: FieldValue.increment(1) } : {}),
+  }, { merge: true });
 }
 const localDate = z.string().refine(isIsoLocalDate, 'Use a valid YYYY-MM-DD date.');
 const localTime = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/, 'Use a 24-hour time such as 08:00 or 08:00:00.');
@@ -130,12 +142,12 @@ const recordFilterSchema = z.object({
 const closureSchema = z.object({ title: z.string().trim().min(3).max(120), startDate: localDate, endDate: localDate.optional(), description: z.string().trim().max(500).optional() })
   .refine(value => !value.endDate || value.endDate >= value.startDate, { path: ['endDate'], message: 'The end date must be on or after the start date.' });
 
-function actorLabel(actor: AuthenticatedAppUser) {
+export function actorLabel(actor: AuthenticatedAppUser) {
   const name = [actor.user.firstName, actor.user.lastName].filter(Boolean).join(' ').trim();
   return { id: actor.user.id, name: name || actor.user.username || 'Unknown user' };
 }
 
-function kampalaClock(now = new Date()) {
+export function kampalaClock(now = new Date()) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
     timeZone: STAFF_CLOCKING_TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
@@ -143,7 +155,7 @@ function kampalaClock(now = new Date()) {
   return { localDate: `${parts.year}-${parts.month}-${parts.day}`, localTime: `${parts.hour}:${parts.minute}:${parts.second}` };
 }
 
-function localDateFromCalendarValue(value: unknown): string | undefined {
+export function localDateFromCalendarValue(value: unknown): string | undefined {
   const instant = value instanceof Timestamp ? value.toDate()
     : value instanceof Date ? value
       : typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? undefined
@@ -206,7 +218,7 @@ function verifyQrToken(token: string, nowMs = Date.now()) {
   }
 }
 
-function dailyRecordId(staffId: string, localDate: string) {
+export function dailyRecordId(staffId: string, localDate: string) {
   return createHash('sha256').update(`${staffId}:${localDate}`).digest('base64url');
 }
 
@@ -214,9 +226,9 @@ function operationEventId(actorId: string, operationId: string) {
   return createHash('sha256').update(`${actorId}:${operationId}`).digest('base64url');
 }
 
-function toIso(value: Record<string, unknown>): Record<string, unknown>;
-function toIso(value: unknown): unknown;
-function toIso(value: unknown): unknown {
+export function toIso(value: Record<string, unknown>): Record<string, unknown>;
+export function toIso(value: unknown): unknown;
+export function toIso(value: unknown): unknown {
   if (value instanceof Timestamp) return value.toDate().toISOString();
   if (Array.isArray(value)) return value.map(toIso);
   if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, nested]) => [key, toIso(nested)]));
@@ -257,7 +269,7 @@ function normalizeSettings(data?: Record<string, unknown>): StaffClockingFeature
   };
 }
 
-function staffGroupLabels(staff: Record<string, unknown>): string[] {
+export function staffGroupLabels(staff: Record<string, unknown>): string[] {
   const asLabels = (value: unknown) => (Array.isArray(value) ? value : [value])
     .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
     .map((item) => item.trim());
@@ -284,10 +296,11 @@ function canAccess(actor: AuthenticatedAppUser, page: 'record' | 'clock' | 'reco
 
 export function requireStaffClockingAccess(actor: AuthenticatedAppUser, page: 'record' | 'clock' | 'records', action?: string) {
   if (!canAccess(actor, page, action)) throw new Error('PERMISSION_DENIED');
+  if (page === 'record' && ['manage_schedules', 'manage_timekeepers'].includes(action || '') && !canAccess(actor, 'record', 'access_manage')) throw new Error('PERMISSION_DENIED');
 }
 
 function canManageClocking(actor: AuthenticatedAppUser) {
-  return canAccess(actor, 'record', 'manage_schedules');
+  return canAccess(actor, 'record', 'access_manage') && canAccess(actor, 'record', 'manage_schedules');
 }
 
 export async function getStaffClockingBootstrap(db: Firestore, actor: AuthenticatedAppUser): Promise<StaffClockingBootstrap> {
@@ -311,7 +324,7 @@ export async function getStaffClockingBootstrap(db: Firestore, actor: Authentica
     feature.accessMode === 'all_active_linked_staff' || (staffId !== undefined && feature.enrolledStaffIds.includes(staffId))
   );
 
-  return { feature, access: { canClock, canManage, isEnrolled }, hasActiveSchedule: !schedules.empty };
+  return { feature: { ...feature, enrolledStaffIds: canManage ? feature.enrolledStaffIds : [] }, access: { canClock, canManage, isEnrolled }, hasActiveSchedule: !schedules.empty };
 }
 
 export async function revokeStaffClockingQrSession(db: Firestore, actor: AuthenticatedAppUser, input: unknown) {
@@ -491,6 +504,7 @@ export async function finalizeOpenStaffClockingDate(db: Firestore, workDate: str
         const record = document.data();
         if (record?.status !== 'open' || !record.clockInAt || record.clockOutAt || record.effectiveClockOutTime || record.exemptionStatus === 'approved') continue;
         transaction.update(document.ref, { status: 'missing_clock_out', finalizationStatus: 'finalized', finalizedAt: Timestamp.now(), finalizedBy, updatedAt: Timestamp.now() });
+        bumpPersonalClockingRevision(db, transaction, String(record.staffId), workDate);
         count += 1;
       }
       if (count) bumpClockingRevisions(db, transaction, 'staffClockingRecords');
@@ -520,14 +534,26 @@ export async function listOwnStaffClockingNotifications(db: Firestore, actor: Au
 }
 
 /** A staff-scoped, server-resolved snapshot for the personal Clock page. */
-export async function getOwnStaffClockingDashboard(db: Firestore, actor: AuthenticatedAppUser) {
+export async function getOwnStaffClockingDashboard(db: Firestore, actor: AuthenticatedAppUser, part: 'schedule' | 'status' | 'history' | 'all' = 'all'): Promise<Partial<StaffClockingPersonalSchedule> & { record?: StaffClockingDailyRecord; history?: StaffClockingDailyRecord[] }> {
   requireStaffClockingAccess(actor, 'clock', 'view_own_clock');
   const staffId = actor.user.staffId;
   if (!staffId) throw new Error('CLOCKING_STAFF_LINK_REQUIRED');
   const now = kampalaClock();
-  const [staffSnapshot, recordsSnapshot, schedulesSnapshot, calendarDay] = await Promise.all([
+  if (part === 'status') {
+    const record = await db.collection(STAFF_CLOCKING_COLLECTIONS.dailyRecords).doc(dailyRecordId(staffId, now.localDate)).get();
+    return { localDate: now.localDate, record: record.exists ? { id: record.id, ...toIso(record.data() || {}) } as StaffClockingDailyRecord : undefined };
+  }
+  if (part === 'history') {
+    const records = await db.collection(STAFF_CLOCKING_COLLECTIONS.dailyRecords).where('staffId', '==', staffId)
+      .where('localDate', '<', now.localDate).orderBy('localDate', 'desc').limit(5).get();
+    return { history: records.docs.map(record => ({ id: record.id, ...toIso(record.data()) } as StaffClockingDailyRecord)) };
+  }
+  if (part === 'all') {
+    const [schedule, status, history] = await Promise.all(['schedule', 'status', 'history'].map(value => getOwnStaffClockingDashboard(db, actor, value as 'schedule' | 'status' | 'history')));
+    return { ...schedule, ...status, ...history };
+  }
+  const [staffSnapshot, schedulesSnapshot, calendarDay] = await Promise.all([
     db.collection('staff').doc(staffId).get(),
-    db.collection(STAFF_CLOCKING_COLLECTIONS.dailyRecords).where('staffId', '==', staffId).get(),
     db.collection(STAFF_CLOCKING_COLLECTIONS.schedules).get(),
     resolveCalendarClosure(db, now.localDate),
   ]);
@@ -536,30 +562,27 @@ export async function getOwnStaffClockingDashboard(db: Firestore, actor: Authent
   const groups = [...new Set([...(Array.isArray(staff.department) ? staff.department : [staff.department]), ...(Array.isArray(staff.role) ? staff.role : [staff.role])].filter((value): value is string => typeof value === 'string' && value.length > 0))];
   const schedules = schedulesSnapshot.docs.map(item => serializeSchedule(item.id, item.data()));
   const resolution = resolveStaffClockingSchedule({ staffId, groupIds: groups, localDate: now.localDate, schedules, calendarDay });
-  const records = recordsSnapshot.docs.map(item => ({ id: item.id, ...toIso(item.data()) } as StaffClockingDailyRecord)).sort((left, right) => right.localDate.localeCompare(left.localDate));
-  const today = records.find(record => record.localDate === now.localDate);
   const appliedSchedule = resolution.sourceScheduleId ? schedules.find(schedule => schedule.id === resolution.sourceScheduleId) : undefined;
   return {
     staff: { id: staffId, name: [staff.firstName, staff.lastName].filter((value): value is string => typeof value === 'string' && value.trim().length > 0).join(' ').trim() || 'Staff member', group: groups[0] || undefined },
     localDate: now.localDate,
-    record: today,
-    history: records.filter(record => record.localDate !== now.localDate).slice(0, 5),
     schedule: resolution.kind === 'scheduled' ? { kind: resolution.kind, clockInBy: resolution.clockInBy, clockOutBy: appliedSchedule?.clockOutBy, graceMinutes: resolution.graceMinutes, sourceScope: resolution.sourceScope } : { kind: resolution.kind, reason: resolution.reason },
     calendar: calendarDay ? { isClosed: calendarDay.isClosed, label: calendarDay.label } : undefined,
   };
 }
 
-export async function createStaffClockingSelfServiceRequest(db: Firestore, actor: AuthenticatedAppUser, kind: 'exemption' | 'correction', input: unknown) {
+export async function createStaffClockingSelfServiceRequest(db: Firestore, actor: AuthenticatedAppUser, kind: 'exemption' | 'correction', input: unknown, submittedBy?: { id: string; name: string }) {
   requireStaffClockingAccess(actor, 'clock', kind === 'exemption' ? 'request_exemption' : 'request_correction');
   const staffId = actor.user.staffId;
   if (!staffId) throw new Error('CLOCKING_STAFF_LINK_REQUIRED');
   const payload = selfServiceRequestSchema.parse(input);
   if (kind === 'exemption' && (payload.proposedClockInTime || payload.proposedClockOutTime)) throw new Error('CLOCKING_EXEMPTION_TIME_NOT_ALLOWED');
   if (kind === 'correction' && !payload.proposedClockInTime) throw new Error('CLOCKING_CORRECTION_TIME_REQUIRED');
+  if (kind === 'correction' && payload.localDate > kampalaClock().localDate) throw new Error('CLOCKING_FUTURE_CORRECTION_NOT_ALLOWED');
   const staff = await db.collection('staff').doc(staffId).get();
   if (!staff.exists || String(staff.data()?.status || 'active').toLowerCase() !== 'active') throw new Error('CLOCKING_STAFF_INACTIVE');
   const ref = db.collection(kind === 'exemption' ? STAFF_CLOCKING_COLLECTIONS.exemptions : STAFF_CLOCKING_COLLECTIONS.corrections).doc();
-  const actorData = actorLabel(actor);
+  const actorData = submittedBy || actorLabel(actor);
   const record = omitUndefined({
     kind, status: 'pending', staffId, accountId: actor.user.id, localDate: payload.localDate, reason: payload.reason,
     proposedClockInTime: payload.proposedClockInTime, proposedClockOutTime: payload.proposedClockOutTime,
@@ -572,6 +595,7 @@ export async function createStaffClockingSelfServiceRequest(db: Firestore, actor
     uid: actorData.id, un: actorData.name, m: { staffId, localDate: payload.localDate }, ts: Timestamp.now(),
   });
   bumpClockingRevisions(db, batch, 'staffClockingRequests');
+  bumpPersonalClockingRevision(db, batch, staffId, undefined, false, true);
   await batch.commit();
   return { id: ref.id, ...toIso(record) };
 }
@@ -592,6 +616,7 @@ export async function createManagedStaffClockingExemption(db: Firestore, actor: 
     const existing = await transaction.get(dailyRef);
     transaction.create(exemptionRef, exemption);
     bumpClockingRevisions(db, transaction, 'staffClockingRequests', 'staffClockingRecords');
+    bumpPersonalClockingRevision(db, transaction, payload.staffId, payload.localDate, false, true);
     transaction.set(dailyRef, {
       ...(existing.exists ? existing.data() : {}), staffId: payload.staffId, ...(staffName ? { staffName } : {}), localDate: payload.localDate,
       status: existing.data()?.status || 'open', exemptionId: exemptionRef.id, exemptionStatus: 'approved', reviewStatus: 'exempted', updatedAt: Timestamp.now(),
@@ -612,30 +637,30 @@ export async function reviewStaffClockingSelfServiceRequest(db: Firestore, actor
     if (!request.exists) throw new Error('CLOCKING_REQUEST_NOT_FOUND');
     const data = request.data()!;
     if (data.status !== 'pending') throw new Error('CLOCKING_REQUEST_ALREADY_REVIEWED');
-    if (data.accountId === actor.user.id || data.staffId === actor.user.staffId) throw new Error('CLOCKING_SELF_REVIEW_NOT_ALLOWED');
+    if (data.accountId === actor.user.id || data.staffId === actor.user.staffId || data.createdBy?.id === actor.user.id) throw new Error('CLOCKING_SELF_REVIEW_NOT_ALLOWED');
     const dailyRef = db.collection(STAFF_CLOCKING_COLLECTIONS.dailyRecords).doc(dailyRecordId(String(data.staffId), String(data.localDate)));
     const daily = approved ? await transaction.get(dailyRef) : undefined;
-    if (approved && kind === 'correction' && !daily?.exists) throw new Error('CLOCKING_DAILY_RECORD_NOT_FOUND');
     if (approved && kind === 'correction') {
-      const previous = daily!.data()!;
+      if (String(data.localDate) > kampalaClock().localDate) throw new Error('CLOCKING_FUTURE_CORRECTION_NOT_ALLOWED');
+      const previous = daily?.data() || {};
       const clockInTime = String(data.proposedClockInTime);
       const clockOutTime = data.proposedClockOutTime || previous.effectiveClockOutTime || previous.clockOutTime || null;
       if (clockOutTime && localTimeToSeconds(clockOutTime) <= localTimeToSeconds(clockInTime)) throw new Error('CLOCKING_CORRECTION_INVALID_TIME_ORDER');
       const schedule = { kind: 'scheduled' as const, clockInBy: String(previous.clockInBy || ''), graceMinutes: Number(previous.graceMinutes) };
-      if (!schedule.clockInBy || !Number.isInteger(schedule.graceMinutes)) throw new Error('CLOCKING_RECORD_SCHEDULE_MISSING');
-      const arrival = classifyStaffClockIn(clockInTime, schedule);
-      transaction.update(dailyRef, {
+      const arrival = schedule.clockInBy && Number.isInteger(schedule.graceMinutes) ? classifyStaffClockIn(clockInTime, schedule) : undefined;
+      transaction.set(dailyRef, omitUndefined({
+        ...previous, staffId: data.staffId, accountId: data.accountId, localDate: data.localDate,
         effectiveClockInTime: clockInTime,
         effectiveClockOutTime: clockOutTime,
         rawArrivalStatus: previous.rawArrivalStatus || previous.arrivalStatus,
         rawSecondsLate: previous.rawSecondsLate ?? previous.secondsLate,
-        arrivalStatus: arrival.status,
-        secondsLate: arrival.secondsLate,
+        arrivalStatus: arrival?.status || previous.arrivalStatus,
+        secondsLate: arrival?.secondsLate ?? previous.secondsLate,
         correctionId: ref.id,
         reviewStatus: 'corrected',
-        status: clockOutTime ? 'complete' : previous.status,
+        status: clockOutTime ? 'complete' : previous.status || 'open',
         updatedAt: Timestamp.now(),
-      });
+      }), { merge: false });
     }
     if (approved && kind === 'exemption') {
       transaction.set(dailyRef, {
@@ -647,9 +672,11 @@ export async function reviewStaffClockingSelfServiceRequest(db: Firestore, actor
       type: `${kind}_approved`, staffId: data.staffId, localDate: data.localDate, requestId: ref.id,
       reviewedBy: reviewer, occurredAt: Timestamp.now(),
       ...(kind === 'correction' ? { proposedClockInTime: data.proposedClockInTime, proposedClockOutTime: data.proposedClockOutTime || null } : {}),
+      before: { clockInTime: daily?.data()?.effectiveClockInTime || daily?.data()?.clockInTime || null, clockOutTime: daily?.data()?.effectiveClockOutTime || daily?.data()?.clockOutTime || null },
     });
     transaction.update(ref, omitUndefined({ status: approved ? 'approved' : 'rejected', reviewedAt: Timestamp.now(), reviewedBy: reviewer, reviewNote: reviewNote?.trim() || undefined }));
     bumpClockingRevisions(db, transaction, 'staffClockingRequests', 'staffClockingNotifications', ...(approved ? ['staffClockingRecords' as const] : []));
+    bumpPersonalClockingRevision(db, transaction, String(data.staffId), approved ? String(data.localDate) : undefined, true, true);
     transaction.set(db.collection(STAFF_CLOCKING_COLLECTIONS.notifications).doc(), {
       accountId: data.accountId, staffId: data.staffId, type: `${kind}_${approved ? 'approved' : 'rejected'}`,
       title: `Clocking ${kind} ${approved ? 'approved' : 'rejected'}`,
@@ -749,7 +776,8 @@ export async function recordStaffClockingScan(db: Firestore, actor: Authenticate
     const roleGroups = Array.isArray(staffData.role) ? staffData.role : [staffData.role];
     const groups = [...new Set([...departmentGroups, ...roleGroups].filter((value): value is string => typeof value === 'string' && value.length > 0))];
     const prior = daily.exists ? daily.data()! : undefined;
-    const resolution = prior?.clockInAt ? {
+    const hasArrival = !!(prior?.clockInAt || prior?.effectiveClockInTime);
+    const resolution = hasArrival ? {
       kind: 'scheduled' as const, localDate,
       sourceScheduleId: prior.scheduleId || 'saved-day', sourceScope: prior.scheduleScope || 'school',
       clockInBy: prior.clockInBy, graceMinutes: prior.graceMinutes,
@@ -763,23 +791,76 @@ export async function recordStaffClockingScan(db: Firestore, actor: Authenticate
     if (resolution.kind !== 'scheduled') throw new Error(resolution.kind === 'conflict' ? 'CLOCKING_SCHEDULE_CONFLICT' : 'CLOCKING_NO_SCHEDULE');
 
     if (prior?.finalizationStatus === 'finalized') throw new Error('CLOCKING_DAY_FINALIZED');
-    const eventType = prior?.clockInAt ? (prior.clockOutAt || prior.effectiveClockOutTime) ? null : 'clock_out' : 'clock_in';
+    const eventType = hasArrival ? (prior?.clockOutAt || prior?.effectiveClockOutTime) ? null : 'clock_out' : 'clock_in';
     if (!eventType) throw new Error('CLOCKING_DAY_ALREADY_COMPLETE');
-    if (eventType === 'clock_out' && now.getTime() - prior!.clockInAt.toMillis() < 90_000) throw new Error('CLOCKING_DUPLICATE_SCAN_WAIT');
+    const arrivalAt = prior?.clockInAt?.toMillis?.() ?? (prior?.effectiveClockInTime ? new Date(`${localDate}T${prior.effectiveClockInTime}+03:00`).getTime() : 0);
+    if (eventType === 'clock_out' && now.getTime() - arrivalAt < 90_000) throw new Error('CLOCKING_DUPLICATE_SCAN_WAIT');
     const arrival = eventType === 'clock_in' ? classifyStaffClockIn(localTime, resolution) : undefined;
-    const event = {
+    const event = omitUndefined({
       id: eventRef.id, staffId, accountId: actor.user.id, operationId: payload.operationId, requestDigest, type: eventType,
       occurredAt: Timestamp.fromDate(now), localDate, localTime, sessionId: token.sessionId,
       scheduleId: resolution.sourceScheduleId, scheduleScope: resolution.sourceScope, clockInBy: resolution.clockInBy,
       graceMinutes: resolution.graceMinutes, ...(arrival ? { arrivalStatus: arrival.status, secondsLate: arrival.secondsLate } : {}),
-    };
+    });
     const staffName = [staffData.firstName, staffData.lastName].filter((value): value is string => typeof value === 'string' && value.trim().length > 0).join(' ').trim();
+    const appliedRule = scheduleSnapshot.docs.find(item => item.id === resolution.sourceScheduleId)?.data();
+    const savedSchedule = omitUndefined({ clockInBy: resolution.clockInBy, clockOutBy: appliedRule?.clockOutBy, graceMinutes: resolution.graceMinutes, scope: resolution.sourceScope, kind: appliedRule?.kind, groups });
     const record = eventType === 'clock_in'
       ? { ...prior, staffId, ...(staffName ? { staffName } : {}), accountId: actor.user.id, localDate, clockInAt: Timestamp.fromDate(now), clockInTime: localTime, arrivalStatus: arrival!.status, secondsLate: arrival!.secondsLate, scheduleId: resolution.sourceScheduleId, clockInBy: resolution.clockInBy, graceMinutes: resolution.graceMinutes, status: 'open', updatedAt: Timestamp.fromDate(now) }
       : { ...prior, clockOutAt: Timestamp.fromDate(now), clockOutTime: localTime, status: 'complete', updatedAt: Timestamp.fromDate(now) };
     transaction.create(eventRef, event);
+    if (eventType === 'clock_in') Object.assign(record, { scheduleSnapshot: savedSchedule, ...(appliedRule?.clockOutBy ? { clockOutBy: appliedRule.clockOutBy } : {}) });
     transaction.set(dailyRef, record, { merge: false });
     bumpClockingRevisions(db, transaction, 'staffClockingRecords');
+    bumpPersonalClockingRevision(db, transaction, staffId, localDate);
     return { duplicate: false, event: toIso(event), record: toIso(record) };
+  });
+}
+
+export async function listStaffClockingTimekeepers(db: Firestore, actor: AuthenticatedAppUser): Promise<StaffClockingTimekeeper[]> {
+  requireStaffClockingAccess(actor, 'record', 'manage_timekeepers');
+  const [accounts, staff] = await Promise.all([db.collection('system_users').where('role', '==', 'Staff').get(), db.collection('staff').get()]);
+  const active = new Map(staff.docs.filter(item => String(item.data().status || 'active').toLowerCase() === 'active').map(item => [item.id, item.data()]));
+  return accounts.docs.flatMap(item => {
+    const data = item.data();
+    const member = active.get(String(data.staffId));
+    if (data.isActive === false || !member) return [];
+    return [{ accountId: item.id, staffId: String(data.staffId), name: [member.firstName, member.lastName].filter(Boolean).join(' ').trim() || String(data.username || 'Staff member'), username: String(data.username || ''),
+      allowed: GranularPermissionService.canPerformAction({ ...data, id: item.id } as AuthenticatedAppUser['user'], 'staff_clocking', 'record', 'display_qr'), revision: Number(data.clockingStationAccessRevision || 0) }];
+  }).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function updateStaffClockingTimekeeper(db: Firestore, actor: AuthenticatedAppUser, input: unknown) {
+  requireStaffClockingAccess(actor, 'record', 'manage_timekeepers');
+  const payload = z.object({ accountId: documentId, allowed: z.boolean(), revision: z.number().int().min(0) }).strict().parse(input);
+  const ref = db.collection('system_users').doc(payload.accountId);
+  return db.runTransaction(async transaction => {
+    const target = await transaction.get(ref);
+    const data = target.data();
+    if (!data || data.role !== 'Staff' || data.isActive === false || !data.staffId) throw new Error('CLOCKING_ACTIVE_STAFF_ACCOUNT_REQUIRED');
+    const staff = await transaction.get(db.collection('staff').doc(data.staffId));
+    if (!staff.exists || String(staff.data()?.status || 'active').toLowerCase() !== 'active') throw new Error('CLOCKING_STAFF_INACTIVE');
+    if (Number(data.clockingStationAccessRevision || 0) !== payload.revision) throw new Error('CLOCKING_ACCESS_CHANGED_REVIEW_AND_RETRY');
+    const permissions: import('@/types').ModulePermissions[] = structuredClone(data.granularPermissions || []);
+    let module = permissions.find(item => item.moduleId === 'staff_clocking');
+    if (!module) { module = { moduleId: 'staff_clocking', pages: [] }; permissions.push(module); }
+    let page = module.pages.find(item => item.pageId === 'record');
+    if (!page) { page = { pageId: 'record', canAccess: false, actions: [] }; module.pages.push(page); }
+    const wasAccessible = page.canAccess;
+    // Enabling a previously disabled page must not resurrect dormant manager
+    // actions saved on it. Preserve effective permissions, not inactive flags.
+    if (!wasAccessible && payload.allowed) page.actions = page.actions.map(item => ({ ...item, allowed: false }));
+    for (const actionId of ['view_record', 'display_qr']) {
+      const action = page.actions.find(item => item.actionId === actionId);
+      if (action) action.allowed = payload.allowed; else page.actions.push({ actionId, allowed: payload.allowed });
+    }
+    page.canAccess = (wasAccessible || payload.allowed) && page.actions.some(item => item.allowed);
+    transaction.update(ref, { granularPermissions: permissions, clockingStationAccessRevision: payload.revision + 1, updatedAt: Timestamp.now() });
+    bumpClockingRevisions(db, transaction, 'staffClockingTimekeepers');
+    const who = actorLabel(actor);
+    transaction.create(db.collection(STAFF_CLOCKING_COLLECTIONS.history).doc(), { a: 'update', e: 'staff_clocking_timekeeper', rid: target.id,
+      rl: payload.allowed ? 'Record Station access granted' : 'Record Station access removed', uid: who.id, un: who.name,
+      m: { staffId: data.staffId, accountId: target.id, allowed: payload.allowed }, ts: Timestamp.now() });
+    return { accountId: target.id, allowed: payload.allowed, revision: payload.revision + 1 };
   });
 }

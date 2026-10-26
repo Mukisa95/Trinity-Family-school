@@ -25,6 +25,13 @@ export class GranularPermissionService {
     if (moduleId === 'pupils' && pageId === 'historical_seeding') return user.role === 'Admin';
     if (user.role === 'Admin') return true;
     if (user.role === 'Parent') return false; // Parents use a different system
+
+    if (moduleId === 'staff_clocking' && pageId === 'manage') {
+      return this.canPerformAction(user, moduleId, 'record', 'access_manage');
+    }
+    if (moduleId === 'staff_clocking' && pageId === 'detail') {
+      return this.canPerformAction(user, moduleId, 'clock', 'view_own_clock') || this.canPerformAction(user, moduleId, 'records', 'view_records');
+    }
     
     if (moduleId === 'staff_clocking' && pageId === 'clock' && user.role === 'Staff' && user.staffId) return true;
 
@@ -70,7 +77,7 @@ export class GranularPermissionService {
     if (user.role === 'Admin') return true;
     if (user.role === 'Parent') return false;
     
-    if (moduleId === 'staff_clocking' && pageId === 'clock' && user.role === 'Staff' && user.staffId && ['view_own_clock', 'clock_self', 'request_exemption', 'request_correction'].includes(actionId)) return true;
+    if (moduleId === 'staff_clocking' && pageId === 'clock' && user.role === 'Staff' && user.staffId && ['view_own_clock', 'clock_self', 'request_exemption', 'request_correction', 'explain_lateness'].includes(actionId)) return true;
 
     // Check granular permissions
     if (user.granularPermissions) {
@@ -79,6 +86,11 @@ export class GranularPermissionService {
         const pagePerms = modulePerms.pages.find(p => p.pageId === pageId);
         if (pagePerms && pagePerms.canAccess) {
           const actionPerm = pagePerms.actions.find(a => a.actionId === actionId);
+          // Preserve existing schedule managers until an explicit Manage choice
+          // is saved. An explicit denial always wins over this migration bridge.
+          if (moduleId === 'staff_clocking' && pageId === 'record' && actionId === 'access_manage' && !actionPerm) {
+            return pagePerms.actions.some(a => a.actionId === 'manage_schedules' && a.allowed);
+          }
           return actionPerm?.allowed || false;
         }
       }
