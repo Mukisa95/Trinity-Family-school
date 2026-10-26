@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { detailStatusLabels, type DetailPeriod, type DetailRange, type StaffClockingDetailProfile, type StaffClockingDetailRow } from '@/lib/staff-clocking/details-contracts';
-import { detailTime, detailDates, detailPeriodRange, summarizeStaffDetail } from '@/lib/staff-clocking/details-report';
+import { detailStatusLabels, type StaffClockingDetailProfile, type StaffClockingDetailRow } from '@/lib/staff-clocking/details-contracts';
+import { detailTime, summarizeStaffDetail } from '@/lib/staff-clocking/details-report';
 import { cn } from '@/lib/utils';
 
 export const emptyDetailFilters = { status: 'all', population: 'all', clock: 'all', dayType: 'all', weekday: 'all', correction: 'all', source: 'all', departure: 'all', minutes: '' };
@@ -68,20 +68,6 @@ export function MobileTermHistory({ rows, onSelect }: { rows: StaffClockingDetai
     const days = rows.filter(row => row.date.startsWith(month)), totals = summarizeStaffDetail(days);
     return <details key={month} className="rounded-2xl border border-border/70 bg-muted/20"><summary className="cursor-pointer rounded-2xl p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="text-sm font-semibold">{dayFormat(`${month}-01`, {month:'long', year:'numeric'})}</span><span className="mt-2 block text-xs text-muted-foreground">On time {totals.onTime} · Grace {totals.grace} · Late {totals.late}</span><span className="mt-1 block text-[11px] text-muted-foreground">Absent {totals.absent} · Leave {totals.exempt} · {days.length} dates</span></summary><div className="space-y-2 border-t border-border/60 p-2.5">{days.map(row => <MobileAttendanceDate key={row.date} row={row} onSelect={onSelect} />)}</div></details>;
   })}</div>;
-}
-
-export function MobileClockingDatePicker({ period, anchor, custom, termKey, terms, today, onApply, onClose }: { period: DetailPeriod; anchor: string; custom: DetailRange; termKey: string; terms: Array<{key:string;label:string;from:string;to:string}>; today:string; onApply: (value:{anchor:string;custom:DetailRange;termKey:string}) => void; onClose: () => void }) {
-  const [date,setDate] = useState(anchor),[range,setRange] = useState(custom),[term,setTerm] = useState(termKey);
-  const selectedTerm = terms.find(item => item.key === term);
-  const valid = detailDates(detailPeriodRange(period,date,selectedTerm,range)).length > 0 && (period !== 'term' || !!selectedTerm);
-  return <Sheet open onOpenChange={open => {if(!open) onClose();}}><SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto rounded-t-[24px] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] [&>button:last-child]:right-2 [&>button:last-child]:top-2 [&>button:last-child]:h-11 [&>button:last-child]:w-11">
-    <SheetHeader className="mb-4 pr-12 text-left"><SheetTitle>Choose reporting date</SheetTitle><SheetDescription>Update the selected attendance period.</SheetDescription></SheetHeader>
-    <form className="space-y-4" onSubmit={event => {event.preventDefault();if(valid){onApply({anchor:period === 'term' ? selectedTerm!.from : period === 'custom' ? range.from : date,custom:range,termKey:term});onClose();}}}>
-      {period === 'term' ? <div className="space-y-1.5"><Label htmlFor="mobile-report-term">Academic term</Label><select id="mobile-report-term" className={selectClass} value={term} onChange={event => setTerm(event.target.value)}>{terms.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}</select></div> : period === 'custom' ? <div className="grid grid-cols-2 gap-3"><div><Label htmlFor="mobile-report-from">From</Label><Input id="mobile-report-from" className="h-11 min-w-0" type="date" value={range.from} onChange={event => setRange(old => ({...old,from:event.target.value}))} /></div><div><Label htmlFor="mobile-report-to">To</Label><Input id="mobile-report-to" className="h-11 min-w-0" type="date" value={range.to} onChange={event => setRange(old => ({...old,to:event.target.value}))} /></div></div> : <div className="space-y-1.5"><Label htmlFor="mobile-report-date">{period === 'month' ? 'Month and year' : 'Reporting date'}</Label><Input id="mobile-report-date" className="h-11" type={period === 'month' ? 'month' : 'date'} value={period === 'month' ? date.slice(0,7) : date} onChange={event => setDate(period === 'month' ? `${event.target.value}-01` : event.target.value)} /></div>}
-      {!valid && <p role="alert" className="text-xs text-destructive">Choose valid dates covering at most 366 days, or a configured academic term.</p>}
-      <div className="flex gap-2">{period !== 'term' && <Button type="button" className="h-11 rounded-xl" variant="outline" onClick={() => {setDate(today);setRange({from:today,to:today});}}>Today</Button>}<Button type="submit" className="h-11 flex-1 rounded-xl" disabled={!valid}>Apply period</Button></div>
-    </form>
-  </SheetContent></Sheet>;
 }
 
 export function DetailFilterFields({ filters, onChange, includeStatus = false }: { filters: DetailFilters; onChange: (key: keyof DetailFilters, value: string) => void; includeStatus?: boolean }) {

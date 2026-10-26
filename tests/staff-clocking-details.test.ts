@@ -2,6 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildStaffDetailRows, summarizeStaffDetail, detailPeriodRange, detailMonths, detailDates, departureStatus, individualCsv, detailElapsed } from '../src/lib/staff-clocking/details-report';
 import type { StaffClockingDetailPlan } from '../src/lib/staff-clocking/details-contracts';
+import { detailWeeks, detailRangeLabel } from '../src/lib/staff-clocking/details-period';
+
+test('week choices cover the selected calendar year with complete Monday–Sunday ranges', () => {
+  const weeks = detailWeeks(2026);
+  assert.deepEqual(weeks[0], { from: '2025-12-29', to: '2026-01-04' });
+  assert.deepEqual(weeks.at(-1), { from: '2026-12-28', to: '2027-01-03' });
+  assert.ok(weeks.some(week => week.from === '2026-10-26' && week.to === '2026-11-01'));
+  assert.ok(weeks.every((week, index) => detailDates(week).length === 7 && (!index || Date.parse(week.from) - Date.parse(weeks[index - 1].from) === 7 * 86400000)));
+  assert.equal(detailWeeks(2024).flatMap(detailDates).filter(date => date.startsWith('2024')).length, 366);
+  assert.deepEqual(detailWeeks(NaN), []);
+  assert.deepEqual(detailWeeks(2101), []);
+  assert.match(detailRangeLabel({ from: '2025-12-29', to: '2026-01-04' }), /2025.*2026/);
+  assert.match(detailRangeLabel({ from: '2025-12-29', to: '2026-01-04' }, true), /2025.*2026/);
+  assert.equal(detailRangeLabel({ from: '2026-10-26', to: '2026-11-01' }, true), '26 Oct – 1 Nov');
+});
 
 const plan: StaffClockingDetailPlan = {staffId: 'ada', groups: ['Teaching'], stableSince: '2026-10-01', schedules: [{id: 'school', scope: 'school', kind: 'recurring', weekdays: [1,2,3,4,5], clockInBy: '07:30', clockOutBy: '17:00', graceMinutes: 10, isActive: true, availableFrom: '2026-10-01'}], closures: []};
 
