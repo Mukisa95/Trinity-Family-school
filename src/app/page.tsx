@@ -84,7 +84,7 @@ import { CatalogueDataNotice } from '@/components/common/catalogue-data-notice';
 import { ClassAttendanceSummaryDialog } from '@/components/dashboard/class-attendance-summary-dialog';
 import { PhotoViewerDialog } from '@/components/common/photo-viewer-dialog';
 import { TeacherDayTracker } from '@/components/dashboard/teacher-day-tracker';
-import { DashboardStaffPanels } from '@/components/dashboard/staff-day-card';
+import { DashboardStaffAttendanceStat, DashboardStaffPanels } from '@/components/dashboard/staff-day-card';
 import { getStaffDashboardContext } from '@/lib/dashboard/staff-context';
 import { getClassAttendance } from '@/lib/dashboard/teacher-day';
 
@@ -573,10 +573,11 @@ const ExpandableStaffCard = ({
   isLoading = false,
   staff,
   progress,
-  segments
+  segments,
+  onClick
 }: {
   title: string;
-  value: number;
+  value: number | string;
   icon: any;
   color: {
     bg: string;
@@ -589,6 +590,7 @@ const ExpandableStaffCard = ({
   staff?: any[];
   progress?: number;
   segments?: { percentage: number; color: string }[];
+  onClick?: () => void;
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -690,8 +692,12 @@ const ExpandableStaffCard = ({
 
         <div className="relative z-10">
           <div
-            className="p-1.5 sm:p-3 flex flex-col justify-center min-h-[52px] sm:min-h-[76px]"
-            onClick={() => setIsExpanded(!isExpanded)}
+            className="p-1.5 sm:p-3 flex flex-col justify-center min-h-[52px] sm:min-h-[76px] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            role="button"
+            tabIndex={0}
+            aria-haspopup={onClick ? 'dialog' : undefined}
+            onClick={() => onClick ? onClick() : setIsExpanded(!isExpanded)}
+            onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClick ? onClick() : setIsExpanded(!isExpanded); } }}
           >
             <div className="flex-1 min-w-0">
               <p className={`dashboard-stat-label text-[8px] sm:text-[10px] font-bold uppercase tracking-tight ${color.text} mb-0 sm:mb-1 leading-tight`}>
@@ -708,7 +714,7 @@ const ExpandableStaffCard = ({
                   >
                     <div className="flex items-baseline space-x-1">
                       <span className="text-sm sm:text-xl md:text-2xl font-black text-gray-900 leading-none tracking-tight dark:text-slate-100">
-                        <CountUp end={value} />
+                        {typeof value === 'number' ? <CountUp end={value} /> : value}
                       </span>
                     </div>
                   </motion.div>
@@ -1462,8 +1468,10 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
+      className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
+      data-dashboard-enrollment
     >
-      <Card className="theme-dashboard-surface dashboard-themed-card h-full rounded-xl transition-all duration-300 relative group overflow-visible" style={{
+      <Card className="theme-dashboard-surface dashboard-themed-card h-full rounded-xl transition-all duration-300 relative group overflow-visible lg:flex lg:min-h-0 lg:flex-1 lg:flex-col" style={{
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
         transform: 'translateZ(0)',
         background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(249, 250, 251, 1) 100%)',
@@ -1494,8 +1502,8 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="relative z-20 px-2 pb-2 pt-0">
-          <div className="h-[200px]">
+        <CardContent className="relative z-20 px-2 pb-2 pt-0 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
+          <div className="h-[200px] lg:h-0 lg:min-h-[200px] lg:flex-1" data-enrollment-plot>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 25, right: 10, left: 0, bottom: 0 }}>
                 <defs>
@@ -1619,15 +1627,13 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData, personal = fal
   const router = useRouter();
   const { user } = useAuth();
   const attendanceLegendId = React.useId();
-  const [selectedClassId, setSelectedClassId] = useState('');
-  const selectedClass = classes.find(item => item.id === selectedClassId) || classes[0];
   const today = date || format(new Date(), 'yyyy-MM-dd');
   const currentDate = date ? new Date(`${date}T12:00:00`) : new Date();
 
   // Use the live attendance records passed from the parent instead of fetching again
   const attendanceRecords = attendanceData?.records || [];
   const attendanceLoading = !attendanceData || dataLoading;
-  const personalAttendance = getClassAttendance(selectedClass?.id || '', pupils, attendanceRecords);
+  const personalAttendances = personal ? classes.map(classItem => ({ classItem, ...getClassAttendance(classItem.id, pupils, attendanceRecords) })) : [];
   const attendanceColors = ['#10b981', '#f59e0b', '#ef4444', '#38bdf8', '#8b5cf6', '#94a3b8'];
 
   // Get excluded days and academic year data
@@ -1870,26 +1876,25 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData, personal = fal
             <div className="flex-1 min-w-0">
               <CardTitle className={`${personal ? 'truncate text-base' : 'text-xl'} font-bold bg-gradient-to-r from-brand-ink-600 to-cyan-600 bg-clip-text text-transparent whitespace-nowrap dark:from-brand-ink-400 dark:to-cyan-400`}>
                 <span className="whitespace-nowrap">
-                  {personal ? `${selectedClass?.code || selectedClass?.name || 'My class'} today` : isRecessMode ? 'Recess Period' : 'Present Today'}
+                  {personal ? classes.length > 1 ? 'Your classes today' : `${classes[0]?.code || classes[0]?.name || 'My class'} today` : isRecessMode ? 'Recess Period' : 'Present Today'}
                 </span>
               </CardTitle>
             </div>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 self-start">
-              {personal && classes.length > 1 && <select aria-label="Attendance class" value={selectedClass?.id || ''} onChange={event => setSelectedClassId(event.target.value)} className="h-11 max-w-[5.5rem] rounded-md border border-input bg-background px-1 text-xs">{classes.map(item => <option key={item.id} value={item.id}>{item.code || item.name}</option>)}</select>}
               {isRecessMode && (
                 <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60">
                   🎓 Recess
                 </Badge>
               )}
-              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-brand-surface-50 border-brand-200 text-brand-ink-700 dark:bg-brand-surface-950/40 dark:border-brand-800/60 dark:text-brand-ink-300">
-                {personal ? dataError ? 'Unavailable' : `${personalAttendance.recorded}/${personalAttendance.total}` : `${overallStats.recorded}/${overallStats.total}`}
-              </Badge>
+              {!personal && <Badge variant="outline" className="text-xs px-2 py-0.5 bg-brand-surface-50 border-brand-200 text-brand-ink-700 dark:bg-brand-surface-950/40 dark:border-brand-800/60 dark:text-brand-ink-300">
+                {overallStats.recorded}/{overallStats.total}
+              </Badge>}
               {!personal && <Button
                 variant="ghost"
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  router.push(personal && selectedClass ? `/attendance/view?classId=${encodeURIComponent(selectedClass.id)}` : '/attendance/view');
+                  router.push('/attendance/view');
                 }}
                 className="text-brand-ink-600 hover:text-brand-ink-700 p-1 h-auto hover:bg-brand-surface-50 dark:text-brand-ink-400 dark:hover:text-brand-ink-300 dark:hover:bg-brand-surface-950/40"
               >
@@ -1946,14 +1951,22 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData, personal = fal
               <p className="text-sm">{personal && !classes.length ? 'No class or subject assignments yet.' : 'No attendance data available'}</p>
             </div>
           ) : personal ? (
-            <div>
-              <div className="flex min-w-0 items-center gap-2 px-1">
-                <button type="button" aria-label={`Open ${selectedClass.code || selectedClass.name} register`} aria-describedby={attendanceLegendId} onClick={() => handleBarClick({ id: selectedClass.id, notRecorded: personalAttendance.total - personalAttendance.recorded, totalPupils: personalAttendance.total }, 0)} className="relative h-[108px] w-[108px] shrink-0 cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2" title={`Open ${selectedClass.code || selectedClass.name} register`}>
-                  <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={personalAttendance.segments} dataKey="value" nameKey="label" innerRadius={34} outerRadius={48} startAngle={90} endAngle={-270} stroke="none" isAnimationActive={false}>{personalAttendance.segments.map((segment, index) => <Cell key={segment.label} fill={attendanceColors[index]} />)}</Pie></PieChart></ResponsiveContainer>
-                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><strong className="text-sm tabular-nums">{personalAttendance.present}/{personalAttendance.total}</strong><span className="text-xs text-muted-foreground">In school</span></div>
-                </button>
-                <ul id={attendanceLegendId} className="min-w-0 flex-1 space-y-1 text-xs">{personalAttendance.segments.map((segment, index) => segment.value > 0 && <li key={segment.label} className="flex items-center gap-1.5"><span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: attendanceColors[index] }} /><strong className="tabular-nums">{segment.value}</strong><span>{segment.label}</span></li>)}</ul>
+            <div className="px-1 pb-1 pt-2" data-personal-attendance>
+              <div className={`grid gap-x-2 gap-y-3 ${classes.length === 1 ? 'grid-cols-1' : classes.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                {personalAttendances.map(({ classItem, present, total, recorded, segments }) => {
+                  const label = classItem.code || classItem.name;
+                  const descriptionId = `${attendanceLegendId}-${classItem.id}`;
+                  return <figure key={classItem.id} data-class-attendance={classItem.id} className="flex min-w-0 flex-col items-center gap-1">
+                    <button type="button" aria-label={`Open ${label} register`} aria-describedby={descriptionId} onClick={() => handleBarClick({ id: classItem.id, notRecorded: total - recorded, totalPupils: total }, 0)} className="relative aspect-square w-full max-w-[96px] cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" title={`${label}: ${present} of ${total} in school`}>
+                      <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={total ? segments : [{ label: 'No pupils', value: 1 }]} dataKey="value" nameKey="label" innerRadius="65%" outerRadius="95%" startAngle={90} endAngle={-270} stroke="none" isAnimationActive={false}>{total ? segments.map((segment, index) => <Cell key={segment.label} fill={attendanceColors[index]} />) : <Cell fill={attendanceColors[5]} />}</Pie></PieChart></ResponsiveContainer>
+                      <span className="pointer-events-none absolute inset-0 flex items-center justify-center"><strong className="max-w-[65%] truncate text-sm">{label}</strong></span>
+                    </button>
+                    <figcaption className="text-center text-xs"><strong className="block text-sm tabular-nums">{present}/{total}</strong><span className="text-muted-foreground">{total ? 'In school' : 'No pupils'}</span></figcaption>
+                    <ul id={descriptionId} className="sr-only"><li>{present} of {total} in school.</li>{segments.map(segment => <li key={segment.label}>{segment.value} {segment.label}</li>)}</ul>
+                  </figure>;
+                })}
               </div>
+              <ul className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">{personalAttendances[0]?.segments.map((segment, index) => personalAttendances.some(item => item.segments[index].value > 0) && <li key={segment.label} className="flex items-center gap-1"><span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: attendanceColors[index] }} />{segment.label}</li>)}</ul>
             </div>
           ) : (
             <div className="h-[200px] w-full">
@@ -2543,9 +2556,12 @@ export default function DashboardPage() {
             </>
           )}
           {canViewTotalStaff && (
+            <DashboardStaffAttendanceStat desktop={trackerViewport === 'desktop'}>
+              {({ value, onClick }) =>
             <ExpandableStaffCard
-              title="Staff Members"
-              value={stats.totalStaff}
+              title={value === undefined ? 'Staff Members' : 'Staff present'}
+              value={value ?? stats.totalStaff}
+              onClick={onClick}
               icon={Briefcase}
               color={cardColors.staff}
               subtitle="Active staff"
@@ -2556,6 +2572,8 @@ export default function DashboardPage() {
               isLoading={staffLoading}
               staff={staff}
             />
+              }
+            </DashboardStaffAttendanceStat>
           )}
           {canViewAttendanceToday && (
             <>
@@ -2626,34 +2644,35 @@ export default function DashboardPage() {
         </motion.div>}
 
         {/* Existing chart surfaces remain the school-wide dashboard. */}
-        {!rolesReady ? <p role="status" className="py-3 text-sm text-muted-foreground">Loading your dashboard…</p> : personalDashboard ? <motion.div variants={itemVariants} className="mb-6 grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-3">
-          <div className="order-1 flex min-w-0 flex-col gap-3 sm:gap-6 lg:order-none">
+        {!rolesReady ? <p role="status" className="py-3 text-sm text-muted-foreground">Loading your dashboard…</p> : personalDashboard ? <motion.div variants={itemVariants} className="mb-6 grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-3 lg:[&:has(>[data-personal-day-column]:empty)]:grid-cols-2">
+          <div data-personal-day-column className="order-2 flex min-w-0 flex-col gap-3 empty:hidden sm:gap-6 lg:order-none">
             {staffContext.isTeacher && staffContext.staffId && <TeacherDayTracker key={staffContext.staffId} staffId={staffContext.staffId} classes={classes} assignedClassIds={staffContext.assignedClassIds} />}
             <DashboardStaffPanels schoolWide={false} staffId={staffContext.staffId} />
           </div>
           <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
-            {(staffContext.isTeacher || attendanceClasses.length > 0) && <div className="order-2 min-w-0 lg:order-none"><TodaysAttendanceChart classes={attendanceClasses} pupils={pupils} attendanceData={attendanceData} personal date={dashboardDate} dataLoading={attendanceLoading || pupilsLoading} dataError={!!attendanceError || !!pupilsError} /></div>}
+            {(staffContext.isTeacher || attendanceClasses.length > 0) && <div className="order-1 min-w-0 lg:order-none"><TodaysAttendanceChart classes={attendanceClasses} pupils={pupils} attendanceData={attendanceData} personal date={dashboardDate} dataLoading={attendanceLoading || pupilsLoading} dataError={!!attendanceError || !!pupilsError} /></div>}
             {canViewCalendarSchedule && <div className="order-4 lg:order-none"><MonthCalendarCard classIds={staffContext.assignedClassIds} /></div>}
           </div>
           <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
             <div className="order-3 min-w-0 lg:order-none"><DashboardLiveTracker /></div>
             {canViewCalendarSchedule && <div className="order-5 lg:order-none"><TermScheduleCard classIds={staffContext.assignedClassIds} /></div>}
           </div>
-          <div className="order-6 lg:order-none lg:col-span-3"><PhotoSlideshow photos={photos || []} /></div>
-        </motion.div> : <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="contents lg:flex lg:flex-col lg:gap-6">
-            {canViewClassEnrollment && <div className="order-5 lg:order-none"><ClassEnrollmentChart classes={classes} pupils={pupils} /></div>}
+          <div className="order-6 lg:order-none lg:col-span-full"><PhotoSlideshow photos={photos || []} /></div>
+        </motion.div> : <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6" data-school-dashboard-grid>
+          {/* Containment lets the right column set height without resized charts retaining the old height. */}
+          <div className="contents lg:flex lg:min-h-[600px] lg:flex-col lg:gap-6 lg:[contain:size]" data-dashboard-column="enrollment">
+            {canViewClassEnrollment && <div className="order-5 lg:flex lg:min-h-[268px] lg:flex-1 lg:flex-col lg:order-none"><ClassEnrollmentChart classes={classes} pupils={pupils} /></div>}
             {trackerViewport === 'mobile' && <div className="order-4 lg:order-none"><DashboardLiveTracker /></div>}
             <div className="order-8 lg:order-none"><PhotoSlideshow photos={photos || []} /></div>
           </div>
-          <div className="contents lg:flex lg:flex-col lg:gap-6">
+          <div className="contents lg:flex lg:min-h-[600px] lg:flex-col lg:gap-6 lg:[contain:size]" data-dashboard-column="calendar">
             {canViewAttendanceChart && <div className="order-1 lg:order-none"><TodaysAttendanceChart classes={classes} pupils={pupils} attendanceData={attendanceData} /></div>}
-            {canViewCalendarSchedule && <div className="order-6 lg:order-none"><MonthCalendarCard /></div>}
+            {canViewCalendarSchedule && <div className="order-6 lg:flex lg:min-h-[314px] lg:flex-1 lg:flex-col lg:order-none"><MonthCalendarCard stretchOnDesktop /></div>}
           </div>
-          <div className="contents lg:flex lg:flex-col lg:gap-6">
+          <div className="contents lg:flex lg:flex-col lg:gap-6" data-dashboard-column="right">
             {trackerViewport === 'desktop' && <DashboardLiveTracker />}
-            {staffContext.schoolWide && <div className="order-2 lg:order-none"><DashboardStaffPanels schoolWide staffId={staffContext.staffId} /></div>}
-            {staffContext.staffId && staffContext.assignedClassIds.length > 0 && <div className="order-3 lg:order-none"><TeacherDayTracker key={staffContext.staffId} staffId={staffContext.staffId} classes={classes} assignedClassIds={staffContext.assignedClassIds} /></div>}
+            {staffContext.schoolWide && <div className="order-2 empty:hidden lg:order-none"><DashboardStaffPanels schoolWide staffId={staffContext.staffId} showSchoolArrivals={trackerViewport !== 'desktop' || !canViewTotalStaff} /></div>}
+            {staffContext.staffId && staffContext.assignedClassIds.length > 0 && <div className="order-3 empty:hidden lg:order-none"><TeacherDayTracker key={staffContext.staffId} staffId={staffContext.staffId} classes={classes} assignedClassIds={staffContext.assignedClassIds} /></div>}
             {canViewCalendarSchedule && <div className="order-7 lg:order-none"><TermScheduleCard /></div>}
           </div>
         </motion.div>}

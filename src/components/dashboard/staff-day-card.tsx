@@ -1,13 +1,18 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Briefcase, ChevronDown, Clock, RotateCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { useDashboardStaffDay } from '@/lib/hooks/use-dashboard-staff-day';
+import { useDashboardDataRevisions } from '@/lib/hooks/use-school-settings';
+import { useAuth } from '@/lib/contexts/auth-context';
 import { useSchoolDate } from '@/lib/hooks/use-school-date';
-import type { DashboardArrival, DashboardDuty } from '@/lib/dashboard/staff-day-contracts';
+import type { DashboardArrival, DashboardDuty, DashboardStaffDay } from '@/lib/dashboard/staff-day-contracts';
+import { getDutyEndMessage } from '@/lib/dashboard/duty-message';
+import { getStaffAttendanceSummary } from '@/lib/dashboard/staff-attendance';
 
 function Panel({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
   // Same surface, accent, shadow and type hierarchy as the existing dashboard charts.
@@ -42,24 +47,76 @@ function Times({ arrival }: { arrival: DashboardArrival }) {
   </>;
 }
 
-function DutyList({ duties, personal }: { duties: DashboardDuty[]; personal: boolean }) {
+function DutyList({ duties, personal, date }: { duties: DashboardDuty[]; personal: boolean; date: string }) {
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? duties : duties.slice(0, 3);
   return duties.length ? <>
+    {personal && <p className="mb-1 text-xs font-semibold">You are on duty today.</p>}
     <ul className="divide-y divide-border/60">{visible.map(duty => <li key={duty.id} className="py-1.5 first:pt-0 last:pb-0">
-      <p className="text-xs font-semibold">{personal ? `On duty · ${duty.name}` : duty.staffName}{duty.supervisor && <span className="ml-1 font-normal text-indigo-600 dark:text-indigo-300">· Supervisor</span>}</p>
+      <p className="text-xs font-semibold">{personal ? duty.name : duty.staffName}{duty.supervisor && <span className="ml-1 font-normal text-indigo-600 dark:text-indigo-300">· Supervisor</span>}</p>
       {(!personal || duty.service && duty.service !== duty.name) && <p className="break-words text-xs text-muted-foreground">{personal ? duty.service : [...new Set([duty.name, duty.service].filter(Boolean))].join(' · ')}</p>}
-      {personal && <p className="text-xs text-muted-foreground">{duty.startDate} – {duty.endDate}</p>}
+      {personal && <p className="text-xs text-muted-foreground">{getDutyEndMessage(duty.endDate, date)}</p>}
     </li>)}</ul>
     {duties.length > 3 && <Button variant="ghost" className="mt-1 h-11 w-full text-xs" onClick={() => setExpanded(value => !value)}>{expanded ? 'Show less' : `Show all ${duties.length} duties`}<ChevronDown className="ml-1 h-3.5 w-3.5" /></Button>}
   </> : <p className="text-xs text-muted-foreground">{personal ? 'No duty assigned today.' : 'No teachers assigned to duty today.'}</p>;
 }
 
-export function DashboardStaffPanels({ schoolWide, staffId }: { schoolWide: boolean; staffId?: string }) {
+function ArrivalRoster({ arrivals, showAll = false }: { arrivals: DashboardArrival[]; showAll?: boolean }) {
+  const [expanded, setExpanded] = useState(showAll);
+  const [search, setSearch] = useState('');
+  const searchId = useId();
+  const filtered = arrivals.filter(item => item.staffName.toLowerCase().includes(search.toLowerCase()));
+  const visible = expanded ? filtered : filtered.slice(0, 4);
+  return <div className="min-h-0">
+    <label className="sr-only" htmlFor={searchId}>Find teacher</label><input id={searchId} value={search} onChange={event => { setSearch(event.target.value); setExpanded(true); }} placeholder="Find teacher…" className="mb-2 h-11 w-full rounded-md border border-input bg-background px-3 text-sm" />
+    <ul className={`divide-y divide-border/60 ${showAll ? 'max-h-[55dvh] overflow-y-auto overscroll-contain' : ''}`}>{visible.map(item => <li key={item.staffId} className="py-2 first:pt-0"><p className="mb-1 text-xs font-semibold">{item.staffName}</p><Times arrival={item} /></li>)}</ul>
+    {!filtered.length && <p className="text-xs text-muted-foreground">{search ? 'No matching teachers.' : 'No active teaching staff found.'}</p>}
+    {!showAll && filtered.length > 4 && <Button variant="ghost" className="mt-1 h-11 w-full text-xs" onClick={() => setExpanded(value => !value)}>{expanded ? 'Show less' : `View all ${filtered.length} teachers`}</Button>}
+  </div>;
+}
+
+type StaffAttendanceStatProps = {
+  desktop: boolean;
+  children: (options: { value?: string; onClick?: () => void }) => ReactNode;
+};
+
+/** The stat and sidebar share the existing school-wide revision-owned query. */
+function StaffAttendanceStatData({ children }: Pick<StaffAttendanceStatProps, 'children'>) {
+  const date = useSchoolDate();
+  const { user } = useAuth();
+  const revisions = useDashboardDataRevisions();
+  const day = useDashboardStaffDay(date, 'school');
+  const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLElement | null>(null);
+  const owner = JSON.stringify([user?.id, user?.role, user?.staffId, date]);
+  const retained = useRef<{ owner: string; data: DashboardStaffDay } | null>(null);
+  if (day.data) retained.current = { owner, data: day.data };
+  // Keep the open roster stable while a new revision restores/reconciles its cache.
+  const data = day.data ?? (retained.current?.owner === owner ? retained.current.data : undefined);
+  const available = !!user?.isActive && data?.clockingEnabled && data.schoolWide && revisions.data?.staffClockingEnabled !== false;
+  useEffect(() => {
+    if (!available) setOpen(false);
+  }, [available]);
+  if (!available || !data) return children({});
+  const summary = getStaffAttendanceSummary(data.arrivals);
+  return <Dialog open={open} onOpenChange={setOpen}>
+    {children({ value: `${summary.present}/${summary.total}`, onClick: () => { trigger.current = document.activeElement as HTMLElement | null; setOpen(true); } })}
+    <DialogContent className="max-w-xl" onCloseAutoFocus={event => { if (trigger.current?.isConnected) { event.preventDefault(); trigger.current.focus(); } }}>
+      <DialogTitle className="pr-7">Teachers’ arrival & departure</DialogTitle>
+      <DialogDescription>{date} · All teaching staff · {summary.present} of {summary.total} have arrived today</DialogDescription>
+      {day.isError && <p role="alert" className="text-xs text-amber-700 dark:text-amber-300">Could not refresh. Showing the last loaded information.</p>}
+      <ArrivalRoster arrivals={data.arrivals} showAll />
+    </DialogContent>
+  </Dialog>;
+}
+
+export function DashboardStaffAttendanceStat({ desktop, children }: StaffAttendanceStatProps) {
+  return desktop ? <StaffAttendanceStatData>{children}</StaffAttendanceStatData> : children({});
+}
+
+export function DashboardStaffPanels({ schoolWide, staffId, showSchoolArrivals = true }: { schoolWide: boolean; staffId?: string; showSchoolArrivals?: boolean }) {
   const date = useSchoolDate();
   const day = useDashboardStaffDay(date, schoolWide ? 'school' : 'personal');
-  const [expanded, setExpanded] = useState(false);
-  const [search, setSearch] = useState('');
   const clockingEnabled = day.data?.clockingEnabled === true;
   const refresh = <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label={clockingEnabled ? 'Refresh arrival and duty information' : 'Refresh duty information'} disabled={day.isFetching} onClick={() => void day.refetch()}><RotateCcw className={`h-3.5 w-3.5 ${day.isFetching ? 'animate-spin' : ''}`} /></Button>;
   if (!day.data) return <Panel title={schoolWide ? 'Teachers on duty today' : 'My duty today'} action={refresh}><p role={day.isError ? 'alert' : 'status'} className="text-xs text-muted-foreground">{day.isError ? 'Staff information could not load. Try refreshing.' : 'Loading staff information…'}</p></Panel>;
@@ -68,25 +125,21 @@ export function DashboardStaffPanels({ schoolWide, staffId }: { schoolWide: bool
   const arrivals = oversight ? day.data.arrivals : day.data.arrivals.filter(item => item.staffId === staffId);
   const duties = oversight ? day.data.duties : day.data.duties.filter(item => item.staffId === staffId);
   const own = arrivals[0];
-  const filtered = arrivals.filter(item => item.staffName.toLowerCase().includes(search.toLowerCase()));
-  const visible = expanded ? filtered : filtered.slice(0, 4);
+  const hasDuties = duties.length > 0;
+  const hasPersonalArrival = !oversight && clockingEnabled && !!own;
+  if (!hasDuties && !hasPersonalArrival && !(oversight && clockingEnabled && showSchoolArrivals)) return null;
   return <div className="flex min-w-0 flex-col gap-3" data-dashboard-staff-panels>
-    <Panel title={oversight ? 'Teachers on duty today' : clockingEnabled ? 'My arrival & duty' : 'My duty today'} action={refresh}>
+    {(hasDuties || hasPersonalArrival) && <Panel title={oversight ? 'Teachers on duty today' : hasPersonalArrival ? hasDuties ? 'My arrival & duty' : 'My arrival today' : 'My duty today'} action={refresh}>
       {day.isError && <p role="alert" className="mb-2 text-xs text-amber-700 dark:text-amber-300">Could not refresh. Showing the last loaded information.</p>}
       {day.data.date !== date && <p role="alert" className="mb-2 text-xs text-amber-700 dark:text-amber-300">This information is from {day.data.date}. Refresh for today.</p>}
       {!oversight && !staffId && <p className="mb-2 text-xs text-muted-foreground">Your account needs to be linked to a staff record.</p>}
-      {!oversight && staffId && clockingEnabled && <div className="mb-2 border-b border-border/60 pb-2">{own ? <Times arrival={own} /> : <p className="text-xs text-muted-foreground">No clocking information is available.</p>}</div>}
-      <DutyList duties={duties} personal={!oversight} />
+      {hasPersonalArrival && <div className={hasDuties ? 'mb-2 border-b border-border/60 pb-2' : undefined}><Times arrival={own} /></div>}
+      {hasDuties && <DutyList duties={duties} personal={!oversight} date={date} />}
       {!oversight && clockingEnabled && own?.enrolled && <Link href="/staff-clocking/clock" className="mt-1 inline-flex min-h-11 items-center text-xs font-semibold text-indigo-600 dark:text-indigo-300">Open my clock</Link>}
-    </Panel>
-    {oversight && clockingEnabled && <Panel title="Teachers’ arrival & departure">
+    </Panel>}
+    {oversight && clockingEnabled && showSchoolArrivals && <Panel title="Teachers’ arrival & departure">
       <p className="mb-2 text-xs text-muted-foreground">{day.data.date} · All teaching staff</p>
-      <>
-        <label className="sr-only" htmlFor="dashboard-teacher-search">Find teacher</label><input id="dashboard-teacher-search" value={search} onChange={event => { setSearch(event.target.value); setExpanded(true); }} placeholder="Find teacher…" className="mb-2 h-11 w-full rounded-md border border-input bg-background px-3 text-sm" />
-        <ul className="divide-y divide-border/60">{visible.map(item => <li key={item.staffId} className="py-2 first:pt-0"><p className="mb-1 text-xs font-semibold">{item.staffName}</p><Times arrival={item} /></li>)}</ul>
-        {!filtered.length && <p className="text-xs text-muted-foreground">{search ? 'No matching teachers.' : 'No active teaching staff found.'}</p>}
-        {filtered.length > 4 && <Button variant="ghost" className="mt-1 h-11 w-full text-xs" onClick={() => setExpanded(value => !value)}>{expanded ? 'Show less' : `View all ${filtered.length} teachers`}</Button>}
-      </>
+      <ArrivalRoster arrivals={arrivals} />
     </Panel>}
   </div>;
 }

@@ -67,11 +67,14 @@ export function TeacherDayTracker({ staffId, classes, assignedClassIds }: { staf
   const next = remaining[0];
   const title = activity?.title || (lesson ? `${lesson.subjectCode} · ${lesson.className}` : '');
   const timeLabel = activity?.allDay ? 'All day' : `${start}–${end === '24:00' ? 'End of day' : end}`;
+  const showCard = loading || failed || events.isError || exams.isError || lessons.length > 0 || !!activity;
 
-  return <section aria-label="My teaching today" data-dashboard-personal-tracker className="relative min-w-0 rounded-xl bg-white px-3 py-2.5 text-gray-800 dark:bg-slate-900 dark:text-slate-100" style={{ border: '2px solid #c7d2fe', boxShadow: '0 0 0 4px rgba(99,102,241,0.08), 0 2px 8px rgba(99,102,241,0.10)' }}>
+  // Keep the data owners mounted so a new assignment can reveal the hidden card.
+  return <>
     {(profiles.data || []).map(profile => <ProfileData key={`${profile.academicYearId}:${profile.termId}:${profile.id}`} profile={profile} onData={receive} />)}
+    {showCard && <section aria-label="Your lessons today" data-dashboard-personal-tracker className="relative min-w-0 rounded-xl bg-white px-3 py-2.5 text-gray-800 dark:bg-slate-900 dark:text-slate-100" style={{ border: '2px solid #c7d2fe', boxShadow: '0 0 0 4px rgba(99,102,241,0.08), 0 2px 8px rgba(99,102,241,0.10)' }}>
     <div className="mb-1 flex min-w-0 items-center justify-between gap-2">
-      <h2 className="flex items-center gap-1.5 text-xs font-bold"><BookOpen className="h-3.5 w-3.5 text-indigo-500" />My teaching today</h2>
+      <h2 className="flex items-center gap-1.5 text-xs font-bold"><BookOpen className="h-3.5 w-3.5 text-indigo-500" />Your lessons today</h2>
       {title && <span className={`rounded-md px-1.5 py-0.5 text-xs font-semibold ${activity ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'}`}>{activity ? activity.isExam ? 'Exam' : 'Event' : upcoming ? 'Upcoming' : 'Now'}</span>}
     </div>
     {failed ? <p role="alert" className="text-xs text-destructive">Some timetable information could not load. Try refreshing.</p>
@@ -95,5 +98,6 @@ export function TeacherDayTracker({ staffId, classes, assignedClassIds }: { staf
       {expanded && <ul id={lessonListId} className="divide-y divide-indigo-50 text-xs dark:divide-indigo-800/60">{remaining.map(item => <li key={item.id} className="flex min-w-0 items-center justify-between gap-2 py-2"><span className="min-w-0 truncate font-medium" title={`${item.subjectName} · ${item.className}`}>{item.subjectCode} · {item.className}</span><span className="shrink-0 tabular-nums text-muted-foreground">{item.startTime}–{item.endTime}</span></li>)}</ul>}
     </>}
     {(events.isError || exams.isError) && <p role="alert" className="mt-1 text-xs text-destructive">Event updates unavailable. Normal lessons may be affected.</p>}
-  </section>;
+    </section>}
+  </>;
 }

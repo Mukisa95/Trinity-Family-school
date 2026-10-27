@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { CalendarDays, MapPin } from "lucide-react";
 import { useAuth } from "@/lib/contexts/auth-context";
+import { useSchoolDate } from '@/lib/hooks/use-school-date';
 import type { Event, SchoolSettings } from "@/types";
 import { ExamEventClasses } from '@/components/events/ui/exam-event-classes';
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -21,6 +22,7 @@ interface DashboardWelcomeHeaderProps {
 
 export function DashboardWelcomeHeader({ schoolSettings, events = NO_EVENTS }: DashboardWelcomeHeaderProps) {
   const { user } = useAuth();
+  const schoolDate = useSchoolDate();
   const [timeGreeting, setTimeGreeting] = useState("Welcome back");
   const [showGreeting, setShowGreeting] = useState(false);
   const [variation, setVariation] = useState(0);
@@ -164,9 +166,9 @@ export function DashboardWelcomeHeader({ schoolSettings, events = NO_EVENTS }: D
             <h1 className="truncate text-base font-bold tracking-tight text-gray-900 sm:text-lg md:text-xl dark:text-slate-100">
               {schoolSettings?.generalInfo?.name || "TRINITY FAMILY NURSERY AND PRIMARY SCHOOL"}
             </h1>
-            <p className="truncate text-[11px] font-medium uppercase tracking-wide text-gray-500 sm:text-xs dark:text-slate-400">
-              {schoolSettings?.generalInfo?.motto || "GUIDING GROWTH, INSPIRING GREATNESS"}
-            </p>
+            <time dateTime={schoolDate} className="block truncate text-xs text-gray-500 dark:text-slate-400" data-dashboard-date>
+              {format(new Date(`${schoolDate}T12:00:00`), 'EEEE, d MMMM yyyy')}
+            </time>
           </div>
         </div>
       </div>

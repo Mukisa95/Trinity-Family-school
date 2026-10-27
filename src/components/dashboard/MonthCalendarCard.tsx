@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { isEventRelevantToClasses } from '@/lib/dashboard/staff-context';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -26,7 +26,19 @@ const EVENT_TYPE_COLORS = {
 
 const UGANDA_HOLIDAY_COLOR = '#f59e0b';
 
-export function MonthCalendarCard({ classIds }: { classIds?: string[] } = {}) {
+export function MonthCalendarCard({ classIds, stretchOnDesktop = false }: { classIds?: string[]; stretchOnDesktop?: boolean } = {}) {
+    const calendarRef = useRef<FullCalendar>(null);
+    const calendarContainerRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!stretchOnDesktop || !calendarContainerRef.current) return;
+        let frame = 0;
+        const observer = new ResizeObserver(() => {
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(() => calendarRef.current?.getApi().updateSize());
+        });
+        observer.observe(calendarContainerRef.current);
+        return () => { observer.disconnect(); cancelAnimationFrame(frame); };
+    }, [stretchOnDesktop]);
     const router = useRouter();
     const [popoverState, setPopoverState] = React.useState<{ isOpen: boolean; date: Date | null; events: any[]; anchorEl: HTMLElement | null }>({
         isOpen: false,
@@ -119,9 +131,10 @@ export function MonthCalendarCard({ classIds }: { classIds?: string[] } = {}) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="h-full"
+            className={stretchOnDesktop ? 'lg:flex lg:min-h-0 lg:flex-1 lg:flex-col' : 'h-full'}
+            data-dashboard-calendar
         >
-            <Card className="theme-dashboard-surface dashboard-themed-card h-full cursor-pointer rounded-xl transition-all duration-300 relative group overflow-visible flex flex-col" style={{
+            <Card className={`theme-dashboard-surface dashboard-themed-card h-full cursor-pointer rounded-xl transition-all duration-300 relative group overflow-visible flex flex-col ${stretchOnDesktop ? 'lg:min-h-0 lg:flex-1' : ''}`} style={{
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
                 transform: 'translateZ(0)',
                 background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(239, 246, 255, 0.5) 100%)',
@@ -134,9 +147,10 @@ export function MonthCalendarCard({ classIds }: { classIds?: string[] } = {}) {
                 {/* Decorative gradient accent */}
                 <div className="dashboard-card-decoration absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-surface-500 via-cyan-500 to-green-500 rounded-t-xl opacity-60" />
 
-                <CardContent className="px-2 pb-2 pt-3 flex-1 relative z-20">
-                    <div className="h-[290px] w-full mini-calendar-wrapper">
+                <CardContent className={`px-2 pb-2 pt-3 flex-1 relative z-20 ${stretchOnDesktop ? 'lg:flex lg:min-h-0 lg:flex-col' : ''}`}>
+                    <div ref={calendarContainerRef} className={`h-[290px] w-full mini-calendar-wrapper ${stretchOnDesktop ? 'lg:h-0 lg:min-h-[290px] lg:flex-1' : ''}`}>
                             <FullCalendar
+                                ref={calendarRef}
                                 plugins={[dayGridPlugin, interactionPlugin]}
                                 initialView="dayGridMonth"
                                 events={calendarEvents}
