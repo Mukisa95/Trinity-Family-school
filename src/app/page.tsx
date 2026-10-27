@@ -2659,19 +2659,20 @@ export default function DashboardPage() {
           </div>
           <div className="order-6 lg:order-none lg:col-span-full"><PhotoSlideshow photos={photos || []} /></div>
         </motion.div> : <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6" data-school-dashboard-grid>
-          {/* Containment lets the right column set height without resized charts retaining the old height. */}
+          {/* Contain resizable plots so their previous height cannot prevent the columns shrinking. */}
           <div className="contents lg:flex lg:min-h-[600px] lg:flex-col lg:gap-6 lg:[contain:size]" data-dashboard-column="enrollment">
             {canViewClassEnrollment && <div className="order-5 lg:flex lg:min-h-[268px] lg:flex-1 lg:flex-col lg:order-none"><ClassEnrollmentChart classes={classes} pupils={pupils} /></div>}
             {trackerViewport === 'mobile' && <div className="order-4 lg:order-none"><DashboardLiveTracker /></div>}
             <div className="order-8 lg:order-none"><PhotoSlideshow photos={photos || []} /></div>
           </div>
-          <div className="contents lg:flex lg:min-h-[600px] lg:flex-col lg:gap-6 lg:[contain:size]" data-dashboard-column="calendar">
+          <div className="contents lg:flex lg:min-h-[600px] lg:flex-col lg:gap-6" data-dashboard-column="calendar">
             {canViewAttendanceChart && <div className="order-1 lg:order-none"><TodaysAttendanceChart classes={classes} pupils={pupils} attendanceData={attendanceData} /></div>}
-            {canViewCalendarSchedule && <div className="order-6 lg:flex lg:min-h-[314px] lg:flex-1 lg:flex-col lg:order-none"><MonthCalendarCard stretchOnDesktop /></div>}
+            {staffContext.schoolWide && trackerViewport === 'desktop' && <div className="hidden empty:hidden lg:block" data-dashboard-duty-slot><DashboardStaffPanels schoolWide staffId={staffContext.staffId} showSchoolArrivals={false} /></div>}
+            {canViewCalendarSchedule && <div className="order-6 lg:flex lg:min-h-[314px] lg:flex-1 lg:flex-col lg:order-none lg:[contain:size]"><MonthCalendarCard stretchOnDesktop /></div>}
           </div>
           <div className="contents lg:flex lg:flex-col lg:gap-6" data-dashboard-column="right">
             {trackerViewport === 'desktop' && <DashboardLiveTracker />}
-            {staffContext.schoolWide && <div className="order-2 empty:hidden lg:order-none"><DashboardStaffPanels schoolWide staffId={staffContext.staffId} showSchoolArrivals={trackerViewport !== 'desktop' || !canViewTotalStaff} /></div>}
+            {staffContext.schoolWide && <div className="order-2 empty:hidden lg:order-none"><DashboardStaffPanels schoolWide staffId={staffContext.staffId} showSchoolArrivals={trackerViewport !== 'desktop' || !canViewTotalStaff} showSchoolDuties={trackerViewport !== 'desktop'} /></div>}
             {staffContext.staffId && staffContext.assignedClassIds.length > 0 && <div className="order-3 empty:hidden lg:order-none"><TeacherDayTracker key={staffContext.staffId} staffId={staffContext.staffId} classes={classes} assignedClassIds={staffContext.assignedClassIds} /></div>}
             {canViewCalendarSchedule && <div className="order-7 lg:order-none"><TermScheduleCard /></div>}
           </div>

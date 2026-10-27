@@ -16,6 +16,8 @@ import { useTimetableEntries, useTimetablePeriods, useTimetableProfiles } from '
 import { useEvents, useExamsAsEvents } from '@/lib/hooks/use-events-fixed';
 import { useClasses } from '@/lib/hooks/use-classes';
 import { useSubjects } from '@/lib/hooks/use-subjects';
+import { useDutyServiceData } from '@/lib/hooks/use-duty-service-data';
+import { usePupils } from '@/lib/hooks/use-pupils';
 import { useStaff } from '@/lib/hooks/use-staff';
 import { prepareAndroidAppShell, isAndroidOffline, installAndroidOfflineNavigation } from '@/lib/offline/android-app-shell';
 import { toast } from '@/hooks/use-toast';
@@ -42,6 +44,8 @@ function PrepareCurrentTimetables() {
   const { year, term } = getDashboardTimetableTerm(years);
   return year && term ? <PrepareTerm yearId={year.id} termId={term.id} /> : null;
 }
+
+function PrepareDutyService() { useDutyServiceData(); useStaff(); usePupils(); useAcademicYears(); useClasses(); return null; }
 
 function PrepareEvents() { useEvents(); useExamsAsEvents(); useAcademicYears(); return null; }
 
@@ -193,12 +197,12 @@ export function AndroidOfflineProvider() {
     window.addEventListener('trinity-service-worker-updated', prepare);
     window.addEventListener('trinity-pwa-prepare', prepare);
     return () => { disposed = true; if (retry) clearTimeout(retry); window.removeEventListener('online', prepare); window.removeEventListener('trinity-android-connectivity', prepare); window.removeEventListener('trinity-service-worker-updated', prepare); window.removeEventListener('trinity-pwa-prepare', prepare); };
-  }, [session?.accountId, session?.role, session?.grants.dashboard, session?.grants.pupils, session?.grants.timetable, session?.grants.events, user?.id, user?.role, scopeKey]);
+  }, [session?.accountId, session?.role, session?.grants.dashboard, session?.grants.pupils, session?.grants.timetable, session?.grants.events, session?.grants.dutyService, session?.grants.dutyServiceCacheName, user?.id, user?.role, scopeKey]);
 
   useEffect(() => {
     if (!hasAndroidOfflineBridge() || !user) return;
     return installAndroidOfflineNavigation(user.role, () => toast({ title: 'Connection needed', description: 'This page has not finished downloading, or needs a connection to make changes.' }), { navigate: href => router.push(href) });
   }, [user?.id, user?.role, router]);
 
-  return !isLocked && user && androidSessionMatchesUser(session, user) ? <>{session?.grants.timetable && <PrepareCurrentTimetables />}{session?.grants.events && <PrepareEvents />}</> : null;
+  return !isLocked && user && androidSessionMatchesUser(session, user) ? <>{session?.grants.timetable && <PrepareCurrentTimetables />}{session?.grants.events && <PrepareEvents />}{session?.grants.dutyService && <PrepareDutyService />}</> : null;
 }

@@ -19,6 +19,13 @@ public class OfflinePolicyTest {
         assertFalse(OfflinePolicy.supported("https://evil.test/parent"));
         assertTrue(OfflinePolicy.supported(PhotoPolicy.ORIGIN + "/parent"));
     }
+    @Test public void dutyServiceSurvivesOfflineRestartAndReconnect() {
+        String remote = PhotoPolicy.ORIGIN + "/duty-service";
+        assertTrue(OfflinePolicy.supported(remote));
+        assertEquals(OfflinePolicy.LOCAL_ORIGIN + OfflinePolicy.LOCAL_PATH + "?page=duty-service", OfflinePolicy.savedRoute(remote));
+        assertEquals(remote, OfflinePolicy.onlineRoute(OfflinePolicy.savedRoute(remote), "Staff"));
+        assertEquals(PhotoPolicy.ORIGIN + "/parent", OfflinePolicy.onlineRoute(OfflinePolicy.savedRoute(remote), "Parent"));
+    }
     @Test public void reconnectKeepsPupilAndClassSelection() {
         String local = OfflinePolicy.LOCAL_ORIGIN + OfflinePolicy.LOCAL_PATH;
         assertEquals(PhotoPolicy.ORIGIN + "/pupil-detail?id=child-1", OfflinePolicy.onlineRoute(local + "?page=pupils&pupilId=child-1", "Staff"));

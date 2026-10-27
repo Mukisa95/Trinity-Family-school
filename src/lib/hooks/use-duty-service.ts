@@ -1,4 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useDutyServiceData } from './use-duty-service-data';
+import type { DutyServiceData } from '@/lib/duty-service/contracts';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { DutyServiceService } from '../services/duty-service.service';
 import { useToast } from '@/hooks/use-toast';
 import { useDigitalSignature } from '../services/digital-signature.service';
@@ -26,13 +28,15 @@ import type {
   UpdateLeadershipTermData
 } from '@/types/duty-service';
 
+function useDutySelection<T>(select: (data: DutyServiceData) => T, enabled = true) {
+  const query = useDutyServiceData({ enabled });
+  return { ...query, data: query.data ? select(query.data) : undefined };
+}
+
 // ===== LEADERSHIP TERMS HOOKS =====
 
 export function useLeadershipTerms(academicYearId?: string) {
-  return useQuery({
-    queryKey: ['leadership-terms', academicYearId],
-    queryFn: () => DutyServiceService.getLeadershipTerms(academicYearId),
-  });
+  return useDutySelection(data => data.leadershipTerms.filter(item => !academicYearId || item.academicYearId === academicYearId));
 }
 
 export function useCreateLeadershipTerm() {
@@ -146,26 +150,19 @@ export function useTerminateLeadershipTerm() {
 // ===== PREFECTORAL MANAGEMENT HOOKS =====
 
 export function usePrefectoralPosts() {
-  return useQuery({
-    queryKey: ['prefectoral-posts'],
-    queryFn: () => DutyServiceService.getPrefectoralPosts(),
-  });
+  return useDutySelection(data => data.prefectoralPosts);
 }
 
 export function usePrefectoralPost(id: string) {
-  return useQuery({
-    queryKey: ['prefectoral-post', id],
-    queryFn: () => DutyServiceService.getPrefectoralPostById(id),
-    enabled: !!id,
-  });
+  return useDutySelection(data => data.prefectoralPosts.find(item => item.id === id) || null, !!id);
 }
 
 export function usePrefectoralPostWithAssignments(id: string) {
-  return useQuery({
-    queryKey: ['prefectoral-post-with-assignments', id],
-    queryFn: () => DutyServiceService.getPrefectoralPostWithAssignments(id),
-    enabled: !!id,
-  });
+  return useDutySelection(data => {
+    const post = data.prefectoralPosts.find(item => item.id === id);
+    const assignments = data.postAssignments.filter(item => item.postId === id);
+    return post ? { ...post, assignments, currentAssignment: assignments.find(item => item.isActive) } : null;
+  }, !!id);
 }
 
 export function useCreatePrefectoralPost() {
@@ -322,36 +319,25 @@ export function useAssignPupilToPost() {
 }
 
 export function usePostAssignments(postId?: string) {
-  return useQuery({
-    queryKey: ['post-assignments', postId],
-    queryFn: () => DutyServiceService.getPostAssignments(postId),
-    enabled: postId === undefined || !!postId, // Allow fetching all assignments when no postId is provided
-  });
+  return useDutySelection(data => data.postAssignments.filter(item => !postId || item.postId === postId));
 }
 
 // ===== DUTY MANAGEMENT HOOKS =====
 
 export function useDutyRotas(academicYearId?: string) {
-  return useQuery({
-    queryKey: ['duty-rotas', academicYearId],
-    queryFn: () => DutyServiceService.getDutyRotas(academicYearId),
-  });
+  return useDutySelection(data => data.dutyRotas.filter(item => !academicYearId || item.academicYearId === academicYearId));
 }
 
 export function useDutyRota(id: string) {
-  return useQuery({
-    queryKey: ['duty-rota', id],
-    queryFn: () => DutyServiceService.getDutyRotaById(id),
-    enabled: !!id,
-  });
+  return useDutySelection(data => data.dutyRotas.find(item => item.id === id) || null, !!id);
 }
 
 export function useDutyRotaWithAssignments(id: string) {
-  return useQuery({
-    queryKey: ['duty-rota-with-assignments', id],
-    queryFn: () => DutyServiceService.getDutyRotaWithAssignments(id),
-    enabled: !!id,
-  });
+  return useDutySelection(data => {
+    const rota = data.dutyRotas.find(item => item.id === id);
+    const assignments = data.dutyAssignments.filter(item => item.rotaId === id);
+    return rota ? { ...rota, assignments, currentAssignments: assignments.filter(item => item.isActive) } : null;
+  }, !!id);
 }
 
 export function useCreateDutyRota() {
@@ -510,10 +496,7 @@ export function useAssignMemberToDuty() {
 }
 
 export function useDutyAssignments(rotaId?: string) {
-  return useQuery({
-    queryKey: ['duty-assignments', rotaId],
-    queryFn: () => DutyServiceService.getDutyAssignments(rotaId),
-  });
+  return useDutySelection(data => data.dutyAssignments.filter(item => !rotaId || item.rotaId === rotaId));
 }
 
 export function useUpdateDutyAssignment() {
@@ -629,10 +612,7 @@ export function useDeletePostAssignment() {
 // ===== OPERATIONS HOOKS =====
 
 export function usePolls(academicYearId?: string) {
-  return useQuery({
-    queryKey: ['polls', academicYearId],
-    queryFn: () => DutyServiceService.getPolls(academicYearId),
-  });
+  return useDutySelection(data => data.polls.filter(item => !academicYearId || item.academicYearId === academicYearId));
 }
 
 export function useCreatePoll() {
@@ -719,10 +699,7 @@ export function useVoteInPoll() {
 // ===== COLLAGE HOOKS =====
 
 export function usePerformanceRankings(period?: string) {
-  return useQuery({
-    queryKey: ['performance-rankings', period],
-    queryFn: () => DutyServiceService.getPerformanceRankings(period),
-  });
+  return useDutySelection(data => data.performanceRankings.filter(item => !period || item.rankingPeriod === period));
 }
 
 export function useCreatePerformanceRanking() {
@@ -766,20 +743,23 @@ export function useCreatePerformanceRanking() {
 // ===== UTILITY HOOKS =====
 
 export function useDutyServiceStats(academicYearId?: string) {
-  return useQuery({
-    queryKey: ['duty-service-stats', academicYearId],
-    queryFn: () => DutyServiceService.getDutyServiceStats(academicYearId),
+  return useDutySelection(data => {
+    const rotas = data.dutyRotas.filter(item => !academicYearId || item.academicYearId === academicYearId);
+    const polls = data.polls.filter(item => !academicYearId || item.academicYearId === academicYearId);
+    return { totalPosts: data.prefectoralPosts.length, activePosts: data.prefectoralPosts.filter(item => item.isActive).length,
+      totalRotas: rotas.length, activeRotas: rotas.filter(item => item.isActive).length,
+      totalAssignments: data.dutyAssignments.length, activeAssignments: data.dutyAssignments.filter(item => item.isActive).length,
+      totalPolls: polls.length, activePolls: polls.filter(item => item.isActive).length, totalRankings: data.performanceRankings.length };
   });
 }
 
 // ===== TIMELINE HOOKS =====
 
 export function useDutyTimeline(rotaId: string) {
-  return useQuery({
-    queryKey: ['duty-timeline', rotaId],
-    queryFn: () => DutyServiceService.getDutyTimeline(rotaId),
-    enabled: !!rotaId,
-  });
+  return useDutySelection(data => {
+    const rota = data.dutyRotas.find(item => item.id === rotaId);
+    return rota ? DutyServiceService.generateDutyTimeline(rota, data.dutyAssignments.filter(item => item.rotaId === rotaId)) : null;
+  }, !!rotaId);
 }
 
 export function useCreateBulkDutyAssignment() {

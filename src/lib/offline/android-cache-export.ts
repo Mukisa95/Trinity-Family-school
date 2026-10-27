@@ -15,6 +15,9 @@ import { projectOfflinePhotos } from './android-photo-projection';
 import { measureWorkspaceOperation } from '@/lib/startup/workspace-timing';
 import { projectAndroidRecords, yieldAndroidPreparation } from './android-preparation-work';
 import { getExamEventClassNames } from '@/lib/utils/exam-event-classes';
+import type { RevisionedDomainSnapshot } from '@/lib/cache/revisioned-domain-cache';
+import { isDutyServiceData, type DutyServiceData } from '@/lib/duty-service/contracts';
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 
 type Cache<T> = { schema: number; revision: number; data: T };
 type SnapshotReuse = { previous: AndroidOfflineSnapshot; pupilsUnchanged: boolean };
@@ -57,9 +60,28 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
       await measureWorkspaceOperation('android:record-projection', () => projectAndroidRecords(pupils.data.filter(pupil => !session.circumference || session.pupilIds.includes(pupil.id)), pupil => projectOfflinePupil(pupil as unknown as Record<string, unknown>, session), signal)), signal),
     preparedAt: new Date(pupils.writtenAt).toISOString(),
   };
-  if (session.grants.pupils || session.grants.timetable || session.grants.dashboard || session.grants.events) {
+  if (session.grants.pupils || session.grants.timetable || session.grants.dashboard || session.grants.events || session.grants.dutyService) {
     if (classes) result.datasets.classes = saved(classes.data.map(item => fields(item, ['id', 'name', 'code', 'level', 'order', 'streams'])), classes.revision, `classes:${scope}`);
     if (years) result.datasets.academicYears = saved(years.data.map(item => fields(item, ['id', 'name', 'startDate', 'endDate', 'terms', 'isActive'])), years.revision, `academic-years:${scope}`);
+  }
+  if (session.grants.dutyService && session.grants.dutyServiceCacheName) {
+    // Match the domain owner without initializing Firebase during disk export.
+    const dutyScope = [session.accountId, session.role].map(encodeURIComponent).join(':') + circumferenceCacheSuffix(session.accountId);
+    const duty = await readPersistentCollectionWithMetadata<RevisionedDomainSnapshot<DutyServiceData>>(
+      persistentCollectionCacheKey(projectId, session.grants.dutyServiceCacheName, dutyScope));
+    // Publish a complete view only after its member names and year labels exist.
+    if (duty?.data.schema === 1 && isDutyServiceData(duty.data.data) && staff && pupils && years) {
+      const visiblePupils = pupils.data.filter(pupil => !session.circumference || session.pupilIds.includes(pupil.id));
+      const ids = new Set(visiblePupils.map(pupil => pupil.id));
+      result.datasets.dutyService = { preparedAt: new Date(Math.max(duty.writtenAt, pupils.writtenAt,
+        liteReadMetadata(`staff:${getStaffCacheScope(session.accountId, session.role)}`)?.writtenAt || 0)).toISOString(), data: {
+        ...duty.data.data,
+        postAssignments: duty.data.data.postAssignments.filter(item => !session.circumference || ids.has(item.pupilId)),
+        dutyAssignments: duty.data.data.dutyAssignments.filter(item => item.memberType === 'staff' || !session.circumference || ids.has(item.memberId)),
+        staff: staff.data.map(item => ({ id: item.id, name: [item.firstName, item.lastName, item.otherNames].filter(Boolean).join(' ') })),
+        pupils: visiblePupils.map(item => ({ id: item.id, name: formatPupilDisplayName(item), ...(item.classId ? {classId: item.classId} : {}), ...(item.className ? {className: item.className} : {}) })),
+      } };
+    }
   }
   if (session.grants.dashboard) {
     const counts: Record<string, number> = {};

@@ -114,18 +114,19 @@ export function DashboardStaffAttendanceStat({ desktop, children }: StaffAttenda
   return desktop ? <StaffAttendanceStatData>{children}</StaffAttendanceStatData> : children({});
 }
 
-export function DashboardStaffPanels({ schoolWide, staffId, showSchoolArrivals = true }: { schoolWide: boolean; staffId?: string; showSchoolArrivals?: boolean }) {
+export function DashboardStaffPanels({ schoolWide, staffId, showSchoolArrivals = true, showSchoolDuties = true }: { schoolWide: boolean; staffId?: string; showSchoolArrivals?: boolean; showSchoolDuties?: boolean }) {
   const date = useSchoolDate();
   const day = useDashboardStaffDay(date, schoolWide ? 'school' : 'personal');
   const clockingEnabled = day.data?.clockingEnabled === true;
   const refresh = <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label={clockingEnabled ? 'Refresh arrival and duty information' : 'Refresh duty information'} disabled={day.isFetching} onClick={() => void day.refetch()}><RotateCcw className={`h-3.5 w-3.5 ${day.isFetching ? 'animate-spin' : ''}`} /></Button>;
-  if (!day.data) return <Panel title={schoolWide ? 'Teachers on duty today' : 'My duty today'} action={refresh}><p role={day.isError ? 'alert' : 'status'} className="text-xs text-muted-foreground">{day.isError ? 'Staff information could not load. Try refreshing.' : 'Loading staff information…'}</p></Panel>;
+  if (schoolWide && !showSchoolDuties && !showSchoolArrivals) return null;
+  if (!day.data) return <Panel title={schoolWide ? showSchoolDuties ? 'Teachers on duty today' : 'Staff information' : 'My duty today'} action={refresh}><p role={day.isError ? 'alert' : 'status'} className="text-xs text-muted-foreground">{day.isError ? 'Staff information could not load. Try refreshing.' : 'Loading staff information…'}</p></Panel>;
   // A stale client-side role never turns a personal server response into a school roster.
   const oversight = schoolWide && day.data.schoolWide;
   const arrivals = oversight ? day.data.arrivals : day.data.arrivals.filter(item => item.staffId === staffId);
   const duties = oversight ? day.data.duties : day.data.duties.filter(item => item.staffId === staffId);
   const own = arrivals[0];
-  const hasDuties = duties.length > 0;
+  const hasDuties = duties.length > 0 && (!oversight || showSchoolDuties);
   const hasPersonalArrival = !oversight && clockingEnabled && !!own;
   if (!hasDuties && !hasPersonalArrival && !(oversight && clockingEnabled && showSchoolArrivals)) return null;
   return <div className="flex min-w-0 flex-col gap-3" data-dashboard-staff-panels>

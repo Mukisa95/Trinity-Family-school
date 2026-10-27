@@ -106,6 +106,7 @@ export interface DutyAssessment {
 
 // Operations Types
 export interface Poll {
+  academicYearId?: string;
   id: string;
   pollType: PollType;
   title: string;

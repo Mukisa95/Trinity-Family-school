@@ -22,20 +22,22 @@ export { projectOfflinePhotos } from './src/lib/offline/android-photo-projection
 const mockHook = "import { useEffect } from 'react'; import { liteWrite } from '@/lib/cache/lite-cache'; const read = () => window.providerFixture; const base = () => 'timetable:' + encodeURIComponent(['trinity-family-schools', read().session.accountId, read().session.role, 'school'].map(encodeURIComponent).join(':')) + ':2026:3:'; export function useTimetableProfiles() { const tables = read().snapshot.datasets.timetables?.data || []; useEffect(() => { liteWrite(base() + 'profiles:', { schema: 2, revision: 4, data: tables.map(table => table.profile) }, Number.MAX_SAFE_INTEGER); }, []); return { data: tables.map(table => table.profile) }; } export function useTimetablePeriods(year, term, id) { useEffect(() => { const table = read().snapshot.datasets.timetables.data.find(table => table.profile.id === id); liteWrite(base() + 'periods:' + id, { schema: 2, revision: 4, data: table.periods }, Number.MAX_SAFE_INTEGER); }, []); } export function useTimetableEntries(year, term, id) { useEffect(() => { const table = read().snapshot.datasets.timetables.data.find(table => table.profile.id === id); liteWrite(base() + 'entries:' + id, { schema: 2, revision: 4, data: table.entries }, Number.MAX_SAFE_INTEGER); }, []); }";
 const providerMocks = {
   'next/navigation': 'const router={push(){}}; export function useRouter(){return router}',
-  '@/lib/firebase': "export const auth = { get currentUser() { return { uid: window.providerFixture.session.accountId, getIdToken: async () => 'synthetic-test-token' }; }, onIdTokenChanged: () => () => {} };",
+  '@/lib/firebase': "export const firebaseProjectId='trinity-family-schools'; export const auth = { get currentUser() { return { uid: window.providerFixture.session.accountId, getIdToken: async () => 'synthetic-test-token' }; }, onIdTokenChanged: () => () => {} };",
   '@/lib/contexts/auth-context': "export function useAuth() { return { user: { id: window.providerFixture.session.accountId, role: window.providerFixture.session.role }, isLoading: false, isLocked: false }; }",
   '@/lib/hooks/use-academic-years': "export function useAcademicYears() { return { data: window.providerFixture.snapshot.datasets.academicYears?.data || [] }; }",
   '@/lib/hooks/use-classes': "export function useClasses() { return { data: [] }; }",
   '@/lib/hooks/use-subjects': "export function useSubjects() { return { data: [] }; }",
+  '@/lib/hooks/use-duty-service-data': 'export function useDutyServiceData(){return {data:undefined}}',
+  '@/lib/hooks/use-pupils': 'export function usePupils(){return {data:[]}}',
   '@/lib/hooks/use-staff': "export function useStaff() { return { data: [] }; }",
   '@/lib/hooks/use-timetable': mockHook,
   '@/lib/hooks/use-events-fixed': 'export function useEvents(){return {data:[]}} export function useExamsAsEvents(){return {data:[]}}',
 };
-async function buildProviderTest() { await require('esbuild').build({ jsx: 'automatic', absWorkingDir: root, stdin: { contents: `import React from 'react'; import { createRoot } from 'react-dom/client'; import { QueryClient, QueryClientProvider } from '@tanstack/react-query'; import { AndroidOfflineProvider } from './src/components/providers/android-offline-provider'; const element = document.createElement('div'); document.body.append(element); const root = createRoot(element); window.stopProvider = () => root.unmount(); root.render(<QueryClientProvider client={new QueryClient()}><AndroidOfflineProvider /></QueryClientProvider>);`, resolveDir: root, loader: 'tsx' }, bundle: true, platform: 'browser', alias: { '@': path.join(root, 'src') }, outfile: path.join(output, 'provider-test.js'), define: { 'process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID': '\"trinity-family-schools\"' }, plugins: [{ name: 'fixture-auth-and-query-owners', setup(build) { build.onResolve({ filter: /^(next\/navigation|@\/lib\/(firebase|contexts\/auth-context|hooks\/(use-academic-years|use-classes|use-subjects|use-staff|use-timetable|use-events-fixed)))$/ }, args => ({ path: args.path, namespace: 'fixture' })); build.onLoad({ filter: /.*/, namespace: 'fixture' }, args => ({ contents: providerMocks[args.path], loader: 'js', resolveDir: root })); } }] }); }
+async function buildProviderTest() { await require('esbuild').build({ jsx: 'automatic', absWorkingDir: root, stdin: { contents: `import React from 'react'; import { createRoot } from 'react-dom/client'; import { QueryClient, QueryClientProvider } from '@tanstack/react-query'; import { AndroidOfflineProvider } from './src/components/providers/android-offline-provider'; const element = document.createElement('div'); document.body.append(element); const root = createRoot(element); window.stopProvider = () => root.unmount(); root.render(<QueryClientProvider client={new QueryClient()}><AndroidOfflineProvider /></QueryClientProvider>);`, resolveDir: root, loader: 'tsx' }, bundle: true, platform: 'browser', alias: { '@': path.join(root, 'src') }, outfile: path.join(output, 'provider-test.js'), define: { 'process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID': '\"trinity-family-schools\"' }, plugins: [{ name: 'fixture-auth-and-query-owners', setup(build) { build.onResolve({ filter: /^(next\/navigation|@\/lib\/(firebase|contexts\/auth-context|hooks\/(use-academic-years|use-classes|use-subjects|use-staff|use-timetable|use-events-fixed|use-duty-service-data|use-pupils)))$/ }, args => ({ path: args.path, namespace: 'fixture' })); build.onLoad({ filter: /.*/, namespace: 'fixture' }, args => ({ contents: providerMocks[args.path], loader: 'js', resolveDir: root })); } }] }); }
 
 const now = '2026-10-07T10:00:00.000Z';
 function sample(parent = false) {
-  const session = { schema: 1, accountId: parent ? 'parent-fixture' : 'staff-fixture', role: parent ? 'Parent' : 'Admin', displayName: 'Example Account', timeZone: 'Africa/Kampala', issuedAt: now, expiresAt: '2026-10-14T10:00:00.000Z', pupilIds: ['child-fixture'], grants: { dashboard: !parent, pupils: !parent, timetable: !parent, pupilFields: ['id', 'firstName', 'lastName', 'admissionNumber', 'classId', 'className', 'status', 'guardians'], dashboardCounts: ['pupils', 'staff'] } };
+  const session = { schema: 1, accountId: parent ? 'parent-fixture' : 'staff-fixture', role: parent ? 'Parent' : 'Admin', displayName: 'Example Account', timeZone: 'Africa/Kampala', issuedAt: now, expiresAt: '2026-10-14T10:00:00.000Z', pupilIds: ['child-fixture'], grants: { dashboard: !parent, pupils: !parent, timetable: !parent, dutyService: !parent, events: !parent, pupilFields: ['id', 'firstName', 'lastName', 'admissionNumber', 'classId', 'className', 'status', 'guardians'], dashboardCounts: ['pupils', 'staff'] } };
   const dataset = data => ({ preparedAt: now, data });
   const pupil = { id: 'child-fixture', firstName: 'Example', lastName: 'Pupil', admissionNumber: 'DEMO001', classId: 'class-fixture', className: 'Primary Four', status: 'Active', guardians: [{ firstName: 'Sample', lastName: 'Guardian', relationship: 'Parent', phone: 'Example contact' }] };
   const datasets = parent ? { parent: dataset({ family: { schema: 1, accountId: session.accountId, preparedAt: now, pupils: [pupil] }, fees: [{ schema: 1, key: 'fee-fixture', accountId: session.accountId, pupilId: pupil.id, academicYearId: '2026', termId: '3', preparedAt: now, totals: { totalFees: 500000, totalPaid: 200000, totalBalance: 300000 }, fees: [{ id: 'tuition', name: 'Tuition', amount: 500000, paid: 200000, balance: 300000, payments: [] }] }], attendance: [{ schema: 1, key: 'attendance-fixture', accountId: session.accountId, pupilId: pupil.id, preparedAt: now, revision: 1, records: [{ id: 'record-fixture', date: '2026-10-07', status: 'Present', pupilId: pupil.id }] }], banking: [], results: [] }) } : {
@@ -43,6 +45,7 @@ function sample(parent = false) {
     subjects: dataset([{ id: 'english', name: 'English' }]), teachers: dataset([{ id: 'teacher-fixture', firstName: 'Sample', lastName: 'Teacher' }]),
     timetables: dataset([{ complete: true, profile: { id: 'table-fixture', name: 'Upper Primary', classIds: ['class-fixture'], academicYearId: '2026', termId: '3' }, periods: [{ id: 'period-fixture', dayOfWeek: 3, periodNumber: 1, startTime: '08:00', endTime: '09:00', type: 'lesson' }, { id: 'period-continuation', dayOfWeek: 3, periodNumber: 2, startTime: '09:00', endTime: '10:00', type: 'lesson' }], entries: [{ id: 'entry-fixture', classId: 'class-fixture', periodId: 'period-fixture', periodSpan: 2, subjectId: 'english', teacherId: 'teacher-fixture' }] }]),
   };
+  if (!parent) datasets.dutyService=dataset({leadershipTerms:[{id:'leadership',termName:'Third term',isActive:true}],prefectoralPosts:[{id:'post',postName:'Head Prefect',positionOfHonour:1,isActive:true}],postAssignments:[{id:'post-assignment',postId:'post',pupilId:'child-fixture',leadershipTermId:'leadership',isActive:true}],dutyRotas:[{id:'rota',dutyName:'School supervision',isActive:true,startDate:'2026-10-26',endDate:'2026-11-08',frequency:'weekly',academicYearId:'2026'}],dutyAssignments:[{id:'duty',rotaId:'rota',memberId:'teacher-fixture',memberType:'staff',startDate:'2026-10-26',endDate:'2026-11-01',isActive:true,service:'Morning supervision'}],polls:[],performanceRankings:[],staff:[{id:'teacher-fixture',name:'Sample Teacher'}],pupils:[{id:'child-fixture',name:'Pupil Example',className:'P.4'}]});
   return { session, snapshot: { schema: 1, accountId: session.accountId, role: session.role, capturedAt: now, datasets } };
 }
 async function run() {
@@ -73,6 +76,7 @@ async function run() {
         } };
       }, value);
       const page = await context.newPage();
+      await page.clock.install({time:new Date('2026-10-27T10:00:00Z')});
       const errors = []; page.on('pageerror', error => errors.push(error.message));
       await page.goto(url);
       await page.addScriptTag({ url: `${url}/cache-test.js` });
@@ -144,6 +148,18 @@ async function run() {
         await page.getByText('Connect to load this information.', { exact: false }).waitFor();
       } else {
         await page.getByRole('heading', { name: 'Guardians', exact: true }).waitFor();
+        await page.getByRole('navigation').getByRole('button',{name:'Duty & Service',exact:true}).click();
+        await page.getByRole('heading',{name:'School supervision',exact:true}).waitFor();
+        assert.equal(await page.locator('[data-duty-rota="rota"] [aria-expanded]').getAttribute('aria-expanded'),'true');
+        await page.locator('[data-duty-staff-today]').getByText('Sample Teacher',{exact:true}).waitFor();
+        await page.getByRole('button',{name:'View timeline',exact:true}).click();
+        await page.getByText('Morning supervision',{exact:true}).waitFor();
+        await page.getByRole('tab',{name:'Prefectoral',exact:true}).click();
+        await page.getByRole('heading',{name:'Head Prefect',exact:true}).waitFor();
+        await page.getByText('Pupil Example',{exact:true}).waitFor();
+        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+        await page.screenshot({path:path.join(output,'staff-duty-offline.png'),fullPage:true});
+
         await page.screenshot({ path: path.join(output, 'staff-pupil.png'), fullPage: true });
         await page.getByRole('navigation').getByRole('button', { name: 'Timetable', exact: true }).click();
         await page.getByLabel('Day', { exact: true }).selectOption('3');

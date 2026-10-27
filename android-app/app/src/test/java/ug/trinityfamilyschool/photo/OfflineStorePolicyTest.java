@@ -54,6 +54,18 @@ public class OfflineStorePolicyTest {
         session.put("expiresAt", "2020-01-01T00:00:00.000Z"); assertFalse(OfflineStore.active(session));
         assertEquals(0, OfflineStore.timestamp("2026-10-07T00:00:00.000Zextra"));
     }
+    @Test public void dutySnapshotRequiresGrantAndProjectsOnlyNames() throws Exception {
+        JSONObject session = session(false);
+        JSONObject duty = new JSONObject();
+        for (String name : new String[]{"leadershipTerms", "prefectoralPosts", "postAssignments", "dutyRotas", "dutyAssignments", "polls", "performanceRankings", "pupils", "staff"}) duty.put(name, new JSONArray());
+        JSONObject value = snapshot(session, new JSONObject().put("dutyService", dataset(session, duty)));
+        rejects(value, session);
+        session.getJSONObject("grants").put("dutyService", true);
+        OfflineStore.validate(value, session);
+        JSONObject member = new JSONObject().put("id", "staff-a").put("name", "Teacher Example");
+        duty.getJSONArray("staff").put(member); OfflineStore.validate(value, session);
+        member.put("phone", "private"); rejects(value, session);
+    }
     @Test public void periodOverridesTakePrecedenceOverDayAndClass() throws Exception {
         JSONObject layout = new JSONObject().put("defaultMode", "consolidated").put("dayModes", new JSONObject().put("1", "separate"))
             .put("periodModes", new JSONObject().put("period-a", "consolidated"));

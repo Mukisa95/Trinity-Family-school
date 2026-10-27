@@ -12,14 +12,14 @@ export function isAndroidOffline() {
 export function isAndroidOfflineRoute(path: string, role?: string) {
   return role === 'Parent'
     ? ['/parent', '/parent/settings'].includes(path)
-    : ['/', '/pupils', '/pupil-detail', '/timetable', '/events', '/settings/account', '/settings/app'].includes(path);
+    : ['/', '/pupils', '/pupil-detail', '/timetable', '/events', '/duty-service', '/settings/account', '/settings/app'].includes(path);
 }
 
 export function canOpenAndroidOfflineRoute(path: string, session: AndroidOfflineSession) {
   if (!isAndroidOfflineRoute(path, session.role)) return false;
   if (session.role === 'Parent') return true;
   if (path === '/settings/account' || path === '/settings/app') return true;
-  return path === '/events' ? !!session.grants.events : path === '/' ? session.grants.dashboard : path === '/timetable' ? session.grants.timetable : session.grants.pupils;
+  return path === '/duty-service' ? !!session.grants.dutyService : path === '/events' ? !!session.grants.events : path === '/' ? session.grants.dashboard : path === '/timetable' ? session.grants.timetable : session.grants.pupils;
 }
 
 function samePage(url: URL) {
@@ -45,7 +45,7 @@ export async function prepareAndroidAppShell(session: AndroidOfflineSession) {
   const worker = (await navigator.serviceWorker.ready).active;
   if (!worker) throw new Error('The interface is still preparing.');
   const routes = session.role === 'Parent' ? ['/login', '/', '/parent', '/parent/settings'] : ['/login', '/settings/account', '/settings/app', ...(session.grants.dashboard ? ['/'] : []),
-    ...(session.grants.pupils ? ['/pupils', '/pupil-detail'] : []), ...(session.grants.timetable ? ['/timetable'] : []), ...(session.grants.events ? ['/events'] : [])];
+    ...(session.grants.pupils ? ['/pupils', '/pupil-detail'] : []), ...(session.grants.timetable ? ['/timetable'] : []), ...(session.grants.events ? ['/events'] : []), ...(session.grants.dutyService ? ['/duty-service'] : [])];
   const assetUrls = performance.getEntriesByType('resource').map(entry => entry.name).filter(value => {
     const url = new URL(value, location.origin);
     return url.origin === location.origin && url.pathname.startsWith('/_next/static/');

@@ -92,7 +92,7 @@ export function EditAssignmentModal({ assignment, open, onOpenChange }: EditAssi
 
   const getMemberOptions = (memberType: string) => {
     if (memberType === 'staff') {
-      return staff.filter(s => s.status === 'Active').map(s => ({
+      return staff.filter(s => s.status === 'active').map(s => ({
         id: s.id,
         name: `${s.firstName} ${s.lastName} (${s.employeeId})`
       }));

@@ -1,10 +1,11 @@
+import { dutyServiceCacheName } from '@/lib/duty-service/contracts';
 import { getEventCacheScope } from '@/lib/cache/event-cache';
 import { circumferenceOf, hasCircumference } from '@/lib/access/circumference';
 import type { SystemUser } from '@/types';
 import { GranularPermissionService as Permissions } from '@/lib/services/granular-permissions.service';
 import { ANDROID_OFFLINE_SESSION_DAYS, type AndroidOfflineSession } from './android-contracts';
 
-export function createAndroidOfflineSession(user: SystemUser, pupilIds: string[], now = new Date(), features = { events: true }): AndroidOfflineSession {
+export function createAndroidOfflineSession(user: SystemUser, pupilIds: string[], now = new Date(), features: { events?: boolean; dutyService?: boolean } = { events: true }): AndroidOfflineSession {
   const parent = user.role === 'Parent';
   const can = (module: string, page: string, action: string) => Permissions.canAccessPage(user, module, page)
     && Permissions.canPerformAction(user, module, page, action);
@@ -33,6 +34,7 @@ export function createAndroidOfflineSession(user: SystemUser, pupilIds: string[]
         events: !parent && (can('events', 'calendar', 'view_calendar') || can('events', 'calendar', 'view_events')),
         eventCacheScope: !parent ? getEventCacheScope(user.id, user.role, user.familyId) : '',
       } : {}),
+      ...(features.dutyService ? { dutyService: !parent && user.isActive !== false && Permissions.canAccessPage(user, 'duty_service', 'list'), dutyServiceCacheName: !parent ? dutyServiceCacheName(user) : '' } : {}),
       pupilFields: fields, dashboardCounts: counts,
     },
   };

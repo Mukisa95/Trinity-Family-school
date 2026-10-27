@@ -1,6 +1,7 @@
 'use client';
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { DutyOnlineAction } from '@/components/duty-service/DutyOnlineAction';
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,7 +39,7 @@ interface DutyTimelineViewProps {
 }
 
 export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
-  const { data: timeline, isLoading, error } = useDutyTimeline(rotaId);
+  const { data: timeline, isLoading } = useDutyTimeline(rotaId);
   const { data: staff = [] } = useStaff();
   const { data: pupils = [] } = usePupils();
   const { data: posts = [] } = usePrefectoralPosts(); // Modified this line to remove argument
@@ -107,7 +108,7 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
     );
   }
 
-  if (error || !timeline) {
+  if (!timeline) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -120,11 +121,11 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       {/* Timeline Overview */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex flex-wrap items-center gap-2">
             <Calendar className="h-5 w-5" />
             {timeline.rotaName} Timeline
           </CardTitle>
@@ -132,8 +133,8 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
             {timeline.frequency} duty schedule with {timeline.totalPeriods} periods
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-brand-ink-600 dark:text-brand-ink-400">{timeline.totalPeriods}</div>
               <p className="text-sm text-muted-foreground">Total Periods</p>
@@ -158,27 +159,27 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
 
       {/* Timeline Table */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <CardTitle>Duty Periods</CardTitle>
               <CardDescription>
                 View all periods and their assignments
               </CardDescription>
             </div>
-            <Button
+            <DutyOnlineAction><Button
               onClick={() => setShowBulkAssignModal(true)}
               disabled={!timeline.upcomingPeriods.length}
             >
               <Plus className="h-4 w-4 mr-2" />
               Bulk Assign
-            </Button>
+            </Button></DutyOnlineAction>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
+            <Table className="block w-full md:table">
+              <TableHeader className="hidden md:table-header-group">
                 <TableRow>
                   <TableHead>Period & Status</TableHead>
                   <TableHead>Dates</TableHead>
@@ -187,11 +188,11 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody className="grid gap-3 md:table-row-group">
                 {timeline.periods.map((period: DutyPeriod) => (
-                  <TableRow key={period.periodNumber}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
+                  <TableRow key={period.periodNumber} className="grid min-w-0 gap-2 rounded-lg border p-3 md:table-row md:rounded-none md:border-x-0 md:border-t-0 md:p-0">
+                    <TableCell className="block p-0 font-medium md:table-cell md:p-4">
+                      <div className="flex flex-wrap items-center gap-2">
                         {getStatusIcon(period)}
                         <div>
                           <div>{period.periodName}</div>
@@ -199,17 +200,17 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="block min-w-0 break-words p-0 md:table-cell md:p-4">
                       <div className="text-sm">
                         {formatDateRange(period.startDate, period.endDate)}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="block min-w-0 break-words p-0 md:table-cell md:p-4">
                       <div className="text-sm text-muted-foreground max-w-xs">
                         {period.assignments.find((a: DutyAssignment) => a.service)?.service || 'No service description'}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="block min-w-0 break-words p-0 md:table-cell md:p-4">
                       <div className="space-y-1">
                         {period.assignments.length === 0 ? (
                           <span className="text-muted-foreground text-sm">No assignments</span>
@@ -226,7 +227,7 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                                     <div className="text-xs font-medium text-brand-ink-600 mb-1 dark:text-brand-ink-400">Staff</div>
                                     {staffAssignments.map((assignment) => (
                                       <div key={assignment.id} className="text-sm ml-2">
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-wrap items-center gap-2">
                                           <Users className="h-3 w-3" />
                                           <span>{getMemberName(assignment.memberId, assignment.memberType)}</span>
                                           {assignment.isSupervisor && (
@@ -243,7 +244,7 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                                     <div className="text-xs font-medium text-green-600 mb-1 dark:text-green-400">Prefects</div>
                                     {prefectAssignments.map((assignment) => (
                                       <div key={assignment.id} className="text-sm ml-2">
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-wrap items-center gap-2">
                                           <Users className="h-3 w-3" />
                                           <span>{getMemberName(assignment.memberId, assignment.memberType)}</span>
                                           {assignment.isSupervisor && (
@@ -260,7 +261,7 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                                     <div className="text-xs font-medium text-brand-secondary-ink-600 mb-1 dark:text-brand-secondary-ink-400">Pupils</div>
                                     {pupilAssignments.map((assignment) => (
                                       <div key={assignment.id} className="text-sm ml-2">
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-wrap items-center gap-2">
                                           <Users className="h-3 w-3" />
                                           <span>{getMemberName(assignment.memberId, assignment.memberType)}</span>
                                           {assignment.isSupervisor && (
@@ -277,21 +278,21 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
+                    <TableCell className="block min-w-0 break-words p-0 md:table-cell md:p-4">
+                      <div className="flex flex-wrap gap-2">
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => setSelectedPeriod(period)}
-                              className="p-2 h-8 w-8"
+                              className="h-11 w-11 p-2 md:h-8 md:w-8"
                               title="View Details"
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="sm:max-w-[600px]">
+                          <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-[600px]">
                             <DialogHeader>
                               <DialogTitle>{period.periodName} Details</DialogTitle>
                               <DialogDescription>
@@ -348,20 +349,20 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                                                          <p className="text-sm text-muted-foreground">
                                                            {assignment.isActive ? 'Active' : 'Inactive'}
                                                          </p>
-                                                         <div className="flex gap-1 mt-2">
-                                                           <Button
+                                                         <div className="mt-2 flex flex-wrap gap-2">
+                                                           <DutyOnlineAction><Button
                                                              variant="outline"
                                                              size="sm"
                                                              onClick={() => {
                                                                setSelectedAssignment(assignment);
                                                                setShowEditAssignmentModal(true);
                                                              }}
-                                                             className="p-1 h-6 w-6"
+                                                             className="h-11 w-11 p-1 md:h-6 md:w-6"
                                                              title="Edit Assignment"
                                                            >
                                                              <Edit className="h-3 w-3" />
-                                                           </Button>
-                                                           <Button
+                                                           </Button></DutyOnlineAction>
+                                                           <DutyOnlineAction><Button
                                                              variant="outline"
                                                              size="sm"
                                                              onClick={() => {
@@ -369,12 +370,12 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                                                                  deleteAssignment.mutate(assignment.id);
                                                                }
                                                              }}
-                                                             className="p-1 h-6 w-6 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                                             className="h-11 w-11 p-1 md:h-6 md:w-6 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                                              title="Delete Assignment"
                                                              disabled={deleteAssignment.isPending}
                                                            >
                                                              <Trash2 className="h-3 w-3" />
-                                                           </Button>
+                                                           </Button></DutyOnlineAction>
                                                          </div>
                                                        </div>
                                                      </div>
@@ -409,20 +410,20 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                                                         <p className="text-sm text-muted-foreground">
                                                           {assignment.isActive ? 'Active' : 'Inactive'}
                                                         </p>
-                                                        <div className="flex gap-1 mt-2">
-                                                          <Button
+                                                        <div className="mt-2 flex flex-wrap gap-2">
+                                                          <DutyOnlineAction><Button
                                                             variant="outline"
                                                             size="sm"
                                                             onClick={() => {
                                                               setSelectedAssignment(assignment);
                                                               setShowEditAssignmentModal(true);
                                                             }}
-                                                            className="p-1 h-6 w-6"
+                                                            className="h-11 w-11 p-1 md:h-6 md:w-6"
                                                             title="Edit Assignment"
                                                           >
                                                             <Edit className="h-3 w-3" />
-                                                          </Button>
-                                                          <Button
+                                                          </Button></DutyOnlineAction>
+                                                          <DutyOnlineAction><Button
                                                             variant="outline"
                                                             size="sm"
                                                             onClick={() => {
@@ -430,12 +431,12 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                                                                 deleteAssignment.mutate(assignment.id);
                                                               }
                                                             }}
-                                                            className="p-1 h-6 w-6 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                                            className="h-11 w-11 p-1 md:h-6 md:w-6 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                                             title="Delete Assignment"
                                                             disabled={deleteAssignment.isPending}
                                                           >
                                                             <Trash2 className="h-3 w-3" />
-                                                          </Button>
+                                                          </Button></DutyOnlineAction>
                                                         </div>
                                                       </div>
                                                     </div>
@@ -470,20 +471,20 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                                                         <p className="text-sm text-muted-foreground">
                                                           {assignment.isActive ? 'Active' : 'Inactive'}
                                                         </p>
-                                                        <div className="flex gap-1 mt-2">
-                                                          <Button
+                                                        <div className="mt-2 flex flex-wrap gap-2">
+                                                          <DutyOnlineAction><Button
                                                             variant="outline"
                                                             size="sm"
                                                             onClick={() => {
                                                               setSelectedAssignment(assignment);
                                                               setShowEditAssignmentModal(true);
                                                             }}
-                                                            className="p-1 h-6 w-6"
+                                                            className="h-11 w-11 p-1 md:h-6 md:w-6"
                                                             title="Edit Assignment"
                                                           >
                                                             <Edit className="h-3 w-3" />
-                                                          </Button>
-                                                          <Button
+                                                          </Button></DutyOnlineAction>
+                                                          <DutyOnlineAction><Button
                                                             variant="outline"
                                                             size="sm"
                                                             onClick={() => {
@@ -491,12 +492,12 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                                                                 deleteAssignment.mutate(assignment.id);
                                                               }
                                                             }}
-                                                            className="p-1 h-6 w-6 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                                            className="h-11 w-11 p-1 md:h-6 md:w-6 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                                             title="Delete Assignment"
                                                             disabled={deleteAssignment.isPending}
                                                           >
                                                             <Trash2 className="h-3 w-3" />
-                                                          </Button>
+                                                          </Button></DutyOnlineAction>
                                                         </div>
                                                       </div>
                                                     </div>
@@ -516,18 +517,18 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
                         </Dialog>
                         
                         {!period.isCompleted && (
-                          <Button
+                          <DutyOnlineAction><Button
                             variant="outline"
                             size="sm"
                             onClick={() => {
                               setSelectedPeriod(period);
                               setShowBulkAssignModal(true);
                             }}
-                            className="p-2 h-8 w-8"
+                            className="h-11 w-11 p-2 md:h-8 md:w-8"
                             title="Assign Members"
                           >
                             <UserPlus className="h-4 w-4" />
-                          </Button>
+                          </Button></DutyOnlineAction>
                         )}
                       </div>
                     </TableCell>

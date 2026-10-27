@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "incremental": false },
+  "include": ["next-env.d.ts", "src/app/duty-service/**/*.tsx", "src/components/duty-service/**/*.tsx", "src/lib/hooks/use-duty-service*.ts", "src/lib/offline/**/*.ts", "src/lib/pwa/**/*.ts", "src/components/providers/android-offline-provider.tsx", "src/app/api/offline/session/route.ts", "src/android-offline/**/*.tsx", "tests/duty-service-offline.test.ts", "tests/duty-service-selectors.test.ts"],
+  "exclude": ["node_modules", "output", "out", ".next"]
+}

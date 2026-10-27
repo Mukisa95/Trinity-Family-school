@@ -2,20 +2,19 @@
 
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { List as TabsList, Trigger as TabsTrigger } from '@radix-ui/react-tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Users,
   Calendar,
   Plus,
   Loader2,
-  Edit,
-  Trash2,
-  Printer
+  ArrowLeft,
+  Printer,
+  Crown,
 } from 'lucide-react';
-import { PageHeader } from '@/components/common/page-header';
+import { GlassActionButton, GlassActionDock, GlassPageTopBar } from '@/components/common/glass-page-top-bar';
 import { useAcademicYears, useActiveAcademicYear } from '@/lib/hooks/use-academic-years';
 import {
   usePrefectoralPosts,
@@ -23,7 +22,6 @@ import {
   useDutyAssignments,
   useDeleteDutyRota,
   usePostAssignments,
-  useDutyTimeline,
   useLeadershipTerms
 } from '@/lib/hooks/use-duty-service';
 import { useStaff } from '@/lib/hooks/use-staff';
@@ -31,7 +29,7 @@ import { usePupils } from '@/lib/hooks/use-pupils';
 import { usePermissions } from '@/lib/hooks/use-permissions';
 import { ActionGuard } from '@/components/auth/action-guard';
 import { useToast } from '@/hooks/use-toast';
-import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { format } from 'date-fns';
 import { CreatePrefectoralPostModal } from '@/components/duty-service/PrefectoralManagement/CreatePrefectoralPostModal';
 import { CreateDutyRotaModal } from '@/components/duty-service/DutyManagement/CreateDutyRotaModal';
 import { EditDutyRotaModal } from '@/components/duty-service/DutyManagement/EditDutyRotaModal';
@@ -40,15 +38,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { DutyTimelineView } from '@/components/duty-service/DutyManagement/DutyTimelineView';
 import { PrefectoralManagementView } from '@/components/duty-service/PrefectoralManagement/PrefectoralManagementView';
-import { DutyAssignment, DutyRota } from '@/types/duty-service';
+import type { DutyRota } from '@/types/duty-service';
 import { generateDutyRotaPDF } from '@/lib/utils/pdf-generator';
 import { DutyServiceService } from '@/lib/services/duty-service.service';
+import { useDutyServiceData } from '@/lib/hooks/use-duty-service-data';
+import { DutyOnlineAction } from '@/components/duty-service/DutyOnlineAction';
+import { StaffOnDutyCard, DutyRotaCard } from '@/components/duty-service/duty-overview';
+import { dutyRotaStatus } from '@/lib/duty-service/selectors';
+import { useSchoolDate } from '@/lib/hooks/use-school-date';
 import { Toaster } from '@/components/ui/toaster';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 
 export default function DutyServicePage() {
   const pdfViewer = usePDFViewer();
-  const [activeTab, setActiveTab] = useState('prefectoral');
+  const schoolDate = useSchoolDate();
+  const { data: savedData, offline, error: dataError } = useDutyServiceData();
+  const [activeTab, setActiveTab] = useState('duty-management');
   const [selectedRotaForTimeline, setSelectedRotaForTimeline] = useState<string | null>(null);
   const [selectedRotaForEdit, setSelectedRotaForEdit] = useState<DutyRota | null>(null);
   const [showEditRotaModal, setShowEditRotaModal] = useState(false);
@@ -83,7 +88,7 @@ export default function DutyServicePage() {
     setPrintingRotaId(rota.id);
     try {
       // Get the timeline data for this rota
-      const timelineData = await DutyServiceService.getDutyTimeline(rota.id);
+      const timelineData = DutyServiceService.generateDutyTimeline(rota, dutyAssignments.filter(item => item.rotaId === rota.id));
 
       if (timelineData) {
         // Find the academic year and term data
@@ -134,62 +139,12 @@ export default function DutyServicePage() {
   const getMemberName = (memberId: string, memberType: string) => {
     if (memberType === 'staff') {
       const member = staff.find(s => s.id === memberId);
-      return member ? `${member.firstName} ${member.lastName} (${member.employeeId})` : `Staff ID: ${memberId}`;
+      return member ? `${member.firstName} ${member.lastName}` : `Staff ID: ${memberId}`;
     } else if (memberType === 'prefects' || memberType === 'pupils') {
       const member = pupils.find(p => p.id === memberId);
       return member ? `${formatPupilDisplayName(member)} - ${member.className || 'No Class'}` : `Pupil ID: ${memberId}`;
     }
     return `Unknown ID: ${memberId}`;
-  };
-
-  // Function to get current week assignments for a duty rota
-  const getCurrentWeekAssignments = (rotaId: string): DutyAssignment[] => {
-    const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday start
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 }); // Sunday end
-
-    return dutyAssignments.filter(assignment => {
-      if (assignment.rotaId !== rotaId || !assignment.isActive) return false;
-
-      const assignmentStart = new Date(assignment.startDate);
-      const assignmentEnd = new Date(assignment.endDate);
-
-      // Check if the assignment overlaps with current week
-      return isWithinInterval(assignmentStart, { start: weekStart, end: weekEnd }) ||
-        isWithinInterval(assignmentEnd, { start: weekStart, end: weekEnd }) ||
-        isWithinInterval(weekStart, { start: assignmentStart, end: assignmentEnd });
-    });
-  };
-
-  // Function to get current week assignments grouped by team type
-  const getCurrentWeekAssignmentsByTeam = (rotaId: string) => {
-    const currentAssignments = getCurrentWeekAssignments(rotaId);
-
-    const grouped = {
-      staff: currentAssignments.filter(assignment => assignment.memberType === 'staff'),
-      prefects: currentAssignments.filter(assignment => assignment.memberType === 'prefects'),
-      pupils: currentAssignments.filter(assignment => assignment.memberType === 'pupils')
-    };
-
-    return grouped;
-  };
-
-  // Function to get member names for a specific team type
-  const getMemberNamesForTeam = (assignments: DutyAssignment[], teamType: string) => {
-    if (assignments.length === 0) return null;
-
-    const memberNames = assignments.map(assignment => {
-      if (teamType === 'staff') {
-        const member = staff.find(s => s.id === assignment.memberId);
-        return member ? `${member.firstName} ${member.lastName}` : `Staff ID: ${assignment.memberId}`;
-      } else if (teamType === 'prefects' || teamType === 'pupils') {
-        const member = pupils.find(p => p.id === assignment.memberId);
-        return member ? `${formatPupilDisplayName(member)}` : `Pupil ID: ${assignment.memberId}`;
-      }
-      return `Unknown ID: ${assignment.memberId}`;
-    });
-
-    return memberNames.join(', ');
   };
 
   const canAccessDutyService = permissions.canAccessModule('duty_service');
@@ -211,13 +166,41 @@ export default function DutyServicePage() {
     ? postAssignments
     : postAssignments.filter(a => a.leadershipTermId === selectedLeadershipTermId);
 
+  const selectedRota = activeTab === 'duty-management' ? dutyRotas.find(rota => rota.id === selectedRotaForTimeline) : undefined;
+  const termSelector = activeTab === 'prefectoral' ? (
+    <Select value={selectedLeadershipTermId} onValueChange={setSelectedLeadershipTermId}>
+      <SelectTrigger aria-label="Leadership term" className="h-9 w-[min(72vw,14rem)] text-xs sm:w-56"><SelectValue placeholder="Select term" /></SelectTrigger>
+      <SelectContent><SelectItem value="all">All Terms (Combined)</SelectItem>{leadershipTerms.map(term => <SelectItem key={term.id} value={term.id}>{term.termName} {term.isActive ? '(Active)' : '(Terminated)'}</SelectItem>)}</SelectContent>
+    </Select>
+  ) : undefined;
+  const pageActions = <GlassActionDock>
+    <TabsList aria-label="Duty & Service sections" className="flex items-center">
+      <TabsTrigger value="duty-management" asChild onClick={() => setSelectedRotaForTimeline(null)}><GlassActionButton label="Duties" aria-label="Duty Management" icon={<Calendar className="h-4 w-4" />} active={activeTab === 'duty-management'} /></TabsTrigger>
+      <TabsTrigger value="prefectoral" asChild><GlassActionButton label="Prefects" aria-label="Prefectoral" tone="purple" icon={<Users className="h-4 w-4" />} active={activeTab === 'prefectoral'} /></TabsTrigger>
+    </TabsList>
+    {selectedRota ? <GlassActionButton label="Print" aria-label={`Print ${selectedRota.dutyName}`} icon={printingRotaId === selectedRota.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />} disabled={printingRotaId === selectedRota.id} onClick={() => void handlePrintDutyRota(selectedRota)} /> : activeTab === 'duty-management' ? (
+      <DutyOnlineAction><ActionGuard module="duty_service" page="list" action="assign_duties"><CreateDutyRotaModal trigger={<GlassActionButton label="New rota" aria-label="Create rota" tone="emerald" disabled={isLoading} icon={<Plus className="h-4 w-4" />} />} /></ActionGuard></DutyOnlineAction>
+    ) : <DutyOnlineAction>
+      <ActionGuard module="duty_service" page="prefectoral" action="create_prefectoral_post">
+        <CreateLeadershipTermModal trigger={<GlassActionButton label="New term" aria-label="Create Term" tone="emerald" disabled={isLoading || leadershipTerms.some(term => term.isActive)} title={leadershipTerms.some(term => term.isActive) ? 'Please terminate the active term first' : 'Create Term'} icon={<Calendar className="h-4 w-4" />} />} />
+        <CreatePrefectoralPostModal trigger={<GlassActionButton label="New post" aria-label="Create Post" tone="emerald" disabled={isLoading} icon={<Crown className="h-4 w-4" />} />} />
+      </ActionGuard>
+    </DutyOnlineAction>}
+  </GlassActionDock>;
+
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Duty & Service Management"
-        description="Manage leadership positions, duty rotas, assessments, and performance rankings"
+    <Tabs value={activeTab} onValueChange={value => { setActiveTab(value); if (value === 'duty-management') setSelectedRotaForTimeline(null); }} className="min-w-0 space-y-4 pb-28 sm:space-y-6 sm:pb-6">
+      <GlassPageTopBar
+        title={selectedRota ? 'Duty schedule' : 'Duty & Service'}
+        backHref={selectedRota ? undefined : '/'} backLabel="Back to dashboard"
+        leading={selectedRota ? <GlassActionButton label="Back" aria-label="Back to Duty Rotas" tone="slate" icon={<ArrowLeft className="h-4 w-4" />} onClick={() => setSelectedRotaForTimeline(null)} /> : undefined}
+        recordDetails={selectedRota ? `${selectedRota.dutyName} · ${format(new Date(selectedRota.startDate), 'd MMM yyyy')} – ${format(new Date(selectedRota.endDate), 'd MMM yyyy')} · ${activeAcademicYear?.name || ''}` : `${activeTab === 'prefectoral' ? 'Prefectoral' : 'Duty Management'}${activeAcademicYear?.name ? ` · ${activeAcademicYear.name}` : ''}`}
+        titleControls={termSelector} actions={pageActions}
       />
 
+      {offline && <p role="status" className="rounded-lg border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">{savedData ? "You are offline. Showing saved Duty & Service information. Connect to make changes." : "Connect once to save Duty & Service information on this device."}</p>}
+      {dataError && !offline && <p role="alert" className="text-sm text-destructive">Could not refresh Duty & Service. {savedData ? "Showing the last saved information." : "Please try again when your connection is available."}</p>}
+      {!isLoading && savedData && <StaffOnDutyCard rotas={dutyRotas} assignments={dutyAssignments} date={schoolDate} memberName={getMemberName} />}
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
@@ -226,56 +209,10 @@ export default function DutyServicePage() {
           </div>
         </div>
       ) : (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="prefectoral" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Prefectoral
-            </TabsTrigger>
-            <TabsTrigger value="duty-management" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Duty Management
-            </TabsTrigger>
-          </TabsList>
-
-
-
+        <div className="min-w-0 space-y-4 sm:space-y-6">
           <TabsContent value="prefectoral">
             <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Prefectoral Management</CardTitle>
-                    <CardDescription>
-                      Manage leadership positions and assignments in hierarchical tree format
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Select value={selectedLeadershipTermId} onValueChange={setSelectedLeadershipTermId}>
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Select Term" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Terms (Combined)</SelectItem>
-                        {leadershipTerms.map(term => (
-                          <SelectItem key={term.id} value={term.id}>
-                            {term.termName} {term.isActive ? '(Active)' : '(Terminated)'}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    <ActionGuard module="duty_service" page="prefectoral" action="create_prefectoral_post">
-                      <CreateLeadershipTermModal />
-                    </ActionGuard>
-
-                    <ActionGuard module="duty_service" page="prefectoral" action="create_prefectoral_post">
-                      <CreatePrefectoralPostModal />
-                    </ActionGuard>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6">
                 <PrefectoralManagementView
                   posts={prefectoralPosts}
                   assignments={filteredPostAssignments}
@@ -299,236 +236,28 @@ export default function DutyServicePage() {
 
           <TabsContent value="duty-management">
             {selectedRotaForTimeline ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelectedRotaForTimeline(null)}
-                  >
-                    ← Back to Duty Rotas
-                  </Button>
-                </div>
+              <div className="min-w-0 space-y-4">
                 <DutyTimelineView rotaId={selectedRotaForTimeline} />
               </div>
             ) : (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Duty Management</CardTitle>
-                      <CardDescription>
-                        Create and manage duty rotas and schedules
-                      </CardDescription>
-                    </div>
-                    <ActionGuard module="duty_service" page="list" action="assign_duties">
-                      <CreateDutyRotaModal />
-                    </ActionGuard>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {dutyRotas.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No Duty Rotas</h3>
-                        <p className="text-muted-foreground mb-4">
-                          Create your first duty rota to get started
-                        </p>
-                        <ActionGuard module="duty_service" page="list" action="assign_duties">
-                          <CreateDutyRotaModal
-                            trigger={
-                              <Button>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Create First Rota
-                              </Button>
-                            }
-                          />
-                        </ActionGuard>
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse">
-                          <thead>
-                            <tr className="border-b bg-muted/50">
-                              <th className="text-left p-3 font-medium">Duty Name</th>
-                              <th className="text-left p-3 font-medium">Status</th>
-                              <th className="text-left p-3 font-medium">Frequency</th>
-                              <th className="text-left p-3 font-medium">Teams</th>
-                              <th className="text-left p-3 font-medium">Current Week Teachers</th>
-                              <th className="text-left p-3 font-medium">Date Range</th>
-                              <th className="text-left p-3 font-medium">Type</th>
-                              <th className="text-left p-3 font-medium">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {dutyRotas.map((rota) => {
-                              const currentAssignments = getCurrentWeekAssignmentsByTeam(rota.id);
-                              const hasAssignments = currentAssignments.staff.length > 0 ||
-                                currentAssignments.prefects.length > 0 ||
-                                currentAssignments.pupils.length > 0;
-
-                              return (
-                                <React.Fragment key={rota.id}>
-                                  {/* Main row */}
-                                  <tr className="border-b hover:bg-muted/30 transition-colors">
-                                    <td className="p-3">
-                                      <div className="font-medium">{rota.dutyName}</div>
-                                    </td>
-                                    <td className="p-3">
-                                      <Badge variant={rota.isActive ? "default" : "secondary"}>
-                                        {rota.isActive ? "Active" : "Inactive"}
-                                      </Badge>
-                                    </td>
-                                    <td className="p-3">
-                                      <span className="capitalize">{rota.frequency.replace('_', ' ')}</span>
-                                    </td>
-                                    <td className="p-3">
-                                      <div className="flex flex-wrap gap-1">
-                                        {rota.teamsInvolved.map((team) => (
-                                          <Badge key={team} variant="outline" className="text-xs">
-                                            {team}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    </td>
-                                    <td className="p-3">
-                                      <div className="text-sm text-muted-foreground max-w-xs">
-                                        {hasAssignments ? 'See rows below' : 'No assignments'}
-                                      </div>
-                                    </td>
-                                    <td className="p-3">
-                                      <div className="text-sm">
-                                        <div>{format(new Date(rota.startDate), 'MMM dd, yyyy')}</div>
-                                        <div className="text-muted-foreground">to</div>
-                                        <div>{format(new Date(rota.endDate), 'MMM dd, yyyy')}</div>
-                                      </div>
-                                    </td>
-                                    <td className="p-3">
-                                      {rota.isMarked ? (
-                                        <Badge variant="secondary" className="text-xs">
-                                          Academic Period
-                                        </Badge>
-                                      ) : (
-                                        <span className="text-sm text-muted-foreground">Custom</span>
-                                      )}
-                                    </td>
-                                    <td className="p-3">
-                                      <div className="flex gap-1">
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => setSelectedRotaForTimeline(rota.id)}
-                                          className="p-2 h-8 w-8"
-                                          title="View Timeline"
-                                        >
-                                          <Calendar className="h-4 w-4" />
-                                        </Button>
-
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => {
-                                            setSelectedRotaForEdit(rota);
-                                            setShowEditRotaModal(true);
-                                          }}
-                                          className="p-2 h-8 w-8"
-                                          title="Edit Duty Rota"
-                                        >
-                                          <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => {
-                                            if (confirm('Are you sure you want to delete this duty rota? This action cannot be undone.')) {
-                                              deleteRota.mutate(rota.id);
-                                            }
-                                          }}
-                                          className="p-2 h-8 w-8 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                                          title="Delete Duty Rota"
-                                          disabled={deleteRota.isPending}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => handlePrintDutyRota(rota)}
-                                          className="p-2 h-8 w-8 text-brand-ink-600 hover:text-brand-ink-700 dark:text-brand-ink-400 dark:hover:text-brand-ink-300"
-                                          title="Print Duty Rota"
-                                          disabled={printingRotaId === rota.id}
-                                        >
-                                          {printingRotaId === rota.id ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                          ) : (
-                                            <Printer className="h-4 w-4" />
-                                          )}
-                                        </Button>
-                                      </div>
-                                    </td>
-                                  </tr>
-
-                                  {/* Assignment detail rows */}
-                                  {currentAssignments.staff.length > 0 && (
-                                    <tr className="border-b bg-brand-surface-50/30 dark:bg-brand-surface-950/30">
-                                      <td className="p-3 pl-8">
-                                        <div className="text-sm text-brand-ink-600 font-medium dark:text-brand-ink-400">Staff</div>
-                                      </td>
-                                      <td colSpan={2} className="p-3">
-                                        <div className="text-sm">
-                                          {getMemberNamesForTeam(currentAssignments.staff, 'staff')}
-                                        </div>
-                                      </td>
-                                      <td colSpan={5}></td>
-                                    </tr>
-                                  )}
-
-                                  {currentAssignments.prefects.length > 0 && (
-                                    <tr className="border-b bg-green-50/30 dark:bg-green-950/30">
-                                      <td className="p-3 pl-8">
-                                        <div className="text-sm text-green-600 font-medium dark:text-green-400">Prefects</div>
-                                      </td>
-                                      <td colSpan={2} className="p-3">
-                                        <div className="text-sm">
-                                          {getMemberNamesForTeam(currentAssignments.prefects, 'prefects')}
-                                        </div>
-                                      </td>
-                                      <td colSpan={5}></td>
-                                    </tr>
-                                  )}
-
-                                  {currentAssignments.pupils.length > 0 && (
-                                    <tr className="border-b bg-brand-secondary-surface-50/30 dark:bg-brand-secondary-surface-950/30">
-                                      <td className="p-3 pl-8">
-                                        <div className="text-sm text-brand-secondary-ink-600 font-medium dark:text-brand-secondary-ink-400">Pupils</div>
-                                      </td>
-                                      <td colSpan={2} className="p-3">
-                                        <div className="text-sm">
-                                          {getMemberNamesForTeam(currentAssignments.pupils, 'pupils')}
-                                        </div>
-                                      </td>
-                                      <td colSpan={5}></td>
-                                    </tr>
-                                  )}
-                                </React.Fragment>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              <section aria-label="Duty rotas" className="space-y-3 sm:space-y-4">
+                <h2 className="text-lg font-semibold">Duty rotas</h2>
+                {dutyRotas.length === 0 ? <Card><CardContent className="py-8 text-center">
+                  <Calendar className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+                  <h3 className="font-semibold">No duty rotas</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{offline ? 'No duty rotas are saved for this academic year.' : 'Create a rota to start planning duties.'}</p>
+                </CardContent></Card> : [...dutyRotas].sort((a, b) => Number(dutyRotaStatus(b, schoolDate) === 'Active') - Number(dutyRotaStatus(a, schoolDate) === 'Active')).map(rota => (
+                  <DutyRotaCard key={rota.id} rota={rota} assignments={dutyAssignments} date={schoolDate} memberName={getMemberName}
+                    onTimeline={() => setSelectedRotaForTimeline(rota.id)}
+                    onEdit={() => { setSelectedRotaForEdit(rota); setShowEditRotaModal(true); }}
+                    onDelete={() => { if (confirm('Are you sure you want to delete this duty rota? This action cannot be undone.')) deleteRota.mutate(rota.id); }}
+                    onPrint={() => void handlePrintDutyRota(rota)} printing={printingRotaId === rota.id} deleting={deleteRota.isPending}
+                  />
+                ))}
+              </section>
             )}
           </TabsContent>
-
-
-
-
-
-
-        </Tabs>
+        </div>
       )}
 
       {/* Edit Duty Rota Modal */}
@@ -540,6 +269,6 @@ export default function DutyServicePage() {
 
       {/* Toaster for notifications */}
       <Toaster />
-    </div>
+    </Tabs>
   );
 }

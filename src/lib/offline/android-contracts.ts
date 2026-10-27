@@ -1,3 +1,4 @@
+import { isDutyServiceData, type OfflineDutyService } from '@/lib/duty-service/contracts';
 import { circumferenceKey, permitsClass, type Circumference } from '@/lib/access/circumference';
 import type { GeneratedPeriod, TimetableEntry, TimetableProfile, SystemUser } from '@/types';
 import type { ParentOfflineAttendanceSnapshot, ParentOfflineBankingSnapshot, ParentOfflineFamilySnapshot, ParentOfflineFeesSnapshot, ParentOfflineResultsSnapshot } from '@/lib/parent-offline/contracts';
@@ -22,6 +23,8 @@ export type AndroidOfflineSession = {
     pupils: boolean;
     timetable: boolean;
     events?: boolean;
+    dutyService?: boolean;
+    dutyServiceCacheName?: string;
     eventCacheScope?: string;
     pupilFields: string[];
     dashboardCounts: string[];
@@ -66,6 +69,7 @@ export type AndroidOfflineSnapshot = {
     academicYears?: AndroidOfflineDataset<Record<string, unknown>[]>;
     dashboard?: AndroidOfflineDataset<Record<string, number | string>>;
     timetables?: AndroidOfflineDataset<AndroidOfflineTimetable[]>;
+    dutyService?: AndroidOfflineDataset<OfflineDutyService>;
     events?: AndroidOfflineDataset<import("@/types").Event[]>;
     subjects?: AndroidOfflineDataset<Record<string, unknown>[]>;
     teachers?: AndroidOfflineDataset<Record<string, unknown>[]>;
@@ -100,6 +104,12 @@ export function isAndroidOfflineSnapshot(value: unknown, session: AndroidOffline
     || (item.datasets.dashboard && !session.grants.dashboard)
     || (item.datasets.events && (!session.grants.events || !Array.isArray(item.datasets.events.data)))
     || (item.datasets.timetables && !session.grants.timetable)) return false;
+  if (item.datasets.dutyService) {
+    const duty = item.datasets.dutyService.data;
+    if (!session.grants.dutyService || !isDutyServiceData(duty) || !Array.isArray(duty.staff) || !Array.isArray(duty.pupils)
+      || duty.staff.some(row => typeof row.id !== 'string' || typeof row.name !== 'string' || Object.keys(row).some(key => !['id', 'name'].includes(key)))
+      || duty.pupils.some(row => typeof row.id !== 'string' || typeof row.name !== 'string' || Object.keys(row).some(key => !['id', 'name', 'classId', 'className'].includes(key)) || !!session.circumference && !session.pupilIds.includes(row.id))) return false;
+  }
   if ((item.datasets.subjects || item.datasets.teachers) && !session.grants.timetable) return false;
   if (item.datasets.dashboard && Object.keys(item.datasets.dashboard.data).some(key => !session.grants.dashboardCounts.includes(key))) return false;
   if (item.datasets.pupils && (!Array.isArray(item.datasets.pupils.data) || item.datasets.pupils.data.some(pupil =>

@@ -64,7 +64,7 @@ tasks.register('bundleOfflineInterface', Exec) {
     workingDir rootProject.projectDir.parentFile
     commandLine 'node', 'scripts/build-android-offline.cjs'
     environment 'TRINITY_ANDROID_SCHOOL', schoolKey
-    inputs.files(fileTree(new File(websiteRoot, 'src/android-offline')), fileTree(new File(websiteRoot, 'src/lib/offline')), fileTree(new File(websiteRoot, 'src/lib/utils')), new File(websiteRoot, 'scripts/build-android-offline.cjs'), new File(websiteRoot, 'scripts/android-school-config.cjs'), new File(websiteRoot, "config/android-schools/${schoolKey}.json"), new File(websiteRoot, 'package-lock.json'))
+    inputs.files(fileTree(new File(websiteRoot, 'src/android-offline')), fileTree(new File(websiteRoot, 'src/lib/offline')), fileTree(new File(websiteRoot, 'src/lib/duty-service')), fileTree(new File(websiteRoot, 'src/lib/utils')), new File(websiteRoot, 'scripts/build-android-offline.cjs'), new File(websiteRoot, 'scripts/android-school-config.cjs'), new File(websiteRoot, "config/android-schools/${schoolKey}.json"), new File(websiteRoot, 'package-lock.json'))
     inputs.property('school', schoolKey)
     outputs.dir('src/main/assets/offline')
 }

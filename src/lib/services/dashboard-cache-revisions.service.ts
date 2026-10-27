@@ -129,6 +129,11 @@ export function bumpPhotosRevisionInBatch(batch: WriteBatch) {
   writeRevision(batch, 'operational', { photos: increment(1) });
 }
 
+/** Duty snapshots use the existing small operational channel, with no legacy profile write. */
+export function bumpDutyServiceRevisionInBatch(batch: WriteBatch) {
+  batch.set(dashboardRevisionDocumentRef('operational'), { dutyService: increment(1) }, { merge: true });
+}
+
 /** Publish exam-definition and optionally event revisions in one source batch. */
 export function bumpExamDefinitionRevisionsInBatch(
   batch: WriteBatch | Transaction,

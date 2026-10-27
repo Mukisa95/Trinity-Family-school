@@ -17,7 +17,7 @@ final class OfflinePolicy {
         try {
             URI uri = new URI(value);
             if (!PhotoPolicy.trusted(value)) return LOCAL_ORIGIN + LOCAL_PATH;
-            String page = "/events".equals(uri.getPath()) ? "events" : "/timetable".equals(uri.getPath()) ? "timetable"
+            String page = "/duty-service".equals(uri.getPath()) ? "duty-service" : "/events".equals(uri.getPath()) ? "events" : "/timetable".equals(uri.getPath()) ? "timetable"
                 : ("/pupils".equals(uri.getPath()) || "/pupil-detail".equals(uri.getPath())) ? "pupils" : "dashboard";
             String pupil = "";
             if ("/pupil-detail".equals(uri.getPath()) && uri.getRawQuery() != null) {
@@ -39,7 +39,7 @@ final class OfflinePolicy {
             if (!PhotoPolicy.trusted(value)) return false;
             String path = new URI(value).getPath();
             return "/".equals(path) || "/parent".equals(path) || "/parent/settings".equals(path)
-                || "/pupils".equals(path) || "/pupil-detail".equals(path) || "/timetable".equals(path) || "/events".equals(path);
+                || "/pupils".equals(path) || "/pupil-detail".equals(path) || "/timetable".equals(path) || "/events".equals(path) || "/duty-service".equals(path);
         } catch (Exception ignored) { return false; }
     }
     static String onlineRoute(String value, String role) {
@@ -54,6 +54,7 @@ final class OfflinePolicy {
                 if (pair.matches("classId=[A-Za-z0-9_%.-]{1,200}")) schoolClass = pair.substring(8);
                 if (pair.matches("streamId=[A-Za-z0-9_%.-]{1,200}")) stream = pair.substring(9);
             }
+            if ("duty-service".equals(page)) return PhotoPolicy.ORIGIN + "/duty-service";
             if ("events".equals(page)) return PhotoPolicy.ORIGIN + "/events";
             if ("pupils".equals(page)) return PhotoPolicy.ORIGIN + (pupil.isEmpty() ? "/pupils" : "/pupil-detail?id=" + pupil);
             if ("timetable".equals(page)) return PhotoPolicy.ORIGIN + "/timetable?tableId=" + table + "&classId=" + schoolClass + "&streamId=" + stream;

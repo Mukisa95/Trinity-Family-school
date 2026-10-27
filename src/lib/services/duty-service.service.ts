@@ -1,12 +1,11 @@
+import { generateDutyTimeline } from '@/lib/duty-service/timeline';
 import { db, auth } from '@/lib/firebase';
 import {
   collection,
-  addDoc,
   getDocs,
+  getDocsFromServer,
   doc,
   getDoc,
-  updateDoc,
-  deleteDoc,
   query,
   where,
   orderBy,
@@ -14,8 +13,14 @@ import {
   Timestamp,
   limit,
   startAfter,
-  QueryDocumentSnapshot
+  QueryDocumentSnapshot,
+  writeBatch,
+  type CollectionReference,
+  type DocumentReference
 } from '@/lib/access/scoped-firestore';
+import { bumpDutyServiceRevisionInBatch } from './dashboard-cache-revisions.service';
+import { requireDutyServiceOnline } from '@/lib/duty-service/connectivity';
+import { DUTY_SERVICE_COLLECTIONS, type DutyServiceData } from '@/lib/duty-service/contracts';
 import type {
   PrefectoralPost,
   PostAssignment,
@@ -55,6 +60,7 @@ const POLLS_COLLECTION = 'polls';
 const PERFORMANCE_RANKINGS_COLLECTION = 'performanceRankings';
 
 async function writeDutySource(input: Record<string, unknown>): Promise<{id:string;ids:string[]}> {
+  requireDutyServiceOnline();
   const owner = auth.currentUser?.uid, token = await auth.currentUser?.getIdToken();
   if (!owner || !token) throw new Error('Sign in before changing duty records.');
   const response = await fetch('/api/duty-service/clocking-source', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(input), cache: 'no-store' });
@@ -64,7 +70,39 @@ async function writeDutySource(input: Record<string, unknown>): Promise<{id:stri
   return body.result;
 }
 
+async function createDutyDocument(collectionRef: CollectionReference, data: Record<string, any>) {
+  requireDutyServiceOnline();
+  const ref = doc(collectionRef), batch = writeBatch(db);
+  batch.set(ref, data); bumpDutyServiceRevisionInBatch(batch); await batch.commit();
+  return ref;
+}
+async function updateDutyDocument(ref: DocumentReference, data: Record<string, any>) {
+  requireDutyServiceOnline();
+  const batch = writeBatch(db); batch.update(ref, data); bumpDutyServiceRevisionInBatch(batch); await batch.commit();
+}
+async function deleteDutyDocument(ref: DocumentReference) {
+  requireDutyServiceOnline();
+  const batch = writeBatch(db); batch.delete(ref); bumpDutyServiceRevisionInBatch(batch); await batch.commit();
+}
+
 export class DutyServiceService {
+  /** Fetch once per published revision; incomplete/error reads never replace a saved module. */
+  static async getOfflineData(): Promise<DutyServiceData> {
+    const normalize = (value: any): any => {
+      if (value instanceof Date) return value.toISOString();
+      if (value && typeof value.toDate === 'function') return value.toDate().toISOString();
+      if (Array.isArray(value)) return value.map(normalize);
+      if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined).map(([key, item]) => [key, normalize(item)]));
+      return value;
+    };
+    const collections = await Promise.all(DUTY_SERVICE_COLLECTIONS.map(async name => {
+      const snapshot = await getDocsFromServer(collection(db, name));
+      const rows = snapshot.docs.map(item => ({ ...normalize(item.data()), id: item.id }));
+      rows.sort((a, b) => name === 'prefectoralPosts' ? a.positionOfHonour - b.positionOfHonour : name === 'leadershipTerms' ? (Date.parse(b.startDate) || 0) - (Date.parse(a.startDate) || 0) : (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0));
+      return [name, rows] as const;
+    }));
+    return Object.fromEntries(collections) as unknown as DutyServiceData;
+  }
   // ===== UTILITY METHODS =====
 
   /**
@@ -83,6 +121,7 @@ export class DutyServiceService {
   // ===== LEADERSHIP TERMS =====
 
   static async createLeadershipTerm(data: CreateLeadershipTermData): Promise<string> {
+    requireDutyServiceOnline();
     try {
       const termsRef = collection(db, LEADERSHIP_TERMS_COLLECTION);
       const termData = this.filterUndefinedValues({
@@ -90,7 +129,7 @@ export class DutyServiceService {
         isActive: true, // A new term is always active initially
         createdAt: serverTimestamp()
       });
-      const docRef = await addDoc(termsRef, termData);
+      const docRef = await createDutyDocument(termsRef, termData);
       return docRef.id;
     } catch (error) {
       console.error('Error creating leadership term:', error);
@@ -129,9 +168,10 @@ export class DutyServiceService {
   }
 
   static async updateLeadershipTerm(id: string, data: UpdateLeadershipTermData): Promise<void> {
+    requireDutyServiceOnline();
     try {
       const docRef = doc(db, LEADERSHIP_TERMS_COLLECTION, id);
-      await updateDoc(docRef, this.filterUndefinedValues({
+      await updateDutyDocument(docRef, this.filterUndefinedValues({
         ...data,
         updatedAt: serverTimestamp()
       }));
@@ -142,9 +182,10 @@ export class DutyServiceService {
   }
 
   static async deleteLeadershipTerm(id: string): Promise<void> {
+    requireDutyServiceOnline();
     try {
       const docRef = doc(db, LEADERSHIP_TERMS_COLLECTION, id);
-      await deleteDoc(docRef);
+      await deleteDutyDocument(docRef);
     } catch (error) {
       console.error('Error deleting leadership term:', error);
       throw error;
@@ -152,11 +193,12 @@ export class DutyServiceService {
   }
 
   static async terminateLeadershipTerm(id: string): Promise<void> {
+    requireDutyServiceOnline();
     try {
       const docRef = doc(db, LEADERSHIP_TERMS_COLLECTION, id);
       const today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
 
-      await updateDoc(docRef, {
+      await updateDutyDocument(docRef, {
         isActive: false,
         endDate: today,
         updatedAt: serverTimestamp()
@@ -170,6 +212,7 @@ export class DutyServiceService {
   // ===== PREFECTORAL MANAGEMENT =====
 
   static async createPrefectoralPost(data: CreatePrefectoralPostData): Promise<string> {
+    requireDutyServiceOnline();
     try {
       const postsRef = collection(db, PREFECTORAL_POSTS_COLLECTION);
       const postData = this.filterUndefinedValues({
@@ -177,7 +220,7 @@ export class DutyServiceService {
         isActive: true,
         createdAt: serverTimestamp()
       });
-      const docRef = await addDoc(postsRef, postData);
+      const docRef = await createDutyDocument(postsRef, postData);
       return docRef.id;
     } catch (error) {
       console.error('Error creating prefectoral post:', error);
@@ -231,9 +274,10 @@ export class DutyServiceService {
   }
 
   static async updatePrefectoralPost(id: string, data: UpdatePrefectoralPostData): Promise<void> {
+    requireDutyServiceOnline();
     try {
       const docRef = doc(db, PREFECTORAL_POSTS_COLLECTION, id);
-      await updateDoc(docRef, this.filterUndefinedValues({
+      await updateDutyDocument(docRef, this.filterUndefinedValues({
         ...data,
         updatedAt: serverTimestamp()
       }));
@@ -244,9 +288,10 @@ export class DutyServiceService {
   }
 
   static async deletePrefectoralPost(id: string): Promise<void> {
+    requireDutyServiceOnline();
     try {
       const docRef = doc(db, PREFECTORAL_POSTS_COLLECTION, id);
-      await deleteDoc(docRef);
+      await deleteDutyDocument(docRef);
     } catch (error) {
       console.error('Error deleting prefectoral post:', error);
       throw error;
@@ -254,6 +299,7 @@ export class DutyServiceService {
   }
 
   static async assignPupilToPost(data: CreatePostAssignmentData): Promise<string> {
+    requireDutyServiceOnline();
     try {
       // Fetch post to get snapshot name
       const post = await this.getPrefectoralPostById(data.postId);
@@ -266,7 +312,7 @@ export class DutyServiceService {
         isActive: true,
         createdAt: serverTimestamp()
       });
-      const docRef = await addDoc(assignmentsRef, assignmentData);
+      const docRef = await createDutyDocument(assignmentsRef, assignmentData);
       return docRef.id;
     } catch (error) {
       console.error('Error assigning pupil to post:', error);
@@ -307,6 +353,7 @@ export class DutyServiceService {
   // ===== DUTY MANAGEMENT =====
 
   static async createDutyRota(data: CreateDutyRotaData): Promise<string> {
+    requireDutyServiceOnline();
     return (await writeDutySource({operation:'create_rota',data})).id;
   }
 
@@ -363,16 +410,19 @@ export class DutyServiceService {
   }
 
   static async updateDutyRota(id: string, data: UpdateDutyRotaData): Promise<void> {
+    requireDutyServiceOnline();
     await writeDutySource({operation:'update_rota',id,data});
   }
 
 
   static async deleteDutyRota(id: string): Promise<void> {
+    requireDutyServiceOnline();
     await writeDutySource({operation:'delete_rota',id});
   }
 
 
   static async assignMemberToDuty(data: CreateDutyAssignmentData): Promise<string> {
+    requireDutyServiceOnline();
     return (await writeDutySource({operation:'create_assignments',assignments:[data]})).ids[0];
   }
 
@@ -408,19 +458,22 @@ export class DutyServiceService {
   }
 
   static async updateDutyAssignment(id: string, data: Partial<DutyAssignment>): Promise<void> {
+    requireDutyServiceOnline();
     await writeDutySource({operation:'update_assignment',id,data});
   }
 
 
   static async deleteDutyAssignment(id: string): Promise<void> {
+    requireDutyServiceOnline();
     await writeDutySource({operation:'delete_assignment',id});
   }
 
 
   static async deletePostAssignment(id: string): Promise<void> {
+    requireDutyServiceOnline();
     try {
       const docRef = doc(db, POST_ASSIGNMENTS_COLLECTION, id);
-      await deleteDoc(docRef);
+      await deleteDutyDocument(docRef);
     } catch (error) {
       console.error('Error deleting post assignment:', error);
       throw error;
@@ -430,6 +483,7 @@ export class DutyServiceService {
   // ===== OPERATIONS =====
 
   static async createPoll(data: CreatePollData): Promise<string> {
+    requireDutyServiceOnline();
     try {
       const pollsRef = collection(db, POLLS_COLLECTION);
       const pollData = this.filterUndefinedValues({
@@ -439,7 +493,7 @@ export class DutyServiceService {
         results: [],
         createdAt: serverTimestamp()
       });
-      const docRef = await addDoc(pollsRef, pollData);
+      const docRef = await createDutyDocument(pollsRef, pollData);
       return docRef.id;
     } catch (error) {
       console.error('Error creating poll:', error);
@@ -478,6 +532,7 @@ export class DutyServiceService {
   }
 
   static async voteInPoll(pollId: string, voterId: string, voterType: string, votedFor: string): Promise<void> {
+    requireDutyServiceOnline();
     try {
       const docRef = doc(db, POLLS_COLLECTION, pollId);
       const docSnap = await getDoc(docRef);
@@ -507,7 +562,7 @@ export class DutyServiceService {
           percentage: (votes / totalVotes) * 100
         }));
 
-        await updateDoc(docRef, {
+        await updateDutyDocument(docRef, {
           voters: updatedVoters,
           results,
           updatedAt: serverTimestamp()
@@ -522,13 +577,14 @@ export class DutyServiceService {
   // ===== COLLAGE =====
 
   static async createPerformanceRanking(data: CreatePerformanceRankingData): Promise<string> {
+    requireDutyServiceOnline();
     try {
       const rankingsRef = collection(db, PERFORMANCE_RANKINGS_COLLECTION);
       const rankingData = this.filterUndefinedValues({
         ...data,
         createdAt: serverTimestamp()
       });
-      const docRef = await addDoc(rankingsRef, rankingData);
+      const docRef = await createDutyDocument(rankingsRef, rankingData);
       return docRef.id;
     } catch (error) {
       console.error('Error creating performance ranking:', error);
@@ -649,104 +705,7 @@ export class DutyServiceService {
 
   // ===== TIMELINE METHODS =====
 
-  static generateDutyTimeline(rota: DutyRota, assignments: DutyAssignment[]): DutyTimeline {
-    const periods: DutyPeriod[] = [];
-    const startDate = new Date(rota.startDate);
-    const endDate = new Date(rota.endDate);
-    const currentDate = new Date();
-
-    let periodNumber = 1;
-    let currentPeriodStart = new Date(startDate);
-
-    while (currentPeriodStart < endDate) {
-      let periodEnd: Date;
-      let periodName: string;
-
-      switch (rota.frequency) {
-        case 'daily':
-          periodEnd = new Date(currentPeriodStart);
-          periodEnd.setDate(periodEnd.getDate());
-          periodName = `Day ${periodNumber}`;
-          break;
-        case 'weekly':
-          periodEnd = new Date(currentPeriodStart);
-          periodEnd.setDate(periodEnd.getDate() + 6);
-          periodName = `Week ${periodNumber}`;
-          break;
-        case 'monthly':
-          periodEnd = new Date(currentPeriodStart);
-          periodEnd.setMonth(periodEnd.getMonth() + 1);
-          periodEnd.setDate(periodEnd.getDate() - 1);
-          periodName = `Month ${periodNumber}`;
-          break;
-        case 'termly':
-          periodEnd = new Date(endDate);
-          periodName = `Term ${periodNumber}`;
-          break;
-        case 'yearly':
-          periodEnd = new Date(endDate);
-          periodName = `Year ${periodNumber}`;
-          break;
-        default:
-          periodEnd = new Date(currentPeriodStart);
-          periodName = `Period ${periodNumber}`;
-      }
-
-      // Ensure period doesn't exceed the overall end date
-      if (periodEnd > endDate) {
-        periodEnd = new Date(endDate);
-      }
-
-      const periodStartStr = currentPeriodStart.toISOString().split('T')[0];
-      const periodEndStr = periodEnd.toISOString().split('T')[0];
-
-      // Find assignments for this period
-      const periodAssignments = assignments.filter(assignment =>
-        assignment.rotaId === rota.id &&
-        assignment.startDate <= periodEndStr &&
-        assignment.endDate >= periodStartStr
-      );
-
-      const isCompleted = periodEnd < currentDate;
-      const isCurrent = currentPeriodStart <= currentDate && currentDate <= periodEnd;
-      const isUpcoming = currentPeriodStart > currentDate;
-
-      periods.push({
-        periodNumber,
-        startDate: periodStartStr,
-        endDate: periodEndStr,
-        periodName,
-        assignments: periodAssignments,
-        isCompleted,
-        isCurrent,
-        isUpcoming
-      });
-
-      // Move to next period
-      if (rota.frequency === 'termly' || rota.frequency === 'yearly') {
-        break; // Only one period for termly/yearly
-      }
-
-      currentPeriodStart = new Date(periodEnd);
-      currentPeriodStart.setDate(currentPeriodStart.getDate() + 1);
-      periodNumber++;
-    }
-
-    const completedPeriods = periods.filter(p => p.isCompleted).length;
-    const currentPeriod = periods.find(p => p.isCurrent);
-    const upcomingPeriods = periods.filter(p => p.isUpcoming);
-
-    return {
-      rotaId: rota.id,
-      rotaName: rota.dutyName,
-      frequency: rota.frequency,
-      periods,
-      totalPeriods: periods.length,
-      completedPeriods,
-      currentPeriod,
-      upcomingPeriods
-    };
-  }
+  static generateDutyTimeline = generateDutyTimeline;
 
   static async getDutyTimeline(rotaId: string): Promise<DutyTimeline> {
     try {
@@ -768,13 +727,14 @@ export class DutyServiceService {
   }
 
   static async createBulkDutyAssignment(data: CreateBulkDutyAssignmentData): Promise<string[]> {
+    requireDutyServiceOnline();
     try {
       const rota = await this.getDutyRotaById(data.rotaId);
       if (!rota) {
         throw new Error('Duty rota not found');
       }
 
-      const timeline = await this.getDutyTimeline(data.rotaId);
+      const timeline = this.generateDutyTimeline(rota, []);
       const targetPeriod = timeline.periods.find(p => p.periodNumber === data.periodNumber);
 
       if (!targetPeriod) {

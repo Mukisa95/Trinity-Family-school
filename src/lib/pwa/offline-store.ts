@@ -79,7 +79,7 @@ export async function browserOfflineRequest(action: string, data: Record<string,
     const timer = setTimeout(() => controller.abort(), 25_000);
     try {
       const response = await fetch('/api/offline/session', { cache: 'no-store', signal: controller.signal,
-        headers: { Authorization: `Bearer ${String(data.token || '')}`, 'X-Trinity-Offline-Features': 'events' } });
+        headers: { Authorization: `Bearer ${String(data.token || '')}`, 'X-Trinity-Offline-Features': 'events,duty-service' } });
       if (captured !== generation) throw new Error('The account changed during preparation.');
       if (response.status === 401 || response.status === 403) await clearBrowserOfflineAccess();
       if (!response.ok) throw new Error('Connect and sign in to prepare offline access.');

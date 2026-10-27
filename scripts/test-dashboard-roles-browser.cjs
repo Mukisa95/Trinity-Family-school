@@ -131,7 +131,7 @@ async function main() {
     if(process.argv.includes('--column-heights-only')) {
       const layout=()=>page.evaluate(()=>{
         const rect=selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {height:r.height,bottom:r.bottom};};
-        const lastBottom=column=>document.querySelector(`[data-dashboard-column="${column}"]`).lastElementChild.getBoundingClientRect().bottom;
+        const lastBottom=column=>{const node=document.querySelector(`[data-dashboard-column="${column}"]`);return (column==='right'?node:node.lastElementChild).getBoundingClientRect().bottom;};
         return {enrollment:rect('[data-dashboard-enrollment] .theme-dashboard-surface'),plot:rect('[data-enrollment-plot]'),calendar:rect('[data-dashboard-calendar] .theme-dashboard-surface'),calendarGrid:rect('.mini-calendar-wrapper .fc'),calendarContainer:rect('.mini-calendar-wrapper'),bottoms:['enrollment','calendar','right'].map(lastBottom)};
       });
       const aligned=value=>assert.ok(Math.max(...value.bottoms)-Math.min(...value.bottoms)<3,JSON.stringify(value));
@@ -142,15 +142,22 @@ async function main() {
         await page.locator('[data-dashboard-calendar] .fc-view-harness').waitFor();
         await page.getByText('Teachers on duty today',{exact:true}).waitFor();
         await page.waitForTimeout(1400);
+        assert.equal(await page.getByText('Teachers on duty today',{exact:true}).evaluate(element=>element.closest('[data-dashboard-column]').dataset.dashboardColumn),'calendar','desktop duty card is in the second column');
+        const dutyPosition=await page.locator('[data-dashboard-duty-slot]').evaluate(slot=>{
+          const attendance=slot.previousElementSibling.getBoundingClientRect(),duty=slot.getBoundingClientRect(),calendar=slot.nextElementSibling.getBoundingClientRect();
+          return {attendanceBottom:attendance.bottom,dutyTop:duty.top,dutyBottom:duty.bottom,calendarTop:calendar.top};
+        });
+        assert.ok(dutyPosition.dutyTop>=dutyPosition.attendanceBottom+20&&dutyPosition.calendarTop>=dutyPosition.dutyBottom+20,'duty sits directly between attendance and calendar');
         const initial=await layout();aligned(initial);
         assert.ok(initial.plot.height>=200&&initial.calendarContainer.height>=290,JSON.stringify(initial));
         assert.ok(Math.abs(initial.calendarGrid.height-initial.calendarContainer.height)<3,'calendar fills its stretched surface');
         await page.getByRole('button',{name:role==='dos'?'View all 17 teachers':'Show all 7 duties',exact:true}).click();
         await page.waitForTimeout(900);
         const expanded=await layout();aligned(expanded);
-        assert.ok(expanded.plot.height>initial.plot.height+50&&expanded.calendarContainer.height>initial.calendarContainer.height+50,JSON.stringify({initial,expanded}));
+        assert.ok(expanded.plot.height>initial.plot.height+50&&expanded.calendarContainer.height>=290,JSON.stringify({initial,expanded}));
+        if(role==='dos')assert.ok(expanded.calendarContainer.height>initial.calendarContainer.height+50);
+        assert.equal(await page.locator('[data-dashboard-duty-slot]').evaluate(slot=>slot.nextElementSibling.getBoundingClientRect().top>=slot.getBoundingClientRect().bottom+20),true,'expanded duties do not overlap the calendar');
         await page.waitForTimeout(300);const stable=await layout();assert.ok(Math.abs(stable.calendar.height-expanded.calendar.height)<2,'height does not grow in a resize loop');
-        await page.screenshot({path:path.join(output,`matched-columns-${role}-${width}-${theme}.png`),fullPage:true});
         await page.getByRole('button',{name:'Show less',exact:true}).click();await page.waitForTimeout(900);
         const collapsed=await layout();
         if(Math.max(...collapsed.bottoms)-Math.min(...collapsed.bottoms)>=3) {
@@ -160,10 +167,12 @@ async function main() {
           await page.screenshot({path:path.join(output,'column-height-debug.png'),fullPage:true});
         }
         aligned(collapsed);assert.ok(Math.abs(collapsed.calendar.height-initial.calendar.height)<3,JSON.stringify({initial,collapsed}));
+        await page.screenshot({path:path.join(output,`matched-columns-${role}-${width}-${theme}.png`),fullPage:true});
         const title=await page.locator('.fc-toolbar-title').textContent();await page.locator('.fc-prev-button').click();assert.notEqual(await page.locator('.fc-toolbar-title').textContent(),title);
         const beforeResize=apiCalls;
         await page.setViewportSize({width:390,height:844});await page.waitForTimeout(500);
         const mobile=await layout();assert.equal(Math.round(mobile.plot.height),200);assert.equal(Math.round(mobile.calendarContainer.height),290);
+        assert.equal(await page.getByText('Teachers on duty today',{exact:true}).evaluate(element=>element.closest('[data-dashboard-column]').dataset.dashboardColumn),'right','mobile grouping is unchanged');
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
         await page.setViewportSize({width,height:900});await page.waitForTimeout(600);aligned(await layout());
         assert.equal(apiCalls,beforeResize,'layout changes add no endpoint reads');

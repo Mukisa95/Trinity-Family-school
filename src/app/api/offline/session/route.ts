@@ -32,7 +32,10 @@ export async function GET(request: NextRequest) {
       }
     }
     if (hasCircumference(user)) (await scopedPupils(actor)).forEach(pupil => ids.add(pupil.id));
-    return NextResponse.json(createAndroidOfflineSession(user, [...ids], new Date(), { events: request.headers.get('X-Trinity-Offline-Features') === 'events' }), { headers: { 'Cache-Control': 'no-store' } });
+    const features = new Set((request.headers.get('X-Trinity-Offline-Features') || '').split(',').map(value => value.trim()));
+    return NextResponse.json(createAndroidOfflineSession(user, [...ids], new Date(), {
+      events: features.has('events'), dutyService: features.has('duty-service'),
+    }), { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     const message = error instanceof Error ? error.message : '';
     const code = (error as { code?: string })?.code || '';

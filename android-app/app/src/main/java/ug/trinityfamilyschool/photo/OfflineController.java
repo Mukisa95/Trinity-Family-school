@@ -307,7 +307,7 @@ final class OfflineController {
         HttpURLConnection connection = (HttpURLConnection) new URL(PhotoPolicy.ORIGIN + "/api/offline/session").openConnection();
         connection.setInstanceFollowRedirects(false); connection.setConnectTimeout(12000); connection.setReadTimeout(12000);
         connection.setRequestProperty("Authorization", "Bearer " + token); connection.setRequestProperty("Accept", "application/json");
-        connection.setRequestProperty("X-Trinity-Offline-Features", "events");
+        connection.setRequestProperty("X-Trinity-Offline-Features", "events,duty-service");
         try {
             int status = connection.getResponseCode();
             if (status != 200) diagnostics.record("offline_session_http_" + status, 0);
@@ -336,7 +336,7 @@ final class OfflineController {
                 if (snapshot != null) {
                     status.put("capturedAt", snapshot.optString("capturedAt"));
                     JSONObject data = snapshot.optJSONObject("datasets"), present = new JSONObject();
-                    for (String name : new String[]{"pupils", "classes", "academicYears", "dashboard", "timetables", "subjects", "teachers", "parent"})
+                    for (String name : new String[]{"pupils", "classes", "academicYears", "dashboard", "timetables", "subjects", "teachers", "events", "dutyService", "parent"})
                         present.put(name, data != null && data.has(name));
                     status.put("datasets", present);
                 }

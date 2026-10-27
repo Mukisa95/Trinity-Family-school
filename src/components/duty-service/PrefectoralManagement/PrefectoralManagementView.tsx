@@ -1,10 +1,14 @@
 'use client';
 
+import { DutyOnlineAction } from '@/components/duty-service/DutyOnlineAction';
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { List as TabsList, Trigger as TabsTrigger } from '@radix-ui/react-tabs';
+import { GlassActionButton } from '@/components/common/glass-page-top-bar';
+import { GlassNavigationSurface } from '@/components/common/glass-navigation-surface';
 import {
   Crown,
   Users,
@@ -131,7 +135,7 @@ const PostCard: React.FC<PostCardProps> = ({
           )}
 
           {/* Three-dot Menu */}
-          <DropdownMenu>
+          <DutyOnlineAction><DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
@@ -155,7 +159,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 {isDeleting ? 'Deleting...' : 'Delete Post'}
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu></DutyOnlineAction>
 
           {/* Content */}
           <CardContent className="p-1 h-full flex flex-col justify-center">
@@ -223,7 +227,7 @@ const PostCard: React.FC<PostCardProps> = ({
         )}
 
         {/* Three-dot Menu */}
-        <DropdownMenu>
+        <DutyOnlineAction><DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
@@ -247,7 +251,7 @@ const PostCard: React.FC<PostCardProps> = ({
               {isDeleting ? 'Deleting...' : 'Delete Post'}
             </DropdownMenuItem>
           </DropdownMenuContent>
-        </DropdownMenu>
+        </DropdownMenu></DutyOnlineAction>
 
         {/* Information Strip */}
         <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm p-0.5">
@@ -350,15 +354,15 @@ const ListView: React.FC<{
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button
+                      <DutyOnlineAction><Button
                         size="sm"
                         variant="outline"
                         onClick={() => onAssignPupil(post)}
                       >
                         <Plus className="h-4 w-4 mr-1" />
                         Assign
-                      </Button>
-                      <Button
+                      </Button></DutyOnlineAction>
+                      <DutyOnlineAction><Button
                         size="sm"
                         variant="outline"
                         onClick={() => onDeletePost(post)}
@@ -366,7 +370,7 @@ const ListView: React.FC<{
                         className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                       >
                         <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </Button></DutyOnlineAction>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -446,6 +450,7 @@ export function PrefectoralManagementView({
   selectedTermId
 }: PrefectoralManagementViewProps) {
   const pdfViewer = usePDFViewer();
+  const [view, setView] = useState('tree');
   const [selectedPostForAssignment, setSelectedPostForAssignment] = useState<PrefectoralPost | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showPrintViewModal, setShowPrintViewModal] = useState(false);
@@ -512,36 +517,26 @@ export function PrefectoralManagementView({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold">Prefectoral Management</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <h2 className="text-lg font-bold sm:text-2xl">Prefectoral Management</h2>
           {selectedTerm && selectedTerm.isActive && selectedTerm.endDateType === 'open' && (
-            <Button onClick={handleTerminateTerm} disabled={terminateTermMutation.isPending} variant="destructive" size="sm" className="h-8">
+            <DutyOnlineAction><Button onClick={handleTerminateTerm} disabled={terminateTermMutation.isPending} variant="destructive" size="sm" className="h-8">
               {terminateTermMutation.isPending ? 'Terminating...' : 'Terminate Open Term'}
-            </Button>
+            </Button></DutyOnlineAction>
           )}
         </div>
-        <Button onClick={handlePrintClick} className="flex items-center gap-2">
-          <Printer className="h-4 w-4" />
-          Print
-        </Button>
       </div>
 
-      <Tabs defaultValue="tree" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="tree" className="flex items-center gap-2">
-            <Network className="h-4 w-4" />
-            Tree View
-          </TabsTrigger>
-          <TabsTrigger value="minimized" className="flex items-center gap-2">
-            <Minimize className="h-4 w-4" />
-            Compact Tree
-          </TabsTrigger>
-          <TabsTrigger value="list" className="flex items-center gap-2">
-            <List className="h-4 w-4" />
-            List View
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={view} onValueChange={setView} className="w-full">
+        <GlassNavigationSurface label="Prefectoral views" compactOnDesktop>
+          <TabsList aria-label="Prefectoral layout" className="flex items-center">
+            <TabsTrigger value="tree" asChild><GlassActionButton label="Tree" aria-label="Tree View" icon={<Network className="h-4 w-4" />} active={view === 'tree'} /></TabsTrigger>
+            <TabsTrigger value="minimized" asChild><GlassActionButton label="Compact" aria-label="Compact Tree" icon={<Minimize className="h-4 w-4" />} active={view === 'minimized'} /></TabsTrigger>
+            <TabsTrigger value="list" asChild><GlassActionButton label="List" aria-label="List View" icon={<List className="h-4 w-4" />} active={view === 'list'} /></TabsTrigger>
+          </TabsList>
+          <GlassActionButton label="Print" aria-label="Print prefects" icon={<Printer className="h-4 w-4" />} onClick={handlePrintClick} />
+        </GlassNavigationSurface>
 
         <TabsContent value="tree" className="mt-6">
           <TreeView
