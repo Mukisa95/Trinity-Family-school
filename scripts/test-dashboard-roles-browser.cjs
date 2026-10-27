@@ -132,7 +132,7 @@ async function main() {
       const layout=()=>page.evaluate(()=>{
         const rect=selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {height:r.height,bottom:r.bottom};};
         const lastBottom=column=>{const node=document.querySelector(`[data-dashboard-column="${column}"]`);return (column==='right'?node:node.lastElementChild).getBoundingClientRect().bottom;};
-        return {enrollment:rect('[data-dashboard-enrollment] .theme-dashboard-surface'),plot:rect('[data-enrollment-plot]'),calendar:rect('[data-dashboard-calendar] .theme-dashboard-surface'),calendarGrid:rect('.mini-calendar-wrapper .fc'),calendarContainer:rect('.mini-calendar-wrapper'),bottoms:['enrollment','calendar','right'].map(lastBottom)};
+        return {enrollment:rect('[data-dashboard-enrollment] .theme-dashboard-surface'),attendance:rect('[data-dashboard-column="calendar"] > div:first-child .theme-dashboard-surface'),plot:rect('[data-enrollment-plot]'),calendar:rect('[data-dashboard-calendar] .theme-dashboard-surface'),calendarGrid:rect('.mini-calendar-wrapper .fc'),calendarContainer:rect('.mini-calendar-wrapper'),bottoms:['calendar','right'].map(lastBottom)};
       });
       const aligned=value=>assert.ok(Math.max(...value.bottoms)-Math.min(...value.bottoms)<3,JSON.stringify(value));
       for(const role of ['dos','admin'])for(const width of [1024,1440])for(const theme of ['light','dark']) {
@@ -149,12 +149,17 @@ async function main() {
         });
         assert.ok(dutyPosition.dutyTop>=dutyPosition.attendanceBottom+20&&dutyPosition.calendarTop>=dutyPosition.dutyBottom+20,'duty sits directly between attendance and calendar');
         const initial=await layout();aligned(initial);
-        assert.ok(initial.plot.height>=200&&initial.calendarContainer.height>=290,JSON.stringify(initial));
+        assert.equal(Math.round(initial.plot.height),200);
+        assert.ok(Math.abs(initial.enrollment.height-initial.attendance.height)<2,'enrollment and attendance cards have matching heights');
+        assert.ok(initial.calendarContainer.height>=290,JSON.stringify(initial));
         assert.ok(Math.abs(initial.calendarGrid.height-initial.calendarContainer.height)<3,'calendar fills its stretched surface');
         await page.getByRole('button',{name:role==='dos'?'View all 17 teachers':'Show all 7 duties',exact:true}).click();
         await page.waitForTimeout(900);
         const expanded=await layout();aligned(expanded);
-        assert.ok(expanded.plot.height>initial.plot.height+50&&expanded.calendarContainer.height>=290,JSON.stringify({initial,expanded}));
+        assert.equal(expanded.plot.height,initial.plot.height,'enrollment chart stays compact when other cards expand');
+        assert.equal(expanded.enrollment.height,initial.enrollment.height);
+        assert.ok(Math.abs(expanded.enrollment.height-expanded.attendance.height)<2,'chart heights remain matched');
+        assert.ok(expanded.calendarContainer.height>=290,JSON.stringify({initial,expanded}));
         if(role==='dos')assert.ok(expanded.calendarContainer.height>initial.calendarContainer.height+50);
         assert.equal(await page.locator('[data-dashboard-duty-slot]').evaluate(slot=>slot.nextElementSibling.getBoundingClientRect().top>=slot.getBoundingClientRect().bottom+20),true,'expanded duties do not overlap the calendar');
         await page.waitForTimeout(300);const stable=await layout();assert.ok(Math.abs(stable.calendar.height-expanded.calendar.height)<2,'height does not grow in a resize loop');
@@ -177,7 +182,7 @@ async function main() {
         await page.setViewportSize({width,height:900});await page.waitForTimeout(600);aligned(await layout());
         assert.equal(apiCalls,beforeResize,'layout changes add no endpoint reads');
         assert.deepEqual(errors,[]);
-        console.log(`PASS matched enrollment/calendar heights, live expand/collapse, real calendar navigation and compact mobile ${role} ${width}px ${theme}`);
+        console.log(`PASS symmetric enrollment/attendance cards, balanced calendar column, live expand/collapse and compact mobile ${role} ${width}px ${theme}`);
       }
       return;
     }

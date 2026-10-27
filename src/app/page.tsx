@@ -1468,10 +1468,9 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
       data-dashboard-enrollment
     >
-      <Card className="theme-dashboard-surface dashboard-themed-card h-full rounded-xl transition-all duration-300 relative group overflow-visible lg:flex lg:min-h-0 lg:flex-1 lg:flex-col" style={{
+      <Card className="theme-dashboard-surface dashboard-themed-card rounded-xl transition-all duration-300 relative group overflow-visible" style={{
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
         transform: 'translateZ(0)',
         background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(249, 250, 251, 1) 100%)',
@@ -1495,15 +1494,15 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
               variant="ghost"
               size="sm"
               onClick={() => router.push('/classes')}
-              className="text-brand-alt-ink-600 hover:text-brand-alt-ink-700 hover:bg-brand-alt-surface-50 dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-300 dark:hover:bg-brand-alt-surface-950/40"
+              className="text-brand-alt-ink-600 hover:text-brand-alt-ink-700 hover:bg-brand-alt-surface-50 lg:h-auto lg:p-1 dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-300 dark:hover:bg-brand-alt-surface-950/40"
             >
               View All
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="relative z-20 px-2 pb-2 pt-0 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
-          <div className="h-[200px] lg:h-0 lg:min-h-[200px] lg:flex-1" data-enrollment-plot>
+        <CardContent className="relative z-20 px-2 pb-2 pt-0">
+          <div className="h-[200px]" data-enrollment-plot>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 25, right: 10, left: 0, bottom: 0 }}>
                 <defs>
@@ -2659,9 +2658,8 @@ export default function DashboardPage() {
           </div>
           <div className="order-6 lg:order-none lg:col-span-full"><PhotoSlideshow photos={photos || []} /></div>
         </motion.div> : <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6" data-school-dashboard-grid>
-          {/* Contain resizable plots so their previous height cannot prevent the columns shrinking. */}
-          <div className="contents lg:flex lg:min-h-[600px] lg:flex-col lg:gap-6 lg:[contain:size]" data-dashboard-column="enrollment">
-            {canViewClassEnrollment && <div className="order-5 lg:flex lg:min-h-[268px] lg:flex-1 lg:flex-col lg:order-none"><ClassEnrollmentChart classes={classes} pupils={pupils} /></div>}
+          <div className="contents lg:flex lg:flex-col lg:gap-6" data-dashboard-column="enrollment">
+            {canViewClassEnrollment && <div className="order-5 lg:order-none"><ClassEnrollmentChart classes={classes} pupils={pupils} /></div>}
             {trackerViewport === 'mobile' && <div className="order-4 lg:order-none"><DashboardLiveTracker /></div>}
             <div className="order-8 lg:order-none"><PhotoSlideshow photos={photos || []} /></div>
           </div>
