@@ -455,6 +455,15 @@ service cloud.firestore {
     // Linked staff watch their own counters; administrators can watch a
     // selected staff profile. Attendance itself remains server-authorized.
     // These documents contain no clock times, leave reasons or staff names.
+    // Duty source writes affect authoritative attendance and use the permission-checked API.
+    match /dutyRotas/{id} {
+      allow read: if isUnrestrictedStaffOrAdmin();
+      allow write: if false;
+    }
+    match /dutyAssignments/{id} {
+      allow read: if isUnrestrictedStaffOrAdmin();
+      allow write: if false;
+    }
     match /staffClockingPersonalRevisions/{staffId} {
       allow get: if isActiveApplicationUser()
         && request.auth.token.role in ['Staff', 'Admin']
@@ -556,6 +565,8 @@ service cloud.firestore {
         && collection != 'schoolPaySyncLogs'
         && collection != 'schoolPayPaymentMappings'
         && collection != 'staffClockingSettings'
+        && collection != 'dutyRotas'
+        && collection != 'dutyAssignments'
         && collection != 'staffClockingPersonalRevisions'
         && collection != 'staffClockingExplanations'
         && collection != 'staffClockingSchedules'

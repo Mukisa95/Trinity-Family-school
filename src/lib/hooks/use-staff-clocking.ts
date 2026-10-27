@@ -144,7 +144,7 @@ export function useOwnStaffClockingDashboard(enabled: boolean) {
   const revisions = useStaffClockingPersonalRevisions(enabled);
   const day = useSchoolDay(enabled);
   const dates = revisions.data?.dates || {};
-  const schedule = useClockingQuery([...STAFF_CLOCKING_QUERY_KEYS.myDashboard(), 'schedule'], () => requestStaffClocking<StaffClockingPersonalSchedule>('/api/staff-clocking/my-dashboard?part=schedule'), enabled, ['staffClockingConfig', 'staff', 'events'], day);
+  const schedule = useClockingQuery([...STAFF_CLOCKING_QUERY_KEYS.myDashboard(), 'schedule'], () => requestStaffClocking<StaffClockingPersonalSchedule>('/api/staff-clocking/my-dashboard?part=schedule'), enabled, ['staffClockingConfig', 'staff', 'events', 'staffClockingDuty'], day);
   const status = useClockingQuery([...STAFF_CLOCKING_QUERY_KEYS.myDashboard(), 'status'], () => requestStaffClocking<{localDate: string; record?: StaffClockingDailyRecord}>('/api/staff-clocking/my-dashboard?part=status'), enabled && !!revisions.data, [], day, String(dates[day] || 0));
   // A scan today cannot change the previous five days. Corrections to older
   // dates and the next school day reconcile history independently.

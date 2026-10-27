@@ -29,7 +29,7 @@ function detailOptions<T>(scope: string, staffId: string, part: string, revision
 }
 export function useStaffClockingDetail<T>(staffId: string, part: 'profile' | 'plan' | 'today' | 'exemptions' | 'requests' | 'audit', enabled: boolean, range?: DetailRange, cursor?: string) {
   const context = useDetailContext(staffId, enabled);
-  const revision = JSON.stringify(part === 'profile' ? [context.shared.data?.staff] : part === 'plan' ? [context.shared.data?.staff, context.shared.data?.staffClockingConfig, context.shared.data?.events] : part === 'today' ? [context.dates({ from: context.today, to: context.today })] : [context.dates(range), context.scoped ? context.personal.data?.requests || 0 : context.shared.data?.staffClockingRequests]);
+  const revision = JSON.stringify(part === 'profile' ? [context.shared.data?.staff] : part === 'plan' ? [context.shared.data?.staff, context.shared.data?.staffClockingConfig, context.shared.data?.events, context.shared.data?.staffClockingDuty || 0] : part === 'today' ? [context.dates({ from: context.today, to: context.today })] : [context.dates(range), context.scoped ? context.personal.data?.requests || 0 : context.shared.data?.staffClockingRequests]);
   const query = useQuery<T>(detailOptions<T>(context.scope, staffId, part, revision, enabled && context.ready, part === 'today' ? { from: context.today, to: context.today } : range, cursor));
   return { ...query, synchronizationError: context.personal.error, revision };
 }

@@ -1,4 +1,4 @@
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import {
   collection,
   addDoc,
@@ -53,6 +53,16 @@ const DUTY_ASSIGNMENTS_COLLECTION = 'dutyAssignments';
 const DUTY_ASSESSMENTS_COLLECTION = 'dutyAssessments';
 const POLLS_COLLECTION = 'polls';
 const PERFORMANCE_RANKINGS_COLLECTION = 'performanceRankings';
+
+async function writeDutySource(input: Record<string, unknown>): Promise<{id:string;ids:string[]}> {
+  const owner = auth.currentUser?.uid, token = await auth.currentUser?.getIdToken();
+  if (!owner || !token) throw new Error('Sign in before changing duty records.');
+  const response = await fetch('/api/duty-service/clocking-source', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(input), cache: 'no-store' });
+  const body = await response.json();
+  if (auth.currentUser?.uid !== owner) throw new Error('Your account changed. Open Duty & Service again.');
+  if (!response.ok || !body.success) throw new Error(body.error || 'Could not save the duty record.');
+  return body.result;
+}
 
 export class DutyServiceService {
   // ===== UTILITY METHODS =====
@@ -297,21 +307,9 @@ export class DutyServiceService {
   // ===== DUTY MANAGEMENT =====
 
   static async createDutyRota(data: CreateDutyRotaData): Promise<string> {
-    try {
-      const rotasRef = collection(db, DUTY_ROTAS_COLLECTION);
-      const rotaData = this.filterUndefinedValues({
-        ...data,
-        isActive: true,
-        isMarked: data.isMarked || false,
-        createdAt: serverTimestamp()
-      });
-      const docRef = await addDoc(rotasRef, rotaData);
-      return docRef.id;
-    } catch (error) {
-      console.error('Error creating duty rota:', error);
-      throw error;
-    }
+    return (await writeDutySource({operation:'create_rota',data})).id;
   }
+
 
   static async getDutyRotas(academicYearId?: string): Promise<DutyRota[]> {
     try {
@@ -365,45 +363,19 @@ export class DutyServiceService {
   }
 
   static async updateDutyRota(id: string, data: UpdateDutyRotaData): Promise<void> {
-    try {
-      const docRef = doc(db, DUTY_ROTAS_COLLECTION, id);
-      await updateDoc(docRef, this.filterUndefinedValues({
-        ...data,
-        updatedAt: serverTimestamp()
-      }));
-    } catch (error) {
-      console.error('Error updating duty rota:', error);
-      throw error;
-    }
+    await writeDutySource({operation:'update_rota',id,data});
   }
+
 
   static async deleteDutyRota(id: string): Promise<void> {
-    try {
-      const docRef = doc(db, DUTY_ROTAS_COLLECTION, id);
-      await deleteDoc(docRef);
-    } catch (error) {
-      console.error('Error deleting duty rota:', error);
-      throw error;
-    }
+    await writeDutySource({operation:'delete_rota',id});
   }
 
-  // ===== DUTY ASSESSMENT =====
 
   static async assignMemberToDuty(data: CreateDutyAssignmentData): Promise<string> {
-    try {
-      const assignmentsRef = collection(db, DUTY_ASSIGNMENTS_COLLECTION);
-      const assignmentData = this.filterUndefinedValues({
-        ...data,
-        isActive: true,
-        createdAt: serverTimestamp()
-      });
-      const docRef = await addDoc(assignmentsRef, assignmentData);
-      return docRef.id;
-    } catch (error) {
-      console.error('Error assigning member to duty:', error);
-      throw error;
-    }
+    return (await writeDutySource({operation:'create_assignments',assignments:[data]})).ids[0];
   }
+
 
   static async getDutyAssignments(rotaId?: string): Promise<DutyAssignment[]> {
     try {
@@ -436,27 +408,14 @@ export class DutyServiceService {
   }
 
   static async updateDutyAssignment(id: string, data: Partial<DutyAssignment>): Promise<void> {
-    try {
-      const docRef = doc(db, DUTY_ASSIGNMENTS_COLLECTION, id);
-      await updateDoc(docRef, this.filterUndefinedValues({
-        ...data,
-        updatedAt: serverTimestamp()
-      }));
-    } catch (error) {
-      console.error('Error updating duty assignment:', error);
-      throw error;
-    }
+    await writeDutySource({operation:'update_assignment',id,data});
   }
 
+
   static async deleteDutyAssignment(id: string): Promise<void> {
-    try {
-      const docRef = doc(db, DUTY_ASSIGNMENTS_COLLECTION, id);
-      await deleteDoc(docRef);
-    } catch (error) {
-      console.error('Error deleting duty assignment:', error);
-      throw error;
-    }
+    await writeDutySource({operation:'delete_assignment',id});
   }
+
 
   static async deletePostAssignment(id: string): Promise<void> {
     try {
@@ -822,23 +781,13 @@ export class DutyServiceService {
         throw new Error('Period not found');
       }
 
-      const assignmentIds: string[] = [];
-
-      for (const assignmentData of data.assignments) {
-        const assignmentId = await this.assignMemberToDuty({
-          rotaId: data.rotaId,
-          memberId: assignmentData.memberId,
-          memberType: assignmentData.memberType,
-          startDate: targetPeriod.startDate,
-          endDate: targetPeriod.endDate,
-          isSupervisor: assignmentData.isSupervisor,
-          service: data.service,
-          isActive: true,
-        });
-        assignmentIds.push(assignmentId);
-      }
-
-      return assignmentIds;
+      if (!data.assignments.length) return [];
+      const assignments = data.assignments.map(assignment => ({
+        rotaId: data.rotaId, memberId: assignment.memberId, memberType: assignment.memberType,
+        startDate: targetPeriod.startDate, endDate: targetPeriod.endDate,
+        isSupervisor: assignment.isSupervisor, service: data.service, isActive: true,
+      }));
+      return (await writeDutySource({operation:'create_assignments',assignments})).ids;
     } catch (error) {
       console.error('Error creating bulk duty assignment:', error);
       throw error;

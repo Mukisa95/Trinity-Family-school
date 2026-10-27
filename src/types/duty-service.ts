@@ -51,6 +51,9 @@ export interface PostAssignment {
 export interface DutyRota {
   id: string;
   dutyName: string;
+  /** Optional school-local clocking overrides for staff assigned to this rota. Blank retains their normal time. */
+  staffArrivalTime?: string;
+  staffDepartureTime?: string;
   teamsInvolved: TeamType[];
   frequency: DutyFrequency;
   startDate: string;

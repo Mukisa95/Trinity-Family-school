@@ -22,7 +22,7 @@ let engine;
 before(async () => {
   process.env.STAFF_CLOCKING_QR_SECRET = 'local-test-signing-secret-with-at-least-32-characters';
   const result = await build({
-    stdin: { contents: "export * from './src/lib/server/staff-clocking/index'; export * from './src/lib/staff-clocking/export'; export * from './src/lib/server/staff-clocking/staff-details';", resolveDir: process.cwd(), loader: 'ts' },
+    stdin: { contents: "export * from './src/lib/server/staff-clocking/index'; export * from './src/lib/staff-clocking/export'; export * from './src/lib/server/staff-clocking/staff-details'; export * from './src/lib/server/staff-clocking/duty-management';", resolveDir: process.cwd(), loader: 'ts' },
     bundle: true, write: false, platform: 'node', format: 'cjs', packages: 'external',
     plugins: [{ name: 'server-marker-for-node-tests', setup(builder) {
       builder.onResolve({ filter: /^server-only$/ }, () => ({ path: 'server-only', namespace: 'test-marker' }));
@@ -36,7 +36,7 @@ before(async () => {
 });
 
 beforeEach(async () => {
-  for (const collection of ['system_users', 'staff', 'events', 'settings', 'historyLogs', ...Object.values(engine.STAFF_CLOCKING_COLLECTIONS)]) {
+  for (const collection of ['dutyRotas', 'dutyAssignments', 'system_users', 'staff', 'events', 'settings', 'historyLogs', ...Object.values(engine.STAFF_CLOCKING_COLLECTIONS)]) {
     const snapshot = await db.collection(collection).get();
     for (let offset = 0; offset < snapshot.size; offset += 400) {
       const batch = db.batch(); snapshot.docs.slice(offset, offset + 400).forEach(document => batch.delete(document.ref)); await batch.commit();
@@ -53,6 +53,79 @@ async function scanInput(operationId = 'test_operation_001') {
   const session = await engine.issueStaffClockingQrSession(db, manager);
   return { token: session.token, operationId };
 }
+
+async function seedDuty({ staffId = 'staff-one', memberType = 'staff', assignmentActive = true, rotaActive = true, startDate = day, endDate = day } = {}) {
+  await db.collection('dutyRotas').doc('gate-duty').set({ dutyName: 'Weekly gate duty', teamsInvolved: ['staff'], isActive: rotaActive, startDate, endDate, staffArrivalTime: '06:30', staffDepartureTime: '18:30', createdAt: Timestamp.now() });
+  await db.collection('dutyAssignments').doc('duty-assignment').set({ rotaId: 'gate-duty', memberId: staffId, memberType, isActive: assignmentActive, startDate, endDate, createdAt: Timestamp.now() });
+}
+
+test('duty writes require management permissions and publish source data and one schedule revision atomically', async () => {
+  const data = {dutyName:'Weekly staff duty',teamsInvolved:['staff'],frequency:'weekly',startDate:day,endDate:day,allowances:{staff:0,prefects:0,pupils:0},academicYearId:'2026',isActive:true,staffArrivalTime:'06:30',staffDepartureTime:'18:30'};
+  await assert.rejects(engine.manageClockingDutySource(db,staff,{operation:'create_rota',data}),/PERMISSION_DENIED/);
+  const delegated = {user:{...staff.user,id:'duty-manager',granularPermissions:[{moduleId:'duty_service',pages:[{pageId:'list',canAccess:true,actions:[{actionId:'assign_duties',allowed:true},{actionId:'edit_assignments',allowed:true}]}]}]}};
+  const rota = await engine.manageClockingDutySource(db,delegated,{operation:'create_rota',data});
+  const revision = async () => (await db.collection('settings').doc('data-revisions-operational').get()).data()?.staffClockingDuty || 0;
+  assert.equal(await revision(),1); assert.equal((await db.collection('dutyRotas').doc(rota.id).get()).data().createdBy,'duty-manager');
+  const assignments = await engine.manageClockingDutySource(db,delegated,{operation:'create_assignments',assignments:[{rotaId:rota.id,memberId:'staff-one',memberType:'staff',startDate:day,endDate:day,isActive:true,isSupervisor:false},{rotaId:rota.id,memberId:'staff-one',memberType:'staff',startDate:day,endDate:day,isActive:true,isSupervisor:true}]});
+  assert.equal(await revision(),2,'A bulk assignment publishes one revision');
+  assert.equal(assignments.ids.length,2);
+  await engine.manageClockingDutySource(db,delegated,{operation:'update_assignment',id:assignments.ids[0],data:{notes:'Good performance'}});
+  await engine.manageClockingDutySource(db,delegated,{operation:'update_rota',id:rota.id,data:{allowances:{staff:200,prefects:0,pupils:0}}});
+  assert.equal(await revision(),2,'Notes and allowances cannot invalidate teacher schedules');
+  await assert.rejects(engine.manageClockingDutySource(db,delegated,{operation:'update_rota',id:rota.id,data:{staffArrivalTime:'19:00'}}),/departure must be later/);
+  assert.equal(await revision(),2);
+  await engine.manageClockingDutySource(db,delegated,{operation:'update_rota',id:rota.id,data:{staffArrivalTime:'',staffDepartureTime:''}});
+  assert.equal(await revision(),3); assert.equal((await engine.getOwnStaffClockingDashboard(db,staff,'schedule')).schedule.duty,undefined);
+  await engine.manageClockingDutySource(db,delegated,{operation:'delete_assignment',id:assignments.ids[0]});
+  assert.equal((await db.collection('dutyAssignments').doc(assignments.ids[0]).get()).exists,false);
+});
+
+test('invalid bulk duty assignments leave no partial staff records or revision changes', async () => {
+  const rota = await engine.manageClockingDutySource(db,manager,{operation:'create_rota',data:{dutyName:'Gate',teamsInvolved:['staff'],frequency:'weekly',startDate:day,endDate:day,allowances:{staff:0,prefects:0,pupils:0},academicYearId:'2026',isActive:true,staffArrivalTime:'06:30'}});
+  await assert.rejects(engine.manageClockingDutySource(db,manager,{operation:'create_assignments',assignments:[{rotaId:rota.id,memberId:'staff-one',memberType:'staff',startDate:day,endDate:day,isActive:true,isSupervisor:false},{rotaId:rota.id,memberId:'missing-staff',memberType:'staff',startDate:day,endDate:day,isActive:true,isSupervisor:false}]}),/active duty member/);
+  assert.equal((await db.collection('dutyAssignments').get()).size,0);
+  assert.equal((await db.collection('settings').doc('data-revisions-operational').get()).data().staffClockingDuty,1);
+});
+
+test('duty timings are identical in personal dashboard, individual plan and authoritative scan snapshots', async () => {
+  await db.collection('staffClockingSchedules').doc('school-default').update({ clockOutBy: '17:00' });
+  await seedDuty();
+  const dashboard = await engine.getOwnStaffClockingDashboard(db, staff, 'schedule');
+  assert.equal(dashboard.schedule.clockInBy, '06:30'); assert.equal(dashboard.schedule.clockOutBy, '18:30');
+  assert.equal(dashboard.schedule.duty.assignments[0].dutyName, 'Weekly gate duty');
+  assert.equal(dashboard.schedule.duty.normalClockInBy, '08:00');
+  const plan = await engine.getIndividualClockingPlan(db, staff, 'staff-one');
+  assert.equal(plan.duties.length, 1); assert.equal(plan.duties[0].staffId, 'staff-one');
+  const scan = await engine.recordStaffClockingScan(db, staff, await scanInput('duty_arrival_operation'));
+  assert.equal(scan.record.clockInBy, '06:30'); assert.equal(scan.record.clockOutBy, '18:30');
+  assert.equal(scan.record.scheduleSnapshot.duty.assignments[0].id, 'duty-assignment');
+  assert.equal(scan.record.scheduleSnapshot.clockOutBy, dashboard.schedule.clockOutBy);
+  await db.collection('dutyRotas').doc('gate-duty').update({ staffArrivalTime: '07:00', staffDepartureTime: '19:00' });
+  await daily().update({ clockInAt: Timestamp.fromMillis(Date.now() - 120000) });
+  const departure = await engine.recordStaffClockingScan(db, staff, await scanInput('duty_departure_operation'));
+  assert.equal(departure.record.clockOutBy, '18:30');
+  assert.equal(departure.record.scheduleSnapshot.duty.normalClockInBy, '08:00');
+  assert.equal(departure.record.scheduleSnapshot.clockInBy, '06:30');
+});
+
+test('unassigned staff, non-staff teams, inactive or removed duty rotas keep the normal schedule', async () => {
+  for (const options of [{staffId:'someone-else'}, {memberType:'pupils'}, {assignmentActive:false}, {rotaActive:false}]) {
+    await seedDuty(options);
+    const result = await engine.getOwnStaffClockingDashboard(db, staff, 'schedule');
+    assert.equal(result.schedule.clockInBy, '08:00'); assert.equal(result.schedule.duty, undefined);
+  }
+  await seedDuty(); await db.collection('dutyRotas').doc('gate-duty').delete();
+  assert.equal((await engine.getOwnStaffClockingDashboard(db, staff, 'schedule')).schedule.duty, undefined);
+});
+
+test('duty assignment dates are clipped to the rota and preserve school-local ISO instant bounds', async () => {
+  await seedDuty({ startDate: `${day}T00:00:00.000Z`, endDate: `${day}T20:59:59.999Z` });
+  const result = await engine.getOwnStaffClockingDashboard(db, staff, 'schedule');
+  assert.equal(result.schedule.clockInBy, '06:30');
+  assert.equal(result.schedule.duty.assignments[0].startsOn, day); assert.equal(result.schedule.duty.assignments[0].endsOn, day);
+  await db.collection('dutyAssignments').doc('duty-assignment').update({ startDate: '2020-01-01', endDate: '2099-12-31' });
+  assert.equal((await engine.getIndividualClockingPlan(db, staff, 'staff-one')).duties[0].startsOn, day);
+});
 async function seedDay(extra = {}) {
   await daily().set({ staffId: 'staff-one', accountId: staff.user.id, localDate: day, clockInAt: Timestamp.fromMillis(Date.now() - 120_000), clockInTime: '09:00:00', clockInBy: '08:00', graceMinutes: 10, arrivalStatus: 'late', secondsLate: 3600, status: 'open', ...extra });
 }

@@ -19,6 +19,15 @@ import {
 const projectId = 'demo-trinity-firestore-rules';
 let testEnv;
 
+test('staff clocking duty sources reject direct browser writes, including administrator SDK clients', async () => {
+  const admin = testEnv.authenticatedContext('active-admin',{role:'Admin'}).firestore();
+  const staff = testEnv.authenticatedContext('active-staff',{role:'Staff'}).firestore();
+  for (const name of ['dutyRotas','dutyAssignments']) {
+    await assertFails(setDoc(doc(admin,name,'forged'),{staffArrivalTime:'12:00'}));
+    await assertFails(setDoc(doc(staff,name,'forged'),{memberId:'staff-one',isActive:true}));
+  }
+});
+
 before(async () => {
   testEnv = await initializeTestEnvironment({
     projectId,

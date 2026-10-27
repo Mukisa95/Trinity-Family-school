@@ -9,7 +9,7 @@
 export const STAFF_CLOCKING_TIME_ZONE = 'Africa/Kampala' as const;
 
 export const STAFF_CLOCKING_REVISION_KEYS = [
-  'staffClockingConfig', 'staffClockingRecords', 'staffClockingRequests', 'staffClockingNotifications', 'staffClockingTimekeepers',
+  'staffClockingConfig', 'staffClockingDuty', 'staffClockingRecords', 'staffClockingRequests', 'staffClockingNotifications', 'staffClockingTimekeepers',
 ] as const;
 export type StaffClockingRevisionKey = typeof STAFF_CLOCKING_REVISION_KEYS[number];
 
@@ -58,7 +58,7 @@ export interface StaffClockingDailyRecord {
   clockOutAt?: string;
   scheduleScope?: string;
   latenessExcused?: boolean;
-  scheduleSnapshot?: { clockInBy: string; clockOutBy?: string; graceMinutes: number; scope?: string; kind?: string; groups: string[] };
+  scheduleSnapshot?: { clockInBy: string; clockOutBy?: string; graceMinutes: number; scope?: string; kind?: string; groups: string[]; duty?: StaffClockingDutyAdjustment };
   graceMinutes?: number;
   updatedAt?: string;
   reviewStatus?: 'corrected' | 'exempted';
@@ -94,7 +94,7 @@ export interface StaffClockingPersonalRevisions {
 export interface StaffClockingPersonalSchedule {
   staff: { id: string; name: string; group?: string };
   localDate: string;
-  schedule: { kind: string; clockInBy?: string; clockOutBy?: string; graceMinutes?: number; sourceScope?: string; reason?: string };
+  schedule: { kind: string; clockInBy?: string; clockOutBy?: string; graceMinutes?: number; sourceScope?: string; reason?: string; duty?: StaffClockingDutyAdjustment };
   calendar?: { isClosed: boolean; label?: string };
 }
 
@@ -149,6 +149,7 @@ export interface StaffClockingScheduleRequest {
   localDate: string;
   schedules: StaffClockingSchedule[];
   calendarDay?: StaffClockingCalendarDay;
+  duties?: StaffClockingDutyAssignment[];
 }
 
 export interface ResolvedStaffClockingSchedule {
@@ -157,8 +158,31 @@ export interface ResolvedStaffClockingSchedule {
   sourceScheduleId?: string;
   sourceScope?: StaffClockingScope;
   clockInBy?: string;
+  clockOutBy?: string;
+  duty?: StaffClockingDutyAdjustment;
   graceMinutes?: number;
   reason?: string;
+}
+
+/** Only assignments belonging to the requested employee cross the API boundary. */
+export interface StaffClockingDutyAssignment {
+  id: string;
+  rotaId: string;
+  dutyName: string;
+  staffId: string;
+  startsOn: string;
+  endsOn: string;
+  clockInBy?: string;
+  clockOutBy?: string;
+  availableFrom: string;
+}
+
+export interface StaffClockingDutyAdjustment {
+  assignments: Array<Pick<StaffClockingDutyAssignment, 'id' | 'rotaId' | 'dutyName' | 'startsOn' | 'endsOn'>>;
+  normalClockInBy?: string;
+  normalClockOutBy?: string;
+  clockInBy?: string;
+  clockOutBy?: string;
 }
 
 export interface StaffClockingArrival {

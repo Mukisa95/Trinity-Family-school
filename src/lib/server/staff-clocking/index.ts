@@ -14,6 +14,7 @@ import type {
 } from '@/lib/staff-clocking/contracts';
 import { STAFF_CLOCKING_TIME_ZONE, type StaffClockingRevisionKey } from '@/lib/staff-clocking/contracts';
 import { classifyStaffClockIn, resolveStaffClockingSchedule } from '@/lib/staff-clocking/schedule-resolver';
+import { loadStaffClockingDuties } from './duty-schedule';
 import { isIsoLocalDate, localTimeToSeconds } from '@/lib/staff-clocking/dates';
 import { isUgandaPublicHoliday } from '@/lib/utils/uganda-holidays';
 import type { AuthenticatedAppUser } from '@/lib/server/app-auth';
@@ -552,21 +553,21 @@ export async function getOwnStaffClockingDashboard(db: Firestore, actor: Authent
     const [schedule, status, history] = await Promise.all(['schedule', 'status', 'history'].map(value => getOwnStaffClockingDashboard(db, actor, value as 'schedule' | 'status' | 'history')));
     return { ...schedule, ...status, ...history };
   }
-  const [staffSnapshot, schedulesSnapshot, calendarDay] = await Promise.all([
+  const [staffSnapshot, schedulesSnapshot, calendarDay, duties] = await Promise.all([
     db.collection('staff').doc(staffId).get(),
     db.collection(STAFF_CLOCKING_COLLECTIONS.schedules).get(),
     resolveCalendarClosure(db, now.localDate),
+    loadStaffClockingDuties(db, staffId),
   ]);
   if (!staffSnapshot.exists || String(staffSnapshot.data()?.status || 'active').toLowerCase() !== 'active') throw new Error('CLOCKING_STAFF_INACTIVE');
   const staff = staffSnapshot.data() || {};
   const groups = [...new Set([...(Array.isArray(staff.department) ? staff.department : [staff.department]), ...(Array.isArray(staff.role) ? staff.role : [staff.role])].filter((value): value is string => typeof value === 'string' && value.length > 0))];
   const schedules = schedulesSnapshot.docs.map(item => serializeSchedule(item.id, item.data()));
-  const resolution = resolveStaffClockingSchedule({ staffId, groupIds: groups, localDate: now.localDate, schedules, calendarDay });
-  const appliedSchedule = resolution.sourceScheduleId ? schedules.find(schedule => schedule.id === resolution.sourceScheduleId) : undefined;
+  const resolution = resolveStaffClockingSchedule({ staffId, groupIds: groups, localDate: now.localDate, schedules, calendarDay, duties });
   return {
     staff: { id: staffId, name: [staff.firstName, staff.lastName].filter((value): value is string => typeof value === 'string' && value.trim().length > 0).join(' ').trim() || 'Staff member', group: groups[0] || undefined },
     localDate: now.localDate,
-    schedule: resolution.kind === 'scheduled' ? { kind: resolution.kind, clockInBy: resolution.clockInBy, clockOutBy: appliedSchedule?.clockOutBy, graceMinutes: resolution.graceMinutes, sourceScope: resolution.sourceScope } : { kind: resolution.kind, reason: resolution.reason },
+    schedule: resolution.kind === 'scheduled' ? { kind: resolution.kind, clockInBy: resolution.clockInBy, clockOutBy: resolution.clockOutBy, graceMinutes: resolution.graceMinutes, sourceScope: resolution.sourceScope, ...(resolution.duty ? { duty: resolution.duty } : {}) } : { kind: resolution.kind, reason: resolution.reason },
     calendar: calendarDay ? { isClosed: calendarDay.isClosed, label: calendarDay.label } : undefined,
   };
 }
@@ -777,16 +778,18 @@ export async function recordStaffClockingScan(db: Firestore, actor: Authenticate
     const groups = [...new Set([...departmentGroups, ...roleGroups].filter((value): value is string => typeof value === 'string' && value.length > 0))];
     const prior = daily.exists ? daily.data()! : undefined;
     const hasArrival = !!(prior?.clockInAt || prior?.effectiveClockInTime);
+    const duties = hasArrival ? [] : await loadStaffClockingDuties(db, staffId, transaction);
     const resolution = hasArrival ? {
       kind: 'scheduled' as const, localDate,
       sourceScheduleId: prior.scheduleId || 'saved-day', sourceScope: prior.scheduleScope || 'school',
-      clockInBy: prior.clockInBy, graceMinutes: prior.graceMinutes,
+      clockInBy: prior.clockInBy, clockOutBy: prior.clockOutBy, graceMinutes: prior.graceMinutes, duty: prior.scheduleSnapshot?.duty,
     } : resolveStaffClockingSchedule({
       staffId,
       groupIds: groups,
       localDate,
       schedules: scheduleSnapshot.docs.map(item => serializeSchedule(item.id, item.data())),
       calendarDay,
+      duties,
     });
     if (resolution.kind !== 'scheduled') throw new Error(resolution.kind === 'conflict' ? 'CLOCKING_SCHEDULE_CONFLICT' : 'CLOCKING_NO_SCHEDULE');
 
@@ -804,12 +807,12 @@ export async function recordStaffClockingScan(db: Firestore, actor: Authenticate
     });
     const staffName = [staffData.firstName, staffData.lastName].filter((value): value is string => typeof value === 'string' && value.trim().length > 0).join(' ').trim();
     const appliedRule = scheduleSnapshot.docs.find(item => item.id === resolution.sourceScheduleId)?.data();
-    const savedSchedule = omitUndefined({ clockInBy: resolution.clockInBy, clockOutBy: appliedRule?.clockOutBy, graceMinutes: resolution.graceMinutes, scope: resolution.sourceScope, kind: appliedRule?.kind, groups });
+    const savedSchedule = omitUndefined({ clockInBy: resolution.clockInBy, clockOutBy: resolution.clockOutBy, graceMinutes: resolution.graceMinutes, scope: resolution.sourceScope, kind: appliedRule?.kind, groups, duty: resolution.duty });
     const record = eventType === 'clock_in'
       ? { ...prior, staffId, ...(staffName ? { staffName } : {}), accountId: actor.user.id, localDate, clockInAt: Timestamp.fromDate(now), clockInTime: localTime, arrivalStatus: arrival!.status, secondsLate: arrival!.secondsLate, scheduleId: resolution.sourceScheduleId, clockInBy: resolution.clockInBy, graceMinutes: resolution.graceMinutes, status: 'open', updatedAt: Timestamp.fromDate(now) }
       : { ...prior, clockOutAt: Timestamp.fromDate(now), clockOutTime: localTime, status: 'complete', updatedAt: Timestamp.fromDate(now) };
     transaction.create(eventRef, event);
-    if (eventType === 'clock_in') Object.assign(record, { scheduleSnapshot: savedSchedule, ...(appliedRule?.clockOutBy ? { clockOutBy: appliedRule.clockOutBy } : {}) });
+    if (eventType === 'clock_in') Object.assign(record, { scheduleSnapshot: savedSchedule, ...(resolution.clockOutBy ? { clockOutBy: resolution.clockOutBy } : {}) });
     transaction.set(dailyRef, record, { merge: false });
     bumpClockingRevisions(db, transaction, 'staffClockingRecords');
     bumpPersonalClockingRevision(db, transaction, staffId, localDate);

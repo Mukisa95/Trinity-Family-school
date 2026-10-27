@@ -473,6 +473,7 @@ export interface SchoolSettings {
     pupils?: number;
     attendance?: number;
     staffClockingConfig?: number;
+    staffClockingDuty?: number;
     staffClockingRecords?: number;
     staffClockingRequests?: number;
     staffClockingNotifications?: number;

@@ -60,22 +60,22 @@ export function buildStaffDetailRows(range: DetailRange, records: StaffClockingD
       const arrived = !!(record.effectiveClockInTime || record.clockInTime);
       return { date, record, scheduled: arrived || !!record.clockInBy || !!snapshot || record.reviewStatus === 'exempted',
         status: arrived ? record.arrivalStatus || 'unresolved' : record.reviewStatus === 'exempted' ? 'exempt' : 'unresolved',
-        expectedIn: snapshot?.clockInBy || record.clockInBy, expectedOut: snapshot?.clockOutBy || record.clockOutBy, graceMinutes: snapshot?.graceMinutes ?? record.graceMinutes,
+        expectedIn: snapshot?.clockInBy || record.clockInBy, expectedOut: snapshot?.clockOutBy || record.clockOutBy, graceMinutes: snapshot?.graceMinutes ?? record.graceMinutes, duty: snapshot?.duty,
         dayType: snapshot?.kind === 'date_override' ? 'special' : snapshot ? 'normal' : 'unknown', source: snapshot?.scope || record.scheduleScope,
         recordedGroup: snapshot?.groups.join(', '), warning: snapshot ? undefined : 'Only the timing rules stored on this record are shown. Missing historical fields are not inferred.' };
     }
     if (plan.joinedOn && date < plan.joinedOn) return { date, scheduled: false, status: 'off', dayType: 'off', warning: 'Before recorded employment start.' };
-    if (date < today && (date < plan.stableSince || plan.schedules.some(rule => rule.availableFrom > date))) {
+    if (date < today && (date < plan.stableSince || plan.schedules.some(rule => rule.availableFrom > date) || plan.duties?.some(duty => duty.startsOn <= date && duty.endsOn >= date && duty.availableFrom > date))) {
       return { date, scheduled: false, status: 'unresolved', dayType: 'unknown', warning: 'Historical schedule or staff-group membership was not captured for this date.' };
     }
     const closure = plan.closures.find(item => item.from <= date && item.to >= date);
     const holiday = isUgandaPublicHoliday(date);
-    const result = resolveStaffClockingSchedule({ staffId: plan.staffId, groupIds: plan.groups, localDate: date, schedules: plan.schedules,
+    const result = resolveStaffClockingSchedule({ staffId: plan.staffId, groupIds: plan.groups, localDate: date, schedules: plan.schedules, duties: plan.duties,
       calendarDay: closure || holiday ? { localDate: date, isClosed: true, label: closure?.title || holiday?.title } : undefined });
     const rule = plan.schedules.find(item => item.id === result.sourceScheduleId);
     return { date, scheduled: result.kind === 'scheduled', status: result.kind === 'conflict' ? 'unresolved' : result.kind !== 'scheduled' ? closure || holiday ? 'holiday' : 'off' : date < today ? 'absent' : 'scheduled',
       dayType: result.kind === 'conflict' ? 'unknown' : rule?.kind === 'date_override' ? 'special' : closure || holiday ? 'holiday' : result.kind === 'scheduled' ? 'normal' : 'off',
-      expectedIn: result.clockInBy, expectedOut: rule?.clockOutBy, graceMinutes: result.graceMinutes, source: result.sourceScope, warning: result.reason };
+      expectedIn: result.clockInBy, expectedOut: result.clockOutBy, graceMinutes: result.graceMinutes, source: result.sourceScope, warning: result.reason, duty: result.duty };
   });
 }
 export function summarizeStaffDetail(rows: StaffClockingDetailRow[]) {

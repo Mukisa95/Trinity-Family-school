@@ -13,7 +13,9 @@ import { useUpdateDutyRota } from '@/lib/hooks/use-duty-service';
 import { useAcademicYears, useActiveAcademicYear } from '@/lib/hooks/use-academic-years';
 import { DatePicker } from '@/components/common/date-picker';
 import { format, parseISO, isValid } from 'date-fns';
-import { DutyRota, DutyFrequency } from '@/types/duty-service';
+import { DutyRota, DutyFrequency, type TeamType } from '@/types/duty-service';
+import { DutyClockingFields } from './DutyClockingFields';
+import { dutyClockingTimeError } from '@/lib/staff-clocking/duty-schedule';
 
 const toDate = (s?: string) => { if (!s) return undefined; try { const d = parseISO(s); return isValid(d) ? d : undefined; } catch { return undefined; } };
 const toStr = (d?: Date) => d ? format(d, 'yyyy-MM-dd') : '';
@@ -28,6 +30,7 @@ export function EditDutyRotaModal({ rota, open, onOpenChange }: EditDutyRotaModa
   const { data: academicYears = [] } = useAcademicYears();
   const { data: activeAcademicYear } = useActiveAcademicYear();
   const updateRota = useUpdateDutyRota();
+  const [saveError, setSaveError] = useState('');
 
   const [formData, setFormData] = useState<Partial<DutyRota>>({
     dutyName: '',
@@ -47,7 +50,8 @@ export function EditDutyRotaModal({ rota, open, onOpenChange }: EditDutyRotaModa
 
   // Initialize form data when rota changes
   useEffect(() => {
-    if (rota) {
+    if (rota && open) {
+      setSaveError('');
       setFormData({
         dutyName: rota.dutyName,
         teamsInvolved: rota.teamsInvolved,
@@ -58,9 +62,11 @@ export function EditDutyRotaModal({ rota, open, onOpenChange }: EditDutyRotaModa
         academicYearId: rota.academicYearId,
         termId: rota.termId,
         isMarked: rota.isMarked || false,
+        staffArrivalTime: rota.staffArrivalTime || '',
+        staffDepartureTime: rota.staffDepartureTime || '',
       });
     }
-  }, [rota]);
+  }, [rota, open]);
 
   // Update academicYearId when activeAcademicYear changes
   useEffect(() => {
@@ -84,7 +90,7 @@ export function EditDutyRotaModal({ rota, open, onOpenChange }: EditDutyRotaModa
     }));
   };
 
-  const handleTeamToggle = (teamType: string) => {
+  const handleTeamToggle = (teamType: TeamType) => {
     setFormData(prev => ({
       ...prev,
       teamsInvolved: prev.teamsInvolved?.includes(teamType)
@@ -97,6 +103,9 @@ export function EditDutyRotaModal({ rota, open, onOpenChange }: EditDutyRotaModa
     e.preventDefault();
 
     if (!rota) return;
+    const timeError = formData.teamsInvolved?.includes('staff') ? dutyClockingTimeError(formData.staffArrivalTime, formData.staffDepartureTime) : undefined;
+    if (timeError) { setSaveError(timeError); return; }
+    setSaveError('');
 
     try {
       await updateRota.mutateAsync({
@@ -111,12 +120,15 @@ export function EditDutyRotaModal({ rota, open, onOpenChange }: EditDutyRotaModa
           academicYearId: formData.academicYearId,
           termId: formData.termId,
           isMarked: formData.isMarked,
+          staffArrivalTime: formData.teamsInvolved?.includes('staff') ? formData.staffArrivalTime || '' : '',
+          staffDepartureTime: formData.teamsInvolved?.includes('staff') ? formData.staffDepartureTime || '' : '',
         }
       });
 
       onOpenChange(false);
     } catch (error) {
       console.error('Error updating duty rota:', error);
+      setSaveError(error instanceof Error ? error.message : 'Could not save duty times. Try again.');
     }
   };
 
@@ -149,7 +161,7 @@ export function EditDutyRotaModal({ rota, open, onOpenChange }: EditDutyRotaModa
           <div className="space-y-2">
             <Label>Teams Involved</Label>
             <div className="space-y-2">
-              {['staff', 'prefects', 'pupils'].map((team) => (
+              {(['staff', 'prefects', 'pupils'] as const).map((team) => (
                 <div key={team} className="flex items-center space-x-2">
                   <Checkbox
                     id={team}
@@ -298,6 +310,8 @@ export function EditDutyRotaModal({ rota, open, onOpenChange }: EditDutyRotaModa
           </div>
 
           {/* Action Buttons */}
+          {formData.teamsInvolved?.includes('staff') && <DutyClockingFields arrival={formData.staffArrivalTime} departure={formData.staffDepartureTime} onChange={handleInputChange} />}
+          {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
           <div className="flex justify-end space-x-2 pt-4">
             <Button
               type="button"

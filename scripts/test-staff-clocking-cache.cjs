@@ -116,6 +116,15 @@ async function main() {
     await page.getByRole('button',{name:'Clock',exact:true}).click();
     await page.getByText('Clock ready',{exact:true}).waitFor();
     assert.equal(calls.length,17,'Returning to the original account must reuse only that account cache');
+    await page.evaluate(()=>window.__setRevision('staffClockingDuty',1));
+    await page.waitForTimeout(150);
+    assert.equal(calls.length,18,'A duty timing or assignment change refreshes only the personal schedule');
+    assert.ok(calls.at(-1).endsWith('part=schedule'));
+    await page.getByRole('button',{name:'Away',exact:true}).click();
+    await page.getByRole('button',{name:'Clock',exact:true}).click();
+    await page.getByText('Clock ready',{exact:true}).waitFor();
+    await page.clock.fastForward(90_000);
+    assert.equal(calls.length,18,'Reopening the duty-adjusted schedule and ticking the local clock reuse the cache');
     assert.deepEqual(errors,[]);
     console.log('PASS persistent reload/navigation, one personal listener, other-staff isolation, independent status/history/notification refresh, day rollover and account separation');
   } finally { await browser?.close(); await new Promise(resolve=>server.close(resolve)); }

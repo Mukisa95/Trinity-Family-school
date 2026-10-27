@@ -3,6 +3,7 @@ import test from 'node:test';
 import { buildStaffDetailRows, summarizeStaffDetail, detailPeriodRange, detailMonths, detailDates, departureStatus, individualCsv, detailElapsed } from '../src/lib/staff-clocking/details-report';
 import type { StaffClockingDetailPlan } from '../src/lib/staff-clocking/details-contracts';
 import { detailWeeks, detailRangeLabel } from '../src/lib/staff-clocking/details-period';
+import { resolveStaffClockingSchedule } from '../src/lib/staff-clocking/schedule-resolver';
 
 test('week choices cover the selected calendar year with complete Monday–Sunday ranges', () => {
   const weeks = detailWeeks(2026);
@@ -19,6 +20,17 @@ test('week choices cover the selected calendar year with complete Monday–Sunda
 });
 
 const plan: StaffClockingDetailPlan = {staffId: 'ada', groups: ['Teaching'], stableSince: '2026-10-01', schedules: [{id: 'school', scope: 'school', kind: 'recurring', weekdays: [1,2,3,4,5], clockInBy: '07:30', clockOutBy: '17:00', graceMinutes: 10, isActive: true, availableFrom: '2026-10-01'}], closures: []};
+
+test('duty plans adjust upcoming rows but retain original recorded duty snapshots', () => {
+  const duties = [{id:'duty',rotaId:'gate',dutyName:'Gate duty',staffId:'ada',startsOn:'2026-10-26',endsOn:'2026-11-01',clockInBy:'06:30',clockOutBy:'18:00',availableFrom:'2026-10-01'}];
+  const duty = resolveStaffClockingSchedule({staffId:'ada',groupIds:['Teaching'],localDate:'2026-10-26',schedules:plan.schedules,duties}).duty;
+  const recorded = {id:'record',staffId:'ada',localDate:'2026-10-26',status:'open' as const,clockInTime:'06:25',arrivalStatus:'on_time' as const,scheduleSnapshot:{clockInBy:'06:30',clockOutBy:'18:00',graceMinutes:10,groups:['Teaching'],duty}};
+  const rows = buildStaffDetailRows({from:'2026-10-26',to:'2026-10-27'},[recorded],{...plan,duties:[{...duties[0],clockInBy:'07:00',clockOutBy:'19:00'}]},'2026-10-27');
+  assert.equal(rows[0].expectedIn,'06:30');assert.equal(rows[0].expectedOut,'18:00');assert.equal(rows[0].duty?.clockInBy,'06:30');
+  assert.equal(rows[1].expectedIn,'07:00');assert.equal(rows[1].expectedOut,'19:00');
+  const unverified = buildStaffDetailRows({from:'2026-10-26',to:'2026-10-26'},[],{...plan,duties:[{...duties[0],availableFrom:'2026-10-27'}]},'2026-10-27');
+  assert.equal(unverified[0].status,'unresolved','New duty rules must not silently classify missing historical days');
+});
 
 test('periods share month buckets, use Monday weeks and reject invalid or excessive ranges', () => {
   assert.deepEqual(detailPeriodRange('week', '2026-11-01'), {from:'2026-10-26', to:'2026-11-01'});

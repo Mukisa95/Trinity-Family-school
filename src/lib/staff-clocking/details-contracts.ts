@@ -1,4 +1,4 @@
-import type { StaffClockingDailyRecord, StaffClockingSchedule } from './contracts';
+import type { StaffClockingDailyRecord, StaffClockingSchedule, StaffClockingDutyAssignment, StaffClockingDutyAdjustment } from './contracts';
 
 export type DetailPeriod = 'day' | 'week' | 'month' | 'term' | 'custom';
 export type DetailRange = { from: string; to: string };
@@ -12,6 +12,7 @@ export interface StaffClockingDetailPlan {
   groups: string[];
   stableSince: string;
   joinedOn?: string;
+  duties?: StaffClockingDutyAssignment[];
   schedules: Array<StaffClockingSchedule & { availableFrom: string }>;
   closures: Array<DetailRange & { title: string }>;
 }
@@ -27,6 +28,7 @@ export interface StaffClockingDetailRow {
   source?: string;
   recordedGroup?: string;
   warning?: string;
+  duty?: StaffClockingDutyAdjustment;
   record?: StaffClockingDailyRecord;
 }
 export interface StaffClockingDetailRequest {

@@ -320,7 +320,7 @@ export default function DutyServicePage() {
                         Create and manage duty rotas and schedules
                       </CardDescription>
                     </div>
-                    <ActionGuard module="duty_service" page="duty_management" action="create_duty_rota">
+                    <ActionGuard module="duty_service" page="list" action="assign_duties">
                       <CreateDutyRotaModal />
                     </ActionGuard>
                   </div>
@@ -334,7 +334,7 @@ export default function DutyServicePage() {
                         <p className="text-muted-foreground mb-4">
                           Create your first duty rota to get started
                         </p>
-                        <ActionGuard module="duty_service" page="duty_management" action="create_duty_rota">
+                        <ActionGuard module="duty_service" page="list" action="assign_duties">
                           <CreateDutyRotaModal
                             trigger={
                               <Button>

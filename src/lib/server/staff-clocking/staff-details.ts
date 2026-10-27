@@ -8,6 +8,7 @@ import { isIsoLocalDate } from '@/lib/staff-clocking/dates';
 import { detailDates, clockingSchoolDate } from '@/lib/staff-clocking/details-report';
 import type { StaffClockingDetailProfile, StaffClockingDetailPlan, StaffClockingDetailRequest, StaffClockingDetailAuditPage, DetailRange } from '@/lib/staff-clocking/details-contracts';
 import type { StaffClockingDailyRecord, StaffClockingSchedule } from '@/lib/staff-clocking/contracts';
+import { loadStaffClockingDuties } from './duty-schedule';
 
 const id = z.string().regex(/^[A-Za-z0-9_-]{1,120}$/);
 const date = z.string().refine(isIsoLocalDate);
@@ -44,16 +45,16 @@ export async function getIndividualClockingRevisions(db: Firestore, actor: Authe
     db.collection('settings').doc('data-revisions-operational').get(),
     db.collection(collections.personalRevisions).doc(staffId).get(),
   ]);
-  return { shared: Object.fromEntries(['staff', 'events', 'staffClockingConfig', 'staffClockingRecords', 'staffClockingRequests'].map(key => [key, Math.max(Number(reference.data()?.[key] || 0), Number(operational.data()?.[key] || 0))])), personal: personal.data() || {} };
+  return { shared: Object.fromEntries(['staff', 'events', 'staffClockingConfig', 'staffClockingDuty', 'staffClockingRecords', 'staffClockingRequests'].map(key => [key, Math.max(Number(reference.data()?.[key] || 0), Number(operational.data()?.[key] || 0))])), personal: personal.data() || {} };
 }
 
 export async function getIndividualClockingPlan(db: Firestore, actor: AuthenticatedAppUser, staffId: string): Promise<StaffClockingDetailPlan> {
   requireIndividualClockingAccess(actor, staffId);
-  const [staff, rules, holidays] = await Promise.all([db.collection('staff').doc(staffId).get(), db.collection(collections.schedules).get(), db.collection('events').where('type', '==', 'Holiday').get()]);
+  const [staff, rules, holidays, duties] = await Promise.all([db.collection('staff').doc(staffId).get(), db.collection(collections.schedules).get(), db.collection('events').where('type', '==', 'Holiday').get(), loadStaffClockingDuties(db, staffId)]);
   if (!staff.exists) throw new Error('CLOCKING_STAFF_NOT_FOUND');
   const data = staff.data()!, groups = staffGroupLabels(data);
   const since = (value: unknown) => { const iso = toIso(value); return typeof iso === 'string' && Number.isFinite(Date.parse(iso)) ? clockingSchoolDate(new Date(iso)) : kampalaClock().localDate; };
-  return { staffId, groups, joinedOn: localDateFromCalendarValue(data.joinDate), stableSince: since(data.updatedAt || data.createdAt),
+  return { staffId, groups, duties, joinedOn: localDateFromCalendarValue(data.joinDate), stableSince: since(data.updatedAt || data.createdAt),
     schedules: rules.docs.filter(item => { const rule = item.data(); return rule.scope === 'school' || rule.scope === 'staff' && rule.subjectId === staffId || rule.scope === 'group' && groups.includes(rule.subjectId); })
       .map(item => ({ id: item.id, ...toIso(item.data()), availableFrom: since(item.data().updatedAt || item.data().createdAt) } as StaffClockingSchedule & { availableFrom: string })),
     closures: holidays.docs.flatMap(item => { const event = item.data(), from = localDateFromCalendarValue(event.startDate), to = localDateFromCalendarValue(event.endDate) || from;

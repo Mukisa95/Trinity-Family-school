@@ -5,6 +5,7 @@ import type {
   StaffClockingScheduleRequest,
 } from './contracts';
 import { isDateInRange, localTimeToSeconds, weekdayForLocalDate } from './dates';
+import { applyStaffClockingDuty } from './duty-schedule';
 
 const SCOPE_WEIGHT: Record<StaffClockingSchedule['scope'], number> = {
   school: 1,
@@ -25,7 +26,7 @@ function appliesOnDate(schedule: StaffClockingSchedule, request: StaffClockingSc
 }
 
 function sameShift(left: StaffClockingSchedule, right: StaffClockingSchedule): boolean {
-  return left.clockInBy === right.clockInBy && left.graceMinutes === right.graceMinutes;
+  return left.clockInBy === right.clockInBy && left.clockOutBy === right.clockOutBy && left.graceMinutes === right.graceMinutes;
 }
 
 function sortSchedules(left: StaffClockingSchedule, right: StaffClockingSchedule): number {
@@ -43,6 +44,7 @@ function resolutionFromSchedule(schedule: StaffClockingSchedule, localDate: stri
     sourceScheduleId: schedule.id,
     sourceScope: schedule.scope,
     clockInBy: schedule.clockInBy,
+    ...(schedule.clockOutBy ? { clockOutBy: schedule.clockOutBy } : {}),
     graceMinutes: schedule.graceMinutes,
   };
 }
@@ -77,7 +79,7 @@ function resolveCandidates(candidates: StaffClockingSchedule[], localDate: strin
  * a working day. Staff overrides then outrank group policies, which outrank
  * the school default.
  */
-export function resolveStaffClockingSchedule(request: StaffClockingScheduleRequest): ResolvedStaffClockingSchedule {
+function resolveRegularStaffClockingSchedule(request: StaffClockingScheduleRequest): ResolvedStaffClockingSchedule {
   const applicable = request.schedules.filter((schedule) => appliesToRequest(schedule, request));
   const dateOverrides = applicable.filter((schedule) => schedule.kind === 'date_override' && appliesOnDate(schedule, request));
   const dateOverrideResolution = resolveCandidates(dateOverrides, request.localDate);
@@ -97,6 +99,10 @@ export function resolveStaffClockingSchedule(request: StaffClockingScheduleReque
     localDate: request.localDate,
     reason: 'No active schedule applies.',
   };
+}
+
+export function resolveStaffClockingSchedule(request: StaffClockingScheduleRequest): ResolvedStaffClockingSchedule {
+  return applyStaffClockingDuty(resolveRegularStaffClockingSchedule(request), request.staffId, request.duties || []);
 }
 
 /** Classify a clock-in against an already-resolved authoritative shift. */

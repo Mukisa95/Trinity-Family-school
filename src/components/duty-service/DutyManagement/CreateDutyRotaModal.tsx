@@ -14,6 +14,8 @@ import { format, parseISO, isValid } from 'date-fns';
 import type { CreateDutyRotaData, DutyFrequency, TeamType } from '@/types/duty-service';
 import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
 import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
+import { DutyClockingFields } from './DutyClockingFields';
+import { dutyClockingTimeError } from '@/lib/staff-clocking/duty-schedule';
 
 const toDate = (s?: string) => { if (!s) return undefined; try { const d = parseISO(s); return isValid(d) ? d : undefined; } catch { return undefined; } };
 const toStr = (d?: Date) => d ? format(d, 'yyyy-MM-dd') : '';
@@ -68,6 +70,8 @@ export function CreateDutyRotaModal({ trigger }: CreateDutyRotaModalProps) {
     e.preventDefault();
 
     if (!formValidation.validateAll().isValid) return;
+    const timeError = formData.teamsInvolved?.includes('staff') ? dutyClockingTimeError(formData.staffArrivalTime, formData.staffDepartureTime) : undefined;
+    if (timeError) { formValidation.setSubmissionError(timeError); return; }
 
     try {
       await createDutyRota.mutateAsync({
@@ -80,6 +84,9 @@ export function CreateDutyRotaModal({ trigger }: CreateDutyRotaModalProps) {
         academicYearId: formData.academicYearId!,
         termId: formData.termId,
         isActive: true,
+        isMarked: formData.isMarked || false,
+        staffArrivalTime: formData.teamsInvolved?.includes('staff') ? formData.staffArrivalTime || '' : '',
+        staffDepartureTime: formData.teamsInvolved?.includes('staff') ? formData.staffDepartureTime || '' : '',
       });
 
       setOpen(false);
@@ -322,6 +329,7 @@ export function CreateDutyRotaModal({ trigger }: CreateDutyRotaModalProps) {
           </div>
 
           {/* Allowances */}
+          {formData.teamsInvolved?.includes('staff') && <DutyClockingFields arrival={formData.staffArrivalTime} departure={formData.staffDepartureTime} onChange={handleInputChange} />}
           <div className="space-y-4">
             <Label>Allowances (KES per period)</Label>
             <div className="grid grid-cols-3 gap-4">
