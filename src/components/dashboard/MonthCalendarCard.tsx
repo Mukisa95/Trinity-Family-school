@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo } from 'react';
+import { isEventRelevantToClasses } from '@/lib/dashboard/staff-context';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -25,7 +26,7 @@ const EVENT_TYPE_COLORS = {
 
 const UGANDA_HOLIDAY_COLOR = '#f59e0b';
 
-export function MonthCalendarCard() {
+export function MonthCalendarCard({ classIds }: { classIds?: string[] } = {}) {
     const router = useRouter();
     const [popoverState, setPopoverState] = React.useState<{ isOpen: boolean; date: Date | null; events: any[]; anchorEl: HTMLElement | null }>({
         isOpen: false,
@@ -45,8 +46,8 @@ export function MonthCalendarCard() {
     const ugandaHolidays = useUgandaHolidays(new Date());
 
     const allEvents = useMemo(() => {
-        return [...(events || []), ...(examsAsEvents.data || []), ...(ugandaHolidays.data || [])];
-    }, [events, examsAsEvents.data, ugandaHolidays.data]);
+        return [...(events || []), ...(examsAsEvents.data || []), ...(ugandaHolidays.data || [])].filter(event => isEventRelevantToClasses(event, classIds));
+    }, [events, examsAsEvents.data, ugandaHolidays.data, classIds]);
 
     const calendarEvents = useMemo(() => {
         return allEvents.map((event: any) => {

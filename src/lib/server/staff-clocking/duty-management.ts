@@ -77,6 +77,7 @@ export async function manageClockingDutySource(db: Firestore, actor: Authenticat
       affectsClocking = rotaOperation ? (timed(before) || timed(next)) && (remove || changed(before,next,rotaFields)) : (before.memberType === 'staff' || next.memberType === 'staff') && (remove || changed(before,next,assignmentFields));
     }
     pending.forEach(item => item.remove ? transaction.delete(item.ref) : transaction.set(item.ref,item.data!));
+    transaction.set(db.collection('settings').doc('data-revisions-operational'),{dutyService:FieldValue.increment(1)},{merge:true});
     if (affectsClocking) transaction.set(db.collection('settings').doc('data-revisions-operational'),{staffClockingDuty:FieldValue.increment(1)},{merge:true});
     transaction.set(db.collection('historyLogs').doc(),{a:'duty_change',e:rotaOperation?'duty_rota':'duty_assignment',rid:pending[0].ref.id,rl:request.operation,uid:actor.user.id,un:actorName,m:{count:pending.length,affectsClocking},ts:now});
     return {id:pending[0].ref.id,ids:pending.map(item => item.ref.id)};

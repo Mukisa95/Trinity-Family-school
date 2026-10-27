@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useRef, useEffect } from 'react';
+import { isEventRelevantToClasses } from '@/lib/dashboard/staff-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, Loader2, ChevronRight, BookOpen } from 'lucide-react';
@@ -47,7 +48,7 @@ function getEventRelativeStatus(event: any) {
     return { text: 'Unknown', color: 'text-slate-400 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-900', border: 'border-slate-100 dark:border-slate-700' };
 }
 
-export function TermScheduleCard() {
+export function TermScheduleCard({ classIds }: { classIds?: string[] } = {}) {
     const router = useRouter();
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const eventRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -69,8 +70,8 @@ export function TermScheduleCard() {
         const examEvents = examsAsEvents.data || [];
         const holidayEvents = ugandaHolidays.data || [];
 
-        return [...regularEvents, ...examEvents, ...holidayEvents];
-    }, [events, examsAsEvents.data, ugandaHolidays.data]);
+        return [...regularEvents, ...examEvents, ...holidayEvents].filter(event => isEventRelevantToClasses(event, classIds));
+    }, [events, examsAsEvents.data, ugandaHolidays.data, classIds]);
 
     const termFilteredEvents = useMemo(() => {
         if (!currentTerm || !currentTerm.term) return [];

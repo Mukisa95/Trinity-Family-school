@@ -14,11 +14,15 @@ import type {
 } from '@/lib/staff-clocking/contracts';
 import { STAFF_CLOCKING_TIME_ZONE, type StaffClockingRevisionKey } from '@/lib/staff-clocking/contracts';
 import { classifyStaffClockIn, resolveStaffClockingSchedule } from '@/lib/staff-clocking/schedule-resolver';
-import { loadStaffClockingDuties } from './duty-schedule';
+import { loadStaffClockingDuties, projectStaffClockingDuties } from './duty-schedule';
 import { isIsoLocalDate, localTimeToSeconds } from '@/lib/staff-clocking/dates';
 import { isUgandaPublicHoliday } from '@/lib/utils/uganda-holidays';
 import type { AuthenticatedAppUser } from '@/lib/server/app-auth';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
+import { isDirectorOfStudies, isTeachingStaff } from '@/lib/dashboard/staff-context';
+import type { DashboardStaffDay } from '@/lib/dashboard/staff-day-contracts';
+import type { Staff } from '@/types';
+import { bumpStaffClockingPolicyRevision, bumpStaffClockingRecordRevision } from '@/lib/server/staff-day-revisions.admin';
 
 export const STAFF_CLOCKING_COLLECTIONS = {
   settings: 'staffClockingSettings',
@@ -46,6 +50,7 @@ export function bumpClockingRevisions(db: Firestore, writer: Transaction | Write
 }
 
 export function bumpPersonalClockingRevision(db: Firestore, writer: Transaction | WriteBatch, staffId: string, workDate?: string, notifications = false, requests = false) {
+  if (workDate === kampalaClock().localDate) bumpStaffClockingRecordRevision(db, writer, [staffId]);
   (writer as Transaction).set(db.collection(STAFF_CLOCKING_COLLECTIONS.personalRevisions).doc(staffId), {
     ...(workDate ? { dates: { [workDate]: FieldValue.increment(1) } } : {}),
     ...(notifications ? { notifications: FieldValue.increment(1) } : {}),
@@ -328,6 +333,67 @@ export async function getStaffClockingBootstrap(db: Firestore, actor: Authentica
   return { feature: { ...feature, enrolledStaffIds: canManage ? feature.enrolledStaffIds : [] }, access: { canClock, canManage, isEnrolled }, hasActiveSchedule: !schedules.empty };
 }
 
+/** Dashboard-only projection. The caller cannot supply a staff ID, date, or school-wide scope. */
+export async function getDashboardStaffDay(db: Firestore, actor: AuthenticatedAppUser, now = new Date()): Promise<DashboardStaffDay> {
+  if (!actor.user.isActive || !['Admin', 'Staff'].includes(actor.user.role)) throw new Error('PERMISSION_DENIED');
+  const { localDate } = kampalaClock(now);
+  const linked = actor.user.staffId ? await db.collection('staff').doc(actor.user.staffId).get() : undefined;
+  const ownStaff = linked?.exists ? { ...linked.data(), id: linked.id } as Staff : undefined;
+  // Job titles come from the authoritative linked staff document, never client input.
+  const schoolWide = actor.user.role === 'Admin' || isDirectorOfStudies(ownStaff);
+  const [settings, rosterSnapshot] = await Promise.all([
+    db.collection(STAFF_CLOCKING_COLLECTIONS.settings).doc(SETTINGS_ID).get(),
+    schoolWide ? db.collection('staff').get() : Promise.resolve(undefined),
+  ]);
+  const feature = normalizeSettings(settings.data());
+  const dutyDate = (value: unknown) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)
+    ? localDateFromCalendarValue(new Date(value)) : localDateFromCalendarValue(value);
+  const roster = schoolWide ? (rosterSnapshot?.docs || []).map(item => ({ ...item.data(), id: item.id } as Staff))
+    .filter(item => (!item.status || item.status === 'active') && isTeachingStaff(item)) : ownStaff ? [ownStaff] : [];
+  const names = new Map(roster.map(item => [item.id, [item.firstName, item.lastName].filter(Boolean).join(' ').trim() || item.id]));
+  const [schedules, closure, records, assignments, rotas] = await Promise.all([
+    feature.enabled ? db.collection(STAFF_CLOCKING_COLLECTIONS.schedules).where('isActive', '==', true).get() : Promise.resolve(undefined),
+    feature.enabled ? resolveCalendarClosure(db, localDate) : Promise.resolve(undefined),
+    !feature.enabled ? Promise.resolve([] as StaffClockingDailyRecord[])
+      : schoolWide ? db.collection(STAFF_CLOCKING_COLLECTIONS.dailyRecords).where('localDate', '==', localDate).get()
+        .then(snapshot => snapshot.docs.map(item => ({ ...toIso(item.data()), id: item.id } as StaffClockingDailyRecord)))
+        : ownStaff ? db.collection(STAFF_CLOCKING_COLLECTIONS.dailyRecords).doc(dailyRecordId(ownStaff.id, localDate)).get()
+          .then(item => item.exists ? [{ ...toIso(item.data()!), id: item.id } as StaffClockingDailyRecord] : []) : Promise.resolve([] as StaffClockingDailyRecord[]),
+    schoolWide ? db.collection('dutyAssignments').where('memberType', '==', 'staff').get()
+      : ownStaff ? db.collection('dutyAssignments').where('memberId', '==', ownStaff.id).get() : Promise.resolve(undefined),
+    db.collection('dutyRotas').where('isActive', '==', true).get(),
+  ]);
+  const scheduleList = schedules?.docs.map(item => serializeSchedule(item.id, item.data())) || [];
+  const clockingDuties = projectStaffClockingDuties(assignments?.docs || [], new Map(rotas.docs.map(item => [item.id, item.data()])));
+  const recordsByStaff = new Map(records.map(record => [record.staffId, record]));
+  const activeRotas = new Map(rotas.docs.filter(item => {
+    const data = item.data();
+    const start = dutyDate(data.startDate);
+    const end = dutyDate(data.endDate);
+    return !!start && !!end && start <= localDate && localDate <= end;
+  }).map(item => [item.id, item.data()]));
+  const duties = (assignments?.docs || []).flatMap(item => {
+    const data = item.data();
+    const rota = activeRotas.get(data.rotaId);
+    const startDate = dutyDate(data.startDate);
+    const endDate = dutyDate(data.endDate);
+    if (!rota || !data.isActive || data.memberType !== 'staff' || !names.has(data.memberId) || !startDate || !endDate || startDate > localDate || endDate < localDate) return [];
+    return [{ id: item.id, staffId: String(data.memberId), staffName: names.get(data.memberId)!, name: String(rota.dutyName || 'Duty'),
+      service: typeof data.service === 'string' ? data.service : undefined, supervisor: data.isSupervisor === true, startDate, endDate }];
+  }).sort((a, b) => Number(b.supervisor) - Number(a.supervisor) || a.staffName.localeCompare(b.staffName));
+  return {
+    date: localDate, schoolWide, clockingEnabled: feature.enabled, duties,
+    arrivals: feature.enabled ? roster.map(item => {
+      const record = recordsByStaff.get(item.id);
+      const groupIds = [...new Set([...(Array.isArray(item.department) ? item.department : [item.department]), ...(Array.isArray(item.role) ? item.role : [item.role])].filter(Boolean))];
+      const enrolled = (!item.status || item.status === 'active') && (feature.accessMode === 'all_active_linked_staff' || feature.enrolledStaffIds.includes(item.id));
+      const schedule = record?.clockInBy ? { kind: 'scheduled' as const, localDate, clockInBy: record.clockInBy, clockOutBy: record.clockOutBy, graceMinutes: record.graceMinutes }
+        : resolveStaffClockingSchedule({ staffId: item.id, groupIds, localDate, schedules: scheduleList, calendarDay: closure, duties: clockingDuties });
+      return { staffId: item.id, staffName: names.get(item.id)!, enrolled, schedule, record };
+    }).sort((a, b) => a.staffName.localeCompare(b.staffName)) : [],
+  };
+}
+
 export async function revokeStaffClockingQrSession(db: Firestore, actor: AuthenticatedAppUser, input: unknown) {
   requireStaffClockingAccess(actor, 'record', 'display_qr');
   const sessionId = z.string().uuid().parse((input as { sessionId?: unknown })?.sessionId);
@@ -365,6 +431,7 @@ export async function updateStaffClockingSettings(db: Firestore, actor: Authenti
     };
     transaction.set(settingsRef, next, { merge: false });
     bumpClockingRevisions(db, transaction, 'staffClockingConfig');
+    bumpStaffClockingPolicyRevision(db, transaction, { enabled: payload.enabled });
     transaction.set(db.collection(STAFF_CLOCKING_COLLECTIONS.history).doc(), {
       a: 'update', e: 'staff_clocking_settings', rid: SETTINGS_ID, rl: 'Staff clocking settings updated',
       uid: actorData.id, un: actorData.name, m: { module: 'staff_clocking', enabled: payload.enabled, accessMode: payload.accessMode }, ts: Timestamp.now(),
@@ -396,6 +463,7 @@ export async function createStaffClockingSchedule(db: Firestore, actor: Authenti
   const batch = db.batch();
   batch.set(ref, record);
   bumpClockingRevisions(db, batch, 'staffClockingConfig');
+  bumpStaffClockingPolicyRevision(db, batch);
   await batch.commit();
   return serializeSchedule(ref.id, record);
 }
@@ -414,6 +482,7 @@ export async function updateStaffClockingSchedule(db: Firestore, actor: Authenti
     const next = { ...record, createdAt: existing.data()?.createdAt || Timestamp.now(), createdBy: existing.data()?.createdBy || actorData };
     transaction.set(ref, next, { merge: false });
     bumpClockingRevisions(db, transaction, 'staffClockingConfig');
+    bumpStaffClockingPolicyRevision(db, transaction);
     return serializeSchedule(scheduleId, next);
   });
   return result;
@@ -428,6 +497,7 @@ export async function deleteStaffClockingSchedule(db: Firestore, actor: Authenti
     if (!existing.exists) throw new Error('CLOCKING_SCHEDULE_NOT_FOUND');
     transaction.delete(ref);
     bumpClockingRevisions(db, transaction, 'staffClockingConfig');
+    bumpStaffClockingPolicyRevision(db, transaction);
   });
 }
 
@@ -479,6 +549,7 @@ export async function createStaffClockingClosure(db: Firestore, actor: Authentic
   batch.create(ref, event);
   batch.create(db.collection(STAFF_CLOCKING_COLLECTIONS.history).doc(), { a: 'create', e: 'staff_clocking_closure', rid: ref.id, rl: `Staff clocking closure created: ${payload.title}`, uid: who.id, un: who.name, m: { startDate: payload.startDate, endDate: payload.endDate || payload.startDate }, ts: Timestamp.now() });
   bumpClockingRevisions(db, batch, 'events');
+  bumpStaffClockingPolicyRevision(db, batch);
   await batch.commit();
   return { id: ref.id, ...toIso(event) };
 }

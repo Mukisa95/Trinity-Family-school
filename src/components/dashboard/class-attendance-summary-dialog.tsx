@@ -2,16 +2,16 @@
 
 import { formatPupilName } from '@/lib/utils/name-formatter';
 import { CheckCircle2, Clock3, UserRoundX } from 'lucide-react';
-import type { AttendanceRecord, Pupil } from '@/types';
+import type { Pupil } from '@/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { summariseAttendanceClass } from '@/lib/attendance-notification';
+import { summariseAttendanceClass, type AttendanceNotificationRecord } from '@/lib/attendance-notification';
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   date: string;
   classId: string;
-  records: AttendanceRecord[];
+  records: AttendanceNotificationRecord[];
   pupils: Pupil[];
 };
 
@@ -55,7 +55,7 @@ export function ClassAttendanceSummaryDialog({ open, onOpenChange, date, classId
       <DialogContent className="max-w-5xl gap-4 p-0">
         <DialogHeader className="rounded-t-2xl border-b border-slate-200 bg-gradient-to-br from-brand-alt-surface-50 via-white to-sky-50 px-5 py-5 sm:px-6 dark:border-slate-700 dark:from-brand-alt-surface-950/40 dark:via-slate-900 dark:to-sky-950/40">
           <DialogTitle className="text-lg text-slate-900 sm:text-xl dark:text-slate-100">
-            {summary.className} attendance
+            {summary.classCode} attendance
           </DialogTitle>
           <DialogDescription className="text-slate-600 dark:text-slate-300">
             {date} · {summary.total} pupil{summary.total === 1 ? '' : 's'} recorded

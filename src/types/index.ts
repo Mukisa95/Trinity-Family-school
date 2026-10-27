@@ -478,6 +478,11 @@ export interface SchoolSettings {
     staffClockingRequests?: number;
     staffClockingNotifications?: number;
     staffClockingTimekeepers?: number;
+    dutyService?: number;
+    staffClockingPolicy?: number;
+    dashboardStaffClockingRecords?: number;
+    staffClockingEnabled?: boolean;
+    staffClockingStaff?: Record<string, number>;
     /** Full exam-definition collection revision. */
     exams?: number;
       /** Reserved for the later per-term exam-result cache rollout. */

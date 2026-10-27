@@ -52,7 +52,9 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
-  Cell
+  Cell,
+  PieChart,
+  Pie
 } from 'recharts';
 import { PillBar, VIBRANT_COLORS } from '@/components/ui/charts/pill-bar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -81,6 +83,10 @@ import { DashboardWelcomeWithEvents } from '@/components/dashboard/dashboard-wel
 import { CatalogueDataNotice } from '@/components/common/catalogue-data-notice';
 import { ClassAttendanceSummaryDialog } from '@/components/dashboard/class-attendance-summary-dialog';
 import { PhotoViewerDialog } from '@/components/common/photo-viewer-dialog';
+import { TeacherDayTracker } from '@/components/dashboard/teacher-day-tracker';
+import { DashboardStaffPanels } from '@/components/dashboard/staff-day-card';
+import { getStaffDashboardContext } from '@/lib/dashboard/staff-context';
+import { getClassAttendance } from '@/lib/dashboard/teacher-day';
 
 const dashboardEase = [0.16, 1, 0.3, 1] as const;
 
@@ -1609,14 +1615,20 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
 };
 
 // Today's Attendance Chart - Modernized
-const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: any[]; pupils: any[]; attendanceData?: any }) => {
+const TodaysAttendanceChart = ({ classes, pupils, attendanceData, personal = false, dataLoading = false, dataError = false, date }: { classes: any[]; pupils: any[]; attendanceData?: any; personal?: boolean; dataLoading?: boolean; dataError?: boolean; date?: string }) => {
   const router = useRouter();
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const currentDate = new Date();
+  const { user } = useAuth();
+  const attendanceLegendId = React.useId();
+  const [selectedClassId, setSelectedClassId] = useState('');
+  const selectedClass = classes.find(item => item.id === selectedClassId) || classes[0];
+  const today = date || format(new Date(), 'yyyy-MM-dd');
+  const currentDate = date ? new Date(`${date}T12:00:00`) : new Date();
 
   // Use the live attendance records passed from the parent instead of fetching again
   const attendanceRecords = attendanceData?.records || [];
-  const attendanceLoading = !attendanceData;
+  const attendanceLoading = !attendanceData || dataLoading;
+  const personalAttendance = getClassAttendance(selectedClass?.id || '', pupils, attendanceRecords);
+  const attendanceColors = ['#10b981', '#f59e0b', '#ef4444', '#38bdf8', '#8b5cf6', '#94a3b8'];
 
   // Get excluded days and academic year data
   const excludedDaysQuery = useExcludedDays();
@@ -1797,7 +1809,7 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
     if (!data?.id) return;
     // If no attendance has been recorded for this class at all → go to record page with class pre-selected
     const isFullyUnrecorded = data.notRecorded === data.totalPupils && data.totalPupils > 0;
-    if (isFullyUnrecorded) {
+    if (isFullyUnrecorded && (!personal || GranularPermissionService.canPerformAction(user, 'attendance', 'record', 'record_attendance'))) {
       router.push(`/attendance/record?classId=${data.id}`);
     } else {
       // Attendance exists (even partially) → view what's been recorded
@@ -1853,40 +1865,41 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
         {/* Decorative gradient accent */}
         <div className="dashboard-card-decoration absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-surface-500 via-cyan-500 to-green-500 rounded-t-xl opacity-60" />
 
-        <CardHeader className="pb-2 pt-3 relative z-20">
+        <CardHeader className={personal ? 'relative z-20 px-3 pb-0 pt-2' : 'pb-2 pt-3 relative z-20'}>
           <div className="flex flex-row items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-xl font-bold bg-gradient-to-r from-brand-ink-600 to-cyan-600 bg-clip-text text-transparent whitespace-nowrap dark:from-brand-ink-400 dark:to-cyan-400">
+              <CardTitle className={`${personal ? 'truncate text-base' : 'text-xl'} font-bold bg-gradient-to-r from-brand-ink-600 to-cyan-600 bg-clip-text text-transparent whitespace-nowrap dark:from-brand-ink-400 dark:to-cyan-400`}>
                 <span className="whitespace-nowrap">
-                  {isRecessMode ? 'Recess Period' : 'Present Today'}
+                  {personal ? `${selectedClass?.code || selectedClass?.name || 'My class'} today` : isRecessMode ? 'Recess Period' : 'Present Today'}
                 </span>
               </CardTitle>
             </div>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 self-start">
+              {personal && classes.length > 1 && <select aria-label="Attendance class" value={selectedClass?.id || ''} onChange={event => setSelectedClassId(event.target.value)} className="h-11 max-w-[5.5rem] rounded-md border border-input bg-background px-1 text-xs">{classes.map(item => <option key={item.id} value={item.id}>{item.code || item.name}</option>)}</select>}
               {isRecessMode && (
                 <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60">
                   🎓 Recess
                 </Badge>
               )}
               <Badge variant="outline" className="text-xs px-2 py-0.5 bg-brand-surface-50 border-brand-200 text-brand-ink-700 dark:bg-brand-surface-950/40 dark:border-brand-800/60 dark:text-brand-ink-300">
-                {overallStats.recorded}/{overallStats.total}
+                {personal ? dataError ? 'Unavailable' : `${personalAttendance.recorded}/${personalAttendance.total}` : `${overallStats.recorded}/${overallStats.total}`}
               </Badge>
-              <Button
+              {!personal && <Button
                 variant="ghost"
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  router.push('/attendance/view');
+                  router.push(personal && selectedClass ? `/attendance/view?classId=${encodeURIComponent(selectedClass.id)}` : '/attendance/view');
                 }}
                 className="text-brand-ink-600 hover:text-brand-ink-700 p-1 h-auto hover:bg-brand-surface-50 dark:text-brand-ink-400 dark:hover:text-brand-ink-300 dark:hover:bg-brand-surface-950/40"
               >
                 <ChevronRight className="w-4 h-4" />
-              </Button>
+              </Button>}
             </div>
           </div>
         </CardHeader>
         <CardContent className="px-2 pb-2 pt-0 relative z-20">
-          {attendanceLoading ? (
+          {dataError ? <p role="alert" className="px-2 py-5 text-sm text-muted-foreground">Attendance could not load. Try refreshing the dashboard.</p> : attendanceLoading ? (
             <div className="h-[180px] flex items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-brand-ink-600 dark:text-brand-ink-400" />
             </div>
@@ -1930,7 +1943,17 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
           ) : chartData.length === 0 ? (
             <div className="h-[180px] flex flex-col items-center justify-center text-gray-500 dark:text-slate-400">
               <AlertCircle className="w-8 h-8 mb-2" />
-              <p className="text-sm">No attendance data available</p>
+              <p className="text-sm">{personal && !classes.length ? 'No class or subject assignments yet.' : 'No attendance data available'}</p>
+            </div>
+          ) : personal ? (
+            <div>
+              <div className="flex min-w-0 items-center gap-2 px-1">
+                <button type="button" aria-label={`Open ${selectedClass.code || selectedClass.name} register`} aria-describedby={attendanceLegendId} onClick={() => handleBarClick({ id: selectedClass.id, notRecorded: personalAttendance.total - personalAttendance.recorded, totalPupils: personalAttendance.total }, 0)} className="relative h-[108px] w-[108px] shrink-0 cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2" title={`Open ${selectedClass.code || selectedClass.name} register`}>
+                  <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={personalAttendance.segments} dataKey="value" nameKey="label" innerRadius={34} outerRadius={48} startAngle={90} endAngle={-270} stroke="none" isAnimationActive={false}>{personalAttendance.segments.map((segment, index) => <Cell key={segment.label} fill={attendanceColors[index]} />)}</Pie></PieChart></ResponsiveContainer>
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><strong className="text-sm tabular-nums">{personalAttendance.present}/{personalAttendance.total}</strong><span className="text-xs text-muted-foreground">In school</span></div>
+                </button>
+                <ul id={attendanceLegendId} className="min-w-0 flex-1 space-y-1 text-xs">{personalAttendance.segments.map((segment, index) => segment.value > 0 && <li key={segment.label} className="flex items-center gap-1.5"><span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: attendanceColors[index] }} /><strong className="tabular-nums">{segment.value}</strong><span>{segment.label}</span></li>)}</ul>
+              </div>
             </div>
           ) : (
             <div className="h-[200px] w-full">
@@ -2313,7 +2336,7 @@ export default function DashboardPage() {
   const searchParams = useSearchParams();
   const prefersReducedMotion = useReducedMotion();
 
-  const { user } = useAuth();
+  const { user, canAccessModule } = useAuth();
   // Mount the tracker in the server/first client render. The effect may move
   // it for mobile, but it must not delay its cache hydration or data checks.
   const [trackerViewport, setTrackerViewport] = useState<'mobile' | 'desktop'>('desktop');
@@ -2329,16 +2352,9 @@ export default function DashboardPage() {
   const groupVariants = prefersReducedMotion ? {} : dashboardGroupVariants;
   const itemVariants = prefersReducedMotion ? {} : dashboardItemVariants;
 
-  const canViewTotalPupils = GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_stat_total_pupils');
-  const canViewGenderBreakdown = GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_stat_gender_breakdown');
-  const canViewTotalStaff = GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_stat_total_staff');
-  const canViewAttendanceToday = GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_stat_attendance_today');
-  const canViewClassEnrollment = GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_chart_class_enrollment');
-  const canViewAttendanceChart = GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_chart_attendance');
-  const canViewCalendarSchedule = GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_calendar_schedule');
-
   // 🚀 OPTIMIZED: Fetch data with caching (no refetch on navigation)
   const {
+    today: dashboardDate,
     pupils,
     staff,
     classes,
@@ -2348,25 +2364,40 @@ export default function DashboardPage() {
     stats,
     pupilsLoading,
     staffLoading,
+    classesLoading,
+    attendanceError,
+    pupilsError,
     attendanceLoading,
     isLoading,
     hasError,
     refetchAll
   } = useDashboardData();
+  const staffContext = useMemo(() => getStaffDashboardContext(user, staff, classes), [user, staff, classes]);
+  const personalDashboard = user?.role === 'Staff' && !staffContext.schoolWide;
+  const rolesReady = user?.role === 'Admin' || (!staffLoading && !classesLoading);
+  const attendanceClasses = staffContext.assignedClassIds.map(id => classes.find(item => item.id === id)).filter((item): item is typeof classes[number] => !!item);
+  const canViewTotalPupils = staffContext.isAdmin && GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_stat_total_pupils');
+  const canViewGenderBreakdown = staffContext.isAdmin && GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_stat_gender_breakdown');
+  const canViewTotalStaff = staffContext.isAdmin && GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_stat_total_staff');
+  const canViewAttendanceToday = GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_stat_attendance_today');
+  const canViewClassEnrollment = staffContext.schoolWide && GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_chart_class_enrollment');
+  const canViewAttendanceChart = staffContext.isDOS || GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_chart_attendance');
+  const canViewCalendarSchedule = GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_calendar_schedule');
   usePageDataTiming('dashboard:pupils', !pupilsLoading && (canViewTotalPupils || canViewGenderBreakdown || canViewClassEnrollment), user?.id);
   usePageDataTiming('dashboard:staff', !staffLoading && canViewTotalStaff, user?.id);
   const attendanceNoticeDate = searchParams.get('attendanceDate') || '';
   const attendanceNoticeClassId = searchParams.get('attendanceClassId') || '';
   const validAttendanceNoticeDate = /^\d{4}-\d{2}-\d{2}$/.test(attendanceNoticeDate);
   const noticeAttendance = useAttendanceByDateRange(
-    validAttendanceNoticeDate ? attendanceNoticeDate : format(new Date(), 'yyyy-MM-dd'),
-    validAttendanceNoticeDate ? attendanceNoticeDate : format(new Date(), 'yyyy-MM-dd'),
-    { enabled: validAttendanceNoticeDate && attendanceNoticeDate !== format(new Date(), 'yyyy-MM-dd') },
+    validAttendanceNoticeDate ? attendanceNoticeDate : dashboardDate,
+    validAttendanceNoticeDate ? attendanceNoticeDate : dashboardDate,
+    { enabled: validAttendanceNoticeDate && attendanceNoticeDate !== dashboardDate },
   );
-  const noticeRecords = attendanceNoticeDate === format(new Date(), 'yyyy-MM-dd')
+  const noticeRecords = attendanceNoticeDate === dashboardDate
     ? attendanceData.records
     : noticeAttendance.data || [];
   const attendanceNoticeOpen = canViewAttendanceToday && validAttendanceNoticeDate && !!attendanceNoticeClassId &&
+    (staffContext.schoolWide || staffContext.assignedClassIds.includes(attendanceNoticeClassId)) &&
     noticeRecords.some(record => record.classId === attendanceNoticeClassId);
   const closeAttendanceNotice = () => router.replace('/', { scroll: false });
   const handleCardClick = (path: string) => {
@@ -2420,7 +2451,7 @@ export default function DashboardPage() {
         <meta name="description" content="Trinity School Online Dashboard - Comprehensive overview of school activities and statistics." />
       </Head>
 
-      <DashboardWelcomeWithEvents schoolSettings={schoolSettings} enabled={canViewCalendarSchedule} />
+      <DashboardWelcomeWithEvents schoolSettings={schoolSettings} enabled={canViewCalendarSchedule} classIds={personalDashboard ? staffContext.assignedClassIds : undefined} />
 
       <motion.div
         variants={groupVariants}
@@ -2471,7 +2502,7 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Statistics Cards */}
-        <motion.div variants={itemVariants} className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-4 sm:mb-6">
+        {staffContext.isAdmin && <motion.div variants={itemVariants} className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-4 sm:mb-6">
           {canViewTotalPupils && (
             <StatCard
               title="Total Pupils"
@@ -2592,24 +2623,40 @@ export default function DashboardPage() {
             </>
           )}
 
-        </motion.div>
+        </motion.div>}
 
-        {/* Charts Section */}
-        <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="flex flex-col gap-6">
-            {canViewClassEnrollment && <ClassEnrollmentChart classes={classes} pupils={pupils} />}
-            {trackerViewport === 'mobile' && <DashboardLiveTracker />}
-            <PhotoSlideshow photos={photos || []} />
+        {/* Existing chart surfaces remain the school-wide dashboard. */}
+        {!rolesReady ? <p role="status" className="py-3 text-sm text-muted-foreground">Loading your dashboard…</p> : personalDashboard ? <motion.div variants={itemVariants} className="mb-6 grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-3">
+          <div className="order-1 flex min-w-0 flex-col gap-3 sm:gap-6 lg:order-none">
+            {staffContext.isTeacher && staffContext.staffId && <TeacherDayTracker key={staffContext.staffId} staffId={staffContext.staffId} classes={classes} assignedClassIds={staffContext.assignedClassIds} />}
+            <DashboardStaffPanels schoolWide={false} staffId={staffContext.staffId} />
           </div>
-          <div className="flex flex-col gap-6">
-            {canViewAttendanceChart && <TodaysAttendanceChart classes={classes} pupils={pupils} attendanceData={attendanceData} />}
-            {canViewCalendarSchedule && <MonthCalendarCard />}
+          <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
+            {(staffContext.isTeacher || attendanceClasses.length > 0) && <div className="order-2 min-w-0 lg:order-none"><TodaysAttendanceChart classes={attendanceClasses} pupils={pupils} attendanceData={attendanceData} personal date={dashboardDate} dataLoading={attendanceLoading || pupilsLoading} dataError={!!attendanceError || !!pupilsError} /></div>}
+            {canViewCalendarSchedule && <div className="order-4 lg:order-none"><MonthCalendarCard classIds={staffContext.assignedClassIds} /></div>}
           </div>
-          <div className="flex flex-col gap-6">
+          <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
+            <div className="order-3 min-w-0 lg:order-none"><DashboardLiveTracker /></div>
+            {canViewCalendarSchedule && <div className="order-5 lg:order-none"><TermScheduleCard classIds={staffContext.assignedClassIds} /></div>}
+          </div>
+          <div className="order-6 lg:order-none lg:col-span-3"><PhotoSlideshow photos={photos || []} /></div>
+        </motion.div> : <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div className="contents lg:flex lg:flex-col lg:gap-6">
+            {canViewClassEnrollment && <div className="order-5 lg:order-none"><ClassEnrollmentChart classes={classes} pupils={pupils} /></div>}
+            {trackerViewport === 'mobile' && <div className="order-4 lg:order-none"><DashboardLiveTracker /></div>}
+            <div className="order-8 lg:order-none"><PhotoSlideshow photos={photos || []} /></div>
+          </div>
+          <div className="contents lg:flex lg:flex-col lg:gap-6">
+            {canViewAttendanceChart && <div className="order-1 lg:order-none"><TodaysAttendanceChart classes={classes} pupils={pupils} attendanceData={attendanceData} /></div>}
+            {canViewCalendarSchedule && <div className="order-6 lg:order-none"><MonthCalendarCard /></div>}
+          </div>
+          <div className="contents lg:flex lg:flex-col lg:gap-6">
             {trackerViewport === 'desktop' && <DashboardLiveTracker />}
-            {canViewCalendarSchedule && <TermScheduleCard />}
+            {staffContext.schoolWide && <div className="order-2 lg:order-none"><DashboardStaffPanels schoolWide staffId={staffContext.staffId} /></div>}
+            {staffContext.staffId && staffContext.assignedClassIds.length > 0 && <div className="order-3 lg:order-none"><TeacherDayTracker key={staffContext.staffId} staffId={staffContext.staffId} classes={classes} assignedClassIds={staffContext.assignedClassIds} /></div>}
+            {canViewCalendarSchedule && <div className="order-7 lg:order-none"><TermScheduleCard /></div>}
           </div>
-        </motion.div>
+        </motion.div>}
 
         {/* Quick Actions (Ribbon Links) */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto px-4">
@@ -2622,14 +2669,14 @@ export default function DashboardPage() {
             onClick={() => router.push('/attendance')}
           />
 
-          <QuickActionButton
+          {(!personalDashboard || canAccessModule('fees')) && <QuickActionButton
             title="Fee Management"
             icon={Target}
             // Orange Theme (like 'Add To Chart')
             baseColor="#FF7A18"
             darkColor="#CF5704"
             onClick={() => router.push('/fees')}
-          />
+          />}
 
           <QuickActionButton
             title="Examinations"

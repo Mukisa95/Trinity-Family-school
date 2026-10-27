@@ -30,18 +30,22 @@ export function useRevisionedDomainQuery<T>({
   revisionKeys,
   queryFn,
   enabled = true,
+  revisionToken,
+  canReconcile = true,
 }: {
   queryKey: QueryKey;
   cacheName: string;
   revisionKeys: readonly DomainRevisionKey[];
   queryFn: () => Promise<T>;
   enabled?: boolean;
+  revisionToken?: string;
+  canReconcile?: boolean;
 }) {
   const { user, isAuthenticated } = useAuth();
   const revisionsQuery = useDashboardDataRevisions();
   const scope = isAuthenticated ? getDomainCacheScope(user?.id, user?.role) : '';
   const revisionsReady = revisionsQuery.data !== undefined;
-  const revision = domainRevisionToken(revisionsQuery.data, revisionKeys);
+  const revision = revisionToken ?? domainRevisionToken(revisionsQuery.data, revisionKeys);
   const identity = `${cacheName}:${scope}:${revision}`;
   const [restore, setRestore] = useState<RestoreState<T>>({ identity: '', loaded: false, snapshot: null });
 
@@ -78,7 +82,7 @@ export function useRevisionedDomainQuery<T>({
       await writeRevisionedDomainCache(cacheName, scope, revision, data);
       return data;
     },
-    enabled: enabled && Boolean(scope) && revisionsReady && mustReconcile,
+    enabled: enabled && Boolean(scope) && revisionsReady && canReconcile && mustReconcile,
     staleTime: Infinity,
     gcTime: 24 * 60 * 60 * 1000,
     refetchOnMount: false,

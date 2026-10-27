@@ -29,6 +29,7 @@ export const schoolSettingsKeys = {
 
 export const dashboardDataRevisionKeys = {
   all: ['dashboardDataRevisions'] as const,
+  readiness: ['dashboardRevisionReadiness'] as const,
 };
 
 function sameValue(left: unknown, right: unknown) {
@@ -279,10 +280,13 @@ function mergeDashboardRevisions(
     const value = maxRevision(reference[key], legacy?.[key]);
     if (value !== undefined) result[key] = value;
   });
-  (['pupils', 'attendance', 'events', 'photos'] as const).forEach(key => {
+  (['pupils', 'attendance', 'events', 'photos', 'dutyService', 'staffClockingPolicy', 'dashboardStaffClockingRecords'] as const).forEach(key => {
     const value = maxRevision(operational[key], legacy?.[key]);
     if (value !== undefined) result[key] = value;
   });
+  if (typeof operational.staffClockingEnabled === 'boolean') result.staffClockingEnabled = operational.staffClockingEnabled;
+  const staffClockingStaff = mergeRevisionMap(operational.staffClockingStaff as Record<string, number> | undefined, legacy?.staffClockingStaff);
+  if (staffClockingStaff) result.staffClockingStaff = staffClockingStaff;
   DOMAIN_REVISION_KEYS.forEach(key => {
     const value = maxRevision(operational[key], legacy?.[key]);
     if (value !== undefined) result[key] = value;
@@ -312,6 +316,7 @@ interface RevisionListenerRegistry {
   refCount: number;
   clients: Set<QueryClient>;
   modern: ModernRevisionSnapshots;
+  ready: Partial<Record<DashboardRevisionDocumentKind, boolean>>;
   legacy?: DashboardDataRevisions;
   unsubscribers: Array<() => void>;
   unsubscribeLegacy?: () => void;
@@ -326,6 +331,9 @@ function publishDashboardRevisions(registry: RevisionListenerRegistry) {
     if (!sameValue(current, revisions)) {
       client.setQueryData(dashboardDataRevisionKeys.all, revisions);
     }
+    if (!sameValue(client.getQueryData(dashboardDataRevisionKeys.readiness), registry.ready)) {
+      client.setQueryData(dashboardDataRevisionKeys.readiness, { ...registry.ready });
+    }
   });
 }
 
@@ -336,6 +344,7 @@ function startLegacyDashboardRevisionListener(registry: RevisionListenerRegistry
     { includeMetadataChanges: true },
     snapshot => {
       if (revisionListenerRegistry !== registry) return;
+      if (snapshot.metadata.hasPendingWrites) return;
       if (!snapshot.exists() && snapshot.metadata.fromCache) return;
       registry.legacy = snapshot.exists()
         ? ((snapshot.data()?.dataRevisions || {}) as DashboardDataRevisions)
@@ -360,6 +369,12 @@ function startDashboardRevisionListeners(registry: RevisionListenerRegistry) {
       { includeMetadataChanges: true },
       snapshot => {
         if (revisionListenerRegistry !== registry) return;
+        // A locally estimated increment precedes the source batch's commit.
+        // Reconciling then could cache old HTTP data under the new revision.
+        if (snapshot.metadata.hasPendingWrites) return;
+        // Cold readers wait for authoritative metadata, rather than first fetching
+        // with a partial/default revision and fetching a second time on mount.
+        if (!snapshot.metadata.fromCache) registry.ready[kind] = true;
         if (!snapshot.exists() && snapshot.metadata.fromCache) return;
         registry.modern[kind] = snapshot.exists() ? snapshot.data() : {};
         if (kind === 'reference' && snapshot.exists()) {
@@ -390,12 +405,15 @@ function subscribeToDashboardRevisions(queryClient: QueryClient) {
       refCount: 0,
       clients: new Set([queryClient]),
       modern: {},
+      ready: {},
       unsubscribers: [],
     };
     revisionListenerRegistry = registry;
+    queryClient.setQueryData(dashboardDataRevisionKeys.readiness, {});
     startDashboardRevisionListeners(registry);
   } else {
     revisionListenerRegistry.clients.add(queryClient);
+    publishDashboardRevisions(revisionListenerRegistry);
   }
 
   revisionListenerRegistry.refCount += 1;
@@ -426,6 +444,15 @@ export function useDashboardDataRevisions(options?: { enabled?: boolean }) {
     gcTime: 24 * 60 * 60 * 1000,
     initialData: () => queryClient.getQueryData<DashboardDataRevisions>(dashboardDataRevisionKeys.all),
   });
+}
+
+/** Shares the existing revision listeners; adds no Firestore subscription/read. */
+export function useDashboardRevisionReadiness(required: readonly DashboardRevisionDocumentKind[]) {
+  const readiness = useQuery<Partial<Record<DashboardRevisionDocumentKind, boolean>>>({
+    queryKey: dashboardDataRevisionKeys.readiness, queryFn: skipToken, enabled: false,
+    staleTime: Infinity, gcTime: 24 * 60 * 60 * 1000,
+  });
+  return required.every(kind => readiness.data?.[kind] === true);
 }
 
 export function useUpdateSchoolSettings() {

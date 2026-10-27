@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { format } from 'date-fns';
+import { useSchoolDate } from './use-school-date';
 import { useSchoolSettings } from './use-school-settings';
 import { usePhotos } from './use-photos';
 import type { Pupil } from '@/types';
@@ -47,7 +47,7 @@ export function useDashboardData({ enabled = true }: UseDashboardDataOptions = {
     refetch: refetchClasses,
   } = useClasses();
 
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const today = useSchoolDate();
   const attendanceSummary = useAttendanceSummary(today, enabled);
   const attendanceData = useMemo(() => {
     const classLookup = new Map(classes.map(cls => [cls.id, cls.code || cls.name]));
@@ -99,6 +99,7 @@ export function useDashboardData({ enabled = true }: UseDashboardDataOptions = {
   };
 
   return {
+    today,
     pupils,
     staff,
     classes,
