@@ -66,7 +66,7 @@ final class TimetableSurfaces {
         SharedPreferences.Editor edit = prefs(context).edit(); for (String key : prefs(context).getAll().keySet()) if (key.startsWith(prefix(id))) edit.remove(key); edit.apply();
     }
     private static PendingIntent open(Context context, int id) {
-        return PendingIntent.getActivity(context, 9000 + id, new Intent(context, MainActivity.class).putExtra("offlineRoute", OfflinePolicy.LOCAL_ORIGIN + OfflinePolicy.LOCAL_PATH + "?page=timetable"), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        return PendingIntent.getActivity(context, 9000 + id, AppEntry.intent(context).putExtra("offlineRoute", OfflinePolicy.LOCAL_ORIGIN + OfflinePolicy.LOCAL_PATH + "?page=timetable"), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
     private static PendingIntent action(Context context, String action, int code) {
         return PendingIntent.getBroadcast(context, code, new Intent(context, TimetableReceiver.class).setAction("ug.trinity.timetable." + action), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
@@ -255,7 +255,7 @@ final class TimetableSurfaces {
         return view;
     }
     static PendingIntent openEvents(Context context) {
-        return PendingIntent.getActivity(context,7900,new Intent(context,MainActivity.class).putExtra("onlineRoute",PhotoPolicy.ORIGIN+"/events"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        return PendingIntent.getActivity(context,7900,AppEntry.intent(context).putExtra("onlineRoute",PhotoPolicy.ORIGIN+"/events"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
     }
     static RemoteViews eventMiniView(Context context, TimetableSchedule.Frame event) {
         RemoteViews row=new RemoteViews(context.getPackageName(),R.layout.school_event_notification_row);

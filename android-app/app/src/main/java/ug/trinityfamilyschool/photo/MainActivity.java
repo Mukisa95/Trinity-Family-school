@@ -63,6 +63,15 @@ public final class MainActivity extends FragmentActivity {
     private final PageLoadState pageLoad = new PageLoadState();
     private final Runnable pendingLoadError = () -> checkLoadedDocument(true);
     private String pendingShortcut;
+    private String pendingRoute, pendingNavigationId;
+    private boolean navigationRouterReady, navigationFallbackUsed, navigationDocumentFinished;
+    private final Runnable navigationFallback = () -> {
+        if (pendingRoute == null || navigationRouterReady || navigationFallbackUsed || web == null || offline == null) return;
+        String route = pendingRoute;
+        pendingRoute = null; pendingNavigationId = null; navigationFallbackUsed = true;
+        diagnostics.record("web_navigation_legacy_fallback", 0);
+        offline.openRoute(route);
+    };
     private boolean shortcutRouterReady, searchKeyboardArmed, searchEditorReady;
     private int keyboardAttempts;
     private final Runnable shortcutKeyboard = this::showShortcutKeyboard;
@@ -97,6 +106,8 @@ public final class MainActivity extends FragmentActivity {
         setContentView(frame);
         deviceUnlock = new DeviceUnlock(this, web);
         diagnostics = new AppDiagnostics(this);
+        diagnostics.created(state != null, AppEntry.source(getIntent()));
+        if (state != null) AppEntry.consume(getIntent());
         offline = new OfflineController(this, web, deviceUnlock, diagnostics);
         SystemBars.install(this, frame);
         startupSurface = new StartupSurface(this, frame, browserFrame);
@@ -123,6 +134,9 @@ public final class MainActivity extends FragmentActivity {
                 pageLoad.begin(url);
                 dismissLoadError();
                 shortcutRouterReady = false;
+                navigationDocumentFinished = false;
+                navigationRouterReady = false;
+                view.removeCallbacks(navigationFallback);
                 searchEditorReady = false;
                 view.removeCallbacks(shortcutKeyboard);
                 if (deviceUnlock != null) deviceUnlock.navigation();
@@ -158,10 +172,12 @@ public final class MainActivity extends FragmentActivity {
                 return true;
             }
             @Override public void onPageFinished(WebView view, String url) {
+                navigationDocumentFinished = true;
                 if (documents != null) documents.installed();
                 if (offline == null) return;
                 diagnostics.record("web_navigation_finished", 0);
                 revealStartupDocument();
+                if (pendingRoute != null && !navigationRouterReady) view.postDelayed(navigationFallback, 2000);
                 if (PhotoPolicy.trusted(url)) webStarted();
                 offline.publishConnectivity();
                 if (PhotoPolicy.trusted(url)) view.evaluateJavascript("(()=>{const send=()=>window.TrinityOffline?.postMessage(JSON.stringify({id:crypto.randomUUID(),action:'appearance',preference:localStorage.getItem('trinity-appearance')||'system',dark:document.documentElement.classList.contains('dark')}));window.__trinityBarsObserver?.disconnect();window.__trinityBarsObserver=new MutationObserver(send);window.__trinityBarsObserver.observe(document.documentElement,{attributes:true,attributeFilter:['class']});send();})()", null);
@@ -441,25 +457,52 @@ public final class MainActivity extends FragmentActivity {
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent); setIntent(intent);
         String shortcut = intent.getStringExtra(AppShortcuts.EXTRA);
-        if (AppShortcuts.route(shortcut) != null) {
-            pendingShortcut = shortcut;
+        String route = AppEntry.route(this, intent);
+        diagnostics.record("native_entry/" + AppEntry.source(intent), 0);
+        AppEntry.consume(intent);
+        if (route != null) {
             searchKeyboardArmed = "search".equals(shortcut); searchEditorReady = false; keyboardAttempts = 0;
             if (web != null) web.removeCallbacks(shortcutKeyboard);
-            deliverShortcut();
-        } else {
-            String route = NativePush.tapRoute(this, intent);
-            if (route != null && web != null && offline != null) offline.openRoute(route);
+            pendingRoute = route; pendingNavigationId = UUID.randomUUID().toString();
+            pendingShortcut = AppShortcuts.route(shortcut) != null ? shortcut : null;
+            navigationFallbackUsed = false;
+            deliverNavigation();
+            if (!navigationRouterReady && web != null) {
+                if (pendingShortcut != null && shortcutRouterReady) { pendingRoute = null; deliverShortcut(); }
+                else if (navigationDocumentFinished && shortcutSurface()) { web.removeCallbacks(navigationFallback); web.postDelayed(navigationFallback, 2000); }
+            }
         }
         if (updater != null && AppUpdater.ACTION_INSTALL.equals(intent.getAction())) updater.resume();
     }
+    void navigationReady() {
+        if (!shortcutSurface()) return;
+        navigationRouterReady = true;
+        web.removeCallbacks(navigationFallback);
+        deliverNavigation();
+    }
+    void navigationHandled(String requestId) {
+        if (requestId.equals(pendingNavigationId)) { pendingRoute = null; pendingNavigationId = null; pendingShortcut = null; }
+    }
+    private void deliverNavigation() {
+        if (!navigationRouterReady || pendingRoute == null || !shortcutSurface()) return;
+        String detail = "{\"requestId\":" + JSONObject.quote(pendingNavigationId) + ",\"url\":" + JSONObject.quote(pendingRoute) + "}";
+        web.evaluateJavascript("window.dispatchEvent(new CustomEvent('trinity-android-navigate',{detail:" + detail + "}));", null);
+    }
+    void interactive() { if (diagnostics != null) diagnostics.interactive(); }
+    @Override protected void onSaveInstanceState(Bundle state) {
+        // An explicit launch has already been consumed. A later recreation opens the dashboard.
+        AppEntry.consume(getIntent());
+        super.onSaveInstanceState(state);
+    }
     void shortcutRouterReady() {
         if (!shortcutSurface()) return;
-        shortcutRouterReady = true; deliverShortcut();
+        shortcutRouterReady = true; if (!navigationRouterReady) deliverShortcut();
     }
     private boolean shortcutSurface() { return web != null && (PhotoPolicy.trusted(web.getUrl()) || OfflinePolicy.local(web.getUrl())); }
     private void deliverShortcut() {
         if (!shortcutRouterReady || pendingShortcut == null || !shortcutSurface()) return;
         String id = pendingShortcut; pendingShortcut = null;
+        pendingRoute = null; pendingNavigationId = null; web.removeCallbacks(navigationFallback);
         if (!"search".equals(id)) ((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(web.getWindowToken(), 0);
         web.evaluateJavascript("window.dispatchEvent(new CustomEvent('trinity-android-shortcut',{detail:" + JSONObject.quote(id) + "}));", null);
     }
@@ -565,7 +608,7 @@ public final class MainActivity extends FragmentActivity {
         loadErrorShown = false;
     }
     @Override protected void onPause() { if (documents != null) documents.visible(false); if (diagnostics != null) diagnostics.pause(); if (updater != null) updater.pause(); if (offline != null) offline.pause(); super.onPause(); }
-    @Override protected void onResume() { super.onResume(); if (documents != null) documents.visible(true); if (diagnostics != null) diagnostics.resume(); if (offline != null) offline.resume(); if (updater != null) updater.resume(); }
+    @Override protected void onResume() { super.onResume(); if (documents != null) documents.visible(true); if (diagnostics != null) diagnostics.resume(); if (web != null) web.evaluateJavascript("window.dispatchEvent(new Event('trinity-native-resumed'))", null); if (offline != null) offline.resume(); if (updater != null) updater.resume(); }
     @Override protected void onDestroy() {
         if (pendingWebCameraPermission != null) { pendingWebCameraPermission.deny(); pendingWebCameraPermission = null; }
         pendingNativeCaptureId = null; pendingNativeCameraId = null; pendingNativeCaptureReply = null;
@@ -574,7 +617,7 @@ public final class MainActivity extends FragmentActivity {
             for (String bridge : new String[]{"TrinityPhoto", "TrinityOffline", "TrinityDeviceUnlock"}) WebViewCompat.removeWebMessageListener(web, bridge);
         }
         if (startupSurface != null) startupSurface.destroy();
-        if (web != null) web.removeCallbacks(pendingLoadError);
+        if (web != null) { web.removeCallbacks(pendingLoadError); web.removeCallbacks(navigationFallback); }
         if (loadErrorDialog != null) { loadErrorDialog.dismiss(); loadErrorDialog = null; }
         if (deviceUnlock != null) deviceUnlock.destroy();
         if (updater != null) updater.destroy();

@@ -482,7 +482,7 @@ test('staff clocking personal revision counters are scoped to the linked active 
 });
 
 test('staff clocking authority collections are inaccessible to every browser role', async () => {
-  const collections = ['staffClockingSettings', 'staffClockingSchedules', 'staffClockingQrSessions', 'staffClockingEvents', 'staffClockingDailyRecords', 'staffClockingExemptions', 'staffClockingCorrections', 'staffClockingExplanations', 'staffClockingNotifications', 'staffClockingOperations'];
+  const collections = ['staffClockingStaffIds', 'staffClockingStaffCredentials', 'staffClockingSettings', 'staffClockingSchedules', 'staffClockingQrSessions', 'staffClockingEvents', 'staffClockingDailyRecords', 'staffClockingExemptions', 'staffClockingCorrections', 'staffClockingExplanations', 'staffClockingNotifications', 'staffClockingOperations'];
   await testEnv.withSecurityRulesDisabled(async context => {
     await setDoc(doc(context.firestore(), 'system_users', 'clocking-staff'), { role: 'Staff', isActive: true });
     for (const path of collections) {

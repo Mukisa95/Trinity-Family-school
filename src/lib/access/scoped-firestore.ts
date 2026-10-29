@@ -4,11 +4,25 @@
  * projections use the authenticated server boundary. Never retry unscoped.
  */
 import * as sdk from 'firebase/firestore';
+import { assertLiveWorkspace } from '@/lib/auth/saved-view';
 import { circumferenceOf, hasCircumference, permitsClass, permitsPupil, projectExamResult, scopeFilters } from './circumference';
 import { circumferencePupil, getCircumferenceUser } from './circumference-session';
 import { sessionAccessKey } from './session-profile';
 import { isCircumferenceCollection, circumferenceCollectionKind } from './scoped-collections';
 export * from 'firebase/firestore';
+
+// Saved startup viewing must never enqueue a write for later delivery.
+export const setDoc: typeof sdk.setDoc = ((...args: any[]) => { assertLiveWorkspace(); return (sdk.setDoc as any)(...args); }) as typeof sdk.setDoc;
+export const updateDoc: typeof sdk.updateDoc = ((...args: any[]) => { assertLiveWorkspace(); return (sdk.updateDoc as any)(...args); }) as typeof sdk.updateDoc;
+export const addDoc: typeof sdk.addDoc = ((...args: any[]) => { assertLiveWorkspace(); return (sdk.addDoc as any)(...args); }) as typeof sdk.addDoc;
+export const deleteDoc: typeof sdk.deleteDoc = ((...args: any[]) => { assertLiveWorkspace(); return (sdk.deleteDoc as any)(...args); }) as typeof sdk.deleteDoc;
+export const writeBatch: typeof sdk.writeBatch = ((...args: any[]) => {
+  const batch = (sdk.writeBatch as any)(...args) as sdk.WriteBatch;
+  const commit = batch.commit.bind(batch);
+  batch.commit = () => { assertLiveWorkspace(); return commit(); };
+  return batch;
+}) as typeof sdk.writeBatch;
+export const runTransaction: typeof sdk.runTransaction = ((...args: any[]) => { assertLiveWorkspace(); return (sdk.runTransaction as any)(...args); }) as typeof sdk.runTransaction;
 
 type Metadata = { base: sdk.Query; collection: string; constraints: sdk.QueryConstraint[] };
 const queries = new WeakMap<object, Metadata>();

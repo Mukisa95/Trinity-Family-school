@@ -70,7 +70,7 @@ export const staffClockingSettingsSchema = z.object({
     context.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['enrolledStaffIds'],
-      message: 'Select at least one linked staff member for selected-staff access.',
+      message: 'Select at least one staff member for selected-staff access.',
     });
   }
 });
@@ -302,7 +302,7 @@ function canAccess(actor: AuthenticatedAppUser, page: 'record' | 'clock' | 'reco
 
 export function requireStaffClockingAccess(actor: AuthenticatedAppUser, page: 'record' | 'clock' | 'records', action?: string) {
   if (!canAccess(actor, page, action)) throw new Error('PERMISSION_DENIED');
-  if (page === 'record' && ['manage_schedules', 'manage_timekeepers'].includes(action || '') && !canAccess(actor, 'record', 'access_manage')) throw new Error('PERMISSION_DENIED');
+  if (page === 'record' && ['manage_schedules', 'manage_timekeepers', 'manage_staff_ids'].includes(action || '') && !canAccess(actor, 'record', 'access_manage')) throw new Error('PERMISSION_DENIED');
 }
 
 function canManageClocking(actor: AuthenticatedAppUser) {
@@ -806,17 +806,14 @@ export async function refreshStaffClockingQrSession(db: Firestore, actor: Authen
   return { sessionId, token: issueQrToken(sessionId, tokenExpiresAtMs), expiresAt: new Date(tokenExpiresAtMs).toISOString() };
 }
 
-export async function recordStaffClockingScan(db: Firestore, actor: AuthenticatedAppUser, input: unknown) {
-  requireStaffClockingAccess(actor, 'clock', 'clock_self');
+export async function recordStaffClockingScan(db: Firestore, actor: AuthenticatedAppUser, input: unknown, mode: 'self' | 'staff_id' = 'self') {
+  requireStaffClockingAccess(actor, mode === 'self' ? 'clock' : 'record', mode === 'self' ? 'clock_self' : 'scan_staff_ids');
   const payload = clockScanSchema.parse(input);
   const now = new Date();
-  const staffId = actor.user.staffId;
-  if (!staffId) throw new Error('CLOCKING_STAFF_LINK_REQUIRED');
+  if (mode === 'self' && !actor.user.staffId) throw new Error('CLOCKING_STAFF_LINK_REQUIRED');
   const { localDate, localTime } = kampalaClock(now);
   const eventRef = db.collection(STAFF_CLOCKING_COLLECTIONS.events).doc(operationEventId(actor.user.id, payload.operationId));
-  const dailyRef = db.collection(STAFF_CLOCKING_COLLECTIONS.dailyRecords).doc(dailyRecordId(staffId, localDate));
   const settingsRef = db.collection(STAFF_CLOCKING_COLLECTIONS.settings).doc(SETTINGS_ID);
-  const staffRef = db.collection('staff').doc(staffId);
   const scheduleQuery = db.collection(STAFF_CLOCKING_COLLECTIONS.schedules);
   const requestDigest = createHash('sha256').update(payload.token).digest('hex');
 
@@ -824,24 +821,32 @@ export async function recordStaffClockingScan(db: Firestore, actor: Authenticate
     const [existingEvent, account] = await Promise.all([
       transaction.get(eventRef), transaction.get(db.collection('system_users').doc(actor.user.id)),
     ]);
-    if (!account.exists || account.data()?.isActive === false || account.data()?.staffId !== staffId) throw new Error('ACCOUNT_INACTIVE');
-    requireStaffClockingAccess({ ...actor, user: { ...account.data(), id: account.id } as AuthenticatedAppUser['user'] }, 'clock', 'clock_self');
+    if (!account.exists || account.data()?.isActive === false || (mode === 'self' && account.data()?.staffId !== actor.user.staffId)) throw new Error('ACCOUNT_INACTIVE');
+    requireStaffClockingAccess({ ...actor, user: { ...account.data(), id: account.id } as AuthenticatedAppUser['user'] }, mode === 'self' ? 'clock' : 'record', mode === 'self' ? 'clock_self' : 'scan_staff_ids');
     if (existingEvent.exists) {
       if (existingEvent.data()?.requestDigest !== requestDigest) throw new Error('CLOCKING_OPERATION_CONFLICT');
-      return { duplicate: true, event: toIso(existingEvent.data()) };
+      const saved = existingEvent.data();
+      return { duplicate: true, event: toIso(saved), ...(mode === 'staff_id' ? { staff: { id: saved?.staffId, name: saved?.staffName || 'Staff member' } } : {}) };
     }
-    const token = verifyQrToken(payload.token, now.getTime());
-    const sessionRef = db.collection(STAFF_CLOCKING_COLLECTIONS.sessions).doc(token.sessionId);
+    const credential = mode === 'staff_id' ? await transaction.get(db.collection('staffClockingStaffCredentials').doc(createHash('sha256').update(payload.token).digest('base64url'))) : undefined;
+    if (mode === 'staff_id' && (!credential?.exists || credential.data()?.active !== true)) throw new Error('CLOCKING_STAFF_ID_INVALID');
+    const staffId = mode === 'self' ? actor.user.staffId! : String(credential!.data()!.staffId);
+    const dailyRef = db.collection(STAFF_CLOCKING_COLLECTIONS.dailyRecords).doc(dailyRecordId(staffId, localDate));
+    const staffRef = db.collection('staff').doc(staffId);
+    const token = mode === 'self' ? verifyQrToken(payload.token, now.getTime()) : undefined;
+    const sessionRef = token ? db.collection(STAFF_CLOCKING_COLLECTIONS.sessions).doc(token.sessionId) : undefined;
     const [session, settingsSnapshot, staff, scheduleSnapshot, daily, calendarDay] = await Promise.all([
-      transaction.get(sessionRef), transaction.get(settingsRef), transaction.get(staffRef), transaction.get(scheduleQuery), transaction.get(dailyRef), resolveCalendarClosure(db, localDate, transaction),
+      sessionRef ? transaction.get(sessionRef) : Promise.resolve(undefined), transaction.get(settingsRef), transaction.get(staffRef), transaction.get(scheduleQuery), transaction.get(dailyRef), resolveCalendarClosure(db, localDate, transaction),
     ]);
     const feature = normalizeSettings(settingsSnapshot.data());
     if (!feature.enabled) throw new Error('CLOCKING_FEATURE_DISABLED');
     if (!staff.exists || String(staff.data()?.status || 'active').toLowerCase() !== 'active') throw new Error('CLOCKING_STAFF_INACTIVE');
     if (feature.accessMode === 'selected_staff' && !feature.enrolledStaffIds.includes(staffId)) throw new Error('CLOCKING_STAFF_NOT_ENROLLED');
-    const sessionExpiry = session.data()?.expiresAt?.toDate?.();
-    if (!session.exists || session.data()?.status !== 'active' || !(sessionExpiry instanceof Date) || sessionExpiry.getTime() < now.getTime()) throw new Error('CLOCKING_QR_SESSION_EXPIRED');
-    if (Number(session.data()?.settingsRevision) !== feature.revision) throw new Error('CLOCKING_QR_SESSION_STALE');
+    if (mode === 'self') {
+      const sessionExpiry = session?.data()?.expiresAt?.toDate?.();
+      if (!session?.exists || session.data()?.status !== 'active' || !(sessionExpiry instanceof Date) || sessionExpiry.getTime() < now.getTime()) throw new Error('CLOCKING_QR_SESSION_EXPIRED');
+      if (Number(session.data()?.settingsRevision) !== feature.revision) throw new Error('CLOCKING_QR_SESSION_STALE');
+    }
 
     const staffData = staff.data() || {};
     const departmentGroups = Array.isArray(staffData.department) ? staffData.department : [staffData.department];
@@ -871,23 +876,25 @@ export async function recordStaffClockingScan(db: Firestore, actor: Authenticate
     if (eventType === 'clock_out' && now.getTime() - arrivalAt < 90_000) throw new Error('CLOCKING_DUPLICATE_SCAN_WAIT');
     const arrival = eventType === 'clock_in' ? classifyStaffClockIn(localTime, resolution) : undefined;
     const event = omitUndefined({
-      id: eventRef.id, staffId, accountId: actor.user.id, operationId: payload.operationId, requestDigest, type: eventType,
-      occurredAt: Timestamp.fromDate(now), localDate, localTime, sessionId: token.sessionId,
+      id: eventRef.id, staffId, ...(mode === 'self' ? { accountId: actor.user.id } : {}), operationId: payload.operationId, requestDigest, type: eventType,
+      occurredAt: Timestamp.fromDate(now), localDate, localTime, sessionId: token?.sessionId,
+      source: mode === 'self' ? 'self_school_qr' : 'timekeeper_staff_qr', performedBy: actorLabel(actor),
       scheduleId: resolution.sourceScheduleId, scheduleScope: resolution.sourceScope, clockInBy: resolution.clockInBy,
       graceMinutes: resolution.graceMinutes, ...(arrival ? { arrivalStatus: arrival.status, secondsLate: arrival.secondsLate } : {}),
     });
     const staffName = [staffData.firstName, staffData.lastName].filter((value): value is string => typeof value === 'string' && value.trim().length > 0).join(' ').trim();
+    if (mode === 'staff_id' && staffName) Object.assign(event, { staffName });
     const appliedRule = scheduleSnapshot.docs.find(item => item.id === resolution.sourceScheduleId)?.data();
     const savedSchedule = omitUndefined({ clockInBy: resolution.clockInBy, clockOutBy: resolution.clockOutBy, graceMinutes: resolution.graceMinutes, scope: resolution.sourceScope, kind: appliedRule?.kind, groups, duty: resolution.duty });
     const record = eventType === 'clock_in'
-      ? { ...prior, staffId, ...(staffName ? { staffName } : {}), accountId: actor.user.id, localDate, clockInAt: Timestamp.fromDate(now), clockInTime: localTime, arrivalStatus: arrival!.status, secondsLate: arrival!.secondsLate, scheduleId: resolution.sourceScheduleId, clockInBy: resolution.clockInBy, graceMinutes: resolution.graceMinutes, status: 'open', updatedAt: Timestamp.fromDate(now) }
-      : { ...prior, clockOutAt: Timestamp.fromDate(now), clockOutTime: localTime, status: 'complete', updatedAt: Timestamp.fromDate(now) };
+      ? { ...prior, staffId, ...(staffName ? { staffName } : {}), ...(mode === 'self' ? { accountId: actor.user.id } : {}), localDate, clockInAt: Timestamp.fromDate(now), clockInTime: localTime, arrivalStatus: arrival!.status, secondsLate: arrival!.secondsLate, scheduleId: resolution.sourceScheduleId, clockInBy: resolution.clockInBy, graceMinutes: resolution.graceMinutes, clockInSource: event.source, clockInPerformedBy: event.performedBy, status: 'open', updatedAt: Timestamp.fromDate(now) }
+      : { ...prior, clockOutAt: Timestamp.fromDate(now), clockOutTime: localTime, clockOutSource: event.source, clockOutPerformedBy: event.performedBy, status: 'complete', updatedAt: Timestamp.fromDate(now) };
     transaction.create(eventRef, event);
     if (eventType === 'clock_in') Object.assign(record, { scheduleSnapshot: savedSchedule, ...(resolution.clockOutBy ? { clockOutBy: resolution.clockOutBy } : {}) });
     transaction.set(dailyRef, record, { merge: false });
     bumpClockingRevisions(db, transaction, 'staffClockingRecords');
     bumpPersonalClockingRevision(db, transaction, staffId, localDate);
-    return { duplicate: false, event: toIso(event), record: toIso(record) };
+    return { duplicate: false, event: toIso(event), record: toIso(record), ...(mode === 'staff_id' ? { staff: { id: staffId, name: staffName || 'Staff member' } } : {}) };
   });
 }
 
@@ -900,13 +907,13 @@ export async function listStaffClockingTimekeepers(db: Firestore, actor: Authent
     const member = active.get(String(data.staffId));
     if (data.isActive === false || !member) return [];
     return [{ accountId: item.id, staffId: String(data.staffId), name: [member.firstName, member.lastName].filter(Boolean).join(' ').trim() || String(data.username || 'Staff member'), username: String(data.username || ''),
-      allowed: GranularPermissionService.canPerformAction({ ...data, id: item.id } as AuthenticatedAppUser['user'], 'staff_clocking', 'record', 'display_qr'), revision: Number(data.clockingStationAccessRevision || 0) }];
+      allowed: GranularPermissionService.canPerformAction({ ...data, id: item.id } as AuthenticatedAppUser['user'], 'staff_clocking', 'record', 'display_qr'), scanAllowed: GranularPermissionService.canPerformAction({ ...data, id: item.id } as AuthenticatedAppUser['user'], 'staff_clocking', 'record', 'scan_staff_ids'), revision: Number(data.clockingStationAccessRevision || 0) }];
   }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function updateStaffClockingTimekeeper(db: Firestore, actor: AuthenticatedAppUser, input: unknown) {
   requireStaffClockingAccess(actor, 'record', 'manage_timekeepers');
-  const payload = z.object({ accountId: documentId, allowed: z.boolean(), revision: z.number().int().min(0) }).strict().parse(input);
+  const payload = z.object({ accountId: documentId, allowed: z.boolean(), scanAllowed: z.boolean().optional(), revision: z.number().int().min(0) }).strict().parse(input);
   const ref = db.collection('system_users').doc(payload.accountId);
   return db.runTransaction(async transaction => {
     const target = await transaction.get(ref);
@@ -923,18 +930,23 @@ export async function updateStaffClockingTimekeeper(db: Firestore, actor: Authen
     const wasAccessible = page.canAccess;
     // Enabling a previously disabled page must not resurrect dormant manager
     // actions saved on it. Preserve effective permissions, not inactive flags.
-    if (!wasAccessible && payload.allowed) page.actions = page.actions.map(item => ({ ...item, allowed: false }));
+    if (!wasAccessible && (payload.allowed || payload.scanAllowed)) page.actions = page.actions.map(item => ({ ...item, allowed: false }));
     for (const actionId of ['view_record', 'display_qr']) {
       const action = page.actions.find(item => item.actionId === actionId);
       if (action) action.allowed = payload.allowed; else page.actions.push({ actionId, allowed: payload.allowed });
     }
-    page.canAccess = (wasAccessible || payload.allowed) && page.actions.some(item => item.allowed);
+    if (payload.scanAllowed !== undefined) {
+      const scan = page.actions.find(item => item.actionId === 'scan_staff_ids');
+      if (scan) scan.allowed = payload.scanAllowed; else page.actions.push({ actionId: 'scan_staff_ids', allowed: payload.scanAllowed });
+      if (payload.scanAllowed) page.actions.find(item => item.actionId === 'view_record')!.allowed = true;
+    }
+    page.canAccess = (wasAccessible || payload.allowed || !!payload.scanAllowed) && page.actions.some(item => item.allowed);
     transaction.update(ref, { granularPermissions: permissions, clockingStationAccessRevision: payload.revision + 1, updatedAt: Timestamp.now() });
     bumpClockingRevisions(db, transaction, 'staffClockingTimekeepers');
     const who = actorLabel(actor);
     transaction.create(db.collection(STAFF_CLOCKING_COLLECTIONS.history).doc(), { a: 'update', e: 'staff_clocking_timekeeper', rid: target.id,
       rl: payload.allowed ? 'Record Station access granted' : 'Record Station access removed', uid: who.id, un: who.name,
-      m: { staffId: data.staffId, accountId: target.id, allowed: payload.allowed }, ts: Timestamp.now() });
+      m: omitUndefined({ staffId: data.staffId, accountId: target.id, allowed: payload.allowed, scanAllowed: payload.scanAllowed }), ts: Timestamp.now() });
     return { accountId: target.id, allowed: payload.allowed, revision: payload.revision + 1 };
   });
 }

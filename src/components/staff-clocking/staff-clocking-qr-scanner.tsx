@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSubmitStaffClockingScan } from '@/lib/hooks/use-staff-clocking';
+import { requestStaffClocking } from '@/lib/hooks/use-staff-clocking';
+import { useMutation } from '@tanstack/react-query';
 import { androidOfflineRequest, hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
 
 type BarcodeResult = { rawValue?: string };
@@ -21,14 +23,18 @@ function operationId() {
   return `clock_${Date.now()}_${Math.random().toString(36).slice(2, 14)}`;
 }
 
-export function StaffClockingQrScanner({ available }: { available: boolean }) {
+export function StaffClockingQrScanner({ available, mode = 'self' }: { available: boolean; mode?: 'self' | 'station' }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream>();
   const generationRef = useRef(0);
   const pendingRef = useRef<{ token: string; operationId: string }>();
   const scanningRef = useRef(false);
   const submittingRef = useRef(false);
-  const submit = useSubmitStaffClockingScan();
+  const selfSubmit = useSubmitStaffClockingScan();
+  const stationSubmit = useMutation({ mutationFn: (input: { token: string; operationId: string }) => requestStaffClocking<{ duplicate?: boolean; event?: { type?: string; arrivalStatus?: string }; staff?: { name: string } }>('/api/staff-clocking/station-scan', { method: 'POST', body: JSON.stringify(input) }) });
+  const submit = mode === 'station' ? stationSubmit : selfSubmit;
+  const lastSeenRef = useRef('');
+  const absentFramesRef = useRef(0);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraStarting, setCameraStarting] = useState(false);
   const [message, setMessage] = useState<string>();
@@ -61,22 +67,41 @@ export function StaffClockingQrScanner({ available }: { available: boolean }) {
     if (!token || submittingRef.current) return;
     submittingRef.current = true;
     setMessage(undefined);
-    stopCamera();
+    if (mode === 'self') stopCamera();
     const input = pendingRef.current?.token === token ? pendingRef.current : { token, operationId: operationId() };
     pendingRef.current = input;
     submit.mutate(input, {
       onSuccess: (result) => {
         pendingRef.current = undefined;
         navigator.vibrate?.(35);
-        const value = result as { duplicate?: boolean; event?: { type?: string; arrivalStatus?: string } };
+        const value = result as { duplicate?: boolean; event?: { type?: string; arrivalStatus?: string; localTime?: string }; staff?: { name: string } };
         const event = value.event;
-        setMessage(value.duplicate ? 'This clocking request was already saved.' : event?.type === 'clock_out'
+        setMessage(`${value.staff?.name ? `${value.staff.name}: ` : ''}${value.duplicate ? 'This clocking request was already saved.' : event?.type === 'clock_out'
           ? 'Clock out recorded successfully.'
-          : `Clock in recorded${event?.arrivalStatus ? ` as ${event.arrivalStatus.replace('_', ' ')}` : ''}.`);
+          : `Clock in recorded${event?.arrivalStatus ? ` as ${event.arrivalStatus.replace('_', ' ')}` : ''}.`}${event?.localTime ? ` Time: ${event.localTime} EAT.` : ''}`);
       },
-      onError: (error) => setMessage(error.message),
+      onError: (error) => {
+        if (mode === 'station') stopCamera();
+        const messages: Record<string, string> = {
+          CLOCKING_STAFF_ID_INVALID: 'This staff ID is invalid or has been revoked. Ask a manager for a current ID.',
+          CLOCKING_STAFF_NOT_ENROLLED: 'This staff member is not enrolled for clocking.',
+          CLOCKING_STAFF_INACTIVE: 'This staff member is not active.',
+          CLOCKING_DUPLICATE_SCAN_WAIT: 'Arrival was just recorded. Please wait before recording departure.',
+          CLOCKING_DAY_ALREADY_COMPLETE: 'Arrival and departure have already been recorded for this day.',
+          CLOCKING_NO_SCHEDULE: 'No working schedule applies to this staff member today.',
+          CLOCKING_FEATURE_DISABLED: 'Staff clocking is currently disabled.',
+        };
+        setMessage(messages[error.message] || error.message);
+      },
       onSettled: () => { submittingRef.current = false; },
     });
+  };
+
+  const foundToken = (token?: string) => {
+    if (mode === 'self') { if (token) recordToken(token); return; }
+    if (!token) { if (++absentFramesRef.current >= 3) lastSeenRef.current = ''; return; }
+    absentFramesRef.current = 0;
+    if (token !== lastSeenRef.current && !submittingRef.current) { lastSeenRef.current = token; recordToken(token); }
   };
 
   const startCamera = async (lens = facingMode) => {
@@ -128,7 +153,8 @@ export function StaffClockingQrScanner({ available }: { available: boolean }) {
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
             const result = decodeQr(pixels.data, canvas.width, canvas.height, { inversionAttempts: 'dontInvert' });
-            if (result?.data) { recordToken(result.data); return; }
+            foundToken(result?.data);
+            if (result?.data && mode === 'self') return;
           }
           window.setTimeout(decodeFrame, 180);
         };
@@ -141,10 +167,8 @@ export function StaffClockingQrScanner({ available }: { available: boolean }) {
         try {
           const matches = await detector.detect(videoRef.current);
           const token = matches.find((match) => match.rawValue)?.rawValue;
-          if (token && generation === generationRef.current && scanningRef.current) {
-            recordToken(token);
-            return;
-          }
+          if (generation === generationRef.current && scanningRef.current) foundToken(token);
+          if (token && mode === 'self') return;
         } catch {
           // A partially loaded video frame is expected while the camera starts.
         }
@@ -194,29 +218,30 @@ export function StaffClockingQrScanner({ available }: { available: boolean }) {
           <div className={`${cameraStarting ? 'absolute inset-0' : 'aspect-[3/4] sm:aspect-video'} flex flex-col items-center justify-center bg-slate-950 px-6 text-center text-slate-100`}>
             {cameraStarting ? <Loader2 className="h-10 w-10 animate-spin text-slate-300" aria-hidden="true" /> : <Camera className="h-10 w-10 text-slate-300" aria-hidden="true" />}
             <p className="mt-3 font-semibold">{cameraStarting ? 'Opening camera…' : 'Camera is off'}</p>
-            <p className="mt-1 max-w-sm text-sm leading-6 text-slate-300">{cameraStarting ? 'Allow camera access if your device asks for permission.' : 'Start a scan only when you are standing at the school\'s rotating QR display.'}</p>
+            <p className="mt-1 max-w-sm text-sm leading-6 text-slate-300">{cameraStarting ? 'Allow camera access if your device asks for permission.' : mode === 'station' ? 'Scan each staff member’s ID to record their attendance.' : 'Start a scan only when you are standing at the school\'s rotating QR display.'}</p>
           </div>
         )}
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="lg" className="min-h-12" onClick={() => void startCamera()} disabled={!available || cameraStarting || cameraActive || submit.isPending}>
+        <Button type="button" size="lg" className="min-h-12" onClick={() => void startCamera()} disabled={!available || cameraStarting || cameraActive || submit.isPending || (mode === 'station' && submit.isError && !!pendingRef.current)}>
           {submit.isPending || cameraStarting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanLine className="h-4 w-4" />}
-          {cameraStarting ? 'Opening camera…' : cameraActive ? 'Scanning QR' : 'Scan school QR'}
+          {cameraStarting ? 'Opening camera…' : cameraActive ? 'Scanning QR' : mode === 'station' ? 'Scan staff IDs' : 'Scan school QR'}
         </Button>
         {(cameraActive || cameraStarting) && <Button type="button" variant="outline" className="min-h-12" onClick={stopCamera}><Square className="h-4 w-4" /> Stop camera</Button>}
         {cameraActive && <><Button type="button" variant="outline" size="icon" className="min-h-12 min-w-12" onClick={switchCamera} aria-label="Switch camera"><SwitchCamera className="h-4 w-4" /></Button>{torchAvailable && <Button type="button" variant={torchOn ? 'default' : 'outline'} size="icon" className="min-h-12 min-w-12" onClick={() => void toggleTorch()} aria-label={torchOn ? 'Turn flashlight off' : 'Turn flashlight on'}><Flashlight className="h-4 w-4" /></Button>}</>}
         {submit.isError && pendingRef.current && <Button type="button" variant="outline" className="min-h-12" onClick={() => recordToken(pendingRef.current!.token)} disabled={submit.isPending}>Retry last request</Button>}
+        {mode === 'station' && submit.isError && pendingRef.current && <Button type="button" variant="ghost" className="min-h-12" onClick={() => { pendingRef.current = undefined; lastSeenRef.current = ''; submit.reset(); setMessage('Check the attendance record if the previous result was uncertain.'); }}>Dismiss and scan another ID</Button>}
       </div>
       {message && <div role="status" className="flex gap-2 rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm"><CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-primary" />{message}</div>}
       {needsAppUpdate && <Button asChild variant="outline"><a href="/download">Get the latest school app</a></Button>}
-      <form className="rounded-xl border border-border/80 bg-background/70 p-4" onSubmit={submitManual}>
+      {mode === 'self' && <form className="rounded-xl border border-border/80 bg-background/70 p-4" onSubmit={submitManual}>
         <Label htmlFor="staff-clocking-token">Scan payload from an approved scanner</Label>
         <p className="mt-1 text-xs leading-5 text-muted-foreground">Use this only if your approved scanner supplies the school QR payload. The token is short-lived and still receives full server validation.</p>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <Input id="staff-clocking-token" value={manualToken} onChange={(event) => setManualToken(event.target.value)} placeholder="Paste scan payload" autoComplete="off" disabled={!available || submit.isPending} />
           <Button type="submit" variant="outline" className="min-h-11 shrink-0" disabled={!available || submit.isPending || manualToken.trim().length < 20}>Submit scan</Button>
         </div>
-      </form>
+      </form>}
       <p className="flex items-center gap-2 text-xs leading-5 text-muted-foreground"><ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />Your camera image stays on this device. The server records the verified result, not the video.</p>
     </div>
   );

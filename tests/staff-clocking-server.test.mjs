@@ -22,7 +22,7 @@ let engine;
 before(async () => {
   process.env.STAFF_CLOCKING_QR_SECRET = 'local-test-signing-secret-with-at-least-32-characters';
   const result = await build({
-    stdin: { contents: "export * from './src/lib/server/staff-clocking/index'; export * from './src/lib/staff-clocking/export'; export * from './src/lib/server/staff-clocking/staff-details'; export * from './src/lib/server/staff-clocking/duty-management';", resolveDir: process.cwd(), loader: 'ts' },
+    stdin: { contents: "export * from './src/lib/server/staff-clocking/index'; export * from './src/lib/server/staff-clocking/staff-id'; export * from './src/lib/staff-clocking/export'; export * from './src/lib/server/staff-clocking/staff-details'; export * from './src/lib/server/staff-clocking/duty-management';", resolveDir: process.cwd(), loader: 'ts' },
     bundle: true, write: false, platform: 'node', format: 'cjs', packages: 'external',
     plugins: [{ name: 'server-marker-for-node-tests', setup(builder) {
       builder.onResolve({ filter: /^server-only$/ }, () => ({ path: 'server-only', namespace: 'test-marker' }));
@@ -36,18 +36,57 @@ before(async () => {
 });
 
 beforeEach(async () => {
-  for (const collection of ['dutyRotas', 'dutyAssignments', 'system_users', 'staff', 'events', 'settings', 'historyLogs', ...Object.values(engine.STAFF_CLOCKING_COLLECTIONS)]) {
+  for (const collection of ['staffClockingStaffIds', 'staffClockingStaffCredentials', 'dutyRotas', 'dutyAssignments', 'system_users', 'staff', 'events', 'settings', 'historyLogs', ...Object.values(engine.STAFF_CLOCKING_COLLECTIONS)]) {
     const snapshot = await db.collection(collection).get();
     for (let offset = 0; offset < snapshot.size; offset += 400) {
       const batch = db.batch(); snapshot.docs.slice(offset, offset + 400).forEach(document => batch.delete(document.ref)); await batch.commit();
     }
   }
   await db.collection('system_users').doc(staff.user.id).set(staff.user);
+  await db.collection('system_users').doc(manager.user.id).set(manager.user);
   await db.collection('staff').doc('staff-one').set({ firstName: 'Ada', lastName: 'Staff', status: 'active' });
   await db.collection('staffClockingSettings').doc('default').set({ enabled: true, revision: 1, accessMode: 'all_active_linked_staff', enrolledStaffIds: [] });
   await db.collection('staffClockingSchedules').doc('school-default').set({ scope: 'school', kind: 'recurring', weekdays: [0, 1, 2, 3, 4, 5, 6], clockInBy: '08:00', graceMinutes: 10, isActive: true });
 });
 after(async () => { await db.terminate(); await deleteApp(app); });
+
+test('timekeeper scans an unlinked staff ID using the same schedule, with retry and revocation protection', async () => {
+  await db.collection('staff').doc('unlinked').set({ firstName: 'Grace', lastName: 'Member', status: 'active' });
+  const issued = await engine.getOrIssueStaffId(db, manager, 'unlinked', 'issue', 0);
+  assert.ok(issued.token.startsWith('TSC1:')); assert.ok(!issued.token.includes('unlinked'));
+  assert.equal((await engine.getOrIssueStaffId(db, manager, 'unlinked', 'read', 1)).token, issued.token);
+  const input = { token: issued.token, operationId: 'station_operation_001' };
+  const first = await engine.recordStaffClockingScan(db, manager, input, 'staff_id');
+  assert.equal(first.staff.name, 'Grace Member'); assert.equal(first.event.type, 'clock_in');
+  assert.equal(first.event.source, 'timekeeper_staff_qr'); assert.equal(first.event.performedBy.id, manager.user.id);
+  assert.equal(first.record.accountId, undefined); assert.equal(first.record.clockInBy, '08:00');
+  assert.equal((await engine.recordStaffClockingScan(db, manager, input, 'staff_id')).duplicate, true);
+  await assert.rejects(engine.recordStaffClockingScan(db, manager, { ...input, operationId: 'station_operation_002' }, 'staff_id'), /CLOCKING_DUPLICATE_SCAN_WAIT/);
+  const replacement = await engine.getOrIssueStaffId(db, manager, 'unlinked', 'replace', 1);
+  await assert.rejects(engine.recordStaffClockingScan(db, manager, { token: issued.token, operationId: 'station_operation_003' }, 'staff_id'), /CLOCKING_STAFF_ID_INVALID/);
+  await assert.rejects(engine.getOrIssueStaffId(db, manager, 'unlinked', 'revoke', 1), /CLOCKING_STAFF_ID_CHANGED/);
+  await engine.getOrIssueStaffId(db, manager, 'unlinked', 'revoke', 2);
+  await assert.rejects(engine.recordStaffClockingScan(db, manager, { token: replacement.token, operationId: 'station_operation_004' }, 'staff_id'), /CLOCKING_STAFF_ID_INVALID/);
+});
+
+test('staff ID scans require scanner permission and selected-staff enrollment', async () => {
+  const id = await engine.getOrIssueStaffId(db, manager, 'staff-one', 'issue', 0);
+  await assert.rejects(engine.recordStaffClockingScan(db, staff, { token: id.token, operationId: 'unauthorized_scan_001' }, 'staff_id'), /PERMISSION_DENIED/);
+  await db.collection('staffClockingSettings').doc('default').update({ accessMode: 'selected_staff', enrolledStaffIds: ['another-staff'] });
+  await assert.rejects(engine.recordStaffClockingScan(db, manager, { token: id.token, operationId: 'not_enrolled_scan_001' }, 'staff_id'), /CLOCKING_STAFF_NOT_ENROLLED/);
+  await db.collection('staffClockingSettings').doc('default').update({ enrolledStaffIds: ['staff-one'] });
+  const result = await engine.recordStaffClockingScan(db, manager, { token: id.token, operationId: 'enrolled_scan_001' }, 'staff_id');
+  assert.equal(result.record.staffId, 'staff-one');
+});
+
+test('personal ID is stable and a revoked ID cannot be reissued by its owner', async () => {
+  const created = await engine.getOrIssueStaffId(db, staff, 'staff-one', 'issue');
+  assert.equal((await engine.getOrIssueStaffId(db, staff, 'staff-one', 'read')).token, created.token);
+  await assert.rejects(engine.getOrIssueStaffId(db, staff, 'someone-else', 'read'), /PERMISSION_DENIED/);
+  await engine.getOrIssueStaffId(db, manager, 'staff-one', 'revoke', 1);
+  assert.equal((await engine.getOrIssueStaffId(db, staff, 'staff-one', 'read')).status, 'revoked');
+  await assert.rejects(engine.getOrIssueStaffId(db, staff, 'staff-one', 'issue'), /CLOCKING_STAFF_ID_REVOKED/);
+});
 
 async function scanInput(operationId = 'test_operation_001') {
   const session = await engine.issueStaffClockingQrSession(db, manager);
@@ -251,22 +290,25 @@ test('concurrent retries commit one event and return the same result', async () 
   assert.equal((await db.collection('staffClockingPersonalRevisions').doc('staff-one').get()).data().dates[day], 1);
 });
 
-test('configuration changes atomically publish revisions without invalidating attendance', async () => {
+test('configuration changes atomically publish schedule and dashboard policy revisions without invalidating attendance', async () => {
   const payload = { scope: 'school', kind: 'recurring', weekdays: [1, 2, 3, 4, 5], clockInBy: '08:00', graceMinutes: 10, isActive: true };
   const revision = async () => (await db.collection('settings').doc('data-revisions-operational').get()).data();
   const schedule = await engine.createStaffClockingSchedule(db, manager, payload);
-  assert.deepEqual(await revision(), { staffClockingConfig: 1 });
+  assert.deepEqual(await revision(), { staffClockingConfig: 1, staffClockingPolicy: 1 });
   await engine.updateStaffClockingSchedule(db, manager, schedule.id, { ...payload, graceMinutes: 15 });
-  assert.deepEqual(await revision(), { staffClockingConfig: 2 });
+  assert.deepEqual(await revision(), { staffClockingConfig: 2, staffClockingPolicy: 2 });
   await engine.deleteStaffClockingSchedule(db, manager, schedule.id);
-  assert.deepEqual(await revision(), { staffClockingConfig: 3 });
+  assert.deepEqual(await revision(), { staffClockingConfig: 3, staffClockingPolicy: 3 });
   await assert.rejects(engine.deleteStaffClockingSchedule(db, manager, schedule.id), /CLOCKING_SCHEDULE_NOT_FOUND/);
-  assert.deepEqual(await revision(), { staffClockingConfig: 3 });
+  assert.deepEqual(await revision(), { staffClockingConfig: 3, staffClockingPolicy: 3 });
 });
 
-test('manager exemptions publish attendance and request changes together', async () => {
+test('manager exemptions publish attendance, dashboard and request changes together', async () => {
   await engine.createManagedStaffClockingExemption(db, manager, { staffId: 'staff-one', localDate: day, reason: 'Approved medical leave' });
-  assert.deepEqual((await db.collection('settings').doc('data-revisions-operational').get()).data(), { staffClockingRecords: 1, staffClockingRequests: 1 });
+  assert.deepEqual((await db.collection('settings').doc('data-revisions-operational').get()).data(), {
+    staffClockingRecords: 1, staffClockingRequests: 1,
+    dashboardStaffClockingRecords: 1, staffClockingStaff: { 'staff-one': 1 },
+  });
 });
 
 test('personal status and bounded history expose only the linked employee and never future dates', async () => {

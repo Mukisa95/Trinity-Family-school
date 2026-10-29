@@ -73,6 +73,11 @@ export function hasSavedWorkspaceAccess(user: WorkspaceUser): boolean {
   return getSavedWorkspaceAccessStatus(user) === 'eligible';
 }
 
+export function savedWorkspaceAccessExpiresAt(user: WorkspaceUser): number {
+  if (!hasSavedWorkspaceAccess(user)) return 0;
+  try { return JSON.parse(localStorage.getItem(ACCESS_KEY) || 'null')?.expiresAt || 0; } catch { return 0; }
+}
+
 export function clearSavedWorkspaceAccess(): void {
   if (typeof window === 'undefined') return;
   try { window.localStorage.removeItem(ACCESS_KEY); } catch { /* Storage may be disabled. */ }

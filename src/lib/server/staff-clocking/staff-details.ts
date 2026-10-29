@@ -119,7 +119,7 @@ export async function getIndividualClockingAudit(db: Firestore, actor: Authentic
     next[source] = { date, time, id: document.id };
     const data = document.data();
     return { id: `${source}:${document.id}`, type: String(data.type || data.rl || data.e || 'Clocking update'), occurredAt: time,
-      localDate: data.localDate || data.m?.localDate, localTime: data.localTime, actor: data.reviewedBy?.name || data.createdBy?.name || data.un,
+      localDate: data.localDate || data.m?.localDate, localTime: data.localTime, actor: data.performedBy?.name || data.reviewedBy?.name || data.createdBy?.name || data.un,
       original: data.before ? JSON.stringify(data.before) : undefined,
       effective: data.proposedClockInTime || data.proposedClockOutTime ? [data.proposedClockInTime, data.proposedClockOutTime].filter(Boolean).join(' – ') : undefined,
       ...(full || own ? { reason: data.reason || data.reviewNote } : {}) };

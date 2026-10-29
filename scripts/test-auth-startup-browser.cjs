@@ -8,6 +8,9 @@ const esbuild = require('esbuild');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 
 const mocks = new Map([
+  ['@/lib/hooks/use-duty-service-data','export const useDutyServiceData=()=>({data:null});'],
+  ['@/lib/hooks/use-pupils','export const usePupils=()=>({data:[]});'],
+  ['@/lib/fees/fee-reminder-change-client','export const recoverFeeReminderChanges=()=>()=>{};'],
   ['@/lib/firebase', 'export const auth=window.fixtureAuth,db={};'],
   ['firebase/auth', `export const onIdTokenChanged=(auth,next)=>{let live=true;window.fixtureIdentityListener=next;auth.authStateReady().then(()=>{if(live)next(auth.currentUser)});return()=>{live=false}};export const signOut=async auth=>{window.fixtureSignOuts++;auth.currentUser=null;await window.fixtureIdentityListener(null)};`],
   ['@/lib/access/scoped-firestore', `export const doc=()=>({}),onSnapshot=(_ref,_options,next)=>{let live=true;const emit=()=>{if(live)next({id:'fixture-user',exists:()=>true,data:()=>window.fixtureServerProfile(),metadata:{fromCache:false}})};window.fixtureProfileListeners.add(emit);setTimeout(emit,0);return()=>{live=false;window.fixtureProfileListeners.delete(emit)}};`],
@@ -20,7 +23,7 @@ const mocks = new Map([
   ['@/lib/push-subscription-client', 'export const detachPushSubscriptionForLogout=async()=>{};'],
   ['@/lib/parent-offline/repository', 'export const removeParentOfflineAccount=async()=>{};export const subscribeToParentOfflineChanges=()=>()=>{};'],
   ['@/lib/offline/android-bridge', 'export const clearAndroidOfflineAccess=async()=>{window.fixtureNativeClears++;window.fixtureNativeSession=null};'],
-  ['@/lib/offline/workspace-bridge', `export const hasOfflineWorkspace=()=>true;export async function workspaceOfflineRequest(action){
+  ['@/lib/offline/workspace-bridge', `export const hasOfflineWorkspace=()=>window.fixtureHasWorkspace!==false;export async function workspaceOfflineRequest(action){
     window.fixtureNativeActions.push(action);
     if(action==='clear'){window.fixtureNativeClears++;window.fixtureNativeSession=null;return {}}
     if(action==='connect'){window.fixtureNativeSession=window.fixturePreparedSession();return {session:window.fixtureNativeSession}}
@@ -43,7 +46,9 @@ async function run() {
       import React,{useEffect} from 'react';
       import {createRoot} from 'react-dom/client';
       import {QueryClient,QueryClientProvider,useQuery} from '@tanstack/react-query';
+      import {rememberVerifiedWorkspaceAccess} from './src/lib/startup/workspace-cache-access';
       import {AuthProvider,useAuth} from './src/lib/contexts/auth-context';
+      import {BrandedAuthScreen} from './src/components/common/premium-splash-loader';
       import {AndroidOfflineProvider} from './src/components/providers/android-offline-provider';
       function Dashboard(){
         useEffect(()=>{window.fixtureDashboardMounts++},[]);
@@ -55,11 +60,17 @@ async function run() {
         const state={loading:auth.isLoading,authenticated:auth.isAuthenticated,user:auth.user?.id||null,
           role:auth.user?.role||null,status:auth.sessionStatus,scope:auth.user?.circumference||null,
           family:auth.user?.familyId||null,pupil:auth.user?.pupilId||null,
-          signed:auth.isSignedIdentityReady};
+          signed:auth.isSignedIdentityReady,saved:auth.isSavedWorkspaceView,startupError:auth.startupError};
         window.fixtureSession=state;
         window.fixtureLogout=auth.logout;
+        window.fixtureRetry=auth.retryStartup;
         useEffect(()=>{window.fixtureStates.push(state)},[auth.isLoading,auth.user,auth.sessionStatus]);
-        return auth.isLoading?<main data-surface="startup"/>:auth.user?<Dashboard/>:<main data-surface="sign-in"/>;
+        return auth.isLoading?<div data-surface="startup"><BrandedAuthScreen message={auth.startupError||'Opening your school workspace…'} onRetry={auth.startupError?auth.retryStartup:undefined}/></div>:auth.user?<Dashboard/>:<main data-surface="sign-in"/>;
+      }
+      if(window.fixtureReceipt){
+        const profile=JSON.parse(localStorage.getItem('trinity_user')||'null');
+        if(profile) rememberVerifiedWorkspaceAccess(profile.user||profile);
+        if(window.fixtureExpired){const k='trinity_workspace_cache_access_v1',r=JSON.parse(localStorage.getItem(k));r.verifiedAt-=8*86400000;r.expiresAt-=8*86400000;localStorage.setItem(k,JSON.stringify(r));}
       }
       const client=new QueryClient({defaultOptions:{queries:{retry:false}}});
       window.fixtureCacheClears=0;const clear=client.clear.bind(client);client.clear=()=>{window.fixtureCacheClears++;clear()};
@@ -85,7 +96,14 @@ async function run() {
   try {
     browser = await chromium.launch({ headless: true, channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome' });
     for (const scenario of [
-      { name: 'slow-admin', role: 'Admin' },
+      { name: 'cached-slow-admin', role: 'Admin', saved:true, browser:true },
+      { name: 'cached-slow-staff', role: 'Staff', saved:true },
+      { name: 'cached-staff-timeout-recovery', role: 'Staff', saved:true, deadline:true },
+      { name: 'identity-timeout-recovery', role: 'Admin', identityDeadline:true, browser:true },
+      { name: 'cached-disabled', role: 'Admin', saved:true, disabled:true },
+      { name: 'expired-receipt', role: 'Admin', receipt:true, expired:true },
+      { name: 'cached-missing-identity', role: 'Admin', receipt:true, missing:true },
+      { name: 'slow-admin', role: 'Admin', browser:true },
       { name: 'slow-parent', role: 'Parent' },
       { name: 'slow-staff-scope', role: 'Staff' },
       { name: 'staff-empty-legacy-links', role: 'Staff', emptyLinks: true },
@@ -113,6 +131,9 @@ async function run() {
       await page.clock.install();
       await page.addInitScript(options => {
         localStorage.clear();
+        window.fixtureReceipt=!!(options.saved||options.receipt||options.transient);
+        window.fixtureExpired=!!options.expired;
+        window.fixtureHasWorkspace=!options.browser;
         window.fixtureStates = []; window.fixtureSignOuts = 0; window.fixtureScopeRequests = 0;
         window.fixtureTokenRefreshes = 0; window.fixtureProfileListeners = new Set();
         window.fixtureDashboardReads = 0; window.fixtureDashboardMounts = 0;
@@ -170,13 +191,18 @@ async function run() {
         };
       }, scenario);
       try {
-        await page.goto(`http://127.0.0.1:${server.address().port}`);
+        await page.goto(`http://127.0.0.1:${server.address().port}`, {waitUntil:'domcontentloaded',timeout:60000});
         await page.waitForFunction(() => window.fixtureIdentityListener && window.fixtureSession);
         const assertPending = async stage => {
           const state = await page.evaluate(() => window.fixtureSession);
+          if((scenario.saved||scenario.transient)&&stage!=='identity restoration'){
+            assert.equal(state.loading,false);assert.equal(state.saved,true);assert.equal(state.signed,false);
+            assert.equal(await page.locator('[data-surface]').getAttribute('data-surface'),'workspace');
+            assert.equal(await page.evaluate(()=>window.fixtureSignOuts),0);return;
+          }
           assert.equal(state.loading, true, scenario.name + ': keep loading during ' + stage);
           assert.equal(state.user, null, 'Do not expose the cached profile before verification');
-          assert.equal(await page.locator('main').getAttribute('data-surface'), 'startup');
+          assert.equal(await page.locator('[data-surface]').getAttribute('data-surface'), 'startup');
           assert.equal(await page.evaluate(() => window.fixtureStates.some(state => !state.loading && !state.authenticated)), false,
             'Returning users must not look signed out while restoration is pending');
           assert.equal(await page.evaluate(()=>window.fixtureNativeClears),0,
@@ -184,6 +210,14 @@ async function run() {
         };
         await page.clock.fastForward(5000);
         await assertPending('identity restoration');
+        if (scenario.identityDeadline) {
+          await page.clock.runFor(4000);
+          assert.ok(await page.evaluate(() => window.fixtureSession.startupError));
+          assert.equal(await page.evaluate(() => window.fixtureSession.user), null);
+          assert.equal(await page.evaluate(() => window.fixtureSignOuts), 0, 'Identity timeout must not erase the session');
+          await page.getByRole('button',{name:'Retry',exact:true}).click();
+          await page.waitForFunction(()=>window.fixtureSession.startupError===null);
+        }
         await page.evaluate(() => window.fixtureRestoreIdentity());
         if (!scenario.missing && !scenario.anonymous) {
           await page.clock.fastForward(5000);
@@ -193,8 +227,14 @@ async function run() {
             await page.waitForFunction(() => window.fixtureScopeRequests === 1);
             await page.clock.fastForward(5000);
             await assertPending('current staff scope verification');
+            if (scenario.deadline) {
+              await page.clock.runFor(4000);
+              assert.equal(await page.evaluate(() => window.fixtureSession.saved), true, 'Keep authorised saved viewing after the server deadline');
+              assert.equal(await page.evaluate(() => window.fixtureSession.signed), false, 'A timed-out server check cannot enable changes');
+            }
             if (scenario.signoutDuring) await page.evaluate(async()=>{window.fixtureAuth.currentUser=null;await window.fixtureIdentityListener(null)});
             await page.evaluate(() => window.fixtureVerifyScope());
+            if (scenario.deadline) await page.clock.runFor(5500);
           }
         }
         await page.waitForFunction(() => window.fixtureSession.loading === false);
@@ -202,7 +242,7 @@ async function run() {
         const signedOut = !!(scenario.missing || scenario.anonymous || scenario.disabled || scenario.signoutDuring);
         assert.equal(state.authenticated, !signedOut);
         assert.equal(state.user, signedOut ? null : 'fixture-user');
-        assert.equal(await page.locator('main').getAttribute('data-surface'), signedOut ? 'sign-in' : 'workspace');
+        assert.equal(await page.locator('[data-surface]').getAttribute('data-surface'), signedOut ? 'sign-in' : 'workspace');
         if(signedOut) assert.equal(await page.evaluate(()=>window.fixtureNativeSession),null,'Confirmed sign-out must clear saved access');
         if (!signedOut) {
           assert.equal(await page.evaluate(() => window.fixtureStates.some(state => !state.loading && !state.authenticated)), false);
@@ -278,7 +318,17 @@ async function run() {
           assert.equal(await page.evaluate(()=>window.fixtureNativeSession),null,'Explicit offline logout must remove the saved session');
         }
         assert.deepEqual(errors, []);
-        reports.push({ scenario: scenario.name, state, errors });
+        let resumed=false;
+        if(await page.evaluate(()=>window.fixtureSession.authenticated)){
+          const before=await page.evaluate(()=>({mounts:window.fixtureDashboardMounts,reads:window.fixtureDashboardReads,clears:window.fixtureCacheClears}));
+          await page.evaluate(()=>{
+            Object.defineProperty(document,'visibilityState',{configurable:true,value:'hidden'});document.dispatchEvent(new Event('visibilitychange'));
+            Object.defineProperty(document,'visibilityState',{configurable:true,value:'visible'});document.dispatchEvent(new Event('visibilitychange'));window.dispatchEvent(new Event('focus'));
+          });
+          await page.clock.runFor(1000);
+          assert.deepEqual(await page.evaluate(()=>({mounts:window.fixtureDashboardMounts,reads:window.fixtureDashboardReads,clears:window.fixtureCacheClears})),before,'Ordinary resume preserves the document and its cache');resumed=true;
+        }
+        reports.push({ scenario: scenario.name, state, errors, resumed });
         console.log('PASS ' + scenario.name);
       } finally { await page.close(); }
     }

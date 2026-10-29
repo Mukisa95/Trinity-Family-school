@@ -21,8 +21,8 @@
 
 // ⚠️ IMPORTANT: Increment this version number with EVERY deployment
 // This ensures users get the latest version of your app
-const SW_VERSION = 'build-20261018054334998';
-const BUILD_TIMESTAMP = '2026-10-18T05:43:34.998Z'; // Update this on each build
+const SW_VERSION = 'build-20261029104353994';
+const BUILD_TIMESTAMP = '2026-10-29T10:43:53.994Z'; // Update this on each build
 
 const CACHE_NAME = `trinity-schools-${SW_VERSION}`;
 const STATIC_CACHE = `static-${SW_VERSION}`;
@@ -83,12 +83,23 @@ function androidRouteBuildFromBytes(bytes) {
   }
   throw new Error('The page interface version is unavailable.');
 }
-async function saveAndroidRoute(cache, url) {
+function androidHtmlBuild(html) {
+  let flight = '';
+  for (const match of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
+    const push = /^self\.__next_f\.push\(([\s\S]*)\);?$/.exec(match[1].trim());
+    if (!push) continue;
+    try { const row = JSON.parse(push[1]); if (row[0] === 1 && typeof row[1] === 'string') flight += row[1]; } catch { /* Non-data bootstrap. */ }
+  }
+  return androidRouteBuildFromBytes(new TextEncoder().encode(flight));
+}
+async function saveAndroidRoute(cache, url, expectedBuild) {
+  if (expectedBuild && await cache.match(androidRouteRequest(url.pathname, expectedBuild))) return;
   const response = await fetch(new Request(new URL(url.pathname, self.location.origin), {
     credentials: 'omit', headers: { RSC: '1' }, cache: 'no-store',
   }));
   if (!response.ok || response.redirected || !response.headers.get('Content-Type')?.includes('text/x-component')) throw new Error('Page navigation is still preparing.');
   const build = androidRouteBuildFromBytes(new Uint8Array(await response.clone().arrayBuffer()));
+  if (expectedBuild && build !== expectedBuild) throw new Error('The application changed while its interface was preparing.');
   await cache.put(androidRouteRequest(url.pathname, build), response);
 }
 const PARENT_OFFLINE_LAUNCH_ROUTE = '/';
@@ -312,22 +323,31 @@ self.addEventListener('message', (event) => {
         if (!response.ok) throw new Error('An interface asset could not be prepared.');
         await cache.put(request, response);
       };
-      await Promise.all(routes.map(async value => {
+      const prepared = await Promise.all(routes.map(async value => {
         const url = new URL(value, self.location.origin);
         if (url.origin !== self.location.origin || !ANDROID_APP_ROUTES.has(url.pathname)) return;
         const request = parentAppRouteRequest(url);
+        // A worker version is tied to a deployment. Reuse this version's complete
+        // pages on repeated launches; a new worker prepares into its own cache.
         let response = await cache.match(request);
+        if (response) {
+          try { androidHtmlBuild(await response.clone().text()); } catch { response = undefined; }
+        }
         if (!response) response = await fetch(request, { cache: 'no-store' });
         if (!response.ok || response.redirected || !response.headers.get('Content-Type')?.includes('text/html')) {
           throw new Error('A page could not be prepared.');
         }
         const html = await response.clone().text();
         await Promise.all(parentStaticAssetUrlsFromHtml(html, url.toString()).map(saveAsset));
-        if (event.data.navigation === true && url.pathname !== '/login') await saveAndroidRoute(cache, url);
+        const build = androidHtmlBuild(html);
+        if (event.data.navigation === true && url.pathname !== '/login') await saveAndroidRoute(cache, url, build);
         // Publish the page only AFTER all of its referenced assets are ready.
-        await cache.put(request, response);
+        return { request, response, build };
       }));
       await Promise.all(assets.map(saveAsset));
+      const pages = prepared.filter(Boolean);
+      if (new Set(pages.map(page => page.build)).size > 1) throw new Error('The application changed during interface preparation.');
+      for (const page of pages) await cache.put(page.request, page.response);
       event.ports?.[0]?.postMessage({ type: 'ANDROID_APP_SHELL_CACHED' });
       if (event.data.cacheDocuments === true) await cacheOfflineDocumentAssets(cache);
     })().catch(error => event.ports?.[0]?.postMessage({ type: 'ANDROID_APP_SHELL_CACHE_FAILED', message: error.message })));
@@ -735,7 +755,10 @@ self.addEventListener('fetch', (event) => {
           ? await (await caches.open(PARENT_APP_SHELL_CACHE)).match(request) : undefined);
       // Android can have Wi-Fi while the network has no validated internet.
       // Its launch hint arrives before the new page can publish connectivity.
-      if (cached && (self.navigator.onLine === false || event.request.headers.get('X-Trinity-Offline') === '1')) return cached;
+      // Prepared shells contain the interface only. Their data and access checks
+      // retain their own owners. Preparation refreshes a whole build atomically;
+      // a navigation must never hold that saved interface behind slow networking.
+      if (cached) return cached;
       try {
         const response = await fetch(event.request, { cache: 'no-store' });
         if (cached && response.status >= 500) return cached;

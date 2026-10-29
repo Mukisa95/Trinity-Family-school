@@ -43,7 +43,7 @@ export function useSchoolDay(enabled: boolean) {
   return day;
 }
 
-function useClockingQuery<T>(key: readonly unknown[], fetchData: () => Promise<T>, enabled: boolean, dependencies: RevisionName[], daily: boolean | string = false, ownRevision?: string) {
+function useClockingQuery<T>(key: readonly unknown[], fetchData: () => Promise<T>, enabled: boolean, dependencies: RevisionName[], daily: boolean | string = false, ownRevision?: string, retainPrevious = true) {
   const scope = useClockingScope();
   const { isAuthenticated } = useAuth();
   const personal = ownRevision !== undefined;
@@ -57,7 +57,7 @@ function useClockingQuery<T>(key: readonly unknown[], fetchData: () => Promise<T
     queryKey,
     queryFn: () => loadStaffClockingCache(cacheKey, revision, fetchData),
     enabled: enabled && isAuthenticated && (personal || revisions.data?.staffClockingConfig !== undefined),
-    placeholderData: (previous, query) => JSON.stringify(query?.queryKey.slice(0, -1)) === JSON.stringify(queryKey.slice(0, -1)) ? previous : undefined,
+    placeholderData: (previous, query) => retainPrevious && JSON.stringify(query?.queryKey.slice(0, -1)) === JSON.stringify(queryKey.slice(0, -1)) ? previous : undefined,
     staleTime: Infinity,
     gcTime: 24 * 60 * 60 * 1000,
     networkMode: 'offlineFirst',
@@ -161,7 +161,16 @@ export function useStaffClockingTimekeepers(enabled: boolean) {
 }
 
 export function useUpdateStaffClockingTimekeeper() {
-  return useMutation({ mutationFn: (input: { accountId: string; allowed: boolean; revision: number }) => requestStaffClocking('/api/staff-clocking/timekeepers', { method: 'PUT', body: JSON.stringify(input) }) });
+  return useMutation({ mutationFn: (input: { accountId: string; allowed: boolean; scanAllowed?: boolean; revision: number }) => requestStaffClocking('/api/staff-clocking/timekeepers', { method: 'PUT', body: JSON.stringify(input) }) });
+}
+
+export function useOwnStaffId(enabled: boolean) {
+  const revisions = useStaffClockingPersonalRevisions(enabled);
+  return useClockingQuery([...STAFF_CLOCKING_QUERY_KEYS.all, 'my-id'], () => requestStaffClocking<{ token?: string; status?: string; revision?: number }>('/api/staff-clocking/my-id'), enabled && !!revisions.data, [], false, String(revisions.data?.credential || 0), false);
+}
+
+export function useStaffIds(enabled: boolean) {
+  return useClockingQuery([...STAFF_CLOCKING_QUERY_KEYS.all, 'staff-ids'], () => requestStaffClocking<Array<{ id: string; name: string; employeeId: string; status: string; revision: number }>>('/api/staff-clocking/staff-ids'), enabled, ['staffClockingTimekeepers', 'staff']);
 }
 
 export function useCreateStaffClockingQrSession() {

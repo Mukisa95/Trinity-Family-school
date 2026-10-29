@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { afterStartupContentPaint, isNonLoginPublicPath, STARTUP_SCREEN_ID } from '@/lib/performance/startup-display';
 
 /** Own only the visual handoff; authentication and data retain their owners. */
-export function StartupHandoff({ pathname, authLoading, isAuthenticated }: { pathname: string | null; authLoading: boolean; isAuthenticated: boolean }) {
+export function StartupHandoff({ pathname, authLoading, isAuthenticated, recovery = false }: { pathname: string | null; authLoading: boolean; isAuthenticated: boolean; recovery?: boolean }) {
   const publicRoute = pathname === '/login' || isNonLoginPublicPath(pathname);
   const [phase, setPhase] = useState<'visible' | 'fading' | 'complete'>(() => isNonLoginPublicPath(pathname) ? 'complete' : 'visible');
   useEffect(() => {
@@ -20,8 +20,8 @@ export function StartupHandoff({ pathname, authLoading, isAuthenticated }: { pat
     const screen = document.getElementById(STARTUP_SCREEN_ID);
     if (!screen) return;
     screen.dataset.startupState = phase;
-    screen.hidden = phase === 'complete';
-  }, [phase]);
+    screen.hidden = recovery || phase === 'complete';
+  }, [phase, recovery]);
 
   useEffect(() => {
     if (phase !== 'fading') return;

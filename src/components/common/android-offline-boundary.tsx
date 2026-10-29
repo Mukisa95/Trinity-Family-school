@@ -21,7 +21,7 @@ function subscribe(listener: () => void) {
 /** Only the unavailable section changes; the existing header/layout/pages stay intact. */
 export function AndroidOfflineBoundary({ children }: { children: ReactNode }) {
   const offline = useSyncExternalStore(subscribe, isAndroidOffline, () => false);
-  const { user } = useAuth();
+  const { user, isSavedWorkspaceView } = useAuth();
   const path = usePathname() || '/';
   const [access, setAccess] = useState<{ accountId: string; session: AndroidOfflineSession | null } | null>(null);
   const [revision, setRevision] = useState(0);
@@ -35,7 +35,7 @@ export function AndroidOfflineBoundary({ children }: { children: ReactNode }) {
     if (!hasAndroidOfflineBridge() || !user) return;
     let disposed = false;
     let expiry: ReturnType<typeof setTimeout> | undefined;
-    void androidOfflineRequest('status').then(reply => {
+    void androidOfflineRequest('status', {}, 8000).then(reply => {
       if (disposed) return;
       const session = androidSessionMatchesUser(reply.session, user) ? reply.session! : null;
       setAccess({ accountId: user.id, session });
@@ -45,7 +45,7 @@ export function AndroidOfflineBoundary({ children }: { children: ReactNode }) {
   }, [offline, user?.id, user?.role, user?.circumference, revision]);
 
   useEffect(() => {
-    if (!offline || !hasAndroidOfflineBridge()) return;
+    if ((!offline || !hasAndroidOfflineBridge()) && !isSavedWorkspaceView) return;
     const prevent = (event: Event) => {
       const target = event.target instanceof Element ? event.target : null;
       // These controls edit device preferences through the account-checked
@@ -56,12 +56,12 @@ export function AndroidOfflineBoundary({ children }: { children: ReactNode }) {
       // Existing editing controls keep their design; invocation is unavailable.
       if (event.type === 'submit' || (button && /\b(edit|update|save|delete|remove|collect|pay|add|create|register|upload|capture|promote|transfer|withdraw|assign|generate|publish|send)\b/i.test(label))) {
         event.preventDefault(); event.stopImmediatePropagation();
-        toast({ title: 'Connection needed', description: 'Connect to make changes.' });
+        toast({ title: isSavedWorkspaceView ? 'Verification pending' : 'Connection needed', description: isSavedWorkspaceView ? 'Saved data is available. Changes will be available after your secure session is verified.' : 'Connect to make changes.' });
       }
     };
     document.addEventListener('click', prevent, true); document.addEventListener('submit', prevent, true);
     return () => { document.removeEventListener('click', prevent, true); document.removeEventListener('submit', prevent, true); };
-  }, [offline]);
+  }, [offline, isSavedWorkspaceView]);
 
   useEffect(() => {
     if (!offline || !user || !access || access.accountId !== user.id) return;

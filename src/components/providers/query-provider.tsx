@@ -7,6 +7,7 @@ import { isAndroidOffline } from '@/lib/offline/android-app-shell';
 import { toast } from '@/hooks/use-toast';
 import { QueryClient, QueryClientProvider, MutationCache } from '@tanstack/react-query';
 import { subscribeQueryConnectivity } from '@/lib/query/native-connectivity';
+import { assertLiveWorkspace } from '@/lib/auth/saved-view';
 
 const ReactQueryDevtools = dynamic(
   () => import('@tanstack/react-query-devtools').then(module => module.ReactQueryDevtools),
@@ -22,6 +23,7 @@ const ReactQueryDevtools = dynamic(
 function makeQueryClient() {
   return new QueryClient({
     mutationCache: new MutationCache({ onMutate: () => {
+      assertLiveWorkspace();
       if (isAndroidOffline()) {
         toast({ title: 'Connection needed', description: 'Connect to make changes.' });
         throw new Error('Connect to make changes.');

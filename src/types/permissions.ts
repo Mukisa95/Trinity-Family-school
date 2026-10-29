@@ -252,6 +252,8 @@ export const MODULE_ACTIONS = {
         actions: [
           { id: 'view_record', name: 'View clock recording', description: 'Can open the staff clocking QR display' },
           { id: 'display_qr', name: 'Display secure QR', description: 'Can start a secure staff clocking QR session' },
+          { id: 'scan_staff_ids', name: 'Scan staff IDs', description: 'Can record attendance by scanning staff IDs' },
+          { id: 'manage_staff_ids', name: 'Manage staff IDs', description: 'Can issue, replace and revoke staff IDs' },
           { id: 'access_manage', name: 'Open Manage Clocking', description: 'Can open Manage from the Record page; editing still requires the relevant management permission' },
           { id: 'manage_timekeepers', name: 'Manage timekeeper access', description: 'Can grant or remove Record Station access for active linked staff from Manage Clocking' },
           { id: 'manage_schedules', name: 'Manage schedules', description: 'Can manage staff clocking schedules and enrolment' },

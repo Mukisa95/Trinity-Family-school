@@ -10,7 +10,7 @@ async function main() {
   const output = path.resolve('output/staff-clocking-validation');
   await fs.mkdir(output, { recursive: true });
   const result = await build({
-    stdin: { contents: `import React from 'react'; import { createRoot } from 'react-dom/client'; import { QueryClient, QueryClientProvider } from '@tanstack/react-query'; import { StaffClockingQrDisplay } from './src/components/staff-clocking/staff-clocking-qr-display'; import { StaffClockingQrScanner } from './src/components/staff-clocking/staff-clocking-qr-scanner'; const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } }); createRoot(document.getElementById('root')).render(<QueryClientProvider client={client}>{location.pathname === '/display' ? <StaffClockingQrDisplay available /> : <StaffClockingQrScanner available />}</QueryClientProvider>);`, resolveDir: process.cwd(), loader: 'tsx' },
+    stdin: { contents: `import React from 'react'; import { createRoot } from 'react-dom/client'; import { QueryClient, QueryClientProvider } from '@tanstack/react-query'; import { StaffClockingQrDisplay } from './src/components/staff-clocking/staff-clocking-qr-display'; import { StaffClockingQrScanner } from './src/components/staff-clocking/staff-clocking-qr-scanner'; const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } }); createRoot(document.getElementById('root')).render(<QueryClientProvider client={client}>{location.pathname === '/display' ? <StaffClockingQrDisplay available /> : <StaffClockingQrScanner available mode={location.pathname === '/station' ? 'station' : 'self'} />}</QueryClientProvider>);`, resolveDir: process.cwd(), loader: 'tsx' },
     bundle: true, write: false, platform: 'browser', format: 'iife', jsx: 'automatic',
     define: { 'process.env.NODE_ENV': '"development"' },
     plugins: [{ name: 'local-auth-fixture', setup(builder) {
@@ -103,6 +103,24 @@ async function main() {
     assert.ok(await page.evaluate(() => window.__tracksStopped > 0));
     assert.equal(calls.filter(call => call.path === '/api/staff-clocking/clock').length, 1);
     console.log('PASS updated Android camera capability starts decoding, submits once and releases tracks');
+
+    await page.goto(`${origin}/station`);
+    await page.evaluate(() => {
+      window.__stationToken = 'staff-id-browser-fixture-first';
+      navigator.mediaDevices.getUserMedia = async () => { const canvas = document.createElement('canvas'); canvas.width = canvas.height = 300; canvas.getContext('2d').fillRect(0, 0, 300, 300); return canvas.captureStream(10); };
+      window.BarcodeDetector = class { async detect() { return window.__stationToken ? [{ rawValue: window.__stationToken }] : []; } };
+    });
+    await page.getByRole('button', { name: 'Scan staff IDs', exact: true }).click();
+    try { await page.getByRole('status').filter({ hasText: 'Clock in recorded' }).waitFor(); }
+    catch (error) { console.error('Station diagnostic:', await page.locator('body').innerText(), errors, calls.filter(call => call.path.includes('station-scan'))); throw error; }
+    await page.waitForTimeout(800);
+    assert.equal(calls.filter(call => call.path === '/api/staff-clocking/station-scan').length, 1, 'Holding the same ID must not repeatedly submit it');
+    const secondStationScan = page.waitForResponse(response => response.url().includes('/station-scan') && response.request().postDataJSON()?.token === 'staff-id-browser-fixture-second');
+    await page.evaluate(() => { window.__stationToken = 'staff-id-browser-fixture-second'; });
+    await secondStationScan;
+    assert.equal(calls.filter(call => call.path === '/api/staff-clocking/station-scan').length, 2, 'A different ID should scan without restarting the camera');
+    await page.getByRole('button', { name: 'Stop camera' }).click();
+    console.log('PASS station scans successive IDs without repeating a held code');
 
     await page.goto(`${origin}/scanner`);
     await page.evaluate(() => {

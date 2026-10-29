@@ -1,7 +1,7 @@
 // Deliberately accept only codes and numbers, never user records, credentials,
 // query strings, console messages, or arbitrary exception text.
 export type DiagnosticEvent = { at: string; code: string; durationMs?: number };
-declare global { interface Window { trinityNativeDiagnostics?: boolean; trinityAndroidConnected?: boolean; trinityAppMounted?: boolean } }
+declare global { interface Window { trinityNativeDiagnostics?: boolean; trinityAndroidConnected?: boolean; trinityAppMounted?: boolean; trinityWorkspaceVisible?: boolean } }
 const KEY = 'trinity_reliability_v1';
 let events: DiagnosticEvent[] | undefined;
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -72,11 +72,18 @@ export function installAppDiagnosticMonitor() {
   };
   const online = () => recordAppDiagnostic('network_online');
   const offline = () => recordAppDiagnostic('network_offline');
+  const interactive = () => {
+    if (!window.trinityWorkspaceVisible || document.visibilityState !== 'visible') return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      try { window.TrinityOffline?.postMessage(JSON.stringify({ id: crypto.randomUUID(), action: 'interactive' })); } catch { /* Optional bridge. */ }
+    }));
+  };
   let last = performance.now();
   const visibility = () => {
     last = performance.now();
     recordAppDiagnostic(document.visibilityState === 'hidden' ? 'app_hidden' : 'app_visible');
     flushAppDiagnostics();
+    if (document.visibilityState === 'visible') interactive();
   };
   const heartbeat = setInterval(() => {
     const now = performance.now();
@@ -91,6 +98,8 @@ export function installAppDiagnosticMonitor() {
   window.addEventListener('offline', offline);
   window.addEventListener('pagehide', flushAppDiagnostics);
   document.addEventListener('visibilitychange', visibility);
+  window.addEventListener('trinity-native-resumed', interactive);
+  window.addEventListener('trinity-workspace-visible', interactive);
   return () => {
     clearInterval(heartbeat);
     window.removeEventListener('error', error);
@@ -99,6 +108,8 @@ export function installAppDiagnosticMonitor() {
     window.removeEventListener('offline', offline);
     window.removeEventListener('pagehide', flushAppDiagnostics);
     document.removeEventListener('visibilitychange', visibility);
+    window.removeEventListener('trinity-native-resumed', interactive);
+    window.removeEventListener('trinity-workspace-visible', interactive);
     flushAppDiagnostics();
   };
 }

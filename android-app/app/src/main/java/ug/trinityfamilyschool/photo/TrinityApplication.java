@@ -1,6 +1,7 @@
 package ug.trinityfamilyschool.photo;
 
 public final class TrinityApplication extends android.app.Application {
+    static final String PROCESS_ID = java.util.UUID.randomUUID().toString();
     @Override public void onCreate(){super.onCreate();NativePush.start(this);TimetableRefresh.start(this);}
     @Override public void onConfigurationChanged(android.content.res.Configuration configuration) {
         super.onConfigurationChanged(configuration);

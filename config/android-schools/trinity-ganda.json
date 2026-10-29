@@ -4,9 +4,9 @@
   "applicationId": "ug.trinityfamilyganda.live",
   "websiteOrigin": "https://trinityfamilyganda.vercel.app",
   "firebaseProjectId": "trinity-family-ganda",
-  "versionCode": 36,
-  "versionName": "1.34",
-  "releaseNotes": "Staff clocking QR camera support: Android camera permission, secure school-only live scanning, and clear permission and app-update guidance.",
+  "versionCode": 37,
+  "versionName": "1.35",
+  "releaseNotes": "Faster saved-dashboard startup, reliable resume and notification/widget routing, bounded session recovery, and clearer local problem reports.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {

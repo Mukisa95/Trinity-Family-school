@@ -126,7 +126,7 @@ final class NativePush {
         NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
         String tag="school-push:"+data.getOrDefault("tag","school-announcement");
         if("FEE_REMINDER_RESOLVED".equals(data.get("type"))){manager.cancel(tag,1);return;}
-        Intent open=new Intent(context,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        Intent open=AppEntry.intent(context)
             .setData(android.net.Uri.parse("trinity-push://"+BuildConfig.APPLICATION_ID+"/"+android.net.Uri.encode(tag)))
             .putExtra("pushRoute",data.getOrDefault("url","/push-notifications")).putExtra("pushRecipient",recipient).putExtra("pushInstallation",installation);
         PendingIntent pending=PendingIntent.getActivity(context,tag.hashCode(),open,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);

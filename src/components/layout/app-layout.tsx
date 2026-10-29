@@ -544,6 +544,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     isSessionStale,
     sessionMessage,
     isSignedIdentityReady,
+    startupError, retryStartup,
     autoLockEnabled, autoLockAction, deviceUnlockForAutoLock,
     setAutoLockEnabled, setAutoLockAction, setDeviceUnlockForAutoLock,
   } = useAuth();
@@ -589,7 +590,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (setup.required || startupPhase !== 'complete' || !isAuthenticated || isPublicRoute) return;
     if (!visibleRecorded.current) { visibleRecorded.current = true; measureWorkspaceStep('startup:workspace-visible', 0); }
+    window.trinityWorkspaceVisible = true;
     window.dispatchEvent(new Event('trinity-workspace-visible'));
+    return () => { window.trinityWorkspaceVisible = false; };
   }, [setup.required, startupPhase, isAuthenticated, isPublicRoute]);
 
   // The service worker focuses an existing app window and forwards the
@@ -608,7 +611,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <NavigationProvider>
-        <StartupHandoff pathname={pathname} authLoading={authLoading} isAuthenticated={isAuthenticated} />
+        <StartupHandoff pathname={pathname} authLoading={authLoading} isAuthenticated={isAuthenticated} recovery={!!startupError} />
       <div ref={workspaceRef} data-workspace-visible={!setup.required && startupPhase === 'complete' ? 'true' : 'false'} aria-hidden={setup.required || undefined}>
       <MemoizedAppLayout
         pathname={pathname}
@@ -637,10 +640,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
           try { setDeviceUnlockForAutoLock(choices.deviceUnlock); } catch { /* Session preference still applies. */ }
           try { setAutoLockEnabled(choices.enabled); } catch { /* Session preference still applies. */ }
         }} />}
-      {!setup.required && startupPhase !== 'complete' && (
+      {!setup.required && (startupPhase !== 'complete' || authLoading || startupError) && (
         <BrandedAuthScreen
-          message="Opening your school workspace…"
+          message={startupError || 'Opening your school workspace…'}
           isExiting={startupPhase === 'fading'}
+          onRetry={startupError ? retryStartup : undefined}
         />
       )}
     </NavigationProvider>

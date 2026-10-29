@@ -91,11 +91,9 @@ final class OfflineController {
             } catch (Exception ignored) { diagnostics.record("offline_start/storage_unreadable", 0); }
             activity.runOnUiThread(() -> {
                 if (activity.isDestroyed()) return;
-                String deepLink = activity.getIntent().getStringExtra("offlineRoute");
-                String onlineLink = activity.getIntent().getStringExtra("onlineRoute");
-                String pushLink = NativePush.tapRoute(activity, activity.getIntent());
-                String shortcut = AppShortcuts.route(activity.getIntent().getStringExtra(AppShortcuts.EXTRA));
-                openRoute(shortcut != null ? shortcut : pushLink != null ? pushLink : OfflinePolicy.launchRoute(deepLink, onlineLink, role));
+                String target = AppEntry.route(activity, activity.getIntent());
+                AppEntry.consume(activity.getIntent());
+                openRoute(target != null ? target : OfflinePolicy.launchRoute(null, null, role));
             });
         });
     }
@@ -158,6 +156,18 @@ final class OfflineController {
             if (!PhotoPolicy.validId(id)) return;
         } catch (Exception ignored) { return; }
         String action = input.optString("action");
+        if ("navigationReady".equals(action) || "navigationHandled".equals(action) || "interactive".equals(action)) {
+            activity.runOnUiThread(() -> {
+                if (activity instanceof MainActivity) {
+                    MainActivity main = (MainActivity) activity;
+                    if ("navigationReady".equals(action)) main.navigationReady();
+                    else if ("navigationHandled".equals(action)) main.navigationHandled(input.optString("requestId"));
+                    else main.interactive();
+                }
+                reply(reply, id, true, null, null);
+            });
+            return;
+        }
         if ("shortcutRouterReady".equals(action) || "shortcutSearchEditorReady".equals(action)) {
             activity.runOnUiThread(() -> {
                 if (activity instanceof MainActivity) {

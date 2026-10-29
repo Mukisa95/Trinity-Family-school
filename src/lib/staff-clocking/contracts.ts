@@ -86,6 +86,7 @@ export interface StaffClockingStaffCandidate {
 }
 
 export interface StaffClockingPersonalRevisions {
+  credential?: number;
   dates?: Record<string, number>;
   notifications?: number;
   requests?: number;
@@ -104,6 +105,7 @@ export interface StaffClockingTimekeeper {
   name: string;
   username: string;
   allowed: boolean;
+  scanAllowed: boolean;
   revision: number;
 }
 

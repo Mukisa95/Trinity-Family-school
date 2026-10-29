@@ -24,8 +24,9 @@ assert(
 );
 assert(
   authContext.includes('const finishInitialAuthCheck')
-    && /finishInitialAuthCheck\(\);\s*return;/.test(authContext),
-  'Transient Firebase token recovery must finish the initial app boot state.',
+    && authContext.includes('hasSavedWorkspaceAccess(cached)')
+    && /finishInitialAuthCheck\(\);\s*return true;/.test(authContext),
+  'Eligible saved Firebase session recovery must finish the initial app boot state without granting unverified access.',
 );
 
 const resumeFunctionStart = authContext.indexOf('const resumeSession');

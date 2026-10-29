@@ -17,10 +17,10 @@ html[data-effects="reduced"] .startup-block{animation:none;will-change:auto}
 `;
 
 /** Static surface: no hydration-dependent animation, timers or image optimizer. */
-export function BrandedAuthScreen({ message, isExiting = false, id }: { message: string; isExiting?: boolean; id?: string }) {
+export function BrandedAuthScreen({ message, isExiting = false, id, onRetry }: { message: string; isExiting?: boolean; id?: string; onRetry?: () => void }) {
   return <>
     <style>{startupStyles}</style>
-    <main id={id} aria-busy="true" role="status" className="startup-screen" data-startup-state={isExiting ? 'fading' : 'visible'}>
+    <main id={id} aria-busy={!onRetry} role="status" className="startup-screen" data-startup-state={isExiting ? 'fading' : 'visible'}>
       <section>
         <div className="startup-brand" aria-hidden="true">
           <div className="startup-logo"><img src="/trinity-logo-192.png" alt="" width={64} height={64} /></div>
@@ -28,6 +28,7 @@ export function BrandedAuthScreen({ message, isExiting = false, id }: { message:
         </div>
         <h1>Trinity Family School</h1>
         <p className="startup-message">{message}</p>
+        {onRetry && <button type="button" onClick={onRetry} className="mt-5 min-h-11 rounded-lg border border-white/30 px-5 py-2 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4">Retry</button>}
         <p className="startup-motto">Strive to Excel</p>
       </section>
     </main>

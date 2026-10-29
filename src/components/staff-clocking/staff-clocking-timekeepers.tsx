@@ -23,10 +23,13 @@ export function StaffClockingTimekeepers() {
     <p role="status" className="text-sm text-muted-foreground">{message}</p>
     {people.isPending ? <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading linked staff…</p> : <ul className="space-y-3">{matches.map(person => <li key={person.accountId} className="flex items-center justify-between gap-4 rounded-xl border border-border bg-background/70 p-4">
       <div className="min-w-0"><Label htmlFor={`timekeeper-${person.accountId}`} className="break-words font-semibold">{person.name}</Label><p className="mt-1 break-words text-xs text-muted-foreground">{person.username} · {person.allowed ? 'Timekeeper' : 'Record Station not assigned'}</p></div>
-      <Switch id={`timekeeper-${person.accountId}`} aria-label={`Record Station access for ${person.name}`} checked={person.allowed} disabled={update.isPending || people.isPlaceholderData} onCheckedChange={allowed => {
+      <div className="flex flex-col gap-3"><div className="flex items-center gap-2"><span className="text-xs">Display QR</span><Switch id={`timekeeper-${person.accountId}`} aria-label={`Display school QR for ${person.name}`} checked={person.allowed} disabled={update.isPending || people.isPlaceholderData} onCheckedChange={allowed => {
         setMessage('');
-        update.mutate({ accountId: person.accountId, allowed, revision: person.revision }, { onSuccess: () => setMessage(`${person.name}: Record Station access ${allowed ? 'granted' : 'removed'}.`) });
-      }} />
+        update.mutate({ accountId: person.accountId, allowed, scanAllowed: person.scanAllowed, revision: person.revision }, { onSuccess: () => setMessage(`${person.name}: QR display access updated.`) });
+      }} /></div><div className="flex items-center gap-2"><span className="text-xs">Scan staff IDs</span><Switch aria-label={`Scan staff IDs for ${person.name}`} checked={person.scanAllowed} disabled={update.isPending || people.isPlaceholderData} onCheckedChange={scanAllowed => {
+        setMessage('');
+        update.mutate({ accountId: person.accountId, allowed: person.allowed, scanAllowed, revision: person.revision }, { onSuccess: () => setMessage(`${person.name}: staff ID scanning access updated.`) });
+      }} /></div></div>
     </li>)}</ul>}
     {!people.isPending && !matches.length && <p className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">{search ? 'No matching staff accounts.' : 'No active linked staff logins are available.'}</p>}
     {update.isPending && <Button type="button" variant="ghost" disabled><Loader2 className="h-4 w-4 animate-spin" />Saving access…</Button>}

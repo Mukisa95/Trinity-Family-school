@@ -22,10 +22,13 @@ import { removeParentOfflineAccount } from '@/lib/parent-offline/repository';
 import { deletePersistentCollection, persistentCollectionCacheKey } from '@/lib/cache/persistent-collection-cache';
 import { PupilsService } from '@/lib/services/pupils.service';
 import { clearPupilSessionQueries } from '@/lib/cache/pupil-session-cache';
-import { clearSavedWorkspaceAccess, rememberVerifiedWorkspaceAccess } from '@/lib/startup/workspace-cache-access';
+import { clearSavedWorkspaceAccess, rememberVerifiedWorkspaceAccess, hasSavedWorkspaceAccess, savedWorkspaceAccessExpiresAt } from '@/lib/startup/workspace-cache-access';
 
 import { isDefinitiveSessionError, sessionErrorCode } from '@/lib/auth/session-error-policy';
 import { recordAppDiagnostic } from '@/lib/utils/app-diagnostics';
+
+import { SAVED_VIEW_DELAY_MS, VERIFICATION_DEADLINE_MS, verificationDeadline, verificationRetryDelay } from '@/lib/auth/startup-verification';
+import { setSavedWorkspaceView } from '@/lib/auth/saved-view';
 
 const AUTH_CACHE_KEY = 'trinity_user';
 // How often a long-lived tab asks Firebase Authentication for a fresh signed
@@ -60,6 +63,9 @@ interface AuthContextType {
   isSessionVerificationDelayed: boolean;
   isAuthenticated: boolean;
   isSignedIdentityReady: boolean;
+  isSavedWorkspaceView: boolean;
+  startupError: string | null;
+  retryStartup: () => void;
   canAccessModule: (module: string) => boolean;
   canEdit: (module: string) => boolean;
   canDelete: (module: string) => boolean;
@@ -112,6 +118,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [lastSessionValidationAt, setLastSessionValidationAt] = useState<number>(0);
   const validationInFlight = useRef(false);
   const [signedWorkspaceId, setSignedWorkspaceId] = useState<string | null>(null);
+  const [savedViewing, setSavedViewingState] = useState(false);
+  const [startupError, setStartupError] = useState<string | null>(null);
+  const retryStartupRef = useRef<() => void>(() => {});
+  const setSavedViewing = (value: boolean) => { setSavedWorkspaceView(value); setSavedViewingState(value); };
 
   const saveUserCache = (userData: SystemUser) => {
     if (typeof window === 'undefined') return;
@@ -128,10 +138,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const clearUserCache = () => {
     setSignedWorkspaceId(null);
+    setSavedViewing(false);
     clearSavedWorkspaceAccess();
     void clearAndroidOfflineAccess().catch(() => undefined);
     if (typeof window === 'undefined') return;
-    localStorage.removeItem(AUTH_CACHE_KEY);
+    try { localStorage.removeItem(AUTH_CACHE_KEY); } catch { recordAppDiagnostic('auth_cache_clear_failed'); }
   };
 
   const clearPrivateParentOfflineData = (accountId?: string) => {
@@ -157,15 +168,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const readUserCache = (): { user: SystemUser; ageMs: number; isLegacy: boolean } | null => {
     if (typeof window === 'undefined') return null;
-    const storedUser = localStorage.getItem(AUTH_CACHE_KEY);
-    if (!storedUser) return null;
-
-    const parsed = JSON.parse(storedUser);
-    if (parsed?.user && typeof parsed.cachedAt === 'number') {
-      return { user: normalizeSessionProfile(parsed.user), ageMs: Date.now() - parsed.cachedAt, isLegacy: false };
-    }
-
-    return { user: normalizeSessionProfile(parsed), ageMs: AUTH_CACHE_MAX_AGE_MS, isLegacy: true };
+    try {
+      const storedUser = localStorage.getItem(AUTH_CACHE_KEY);
+      if (!storedUser) return null;
+      const parsed = JSON.parse(storedUser);
+      if (parsed?.user && typeof parsed.cachedAt === 'number') {
+        return { user: normalizeSessionProfile(parsed.user), ageMs: Date.now() - parsed.cachedAt, isLegacy: false };
+      }
+      return { user: normalizeSessionProfile(parsed), ageMs: AUTH_CACHE_MAX_AGE_MS, isLegacy: true };
+    } catch { recordAppDiagnostic('auth_cache_unreadable'); return null; }
   };
 
   // Function to validate stored user token
@@ -175,19 +186,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!storedUserData.id || !storedUserData.username || !storedUserData.role) {
         return false;
       }
-      
+
       // Check if createdAt is not too old (optional validation)
       if (storedUserData.createdAt) {
         const createdDate = new Date(storedUserData.createdAt);
         const now = new Date();
         const daysDiff = (now.getTime() - createdDate.getTime()) / (1000 * 3600 * 24);
-        
+
         // If user was created more than 30 days ago, still valid but could add additional checks
         if (daysDiff > 30) {
           logger.debug('Stored user is older than 30 days', { daysDiff });
         }
       }
-      
+
       return true;
     } catch (error) {
       logger.error('Error validating stored user', error);
@@ -200,16 +211,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined') {
       return;
     }
+    // Install the stable fetch boundary before an offline router can wrap it.
+    setSavedWorkspaceView(false);
 
     let unsubscribe: (() => void) | undefined;
     let firebaseInitialized = false;
     let restoredCachedUser: SystemUser | null = null;
     let finishedInitialAuthCheck = false;
     let authGeneration = 0;
+    let disposed = false, verificationPending = true, verificationRunning = false;
+    let retryAttempt = 0;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let savedTimer: ReturnType<typeof setTimeout> | undefined;
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
+    let verifiedUserId = '';
+    let verifyIdentity: (firebaseUser: typeof auth.currentUser) => Promise<void>;
+    const armWatchdog = () => {
+      clearTimeout(watchdog);
+      watchdog = setTimeout(() => {
+        if (!disposed && !finishedInitialAuthCheck) {
+          recordAppDiagnostic('auth_startup_deadline');
+          setStartupError('Your saved sign-in is taking longer than expected. Check your connection or retry.');
+        }
+      }, VERIFICATION_DEADLINE_MS);
+    };
+    const retry = () => {
+      if (disposed || !verificationPending || verificationRunning || document.visibilityState === 'hidden'
+        || !navigator.onLine || window.trinityAndroidConnected === false) return;
+      setStartupError(null); armWatchdog();
+      void auth.authStateReady().then(() => { if (!disposed && !verificationRunning) void verifyIdentity(auth.currentUser); });
+    };
+    const retryOnConnection = () => { retryAttempt = 0; retry(); };
+    const scheduleRetry = () => {
+      clearTimeout(retryTimer);
+      retryTimer = setTimeout(retry, verificationRetryDelay(retryAttempt++));
+    };
+    retryStartupRef.current = () => {
+      // A manual retry retires the old attempt; a late response cannot publish.
+      authGeneration++; verificationRunning = false; clearTimeout(savedTimer);
+      retry();
+    };
+    window.addEventListener('online', retryOnConnection);
+    window.addEventListener('trinity-android-connectivity', retryOnConnection);
+    document.addEventListener('visibilitychange', retry);
+    armWatchdog();
 
     const finishInitialAuthCheck = () => {
-      if (finishedInitialAuthCheck) return;
       finishedInitialAuthCheck = true;
+      clearTimeout(watchdog);
+      setStartupError(null);
       setIsLoading(false);
       performance.mark?.('trinity:auth-resolved');
     };
@@ -224,7 +274,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const storedAutoLockAction = localStorage.getItem('trinity_auto_lock_action');
         const storedDeviceUnlock = localStorage.getItem('trinity_auto_lock_device_unlock');
         const storedHiddenApp = localStorage.getItem('trinity_app_hidden');
-        
+
         if (storedAutoLock) {
           try {
             setAutoLockEnabled(JSON.parse(storedAutoLock));
@@ -232,7 +282,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             logger.warn('Error parsing auto lock setting', error);
           }
         }
-        
+
         if (storedLockState) {
           try {
             setIsLocked(JSON.parse(storedLockState));
@@ -240,7 +290,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             logger.warn('Error parsing lock state', error);
           }
         }
-        
+
         if (storedAutoLockAction) {
           try {
             const parsedAction = JSON.parse(storedAutoLockAction);
@@ -280,7 +330,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           localStorage.removeItem('trinity_app_hidden');
         }
-        
+
         const storedCache = readUserCache();
         if (storedCache) {
           try {
@@ -317,123 +367,143 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Firebase's listener waits for its own initialization. Adding an extra
         // timer here only delays cold starts and does not make auth safer.
-        unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+        verifyIdentity = async (firebaseUser) => {
+          if (disposed) return;
+          verificationRunning = true;
+          clearTimeout(retryTimer); clearTimeout(savedTimer);
           if (!restorationRecorded) {
             restorationRecorded = true;
             recordAppDiagnostic(firebaseUser && !firebaseUser.isAnonymous ? 'auth_identity_restored' : 'auth_restore_no_identity');
             measureWorkspaceStep(firebaseUser && !firebaseUser.isAnonymous ? 'identity:restored-signed' : 'identity:restored-without-session', restorationStarted);
           }
           const currentGeneration = ++authGeneration;
-          logger.debug('Firebase signed-token state changed', {
-            userId: firebaseUser?.uid || 'No user',
-            anonymous: firebaseUser?.isAnonymous || false,
-            initialized: firebaseInitialized,
-          });
+          try {
+            const current = () => !disposed && currentGeneration === authGeneration && auth.currentUser?.uid === firebaseUser?.uid;
+            const publishSaved = () => {
+              let cached: SystemUser | null = null;
+              try { cached = readUserCache()?.user || restoredCachedUser; } catch { return false; }
+              if (!current() || !firebaseUser || firebaseUser.isAnonymous || verifiedUserId === firebaseUser.uid
+                || !cached || cached.id !== firebaseUser.uid || !validateStoredUser(cached) || !hasSavedWorkspaceAccess(cached)) return false;
+              setSignedWorkspaceId(null);
+              setSavedViewing(true); setUser(cached); setHasStoredUser(true);
+              setSessionStatus('degraded');
+              setSessionMessage('Showing saved data while your secure session is being verified. Changes are temporarily unavailable.');
+              recordAppDiagnostic('auth_saved_workspace_opened');
+              finishInitialAuthCheck();
+              return true;
+            };
+            if (firebaseUser && !firebaseUser.isAnonymous) savedTimer = setTimeout(publishSaved, SAVED_VIEW_DELAY_MS);
+            logger.debug('Firebase signed-token state changed', {
+              userId: firebaseUser?.uid || 'No user',
+              anonymous: firebaseUser?.isAnonymous || false,
+              initialized: firebaseInitialized,
+            });
 
-          if (firebaseUser && !firebaseUser.isAnonymous) {
-            firebaseInitialized = true;
-            try {
-              const tokenResult = await measureWorkspaceOperation('identity:token-verification', () => firebaseUser.getIdTokenResult());
-              if (currentGeneration !== authGeneration || auth.currentUser?.uid !== firebaseUser.uid) return;
-              if (
-                tokenResult.claims.appUser !== true ||
-                tokenResult.claims.isActive !== true
-              ) {
-                throw Object.assign(new Error('Firebase identity is not an active application user.'), { code: 'app/invalid-claims' });
-              }
-
-              // Bind the signed Firebase uid to the profile returned by the
-              // successful login. Staff also verify their current server scope.
-              const latestCache = readUserCache();
-              const cachedUser = latestCache?.user || restoredCachedUser;
-              if (!cachedUser || cachedUser.id !== firebaseUser.uid || !validateStoredUser(cachedUser)) {
-                throw Object.assign(new Error('The signed identity does not match the cached application profile.'), { code: 'app/profile-mismatch' });
-              }
-
-              let systemUserData: SystemUser = normalizeSessionProfile({
-                ...cachedUser,
-                role: (tokenResult.claims.role || cachedUser.role) as UserRole,
-                isActive: true,
-              });
-
-              if (systemUserData.role === 'Staff') {
-                const response = await fetch('/api/auth/session', { headers: { Authorization: `Bearer ${await firebaseUser.getIdToken()}` }, cache: 'no-store' });
-                if (!response.ok) throw new Error('The current account scope could not be verified.');
-                systemUserData = normalizeSessionProfile((await response.json()).user);
+            if (firebaseUser && !firebaseUser.isAnonymous) {
+              firebaseInitialized = true;
+              try {
+                const tokenResult = await measureWorkspaceOperation('identity:token-verification', () => verificationDeadline(firebaseUser.getIdTokenResult()));
                 if (currentGeneration !== authGeneration || auth.currentUser?.uid !== firebaseUser.uid) return;
-                if (systemUserData.id !== firebaseUser.uid || !validateStoredUser(systemUserData)) {
-                  throw Object.assign(new Error('The server profile does not match the signed identity.'), { code: 'app/profile-mismatch' });
+                if (
+                  tokenResult.claims.appUser !== true ||
+                  tokenResult.claims.isActive !== true
+                ) {
+                  throw Object.assign(new Error('Firebase identity is not an active application user.'), { code: 'app/invalid-claims' });
                 }
-              }
-              logger.debug('Setting user from verified Firebase identity', { username: systemUserData.username });
-              if (restoredCachedUser?.id && restoredCachedUser.id !== systemUserData.id) {
-                clearPrivatePupilSession(restoredCachedUser.id);
-                queryClient.setQueryData(['parentPupilScope', systemUserData.id], 'loading');
-              }
-              setUser(systemUserData);
-              restoredCachedUser = systemUserData;
-              setHasStoredUser(true);
-              saveUserCache(systemUserData);
-              rememberVerifiedWorkspaceAccess(systemUserData);
-              setSignedWorkspaceId(systemUserData.id);
-              setLastSessionValidationAt(Date.now());
-              setSessionStatus('fresh');
-              setSessionMessage(null);
-              performance.mark?.('trinity:firebase-auth-ready');
-            } catch (error) {
-              if (currentGeneration !== authGeneration || auth.currentUser?.uid !== firebaseUser.uid) return;
-              const latestCache = readUserCache();
-              const cachedUser = latestCache?.user || restoredCachedUser;
 
-              // Keep a previously authenticated device working when Firebase
-              // Auth has restored its signed identity but cannot complete a
-              // live token-claims request. This is deliberately not a
-              // localStorage-only bypass: no Firebase identity, a different
-              // uid, or a non-transient verification failure still signs out.
-              if (
-                !isDefinitiveSessionError(error) &&
-                cachedUser &&
-                cachedUser.id === firebaseUser.uid &&
-                validateStoredUser(cachedUser)
-              ) {
-                logger.warn('Keeping previously verified session during temporary Firebase Auth verification failure', error);
-                recordAppDiagnostic('auth_verification_delayed');
-                setUser(cachedUser);
-                restoredCachedUser = cachedUser;
+                // Bind the signed Firebase uid to the profile returned by the
+                // successful login. Staff also verify their current server scope.
+                const latestCache = readUserCache();
+                const cachedUser = latestCache?.user || restoredCachedUser;
+                if (!cachedUser || cachedUser.id !== firebaseUser.uid || !validateStoredUser(cachedUser)) {
+                  throw Object.assign(new Error('The signed identity does not match the cached application profile.'), { code: 'app/profile-mismatch' });
+                }
+
+                let systemUserData: SystemUser = normalizeSessionProfile({
+                  ...cachedUser,
+                  role: (tokenResult.claims.role || cachedUser.role) as UserRole,
+                  isActive: true,
+                });
+
+                if (systemUserData.role === 'Staff') {
+                  const controller = new AbortController();
+                  try {
+                    systemUserData = await verificationDeadline((async () => {
+                      const response = await fetch('/api/auth/session', { headers: { Authorization: `Bearer ${await firebaseUser.getIdToken()}` }, cache: 'no-store', signal: controller.signal });
+                      if (!response.ok) throw Object.assign(new Error('The current account scope could not be verified.'),
+                        { code: response.status === 401 || response.status === 403 ? 'auth/invalid-user-token' : 'auth/network-request-failed' });
+                      return normalizeSessionProfile((await response.json()).user);
+                    })());
+                  } finally { controller.abort(); }
+                  if (currentGeneration !== authGeneration || auth.currentUser?.uid !== firebaseUser.uid) return;
+                  if (systemUserData.id !== firebaseUser.uid || !validateStoredUser(systemUserData)) {
+                    throw Object.assign(new Error('The server profile does not match the signed identity.'), { code: 'app/profile-mismatch' });
+                  }
+                }
+                logger.debug('Setting user from verified Firebase identity', { username: systemUserData.username });
+                if (restoredCachedUser?.id && restoredCachedUser.id !== systemUserData.id) {
+                  clearPrivatePupilSession(restoredCachedUser.id);
+                  queryClient.setQueryData(['parentPupilScope', systemUserData.id], 'loading');
+                }
+                clearTimeout(savedTimer); verificationPending = false; retryAttempt = 0;
+                verifiedUserId = systemUserData.id;
+                setSavedViewing(false); setStartupError(null);
+                setUser(systemUserData);
+                restoredCachedUser = systemUserData;
                 setHasStoredUser(true);
-                setSessionStatus('degraded');
-                setSessionMessage('The service is temporarily unavailable. Your previously signed-in session remains available on this device.');
-                // A resumed phone can briefly lose its network while Firebase
-                // restores the token. The cached signed-in user is safe here,
-                // but this branch must still complete the boot state instead
-                // of leaving the entire app behind its loading screen.
-                finishInitialAuthCheck();
-                return;
-              }
+                saveUserCache(systemUserData);
+                rememberVerifiedWorkspaceAccess(systemUserData);
+                setSignedWorkspaceId(systemUserData.id);
+                setLastSessionValidationAt(Date.now());
+                setSessionStatus('fresh');
+                setSessionMessage(null);
+                performance.mark?.('trinity:firebase-auth-ready');
+              } catch (error) {
+                if (currentGeneration !== authGeneration || auth.currentUser?.uid !== firebaseUser.uid) return;
+                const latestCache = readUserCache();
+                const cachedUser = latestCache?.user || restoredCachedUser;
 
-              logger.error('AuthContext: Error processing Firebase identity', error);
-              recordAppDiagnostic(`auth_cleared/${sessionErrorCode(error)}`);
-              clearPrivateParentOfflineData(cachedUser?.id);
+                clearTimeout(savedTimer);
+                if (!isDefinitiveSessionError(error)) {
+                  verificationPending = true;
+                  recordAppDiagnostic('auth_verification_delayed');
+                  if (verifiedUserId === firebaseUser.uid || publishSaved()) {
+                    setSessionStatus('degraded');
+                    finishInitialAuthCheck();
+                  }
+                  scheduleRetry();
+                  return;
+                }
+
+                verificationPending = false; verifiedUserId = '';
+                logger.error('AuthContext: Error processing Firebase identity', error);
+                recordAppDiagnostic(`auth_cleared/${sessionErrorCode(error)}`);
+                clearPrivateParentOfflineData(cachedUser?.id);
+                setUser(null);
+                restoredCachedUser = null;
+                setHasStoredUser(false);
+                clearUserCache();
+                setSessionStatus('stale');
+                setSessionMessage('Your secure session could not be verified. Please sign in again.');
+                await firebaseSignOut(auth).catch(() => undefined);
+              }
+            } else {
+              clearTimeout(savedTimer); verificationPending = false; verifiedUserId = '';
+              firebaseInitialized = true;
+              logger.debug('No signed Firebase application user - clearing the private user session');
+              recordAppDiagnostic('auth_identity_missing');
+              clearPrivateParentOfflineData(restoredCachedUser?.id || readUserCache()?.user.id);
               setUser(null);
               restoredCachedUser = null;
               setHasStoredUser(false);
               clearUserCache();
-              setSessionStatus('stale');
-              setSessionMessage('Your secure session could not be verified. Please sign in again.');
-              await firebaseSignOut(auth).catch(() => undefined);
             }
-          } else {
-            firebaseInitialized = true;
-            logger.debug('No signed Firebase application user - clearing the private user session');
-            recordAppDiagnostic('auth_identity_missing');
-            clearPrivateParentOfflineData(restoredCachedUser?.id || readUserCache()?.user.id);
-            setUser(null);
-            restoredCachedUser = null;
-            setHasStoredUser(false);
-            clearUserCache();
-          }
-          
-          finishInitialAuthCheck();
+
+            finishInitialAuthCheck();
+          } finally { if (currentGeneration === authGeneration) verificationRunning = false; }
+        };
+        unsubscribe = onIdTokenChanged(auth, firebaseUser => {
+          void verifyIdentity(firebaseUser);
         });
 
       } catch (error) {
@@ -445,12 +515,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeAuth();
 
     return () => {
-      authGeneration++;
+      disposed = true; authGeneration++;
+      clearTimeout(retryTimer); clearTimeout(savedTimer); clearTimeout(watchdog);
+      retryStartupRef.current = () => {};
+      window.removeEventListener('online', retryOnConnection);
+      window.removeEventListener('trinity-android-connectivity', retryOnConnection);
+      document.removeEventListener('visibilitychange', retry);
+      setSavedWorkspaceView(false);
       if (unsubscribe) {
         unsubscribe();
       }
     };
   }, []); // Remove the dependency to prevent infinite loops
+
+  useEffect(() => {
+    if (!savedViewing || !user) return;
+    const remaining = savedWorkspaceAccessExpiresAt(user) - Date.now();
+    const timer = setTimeout(() => {
+      setUser(null); setSignedWorkspaceId(null); setSavedViewing(false);
+      setIsLoading(true); setStartupError('Connect to renew your secure session, then retry.');
+      recordAppDiagnostic('auth_saved_access_expired');
+    }, Math.max(0, remaining));
+    return () => clearTimeout(timer);
+  }, [savedViewing, user]);
 
   // Handle auto lock on window close and visibility change
   useEffect(() => {
@@ -458,7 +545,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined') {
       return;
     }
-    
+
     if (!autoLockEnabled || !autoLockAction || !user) return;
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -493,7 +580,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -504,6 +591,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     authenticatedUser = normalizeSessionProfile(authenticatedUser);
     if (user?.id && user.id !== authenticatedUser.id) clearPrivatePupilSession(user.id);
     queryClient.setQueryData(['parentPupilScope', authenticatedUser.id], 'loading');
+    setSavedViewing(false); setStartupError(null);
     setUser(authenticatedUser);
     if (typeof window !== 'undefined') {
       saveUserCache(authenticatedUser);
@@ -521,13 +609,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       const authenticatedUser = await SecureAuthService.signIn(username, password);
-      
+
       if (authenticatedUser) {
         acceptAuthenticatedUser(authenticatedUser);
         logger.info('Successfully authenticated with Firebase custom token', { username: authenticatedUser.username });
         return true;
       }
-      
+
       return false;
     } catch (error) {
       logger.error('Login error', error);
@@ -723,11 +811,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     if (!user) return;
-    
+
     try {
       logger.debug('Refreshing user data from database');
       const updatedUser = await UsersService.getUserById(user.id);
-      
+
       if (updatedUser && updatedUser.isActive !== false) {
         logger.debug('User data refreshed successfully', { username: updatedUser.username });
         setUser(updatedUser);
@@ -840,12 +928,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const canEdit = (module: string): boolean => {
-    if (!user || isLocked || signedWorkspaceId !== user.id) return false;
+    if (!user || savedViewing || isLocked || signedWorkspaceId !== user.id) return false;
     return UsersService.canUserEdit(user, module);
   };
 
   const canDelete = (module: string): boolean => {
-    if (!user || isLocked || signedWorkspaceId !== user.id) return false;
+    if (!user || savedViewing || isLocked || signedWorkspaceId !== user.id) return false;
     return UsersService.canUserDelete(user, module);
   };
 
@@ -862,7 +950,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const canPerformAction = (module: string, page: string, action: string): boolean => {
     if (!user) return false;
     const localViewing = action === 'access_page' || /^(view|print|export|download)(_|$)/.test(action);
-    if (!localViewing && (isLocked || signedWorkspaceId !== user.id)) return false;
+    if (!localViewing && (savedViewing || isLocked || signedWorkspaceId !== user.id)) return false;
     return GranularPermissionService.canPerformAction(user, module, page, action);
   };
 
@@ -878,7 +966,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     sessionMessage,
     isSessionVerificationDelayed: sessionStatus === 'degraded',
     isAuthenticated: !!user,
-    isSignedIdentityReady: !!user && signedWorkspaceId === user.id && !isLocked,
+    isSignedIdentityReady: !!user && signedWorkspaceId === user.id && !isLocked && !savedViewing,
+    isSavedWorkspaceView: savedViewing,
+    startupError,
+    retryStartup: () => retryStartupRef.current(),
     canAccessModule,
     canEdit,
     canDelete,

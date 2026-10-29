@@ -21,12 +21,13 @@ import { Switch } from '@/components/ui/switch';
 import { StaffClockingQrDisplay } from '@/components/staff-clocking/staff-clocking-qr-display';
 import { StaffClockingQrScanner } from '@/components/staff-clocking/staff-clocking-qr-scanner';
 import { StaffClockingTimekeepers } from '@/components/staff-clocking/staff-clocking-timekeepers';
+import { OwnStaffClockingId, StaffClockingIdManager } from '@/components/staff-clocking/staff-clocking-ids';
 import { StaffClockingStaffLink, StaffClockingDetailLinksContext } from '@/components/staff-clocking/staff-clocking-staff-link';
 import { StaffClockingDutyNotice } from './staff-clocking-duty-notice';
 import { useAuth } from '@/lib/contexts/auth-context';
 
 type StaffClockingSection = 'record' | 'manage' | 'clock' | 'records';
-type ManagePanelKey = 'days' | 'holidays' | 'penalties' | 'advanced' | 'timekeepers';
+type ManagePanelKey = 'days' | 'holidays' | 'penalties' | 'advanced' | 'timekeepers' | 'staff_ids';
 
 function todayInSchoolTime(): string {
   return new Intl.DateTimeFormat('en-UG', {
@@ -46,6 +47,8 @@ export function StaffClockingWorkspace({ section }: { section: StaffClockingSect
   const canOpenManage = canPerformAction('staff_clocking', 'record', 'access_manage');
   const canManage = canOpenManage && canPerformAction('staff_clocking', 'record', 'manage_schedules');
   const canManageTimekeepers = canOpenManage && canPerformAction('staff_clocking', 'record', 'manage_timekeepers');
+  const canManageStaffIds = canOpenManage && canPerformAction('staff_clocking', 'record', 'manage_staff_ids');
+  const canScanStaffIds = canPerformAction('staff_clocking', 'record', 'scan_staff_ids');
   const canDisplayQr = canPerformAction('staff_clocking', 'record', 'display_qr');
   const canManageCalendar = canPerformAction('staff_clocking', 'record', 'manage_calendar');
   const canFinalize = canPerformAction('staff_clocking', 'record', 'manual_clock');
@@ -87,6 +90,7 @@ export function StaffClockingWorkspace({ section }: { section: StaffClockingSect
       <GlassActionButton label="Penalties" tone="orange" icon={<Coins className="h-4 w-4" />} active={managePanel === 'penalties'} onClick={() => setManagePanel('penalties')} />
       <GlassActionButton label="Settings" tone="purple" icon={<ShieldEllipsis className="h-4 w-4" />} active={managePanel === 'advanced'} onClick={() => setManagePanel('advanced')} />
       {canManageTimekeepers && <GlassActionButton label="Timekeepers" tone="blue" icon={<Users className="h-4 w-4" />} active={managePanel === 'timekeepers'} onClick={() => setManagePanel('timekeepers')} />}
+      {canManageStaffIds && <GlassActionButton label="Staff IDs" tone="blue" icon={<QrCode className="h-4 w-4" />} active={managePanel === 'staff_ids'} onClick={() => setManagePanel('staff_ids')} />}
     </GlassActionDock>
   );
 
@@ -123,7 +127,7 @@ export function StaffClockingWorkspace({ section }: { section: StaffClockingSect
         )}
 
         {section === 'clock' && <ClockPanel bootstrap={bootstrap.data} isLoading={bootstrap.isPending} canRequestExemption={canRequestExemption} canRequestCorrection={canRequestCorrection} />}
-        {section === 'record' && <RecordDashboard bootstrap={bootstrap.data} canManage={canManage} canManageCalendar={canManageCalendar} canDisplayQr={canDisplayQr} />}
+        {section === 'record' && <RecordDashboard bootstrap={bootstrap.data} canManage={canManage} canManageCalendar={canManageCalendar} canDisplayQr={canDisplayQr} canScanStaffIds={canScanStaffIds} />}
         {section === 'manage' && !canOpenManage && <Card><CardContent className="p-6"><p role="alert">You do not have permission to open Manage Clocking.</p></CardContent></Card>}
         {section === 'manage' && canOpenManage && <ManagePanel activePanel={managePanel} onPanelChange={setManagePanel} bootstrap={bootstrap.data} canManage={canManage} canManageCalendar={canManageCalendar} canDisplayQr={canDisplayQr} isSaving={updateSettings.isPending} onSettingsChange={(settings) => {
           const feature = bootstrap.data?.feature;
@@ -137,6 +141,16 @@ export function StaffClockingWorkspace({ section }: { section: StaffClockingSect
 }
 
 function ClockPanel({ bootstrap, isLoading, canRequestExemption, canRequestCorrection }: { bootstrap?: StaffClockingBootstrap; isLoading: boolean; canRequestExemption: boolean; canRequestCorrection: boolean }) {
+  const [clockMode, setClockMode] = useState<'scan' | 'id'>('scan');
+  const { user } = useAuth();
+  const preferenceKey = `staff-clocking-mode:${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'school'}:${user?.id || ''}`;
+  useEffect(() => {
+    try { setClockMode(user?.id && localStorage.getItem(preferenceKey) === 'id' ? 'id' : 'scan'); } catch { setClockMode('scan'); }
+  }, [preferenceKey, user?.id]);
+  const selectClockMode = (mode: 'scan' | 'id') => {
+    setClockMode(mode);
+    try { if (user?.id) localStorage.setItem(preferenceKey, mode); } catch { /* The choice still applies for this session. */ }
+  };
   const isEnabledForStaff = Boolean(bootstrap?.feature.enabled && bootstrap.access.isEnrolled);
   const dashboard = useOwnStaffClockingDashboard(Boolean(bootstrap?.access.canClock));
   const notifications = useOwnStaffClockingNotifications(Boolean(bootstrap?.access.canClock));
@@ -155,7 +169,7 @@ function ClockPanel({ bootstrap, isLoading, canRequestExemption, canRequestCorre
   return <section className="space-y-4" aria-label="My Clock">{data?.staff && <div className="flex justify-end"><div className="flex items-center gap-3 rounded-xl border border-border/80 bg-card/80 px-3 py-2"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">{data.staff.name.split(' ').map(part => part[0]).join('').slice(0, 2)}</div><div><p className="text-sm font-semibold">{data.staff.name}</p><p className="text-xs text-muted-foreground">{data.staff.group || 'Assigned staff schedule'}</p></div></div></div>}
     <ClockingStatusCard title={status.title} description={status.description} next={status.next} tone={status.tone} isLoading={dashboard.isPending} />
     {!exempt && <StaffClockingDutyNotice duty={data?.schedule.duty} />}
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(19rem,.75fr)]"><Card className="overflow-hidden border-blue-200/70 bg-gradient-to-br from-blue-50/80 via-card to-indigo-50/60 dark:border-blue-900/70 dark:from-blue-950/30 dark:via-card dark:to-indigo-950/20"><CardHeader><CardTitle className="flex items-center gap-2"><ScanLine className="h-5 w-5 text-primary" />QR Clock Scanner</CardTitle><CardDescription>{clockIn && !clockOut ? 'Scan the school QR when you are ready to clock out.' : 'Scan the school QR displayed by your authorised timekeeper.'}</CardDescription></CardHeader><CardContent className="space-y-4">{!isEnabledForStaff ? <div className="rounded-xl border border-dashed border-blue-300/80 bg-background/70 p-5"><p className="text-sm font-semibold">Clocking is not available for this account</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{availabilityMessage}</p></div> : data?.schedule.kind !== 'scheduled' ? <div className="rounded-xl border border-dashed border-border bg-muted/30 p-5"><p className="font-semibold">No clocking is expected right now</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{data?.calendar?.label || data?.schedule.reason || 'Your current school calendar and staff schedule do not require a clocking scan today.'}</p></div> : <StaffClockingQrScanner available={scanAvailable} />}{(canRequestExemption || canRequestCorrection) && <StaffClockingRequestDialog canRequestExemption={canRequestExemption} canRequestCorrection={canRequestCorrection} />}</CardContent></Card>
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(19rem,.75fr)]"><Card className="overflow-hidden border-blue-200/70 bg-gradient-to-br from-blue-50/80 via-card to-indigo-50/60 dark:border-blue-900/70 dark:from-blue-950/30 dark:via-card dark:to-indigo-950/20"><CardHeader><CardTitle className="flex items-center gap-2"><ScanLine className="h-5 w-5 text-primary" />Clocking QR</CardTitle><CardDescription>Scan the school code or show your staff ID to a timekeeper.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="flex flex-wrap gap-2"><Button type="button" variant={clockMode === 'scan' ? 'default' : 'outline'} onClick={() => selectClockMode('scan')}>Scan school QR</Button><Button type="button" variant={clockMode === 'id' ? 'default' : 'outline'} onClick={() => selectClockMode('id')}>Show my staff ID</Button></div>{!isEnabledForStaff ? <div className="rounded-xl border border-dashed border-blue-300/80 bg-background/70 p-5"><p className="text-sm font-semibold">Clocking is not available for this account</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{availabilityMessage}</p></div> : clockMode === 'id' ? <OwnStaffClockingId available={isEnabledForStaff} /> : data?.schedule.kind !== 'scheduled' ? <div className="rounded-xl border border-dashed border-border bg-muted/30 p-5"><p className="font-semibold">No clocking is expected right now</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{data?.calendar?.label || data?.schedule.reason || 'Your current school calendar and staff schedule do not require a clocking scan today.'}</p></div> : <StaffClockingQrScanner available={scanAvailable} />}{(canRequestExemption || canRequestCorrection) && <StaffClockingRequestDialog canRequestExemption={canRequestExemption} canRequestCorrection={canRequestCorrection} />}</CardContent></Card>
       <div className="space-y-4"><Card><CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><CalendarClock className="h-5 w-5 text-primary" />Today&apos;s Schedule</CardTitle></CardHeader><CardContent className="space-y-3 text-sm">{data?.schedule.kind === 'scheduled' ? <><ScheduleRow label="Day type" value={data.calendar?.isClosed ? 'Approved special schedule' : 'Working day'} /><ScheduleRow label="Expected arrival" value={formatScheduleTime(data.schedule.clockInBy)} /><ScheduleRow label="Expected departure" value={formatScheduleTime(data.schedule.clockOutBy)} /><ScheduleRow label="Grace period" value={`${data.schedule.graceMinutes || 0} minutes`} /></> : <p className="leading-6 text-muted-foreground">{data?.calendar?.label || data?.schedule.reason || 'Your schedule is being checked.'}</p>}</CardContent></Card><div className="grid grid-cols-2 gap-4"><ClockTimeCard label="Clock In" value={clockIn ? formatScheduleTime(clockIn) : '—'} detail={clockIn ? humanArrival(record?.arrivalStatus) : 'Not yet'} tone={record?.arrivalStatus === 'late' ? 'red' : record?.arrivalStatus === 'grace' ? 'amber' : 'green'} /><ClockTimeCard label="Clock Out" value={clockOut ? formatScheduleTime(clockOut) : '—'} detail={clockOut ? 'Recorded' : 'Not yet'} tone={clockOut ? 'green' : 'neutral'} /></div></div></div>
     <Card><CardHeader className="pb-3"><div className="flex items-center justify-between gap-3"><div><CardTitle className="text-base">Recent Clocking Activity</CardTitle><CardDescription>Only your own verified clocking records.</CardDescription></div><Badge variant="outline">Last 5 days</Badge></div></CardHeader><CardContent>{dashboard.isPending ? <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading your records…</p> : dashboard.isError ? <p role="alert" className="text-sm text-destructive">{dashboard.error.message}</p> : data?.history.length ? <div className="overflow-x-auto"><table className="w-full min-w-[34rem] text-left text-sm"><thead className="border-b text-xs text-muted-foreground"><tr><th className="px-3 py-2 font-medium">Date</th><th className="px-3 py-2 font-medium">Clock in</th><th className="px-3 py-2 font-medium">Clock out</th><th className="px-3 py-2 font-medium">Status</th></tr></thead><tbody>{data.history.map(item => <tr key={item.id} className="border-b last:border-0"><td className="px-3 py-3 font-medium">{item.localDate}</td><td className="px-3 py-3">{formatScheduleTime(item.effectiveClockInTime || item.clockInTime)}</td><td className="px-3 py-3">{formatScheduleTime(item.effectiveClockOutTime || item.clockOutTime)}</td><td className="px-3 py-3"><Badge variant={item.arrivalStatus === 'late' ? 'destructive' : 'secondary'}>{humanArrival(item.arrivalStatus)}</Badge></td></tr>)}</tbody></table></div> : <p className="text-sm text-muted-foreground">No earlier clocking records are available yet.</p>}</CardContent></Card>
     {notifications.data?.length ? <div className="rounded-xl border border-border bg-background/70 p-4"><p className="text-sm font-semibold">Clocking updates</p><ul className="mt-2 space-y-2">{notifications.data.map((notice) => <li key={notice.id} className="text-sm"><span className="font-medium">{notice.title}</span><span className="block text-muted-foreground">{notice.body}</span></li>)}</ul></div> : null}
@@ -206,12 +220,14 @@ function RecordClockingSummary({ canReviewRecords }: { canReviewRecords: boolean
   />;
 }
 
-function RecordDashboard({ bootstrap, canManage, canManageCalendar, canDisplayQr }: {
+function RecordDashboard({ bootstrap, canManage, canManageCalendar, canDisplayQr, canScanStaffIds }: {
   bootstrap?: StaffClockingBootstrap;
   canManage: boolean;
   canManageCalendar: boolean;
   canDisplayQr: boolean;
+  canScanStaffIds: boolean;
 }) {
+  const [stationMode, setStationMode] = useState<'display' | 'scan'>(canDisplayQr ? 'display' : 'scan');
   const [now, setNow] = useState(() => new Date());
   const today = schoolDateKey(now);
   const schedules = useStaffClockingSchedules(canManage);
@@ -233,8 +249,8 @@ function RecordDashboard({ bootstrap, canManage, canManageCalendar, canDisplayQr
     <section className="space-y-4" aria-label="Staff clocking record dashboard">
       <div className="grid gap-4 xl:grid-cols-2">
         <Card className="overflow-hidden border-blue-200/70 bg-gradient-to-br from-blue-50/80 via-card to-indigo-50/60 dark:border-blue-900/70 dark:from-blue-950/30 dark:via-card dark:to-indigo-950/20">
-          <CardHeader className="pb-3"><div className="flex items-start justify-between gap-4"><div><CardTitle className="flex items-center gap-2"><QrCode className="h-5 w-5 text-primary" />School Clocking QR</CardTitle><CardDescription className="mt-1">Staff should scan this code using their Clock page.</CardDescription></div>{canDisplayQr && <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">Connected</Badge>}</div></CardHeader>
-          <CardContent>{canDisplayQr ? <StaffClockingQrDisplay available={Boolean(bootstrap?.feature.enabled && bootstrap.hasActiveSchedule)} showFullscreen /> : <div className="flex min-h-72 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center"><QrCode className="h-12 w-12 text-muted-foreground" /><p className="mt-3 font-semibold">QR display permission is required</p><p className="mt-1 max-w-md text-sm leading-6 text-muted-foreground">An authorised timekeeper can open the secure school QR from this page.</p></div>}</CardContent>
+          <CardHeader className="pb-3"><div className="flex items-start justify-between gap-4"><div><CardTitle className="flex items-center gap-2"><QrCode className="h-5 w-5 text-primary" />{stationMode === 'scan' ? 'Scan Staff IDs' : 'School Clocking QR'}</CardTitle><CardDescription className="mt-1">{stationMode === 'scan' ? 'Scan a staff ID to record attendance immediately.' : 'Staff should scan this code using their Clock page.'}</CardDescription></div></div></CardHeader>
+          <CardContent className="space-y-4">{canScanStaffIds && <div className="flex flex-wrap gap-2">{canDisplayQr && <Button type="button" variant={stationMode === 'display' ? 'default' : 'outline'} onClick={() => setStationMode('display')}>Display school QR</Button>}<Button type="button" variant={stationMode === 'scan' ? 'default' : 'outline'} onClick={() => setStationMode('scan')}>Scan staff IDs</Button></div>}{stationMode === 'scan' && canScanStaffIds ? <StaffClockingQrScanner available={Boolean(bootstrap?.feature.enabled && bootstrap.hasActiveSchedule)} mode="station" /> : canDisplayQr ? <StaffClockingQrDisplay available={Boolean(bootstrap?.feature.enabled && bootstrap.hasActiveSchedule)} showFullscreen /> : <p>QR display permission is required.</p>}</CardContent>
         </Card>
 
         <div className="space-y-4">
@@ -287,7 +303,7 @@ function ManagePanel({ activePanel, onPanelChange, bootstrap, canManage, canMana
   const specialSchedules = schedules.data?.filter((schedule) => schedule.kind === 'date_override') || [];
   const defaultSchedule = normalSchedules.find((schedule) => schedule.scope === 'school' && schedule.isActive);
   const panelTitle = {
-    days: 'Days', holidays: 'Public holidays', penalties: 'Penalty rules', advanced: 'Advanced settings', timekeepers: 'Timekeepers',
+    days: 'Days', holidays: 'Public holidays', penalties: 'Penalty rules', advanced: 'Advanced settings', timekeepers: 'Timekeepers', staff_ids: 'Staff IDs',
   } as const;
   const panelDescription = {
     days: 'Regular days, special arrangements, staff assignments and grace rules.',
@@ -295,13 +311,15 @@ function ManagePanel({ activePanel, onPanelChange, bootstrap, canManage, canMana
     penalties: 'Review-only policy information. Clocking does not deduct salary automatically.',
     advanced: 'Feature access, QR display permissions, and the revision-controlled clocking configuration.',
     timekeepers: 'Assign staff who can operate the school Record Station.',
+    staff_ids: 'Issue and manage printable clocking IDs.',
   } as const;
   useEffect(() => { if (activePanel) activePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [activePanel]);
   return (
     <section className="space-y-5" aria-label="Manage staff clocking">
       {activePanel && <div ref={activePanelRef} tabIndex={-1} className="scroll-mt-4 focus:outline-none"><Card className="border-primary/20 shadow-md"><CardHeader className="border-b border-border/70 bg-muted/20"><div className="flex flex-wrap items-start justify-between gap-3"><div><Button type="button" variant="ghost" size="sm" className="-ml-2 mb-2" onClick={() => onPanelChange(null)}><ArrowLeft className="h-4 w-4" />Manage Clocking</Button><CardTitle className="text-xl">{panelTitle[activePanel]}</CardTitle><CardDescription className="mt-1">{panelDescription[activePanel]}</CardDescription></div><Badge variant="secondary">Changes affect future scans only</Badge></div></CardHeader><CardContent className="space-y-4 p-4 sm:p-6">
-        {!canManage && activePanel !== 'holidays' && activePanel !== 'timekeepers' ? <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-sm"><p className="font-semibold">Schedule-management permission is required</p><p className="mt-1 text-muted-foreground">Ask an administrator to grant Manage schedules before changing clocking rules.</p></div> : <>
+        {!canManage && activePanel !== 'holidays' && activePanel !== 'timekeepers' && activePanel !== 'staff_ids' ? <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-sm"><p className="font-semibold">Schedule-management permission is required</p><p className="mt-1 text-muted-foreground">Ask an administrator to grant Manage schedules before changing clocking rules.</p></div> : <>
           {activePanel === 'timekeepers' && <TimekeeperPermissionPanel />}
+          {activePanel === 'staff_ids' && <StaffClockingIdManager />}
           {activePanel === 'days' && <div className="space-y-8"><section><div className="mb-4"><h3 className="font-semibold">Working schedules</h3><p className="mt-1 text-sm text-muted-foreground">One place for school-wide, department, role and individual recurring schedules. Choose the audience in the schedule dialog.</p></div><ScheduleManager schedules={normalSchedules} isLoading={schedules.isPending} staff={staff.data || []} createPending={createSchedule.isPending} updatePending={updateSchedule.isPending} deletePending={deleteSchedule.isPending} createError={createSchedule.error?.message} onCreate={(schedule) => createSchedule.mutate(schedule)} onUpdate={(id, schedule) => updateSchedule.mutate({ id, schedule })} onDelete={(id) => deleteSchedule.mutate(id)} /></section><section className="border-t pt-6"><div className="mb-4"><h3 className="font-semibold">Special day arrangements</h3><p className="mt-1 text-sm text-muted-foreground">Create date-specific working arrangements without changing the normal school week.</p></div><SpecialDaysPanel schedules={specialSchedules} isLoading={schedules.isPending} staff={staff.data || []} createPending={createSchedule.isPending} updatePending={updateSchedule.isPending} deletePending={deleteSchedule.isPending} createError={createSchedule.error?.message} onCreate={(schedule) => createSchedule.mutate(schedule)} onUpdate={(id, schedule) => updateSchedule.mutate({ id, schedule })} onDelete={(id) => deleteSchedule.mutate(id)} /></section></div>}
           {activePanel === 'holidays' && (canManageCalendar ? <ClosurePanel closures={closures.data || []} isLoading={closures.isPending} error={closures.error?.message} creating={createClosure.isPending} onCreate={(closure) => createClosure.mutate(closure)} /> : <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-sm"><p className="font-semibold">Calendar-management permission is required</p><p className="mt-1 text-muted-foreground">Holiday data stays in the existing Events &amp; Calendar module. Grant calendar permission to make an attendance decision.</p></div>)}
           {activePanel === 'penalties' && <PenaltyBoundary />}
@@ -344,7 +362,7 @@ function PenaltyBoundary() { return <div className="rounded-xl border border-amb
 function EnrollmentPanel({ feature, staff, saving, onSave }: { feature: StaffClockingFeatureSettings; staff: import('@/lib/staff-clocking/contracts').StaffClockingStaffCandidate[]; saving: boolean; onSave: (accessMode: StaffClockingFeatureSettings['accessMode'], staffIds: string[]) => void }) {
   const [selected, setSelected] = useState(feature.enrolledStaffIds);
   const [mode, setMode] = useState<StaffClockingFeatureSettings['accessMode']>(feature.accessMode);
-  return <div className="rounded-xl border border-border/80 bg-background/70 p-4"><p className="text-sm font-semibold">Staff access</p><p className="mt-1 text-sm text-muted-foreground">Choose all active linked staff or a selected pilot group.</p><div className="mt-3 flex gap-2"><Button type="button" size="sm" variant={mode === 'all_active_linked_staff' ? 'default' : 'outline'} onClick={() => setMode('all_active_linked_staff')}>All active staff</Button><Button type="button" size="sm" variant={mode === 'selected_staff' ? 'default' : 'outline'} onClick={() => setMode('selected_staff')}>Selected staff</Button></div>{mode === 'selected_staff' && <div className="mt-3 max-h-44 space-y-2 overflow-auto rounded-lg border p-3">{staff.map((member) => <label key={member.id} className="flex items-center gap-2 text-sm"><Checkbox checked={selected.includes(member.id)} onCheckedChange={(checked) => setSelected(current => checked ? [...new Set([...current, member.id])] : current.filter(id => id !== member.id))} />{member.name}</label>)}</div>}<Button type="button" variant="outline" className="mt-3 min-h-10" disabled={saving || (mode === 'selected_staff' && selected.length === 0)} onClick={() => onSave(mode, selected)}>{saving && <Loader2 className="h-4 w-4 animate-spin" />}Save access</Button></div>;
+  return <div className="rounded-xl border border-border/80 bg-background/70 p-4"><p className="text-sm font-semibold">Staff access</p><p className="mt-1 text-sm text-muted-foreground">Choose all active staff or a selected group. Staff without a login can clock using an ID and a timekeeper.</p><div className="mt-3 flex gap-2"><Button type="button" size="sm" variant={mode === 'all_active_linked_staff' ? 'default' : 'outline'} onClick={() => setMode('all_active_linked_staff')}>All active staff</Button><Button type="button" size="sm" variant={mode === 'selected_staff' ? 'default' : 'outline'} onClick={() => setMode('selected_staff')}>Selected staff</Button></div>{mode === 'selected_staff' && <div className="mt-3 max-h-44 space-y-2 overflow-auto rounded-lg border p-3">{staff.map((member) => <label key={member.id} className="flex items-center gap-2 text-sm"><Checkbox checked={selected.includes(member.id)} onCheckedChange={(checked) => setSelected(current => checked ? [...new Set([...current, member.id])] : current.filter(id => id !== member.id))} />{member.name}</label>)}</div>}<Button type="button" variant="outline" className="mt-3 min-h-10" disabled={saving || (mode === 'selected_staff' && selected.length === 0)} onClick={() => onSave(mode, selected)}>{saving && <Loader2 className="h-4 w-4 animate-spin" />}Save access</Button></div>;
 }
 
 function ClosurePanel({ closures, isLoading, error, creating, onCreate }: { closures: Array<Record<string, unknown>>; isLoading: boolean; error?: string; creating: boolean; onCreate: (closure: { title: string; startDate: string; endDate?: string; description?: string }) => void }) {

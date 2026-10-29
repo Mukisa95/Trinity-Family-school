@@ -464,6 +464,8 @@ service cloud.firestore {
       allow read: if isUnrestrictedStaffOrAdmin();
       allow write: if false;
     }
+    match /staffClockingStaffIds/{staffId} { allow read, write: if false; }
+    match /staffClockingStaffCredentials/{credentialId} { allow read, write: if false; }
     match /staffClockingPersonalRevisions/{staffId} {
       allow get: if isActiveApplicationUser()
         && request.auth.token.role in ['Staff', 'Admin']
@@ -568,6 +570,8 @@ service cloud.firestore {
         && collection != 'dutyRotas'
         && collection != 'dutyAssignments'
         && collection != 'staffClockingPersonalRevisions'
+        && collection != 'staffClockingStaffIds'
+        && collection != 'staffClockingStaffCredentials'
         && collection != 'staffClockingExplanations'
         && collection != 'staffClockingSchedules'
         && collection != 'staffClockingQrSessions'

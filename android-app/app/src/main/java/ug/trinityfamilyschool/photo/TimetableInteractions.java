@@ -36,7 +36,7 @@ final class TimetableInteractions {
         TimetableSchedule.Frame feed = TimetableSurfaces.feed(context, envelope, scope, now);
         if ("TRACKED".equals(intent.getStringExtra("operation")) && session.getJSONObject("grants").optBoolean("timetable")) {
             for (TimetableSchedule.Frame tracked : feed.profiles) if (!tracked.trackedSubject.isEmpty() && tracked.trackedSubject.equals(intent.getStringExtra("trackedSubject"))) {
-                context.startActivity(new Intent(context, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("onlineRoute", PhotoPolicy.ORIGIN + "/timetable")); return;
+                context.startActivity(AppEntry.intent(context).putExtra("onlineRoute", PhotoPolicy.ORIGIN + "/timetable")); return;
             }
             return;
         }
@@ -44,7 +44,7 @@ final class TimetableInteractions {
         for (TimetableSchedule.Frame candidate : feed.profiles) if (candidate.profileId.equals(intent.getStringExtra("profileId"))) row = candidate;
         if ("EVENT".equals(intent.getStringExtra("operation")) && session.getJSONObject("grants").optBoolean("events")) {
             for(TimetableSchedule.Frame event:feed.profiles) if(!event.eventId.isEmpty() && event.eventId.equals(intent.getStringExtra("eventId"))) {
-                context.startActivity(new Intent(context,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("onlineRoute",PhotoPolicy.ORIGIN+"/events")); return;
+                context.startActivity(AppEntry.intent(context).putExtra("onlineRoute",PhotoPolicy.ORIGIN+"/events")); return;
             }
             return;
         }
