@@ -67,6 +67,14 @@ async function run() {
       assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('data-trinity-search')),'true');
       assert.equal(await search.inputValue(),'Ada');assert.equal(await page.evaluate(()=>window.documentMarker),'kept');
       assert.equal(page.url(),origin+'/?keep=1#dashboard');
+      const beforeNative=await page.evaluate(()=>window.shortcutMessages.filter(message=>message.action==='shortcutSearchEditorReady').length);
+      await search.evaluate(element=>element.blur());
+      await page.evaluate(()=>window.dispatchEvent(new CustomEvent('trinity-android-navigate',{detail:{requestId:crypto.randomUUID(),url:location.origin+'/?openSearch=1'}})));
+      await page.waitForFunction(count=>window.shortcutMessages.filter(message=>message.action==='shortcutSearchEditorReady').length>count,beforeNative);
+      assert.equal(await search.evaluate(element=>document.activeElement===element),true);
+      assert.equal(await search.inputValue(),'Ada');
+      assert.equal(await page.evaluate(()=>window.documentMarker),'kept');
+      assert.equal(page.url(),origin+'/?keep=1#dashboard');
       if(width<768){
         await page.getByRole('button',{name:'Close search',exact:true}).click();
         const closed=await page.evaluate(()=>window.shortcutMessages.filter(message=>message.action==='shortcutSearchEditorReady').length);

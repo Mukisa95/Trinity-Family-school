@@ -11,6 +11,21 @@ const routes: Record<string, string> = {
   search: '/?openSearch=1', timetable: '/timetable', events: '/events', pupils: '/pupils', exams: '/exams',
 };
 
+function nativeNavigationRoute(value: unknown): string | null {
+  const path = sanitizeInternalAppRoute(value);
+  if (path) return path;
+  if (typeof value !== 'string' || value.includes('\\')) return null;
+  try {
+    // Android's entry intents contain full school URLs. Convert only this
+    // document's origin to a router path; the shared path guard stays strict.
+    const url = new URL(value);
+    if (url.origin !== window.location.origin || url.username || url.password) return null;
+    return sanitizeInternalAppRoute(`${url.pathname}${url.search}${url.hash}`);
+  } catch {
+    return null;
+  }
+}
+
 /** Native warm shortcuts use the existing Next router and retain this document. */
 export function AndroidShortcutNavigator() {
   const router = useRouter();
@@ -20,7 +35,7 @@ export function AndroidShortcutNavigator() {
     const navigateRequest = (event: Event) => {
       const request = (event as CustomEvent<{ requestId?: unknown; url?: unknown }>).detail;
       if (typeof request?.requestId !== 'string' || !/^[a-f0-9-]{36}$/i.test(request.requestId)) return;
-      const route = sanitizeInternalAppRoute(request.url);
+      const route = nativeNavigationRoute(request.url);
       if (!route) return;
       if (!handled.has(request.requestId)) {
         handled.add(request.requestId);
