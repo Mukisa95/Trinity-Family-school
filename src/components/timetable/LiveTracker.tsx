@@ -125,14 +125,14 @@ export function LiveTracker({
         return (
             <section
                 onClick={handleCardSelect}
-                className={`relative h-full min-w-0 overflow-hidden rounded-2xl border bg-white p-3 pl-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition-all  dark:bg-slate-900 ${selected
+                className={`relative h-full min-w-0 overflow-hidden rounded-2xl border bg-white p-2 pl-3 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition-all  dark:bg-slate-900 ${selected
                     ? "border-brand-alt-200 shadow-[0_12px_34px_rgba(79,70,229,0.12)] dark:border-brand-alt-800/60"
                     : "border-amber-200/80 hover:border-brand-alt-200 hover:shadow-[0_10px_28px_rgba(79,70,229,0.09)] dark:border-amber-800/80 dark:hover:border-brand-alt-800/60"
                 } ${!selected && onSelect ? "cursor-pointer" : ""}`}
             >
                 <div className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${liveEnabled ? "from-amber-400 to-orange-500" : "from-brand-alt-surface-500 to-brand-secondary-alt-surface-500"}`} />
-                <div className="flex min-h-[52px] items-center gap-3">
-                    <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ring-1 ${liveEnabled
+                <div className="flex min-h-[36px] flex-wrap items-center gap-2">
+                    <div className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl ring-1 ${liveEnabled
                         ? "bg-amber-50 text-amber-600 ring-amber-200/70 dark:bg-amber-950/40 dark:text-amber-400 dark:ring-amber-800/70"
                         : "bg-brand-alt-surface-50 text-brand-alt-ink-600 ring-brand-alt-200/70 dark:bg-brand-alt-surface-950/40 dark:text-brand-alt-ink-400 dark:ring-brand-alt-800/70"
                     }`}>
@@ -216,7 +216,7 @@ export function LiveTracker({
     return (
         <article
             onClick={handleCardSelect}
-            className={`relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border bg-white p-2 pl-3 text-slate-800 transition-all sm:p-3 sm:pl-4  dark:bg-slate-900 dark:text-slate-100 ${selected
+            className={`relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border bg-white p-2 pl-3 text-slate-800 transition-all  dark:bg-slate-900 dark:text-slate-100 ${selected
                 ? "border-brand-alt-200 shadow-[0_12px_34px_rgba(79,70,229,0.12)] dark:border-brand-alt-800/60"
                 : "border-slate-200/90 shadow-[0_8px_24px_rgba(15,23,42,0.06)] hover:border-brand-alt-200 hover:shadow-[0_10px_30px_rgba(79,70,229,0.10)] dark:border-slate-700/90 dark:hover:border-brand-alt-800/60"
             } ${!selected && onSelect ? "cursor-pointer" : ""}`}
@@ -283,13 +283,13 @@ export function LiveTracker({
             </div>
 
             {/* Compact class and subject list */}
-            <div className="mt-1 flex min-h-5 flex-wrap items-center gap-1 border-t border-slate-100 pt-1 sm:mt-2 sm:gap-1.5 sm:pt-2 dark:border-slate-700">
+            <div className="mt-1 flex flex-wrap items-center gap-1">
                 {activeSubjectCards.length > 0 ? (
                     <>
                     {activeSubjectCards.map((sc, idx) => (
                         <div 
                             key={`${sc.id}-${idx}`} 
-                            className="inline-flex min-h-5 items-center gap-1 rounded-lg border border-brand-alt-100 bg-brand-alt-surface-50/70 px-1.5 py-0.5 text-[10px] font-bold tracking-tight text-slate-700 transition-colors hover:border-brand-alt-200 hover:bg-brand-alt-surface-50 sm:min-h-6 sm:px-2 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/70 dark:text-slate-200 dark:hover:border-brand-alt-800/60 dark:hover:bg-brand-alt-surface-950/40"
+                            className="inline-flex items-center gap-1 rounded-md border border-brand-alt-100 bg-brand-alt-surface-50/70 px-1.5 py-0.5 text-[10px] font-bold tracking-tight text-slate-700 transition-colors hover:border-brand-alt-200 hover:bg-brand-alt-surface-50 sm:px-2 dark:border-brand-alt-800/60 dark:bg-brand-alt-surface-950/70 dark:text-slate-200 dark:hover:border-brand-alt-800/60 dark:hover:bg-brand-alt-surface-950/40"
                         >
                             <span className="text-brand-alt-ink-700 dark:text-brand-alt-ink-300">{sc.classCode}</span>
                             <span className="select-none text-brand-alt-ink-300">·</span>

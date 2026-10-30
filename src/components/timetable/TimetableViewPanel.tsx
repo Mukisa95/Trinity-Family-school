@@ -266,7 +266,7 @@ function WeekGridView({
     }, []);
 
     return (
-        <div className="flex-1 min-h-0 flex flex-col pt-1">
+        <div className="min-w-0 flex flex-col pt-1">
             <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-220px)] sm:max-h-[calc(100vh-200px)] custom-scrollbar rounded-xl border border-gray-200 relative mb-4 dark:border-slate-700">
                 <table ref={tableRef} className="table-fixed text-sm border-separate border-spacing-0" style={{ width: stickyOffset + templatePeriods.reduce((sum, period) => sum + periodWidth(period), 0) }}>
                     <thead>
@@ -768,7 +768,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
     const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-5 min-w-0 flex flex-col gap-3 h-[calc(100vh-170px)] overflow-hidden dark:bg-slate-900 dark:border-slate-700">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-5 min-w-0 flex flex-col gap-3 overflow-hidden dark:bg-slate-900 dark:border-slate-700">
 
             {mobileControlTargets?.view && createPortal(
                 <TimetableDockSelect
@@ -977,7 +977,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
             {/* ── Content Area — two-finger pinch adjusts timetable scale on touch screens ── */}
             <div
                 ref={pinchSurfaceRef}
-                className="flex min-h-0 min-w-0 flex-1 touch-pan-x touch-pan-y touch-pinch-zoom flex-col"
+                className="flex min-w-0 touch-pan-x touch-pan-y touch-pinch-zoom flex-col"
             >
                 <TimetableSelectionEditor key={`${yearId}:${termId}:${profileId}`} enabled={isEditing}
                     data={{ yearId, profile: currentProfile, classes, staff: staffList, periods, entries }} subjects={subjects}
@@ -997,12 +997,13 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                     </div>
                 ) : viewMode === "day" ? (
                     // Day View — full interactive TimetableGrid with editing capability
-                    <div className="flex-1 min-h-0 min-w-0 overflow-hidden -mx-3 sm:-mx-5 px-3 sm:px-5 flex flex-col">
+                    <div className="min-w-0 -mx-3 sm:-mx-5 px-3 sm:px-5 flex flex-col">
                         <TimetableGrid
                             yearId={yearId}
                             termId={termId}
                             profileId={profileId}
                             hideToolbar={true}
+                            fitContent
                             externalZoom={zoom}
                             setExternalZoom={updateZoom}
                             externalIsEditing={isEditing}
