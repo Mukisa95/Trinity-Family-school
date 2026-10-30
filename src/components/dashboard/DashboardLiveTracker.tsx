@@ -98,7 +98,7 @@ function PillPopover({ pill, onClose }: { pill: PillData; onClose: () => void })
 
 // ... (existing code above TrackerCore inside DashboardLiveTracker.tsx)
 
-function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { yearId: string; termId: string; profileId: string; profileName?: string; showClock?: boolean }) {
+export function TrackerCore({ yearId, termId, profileId, profileName, showClock, onTimetablePage = false }: { yearId: string; termId: string; profileId: string; profileName?: string; showClock?: boolean; onTimetablePage?: boolean }) {
     const router = useRouter();
     const { data: periods = [] } = useTimetablePeriods(yearId, termId, profileId);
     const { data: entries = [] } = useTimetableEntries(yearId, termId, profileId);
@@ -194,9 +194,9 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                 </div>
                 {profileName && <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider dark:text-slate-400">{profileName}:</span>}
                 <span className="text-xs text-gray-500 dark:text-slate-400">No active lessons.</span>
-                <button onClick={() => router.push("/timetable")} className="ml-auto text-[10px] font-semibold text-brand-alt-ink-500 hover:text-brand-alt-ink-700 transition dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-300">
+                {!onTimetablePage && <button onClick={() => router.push("/timetable")} className="ml-auto text-[10px] font-semibold text-brand-alt-ink-500 hover:text-brand-alt-ink-700 transition dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-300">
                     Timetable →
-                </button>
+                </button>}
             </div>
         );
     }
@@ -267,7 +267,7 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                 )}
 
                 <div className="flex-shrink-0 flex items-center gap-0.5 p-0.5 bg-gray-50 border border-gray-200 rounded-full shadow-sm dark:bg-slate-900 dark:border-slate-700">
-                    <button onClick={handlePrev} disabled={!prevPeriod} className="p-0.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-900">
+                    <button type="button" aria-label="Show previous period" onClick={handlePrev} disabled={!prevPeriod} className="p-0.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-900">
                         <ChevronLeft className="w-3 h-3" />
                     </button>
                     {!isLive && (
@@ -275,7 +275,7 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                             Live
                         </button>
                     )}
-                    <button onClick={handleNext} disabled={!nextPeriod} className="p-0.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-900">
+                    <button type="button" aria-label="Show next period" onClick={handleNext} disabled={!nextPeriod} className="p-0.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-900">
                         <ChevronRight className="w-3 h-3" />
                     </button>
                 </div>

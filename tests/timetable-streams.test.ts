@@ -344,13 +344,13 @@ test('timetable live-feed cards stay compact and form two columns on wide screen
   const tracker = readFileSync('src/components/timetable/LiveTracker.tsx', 'utf8');
   const page = readFileSync('src/app/timetable/page.tsx', 'utf8');
 
-  assert.match(tracker, /getTimetableStreamInitial\(e, cls\)/);
-  assert.doesNotMatch(tracker, /Now \{currentTimeStr\}/);
+  const dashboard = readFileSync('src/components/dashboard/DashboardLiveTracker.tsx', 'utf8');
+  assert.match(tracker, /<TrackerCore yearId=/);
+  assert.match(tracker, /dashboard-timetable-card/);
+  assert.match(dashboard, /getTimetableStreamInitial\(e, cls\)/);
+  assert.match(dashboard, /Show previous period/);
+  assert.match(dashboard, /Show next period/);
   assert.match(page, /<TimetableClock \/>/);
-  assert.match(tracker, /No lessons assigned for this period/);
-  assert.match(tracker, /Show previous period/);
-  assert.match(tracker, /Show next period/);
-  assert.match(tracker, /rounded-2xl border bg-white/);
   assert.match(page, /grid grid-cols-1 items-stretch gap-2 xl:grid-cols-2/);
 });
 
